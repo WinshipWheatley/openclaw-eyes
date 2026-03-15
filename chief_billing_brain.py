@@ -6,9 +6,14 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from chief_session_manager import (
+    get_workflow_state,
+    set_workflow_state,
+    mark_complete,
+)
+
 INPUT_LOG = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 STATE_FILE = Path("/mnt/c/OpenClaw/logs/chief_replied.log")
-SESSION_FILE = Path("/home/openclaw/chief_billing_session.json")
 LISTENER_SESSION_FILE = Path("/home/openclaw/chief_billing_listener_session.json")
 
 EXPORT_DIR = Path("/home/openclaw/OpenClaw/exports")
@@ -91,35 +96,30 @@ def save_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+_BILLING_DEFAULT = {
+    "active": False,
+    "mode": None,
+    "step": 0,
+    "answers": {},
+    "last_field": None,
+    "last_prompt": None,
+}
+
+
 def load_session() -> dict:
-    return load_json(
-        SESSION_FILE,
-        {
-            "active": False,
-            "mode": None,
-            "step": 0,
-            "answers": {},
-            "last_field": None,
-            "last_prompt": None,
-        },
-    )
+    state = get_workflow_state()
+    if not state:
+        return json.loads(json.dumps(_BILLING_DEFAULT))
+    return state
 
 
 def save_session(session: dict) -> None:
-    save_json(SESSION_FILE, session)
+    set_workflow_state(session)
 
 
 def reset_session() -> None:
-    save_session(
-        {
-            "active": False,
-            "mode": None,
-            "step": 0,
-            "answers": {},
-            "last_field": None,
-            "last_prompt": None,
-        }
-    )
+    set_workflow_state(json.loads(json.dumps(_BILLING_DEFAULT)))
+    mark_complete()
 
 
 def clear_listener_billing_session() -> None:

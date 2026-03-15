@@ -66,12 +66,23 @@ def set_workflow(workflow: str, mode: str | None = None) -> dict:
     session["active_mode"] = mode
     session["step"] = 0
     session["fields"] = {}
+    session["workflow_state"] = {}
     session["history"] = []
     session["last_user_message"] = None
     session["last_question"] = None
     session["status"] = "active"
     save_session(session)
     return session
+
+
+def get_workflow_state() -> dict:
+    return load_session().get("workflow_state", {})
+
+
+def set_workflow_state(data: dict) -> None:
+    session = load_session()
+    session["workflow_state"] = data
+    save_session(session)
 
 
 def append_history(role: str, text: str) -> dict:
