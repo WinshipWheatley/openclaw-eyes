@@ -3,11 +3,12 @@ from chief_session_manager import (
     load_session,
     save_session,
     set_workflow,
+    set_workflow_state,
     append_history,
     mark_cancelled,
     reset_session,
 )
-from chief_billing_brain import handle as billing_handle
+from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 
 
 def looks_like_inspection(text: str) -> bool:
@@ -156,10 +157,20 @@ def route_message(text: str) -> dict:
     billing_mode = billing_mode_from_text(text)
     if billing_mode:
         set_workflow("billing", billing_mode)
+        set_workflow_state({
+            "active": True,
+            "mode": billing_mode,
+            "step": 0,
+            "answers": {},
+            "last_field": None,
+            "last_prompt": None,
+        })
+        questions = billing_questions(billing_mode)
+        first_q = questions[0][1] if questions else "Ready."
         return {
             "intent": "billing_start",
             "mode": billing_mode,
-            "reply": "Billing/admin mode started.",
+            "reply": first_q,
         }
 
     if album_intent(text):

@@ -59,14 +59,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     if intent == "billing_start":
-        formatted = f"[PHONE][{timestamp}] {routed['mode']}"
-        try:
-            with open(LOG_PATH, "a", encoding="utf-8") as f:
-                f.write(formatted + "\n")
-            await update.message.reply_text(reply or "Billing/admin mode started.")
-        except Exception as e:
-            print(f"Billing routing error: {e}")
-            await update.message.reply_text("Billing routing error.")
+        await update.message.reply_text(reply or "Ready.")
         return
 
     if intent == "billing_continue":
