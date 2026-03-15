@@ -246,6 +246,59 @@ def save_record(record: dict) -> None:
         f.write(json.dumps(record) + "\n")
 
 
+def handle(text: str) -> list[str]:
+    """Process a billing answer directly.
+    Returns reply strings to send. Returns [] if no active session.
+    Does not call send_reply() — caller is responsible for delivery.
+    """
+    session = load_session()
+    if not session.get("active"):
+        return []
+
+    questions = get_questions(session["mode"])
+    step = session.get("step", 0)
+    replies = []
+
+    if looks_like_correction(text):
+        last_field = session.get("last_field")
+        replacement = extract_replacement_value(text)
+        if last_field and replacement:
+            session["answers"][last_field] = replacement
+            save_session(session)
+            current_prompt = ordinal_prompt(session["mode"], step)
+            replies.append(f"Updated {last_field} to {replacement}.")
+            replies.append(current_prompt if current_prompt else "Correction saved.")
+        elif last_field:
+            current_value = session["answers"].get(last_field, "")
+            replies.append(
+                f"Okay. What should {last_field} be instead? Current value: {current_value}"
+            )
+        else:
+            replies.append("Correction noted, but I could not identify the last field to change.")
+        return replies
+
+    if step < len(questions):
+        field, prompt = questions[step]
+        session["answers"][field] = text
+        session["last_field"] = field
+        session["last_prompt"] = prompt
+        session["step"] = step + 1
+        save_session(session)
+        if session["step"] < len(questions):
+            replies.append(questions[session["step"]][1])
+        else:
+            record = build_record(session)
+            save_record(record)
+            replies.append(
+                f"{session['mode'].title()} capture complete. "
+                f"Saved {record.get('invoice_number', 'record')} to billing records."
+            )
+            reset_session()
+            clear_listener_billing_session()
+
+    return replies
+
+
 state = load_json(STATE_FILE, {"last_index": 0})
 last_index = int(state.get("last_index", 0))
 
