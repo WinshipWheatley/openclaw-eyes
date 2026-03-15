@@ -299,126 +299,127 @@ def handle(text: str) -> list[str]:
     return replies
 
 
-state = load_json(STATE_FILE, {"last_index": 0})
-last_index = int(state.get("last_index", 0))
+if __name__ == "__main__":
+    state = load_json(STATE_FILE, {"last_index": 0})
+    last_index = int(state.get("last_index", 0))
 
-print("Chief billing brain online.")
+    print("Chief billing brain online.")
 
-while True:
-    session = load_session()
+    while True:
+        session = load_session()
 
-    if INPUT_LOG.exists():
-        lines = INPUT_LOG.read_text(encoding="utf-8").splitlines()
+        if INPUT_LOG.exists():
+            lines = INPUT_LOG.read_text(encoding="utf-8").splitlines()
 
-        while last_index < len(lines):
-            clean = lines[last_index].rstrip("\n")
-            payload = normalize_payload(clean)
-            upper = payload.upper().strip()
+            while last_index < len(lines):
+                clean = lines[last_index].rstrip("\n")
+                payload = normalize_payload(clean)
+                upper = payload.upper().strip()
 
-            last_index += 1
-            save_json(STATE_FILE, {"last_index": last_index})
+                last_index += 1
+                save_json(STATE_FILE, {"last_index": last_index})
 
-            if not payload:
-                continue
+                if not payload:
+                    continue
 
-            if session.get("active"):
-                questions = get_questions(session["mode"])
-                step = session.get("step", 0)
+                if session.get("active"):
+                    questions = get_questions(session["mode"])
+                    step = session.get("step", 0)
 
-                if looks_like_correction(payload):
-                    last_field = session.get("last_field")
-                    replacement = extract_replacement_value(payload)
+                    if looks_like_correction(payload):
+                        last_field = session.get("last_field")
+                        replacement = extract_replacement_value(payload)
 
-                    if last_field and replacement:
-                        session["answers"][last_field] = replacement
+                        if last_field and replacement:
+                            session["answers"][last_field] = replacement
+                            save_session(session)
+
+                            current_prompt = ordinal_prompt(session["mode"], step)
+                            send_reply(f"Updated {last_field} to {replacement}.")
+                            if current_prompt:
+                                send_reply(current_prompt)
+                            else:
+                                send_reply("Correction saved.")
+                        elif last_field:
+                            current_value = session["answers"].get(last_field, "")
+                            send_reply(
+                                f"Okay. What should {last_field} be instead? Current value: {current_value}"
+                            )
+                        else:
+                            send_reply("Correction noted, but I could not identify the last field to change.")
+                        break
+
+                    if step < len(questions):
+                        field, prompt = questions[step]
+                        session["answers"][field] = payload
+                        session["last_field"] = field
+                        session["last_prompt"] = prompt
+                        session["step"] = step + 1
                         save_session(session)
 
-                        current_prompt = ordinal_prompt(session["mode"], step)
-                        send_reply(f"Updated {last_field} to {replacement}.")
-                        if current_prompt:
-                            send_reply(current_prompt)
+                        if session["step"] < len(questions):
+                            next_prompt = questions[session["step"]][1]
+                            send_reply(next_prompt)
                         else:
-                            send_reply("Correction saved.")
-                    elif last_field:
-                        current_value = session["answers"].get(last_field, "")
-                        send_reply(
-                            f"Okay. What should {last_field} be instead? Current value: {current_value}"
-                        )
-                    else:
-                        send_reply("Correction noted, but I could not identify the last field to change.")
+                            record = build_record(session)
+                            save_record(record)
+                            send_reply(
+                                f"{session['mode'].title()} capture complete. Saved {record.get('invoice_number', 'record')} to billing records."
+                            )
+                            reset_session()
+                            clear_listener_billing_session()
                     break
 
-                if step < len(questions):
-                    field, prompt = questions[step]
-                    session["answers"][field] = payload
-                    session["last_field"] = field
-                    session["last_prompt"] = prompt
-                    session["step"] = step + 1
+                if upper == "INVOICE":
+                    session = {
+                        "active": True,
+                        "mode": "INVOICE",
+                        "step": 0,
+                        "answers": {},
+                        "last_field": None,
+                        "last_prompt": None,
+                    }
                     save_session(session)
+                    send_reply(CREATE_INVOICE_QUESTIONS[0][1])
+                    break
 
-                    if session["step"] < len(questions):
-                        next_prompt = questions[session["step"]][1]
-                        send_reply(next_prompt)
-                    else:
-                        record = build_record(session)
-                        save_record(record)
-                        send_reply(
-                            f"{session['mode'].title()} capture complete. Saved {record.get('invoice_number', 'record')} to billing records."
-                        )
-                        reset_session()
-                        clear_listener_billing_session()
-                break
+                if upper == "PAYMENT":
+                    session = {
+                        "active": True,
+                        "mode": "PAYMENT",
+                        "step": 0,
+                        "answers": {},
+                        "last_field": None,
+                        "last_prompt": None,
+                    }
+                    save_session(session)
+                    send_reply(PAYMENT_UPDATE_QUESTIONS[0][1])
+                    break
 
-            if upper == "INVOICE":
-                session = {
-                    "active": True,
-                    "mode": "INVOICE",
-                    "step": 0,
-                    "answers": {},
-                    "last_field": None,
-                    "last_prompt": None,
-                }
-                save_session(session)
-                send_reply(CREATE_INVOICE_QUESTIONS[0][1])
-                break
+                if upper == "FOLLOWUP":
+                    session = {
+                        "active": True,
+                        "mode": "FOLLOWUP",
+                        "step": 0,
+                        "answers": {},
+                        "last_field": None,
+                        "last_prompt": None,
+                    }
+                    save_session(session)
+                    send_reply(FOLLOW_UP_QUESTIONS[0][1])
+                    break
 
-            if upper == "PAYMENT":
-                session = {
-                    "active": True,
-                    "mode": "PAYMENT",
-                    "step": 0,
-                    "answers": {},
-                    "last_field": None,
-                    "last_prompt": None,
-                }
-                save_session(session)
-                send_reply(PAYMENT_UPDATE_QUESTIONS[0][1])
-                break
+                if upper == "RECEIPT":
+                    session = {
+                        "active": True,
+                        "mode": "RECEIPT",
+                        "step": 0,
+                        "answers": {},
+                        "last_field": None,
+                        "last_prompt": None,
+                    }
+                    save_session(session)
+                    send_reply(RECEIPT_QUESTIONS[0][1])
+                    break
 
-            if upper == "FOLLOWUP":
-                session = {
-                    "active": True,
-                    "mode": "FOLLOWUP",
-                    "step": 0,
-                    "answers": {},
-                    "last_field": None,
-                    "last_prompt": None,
-                }
-                save_session(session)
-                send_reply(FOLLOW_UP_QUESTIONS[0][1])
-                break
-
-            if upper == "RECEIPT":
-                session = {
-                    "active": True,
-                    "mode": "RECEIPT",
-                    "step": 0,
-                    "answers": {},
-                    "last_field": None,
-                    "last_prompt": None,
-                }
-                save_session(session)
-                send_reply(RECEIPT_QUESTIONS[0][1])
-                break
-
-    time.sleep(2)
+        time.sleep(2)
