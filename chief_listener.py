@@ -70,14 +70,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if intent == "billing_continue":
+        replies = routed.get("replies", [])
+        if replies:
+            try:
+                for r in replies:
+                    await update.message.reply_text(r)
+            except Exception as e:
+                print(f"Billing direct reply error: {e}")
+                await update.message.reply_text("Billing reply error.")
+            return
         formatted = f"[PHONE][{timestamp}] {text}"
         try:
             with open(LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(formatted + "\n")
-            await update.message.reply_text(reply or "Billing/admin input captured.")
+            await update.message.reply_text("Billing input captured.")
         except Exception as e:
-            print(f"Billing input routing error: {e}")
-            await update.message.reply_text("Billing input routing error.")
+            print(f"Billing fallback routing error: {e}")
+            await update.message.reply_text("Billing routing error.")
         return
 
     formatted = f"[PHONE][{timestamp}] {text}"

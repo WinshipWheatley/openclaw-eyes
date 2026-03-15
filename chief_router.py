@@ -7,6 +7,7 @@ from chief_session_manager import (
     mark_cancelled,
     reset_session,
 )
+from chief_billing_brain import handle as billing_handle
 
 
 def looks_like_inspection(text: str) -> bool:
@@ -143,9 +144,10 @@ def route_message(text: str) -> dict:
         }
 
     if session.get("status") == "active" and session.get("active_workflow") == "billing":
+        replies = billing_handle(text)
         return {
             "intent": "billing_continue",
-            "reply": "Billing/admin input captured.",
+            "replies": replies,
         }
 
     billing_mode = billing_mode_from_text(text)
