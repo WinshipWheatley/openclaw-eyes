@@ -70,6 +70,7 @@ def billing_mode_from_text(text: str) -> str | None:
         "draft invoice",
         "bill this client",
         "i need to make an invoice",
+        "invoice",
     ]):
         return "INVOICE"
 
@@ -81,6 +82,7 @@ def billing_mode_from_text(text: str) -> str | None:
         "deposit received",
         "balance received",
         "update payment",
+        "payment",
     ]):
         return "PAYMENT"
 
@@ -90,6 +92,7 @@ def billing_mode_from_text(text: str) -> str | None:
         "remind this client",
         "check in with client",
         "nudge the client",
+        "followup",
     ]):
         return "FOLLOWUP"
 
