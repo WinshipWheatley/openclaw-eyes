@@ -38,6 +38,8 @@ _ALBUM_DEFAULT = {
     "history": [],
     "turn": 0,
     "arc_active": False,
+    "last_topic_asked": None,
+    "last_topic_stack": [],
 }
 
 
@@ -163,12 +165,12 @@ def _detect_topics(text: str) -> list:
     return [topic for topic, kws in TOPIC_KEYWORDS.items() if any(kw in t for kw in kws)]
 
 
-def _next_topic_prompt(session: dict):
+def _next_topic_and_prompt(session: dict) -> tuple:
     covered = set(session.get("topics_covered", []))
     for topic in TOPIC_ORDER:
         if topic not in covered:
-            return TOPIC_PROMPTS[topic]
-    return None
+            return topic, TOPIC_PROMPTS[topic]
+    return None, None
 
 
 # ── Structured field extraction ────────────────────────────────────────────────
@@ -192,11 +194,11 @@ def _extract_structured(text: str) -> dict:
         data["needs_rerecord"] = "yes"
 
     for field, keywords in [
-        ("drums_pass",    ["drums done", "drums are done", "drums locked", "drums are locked", "drums are good", "drum tracking done"]),
-        ("bass_pass",     ["bass done", "bass is done", "bass locked", "bass is locked", "bass is good"]),
+        ("drums_pass",    ["drums done", "drums are done", "drums locked", "drums are locked", "drum tracking done"]),
+        ("bass_pass",     ["bass done", "bass is done", "bass locked", "bass is locked"]),
         ("guitars_pass",  ["guitars done", "guitars are done", "guitar done", "guitars locked", "guitar tracking done"]),
-        ("keys_pass",     ["keys done", "keys are done", "synths done", "keys locked", "keys are good"]),
-        ("structure_pass",["structure locked", "structure done", "arrangement done", "arrangement locked", "structure is good", "structure is locked"]),
+        ("keys_pass",     ["keys done", "keys are done", "synths done", "keys locked"]),
+        ("structure_pass",["structure locked", "structure done", "arrangement done", "arrangement locked", "structure is locked"]),
         ("vocals_pass",   ["vocals done", "vocals are done", "leads done", "leads are done", "vocals locked", "lead vocal done"]),
     ]:
         if any(p in t for p in keywords):
@@ -275,7 +277,7 @@ def _process_message(session: dict, text: str) -> dict:
     return session
 
 
-# ── Done signal ────────────────────────────────────────────────────────────────
+# ── Done / skip / go-back signals ─────────────────────────────────────────────
 
 def _is_done_signal(text: str) -> bool:
     t = text.lower().strip()
@@ -284,6 +286,24 @@ def _is_done_signal(text: str) -> bool:
         "all good", "we're good", "wrap it up", "save it",
         "that's everything", "thats everything", "nothing else",
         "finish it", "lock it in", "close it out",
+    ])
+
+
+def _is_skip_signal(text: str) -> bool:
+    t = text.lower().strip()
+    return any(p in t for p in [
+        "skip", "not sure", "idk", "move on", "pass", "next",
+        "no idea", "n/a", "dont know", "don't know", "unsure",
+        "nothing on that", "no notes on that",
+    ])
+
+
+def _is_go_back_signal(text: str) -> bool:
+    t = text.lower().strip()
+    return any(p in t for p in [
+        "go back", "wait", "actually", "let me fix that",
+        "hold on", "scratch that", "change that last one",
+        "that was wrong", "undo that",
     ])
 
 
@@ -410,12 +430,62 @@ def handle(text: str) -> list:
             session["phase"] = "finalizing"
             save_session(session)
             replies.extend(_finalize(session))
+
+        elif _is_go_back_signal(msg):
+            stack = session.get("last_topic_stack", [])
+            covered = list(session.get("topics_covered", []))
+            if stack:
+                prev_topic = stack.pop()
+                session["last_topic_stack"] = stack
+                if prev_topic in covered:
+                    covered.remove(prev_topic)
+                session["topics_covered"] = covered
+                session["last_topic_asked"] = prev_topic
+                save_session(session)
+                replies.append(TOPIC_PROMPTS[prev_topic])
+            else:
+                replies.append("Nothing to go back to — we're at the start.")
+
+        elif _is_skip_signal(msg):
+            # Mark the last question as covered without extracting anything
+            last = session.get("last_topic_asked")
+            if last:
+                covered = list(session.get("topics_covered", []))
+                if last not in covered:
+                    covered.append(last)
+                session["topics_covered"] = covered
+            session["phase"] = "follow_up"
+            next_topic, next_prompt = _next_topic_and_prompt(session)
+            if next_topic:
+                stack = list(session.get("last_topic_stack", []))
+                if last:
+                    stack.append(last)
+                session["last_topic_stack"] = stack
+                session["last_topic_asked"] = next_topic
+                save_session(session)
+                replies.append(next_prompt)
+            else:
+                replies.extend(_finalize(session))
+
         else:
+            # Mark the topic we asked about as covered regardless of content (fix loop bug)
+            last = session.get("last_topic_asked")
+            if last:
+                covered = list(session.get("topics_covered", []))
+                if last not in covered:
+                    covered.append(last)
+                session["topics_covered"] = covered
+                stack = list(session.get("last_topic_stack", []))
+                stack.append(last)
+                session["last_topic_stack"] = stack
+
             session = _process_message(session, msg)
             session["phase"] = "follow_up"
-            save_session(session)
-            next_prompt = _next_topic_prompt(session)
-            if next_prompt:
+
+            next_topic, next_prompt = _next_topic_and_prompt(session)
+            if next_topic:
+                session["last_topic_asked"] = next_topic
+                save_session(session)
                 replies.append(next_prompt)
             else:
                 replies.extend(_finalize(session))
