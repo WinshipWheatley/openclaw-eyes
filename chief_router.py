@@ -10,7 +10,13 @@ from chief_session_manager import (
     reset_session,
 )
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
-from chief_album_brain import handle as album_handle, handle_arc as album_arc_handle
+from chief_album_brain import (
+    handle as album_handle,
+    handle_arc as album_arc_handle,
+    handle_quick_update as album_quick_update,
+    _match_song_title,
+    _ALBUM_SONGS,
+)
 
 
 def looks_like_inspection(text: str) -> bool:
@@ -109,6 +115,23 @@ def billing_mode_from_text(text: str) -> str | None:
     return None
 
 
+_QUICK_UPDATE_SIGNALS = [
+    "is done", "are done", "is locked", "are locked", "is finished",
+    "are finished", "finished tracking", "just finished", "just tracked",
+    "i tracked", "tracking done", "done tracking", "just locked",
+    "is complete", "are complete", "is ready", "is mixed", "is mastered",
+]
+
+
+def looks_like_quick_update(text: str) -> bool:
+    """True when the message mentions a known song AND a completion signal,
+    with no active album session in progress."""
+    t = text.lower()
+    has_signal = any(s in t for s in _QUICK_UPDATE_SIGNALS)
+    has_song = any(song.lower() in t for song in _ALBUM_SONGS)
+    return has_signal and has_song
+
+
 def album_arc_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
@@ -201,6 +224,13 @@ def route_message(text: str) -> dict:
         replies = album_handle(text)
         return {
             "intent": "album_continue",
+            "replies": replies,
+        }
+
+    if session.get("status") != "active" and looks_like_quick_update(text):
+        replies = album_quick_update(text)
+        return {
+            "intent": "quick_song_update",
             "replies": replies,
         }
 

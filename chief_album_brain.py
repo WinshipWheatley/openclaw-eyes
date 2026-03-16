@@ -90,6 +90,8 @@ _ALBUM_DEFAULT = {
     "arc_active": False,
     "last_topic_asked": None,
     "last_topic_stack": [],
+    "return_mode": None,       # "full" | "targeted" | None (new song)
+    "targeted_sections": [],   # only used when return_mode == "targeted"
 }
 
 
@@ -337,18 +339,33 @@ def _extract_vocal_archetype(text: str) -> dict:
 
 # ── Notes accumulation ─────────────────────────────────────────────────────────
 
+def _best_section(text: str, topics: list) -> str:
+    """Return the single most relevant markdown section for this text.
+    Score each detected topic by keyword hit count; break ties by TOPIC_ORDER."""
+    if not topics:
+        return "Vibe / Feel"
+    t = text.lower()
+    best_topic, best_score = None, -1
+    for i, topic in enumerate(TOPIC_ORDER):
+        if topic not in topics:
+            continue
+        score = sum(1 for kw in TOPIC_KEYWORDS[topic] if kw in t)
+        # weight by inverse position so earlier topics win ties
+        weighted = score * 1000 - i
+        if weighted > best_score:
+            best_score, best_topic = weighted, topic
+    return TOPIC_TO_SECTION.get(best_topic, "Vibe / Feel")
+
+
 def _accumulate_notes(session: dict, text: str, topics: list) -> dict:
     notes = dict(session.get("notes", {}))
-    sections_hit = set()
-    for topic in topics:
-        section = TOPIC_TO_SECTION.get(topic)
-        if section:
-            sections_hit.add(section)
-    if not sections_hit:
-        sections_hit.add("Vibe / Feel")
-    for section in sections_hit:
-        existing = notes.get(section, "").strip()
-        notes[section] = (existing + "\n\n" + text).strip() if existing else text
+    section = _best_section(text, topics)
+    # In targeted mode, only write to sections the user explicitly asked to update
+    targeted = session.get("targeted_sections", [])
+    if targeted and section not in targeted:
+        return notes  # discard — not a section they want to touch
+    existing = notes.get(section, "").strip()
+    notes[section] = (existing + "\n\n" + text).strip() if existing else text
     return notes
 
 
@@ -385,11 +402,59 @@ def _is_done_signal(text: str) -> bool:
 
 def _is_skip_signal(text: str) -> bool:
     t = text.lower().strip()
-    return any(p in t for p in [
+    # Explicit skip phrases
+    if any(p in t for p in [
         "skip", "not sure", "idk", "move on", "pass", "next",
         "no idea", "n/a", "dont know", "don't know", "unsure",
-        "nothing on that", "no notes on that",
+        "nothing on that", "no notes on that", "not right now",
+        "nothing yet", "none yet", "no notes", "nothing to add",
+        "nah", "nope",
+    ]):
+        return True
+    # Vague short responses with no topic content — treat as skip rather
+    # than polluting a section with meaningless filler
+    words = t.split()
+    if len(words) <= 4 and not _detect_topics(text):
+        return True
+    return False
+
+
+def _is_full_review_signal(text: str) -> bool:
+    t = text.lower().strip()
+    return any(p in t for p in [
+        "full", "re-review", "review", "everything", "all of it",
+        "go through it", "full review", "start over", "from the top",
     ])
+
+
+def _is_targeted_signal(text: str) -> bool:
+    t = text.lower().strip()
+    return any(p in t for p in [
+        "specific", "just update", "update specific", "targeted",
+        "only", "just", "certain",
+    ]) or bool(_detect_targeted_sections(text))
+
+
+def _detect_targeted_sections(text: str) -> list:
+    """Return list of section names explicitly mentioned in text."""
+    t = text.lower()
+    mapping = [
+        (["structure", "arrangement", "intro", "bridge", "chorus", "verse"], "Structure Notes"),
+        (["vocal", "lead", "bgv", "backing", "voice", "re-record", "rerecord"], "Vocals / Lyrics"),
+        (["drum", "kick", "snare", "groove", "beat"], "Drums"),
+        (["bass", "low end"], "Bass"),
+        (["guitar", "riff", "chord", "acoustic", "electric"], "Guitars"),
+        (["keys", "synth", "piano", "organ", "pad", "world rhythm", "electronica"], "Keys / Synths / Electronica / World Rhythm"),
+        (["mix", "mixing", "mix prep", "ready to mix"], "Mix Notes"),
+        (["lyric", "words", "verse goes", "chorus goes"], "Lyrics"),
+        (["archetype", "character", "persona", "who is the singer"], "Vocal Archetype"),
+        (["suno", "genre", "reference", "style"], "Suno Reference"),
+    ]
+    found = []
+    for keywords, section in mapping:
+        if any(kw in t for kw in keywords) and section not in found:
+            found.append(section)
+    return found
 
 
 def _is_go_back_signal(text: str) -> bool:
@@ -459,12 +524,32 @@ def _match_song_title(text: str) -> str | None:
 
 
 def _summarize_existing(sections: dict) -> str:
+    """Full section dump — used internally."""
     lines = []
     for section, content in sections.items():
         if content.strip() and section not in ("Session History",):
             snippet = content.strip()[:120]
             ellipsis = "..." if len(content.strip()) > 120 else ""
             lines.append(f"**{section}:** {snippet}{ellipsis}")
+    return "\n".join(lines) if lines else ""
+
+
+def _brief_summary(sections: dict) -> str:
+    """2-3 line returning-user summary: only the most populated sections."""
+    priority = [
+        "Structure Notes", "Vocals / Lyrics", "Drums", "Bass",
+        "Guitars", "Keys / Synths / Electronica / World Rhythm",
+        "Mix Notes", "Vibe / Feel",
+    ]
+    lines = []
+    for section in priority:
+        content = sections.get(section, "").strip()
+        if content:
+            snippet = content.replace("\n", " ")[:80]
+            ellipsis = "..." if len(content) > 80 else ""
+            lines.append(f"{section}: {snippet}{ellipsis}")
+        if len(lines) == 3:
+            break
     return "\n".join(lines) if lines else ""
 
 
@@ -529,16 +614,12 @@ def handle(text: str) -> list:
     if phase == "song_name":
         song_title = _match_song_title(msg)
         if song_title is None:
-            # Couldn't confidently identify the song — re-ask
             save_session(session)
-            known = list_all_songs()
-            if known:
-                replies.append(
-                    f"I didn't catch which song. Which one are we working on? "
-                    f"({', '.join(known)})"
-                )
-            else:
-                replies.append("Which song are we working on?")
+            known = list(_ALBUM_SONGS)
+            replies.append(
+                f"I didn't catch which song. Which one are we working on?\n"
+                f"({', '.join(known)})"
+            )
         else:
             session["song_title"] = song_title
             existing_sections = load_song_md(song_title)
@@ -552,19 +633,54 @@ def handle(text: str) -> list:
                                 session["structured"] = {k: v for k, v in row.items() if v}
             except Exception:
                 pass
-            session["phase"] = "open"
-            save_session(session)
-            summary = _summarize_existing(existing_sections)
-            if summary:
+
+            brief = _brief_summary(existing_sections)
+            if brief:
+                # Returning user — show summary, ask review mode
+                session["phase"] = "return_mode_choice"
+                save_session(session)
                 replies.append(
-                    f"Got it — {song_title}. Here's what I have so far:\n\n{summary}\n\n"
-                    "Tell me what's changed or what's on your mind about it."
+                    f"Got it — {song_title}. Here's what I already have:\n\n{brief}\n\n"
+                    "Want to do a full re-review, or just update specific things?"
                 )
             else:
+                # Fresh song — go straight to open conversation
+                session["phase"] = "open"
+                session["return_mode"] = "full"
+                save_session(session)
                 replies.append(
                     f"Got it — {song_title}. "
                     "Talk to me about it — where is it at, what does it need, "
                     "what are you feeling about it?"
+                )
+
+    elif phase == "return_mode_choice":
+        if _is_full_review_signal(msg):
+            session["return_mode"] = "full"
+            session["targeted_sections"] = []
+            session["phase"] = "open"
+            save_session(session)
+            replies.append(
+                "Got it — full re-review. Talk to me, what's changed or what's on your mind?"
+            )
+        else:
+            # Try to detect which sections they named
+            sections = _detect_targeted_sections(msg)
+            if sections:
+                session["return_mode"] = "targeted"
+                session["targeted_sections"] = sections
+                section_names = ", ".join(sections)
+                session["phase"] = "open"
+                save_session(session)
+                replies.append(
+                    f"Got it — just updating {section_names}. What's the latest on those?"
+                )
+            else:
+                # They said something like "just update specific things" without naming sections
+                save_session(session)
+                replies.append(
+                    "Which sections do you want to update? "
+                    "(e.g. vocals, drums, guitars, structure, mix notes)"
                 )
 
     elif phase in ("open", "follow_up"):
@@ -734,6 +850,94 @@ def handle_arc(text: str) -> list:
         f"Songs still needing notes: {', '.join(songs_needing_work) if songs_needing_work else 'all covered'}\n"
         f"Saved to album_arc.md."
     ]
+
+
+# ── Quick inline update (no full session) ─────────────────────────────────────
+
+_QUICK_UPDATE_PROMPT = """\
+A music producer said something that mentions updating a specific song's status.
+Extract ONLY the fields you are certain about. Return valid JSON only — no explanation.
+
+Fields (all optional):
+  song_title  : exact song name from this list: {song_list}
+  field       : one of: drums_pass, bass_pass, guitars_pass, keys_pass,
+                structure_pass, vocals_pass, version_locked, needs_rerecord,
+                rerecord_reason, mix_readiness, mix_prep_done, status
+  value       : the value for that field (e.g. "done", "yes", "ready", "mastered")
+  note        : a short one-line note to append to the song's markdown (optional)
+  section     : which markdown section the note belongs to (optional)
+
+If you cannot confidently identify both song_title and field, return {{}}.
+
+Message: {text}
+
+JSON:"""
+
+
+def handle_quick_update(text: str) -> list:
+    """Handle a quick out-of-session field update. Returns reply strings."""
+    song_list = ", ".join(_ALBUM_SONGS)
+    prompt = _QUICK_UPDATE_PROMPT.format(text=text, song_list=song_list)
+    payload = json.dumps({
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False,
+    }).encode()
+    try:
+        req = urllib.request.Request(
+            OLLAMA_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+        raw = result.get("response", "").strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```[a-z]*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw.strip())
+        data = json.loads(raw)
+    except Exception:
+        return ["Couldn't parse that update — try starting a full album session."]
+
+    song_title = data.get("song_title", "").strip()
+    field = data.get("field", "").strip()
+    value = data.get("value", "").strip()
+
+    if not song_title or not field or not value:
+        return ["I caught something about the album but couldn't pin down the song and field. Try being more specific, e.g. 'guitars are done for Blue Weather'."]
+
+    # Validate song title against canonical list
+    matched = _match_song_title(song_title)
+    if not matched:
+        return [f"I couldn't match '{song_title}' to a known song."]
+
+    # Update CSV
+    upsert_csv_row({"song_title": matched, field: value})
+
+    # Append note to markdown if provided
+    note = data.get("note", "").strip()
+    section = data.get("section", "").strip()
+    if note:
+        if not section:
+            # Fall back to detecting section from field name
+            field_to_section = {
+                "drums_pass": "Drums", "bass_pass": "Bass",
+                "guitars_pass": "Guitars", "keys_pass": "Keys / Synths / Electronica / World Rhythm",
+                "structure_pass": "Structure Notes", "vocals_pass": "Vocals / Lyrics",
+                "version_locked": "Structure Notes", "needs_rerecord": "Vocals / Lyrics",
+                "mix_readiness": "Mix Notes", "mix_prep_done": "Mix Notes",
+                "status": "Mix Notes",
+            }
+            section = field_to_section.get(field, "Vibe / Feel")
+        sections = load_song_md(matched)
+        existing = sections.get(section, "").strip()
+        sections[section] = (existing + "\n\n" + note).strip() if existing else note
+        save_song_md(matched, sections)
+
+    append_session_history(matched, f"Quick update: {field} = {value}.")
+
+    return [f"Got it — updated {field} for {matched}. Saved to CSV and notes."]
 
 
 # ── Legacy polling shim ────────────────────────────────────────────────────────
