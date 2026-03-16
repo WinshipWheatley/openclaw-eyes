@@ -9,6 +9,7 @@ from chief_session_manager import (
     get_workflow_state,
     set_workflow_state,
     mark_complete,
+    reset_session as sm_reset_session,
 )
 from chief_album_io import (
     ensure_csv,
@@ -55,8 +56,8 @@ def save_session(session: dict) -> None:
 
 
 def reset_session() -> None:
-    set_workflow_state(json.loads(json.dumps(_ALBUM_DEFAULT)))
-    mark_complete()
+    """Fully clear all album session state back to system default."""
+    sm_reset_session()
 
 
 # ── Topic system ───────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ from chief_session_manager import (
     save_session,
     set_workflow,
     set_workflow_state,
+    get_workflow_state,
     append_history,
     mark_cancelled,
     reset_session,
@@ -194,7 +195,9 @@ def route_message(text: str) -> dict:
             "reply": "Running album arc analysis across all songs...",
         }
 
-    if session.get("status") == "active" and session.get("active_workflow") == "album":
+    if (session.get("status") == "active"
+            and session.get("active_workflow") == "album"
+            and get_workflow_state().get("active", False)):
         replies = album_handle(text)
         return {
             "intent": "album_continue",
@@ -202,6 +205,8 @@ def route_message(text: str) -> dict:
         }
 
     if album_intent(text):
+        # Always start completely fresh regardless of any lingering session state
+        reset_session()
         set_workflow("album", None)
         set_workflow_state({
             "active": True,
@@ -214,6 +219,8 @@ def route_message(text: str) -> dict:
             "history": [],
             "turn": 0,
             "arc_active": False,
+            "last_topic_asked": None,
+            "last_topic_stack": [],
         })
         return {
             "intent": "album_start",
