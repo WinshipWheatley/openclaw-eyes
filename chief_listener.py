@@ -85,6 +85,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if intent == "billing_continue":
         return
 
+    if intent == "album_start":
+        await update.message.reply_text(reply or "Album review started.")
+        return
+
+    if intent == "album_continue":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     formatted = f"[PHONE][{timestamp}] {text}"
 
     try:
