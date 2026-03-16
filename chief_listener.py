@@ -86,10 +86,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if intent == "album_start":
-        await update.message.reply_text(reply or "Album review started.")
+        await update.message.reply_text(reply or "What song are we working on?")
         return
 
     if intent == "album_continue":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
+    if intent == "album_arc_start":
+        try:
+            from chief_album_brain import handle_arc
+            arc_replies = handle_arc("")
+            for r in arc_replies:
+                await update.message.reply_text(r)
+        except Exception as e:
+            await update.message.reply_text(f"Arc analysis error: {e}")
+        return
+
+    if intent == "album_arc_continue":
         replies = routed.get("replies", [])
         for r in replies:
             await update.message.reply_text(r)

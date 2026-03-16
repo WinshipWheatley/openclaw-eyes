@@ -9,7 +9,7 @@ from chief_session_manager import (
     reset_session,
 )
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
-from chief_album_brain import handle as album_handle
+from chief_album_brain import handle as album_handle, handle_arc as album_arc_handle
 
 
 def looks_like_inspection(text: str) -> bool:
@@ -108,6 +108,14 @@ def billing_mode_from_text(text: str) -> str | None:
     return None
 
 
+def album_arc_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "album arc", "arc mode", "album story", "track order",
+        "lyric arc", "album analysis", "song order",
+    ])
+
+
 def album_intent(text: str) -> bool:
     t = text.lower().strip()
     keywords = [
@@ -174,6 +182,18 @@ def route_message(text: str) -> dict:
             "reply": first_q,
         }
 
+    if session.get("status") == "active" and session.get("active_workflow") == "album_arc":
+        replies = album_arc_handle(text)
+        return {"intent": "album_arc_continue", "replies": replies}
+
+    if album_arc_intent(text):
+        set_workflow("album_arc", None)
+        set_workflow_state({"active": True, "arc_active": True, "phase": "arc"})
+        return {
+            "intent": "album_arc_start",
+            "reply": "Running album arc analysis across all songs...",
+        }
+
     if session.get("status") == "active" and session.get("active_workflow") == "album":
         replies = album_handle(text)
         return {
@@ -186,25 +206,18 @@ def route_message(text: str) -> dict:
         set_workflow_state({
             "active": True,
             "phase": "song_name",
-            "step": 0,
-            "answers": {},
-            "version_count": 0,
-            "current_version_index": 0,
-            "session_started_at": None,
-            "test_mode": False,
+            "song_title": "",
+            "topics_covered": [],
+            "notes": {},
+            "structured": {},
+            "dynamic_columns": [],
+            "history": [],
+            "turn": 0,
+            "arc_active": False,
         })
         return {
             "intent": "album_start",
-            "reply": (
-                "Album review mode started. First settle the version. "
-                "Then we do lane-by-lane diagnosis. "
-                "For each lane, start with one of: done, needs work, needs review, "
-                "needs re-record, not applicable, or unclear. "
-                "You can also use normal phrases like review first, redo, solid, "
-                "n/a, skip, or not sure. "
-                "The CSV row writes after the full song review is complete.\n\n"
-                "What song are we assessing?"
-            ),
+            "reply": "What song are we working on?",
         }
 
     return {

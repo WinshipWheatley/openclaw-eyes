@@ -1,84 +1,43 @@
 import json
+import re
 import time
 import subprocess
-import csv
-import shutil
-import re
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from chief_session_manager import (
     get_workflow_state,
     set_workflow_state,
     mark_complete,
 )
+from chief_album_io import (
+    ensure_csv,
+    load_song_md,
+    save_song_md,
+    upsert_csv_row,
+    add_dynamic_column,
+    append_session_history,
+    list_all_songs,
+    load_arc_md,
+    save_arc_md,
+    score_completion,
+    derive_batch_days,
+    CSV_PATH,
+)
 
-QUEUE_LOG = Path("/mnt/c/OpenClaw/logs/chief_queue.log")
-REPLIED_LOG = Path("/mnt/c/OpenClaw/logs/chief_album_replied.log")
-STATE_CSV = Path("/mnt/c/OpenClaw/state/state.csv")
-STATE_PREV_CSV = Path("/mnt/c/OpenClaw/state/state_prev.csv")
-WORK_LOG_CSV = Path("/mnt/c/OpenClaw/logs/album_work_log.csv")
-
-LANES = [
-    ("writing_arrangement", "Writing / arrangement: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("lyrics", "Lyrics: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("drums", "Drums: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("bass", "Bass: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("guitars", "Guitars: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("keys", "Keys: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("lead_vocals", "Lead vocals: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("backing_vocals", "Backing vocals / doubles / harmonies: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("editing_cleanup", "Editing / cleanup: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("mix_prep", "Mix prep: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-    ("mixing", "Mixing: start with one of done, needs work, needs review, needs re-record, not applicable, or unclear. Then add a short note if needed."),
-]
-
-TRACKER_FIELDS = [
-    "item_name",
-    "main_version_name",
-    "main_version_path",
-    "version_state",
-    "version_choice_status",
-    "decision_locked",
-    "review_gate",
-    "backup_status",
-    "donor_versions",
-    "writing_arrangement",
-    "lyrics",
-    "drums",
-    "bass",
-    "guitars",
-    "keys",
-    "lead_vocals",
-    "backing_vocals",
-    "editing_cleanup",
-    "mix_prep",
-    "mixing",
-    "song_readiness_percent",
-    "song_ship_confidence_percent",
-    "derived_stage",
-    "derived_bottleneck",
-    "primary_blocker",
-    "secondary_blocker",
-    "highest_leverage_next_step",
-    "next_action",
-    "next_specialist",
-    "notes",
-    "updated_at",
-    "raw_input",
-]
-
-
+# ── Session default ────────────────────────────────────────────────────────────
 
 _ALBUM_DEFAULT = {
     "active": False,
     "phase": "idle",
-    "step": 0,
-    "answers": {},
-    "version_count": 0,
-    "current_version_index": 0,
-    "session_started_at": None,
-    "test_mode": False,
+    "song_title": "",
+    "topics_covered": [],
+    "notes": {},
+    "structured": {},
+    "dynamic_columns": [],
+    "history": [],
+    "turn": 0,
+    "arc_active": False,
 }
 
 
@@ -93,687 +52,324 @@ def save_session(session: dict) -> None:
     set_workflow_state(session)
 
 
-def send_reply(text: str):
-    subprocess.run(
-        ["python3", str(Path.home() / "chief_sender.py"), text],
-        check=False,
+def reset_session() -> None:
+    set_workflow_state(json.loads(json.dumps(_ALBUM_DEFAULT)))
+    mark_complete()
+
+
+# ── Topic system ───────────────────────────────────────────────────────────────
+
+TOPIC_KEYWORDS = {
+    "structure": [
+        "intro", "bridge", "chorus", "verse", "structure", "arrangement",
+        "length", "section", "hook", "outro", "pre-chorus", "clutter",
+        "too long", "cut it", "tighten", "bars", "feels long", "transition",
+    ],
+    "vocals": [
+        "vocal", "lead", "voice", "re-record", "rerecord", "bgv",
+        "backing vocal", "harmony", "double", "redo the vocal",
+        "scratch vocal", "lead is", "leads are", "vocals are",
+    ],
+    "drums": [
+        "drum", "kick", "snare", "groove", "percussion", "beat", "hi-hat",
+        "overhead", "room", "fill", "pocket",
+    ],
+    "bass": ["bass", "low end", "bottom end", "sub"],
+    "guitars": [
+        "guitar", "dl16", "acoustic", "electric", "strum", "nylon",
+        "classical guitar", "distorted", "riff", "chord",
+    ],
+    "keys": [
+        "keys", "piano", "synth", "pad", "organ", "electronica",
+        "world rhythm", "rhodes", "wurlitzer", "strings", "brass",
+        "melodica", "mbira", "kalimba",
+    ],
+    "mix_readiness": [
+        "mix", "mixing", "ready to mix", "not ready to mix",
+        "close to mix", "mix-ready", "ready for mix",
+    ],
+    "mix_prep": [
+        "mix prep", "gain stage", "tracks labeled", "snapshot",
+        "session prep", "label the tracks", "prepped", "prep the session",
+    ],
+    "suno_reference": [
+        "suno", "genre", "reference", "yacht rock", "soul", "pop rock",
+        "afrobeat", "world", "stylistic", "sounds like", "leans like",
+    ],
+    "lyrics": [
+        "lyrics", "words", "the verse goes", "chorus goes",
+        "line about", "lyric", "written", "song says",
+    ],
+    "vocal_archetype": [
+        "archetype", "character", "persona", "confessional",
+        "soul man", "storyteller", "preacher", "crooner", "griot",
+        "who is the singer", "voice of the song", "narrator",
+        "vibe of the singer",
+    ],
+}
+
+TOPIC_ORDER = [
+    "structure", "vocals", "drums", "bass", "guitars", "keys",
+    "mix_readiness", "mix_prep", "suno_reference", "lyrics", "vocal_archetype",
+]
+
+TOPIC_TO_SECTION = {
+    "structure":       "Structure Notes",
+    "vocals":          "Vocals / Lyrics",
+    "vocal_archetype": "Vocal Archetype",
+    "drums":           "Drums",
+    "bass":            "Bass",
+    "guitars":         "Guitars",
+    "keys":            "Keys / Synths / Electronica / World Rhythm",
+    "mix_readiness":   "Mix Notes",
+    "mix_prep":        "Mix Notes",
+    "suno_reference":  "Suno Reference",
+    "lyrics":          "Lyrics",
+}
+
+TOPIC_PROMPTS = {
+    "structure": (
+        "How's the structure feeling — is the arrangement sitting right, "
+        "or are there sections that still feel off or cluttered?"
+    ),
+    "vocals": (
+        "Talk to me about the vocals — are the leads in a good place, "
+        "any re-records needed, and what's the BGV plan?"
+    ),
+    "drums": "What's the drum situation — groove locked, editing done?",
+    "bass": "How's the bass — tone right, parts locked, anything needing attention?",
+    "guitars": (
+        "Guitars — all parts done, or is anything going through DL16 "
+        "or needing a re-record?"
+    ),
+    "keys": "Keys, synths, electronica, world rhythm elements — where do those sit?",
+    "mix_readiness": "Mix readiness — would you call it not ready, close, or ready to mix?",
+    "mix_prep": "Mix prep status — tracks labeled, gain staged, snapshot done?",
+    "suno_reference": (
+        "I want to capture the Suno reference — what's the genre and stylistic "
+        "breakdown per instrument or element for this song?"
+    ),
+    "lyrics": "Want to drop the full lyrics in here while we're on it?",
+    "vocal_archetype": (
+        "One thing I want to lock in — who is the singer on this song? "
+        "What's the vocal character? Like late-night confessional, strutting soul man, "
+        "world-weary storyteller — give me the archetype and what it leans toward."
+    ),
+}
+
+
+def _detect_topics(text: str) -> list:
+    t = text.lower()
+    return [topic for topic, kws in TOPIC_KEYWORDS.items() if any(kw in t for kw in kws)]
+
+
+def _next_topic_prompt(session: dict):
+    covered = set(session.get("topics_covered", []))
+    for topic in TOPIC_ORDER:
+        if topic not in covered:
+            return TOPIC_PROMPTS[topic]
+    return None
+
+
+# ── Structured field extraction ────────────────────────────────────────────────
+
+def _extract_structured(text: str) -> dict:
+    t = text.lower()
+    data = {}
+
+    if any(p in t for p in [
+        "version locked", "locked in", "settled on this version",
+        "that's the one", "version is locked", "going with this version",
+    ]):
+        data["version_locked"] = "yes"
+    if any(p in t for p in ["not locked", "still deciding", "haven't picked", "not settled"]):
+        data["version_locked"] = "no"
+
+    if any(p in t for p in [
+        "re-record", "rerecord", "need to redo", "full redo",
+        "redo the", "full re-record", "needs a re-record",
+    ]):
+        data["needs_rerecord"] = "yes"
+
+    for field, keywords in [
+        ("drums_pass",    ["drums done", "drums are done", "drums locked", "drums are locked", "drums are good", "drum tracking done"]),
+        ("bass_pass",     ["bass done", "bass is done", "bass locked", "bass is locked", "bass is good"]),
+        ("guitars_pass",  ["guitars done", "guitars are done", "guitar done", "guitars locked", "guitar tracking done"]),
+        ("keys_pass",     ["keys done", "keys are done", "synths done", "keys locked", "keys are good"]),
+        ("structure_pass",["structure locked", "structure done", "arrangement done", "arrangement locked", "structure is good", "structure is locked"]),
+        ("vocals_pass",   ["vocals done", "vocals are done", "leads done", "leads are done", "vocals locked", "lead vocal done"]),
+    ]:
+        if any(p in t for p in keywords):
+            data[field] = "done"
+
+    if any(p in t for p in ["not ready to mix", "not ready for mix", "not there yet for mix"]):
+        data["mix_readiness"] = "not_ready"
+    elif any(p in t for p in ["close to mix", "almost ready to mix", "nearly mix-ready"]):
+        data["mix_readiness"] = "close"
+    elif any(p in t for p in ["ready to mix", "ready for mix", "mix ready", "mix-ready"]):
+        data["mix_readiness"] = "ready"
+    elif any(p in t for p in ["been mixed", "mixing is done", "mix is done"]):
+        data["mix_readiness"] = "mixed"
+
+    if any(p in t for p in ["mix prep done", "prep is done", "tracks are labeled", "gain staged", "session is prepped"]):
+        data["mix_prep_done"] = "yes"
+    if any(p in t for p in ["mix prep not done", "not prepped yet", "prep not done"]):
+        data["mix_prep_done"] = "no"
+
+    if "mastered" in t and "not mastered" not in t:
+        data["status"] = "mastered"
+
+    return data
+
+
+def _extract_vocal_archetype(text: str) -> dict:
+    data = {}
+    t = text.lower()
+    archetype_signals = [
+        "confessional", "soul man", "storyteller", "preacher", "crooner",
+        "griot", "narrator", "troubadour", "balladeer", "poet", "prophet",
+        "survivor", "lover", "wanderer", "teacher", "witness",
+    ]
+    influence_signals = [
+        "gospel", "yacht rock", "afrobeat", "r&b", "soul", "folk",
+        "blues", "jazz", "pop", "rock", "world", "reggae", "funk",
+        "country", "electronic", "classical",
+    ]
+    found_archetypes = [a for a in archetype_signals if a in t]
+    found_influences = [i for i in influence_signals if i in t]
+    if found_archetypes:
+        data["vocal_archetype_primary"] = found_archetypes[0]
+    if found_influences:
+        data["vocal_archetype_influences"] = " / ".join(found_influences[:3])
+    return data
+
+
+# ── Notes accumulation ─────────────────────────────────────────────────────────
+
+def _accumulate_notes(session: dict, text: str, topics: list) -> dict:
+    notes = dict(session.get("notes", {}))
+    sections_hit = set()
+    for topic in topics:
+        section = TOPIC_TO_SECTION.get(topic)
+        if section:
+            sections_hit.add(section)
+    if not sections_hit:
+        sections_hit.add("Vibe / Feel")
+    for section in sections_hit:
+        existing = notes.get(section, "").strip()
+        notes[section] = (existing + "\n\n" + text).strip() if existing else text
+    return notes
+
+
+def _process_message(session: dict, text: str) -> dict:
+    topics = _detect_topics(text)
+    covered = set(session.get("topics_covered", []))
+    covered.update(topics)
+    session["topics_covered"] = list(covered)
+    session["notes"] = _accumulate_notes(session, text, topics)
+    new_structured = _extract_structured(text)
+    new_structured.update(_extract_vocal_archetype(text))
+    session["structured"] = {**session.get("structured", {}), **new_structured}
+    session.setdefault("history", []).append({"role": "user", "text": text})
+    session["turn"] = session.get("turn", 0) + 1
+    return session
+
+
+# ── Done signal ────────────────────────────────────────────────────────────────
+
+def _is_done_signal(text: str) -> bool:
+    t = text.lower().strip()
+    return any(p in t for p in [
+        "done", "that's it", "thats it", "that's all", "thats all",
+        "all good", "we're good", "wrap it up", "save it",
+        "that's everything", "thats everything", "nothing else",
+        "finish it", "lock it in", "close it out",
+    ])
+
+
+# ── Song title matching ────────────────────────────────────────────────────────
+
+def _match_song_title(text: str) -> str:
+    known = list_all_songs()
+    t = text.lower().strip()
+    for song in known:
+        if song.lower() == t:
+            return song
+    for song in known:
+        if t in song.lower() or song.lower() in t:
+            return song
+    text_words = set(re.sub(r"[^\w\s]", "", t).split())
+    best, best_score = None, 0
+    for song in known:
+        song_words = set(song.lower().split())
+        score = len(text_words & song_words)
+        if score > best_score:
+            best_score, best = score, song
+    return best if best else text.strip().title()
+
+
+def _summarize_existing(sections: dict) -> str:
+    lines = []
+    for section, content in sections.items():
+        if content.strip() and section not in ("Session History",):
+            snippet = content.strip()[:120]
+            ellipsis = "..." if len(content.strip()) > 120 else ""
+            lines.append(f"**{section}:** {snippet}{ellipsis}")
+    return "\n".join(lines) if lines else ""
+
+
+# ── Finalization ───────────────────────────────────────────────────────────────
+
+def _finalize(session: dict) -> list:
+    song_title = session["song_title"]
+    structured = dict(session.get("structured", {}))
+    structured["song_title"] = song_title
+
+    batch_days = derive_batch_days(structured)
+    structured["batch_days"] = ", ".join(batch_days)
+
+    pct, blocker = score_completion(structured)
+    structured["completion_pct"] = str(pct)
+    structured["completion_blocker"] = blocker
+
+    ensure_csv()
+    upsert_csv_row(structured)
+
+    for col in session.get("dynamic_columns", []):
+        add_dynamic_column(col)
+
+    existing_sections = load_song_md(song_title)
+    for section, content in session.get("notes", {}).items():
+        if content.strip():
+            old = existing_sections.get(section, "").strip()
+            existing_sections[section] = (old + "\n\n" + content).strip() if old else content
+    save_song_md(song_title, existing_sections)
+
+    history_entry = (
+        f"Session complete. Completion: {pct}%. "
+        f"Blocker: {blocker}. "
+        f"Batch days: {', '.join(batch_days) if batch_days else 'none'}."
     )
+    append_session_history(song_title, history_entry)
+    reset_session()
 
-
-def normalize_text(text: str) -> str:
-    return " ".join((text or "").strip().lower().split())
-
-
-def is_blankish(text: str) -> bool:
-    t = normalize_text(text)
-    return t in {"", "none", "n/a", "na", "unknown", "unclear", "i dont know", "i don't know", "none listed"}
-
-
-def sanitize_name(text: str) -> str:
-    cleaned = "".join(ch for ch in text if ch.isalnum() or ch in (" ", "_", "-")).strip()
-    cleaned = "_".join(cleaned.split())
-    return cleaned or "untitled"
-
-
-def today_stamp() -> str:
-    return datetime.now().strftime("%Y-%m-%d")
-
-
-def suggested_main_name(song_name: str) -> str:
-    return f"{sanitize_name(song_name)}__main__{today_stamp()}"
-
-
-def suggested_candidate_name(song_name: str, letter: str) -> str:
-    return f"{sanitize_name(song_name)}__candidate_{letter}__{today_stamp()}"
-
-
-def snapshot_state_csv():
-    if STATE_CSV.exists():
-        shutil.copy2(STATE_CSV, STATE_PREV_CSV)
-
-
-def ensure_work_log_header():
-    if not WORK_LOG_CSV.exists():
-        with WORK_LOG_CSV.open("w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=[
-                    "timestamp",
-                    "item_name",
-                    "main_version_name",
-                    "main_version_path",
-                    "version_state",
-                    "version_choice_status",
-                    "decision_locked",
-                    "review_gate",
-                    "song_readiness_percent",
-                    "song_ship_confidence_percent",
-                    "derived_stage",
-                    "derived_bottleneck",
-                    "primary_blocker",
-                    "secondary_blocker",
-                    "highest_leverage_next_step",
-                    "next_action",
-                    "next_specialist",
-                    "backup_status",
-                    "notes",
-                    "duration_minutes",
-                ],
-            )
-            writer.writeheader()
-
-
-def yesish(text: str) -> bool:
-    t = normalize_text(text)
-    yes_tokens = {
-        "yes", "y", "yeah", "yep", "yup", "sure", "settled", "locked",
-        "pretty much", "basically yes", "closest thing to yes", "more or less yes"
-    }
-    return t in yes_tokens or t.startswith("yes ") or t.startswith("yeah ") or t.startswith("yep ")
-
-
-def noish(text: str) -> bool:
-    t = normalize_text(text)
-    no_tokens = {
-        "no", "n", "nope", "not yet", "not really", "still deciding", "not settled", "none yet"
-    }
-    return t in no_tokens or t.startswith("no ") or t.startswith("not yet")
-
-
-def unsureish(text: str) -> bool:
-    t = normalize_text(text)
-    unsure_tokens = {
-        "unsure", "not sure", "unclear", "review first", "skip", "for now skip",
-        "kind of", "hard to say", "i dont know", "i don't know", "maybe", "provisional"
-    }
-    return t in unsure_tokens or "not sure" in t or "review first" in t or t.startswith("skip")
-
-
-def parse_yes_no_unsure(text: str):
-    if yesish(text):
-        return "yes"
-    if noish(text):
-        return "no"
-    if unsureish(text):
-        return "unsure"
-    return None
-
-
-def parse_version_role(text: str):
-    t = normalize_text(text).replace("-", " ")
-    mapping = {
-        "main": "main",
-        "donor": "donor",
-        "contender": "contender",
-        "archive": "archive",
-    }
-    if t in mapping:
-        return mapping[t]
-    return None
-
-
-def parse_backup_status(text: str):
-    t = normalize_text(text)
-    if t in {"backed up", "backed-up", "safe", "done", "complete"}:
-        return "Backed up"
-    if t in {"needs backup", "backup needed", "not backed up", "needs back up"}:
-        return "Needs backup"
-    if t in {"unsure", "not sure", "unknown"}:
-        return "Unsure"
-    return text.strip()
-
-
-def looks_minor(note: str) -> bool:
-    n = normalize_text(note)
-    minor_flags = [
-        "small", "slight", "little", "minor", "touch", "tighten", "could be shorter",
-        "could use a little", "strong overall", "mostly strong", "overall strong",
-        "overall good", "probably fine", "maybe", "might", "close"
-    ]
-    return any(flag in n for flag in minor_flags)
-
-
-def split_status_and_note(text: str):
-    raw = text.strip()
-    lower = normalize_text(raw)
-    compact = lower.replace("-", " ")
-
-    alias_map = {
-        "done": "done",
-        "good": "done",
-        "solid": "done",
-        "keeper": "done",
-        "locked": "done",
-        "ship it": "done",
-        "ship": "done",
-        "needs work": "needs work",
-        "work": "needs work",
-        "needs fixing": "needs work",
-        "not done": "needs work",
-        "close but not done": "needs work",
-        "needs review": "needs review",
-        "review": "needs review",
-        "review first": "needs review",
-        "listen again": "needs review",
-        "check it": "needs review",
-        "needs re record": "needs re-record",
-        "needs rerecord": "needs re-record",
-        "re record": "needs re-record",
-        "rerecord": "needs re-record",
-        "redo": "needs re-record",
-        "redo it": "needs re-record",
-        "another take": "needs re-record",
-        "not applicable": "not applicable",
-        "n a": "not applicable",
-        "na": "not applicable",
-        "n/a": "not applicable",
-        "none": "not applicable",
-        "unclear": "unclear",
-        "unsure": "unclear",
-        "not sure": "unclear",
-        "skip": "unclear",
-    }
-
-    if compact in alias_map:
-        return alias_map[compact], ""
-
-    canonical_prefixes = [
-        ("needs re record", "needs re-record"),
-        ("needs rerecord", "needs re-record"),
-        ("needs re-record", "needs re-record"),
-        ("re record", "needs re-record"),
-        ("redo", "needs re-record"),
-        ("needs review", "needs review"),
-        ("review", "needs review"),
-        ("review first", "needs review"),
-        ("needs work", "needs work"),
-        ("done", "done"),
-        ("good", "done"),
-        ("solid", "done"),
-        ("keeper", "done"),
-        ("locked", "done"),
-        ("not applicable", "not applicable"),
-        ("n/a", "not applicable"),
-        ("na", "not applicable"),
-        ("unclear", "unclear"),
-        ("unsure", "unclear"),
-        ("not sure", "unclear"),
-        ("skip", "unclear"),
+    batch_line = ", ".join(batch_days) if batch_days else "none — you might be done!"
+    return [
+        f"Locked in {song_title}.\n"
+        f"Completion: {pct}%\n"
+        f"Blocker: {blocker}\n"
+        f"Batch days needed: {batch_line}\n"
+        f"Notes saved to {song_title}.md"
     ]
 
-    for prefix, canonical in canonical_prefixes:
-        if compact == prefix:
-            return canonical, ""
-        if compact.startswith(prefix + " "):
-            original_words = raw.split()
-            prefix_word_count = len(prefix.split())
-            note = " ".join(original_words[prefix_word_count:]).strip(" -:;,")
-            return canonical, note
 
-    return None, raw
+# ── handle() ──────────────────────────────────────────────────────────────────
 
-
-def parse_confidence(text: str, mode: str):
-    t = normalize_text(text)
-
-    num_match = re.search(r"\b(\d{1,3})\b", t)
-    if num_match:
-        num = int(num_match.group(1))
-        num = max(0, min(100, num))
-        return num
-
-    mapping = [
-        ({"ship it", "ship", "done done", "locked", "final", "100"}, 98 if mode == "ship" else 96),
-        ({"very close", "almost there", "pretty much there", "super close"}, 88),
-        ({"pretty good", "pretty good about it", "strong overall", "mostly there", "close"}, 78),
-        ({"decent", "solid direction", "good start", "halfway"}, 60),
-        ({"rough", "early", "not there", "far off"}, 30),
-        ({"no idea", "unclear", "unsure", "not sure"}, 15),
-    ]
-
-    for phrases, value in mapping:
-        if any(p in t for p in phrases):
-            return value
-
-    if mode == "ship":
-        if any(p in t for p in ["not ship", "not final", "wouldnt ship", "wouldn't ship"]):
-            return 20
-    return None
-
-
-def flatten_notes(answer_dict: dict):
-    parts = []
-    for key, value in answer_dict.items():
-        if key.endswith("_note") and str(value).strip():
-            parts.append(f"{key.replace('_note', '')}: {str(value).strip()}")
-    if answer_dict.get("main_version_path", "").strip():
-        parts.append(f"main_version_path: {answer_dict['main_version_path'].strip()}")
-    if answer_dict.get("backup_status", "").strip():
-        parts.append(f"backup_status: {answer_dict['backup_status'].strip()}")
-    return " | ".join(parts)
-
-def derive_decision_fields(a: dict):
-    version_state = normalize_text(a.get("version_state", ""))
-    backup_status = normalize_text(a.get("backup_status", ""))
-    lane_order = [
-        "writing_arrangement",
-        "lyrics",
-        "drums",
-        "bass",
-        "guitars",
-        "keys",
-        "lead_vocals",
-        "backing_vocals",
-        "editing_cleanup",
-        "mix_prep",
-        "mixing",
-    ]
-
-    lane_to_stage = {
-        "writing_arrangement": "writing",
-        "lyrics": "writing",
-        "drums": "recording",
-        "bass": "recording",
-        "guitars": "recording",
-        "keys": "recording",
-        "lead_vocals": "recording",
-        "backing_vocals": "recording",
-        "editing_cleanup": "editing",
-        "mix_prep": "mix prep",
-        "mixing": "mixing",
-    }
-
-    lane_to_specialist = {
-        "writing_arrangement": "producer",
-        "lyrics": "producer",
-        "drums": "arrangement / producer",
-        "bass": "arrangement / producer",
-        "guitars": "arrangement / producer",
-        "keys": "arrangement / producer",
-        "lead_vocals": "producer / vocal tracking",
-        "backing_vocals": "producer / vocal tracking",
-        "editing_cleanup": "editing",
-        "mix_prep": "technical metering coach",
-        "mixing": "mix brain",
-    }
-
-    version_choice_status = "locked" if version_state == "yes" else ("unsettled" if version_state in {"no", "unsure"} else "unknown")
-    decision_locked = "yes" if version_choice_status == "locked" else "no"
-
-    primary_blocker = "none"
-    secondary_blocker = "none"
-    derived_stage = "done"
-    derived_bottleneck = "none"
-    next_specialist = "none"
-    highest_leverage_next_step = "song appears ready for the next higher-level decision pass"
-    review_gate = "no"
-
-    if version_choice_status != "locked":
-        primary_blocker = "version_choice"
-        derived_stage = "review"
-        derived_bottleneck = "version_choice"
-        next_specialist = "producer"
-        highest_leverage_next_step = "settle the main version and donor roles before deeper work"
-        review_gate = "yes"
-
-        if normalize_text(a.get("lead_vocals", "")) == "needs re-record":
-            secondary_blocker = "lead_vocals"
-        elif normalize_text(a.get("writing_arrangement", "")) in {"needs work", "needs review", "unclear"}:
-            secondary_blocker = "writing_arrangement"
-        else:
-            for lane in lane_order:
-                if normalize_text(a.get(lane, "")) in {"needs re-record", "needs review", "needs work", "unclear"}:
-                    secondary_blocker = lane
-                    break
-
-        return {
-            "version_choice_status": version_choice_status,
-            "decision_locked": decision_locked,
-            "review_gate": review_gate,
-            "derived_stage": derived_stage,
-            "derived_bottleneck": derived_bottleneck,
-            "primary_blocker": primary_blocker,
-            "secondary_blocker": secondary_blocker,
-            "highest_leverage_next_step": highest_leverage_next_step,
-            "next_specialist": next_specialist,
-        }
-
-    backup_gate = backup_status in {"needs backup", "backup needed", "not backed up", "needs back up"}
-
-    lane_priority = []
-    for lane in lane_order:
-        status = normalize_text(a.get(lane, ""))
-        note = a.get(f"{lane}_note", "")
-
-        if status == "needs re-record":
-            score = 4
-        elif status == "unclear":
-            score = 3
-        elif status == "needs review":
-            score = 2
-        elif status == "needs work":
-            score = 1
-        else:
-            continue
-
-        if lane in {"writing_arrangement", "lyrics"} and status == "needs work" and looks_minor(note):
-            score = 0
-
-        lane_priority.append((score, lane, note))
-
-    lead_status = normalize_text(a.get("lead_vocals", ""))
-
-    chosen_lane = None
-    chosen_score = -1
-
-    if lead_status == "needs re-record":
-        chosen_lane = "lead_vocals"
-        chosen_score = 4
-    else:
-        for score, lane, _note in lane_priority:
-            if score > chosen_score:
-                chosen_lane = lane
-                chosen_score = score
-
-    if chosen_lane is None:
-        if backup_gate:
-            primary_blocker = "backup"
-            derived_stage = "ops"
-            derived_bottleneck = "backup"
-            next_specialist = "producer"
-            highest_leverage_next_step = "make a fresh backup before deeper changes"
-        return {
-            "version_choice_status": version_choice_status,
-            "decision_locked": decision_locked,
-            "review_gate": review_gate,
-            "derived_stage": derived_stage,
-            "derived_bottleneck": derived_bottleneck,
-            "primary_blocker": primary_blocker,
-            "secondary_blocker": secondary_blocker,
-            "highest_leverage_next_step": highest_leverage_next_step,
-            "next_specialist": next_specialist,
-        }
-
-    primary_blocker = chosen_lane
-    derived_stage = lane_to_stage[chosen_lane]
-    derived_bottleneck = chosen_lane
-    next_specialist = lane_to_specialist[chosen_lane]
-
-    next_map = {
-        "writing_arrangement": "review and tighten the song structure and arrangement",
-        "lyrics": "review and tighten the lyric direction",
-        "drums": "review and finish the drum path",
-        "bass": "review and finish the bass path",
-        "guitars": "review and finish the guitar path",
-        "keys": "review and finish the key parts",
-        "lead_vocals": "re-record or review lead vocals",
-        "backing_vocals": "re-record or review backing vocals",
-        "editing_cleanup": "finish editing and cleanup before mix decisions",
-        "mix_prep": "prepare the session for serious mixing",
-        "mixing": "start focused mix decisions from the prepared session",
-    }
-    highest_leverage_next_step = next_map[chosen_lane]
-
-    if chosen_lane == "mix_prep":
-        notes = flatten_notes(a).lower()
-        if any(x in notes for x in ["ballistic", "vu", "rms", "peak", "meter"]):
-            highest_leverage_next_step = "reset ballistics and establish objective mix center"
-
-    if normalize_text(a.get(chosen_lane, "")) in {"unclear", "needs review"}:
-        review_gate = "yes"
-
-    for score, lane, _note in sorted(lane_priority, key=lambda x: x[0], reverse=True):
-        if lane != primary_blocker and score > 0:
-            secondary_blocker = lane
-            break
-
-    if backup_gate and secondary_blocker == "none":
-        secondary_blocker = "backup"
-
-    return {
-        "version_choice_status": version_choice_status,
-        "decision_locked": decision_locked,
-        "review_gate": review_gate,
-        "derived_stage": derived_stage,
-        "derived_bottleneck": derived_bottleneck,
-        "primary_blocker": primary_blocker,
-        "secondary_blocker": secondary_blocker,
-        "highest_leverage_next_step": highest_leverage_next_step,
-        "next_specialist": next_specialist,
-    }
-
-
-def derive_next_specialist(a: dict):
-    return derive_decision_fields(a)["next_specialist"]
-
-
-def derive_next_action(a: dict):
-    return derive_decision_fields(a)["highest_leverage_next_step"]
-
-
-def infer_overall_readiness(a: dict):
-    explicit = a.get("song_readiness_percent")
-    if explicit not in ("", None):
-        try:
-            return int(explicit)
-        except Exception:
-            pass
-
-    score = 100
-    penalties = {
-        "needs re-record": 28,
-        "unclear": 24,
-        "needs review": 16,
-        "needs work": 10,
-    }
-
-    for lane, _prompt in LANES:
-        status = normalize_text(a.get(lane, ""))
-        score -= penalties.get(status, 0)
-
-    if normalize_text(a.get("version_state", "")) in {"no", "unsure"}:
-        score = min(score, 45)
-
-    if normalize_text(a.get("backup_status", "")) in {"needs backup", "backup needed", "not backed up"}:
-        score = min(score, 80)
-
-    return max(0, min(100, score))
-
-
-def infer_ship_confidence(a: dict):
-    explicit = a.get("song_ship_confidence_percent")
-    if explicit not in ("", None):
-        try:
-            return int(explicit)
-        except Exception:
-            pass
-
-    readiness = infer_overall_readiness(a)
-    ship = readiness
-
-    if normalize_text(a.get("version_state", "")) in {"no", "unsure"}:
-        ship = min(ship, 20)
-
-    if normalize_text(a.get("lead_vocals", "")) == "needs re-record":
-        ship = min(ship, 35)
-
-    if normalize_text(a.get("mixing", "")) in {"needs work", "needs review", "unclear"}:
-        ship = min(ship, 70)
-
-    if normalize_text(a.get("mix_prep", "")) in {"needs work", "needs review", "unclear"}:
-        ship = min(ship, 75)
-
-    return max(0, min(100, ship))
-
-
-def log_work_entry(a: dict, session: dict) -> None:
-    ensure_work_log_header()
-
-    started = session.get("session_started_at")
-    duration_minutes = ""
-    if started:
-        try:
-            started_dt = datetime.fromisoformat(started)
-            duration_minutes = int((datetime.now() - started_dt).total_seconds() // 60)
-        except Exception:
-            duration_minutes = ""
-
-    decision = derive_decision_fields(a)
-
-    row = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "item_name": a.get("item_name", "").strip(),
-        "main_version_name": a.get("main_version_name", "").strip(),
-        "main_version_path": a.get("main_version_path", "").strip(),
-        "version_state": a.get("version_state", "").strip(),
-        "version_choice_status": decision["version_choice_status"],
-        "decision_locked": decision["decision_locked"],
-        "review_gate": decision["review_gate"],
-        "song_readiness_percent": infer_overall_readiness(a),
-        "song_ship_confidence_percent": infer_ship_confidence(a),
-        "derived_stage": decision["derived_stage"],
-        "derived_bottleneck": decision["derived_bottleneck"],
-        "primary_blocker": decision["primary_blocker"],
-        "secondary_blocker": decision["secondary_blocker"],
-        "highest_leverage_next_step": decision["highest_leverage_next_step"],
-        "next_action": decision["highest_leverage_next_step"],
-        "next_specialist": decision["next_specialist"],
-        "backup_status": a.get("backup_status", "").strip(),
-        "notes": flatten_notes(a),
-        "duration_minutes": duration_minutes,
-    }
-
-    with WORK_LOG_CSV.open("a", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "timestamp",
-                "item_name",
-                "main_version_name",
-                "main_version_path",
-                "version_state",
-                "version_choice_status",
-                "decision_locked",
-                "review_gate",
-                "song_readiness_percent",
-                "song_ship_confidence_percent",
-                "derived_stage",
-                "derived_bottleneck",
-                "primary_blocker",
-                "secondary_blocker",
-                "highest_leverage_next_step",
-                "next_action",
-                "next_specialist",
-                "backup_status",
-                "notes",
-                "duration_minutes",
-            ],
-        )
-        writer.writerow(row)
-
-
-def write_state_row(a: dict, session: dict = None):
-    decision = derive_decision_fields(a)
-
-    row = {
-        "item_name": a.get("item_name", "").strip(),
-        "main_version_name": a.get("main_version_name", "").strip(),
-        "main_version_path": a.get("main_version_path", "").strip(),
-        "version_state": a.get("version_state", "").strip(),
-        "version_choice_status": decision["version_choice_status"],
-        "decision_locked": decision["decision_locked"],
-        "review_gate": decision["review_gate"],
-        "backup_status": a.get("backup_status", "").strip(),
-        "donor_versions": a.get("donor_versions", "").strip(),
-        "writing_arrangement": a.get("writing_arrangement", "").strip(),
-        "lyrics": a.get("lyrics", "").strip(),
-        "drums": a.get("drums", "").strip(),
-        "bass": a.get("bass", "").strip(),
-        "guitars": a.get("guitars", "").strip(),
-        "keys": a.get("keys", "").strip(),
-        "lead_vocals": a.get("lead_vocals", "").strip(),
-        "backing_vocals": a.get("backing_vocals", "").strip(),
-        "editing_cleanup": a.get("editing_cleanup", "").strip(),
-        "mix_prep": a.get("mix_prep", "").strip(),
-        "mixing": a.get("mixing", "").strip(),
-        "song_readiness_percent": infer_overall_readiness(a),
-        "song_ship_confidence_percent": infer_ship_confidence(a),
-        "derived_stage": decision["derived_stage"],
-        "derived_bottleneck": decision["derived_bottleneck"],
-        "primary_blocker": decision["primary_blocker"],
-        "secondary_blocker": decision["secondary_blocker"],
-        "highest_leverage_next_step": decision["highest_leverage_next_step"],
-        "next_action": decision["highest_leverage_next_step"],
-        "next_specialist": decision["next_specialist"],
-        "notes": flatten_notes(a),
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "raw_input": json.dumps(a, ensure_ascii=False),
-    }
-
-    rows = []
-    found = False
-
-    if STATE_CSV.exists():
-        with STATE_CSV.open("r", encoding="utf-8", newline="") as f:
-            reader = csv.DictReader(f)
-            for existing in reader:
-                if existing.get("item_name", "") == row["item_name"]:
-                    rows.append(row)
-                    found = True
-                else:
-                    clean_existing = {field: existing.get(field, "") for field in TRACKER_FIELDS}
-                    rows.append(clean_existing)
-
-    if not found:
-        rows.append(row)
-
-    snapshot_state_csv()
-
-    with STATE_CSV.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=TRACKER_FIELDS)
-        writer.writeheader()
-        writer.writerows(rows)
-
-    log_work_entry(a, session or {})
-
-
-def finalize_song(a: dict, session: dict) -> str:
-    decision = derive_decision_fields(a)
-    readiness = infer_overall_readiness(a)
-    ship_confidence = infer_ship_confidence(a)
-    notes = flatten_notes(a)
-
-    summary = (
-        f"Logged song: {a.get('item_name', '')}\n"
-        f"Main version: {a.get('main_version_name', '')}\n"
-        f"Main version path: {a.get('main_version_path', '')}\n"
-        f"Version state: {a.get('version_state', '')}\n"
-        f"Version choice status: {decision['version_choice_status']}\n"
-        f"Decision locked: {decision['decision_locked']}\n"
-        f"Review gate: {decision['review_gate']}\n"
-        f"Backup status: {a.get('backup_status', '')}\n"
-        f"Donor versions: {a.get('donor_versions', '')}\n"
-        f"Song readiness percent: {readiness}\n"
-        f"Song ship confidence percent: {ship_confidence}\n"
-        f"Derived stage: {decision['derived_stage']}\n"
-        f"Derived bottleneck: {decision['derived_bottleneck']}\n"
-        f"Primary blocker: {decision['primary_blocker']}\n"
-        f"Secondary blocker: {decision['secondary_blocker']}\n"
-        f"Highest leverage next step: {decision['highest_leverage_next_step']}\n"
-        f"Next specialist: {decision['next_specialist']}\n"
-        f"Notes: {notes}\n\n"
-        f"Recommendation: {decision['highest_leverage_next_step']}."
-    )
-    write_state_row(a, session)
-    return summary
-
-
-
-def handle(text: str) -> list[str]:
+def handle(text: str) -> list:
     """Process one album brain message. Returns reply strings.
     Returns [] if no active session. Does not call send_reply()."""
     session = load_session()
-    if not session.get("active"):
+    if not session.get("active") or session.get("arc_active"):
         return []
 
     replies = []
@@ -781,293 +377,182 @@ def handle(text: str) -> list[str]:
     phase = session.get("phase", "idle")
 
     if phase == "song_name":
-        session["answers"]["item_name"] = msg
-        session["phase"] = "version_gate"
-        save_session(session)
-        replies.append("Have you settled on a main version to finish from? Reply yes, no, or unsure.")
-
-    elif phase == "version_gate":
-        parsed = parse_yes_no_unsure(msg)
-        if parsed is None:
-            replies.append("Reply yes, no, or unsure.")
-        else:
-            session["answers"]["version_state"] = parsed
-            if parsed == "yes":
-                suggested = suggested_main_name(session["answers"]["item_name"])
-                session["phase"] = "main_version_name"
-                replies.append(f"Use this as the main version name: {suggested}. Reply with that exact name or your preferred variation.")
-            else:
-                session["phase"] = "version_count"
-                replies.append("How many active versions do you want to classify right now? Reply with a number.")
-            save_session(session)
-
-    elif phase == "main_version_name":
-        session["answers"]["main_version_name"] = msg
-        session["phase"] = "main_version_path"
-        save_session(session)
-        replies.append("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-
-    elif phase == "main_version_path":
-        session["answers"]["main_version_path"] = msg
-        session["phase"] = "backup_status"
-        save_session(session)
-        replies.append("What is the backup status? Reply with something short like backed up, needs backup, or unsure.")
-
-    elif phase == "backup_status":
-        session["answers"]["backup_status"] = parse_backup_status(msg)
-        session["phase"] = "donor_gate"
-        save_session(session)
-        replies.append("Are there donor versions worth keeping in play? Reply yes, no, or unsure.")
-
-    elif phase == "version_count":
+        song_title = _match_song_title(msg)
+        session["song_title"] = song_title
+        existing_sections = load_song_md(song_title)
+        session["notes"] = existing_sections
         try:
-            count = int(re.search(r"\d+", msg).group(0))
-            if count < 1:
-                raise ValueError
+            import csv as _csv
+            if CSV_PATH.exists():
+                with CSV_PATH.open("r", encoding="utf-8", newline="") as f:
+                    for row in _csv.DictReader(f):
+                        if row.get("song_title", "").lower() == song_title.lower():
+                            session["structured"] = {k: v for k, v in row.items() if v}
         except Exception:
-            replies.append("Reply with a number like 1, 2, or 3.")
-            return replies
-        session["version_count"] = count
-        session["current_version_index"] = 1
-        session["phase"] = "classify_version_name"
-        song = session["answers"]["item_name"]
-        suggested = suggested_candidate_name(song, "A")
+            pass
+        session["phase"] = "open"
         save_session(session)
-        replies.append(f"Version 1 of {count}: use this working name: {suggested}. Reply with that exact name or your preferred variation.")
-
-    elif phase == "classify_version_name":
-        session["answers"][f"version_{session['current_version_index']}_name"] = msg
-        session["phase"] = "classify_version_role"
-        save_session(session)
-        replies.append("What is this version's role? Reply with one of: main, donor, contender, archive.")
-
-    elif phase == "classify_version_role":
-        role = parse_version_role(msg)
-        if role is None:
-            replies.append("Reply with one of: main, donor, contender, archive.")
-            return replies
-        idx = session["current_version_index"]
-        session["answers"][f"version_{idx}_role"] = role
-        if role == "main":
-            session["answers"]["main_version_name"] = session["answers"].get(f"version_{idx}_name", "")
-        elif role == "donor":
-            donors = session["answers"].get("donor_versions", "")
-            donor_name = session["answers"].get(f"version_{idx}_name", "")
-            session["answers"]["donor_versions"] = (donors + " | " if donors else "") + donor_name
-        if idx < session["version_count"]:
-            session["current_version_index"] += 1
-            letter = chr(64 + session["current_version_index"])
-            song = session["answers"]["item_name"]
-            suggested = suggested_candidate_name(song, letter)
-            session["phase"] = "classify_version_name"
-            save_session(session)
-            replies.append(f"Version {session['current_version_index']} of {session['version_count']}: use this working name: {suggested}. Reply with that exact name or your preferred variation.")
-        else:
-            if not session["answers"].get("main_version_name"):
-                session["phase"] = "pick_main_after_versions"
-                save_session(session)
-                replies.append("Which of those versions is the main one to finish from? Reply with the exact version name, or say unsure.")
-            else:
-                session["phase"] = "main_version_path"
-                save_session(session)
-                replies.append("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-
-    elif phase == "pick_main_after_versions":
-        if unsureish(msg):
-            session["answers"]["main_version_name"] = ""
-        else:
-            session["answers"]["main_version_name"] = msg
-        session["phase"] = "main_version_path"
-        save_session(session)
-        replies.append("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-
-    elif phase == "donor_gate":
-        parsed = parse_yes_no_unsure(msg)
-        if parsed is None:
-            replies.append("Reply yes, no, or unsure.")
-        else:
-            if parsed in ("yes", "unsure"):
-                session["phase"] = "donor_notes"
-                save_session(session)
-                replies.append("List the donor versions and what they may donate. Example: intro version has best groove, version B has key texture. You can also say unsure right now.")
-            else:
-                if not session["answers"].get("donor_versions"):
-                    session["answers"]["donor_versions"] = ""
-                session["phase"] = "lanes"
-                session["step"] = 0
-                save_session(session)
-                replies.append(LANES[0][1])
-
-    elif phase == "donor_notes":
-        existing = session["answers"].get("donor_versions", "")
-        session["answers"]["donor_versions"] = (existing + " | " if existing else "") + msg
-        session["phase"] = "lanes"
-        session["step"] = 0
-        save_session(session)
-        replies.append(LANES[0][1])
-
-    elif phase == "lanes":
-        lane_index = session["step"]
-        field, _prompt = LANES[lane_index]
-        status, note = split_status_and_note(msg)
-        if status is None:
+        summary = _summarize_existing(existing_sections)
+        if summary:
             replies.append(
-                "Use one of these lane statuses first: done, needs work, needs review, needs re-record, not applicable, or unclear. "
-                "Natural variants like solid, review first, redo, n/a, skip, or not sure also work."
+                f"Got it — {song_title}. Here's what I have so far:\n\n{summary}\n\n"
+                "Tell me what's changed or what's on your mind about it."
             )
-            return replies
-        session["answers"][field] = status
-        session["answers"][f"{field}_note"] = note
-        session["step"] += 1
-        if session["step"] < len(LANES):
-            save_session(session)
-            replies.append(LANES[session["step"]][1])
         else:
-            session["phase"] = "song_readiness"
+            replies.append(
+                f"Got it — {song_title}. "
+                "Talk to me about it — where is it at, what does it need, "
+                "what are you feeling about it?"
+            )
+
+    elif phase in ("open", "follow_up"):
+        if _is_done_signal(msg) and phase == "follow_up":
+            session["phase"] = "finalizing"
             save_session(session)
-            replies.append("Overall, how far along does this song feel? You can answer like 70, pretty good, mostly there, close, rough, or ship it.")
+            replies.extend(_finalize(session))
+        else:
+            session = _process_message(session, msg)
+            session["phase"] = "follow_up"
+            save_session(session)
+            next_prompt = _next_topic_prompt(session)
+            if next_prompt:
+                replies.append(next_prompt)
+            else:
+                replies.extend(_finalize(session))
 
-    elif phase == "song_readiness":
-        value = parse_confidence(msg, "readiness")
-        if value is None:
-            replies.append("Reply with a number like 70 or a phrase like pretty good, close, rough, or mostly there.")
-            return replies
-        session["answers"]["song_readiness_percent"] = value
-        session["phase"] = "ship_confidence"
-        save_session(session)
-        replies.append("How close is this to ship-it final? You can answer like 25, 60, 90, not final, close, or ship it.")
-
-    elif phase == "ship_confidence":
-        value = parse_confidence(msg, "ship")
-        if value is None:
-            replies.append("Reply with a number like 25 or 90, or a phrase like not final, close, or ship it.")
-            return replies
-        session["answers"]["song_ship_confidence_percent"] = value
-        summary = finalize_song(session["answers"], session)
-        reset_session()
-        replies.append(summary)
+    elif phase == "finalizing":
+        replies.extend(_finalize(session))
 
     return replies
 
-def reset_session() -> None:
-    set_workflow_state(json.loads(json.dumps(_ALBUM_DEFAULT)))
-    mark_complete()
+
+# ── handle_arc() ──────────────────────────────────────────────────────────────
+
+_ARC_NORTH_STAR = (
+    "North star: these should not just be love songs. "
+    "When listened to in order, they should feel like a story about "
+    "growth, warnings, and self-awareness."
+)
+
+_STORY_KEYWORDS = [
+    "growth", "warning", "self-aware", "lesson", "change", "journey",
+    "regret", "hope", "loss", "survival", "transformation", "reckoning",
+]
+
+_ALBUM_SONGS = [
+    "1 In A Million", "A Night To Remember", "Blue Weather", "Built By Stars",
+    "Can You Feel It", "Count On Your Faith", "I Cry Over Love", "Im Somebody",
+    "Kamakazi Of Life", "Slow Me Down", "Ten Fingers", "The Future",
+]
 
 
-def run_self_test():
-    results = []
+def handle_arc(text: str) -> list:
+    """Generate arc analysis across all songs. Returns reply strings."""
+    songs = list_all_songs()
+    if not songs:
+        return ["No song notes found. Run album sessions first."]
 
-    yes_tests = {
-        "yes": "yes",
-        "Yeah": "yes",
-        "pretty much": "yes",
-        "not yet": "no",
-        "Nope": "no",
-        "review first": "unsure",
-        "not sure": "unsure",
-    }
-    for text, expected in yes_tests.items():
-        got = parse_yes_no_unsure(text)
-        results.append(("YESNO", text, expected, got, expected == got))
+    all_sections = {song: load_song_md(song) for song in songs}
 
-    lane_tests = {
-        "Done": "done",
-        "solid": "done",
-        "Needs review": "needs review",
-        "review first": "needs review",
-        "Needs re record": "needs re-record",
-        "redo vocals": "needs re-record",
-        "N/A": "not applicable",
-        "skip": "unclear",
-    }
-    for text, expected in lane_tests.items():
-        got, _note = split_status_and_note(text)
-        results.append(("LANE", text, expected, got, expected == got))
+    song_summaries = []
+    themes_found = []
+    songs_with_lyrics = []
+    songs_needing_work = []
 
-    conf_tests = {
-        "pretty good about it": 78,
-        "ship it": 98,
-        "not sure": 15,
-        "72": 72,
-    }
-    for text, expected in conf_tests.items():
-        got = parse_confidence(text, "readiness")
-        results.append(("CONF", text, expected, got, expected == got))
+    for song in _ALBUM_SONGS:
+        secs = all_sections.get(song, {})
+        lyrics = secs.get("Lyrics", "").strip()
+        vocals = secs.get("Vocals / Lyrics", "").strip()
+        structure = secs.get("Structure Notes", "").strip()
+        archetype = secs.get("Vocal Archetype", "").strip()
+        vibe = secs.get("Vibe / Feel", "").strip()
 
-    passed = sum(1 for r in results if r[4])
-    total = len(results)
+        if lyrics:
+            songs_with_lyrics.append(song)
 
-    lines = [f"TEST mode results: {passed}/{total} passed."]
-    for kind, text, expected, got, ok in results:
-        mark = "PASS" if ok else "FAIL"
-        lines.append(f"{mark} | {kind} | '{text}' -> {got} | expected {expected}")
+        combined = " ".join([lyrics, vocals, vibe]).lower()
+        themes_found.extend(kw for kw in _STORY_KEYWORDS if kw in combined)
 
-    lines.append("\nTEST mode complete.")
-    send_reply("\n".join(lines))
+        has_notes = any([lyrics, vocals, structure, vibe])
+        if not has_notes:
+            songs_needing_work.append(song)
 
+        snippet = (archetype or vibe or structure or vocals or "no notes yet")[:100]
+        song_summaries.append(f"- **{song}**: {snippet}")
+
+    theme_tally = {}
+    for t in themes_found:
+        theme_tally[t] = theme_tally.get(t, 0) + 1
+    top_themes = sorted(theme_tally, key=lambda x: -theme_tally[x])[:5]
+
+    songs_filled = len(_ALBUM_SONGS) - len(songs_needing_work)
+    story_verdict = (
+        "Leaning toward a story"
+        if len(top_themes) >= 3
+        else "Still reading as a collection — needs more thematic connective tissue"
+    )
+
+    song_list = "\n".join(f"{i+1}. {s}" for i, s in enumerate(_ALBUM_SONGS))
+    summary_list = "\n".join(song_summaries)
+    arc_text = (
+        f"# Album Arc\n"
+        f"_Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n\n"
+        f"## Overarching Theme\n\n{_ARC_NORTH_STAR}\n\n"
+        f"Top themes detected: {', '.join(top_themes) if top_themes else 'not enough notes yet'}\n\n"
+        f"## Song Snapshots\n\n{summary_list}\n\n"
+        f"## Lyrical Cohesion\n\n"
+        f"Songs with lyrics captured: {len(songs_with_lyrics)} of {len(_ALBUM_SONGS)}\n"
+        f"Songs still needing notes: {', '.join(songs_needing_work) if songs_needing_work else 'none'}\n\n"
+        f"## Story Assessment\n\n{story_verdict}\n\n"
+        f"## Suggested Track Order\n\n"
+        f"Current canonical order (revise after all lyrics are in):\n{song_list}\n\n"
+        f"## Lyric Tweak Notes\n\n_(Fill in after all lyrics are captured)_\n\n"
+        f"## Session History\n\n"
+        f"{datetime.now().strftime('%Y-%m-%d')}: Arc analysis run. "
+        f"{songs_filled}/{len(_ALBUM_SONGS)} songs have notes.\n"
+    )
+
+    save_arc_md(arc_text)
+    reset_session()
+
+    return [
+        f"Album arc analysis complete. {songs_filled}/{len(_ALBUM_SONGS)} songs have notes.\n"
+        f"Top themes: {', '.join(top_themes) if top_themes else 'not enough notes yet'}\n"
+        f"Story verdict: {story_verdict}\n"
+        f"Songs still needing notes: {', '.join(songs_needing_work) if songs_needing_work else 'all covered'}\n"
+        f"Saved to album_arc.md."
+    ]
+
+
+# ── Legacy polling shim ────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    QUEUE_LOG = Path("/mnt/c/OpenClaw/logs/chief_queue.log")
+    REPLIED_LOG = Path("/mnt/c/OpenClaw/logs/chief_album_replied.log")
+
     seen = set()
     if REPLIED_LOG.exists():
         with REPLIED_LOG.open("r", encoding="utf-8") as f:
             for line in f:
                 seen.add(line.rstrip("\n"))
 
-    print("Chief album brain online.")
+    print("Chief album brain online (legacy polling mode).")
 
     while True:
-        session = load_session()
         if QUEUE_LOG.exists():
             with QUEUE_LOG.open("r", encoding="utf-8") as f:
                 for line in f:
                     clean = line.rstrip("\n")
                     if not clean or clean in seen:
                         continue
-
-                    message_text = clean.split("] ", 1)[1] if "] " in clean else clean
-                    msg = message_text.strip()
-                    upper = msg.upper()
-
-                    if upper == "TEST":
-                        run_self_test()
-                        seen.add(clean)
-                        with REPLIED_LOG.open("a", encoding="utf-8") as r:
-                            r.write(clean + "\n")
-                        continue
-
-                    if upper == "ALBUM":
-                        session["active"] = True
-                        session["phase"] = "song_name"
-                        session["step"] = 0
-                        session["answers"] = {}
-                        session["version_count"] = 0
-                        session["current_version_index"] = 0
-                        session["session_started_at"] = datetime.now().isoformat()
-                        send_reply(
-                            "Album review mode started. First settle the version. Then we do lane-by-lane diagnosis. "
-                            "For each lane, start with one of: done, needs work, needs review, needs re-record, not applicable, or unclear. "
-                            "You can also use normal phrases like review first, redo, solid, n/a, skip, or not sure. "
-                            "The CSV row writes after the full song review is complete.\n\n"
-                            "What song are we assessing?"
-                        )
-                        save_session(session)
-                        seen.add(clean)
-                        with REPLIED_LOG.open("a", encoding="utf-8") as r:
-                            r.write(clean + "\n")
-                        continue
-
-                    if not session["active"]:
-                        seen.add(clean)
-                        with REPLIED_LOG.open("a", encoding="utf-8") as r:
-                            r.write(clean + "\n")
-                        continue
-
+                    msg = clean.split("] ", 1)[1].strip() if "] " in clean else clean.strip()
                     replies = handle(msg)
                     for r in replies:
-                        send_reply(r)
-
+                        subprocess.run(
+                            ["python3", str(Path.home() / "chief_sender.py"), r],
+                            check=False,
+                        )
                     seen.add(clean)
-                    with REPLIED_LOG.open("a", encoding="utf-8") as r:
-                        r.write(clean + "\n")
-
+                    with REPLIED_LOG.open("a", encoding="utf-8") as rf:
+                        rf.write(clean + "\n")
         time.sleep(2)

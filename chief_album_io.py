@@ -25,6 +25,8 @@ BASE_CSV_FIELDS = [
     "batch_days",
     "blocker",
     "status",
+    "vocal_archetype_primary",
+    "vocal_archetype_influences",
 ]
 
 # Canonical section names in song markdown files
@@ -32,6 +34,7 @@ MD_SECTIONS = [
     "Vibe / Feel",
     "Structure Notes",
     "Vocals / Lyrics",
+    "Vocal Archetype",
     "Drums",
     "Bass",
     "Guitars",
