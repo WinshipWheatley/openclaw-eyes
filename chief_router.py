@@ -188,6 +188,33 @@ def _llm_classify_intent(text: str) -> str | None:
     return result if result in valid else None
 
 
+def _prefill_summary(prefilled: dict) -> str:
+    """Convert pre-filled fields into a natural one-line confirmation string."""
+    p = prefilled
+    parts = []
+    if "client_name" in p:
+        parts.append(p["client_name"])
+    if "project_or_event" in p:
+        parts.append(f"for {p['project_or_event']}")
+    if "service_date" in p:
+        parts.append(f"on {p['service_date']}")
+    if "amount_total" in p:
+        parts.append(f"${p['amount_total']}")
+    if "deposit_amount" in p:
+        parts.append(f"deposit ${p['deposit_amount']}")
+    if "invoice_number" in p:
+        parts.append(f"invoice {p['invoice_number']}")
+    if "payment_amount" in p:
+        parts.append(f"${p['payment_amount']} paid")
+    if "payment_date" in p:
+        parts.append(f"on {p['payment_date']}")
+    if "amount_received" in p:
+        parts.append(f"${p['amount_received']} received")
+    if "next_follow_up_date" in p:
+        parts.append(f"follow up {p['next_follow_up_date']}")
+    return ", ".join(parts)
+
+
 def _llm_prefill_billing(text: str, mode: str) -> dict:
     """Extract pre-fillable billing fields from the trigger message. Returns {} on failure."""
     fields = _MODE_FIELDS.get(mode, "")
@@ -267,8 +294,7 @@ def route_message(text: str) -> dict:
         if first_step < len(questions):
             first_q = questions[first_step][1]
             if prefilled:
-                filled_summary = ", ".join(f"{k}: {v}" for k, v in prefilled.items())
-                first_q = f"Got it. Pre-filled — {filled_summary}.\n\n{first_q}"
+                first_q = f"Got it — {_prefill_summary(prefilled)}. {first_q}"
         else:
             first_q = "All fields captured. Type 'confirm' to save."
         return {
@@ -349,8 +375,7 @@ def route_message(text: str) -> dict:
         if first_step < len(questions):
             first_q = questions[first_step][1]
             if prefilled:
-                filled_summary = ", ".join(f"{k}: {v}" for k, v in prefilled.items())
-                first_q = f"Got it. Pre-filled — {filled_summary}.\n\n{first_q}"
+                first_q = f"Got it — {_prefill_summary(prefilled)}. {first_q}"
         else:
             first_q = "All fields captured. Type 'confirm' to save."
         return {
