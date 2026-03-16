@@ -588,6 +588,12 @@ def _finalize(session: dict) -> list:
     append_session_history(song_title, history_entry)
     reset_session()
 
+    try:
+        from chief_obsidian_sync import run_sync
+        run_sync()
+    except Exception:
+        pass  # sync failure never blocks the brain
+
     batch_line = ", ".join(batch_days) if batch_days else "none — you might be done!"
     return [
         f"Locked in {song_title}.\n"
@@ -936,6 +942,12 @@ def handle_quick_update(text: str) -> list:
         save_song_md(matched, sections)
 
     append_session_history(matched, f"Quick update: {field} = {value}.")
+
+    try:
+        from chief_obsidian_sync import run_sync
+        run_sync()
+    except Exception:
+        pass
 
     return [f"Got it — updated {field} for {matched}. Saved to CSV and notes."]
 

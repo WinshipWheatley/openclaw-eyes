@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 ALBUM_DIR = Path("/mnt/c/OpenClawShared/album")
-SONGS_DIR = ALBUM_DIR / "songs"
+SONGS_DIR = Path("/mnt/c/OpenClawShared/openclaw-vault/Album/Songs")
 CSV_PATH = ALBUM_DIR / "album_work_log.csv"
 ARC_PATH = ALBUM_DIR / "album_arc.md"
 

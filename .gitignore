@@ -14,6 +14,7 @@
 !chief_invoice_brain.py
 !chief_watcher_brain.py
 !chief_album_io.py
+!chief_obsidian_sync.py
 !chief_album_brain_legacy.py
 !chief-inspect
 
