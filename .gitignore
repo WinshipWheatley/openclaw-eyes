@@ -16,6 +16,7 @@
 !chief_album_io.py
 !chief_obsidian_sync.py
 !chief_album_brain_legacy.py
+!chief_llm.py
 !chief-inspect
 
 !start_chief.sh

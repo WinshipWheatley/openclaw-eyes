@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from chief_llm import ollama_call
+
 from chief_session_manager import (
     get_workflow_state,
     set_workflow_state,
@@ -246,6 +248,40 @@ def save_record(record: dict) -> None:
         f.write(json.dumps(record) + "\n")
 
 
+_NORMALIZE_PROMPT = """\
+Normalize this billing field value into a clean, standard format.
+
+Field: {field}
+Raw input: {raw}
+Today's date: {today}
+
+Rules:
+- Amount fields (amount_total, deposit_amount, payment_amount, amount_received): return digits and decimal only, no currency symbols or words (e.g. "500", "1500.00").
+- Date fields (service_date, due_date, payment_date, next_follow_up_date): return YYYY-MM-DD. Resolve relative dates (e.g. "next friday", "tomorrow") using today's date.
+- Name, email, event, notes fields: fix capitalization only. Return as-is if already clean.
+- Return ONLY the normalized value, no explanation.
+
+Normalized value:"""
+
+_AMOUNT_FIELDS = {"amount_total", "deposit_amount", "payment_amount", "amount_received"}
+_DATE_FIELDS = {"service_date", "due_date", "payment_date", "next_follow_up_date"}
+
+
+def _llm_normalize_billing_answer(field: str, raw: str) -> str:
+    """Use LLM to normalize natural-language billing answers. Falls back to raw on failure."""
+    if field not in _AMOUNT_FIELDS and field not in _DATE_FIELDS:
+        return raw  # No normalization needed for text fields
+    today = datetime.now().strftime("%Y-%m-%d")
+    prompt = _NORMALIZE_PROMPT.format(field=field, raw=raw, today=today)
+    result = ollama_call(prompt, timeout=10).strip()
+    # Sanity-check: for amounts, ensure result looks numeric
+    if field in _AMOUNT_FIELDS:
+        cleaned = re.sub(r"[^\d.]", "", result)
+        return cleaned if cleaned else raw
+    # For dates, accept anything that looks like a date (YYYY-MM-DD or free text)
+    return result if result else raw
+
+
 def handle(text: str) -> list[str]:
     """Process a billing answer directly.
     Returns reply strings to send. Returns [] if no active session.
@@ -278,11 +314,15 @@ def handle(text: str) -> list[str]:
         return replies
 
     if step < len(questions):
-        field, prompt = questions[step]
-        session["answers"][field] = text
+        field, _prompt = questions[step]
+        normalized = _llm_normalize_billing_answer(field, text)
+        session["answers"][field] = normalized
         session["last_field"] = field
-        session["last_prompt"] = prompt
+        session["last_prompt"] = _prompt
         session["step"] = step + 1
+        # Skip any steps already pre-filled from the trigger message
+        while session["step"] < len(questions) and questions[session["step"]][0] in session["answers"]:
+            session["step"] += 1
         save_session(session)
         if session["step"] < len(questions):
             replies.append(questions[session["step"]][1])

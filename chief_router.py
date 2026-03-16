@@ -1,4 +1,5 @@
 import re
+from chief_llm import ollama_call, ollama_json
 from chief_session_manager import (
     load_session,
     save_session,
@@ -140,6 +141,65 @@ def album_arc_intent(text: str) -> bool:
     ])
 
 
+_CLASSIFY_PROMPT = """\
+You are a music producer's assistant routing messages to the correct workflow.
+Classify the message below into exactly one of these intent labels:
+  invoice   — user wants to create or send an invoice to a client
+  payment   — user is recording a payment received from a client
+  followup  — user wants to set a follow-up reminder for a client
+  receipt   — user wants to issue a receipt to a client
+  album     — user wants to work on a song, mix, vocal, or album session
+  none      — does not match any of the above
+
+Rules:
+- Return only the single lowercase label, nothing else.
+- When unsure, return "none".
+
+Message: {text}
+Intent:"""
+
+_PREFILL_PROMPT = """\
+Extract billing field values from this message. Only extract values that are explicitly stated.
+Return a JSON object with any of these fields you find: {fields}
+
+Rules:
+- Only include fields that have a clear, explicit value. DO NOT guess or infer.
+- Amounts: return numeric string only, no currency symbols (e.g. "500", "1500.00").
+- Dates: use YYYY-MM-DD if possible; otherwise keep as-is.
+- Omit any field that is missing or ambiguous.
+- Return only valid JSON, no markdown, no extra text.
+
+Message: {text}
+JSON:"""
+
+_MODE_FIELDS = {
+    "INVOICE": "client_name, client_email, project_or_event, service_date, amount_total, deposit_amount, due_date, payment_method, notes",
+    "PAYMENT": "invoice_number, payment_amount, payment_date, notes",
+    "FOLLOWUP": "client_name, invoice_number, next_follow_up_date, notes",
+    "RECEIPT": "client_name, invoice_number, amount_received, payment_date, notes",
+}
+
+
+def _llm_classify_intent(text: str) -> str | None:
+    """LLM fallback classifier. Returns intent label or None if unclear/error."""
+    prompt = _CLASSIFY_PROMPT.format(text=text)
+    result = ollama_call(prompt, timeout=10).lower().strip()
+    valid = {"invoice", "payment", "followup", "receipt", "album"}
+    return result if result in valid else None
+
+
+def _llm_prefill_billing(text: str, mode: str) -> dict:
+    """Extract pre-fillable billing fields from the trigger message. Returns {} on failure."""
+    fields = _MODE_FIELDS.get(mode, "")
+    if not fields:
+        return {}
+    prompt = _PREFILL_PROMPT.format(fields=fields, text=text)
+    data = ollama_json(prompt, timeout=15)
+    # Allowlist: only keep known fields for this mode
+    allowed = {f.strip() for f in fields.split(",")}
+    return {k: v for k, v in data.items() if k in allowed and isinstance(v, str) and v.strip()}
+
+
 def album_intent(text: str) -> bool:
     t = text.lower().strip()
     keywords = [
@@ -189,17 +249,28 @@ def route_message(text: str) -> dict:
 
     billing_mode = billing_mode_from_text(text)
     if billing_mode:
+        prefilled = _llm_prefill_billing(text, billing_mode)
+        questions = billing_questions(billing_mode)
+        # Advance step past any pre-filled fields
+        first_step = 0
+        while first_step < len(questions) and questions[first_step][0] in prefilled:
+            first_step += 1
         set_workflow("billing", billing_mode)
         set_workflow_state({
             "active": True,
             "mode": billing_mode,
-            "step": 0,
-            "answers": {},
+            "step": first_step,
+            "answers": prefilled,
             "last_field": None,
             "last_prompt": None,
         })
-        questions = billing_questions(billing_mode)
-        first_q = questions[0][1] if questions else "Ready."
+        if first_step < len(questions):
+            first_q = questions[first_step][1]
+            if prefilled:
+                filled_summary = ", ".join(f"{k}: {v}" for k, v in prefilled.items())
+                first_q = f"Got it. Pre-filled — {filled_summary}.\n\n{first_q}"
+        else:
+            first_q = "All fields captured. Type 'confirm' to save."
         return {
             "intent": "billing_start",
             "mode": billing_mode,
@@ -236,6 +307,59 @@ def route_message(text: str) -> dict:
 
     if album_intent(text):
         # Always start completely fresh regardless of any lingering session state
+        reset_session()
+        set_workflow("album", None)
+        set_workflow_state({
+            "active": True,
+            "phase": "song_name",
+            "song_title": "",
+            "topics_covered": [],
+            "notes": {},
+            "structured": {},
+            "dynamic_columns": [],
+            "history": [],
+            "turn": 0,
+            "arc_active": False,
+            "last_topic_asked": None,
+            "last_topic_stack": [],
+        })
+        return {
+            "intent": "album_start",
+            "reply": "What song are we working on?",
+        }
+
+    # LLM fallback: try to classify when keyword matching found nothing
+    llm_intent = _llm_classify_intent(text)
+    if llm_intent in ("invoice", "payment", "followup", "receipt"):
+        billing_mode = llm_intent.upper()
+        prefilled = _llm_prefill_billing(text, billing_mode)
+        questions = billing_questions(billing_mode)
+        first_step = 0
+        while first_step < len(questions) and questions[first_step][0] in prefilled:
+            first_step += 1
+        set_workflow("billing", billing_mode)
+        set_workflow_state({
+            "active": True,
+            "mode": billing_mode,
+            "step": first_step,
+            "answers": prefilled,
+            "last_field": None,
+            "last_prompt": None,
+        })
+        if first_step < len(questions):
+            first_q = questions[first_step][1]
+            if prefilled:
+                filled_summary = ", ".join(f"{k}: {v}" for k, v in prefilled.items())
+                first_q = f"Got it. Pre-filled — {filled_summary}.\n\n{first_q}"
+        else:
+            first_q = "All fields captured. Type 'confirm' to save."
+        return {
+            "intent": "billing_start",
+            "mode": billing_mode,
+            "reply": first_q,
+        }
+
+    if llm_intent == "album":
         reset_session()
         set_workflow("album", None)
         set_workflow_state({
