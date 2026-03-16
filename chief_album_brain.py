@@ -2,8 +2,57 @@ import json
 import re
 import time
 import subprocess
+import urllib.request
 from datetime import datetime
 from pathlib import Path
+
+OLLAMA_MODEL = "qwen2.5-coder:7b"
+OLLAMA_URL = "http://localhost:11434/api/generate"
+
+_LLM_EXTRACT_PROMPT = """\
+You are extracting music production facts from a producer's session notes.
+Return ONLY a valid JSON object. Only include a field when the note EXPLICITLY
+and CLEARLY states that fact. If you are not certain, leave the field out.
+Never guess. Never infer from vague praise like "sounds great" or "vibing".
+
+Field definitions (all optional):
+  version_locked        "yes"|"no"  — the final version of the SONG is chosen/locked
+  needs_rerecord        "yes"       — something needs to be re-recorded
+  rerecord_reason       string      — what specifically needs re-recording
+  drums_pass            "done"      — drum tracking/editing is complete
+  bass_pass             "done"      — bass tracking/editing is complete
+  guitars_pass          "done"      — guitar tracking/editing is complete
+  keys_pass             "done"      — keys/synths tracking is complete
+  structure_pass        "done"      — song structure/arrangement is finalized
+  vocals_pass           "done"      — lead vocals are final (not just "sounding good")
+  mix_readiness         "not_ready"|"close"|"ready"|"mixed"
+  mix_prep_done         "yes"|"no"  — session prep (labeling, gain staging) done
+  status                "mastered"  — the song has been mastered (not just mixed)
+  vocal_archetype_primary    string — explicit archetype label for the vocal character
+  vocal_archetype_influences string — slash-separated genre influences on the vocal
+
+Rules:
+- "drums locked" or "drums are done" -> drums_pass: "done"
+- "version locked" or "settled on this version" -> version_locked: "yes"
+- "needs a re-record" / "redo the vocals" -> needs_rerecord: "yes"
+- "sounds great" / "vibing" / "happy with it" -> extract NOTHING
+- "drums sound great" -> extract NOTHING (not the same as done/locked)
+- Only set status:"mastered" if the word "mastered" is explicitly used
+
+Examples:
+Notes: "Drums locked, bass is done, guitars still need a re-record on the outro."
+JSON: {{"drums_pass":"done","bass_pass":"done","needs_rerecord":"yes","rerecord_reason":"outro guitars"}}
+
+Notes: "The version is locked. Mix prep is done."
+JSON: {{"version_locked":"yes","mix_prep_done":"yes"}}
+
+Notes: "Sounds great, really feeling this one."
+JSON: {{}}
+
+Notes:
+{text}
+
+JSON:"""
 
 from chief_session_manager import (
     get_workflow_state,
@@ -171,7 +220,49 @@ def _next_topic_and_prompt(session: dict) -> tuple:
     return None, None
 
 
-# ── Structured field extraction ────────────────────────────────────────────────
+# ── LLM extraction ─────────────────────────────────────────────────────────────
+
+_VALID_EXTRACT_FIELDS = {
+    "version_locked", "needs_rerecord", "rerecord_reason",
+    "drums_pass", "bass_pass", "guitars_pass", "keys_pass",
+    "structure_pass", "vocals_pass",
+    "mix_readiness", "mix_prep_done", "status",
+    "vocal_archetype_primary", "vocal_archetype_influences",
+}
+
+
+def _llm_extract_structured(text: str) -> dict:
+    """Call the local LLM to extract structured fields from free-form notes.
+    Returns {} on any failure so callers can fall back to regex."""
+    prompt = _LLM_EXTRACT_PROMPT.format(text=text)
+    payload = json.dumps({
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False,
+    }).encode()
+    try:
+        req = urllib.request.Request(
+            OLLAMA_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+        raw = result.get("response", "").strip()
+        # Strip markdown fences if the model wrapped the JSON
+        if raw.startswith("```"):
+            raw = re.sub(r"^```[a-z]*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw.strip())
+        data = json.loads(raw)
+        # Only keep known fields with non-empty string values
+        return {k: v for k, v in data.items()
+                if k in _VALID_EXTRACT_FIELDS and isinstance(v, str) and v.strip()}
+    except Exception:
+        return {}
+
+
+# ── Structured field extraction (regex fallback) ───────────────────────────────
 
 def _extract_structured(text: str) -> dict:
     t = text.lower()
@@ -267,8 +358,13 @@ def _process_message(session: dict, text: str) -> dict:
     covered.update(topics)
     session["topics_covered"] = list(covered)
     session["notes"] = _accumulate_notes(session, text, topics)
-    new_structured = _extract_structured(text)
-    new_structured.update(_extract_vocal_archetype(text))
+
+    # Try LLM extraction first; fall back to regex if it fails or returns nothing
+    new_structured = _llm_extract_structured(text)
+    if not new_structured:
+        new_structured = _extract_structured(text)
+        new_structured.update(_extract_vocal_archetype(text))
+
     session["structured"] = {**session.get("structured", {}), **new_structured}
     session.setdefault("history", []).append({"role": "user", "text": text})
     session["turn"] = session.get("turn", 0) + 1
