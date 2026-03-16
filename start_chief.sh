@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 source ~/chief_env/bin/activate
-
+source /home/openclaw/.chief.env
 mkdir -p /mnt/c/OpenClaw/logs
 
 pkill -f chief_listener.py
