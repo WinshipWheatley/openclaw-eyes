@@ -141,10 +141,7 @@ TOPIC_PROMPTS = {
     ),
     "drums": "What's the drum situation — groove locked, editing done?",
     "bass": "How's the bass — tone right, parts locked, anything needing attention?",
-    "guitars": (
-        "Guitars — all parts done, or is anything going through DL16 "
-        "or needing a re-record?"
-    ),
+    "guitars": "Guitars — are all parts done, or is anything still needing a re-record?",
     "keys": "Keys, synths, electronica, world rhythm elements — where do those sit?",
     "mix_readiness": "Mix readiness — would you call it not ready, close, or ready to mix?",
     "mix_prep": "Mix prep status — tracks labeled, gain staged, snapshot done?",
@@ -310,23 +307,59 @@ def _is_go_back_signal(text: str) -> bool:
 
 # ── Song title matching ────────────────────────────────────────────────────────
 
-def _match_song_title(text: str) -> str:
-    known = list_all_songs()
+_SONG_NAME_PREAMBLES = [
+    "i need to work on ", "i want to work on ", "let's work on ",
+    "let's do ", "let's start with ", "can we work on ", "can we do ",
+    "work on ", "working on ", "start with ", "do ",
+    "it's ", "it is ", "the song is ", "the song's called ", "song is ",
+    "it's called ", "its called ", "called ",
+]
+
+
+def _match_song_title(text: str) -> str | None:
+    """Match text to a known song title. Returns None if no confident match."""
+    # Only match against the canonical album songs to prevent stray files from
+    # polluting the match pool.
+    known = [s for s in list_all_songs() if s in _ALBUM_SONGS]
+    if not known:
+        known = list(_ALBUM_SONGS)
     t = text.lower().strip()
-    for song in known:
-        if song.lower() == t:
-            return song
-    for song in known:
-        if t in song.lower() or song.lower() in t:
-            return song
-    text_words = set(re.sub(r"[^\w\s]", "", t).split())
+
+    # Strip common preamble phrases to isolate the song name
+    cleaned = t
+    for preamble in _SONG_NAME_PREAMBLES:
+        if cleaned.startswith(preamble):
+            cleaned = cleaned[len(preamble):].strip()
+            break
+
+    # Try exact match on cleaned first, then original
+    for candidate in ([cleaned, t] if cleaned != t else [t]):
+        for song in known:
+            if song.lower() == candidate:
+                return song
+
+    # Substring: song title appears inside cleaned text
+    for candidate in ([cleaned, t] if cleaned != t else [t]):
+        for song in known:
+            if song.lower() in candidate:
+                return song
+
+    # Word overlap score (require at least 1 meaningful word match)
+    candidate_words = set(re.sub(r"[^\w\s]", "", cleaned).split())
+    stop_words = {"i", "a", "an", "the", "to", "on", "in", "of", "it", "is",
+                  "we", "do", "let", "can", "with", "for", "and", "work"}
+    candidate_words -= stop_words
     best, best_score = None, 0
     for song in known:
-        song_words = set(song.lower().split())
-        score = len(text_words & song_words)
+        song_words = set(song.lower().split()) - stop_words
+        score = len(candidate_words & song_words)
         if score > best_score:
             best_score, best = score, song
-    return best if best else text.strip().title()
+    if best_score > 0:
+        return best
+
+    # No confident match — return None so the caller can re-ask
+    return None
 
 
 def _summarize_existing(sections: dict) -> str:
@@ -399,32 +432,44 @@ def handle(text: str) -> list:
 
     if phase == "song_name":
         song_title = _match_song_title(msg)
-        session["song_title"] = song_title
-        existing_sections = load_song_md(song_title)
-        session["notes"] = existing_sections
-        try:
-            import csv as _csv
-            if CSV_PATH.exists():
-                with CSV_PATH.open("r", encoding="utf-8", newline="") as f:
-                    for row in _csv.DictReader(f):
-                        if row.get("song_title", "").lower() == song_title.lower():
-                            session["structured"] = {k: v for k, v in row.items() if v}
-        except Exception:
-            pass
-        session["phase"] = "open"
-        save_session(session)
-        summary = _summarize_existing(existing_sections)
-        if summary:
-            replies.append(
-                f"Got it — {song_title}. Here's what I have so far:\n\n{summary}\n\n"
-                "Tell me what's changed or what's on your mind about it."
-            )
+        if song_title is None:
+            # Couldn't confidently identify the song — re-ask
+            save_session(session)
+            known = list_all_songs()
+            if known:
+                replies.append(
+                    f"I didn't catch which song. Which one are we working on? "
+                    f"({', '.join(known)})"
+                )
+            else:
+                replies.append("Which song are we working on?")
         else:
-            replies.append(
-                f"Got it — {song_title}. "
-                "Talk to me about it — where is it at, what does it need, "
-                "what are you feeling about it?"
-            )
+            session["song_title"] = song_title
+            existing_sections = load_song_md(song_title)
+            session["notes"] = existing_sections
+            try:
+                import csv as _csv
+                if CSV_PATH.exists():
+                    with CSV_PATH.open("r", encoding="utf-8", newline="") as f:
+                        for row in _csv.DictReader(f):
+                            if row.get("song_title", "").lower() == song_title.lower():
+                                session["structured"] = {k: v for k, v in row.items() if v}
+            except Exception:
+                pass
+            session["phase"] = "open"
+            save_session(session)
+            summary = _summarize_existing(existing_sections)
+            if summary:
+                replies.append(
+                    f"Got it — {song_title}. Here's what I have so far:\n\n{summary}\n\n"
+                    "Tell me what's changed or what's on your mind about it."
+                )
+            else:
+                replies.append(
+                    f"Got it — {song_title}. "
+                    "Talk to me about it — where is it at, what does it need, "
+                    "what are you feeling about it?"
+                )
 
     elif phase in ("open", "follow_up"):
         if _is_done_signal(msg) and phase == "follow_up":
