@@ -207,3 +207,124 @@ def load_arc_md() -> str:
 
 def save_arc_md(content: str) -> None:
     ARC_PATH.write_text(content, encoding="utf-8")
+
+
+# ── Completion scorer ─────────────────────────────────────────────────────────
+
+def _is_done(val: str) -> bool:
+    return str(val).strip().lower() in {"done", "yes", "true", "locked", "complete", "1"}
+
+
+def _needs_rerecord(val: str) -> bool:
+    return str(val).strip().lower() in {"yes", "true", "needs_rerecord", "needs re-record", "rerecord"}
+
+
+def score_completion(data: dict) -> tuple[int, str]:
+    """
+    Score a song's completion percentage using industry production pipeline weights.
+    Returns (pct: int, blocker: str).
+
+    Weights:
+      version_locked          10%
+      all parts recorded      20%   (drums + bass + guitars + keys, 5% each)
+      editing / structure     15%   (structure_pass done = 15%)
+      lead vocals final       15%   (vocals_pass done)
+      BGVs done               10%   (vocals_pass done AND no re-records)
+      no re-records pending   10%   (needs_rerecord != yes)
+      mix prep complete       10%   (mix_prep_done yes)
+      mixed                    5%   (mix_readiness == mixed/ready or status == mixed)
+      mastered                 5%   (status == mastered)
+
+    Re-records pending hard-caps the score at 50%.
+    """
+    score = 0
+    blockers = []
+
+    rerecord = _needs_rerecord(data.get("needs_rerecord", ""))
+
+    # version locked — 10%
+    if _is_done(data.get("version_locked", "")):
+        score += 10
+    else:
+        blockers.append("version not locked")
+
+    # all parts recorded — 20% (5% per instrument)
+    instruments = ["drums_pass", "bass_pass", "guitars_pass", "keys_pass"]
+    parts_done = sum(1 for f in instruments if _is_done(data.get(f, "")))
+    score += parts_done * 5
+    if parts_done < 4:
+        missing = [f.replace("_pass", "") for f in instruments if not _is_done(data.get(f, ""))]
+        blockers.append(f"parts not recorded: {', '.join(missing)}")
+
+    # editing / structure — 15%
+    if _is_done(data.get("structure_pass", "")):
+        score += 15
+    else:
+        blockers.append("structure/editing not complete")
+
+    # lead vocals final — 15%
+    vocals_done = _is_done(data.get("vocals_pass", ""))
+    if vocals_done:
+        score += 15
+    else:
+        blockers.append("lead vocals not final")
+
+    # BGVs done — 10% (only if vocals done and no re-records pending)
+    if vocals_done and not rerecord:
+        score += 10
+    elif not vocals_done:
+        blockers.append("BGVs pending lead vocals")
+    else:
+        blockers.append("re-records blocking BGV sign-off")
+
+    # no re-records pending — 10%
+    if not rerecord:
+        score += 10
+    else:
+        blockers.append(f"re-record needed: {data.get('rerecord_reason', 'see notes')}")
+
+    # mix prep complete — 10%
+    if _is_done(data.get("mix_prep_done", "")):
+        score += 10
+    else:
+        blockers.append("mix prep not complete")
+
+    # mixed — 5%
+    mix_r = str(data.get("mix_readiness", "")).strip().lower()
+    status = str(data.get("status", "")).strip().lower()
+    if mix_r in {"mixed", "ready"} or status in {"mixed", "mastered"}:
+        score += 5
+    else:
+        blockers.append("not mixed")
+
+    # mastered — 5%
+    if status == "mastered":
+        score += 5
+    else:
+        blockers.append("not mastered")
+
+    # hard cap if re-records pending
+    if rerecord:
+        score = min(score, 50)
+
+    blocker_line = blockers[0] if blockers else "none"
+    return max(0, min(100, score)), blocker_line
+
+
+# ── Batch day deriver ─────────────────────────────────────────────────────────
+
+BATCH_DAY_MAP = [
+    ("drums day",     lambda d: not _is_done(d.get("drums_pass", ""))),
+    ("bass day",      lambda d: not _is_done(d.get("bass_pass", ""))),
+    ("guitars day",   lambda d: not _is_done(d.get("guitars_pass", ""))),
+    ("vocals day",    lambda d: not _is_done(d.get("vocals_pass", "")) or _needs_rerecord(d.get("needs_rerecord", ""))),
+    ("keys day",      lambda d: not _is_done(d.get("keys_pass", ""))),
+    ("mix prep day",  lambda d: not _is_done(d.get("mix_prep_done", ""))),
+    ("mixing day",    lambda d: str(d.get("mix_readiness", "")).strip().lower() not in {"mixed", "ready"} and _is_done(d.get("mix_prep_done", ""))),
+    ("mastering day", lambda d: str(d.get("status", "")).strip().lower() != "mastered" and str(d.get("mix_readiness", "")).strip().lower() in {"mixed", "ready"}),
+]
+
+
+def derive_batch_days(data: dict) -> list[str]:
+    """Return list of batch days this song still needs."""
+    return [label for label, check in BATCH_DAY_MAP if check(data)]
