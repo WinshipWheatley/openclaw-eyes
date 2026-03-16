@@ -7,9 +7,14 @@ import re
 from pathlib import Path
 from datetime import datetime
 
+from chief_session_manager import (
+    get_workflow_state,
+    set_workflow_state,
+    mark_complete,
+)
+
 QUEUE_LOG = Path("/mnt/c/OpenClaw/logs/chief_queue.log")
 REPLIED_LOG = Path("/mnt/c/OpenClaw/logs/chief_album_replied.log")
-SESSION_FILE = Path("/mnt/c/OpenClaw/logs/chief_album_session.json")
 STATE_CSV = Path("/mnt/c/OpenClaw/state/state.csv")
 STATE_PREV_CSV = Path("/mnt/c/OpenClaw/state/state_prev.csv")
 WORK_LOG_CSV = Path("/mnt/c/OpenClaw/logs/album_work_log.csv")
@@ -63,32 +68,29 @@ TRACKER_FIELDS = [
     "raw_input",
 ]
 
-seen = set()
-
-if REPLIED_LOG.exists():
-    with REPLIED_LOG.open("r", encoding="utf-8") as f:
-        for line in f:
-            seen.add(line.rstrip("\n"))
-
-if SESSION_FILE.exists():
-    with SESSION_FILE.open("r", encoding="utf-8") as f:
-        session = json.load(f)
-else:
-    session = {
-        "active": False,
-        "phase": "idle",
-        "step": 0,
-        "answers": {},
-        "version_count": 0,
-        "current_version_index": 0,
-        "session_started_at": None,
-        "test_mode": False,
-    }
 
 
-def save_session():
-    with SESSION_FILE.open("w", encoding="utf-8") as f:
-        json.dump(session, f, indent=2)
+_ALBUM_DEFAULT = {
+    "active": False,
+    "phase": "idle",
+    "step": 0,
+    "answers": {},
+    "version_count": 0,
+    "current_version_index": 0,
+    "session_started_at": None,
+    "test_mode": False,
+}
+
+
+def load_session() -> dict:
+    state = get_workflow_state()
+    if not state:
+        return json.loads(json.dumps(_ALBUM_DEFAULT))
+    return state
+
+
+def save_session(session: dict) -> None:
+    set_workflow_state(session)
 
 
 def send_reply(text: str):
@@ -604,7 +606,7 @@ def infer_ship_confidence(a: dict):
     return max(0, min(100, ship))
 
 
-def log_work_entry(a: dict):
+def log_work_entry(a: dict, session: dict) -> None:
     ensure_work_log_header()
 
     started = session.get("session_started_at")
@@ -670,7 +672,7 @@ def log_work_entry(a: dict):
         writer.writerow(row)
 
 
-def write_state_row(a: dict):
+def write_state_row(a: dict, session: dict = None):
     decision = derive_decision_fields(a)
 
     row = {
@@ -732,10 +734,10 @@ def write_state_row(a: dict):
         writer.writeheader()
         writer.writerows(rows)
 
-    log_work_entry(a)
+    log_work_entry(a, session or {})
 
 
-def finalize_song(a: dict):
+def finalize_song(a: dict, session: dict):
     decision = derive_decision_fields(a)
     readiness = infer_overall_readiness(a)
     ship_confidence = infer_ship_confidence(a)
@@ -763,19 +765,12 @@ def finalize_song(a: dict):
         f"Recommendation: {decision['highest_leverage_next_step']}."
     )
     send_reply(summary)
-    write_state_row(a)
+    write_state_row(a, session)
 
 
-def reset_session():
-    session["active"] = False
-    session["phase"] = "idle"
-    session["step"] = 0
-    session["answers"] = {}
-    session["version_count"] = 0
-    session["current_version_index"] = 0
-    session["session_started_at"] = None
-    session["test_mode"] = False
-    save_session()
+def reset_session() -> None:
+    set_workflow_state(json.loads(json.dumps(_ALBUM_DEFAULT)))
+    mark_complete()
 
 
 def run_self_test():
@@ -831,9 +826,16 @@ def run_self_test():
 
 
 if __name__ == "__main__":
+    seen = set()
+    if REPLIED_LOG.exists():
+        with REPLIED_LOG.open("r", encoding="utf-8") as f:
+            for line in f:
+                seen.add(line.rstrip("\n"))
+
     print("Chief album brain online.")
 
     while True:
+        session = load_session()
         if QUEUE_LOG.exists():
             with QUEUE_LOG.open("r", encoding="utf-8") as f:
                 for line in f:
@@ -867,7 +869,7 @@ if __name__ == "__main__":
                             "The CSV row writes after the full song review is complete.\n\n"
                             "What song are we assessing?"
                         )
-                        save_session()
+                        save_session(session)
                         seen.add(clean)
                         with REPLIED_LOG.open("a", encoding="utf-8") as r:
                             r.write(clean + "\n")
@@ -885,13 +887,13 @@ if __name__ == "__main__":
                         session["answers"]["item_name"] = msg
                         session["phase"] = "version_gate"
                         send_reply("Have you settled on a main version to finish from? Reply yes, no, or unsure.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "version_gate":
                         parsed = parse_yes_no_unsure(msg)
                         if parsed is None:
                             send_reply("Reply yes, no, or unsure.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -906,25 +908,25 @@ if __name__ == "__main__":
                         else:
                             session["phase"] = "version_count"
                             send_reply("How many active versions do you want to classify right now? Reply with a number.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "main_version_name":
                         session["answers"]["main_version_name"] = msg
                         session["phase"] = "main_version_path"
                         send_reply("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "main_version_path":
                         session["answers"]["main_version_path"] = msg
                         session["phase"] = "backup_status"
                         send_reply("What is the backup status? Reply with something short like backed up, needs backup, or unsure.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "backup_status":
                         session["answers"]["backup_status"] = parse_backup_status(msg)
                         session["phase"] = "donor_gate"
                         send_reply("Are there donor versions worth keeping in play? Reply yes, no, or unsure.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "version_count":
                         try:
@@ -933,7 +935,7 @@ if __name__ == "__main__":
                                 raise ValueError
                         except Exception:
                             send_reply("Reply with a number like 1, 2, or 3.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -945,19 +947,19 @@ if __name__ == "__main__":
                         song = session["answers"]["item_name"]
                         suggested = suggested_candidate_name(song, "A")
                         send_reply(f"Version 1 of {count}: use this working name: {suggested}. Reply with that exact name or your preferred variation.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "classify_version_name":
                         session["answers"][f"version_{session['current_version_index']}_name"] = msg
                         session["phase"] = "classify_version_role"
                         send_reply("What is this version's role? Reply with one of: main, donor, contender, archive.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "classify_version_role":
                         role = parse_version_role(msg)
                         if role is None:
                             send_reply("Reply with one of: main, donor, contender, archive.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -987,7 +989,7 @@ if __name__ == "__main__":
                             else:
                                 session["phase"] = "main_version_path"
                                 send_reply("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "pick_main_after_versions":
                         if unsureish(msg):
@@ -996,13 +998,13 @@ if __name__ == "__main__":
                             session["answers"]["main_version_name"] = msg
                         session["phase"] = "main_version_path"
                         send_reply("What is the main version path? Keep it short, like WorkDrive/Album/Song/Main version.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "donor_gate":
                         parsed = parse_yes_no_unsure(msg)
                         if parsed is None:
                             send_reply("Reply yes, no, or unsure.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -1017,7 +1019,7 @@ if __name__ == "__main__":
                             session["phase"] = "lanes"
                             session["step"] = 0
                             send_reply(LANES[0][1])
-                        save_session()
+                        save_session(session)
 
                     elif phase == "donor_notes":
                         existing = session["answers"].get("donor_versions", "")
@@ -1025,7 +1027,7 @@ if __name__ == "__main__":
                         session["phase"] = "lanes"
                         session["step"] = 0
                         send_reply(LANES[0][1])
-                        save_session()
+                        save_session(session)
 
                     elif phase == "lanes":
                         lane_index = session["step"]
@@ -1037,7 +1039,7 @@ if __name__ == "__main__":
                                 "Use one of these lane statuses first: done, needs work, needs review, needs re-record, not applicable, or unclear. "
                                 "Natural variants like solid, review first, redo, n/a, skip, or not sure also work."
                             )
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -1052,13 +1054,13 @@ if __name__ == "__main__":
                         else:
                             session["phase"] = "song_readiness"
                             send_reply("Overall, how far along does this song feel? You can answer like 70, pretty good, mostly there, close, rough, or ship it.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "song_readiness":
                         value = parse_confidence(msg, "readiness")
                         if value is None:
                             send_reply("Reply with a number like 70 or a phrase like pretty good, close, rough, or mostly there.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
@@ -1067,22 +1069,22 @@ if __name__ == "__main__":
                         session["answers"]["song_readiness_percent"] = value
                         session["phase"] = "ship_confidence"
                         send_reply("How close is this to ship-it final? You can answer like 25, 60, 90, not final, close, or ship it.")
-                        save_session()
+                        save_session(session)
 
                     elif phase == "ship_confidence":
                         value = parse_confidence(msg, "ship")
                         if value is None:
                             send_reply("Reply with a number like 25 or 90, or a phrase like not final, close, or ship it.")
-                            save_session()
+                            save_session(session)
                             seen.add(clean)
                             with REPLIED_LOG.open("a", encoding="utf-8") as r:
                                 r.write(clean + "\n")
                             continue
 
                         session["answers"]["song_ship_confidence_percent"] = value
-                        finalize_song(session["answers"])
+                        finalize_song(session["answers"], session)
                         reset_session()
-                        save_session()
+                        save_session(session)
 
                     seen.add(clean)
                     with REPLIED_LOG.open("a", encoding="utf-8") as r:
