@@ -12,6 +12,7 @@ after _finalize() and handle_quick_update().
 """
 
 import csv
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +23,8 @@ OVERVIEW_PATH = VAULT / "Album" / "Album Overview.md"
 ARC_VAULT_PATH = VAULT / "Album" / "Album Arc.md"
 CSV_PATH = Path("/mnt/c/OpenClawShared/album/album_work_log.csv")
 ARC_SRC_PATH = Path("/mnt/c/OpenClawShared/album/album_arc.md")
+CONTENT_LOG_JSON = Path("/mnt/c/OpenClawShared/album/content_log.json")
+CONTENT_LOG_MD   = VAULT / "Marketing" / "Content Log.md"
 
 ALBUM_SONGS = [
     "1 In A Million", "A Night To Remember", "Blue Weather", "Built By Stars",
@@ -168,6 +171,60 @@ def sync_arc() -> None:
         ARC_VAULT_PATH.write_text(new_content, encoding="utf-8")
 
 
+# ── Content log sync ──────────────────────────────────────────────────────────
+
+def sync_content_log() -> None:
+    """Rewrite Marketing/Content Log.md from content_log.json."""
+    if not CONTENT_LOG_JSON.exists():
+        return
+
+    try:
+        data = json.loads(CONTENT_LOG_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return
+
+    entries = data.get("entries", [])
+
+    def table_for(status_entries: list) -> str:
+        if not status_entries:
+            return "_(none yet)_\n"
+        header = "| Title | Platform | Size | Song | Date |\n|---|---|---|---|---|\n"
+        rows = []
+        for e in status_entries:
+            size_label = e.get("size", "").replace("_", " ").title()
+            date_col = e.get("date_posted") or e.get("date_suggested", "—")
+            rows.append(
+                f"| {e.get('title','—')} "
+                f"| {e.get('platform','—')} "
+                f"| {size_label} "
+                f"| {e.get('song') or '—'} "
+                f"| {date_col} |"
+            )
+        return header + "\n".join(rows) + "\n"
+
+    in_progress = [e for e in entries if e.get("status") == "in_progress"]
+    suggested   = [e for e in entries if e.get("status") == "suggested"]
+    posted      = [e for e in entries if e.get("status") == "posted"]
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    content = (
+        "---\n"
+        "type: content-log\n"
+        f"last_updated: {today}\n"
+        "---\n\n"
+        "# Content Log\n\n"
+        "_Managed by `chief_marketing_brain.py` — do not edit manually._\n\n"
+        "## In Progress\n\n"
+        + table_for(in_progress)
+        + "\n## Suggested\n\n"
+        + table_for(suggested)
+        + "\n## Posted\n\n"
+        + table_for(posted)
+    )
+    CONTENT_LOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    CONTENT_LOG_MD.write_text(content, encoding="utf-8")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run_sync() -> str:
@@ -175,6 +232,7 @@ def run_sync() -> str:
     updated = sync_song_frontmatter(csv_data)
     sync_overview_table(csv_data)
     sync_arc()
+    sync_content_log()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 

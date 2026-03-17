@@ -11,6 +11,11 @@ from chief_session_manager import (
     reset_session,
 )
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
+from chief_marketing_brain import (
+    handle as marketing_handle,
+    _is_draft_request as _marketing_is_draft,
+    _is_log_update as _marketing_is_log_update,
+)
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -131,6 +136,18 @@ def looks_like_quick_update(text: str) -> bool:
     has_signal = any(s in t for s in _QUICK_UPDATE_SIGNALS)
     has_song = any(song.lower() in t for song in _ALBUM_SONGS)
     return has_signal and has_song
+
+
+def marketing_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "marketing", "content idea", "content ideas", "what should i post",
+        "what can i post", "what can i make", "post about", "reel",
+        "tiktok", "instagram", "youtube", "social media",
+        "i have", "what to post", "log that", "i posted", "mark as posted",
+        "mark it as", "draft a caption", "draft a hook", "write a caption",
+        "write a hook", "write me a", "marketing idea",
+    ])
 
 
 def album_arc_intent(text: str) -> bool:
@@ -330,6 +347,16 @@ def route_message(text: str) -> dict:
             "intent": "quick_song_update",
             "replies": replies,
         }
+
+    if marketing_intent(text):
+        replies = marketing_handle(text)
+        if _marketing_is_log_update(text):
+            sub = "content_log_update"
+        elif _marketing_is_draft(text):
+            sub = "content_draft"
+        else:
+            sub = "marketing_ideas"
+        return {"intent": sub, "replies": replies}
 
     if album_intent(text):
         # Always start completely fresh regardless of any lingering session state
