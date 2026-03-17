@@ -18,6 +18,9 @@ from chief_reporter_brain import handle as reporter_handle
 from chief_scout_brain import handle as scout_handle
 from chief_integration_brain import handle as integration_handle
 from chief_reflection_brain import handle as reflection_handle
+from chief_cpa_brain import handle as cpa_handle
+from chief_musiclaw_brain import handle as musiclaw_handle
+from chief_publishing_brain import handle as publishing_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -161,7 +164,7 @@ def reporter_intent(text: str) -> bool:
     return any(k in t for k in [
         "system report", "daily report", "what ran today", "status report",
         "worker report", "watcher report", "what happened today",
-        "system status", "how is the system", "report",
+        "how is the system",
     ])
 
 
@@ -174,6 +177,38 @@ def marketing_intent(text: str) -> bool:
         "i have", "what to post", "log that", "i posted", "mark as posted",
         "mark it as", "draft a caption", "draft a hook", "write a caption",
         "write a hook", "write me a", "marketing idea",
+    ])
+
+
+def cpa_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "what did i make", "income this month", "income summary",
+        "what do i owe", "quarterly tax", "estimated tax", "tax estimate",
+        "what can i deduct", "deductions", "write off", "write-off",
+        "log expense", "add expense", "i spent", "i paid for",
+        "quarterly", "cpa", "tax owed",
+    ])
+
+
+def musiclaw_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "music law", "legal question", "my rights", "ten fingers",
+        "log rhythm", "log rhythm records", "renae", "what are my options",
+        "co-write", "co write", "publishing rights", "master rights",
+        "work for hire", "music contract", "add case note",
+        "sync license", "copyright", "royalty dispute",
+    ])
+
+
+def publishing_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "publishing status", "catalog status", "what songs are registered",
+        "publishing", "register ", "sync opportunities", "sync-ready",
+        "sync ready", "update publishing", "publishing catalog",
+        "song rights", "pro registration", "ascap", "bmi",
     ])
 
 
@@ -408,6 +443,18 @@ def route_message(text: str) -> dict:
         else:
             sub = "marketing_ideas"
         return {"intent": sub, "replies": replies}
+
+    if cpa_intent(text):
+        replies = cpa_handle(text)
+        return {"intent": "cpa_query", "replies": replies}
+
+    if musiclaw_intent(text):
+        replies = musiclaw_handle(text)
+        return {"intent": "musiclaw_query", "replies": replies}
+
+    if publishing_intent(text):
+        replies = publishing_handle(text)
+        return {"intent": "publishing_query", "replies": replies}
 
     if reflection_intent(text):
         replies = reflection_handle(text)
