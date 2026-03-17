@@ -31,6 +31,9 @@
 !chief_cpa_brain.py
 !chief_musiclaw_brain.py
 !chief_publishing_brain.py
+!chief_website_creative.py
+!chief_website_coordinator.py
+!chief_website_qa.py
 !chief-inspect
 
 !start_chief.sh
