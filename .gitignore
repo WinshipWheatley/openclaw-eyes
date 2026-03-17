@@ -43,6 +43,7 @@
 !chief_goals_brain.py
 !chief_momentum_brain.py
 !chief_fundo_release.py
+!chief_album_mixer.py
 !chief-inspect
 
 !start_chief.sh

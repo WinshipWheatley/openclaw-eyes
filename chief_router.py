@@ -52,6 +52,7 @@ from chief_marketing_brain import (
     _is_draft_request as _marketing_is_draft,
     _is_log_update as _marketing_is_log_update,
 )
+from chief_album_mixer import handle as album_mixer_handle
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -320,6 +321,14 @@ def calendar_intent(text: str) -> bool:
         "what do i have", "what's on my", "my week", "this week",
         "upcoming events", "what's happening",
     ])
+
+
+def mix_brief_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "mix brief", "mix session", "mix status", "mix ready",
+        "what's mix ready", "whats mix ready",
+    ]) or bool(re.search(r"^mix\s+(for\s+)?\w", t))
 
 
 def fundo_release_intent(text: str) -> bool:
@@ -602,6 +611,10 @@ def route_message(text: str) -> dict:
     if calendar_intent(text):
         replies = calendar_handle(text)
         return {"intent": "calendar_query", "replies": replies}
+
+    if mix_brief_intent(text):
+        replies = album_mixer_handle(text)
+        return {"intent": "mix_brief", "replies": replies}
 
     if fundo_release_intent(text):
         replies = fundo_release_handle(text)
