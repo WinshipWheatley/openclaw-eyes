@@ -69,28 +69,25 @@ DOMAIN_MAP = {
         "members": [
             "chief_fundo_identity.py",
             "chief_fundo_session.py",
-            None,  # proposed: chief_fundo_release.py — release prep + rollout
+            "chief_fundo_release.py",
         ],
         "description": "Identity/lore, production session coaching, release strategy",
-        "proposed_third": "chief_fundo_release.py — release prep, rollout strategy, launch checklist",
     },
     "Album Production": {
         "members": [
             "chief_album_brain.py",
             "chief_album_io.py",
-            None,  # proposed: chief_album_mixer.py — mastering notes + sequencing
+            "chief_album_mixer.py",
         ],
-        "description": "Session tracking, file I/O, mastering/sequencing",
-        "proposed_third": "chief_album_mixer.py — mastering notes, track sequencing, final QA",
+        "description": "Session tracking, file I/O, mix session briefs",
     },
     "Infrastructure": {
         "members": [
             "chief_calendar_brain.py",
             "chief_queue_brain.py",
-            None,  # proposed: chief_backup_brain.py — log rotation + vault backup
+            "chief_backup_brain.py",
         ],
-        "description": "Calendar/scheduling, task queue, backup/rotation",
-        "proposed_third": "chief_backup_brain.py — log rotation, vault backup, health snapshots",
+        "description": "Calendar/scheduling, task queue, repo backup",
     },
     "Finance Operations": {
         "members": [
@@ -111,11 +108,10 @@ DOMAIN_MAP = {
     "Marketing": {
         "members": [
             "chief_marketing_brain.py",
-            None,  # proposed: chief_content_brain.py — content calendar + scheduling
-            None,  # proposed: chief_brand_brain.py — brand voice + style guide
+            "chief_content_brain.py",
+            "chief_brand_brain.py",
         ],
         "description": "Marketing ideas/drafts, content calendar, brand voice",
-        "proposed_third": "chief_content_brain.py + chief_brand_brain.py — content scheduling and brand rules",
     },
 }
 
