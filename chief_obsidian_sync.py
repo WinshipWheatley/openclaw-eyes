@@ -188,6 +188,20 @@ def sync_research_logs() -> None:
             p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
 
 
+def sync_business_logs() -> None:
+    """Ensure Business/ vault files exist. Brains write directly."""
+    business = VAULT / "Business"
+    business.mkdir(parents=True, exist_ok=True)
+    for fname, placeholder in [
+        ("CPA Log.md",          "_(no CPA data yet)_"),
+        ("Music Law Log.md",    "_(no music law entries yet)_"),
+        ("Publishing Log.md",   "_(no publishing data yet)_"),
+    ]:
+        p = business / fname
+        if not p.exists():
+            p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
+
+
 def sync_validation_log() -> None:
     """No-op — validator writes directly to vault. Ensures file exists."""
     vlog = VAULT / "System" / "Validation Log.md"
@@ -270,6 +284,7 @@ def run_sync() -> str:
     sync_daily_report()
     sync_validation_log()
     sync_research_logs()
+    sync_business_logs()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 

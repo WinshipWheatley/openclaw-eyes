@@ -25,6 +25,9 @@
 !chief_scout_brain.py
 !chief_integration_brain.py
 !chief_reflection_brain.py
+!chief_cpa_brain.py
+!chief_musiclaw_brain.py
+!chief_publishing_brain.py
 !chief-inspect
 
 !start_chief.sh
