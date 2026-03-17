@@ -16,6 +16,7 @@ from chief_approval_brain import (
 )
 from chief_reporter_brain import handle as reporter_handle
 from chief_scout_brain import handle as scout_handle
+from chief_integration_brain import handle as integration_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -173,6 +174,15 @@ def marketing_intent(text: str) -> bool:
         "mark it as", "draft a caption", "draft a hook", "write a caption",
         "write a hook", "write me a", "marketing idea",
     ])
+
+
+def integration_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "integration proposal", "integration proposals", "what can we add",
+        "what can i add", "proposals", "propose", "approve prop-", "reject prop-",
+        "approve PROP-", "reject PROP-",
+    ]) or bool(__import__("re").search(r"(approve|reject)\s+prop-", t))
 
 
 def album_arc_intent(text: str) -> bool:
@@ -396,6 +406,10 @@ def route_message(text: str) -> dict:
     if scout_intent(text):
         replies = scout_handle(text)
         return {"intent": "scout_report", "replies": replies}
+
+    if integration_intent(text):
+        replies = integration_handle(text)
+        return {"intent": "integration_proposals", "replies": replies}
 
     if album_intent(text):
         # Always start completely fresh regardless of any lingering session state
