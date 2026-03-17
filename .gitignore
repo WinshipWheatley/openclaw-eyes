@@ -18,6 +18,10 @@
 !chief_album_brain_legacy.py
 !chief_llm.py
 !chief_marketing_brain.py
+!chief_approval_brain.py
+!chief_reporter_brain.py
+!chief_validator_brain.py
+!CLAUDE.md
 !chief-inspect
 
 !start_chief.sh

@@ -31,6 +31,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     intent = routed.get("intent")
     reply = routed.get("reply")
 
+    if intent == "approval_response":
+        await update.message.reply_text(reply or "Decision recorded.")
+        return
+
     if intent == "inspection":
         try:
             result = subprocess.run(

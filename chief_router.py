@@ -10,6 +10,10 @@ from chief_session_manager import (
     mark_cancelled,
     reset_session,
 )
+from chief_approval_brain import (
+    has_pending_approval,
+    record_decision,
+)
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -262,6 +266,12 @@ def album_intent(text: str) -> bool:
 
 
 def route_message(text: str) -> dict:
+    # ── Approval gate — checked before ALL other routing ──────────────────────
+    t_upper = text.strip().upper()
+    if has_pending_approval() and t_upper in ("YES", "NO"):
+        reply = record_decision(text)
+        return {"intent": "approval_response", "reply": reply}
+
     session = load_session()
     append_history("user", text)
 
