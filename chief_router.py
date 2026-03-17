@@ -607,19 +607,22 @@ def album_intent(text: str) -> bool:
 
 def route_message(text: str) -> dict:
     t_lower = text.strip().lower()
+    t_upper = text.strip().upper()
 
-    # ── Approval bridge — multi-choice responses (1/2/3/approve/deny/status) ──
+    # ── Approval gate — HIGHEST PRIORITY. Claude Code approvals interrupt everything.
+    # Accepts 1/Yes or 2/No so the user doesn't have to type YES/NO.
+    _approval_map = {"1": "YES", "2": "NO"}
+    _approval_input = _approval_map.get(text.strip(), t_upper)
+    if has_pending_approval() and _approval_input in ("YES", "NO"):
+        reply = record_decision(_approval_input)
+        return {"intent": "approval_response", "reply": reply}
+
+    # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──
     _BRIDGE_TOKENS = ("1", "2", "3", "approve", "deny")
     if has_pending_choice() and (t_lower in _BRIDGE_TOKENS or
                                   t_lower in ("status", "approval status", "choice status")):
         replies = bridge_handle(text)
         return {"intent": "choice_response", "replies": replies}
-
-    # ── Approval gate — Claude Code YES/NO gate (checked before other routing) ─
-    t_upper = text.strip().upper()
-    if has_pending_approval() and t_upper in ("YES", "NO"):
-        reply = record_decision(text)
-        return {"intent": "approval_response", "reply": reply}
 
     # ── SMS draft confirmation ─────────────────────────────────────────────────
     if sms_pending_draft() and t_upper in ("YES", "NO"):

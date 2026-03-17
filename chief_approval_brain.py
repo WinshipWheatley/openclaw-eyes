@@ -107,10 +107,9 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
     _save_pending(pending)
 
     _send(
-        f"⚠️ Approval required [{approval_id}]\n"
-        f"Requester: {requester}\n"
-        f"Action: {action}\n\n"
-        f"Reply YES to approve or NO to deny."
+        f"{action}\n"
+        f"1. Yes\n"
+        f"2. No"
     )
 
     # Poll for decision
@@ -131,32 +130,38 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
     elapsed = time.time() - start
     _clear_pending()
     _append_log(action, requester, "TIMED OUT", requested_at, elapsed)
-    _send(f"⏱ Approval request [{approval_id}] timed out — action denied by default.")
+    _send(f"⏱ Approval timed out — denied by default.")
     return False
 
 
 def record_decision(decision: str) -> str:
     """
-    Called by the listener when the user replies YES or NO to a pending approval.
-    Returns a reply string to send back to the user.
+    Called by the listener when the user replies to a pending approval.
+    Accepts YES/NO or 1/2 (1=Yes, 2=No).
+    Returns a brief reply string to send back to the user.
     """
     data = _load_pending()
     if not data or data.get("status") != "pending":
         return "No pending approval request found."
 
     d = decision.strip().upper()
+    # Accept numbered shorthand
+    if d == "1":
+        d = "YES"
+    elif d == "2":
+        d = "NO"
+
     if d not in ("YES", "NO"):
-        return "Please reply YES or NO."
+        return "Reply 1 (Yes) or 2 (No)."
 
     data["status"]   = "decided"
     data["decision"] = d
     _save_pending(data)
 
-    action = data.get("action", "unknown action")
     if d == "YES":
-        return f"✅ Approved: {action}"
+        return "✅ Approved."
     else:
-        return f"❌ Denied: {action}"
+        return "❌ Denied."
 
 
 def has_pending_approval() -> bool:

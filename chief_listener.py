@@ -16,6 +16,32 @@ BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 
 
+async def _resume_interrupted_task(update: Update) -> None:
+    """
+    After a Claude Code approval interrupts an active task session,
+    re-send the pending task question so the user can resume immediately.
+    Currently handles album brain; extend here for other task brains if needed.
+    """
+    try:
+        from chief_session_manager import load_session
+        from chief_album_brain import TOPIC_PROMPTS
+        session = load_session()
+        if (session.get("active_workflow") == "album"
+                and session.get("status") == "active"):
+            wf = session.get("workflow_state", {})
+            last_topic = wf.get("last_topic_asked")
+            phase      = wf.get("phase", "")
+            song       = wf.get("song_title", "")
+            if last_topic and phase in ("follow_up", "open"):
+                prompt = TOPIC_PROMPTS.get(last_topic)
+                if prompt:
+                    await update.message.reply_text(
+                        f"↩ *{song}* — resuming:\n\n{prompt}"
+                    )
+    except Exception:
+        pass
+
+
 def extract_snapshot_name(output: str) -> str | None:
     m = re.search(r"inspection-\d{8}-\d{6}", output or "")
     return m.group(0) if m else None
@@ -35,6 +61,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intent == "approval_response":
         await update.message.reply_text(reply or "Decision recorded.")
+        await _resume_interrupted_task(update)
         return
 
     if intent == "inspection":
