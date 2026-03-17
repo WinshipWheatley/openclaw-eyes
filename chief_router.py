@@ -17,6 +17,7 @@ from chief_approval_brain import (
 from chief_reporter_brain import handle as reporter_handle
 from chief_scout_brain import handle as scout_handle
 from chief_integration_brain import handle as integration_handle
+from chief_reflection_brain import handle as reflection_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -173,6 +174,15 @@ def marketing_intent(text: str) -> bool:
         "i have", "what to post", "log that", "i posted", "mark as posted",
         "mark it as", "draft a caption", "draft a hook", "write a caption",
         "write a hook", "write me a", "marketing idea",
+    ])
+
+
+def reflection_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "reflection report", "monthly report", "what's working", "whats working",
+        "usage report", "system reflection", "how are things going",
+        "assess the system", "how is the system doing",
     ])
 
 
@@ -398,6 +408,10 @@ def route_message(text: str) -> dict:
         else:
             sub = "marketing_ideas"
         return {"intent": sub, "replies": replies}
+
+    if reflection_intent(text):
+        replies = reflection_handle(text)
+        return {"intent": "reflection_report", "replies": replies}
 
     if reporter_intent(text):
         replies = reporter_handle(text)
