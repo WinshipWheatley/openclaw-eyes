@@ -192,7 +192,7 @@ def _build_report(scan: dict) -> str:
 
 # ── Vault write ────────────────────────────────────────────────────────────────
 
-def _write_audit_md(report: str) -> None:
+def _write_audit_md(report: str, narrative: str = "") -> None:
     today = datetime.now().strftime("%Y-%m-%d %H:%M")
     content = (
         "---\n"
@@ -201,9 +201,10 @@ def _write_audit_md(report: str) -> None:
         "---\n\n"
         "# Trinity Audit\n\n"
         "_Managed by `chief_trinity_brain.py`. Run 'trinity check' to refresh._\n\n"
-        + report.replace("**", "").replace("✓", "✓").replace("⚠", "⚠")
-        + "\n"
     )
+    if narrative and narrative != "(narrative unavailable)":
+        content += f"## Analysis\n\n{narrative}\n\n"
+    content += report.replace("**", "").replace("✓", "✓").replace("⚠", "⚠") + "\n"
     AUDIT_MD.parent.mkdir(parents=True, exist_ok=True)
     AUDIT_MD.write_text(content, encoding="utf-8")
 
@@ -264,7 +265,7 @@ def _handle_check() -> list[str]:
     scan = _scan()
     report = _build_report(scan)
     narrative = _build_narrative(report)
-    _write_audit_md(report)
+    _write_audit_md(report, narrative)
 
     complete_count = sum(1 for r in scan.values() if r["complete"])
     total = len(scan)

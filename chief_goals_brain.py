@@ -96,7 +96,7 @@ def _save_goals(goals: list[dict]) -> None:
     GOALS_JSON.write_text(json.dumps(goals, indent=2), encoding="utf-8")
 
 
-def _write_goals_md(goals: list[dict]) -> None:
+def _write_goals_md(goals: list[dict], checkin: str = "") -> None:
     today = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     def progress_bar(pct: int) -> str:
@@ -116,6 +116,10 @@ def _write_goals_md(goals: list[dict]) -> None:
         "---\n\n"
         "# Goals\n\n"
         "_Managed by `chief_goals_brain.py`. Say 'goals' for a check-in._\n\n"
+    )
+    if checkin:
+        content += f"## Check-in\n\n{checkin}\n\n"
+    content += (
         "| # | Goal | Progress | Target |\n"
         "|---|---|---|---|\n"
         + rows + "\n\n"
@@ -169,8 +173,7 @@ def _get_checkin(goals: list[dict]) -> str:
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
 
-def _handle_status(goals: list[dict]) -> list[str]:
-    checkin = _get_checkin(goals)
+def _handle_status(goals: list[dict], checkin: str = "") -> list[str]:
     lines = ["**Goal Tracker**\n"]
     for g in goals:
         pct = g.get("completion", 0)
@@ -259,8 +262,9 @@ def handle(text: str = "") -> list[str]:
         return _handle_set(text, goals)
 
     # Default: show status with check-in
-    _write_goals_md(goals)
-    return _handle_status(goals)
+    checkin = _get_checkin(goals)
+    _write_goals_md(goals, checkin)
+    return _handle_status(goals, checkin)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
