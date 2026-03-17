@@ -34,6 +34,9 @@ from chief_email_brain import (
     confirm_send as email_confirm_send,
     clear_pending_draft as email_clear_draft,
 )
+from chief_website_creative import handle as website_creative_handle
+from chief_website_coordinator import handle as website_coordinator_handle
+from chief_website_qa import handle as website_qa_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -255,6 +258,33 @@ def publishing_intent(text: str) -> bool:
     ])
 
 
+def website_qa_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "website qa", "qa report", "check the site", "site audit",
+        "qa the site", "qa fundo", "run qa", "site check",
+    ])
+
+
+def website_coordinator_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "site status", "what does the site need", "website update",
+        "site roadmap", "brand rules", "brand guide", "what needs to be built",
+        "website status", "update the site",
+    ])
+
+
+def website_creative_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "headline", "website copy", "write bio", "bio for the site",
+        "song description", "track description", "fundo mystery",
+        "mystery text", "logo idea", "canva brief", "canva direction",
+        "write copy", "homepage copy", "about page copy",
+    ])
+
+
 def reflection_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
@@ -457,6 +487,18 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if website_qa_intent(text):
+        replies = website_qa_handle(text)
+        return {"intent": "website_qa", "replies": replies}
+
+    if website_coordinator_intent(text):
+        replies = website_coordinator_handle(text)
+        return {"intent": "website_coordinator", "replies": replies}
+
+    if website_creative_intent(text):
+        replies = website_creative_handle(text)
+        return {"intent": "website_creative", "replies": replies}
 
     billing_mode = billing_mode_from_text(text)
     if billing_mode:

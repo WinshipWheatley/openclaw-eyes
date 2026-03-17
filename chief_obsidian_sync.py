@@ -205,6 +205,20 @@ def sync_business_logs() -> None:
             p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
 
 
+def sync_website_logs() -> None:
+    """Ensure Website/ vault files exist. Brains write directly."""
+    website = VAULT / "Website"
+    website.mkdir(parents=True, exist_ok=True)
+    for fname, placeholder in [
+        ("Creative Log.md",    "_(no creative assets generated yet)_"),
+        ("Coordinator Log.md", "_(no site updates logged yet)_"),
+        ("QA Log.md",          "_(no QA runs yet)_"),
+    ]:
+        p = website / fname
+        if not p.exists():
+            p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
+
+
 def sync_validation_log() -> None:
     """No-op — validator writes directly to vault. Ensures file exists."""
     vlog = VAULT / "System" / "Validation Log.md"
@@ -288,6 +302,7 @@ def run_sync() -> str:
     sync_validation_log()
     sync_research_logs()
     sync_business_logs()
+    sync_website_logs()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 

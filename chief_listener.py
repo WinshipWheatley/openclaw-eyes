@@ -174,6 +174,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent in ("website_qa", "website_coordinator", "website_creative"):
+        replies = routed.get("replies", [])
+        for r in replies:
+            r = validate_reply(text, r, intent)
+            await update.message.reply_text(r)
+        return
+
     formatted = f"[PHONE][{timestamp}] {text}"
 
     try:
