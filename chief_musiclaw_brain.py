@@ -24,7 +24,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
+from chief_llm import claude_call as ollama_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
