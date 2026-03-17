@@ -205,6 +205,15 @@ def sync_business_logs() -> None:
             p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
 
 
+def sync_calendar_logs() -> None:
+    """Ensure Calendar/ vault folder exists."""
+    cal = VAULT / "Calendar"
+    cal.mkdir(parents=True, exist_ok=True)
+    p = cal / "Weekly Log.md"
+    if not p.exists():
+        p.write_text("# Calendar — Weekly Log\n\n_(no calendar runs yet)_\n", encoding="utf-8")
+
+
 def sync_fundo_logs() -> None:
     """Ensure Fundo/ vault files exist. Brains write directly."""
     fundo = VAULT / "Fundo"
@@ -316,6 +325,7 @@ def run_sync() -> str:
     sync_validation_log()
     sync_research_logs()
     sync_business_logs()
+    sync_calendar_logs()
     sync_fundo_logs()
     sync_website_logs()
     return f"Obsidian sync complete. {updated} song file(s) updated."

@@ -181,6 +181,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent == "calendar_query":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent in ("fundo_session", "fundo_identity"):
         replies = routed.get("replies", [])
         for r in replies:

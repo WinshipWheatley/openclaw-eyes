@@ -34,6 +34,7 @@ from chief_email_brain import (
     confirm_send as email_confirm_send,
     clear_pending_draft as email_clear_draft,
 )
+from chief_calendar_brain import handle as calendar_handle
 from chief_fundo_session import handle as fundo_session_handle
 from chief_fundo_identity import handle as fundo_identity_handle
 from chief_website_creative import handle as website_creative_handle
@@ -257,6 +258,16 @@ def publishing_intent(text: str) -> bool:
         "publishing", "register ", "sync opportunities", "sync-ready",
         "sync ready", "update publishing", "publishing catalog",
         "song rights", "pro registration", "ascap", "bmi",
+    ])
+
+
+def calendar_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "what's my week", "whats my week", "what's today", "whats today",
+        "what's coming up", "whats coming up", "calendar", "schedule",
+        "what do i have", "what's on my", "my week", "this week",
+        "upcoming events", "what's happening",
     ])
 
 
@@ -508,6 +519,10 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if calendar_intent(text):
+        replies = calendar_handle(text)
+        return {"intent": "calendar_query", "replies": replies}
 
     if fundo_session_intent(text):
         replies = fundo_session_handle(text)
