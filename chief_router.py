@@ -66,6 +66,7 @@ from chief_approval_bridge import (
     has_pending_choice,
     handle as bridge_handle,
 )
+from chief_nli import detect_nli_query, handle as nli_handle
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -638,6 +639,14 @@ def route_message(text: str) -> dict:
     if scheduler_intent(text):
         replies = scheduler_handle(text)
         return {"intent": "scheduler", "replies": replies}
+
+    # ── NLI layer — natural status/trust language ──────────────────────────────
+    # Catches conversational status queries ("where are we at", "did you save that")
+    # before the session machinery runs. Additive only — falls through if no match.
+    if detect_nli_query(text):
+        replies = nli_handle(text)
+        if replies:
+            return {"intent": "nli_status", "replies": replies}
 
     session = load_session()
     append_history("user", text)

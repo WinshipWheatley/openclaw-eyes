@@ -55,6 +55,7 @@
 !chief_brainstorm_watcher.py
 !chief_focus_shield.py
 !chief_approval_bridge.py
+!chief_nli.py
 !chief-inspect
 
 !start_chief.sh
