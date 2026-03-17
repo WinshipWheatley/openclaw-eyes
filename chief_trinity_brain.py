@@ -96,19 +96,26 @@ DOMAIN_MAP = {
         "members": [
             "chief_billing_brain.py",
             "chief_invoice_brain.py",
-            None,  # proposed: chief_analytics_brain.py (Batch 9)
+            "chief_analytics_brain.py",
         ],
         "description": "Billing intake, invoice generation, financial analytics",
-        "proposed_third": "chief_analytics_brain.py — income/expense analytics, weekly metrics (Batch 9)",
+    },
+    "Analytics": {
+        "members": [
+            "chief_analytics_brain.py",
+            "chief_goals_brain.py",
+            "chief_momentum_brain.py",
+        ],
+        "description": "Weekly metrics, goal tracking, activity momentum",
     },
     "Marketing": {
         "members": [
             "chief_marketing_brain.py",
             None,  # proposed: chief_content_brain.py — content calendar + scheduling
-            None,  # proposed: chief_goals_brain.py (Batch 9)
+            None,  # proposed: chief_brand_brain.py — brand voice + style guide
         ],
-        "description": "Marketing ideas/drafts, content calendar, goal tracking",
-        "proposed_third": "chief_content_brain.py + chief_goals_brain.py (Batch 9 covers goals)",
+        "description": "Marketing ideas/drafts, content calendar, brand voice",
+        "proposed_third": "chief_content_brain.py + chief_brand_brain.py — content scheduling and brand rules",
     },
 }
 
