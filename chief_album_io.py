@@ -27,6 +27,8 @@ BASE_CSV_FIELDS = [
     "status",
     "vocal_archetype_primary",
     "vocal_archetype_influences",
+    "feels_magical",       # what's working / should be preserved
+    "needs_refinement",    # what needs work but isn't a hard blocker
 ]
 
 # Canonical section names in song markdown files
@@ -43,6 +45,8 @@ MD_SECTIONS = [
     "Technical Notes",
     "Suno Reference",
     "Lyrics",
+    "Feels Magical",
+    "Needs Refinement",
     "Session History",
 ]
 

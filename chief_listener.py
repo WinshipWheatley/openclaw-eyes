@@ -118,6 +118,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if intent == "billing_continue":
         return
 
+    if intent == "batch_query":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent in ("album_status", "nli_status"):
         replies = routed.get("replies", [])
         for r in replies:

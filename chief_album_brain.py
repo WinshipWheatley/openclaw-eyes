@@ -160,25 +160,40 @@ TOPIC_KEYWORDS = {
         "who is the singer", "voice of the song", "narrator",
         "vibe of the singer",
     ],
+    "feels_magical": [
+        "magical", "feels magical", "special", "love the", "best part",
+        "nailed it", "preserve", "protect", "keep this", "strongest",
+        "don't touch", "dont touch", "working really well", "perfect as is",
+        "stands out", "most alive", "hits different",
+    ],
+    "needs_refinement": [
+        "needs work", "not quite", "not quite right", "refine", "not there yet",
+        "could be better", "feels weak", "not right", "missing something",
+        "not sure about", "not happy with", "needs attention", "tweak", "improve",
+        "off somehow", "still off", "doesn't land",
+    ],
 }
 
 TOPIC_ORDER = [
     "structure", "vocals", "drums", "bass", "guitars", "keys",
     "mix_readiness", "mix_prep", "suno_reference", "lyrics", "vocal_archetype",
+    "feels_magical", "needs_refinement",
 ]
 
 TOPIC_TO_SECTION = {
-    "structure":       "Structure Notes",
-    "vocals":          "Vocals / Lyrics",
-    "vocal_archetype": "Vocal Archetype",
-    "drums":           "Drums",
-    "bass":            "Bass",
-    "guitars":         "Guitars",
-    "keys":            "Keys / Synths / Electronica / World Rhythm",
-    "mix_readiness":   "Mix Notes",
-    "mix_prep":        "Mix Notes",
-    "suno_reference":  "Suno Reference",
-    "lyrics":          "Lyrics",
+    "structure":        "Structure Notes",
+    "vocals":           "Vocals / Lyrics",
+    "vocal_archetype":  "Vocal Archetype",
+    "drums":            "Drums",
+    "bass":             "Bass",
+    "guitars":          "Guitars",
+    "keys":             "Keys / Synths / Electronica / World Rhythm",
+    "mix_readiness":    "Mix Notes",
+    "mix_prep":         "Mix Notes",
+    "suno_reference":   "Suno Reference",
+    "lyrics":           "Lyrics",
+    "feels_magical":    "Feels Magical",
+    "needs_refinement": "Needs Refinement",
 }
 
 TOPIC_PROMPTS = {
@@ -205,6 +220,13 @@ TOPIC_PROMPTS = {
         "One thing I want to lock in — who is the singer on this song? "
         "What's the vocal character? Like late-night confessional, strutting soul man, "
         "world-weary storyteller — give me the archetype and what it leans toward."
+    ),
+    "feels_magical": (
+        "What about this song feels genuinely special — what's working that we should protect and not mess with?"
+    ),
+    "needs_refinement": (
+        "What's not quite right yet, but isn't a hard blocker? "
+        "What would you tweak or improve if you had one more pass?"
     ),
 }
 
@@ -566,6 +588,15 @@ def _finalize(session: dict) -> list:
     pct, blocker = score_completion(structured)
     structured["completion_pct"] = str(pct)
     structured["completion_blocker"] = blocker
+
+    # Pull feels_magical / needs_refinement from notes into CSV fields
+    for csv_field, section_name in [
+        ("feels_magical",    "Feels Magical"),
+        ("needs_refinement", "Needs Refinement"),
+    ]:
+        note_text = session.get("notes", {}).get(section_name, "").strip()
+        if note_text and not structured.get(csv_field):
+            structured[csv_field] = note_text[:150].replace("\n", " ")
 
     ensure_csv()
     upsert_csv_row(structured)
