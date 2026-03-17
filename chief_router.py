@@ -643,6 +643,23 @@ def route_message(text: str) -> dict:
             "reply": None,
         }
 
+    # ── Explicit brainstorm commands escape any lingering active session ─────────
+    # Must run before billing/album active session checks so "brainstorm" is
+    # never swallowed by a stale billing FOLLOWUP or album workflow.
+    _t = text.lower().strip()
+    if any(_t.startswith(k) or _t == k for k in (
+        "brainstorm", "capture idea", "new idea", "idea:",
+    )):
+        reset_session()
+        if brainstorm_watch_intent(text):
+            replies = brainstorm_watch_handle(text)
+            return {"intent": "brainstorm_watch", "replies": replies}
+        if brainstorm_queue_intent(text):
+            replies = brainstorm_router_handle(text)
+            return {"intent": "brainstorm_queue", "replies": replies}
+        replies = brainstorm_handle(text)
+        return {"intent": "brainstorm_capture", "replies": replies}
+
     if session.get("status") == "active" and session.get("active_workflow") == "billing":
         replies = billing_handle(text)
         return {
