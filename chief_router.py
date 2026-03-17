@@ -37,6 +37,9 @@ from chief_email_brain import (
 from chief_calendar_brain import handle as calendar_handle
 from chief_queue_brain import handle as queue_handle
 from chief_trinity_brain import handle as trinity_handle
+from chief_analytics_brain import handle as analytics_handle
+from chief_goals_brain import handle as goals_handle
+from chief_momentum_brain import handle as momentum_handle
 from chief_fundo_session import handle as fundo_session_handle
 from chief_fundo_identity import handle as fundo_identity_handle
 from chief_website_creative import handle as website_creative_handle
@@ -260,6 +263,33 @@ def publishing_intent(text: str) -> bool:
         "publishing", "register ", "sync opportunities", "sync-ready",
         "sync ready", "update publishing", "publishing catalog",
         "song rights", "pro registration", "ascap", "bmi",
+    ])
+
+
+def analytics_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "analytics", "weekly metrics", "metrics report", "show analytics",
+        "financial summary", "income report", "how's business",
+        "hows business", "business report",
+    ])
+
+
+def goals_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "goals", "goal check", "how am i doing", "goal progress",
+        "update goal", "set goal", "milestone goal", "check in",
+        "goal tracker",
+    ])
+
+
+def momentum_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "momentum", "am i on track", "activity check", "how active am i",
+        "artist mode", "admin mode", "am i in artist", "am i in admin",
+        "momentum report",
     ])
 
 
@@ -539,6 +569,18 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if analytics_intent(text):
+        replies = analytics_handle(text)
+        return {"intent": "analytics_report", "replies": replies}
+
+    if goals_intent(text):
+        replies = goals_handle(text)
+        return {"intent": "goals_check", "replies": replies}
+
+    if momentum_intent(text):
+        replies = momentum_handle(text)
+        return {"intent": "momentum_check", "replies": replies}
 
     if trinity_intent(text):
         replies = trinity_handle(text)

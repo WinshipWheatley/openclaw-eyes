@@ -214,6 +214,42 @@ def sync_queue_log() -> None:
         p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
 
 
+def sync_analytics_report() -> None:
+    """Ensure Analytics Report.md exists in System/."""
+    sys_dir = VAULT / "System"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    p = sys_dir / "Analytics Report.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: analytics-report\n---\n\n# Analytics Report\n\n_(no report yet — say 'weekly metrics')_\n",
+            encoding="utf-8",
+        )
+
+
+def sync_goals() -> None:
+    """Ensure Goals.md exists in System/."""
+    sys_dir = VAULT / "System"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    p = sys_dir / "Goals.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: goals\n---\n\n# Goals\n\n_(no goals set yet — say 'goals' to initialize)_\n",
+            encoding="utf-8",
+        )
+
+
+def sync_momentum_report() -> None:
+    """Ensure Momentum Report.md exists in System/."""
+    sys_dir = VAULT / "System"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    p = sys_dir / "Momentum Report.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: momentum-report\n---\n\n# Momentum Report\n\n_(no report yet — say 'momentum')_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_trinity_audit() -> None:
     """Ensure Trinity Audit.md exists in System/."""
     sys_dir = VAULT / "System"
@@ -347,6 +383,9 @@ def run_sync() -> str:
     sync_research_logs()
     sync_business_logs()
     sync_queue_log()
+    sync_analytics_report()
+    sync_goals()
+    sync_momentum_report()
     sync_trinity_audit()
     sync_calendar_logs()
     sync_fundo_logs()
