@@ -218,6 +218,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent in ("brainstorm_capture", "brainstorm_watch", "brainstorm_queue"):
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent == "mix_brief":
         replies = routed.get("replies", [])
         for r in replies:

@@ -58,6 +58,9 @@ from chief_marketing_brain import (
 )
 from chief_album_mixer import handle as album_mixer_handle
 from chief_scheduler_brain import handle as scheduler_handle, _load as _sched_load
+from chief_brainstorm_brain import handle as brainstorm_handle
+from chief_brainstorm_router import handle as brainstorm_router_handle
+from chief_brainstorm_watcher import handle as brainstorm_watch_handle
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -462,6 +465,29 @@ def integration_intent(text: str) -> bool:
     ]) or bool(__import__("re").search(r"(approve|reject)\s+prop-", t))
 
 
+def brainstorm_capture_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in (
+        "brainstorm", "capture idea", "new idea", "idea:",
+    ))
+
+
+def brainstorm_watch_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in (
+        "brainstorm status", "brainstorm watch", "brainstorm check",
+        "watching ideas", "idea list",
+    ))
+
+
+def brainstorm_queue_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in (
+        "brainstorm queue", "brainstorm backlog", "show ideas",
+        "route idea", "brainstorm done",
+    )) or bool(re.search(r"route\s+bs-\d+|done\s+bs-\d+|bs-\d+\s+done", t))
+
+
 def album_arc_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
@@ -680,6 +706,18 @@ def route_message(text: str) -> dict:
         replies = backup_handle(text)
         return {"intent": "backup_status", "replies": replies}
 
+    if brainstorm_watch_intent(text):
+        replies = brainstorm_watch_handle(text)
+        return {"intent": "brainstorm_watch", "replies": replies}
+
+    if brainstorm_queue_intent(text):
+        replies = brainstorm_router_handle(text)
+        return {"intent": "brainstorm_queue", "replies": replies}
+
+    if brainstorm_capture_intent(text):
+        replies = brainstorm_handle(text)
+        return {"intent": "brainstorm_capture", "replies": replies}
+
     if trinity_intent(text):
         replies = trinity_handle(text)
         return {"intent": "trinity_check", "replies": replies}
@@ -748,6 +786,13 @@ def route_message(text: str) -> dict:
             "mode": billing_mode,
             "reply": first_q,
         }
+
+    # ── Brainstorm active session (second turn: waiting for idea text) ───────────
+    if (session.get("status") == "active"
+            and session.get("active_workflow") == "brainstorm"
+            and get_workflow_state().get("active", False)):
+        replies = brainstorm_handle(text)
+        return {"intent": "brainstorm_capture", "replies": replies}
 
     if session.get("status") == "active" and session.get("active_workflow") == "album_arc":
         replies = album_arc_handle(text)

@@ -113,6 +113,14 @@ DOMAIN_MAP = {
         ],
         "description": "Marketing ideas/drafts, content calendar, brand voice",
     },
+    "Brainstorm": {
+        "members": [
+            "chief_brainstorm_brain.py",
+            "chief_brainstorm_router.py",
+            "chief_brainstorm_watcher.py",
+        ],
+        "description": "Idea capture/synthesis, routing to destinations, condition-based watching",
+    },
 }
 
 BRAIN_DIR = Path("/home/openclaw")
