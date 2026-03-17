@@ -105,42 +105,45 @@ def _start_timer(duration_min: int, block_type: str, task: str) -> None:
     t.start()
 
 
-# ── Duration parser ───────────────────────────────────────────────────────────
+# ── Parser ────────────────────────────────────────────────────────────────────
 
-def _parse_minutes(text: str, default: int) -> int:
-    m = re.search(r"(\d+)\s*m(?:in)?", text)
-    if m:
-        return max(1, min(180, int(m.group(1))))
-    m = re.search(r"(\d+)", text)
-    if m:
-        v = int(m.group(1))
-        if 1 <= v <= 180:
-            return v
-    return default
+def _parse_start(text: str) -> tuple[str, int, int]:
+    """Return (task, work_min, break_min) from a start command string."""
+    # Strip command word
+    stripped = re.sub(
+        r"^\s*(schedule|timer|start\s+block|work\s+block)\s*",
+        "", text, flags=re.IGNORECASE,
+    ).strip()
+
+    # Break duration: "break X" or "break Xmin"
+    break_min = _DEFAULT_BREAK_MIN
+    bm = re.search(r"break\s+(\d+)", stripped, re.IGNORECASE)
+    if bm:
+        break_min = max(1, min(60, int(bm.group(1))))
+
+    # Remove break clause so we can isolate task + work duration
+    core = re.sub(r"\s+break\s+\d+.*$", "", stripped, flags=re.IGNORECASE).strip()
+
+    # Work duration: last number (with optional m/min) in core
+    wm = re.search(r"(\d+)\s*m(?:in)?\s*$", core, re.IGNORECASE)
+    if not wm:
+        wm = re.search(r"(\d+)\s*$", core)
+    if wm:
+        work_min = max(1, min(180, int(wm.group(1))))
+        task = core[:wm.start()].strip(" ,-:")
+    else:
+        work_min = _DEFAULT_WORK_MIN
+        task = core.strip()
+
+    if len(task) < 2:
+        task = "Work block"
+    return task, work_min, break_min
 
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
 
 def _handle_start(text: str) -> list[str]:
-    # Break duration: look for "break X" or "Xm break" after stripping work duration
-    break_min = _DEFAULT_BREAK_MIN
-    bm = re.search(r"break\s+(\d+)", text, re.IGNORECASE)
-    if bm:
-        break_min = max(1, min(60, int(bm.group(1))))
-
-    # Work duration: first number before "break" mention
-    work_text = re.split(r"break", text, flags=re.IGNORECASE)[0]
-    work_min  = _parse_minutes(work_text, _DEFAULT_WORK_MIN)
-
-    # Task name: strip command words and duration patterns
-    task = re.sub(
-        r"(schedule|timer|start\s+block|work\s+block|for|with"
-        r"|break\s*\d*\s*m(?:in)?|\d+\s*m(?:in)?)",
-        " ", text, flags=re.IGNORECASE,
-    ).strip(" ,-:")
-    task = re.sub(r"\s+", " ", task).strip()
-    if len(task) < 2:
-        task = "Work block"
+    task, work_min, break_min = _parse_start(text)
 
     state = _load()
     state.update({
@@ -179,10 +182,13 @@ def _handle_continue(state: dict) -> list[str]:
     return [f"⏱ Continuing: *{task}*\n{work_min}min block. Notify at {ends}"]
 
 
-def _handle_break(state: dict) -> list[str]:
+def _handle_break(state: dict, text: str = "") -> list[str]:
     task      = state.get("task", "Work block")
     work_min  = state.get("work_min", _DEFAULT_WORK_MIN)
-    break_min = state.get("break_min", _DEFAULT_BREAK_MIN)
+    # Allow inline override: "break 15"
+    bm = re.search(r"break\s+(\d+)", text, re.IGNORECASE)
+    break_min = max(1, min(60, int(bm.group(1)))) if bm else state.get("break_min", _DEFAULT_BREAK_MIN)
+    state["break_min"] = break_min
 
     _append_log({"date": datetime.now().strftime("%Y-%m-%d %H:%M"),
                  "task": task, "type": "work", "duration_min": work_min})
@@ -273,27 +279,29 @@ def handle(text: str = "") -> list[str]:
             return ["No active session."]
         return _handle_stop(state)
 
-    # Responses when a block just finished (prompting state)
-    if state.get("status") == "prompting":
+    # Sticky: handle session commands whenever scheduler is active (any non-idle state)
+    status = state.get("status", "idle")
+    if status != "idle":
         if t == "continue":
             return _handle_continue(state)
-        if t in ("break", "take break", "take a break"):
-            return _handle_break(state)
+        if t.startswith("break") or t in ("take break", "take a break"):
+            return _handle_break(state, text)
         if t.startswith("switch"):
             return _handle_switch(text, state)
         if any(k in t for k in ("stop", "done")):
             return _handle_stop(state)
-        return [
-            "Block complete. What next?\n"
-            "  `continue`  `break`  `switch [task]`  `stop`"
-        ]
+        if status == "prompting":
+            return [
+                "Block complete. What next?\n"
+                "  `continue`  `break`  `switch [task]`  `stop`"
+            ]
 
     # Start a new block
     if any(k in t for k in ("schedule ", "timer ", "start block", "work block")):
         return _handle_start(text)
 
     # Running — just show status
-    if state.get("status") in ("running_work", "running_break"):
+    if status in ("running_work", "running_break"):
         return _handle_status(state)
 
     return ["Say `schedule [task] [X]min` to start a work block."]

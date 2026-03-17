@@ -69,17 +69,17 @@ from chief_album_brain import (
 
 def scheduler_intent(text: str) -> bool:
     t = text.lower().strip()
-    # Explicit start / status commands
+    # Always intercept explicit start / status commands
     if any(k in t for k in ("schedule ", "timer ", "start block", "work block",
                              "timer status", "scheduler status", "block status")):
         return True
-    # Stop session — only intercept when scheduler is running/prompting
+    # Always intercept explicit stop phrases
     if any(k in t for k in ("stop for now", "stop session", "done for now", "end session")):
         return True
-    # Responses to end-of-block prompt — only when scheduler is in prompting state
+    # Sticky: intercept session responses whenever scheduler is active (not idle)
     state = _sched_load()
-    if state.get("status") == "prompting":
-        if t in ("continue", "break", "take break", "take a break", "stop") or t.startswith("switch"):
+    if state.get("status", "idle") != "idle":
+        if t in ("continue", "stop") or t.startswith(("break", "switch", "take break")):
             return True
     return False
 
