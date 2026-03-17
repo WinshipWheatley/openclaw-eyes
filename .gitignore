@@ -45,6 +45,8 @@
 !chief_fundo_release.py
 !chief_album_mixer.py
 !chief_backup_brain.py
+!chief_content_brain.py
+!chief_brand_brain.py
 !chief-inspect
 
 !start_chief.sh

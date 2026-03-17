@@ -48,6 +48,8 @@ from chief_website_creative import handle as website_creative_handle
 from chief_website_coordinator import handle as website_coordinator_handle
 from chief_website_qa import handle as website_qa_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
+from chief_content_brain import handle as content_handle
+from chief_brand_brain import handle as brand_handle
 from chief_marketing_brain import (
     handle as marketing_handle,
     _is_draft_request as _marketing_is_draft,
@@ -266,6 +268,24 @@ def publishing_intent(text: str) -> bool:
         "publishing", "register ", "sync opportunities", "sync-ready",
         "sync ready", "update publishing", "publishing catalog",
         "song rights", "pro registration", "ascap", "bmi",
+    ])
+
+
+def content_calendar_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "content calendar", "content schedule", "what's due for posting",
+        "whats due for posting", "content status", "posting schedule",
+        "what needs to go up", "mark posted", "schedule post",
+    ])
+
+
+def brand_guide_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "brand guide", "style guide", "brand rules",
+        "is this on brand", "on brand check", "brand check",
+        "dpr brand", "fundo brand guide",
     ])
 
 
@@ -597,6 +617,14 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if content_calendar_intent(text):
+        replies = content_handle(text)
+        return {"intent": "content_calendar", "replies": replies}
+
+    if brand_guide_intent(text):
+        replies = brand_handle(text)
+        return {"intent": "brand_guide", "replies": replies}
 
     if analytics_intent(text):
         replies = analytics_handle(text)

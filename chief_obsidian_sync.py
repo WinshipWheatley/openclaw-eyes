@@ -214,6 +214,28 @@ def sync_queue_log() -> None:
         p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
 
 
+def sync_content_calendar() -> None:
+    """Ensure Marketing/Content Calendar.md exists."""
+    p = VAULT / "Marketing" / "Content Calendar.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if not p.exists():
+        p.write_text(
+            "---\ntype: content-calendar\n---\n\n# Content Calendar\n\n_(no calendar yet — say 'content calendar')_\n",
+            encoding="utf-8",
+        )
+
+
+def sync_brand_guide() -> None:
+    """Ensure Marketing/Brand Guide.md exists."""
+    p = VAULT / "Marketing" / "Brand Guide.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if not p.exists():
+        p.write_text(
+            "---\ntype: brand-guide\n---\n\n# Brand Guide\n\n_(no guide yet — say 'brand guide')_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_backup_status() -> None:
     """Ensure Backup Status.md exists in System/."""
     p = VAULT / "System" / "Backup Status.md"
@@ -414,6 +436,8 @@ def run_sync() -> str:
     sync_research_logs()
     sync_business_logs()
     sync_queue_log()
+    sync_content_calendar()
+    sync_brand_guide()
     sync_backup_status()
     sync_project_instructions()
     sync_analytics_report()
