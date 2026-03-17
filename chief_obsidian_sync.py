@@ -214,6 +214,16 @@ def sync_queue_log() -> None:
         p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
 
 
+def sync_backup_status() -> None:
+    """Ensure Backup Status.md exists in System/."""
+    p = VAULT / "System" / "Backup Status.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: backup-status\n---\n\n# Backup Status\n\n_(no backup check run yet — say 'backup status')_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_project_instructions() -> None:
     """Ensure Project Instructions.md exists in System/ (written manually — no-op if present)."""
     p = VAULT / "System" / "Project Instructions.md"
@@ -404,6 +414,7 @@ def run_sync() -> str:
     sync_research_logs()
     sync_business_logs()
     sync_queue_log()
+    sync_backup_status()
     sync_project_instructions()
     sync_analytics_report()
     sync_goals()

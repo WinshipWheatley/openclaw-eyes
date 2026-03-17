@@ -37,6 +37,7 @@ from chief_email_brain import (
 from chief_calendar_brain import handle as calendar_handle
 from chief_queue_brain import handle as queue_handle
 from chief_trinity_brain import handle as trinity_handle
+from chief_backup_brain import handle as backup_handle
 from chief_analytics_brain import handle as analytics_handle
 from chief_goals_brain import handle as goals_handle
 from chief_momentum_brain import handle as momentum_handle
@@ -292,6 +293,15 @@ def momentum_intent(text: str) -> bool:
         "momentum", "am i on track", "activity check", "how active am i",
         "artist mode", "admin mode", "am i in artist", "am i in admin",
         "momentum report",
+    ])
+
+
+def backup_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "backup status", "check backup", "git status",
+        "backup now", "push backup", "do backup", "backup push",
+        "is the repo current", "repo status",
     ])
 
 
@@ -599,6 +609,10 @@ def route_message(text: str) -> dict:
     if momentum_intent(text):
         replies = momentum_handle(text)
         return {"intent": "momentum_check", "replies": replies}
+
+    if backup_intent(text):
+        replies = backup_handle(text)
+        return {"intent": "backup_status", "replies": replies}
 
     if trinity_intent(text):
         replies = trinity_handle(text)
