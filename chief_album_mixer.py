@@ -236,6 +236,43 @@ def _write_mix_brief(title: str, row: dict, brief: str) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+# ── Album → Marketing handoff ─────────────────────────────────────────────────
+
+def _queue_marketing_handoff(title: str, row: dict) -> bool:
+    """If this song is mix-ready and not already in the content pipeline, add it."""
+    mix_ready = row.get("mix_readiness", "").strip().lower()
+    try:
+        pct = int(row.get("completion_pct", "0").strip() or "0")
+    except ValueError:
+        pct = 0
+    rerecord = row.get("needs_rerecord", "").strip().lower() in ("yes", "true")
+
+    if not (mix_ready in ("ready", "close") or (pct >= 70 and not rerecord)):
+        return False
+
+    content_log = Path("/mnt/c/OpenClawShared/album/content_log.json")
+    try:
+        data = json.loads(content_log.read_text(encoding="utf-8")) if content_log.exists() else {"entries": []}
+        entries = data.get("entries", [])
+        if any(e.get("song") == title and e.get("status") in ("suggested", "in_progress", "posted") for e in entries):
+            return False  # already tracked
+        entries.append({
+            "id": f"ALB-{re.sub(r'[^A-Z0-9]', '', title.upper())[:8]}-REL",
+            "title": f"Release campaign: {title}",
+            "platform": "Instagram, TikTok",
+            "size": "short_form",
+            "song": title,
+            "status": "suggested",
+            "date_suggested": datetime.now().strftime("%Y-%m-%d"),
+            "notes": f"Auto-queued: mix brief generated, song at {pct}% completion.",
+        })
+        data["entries"] = entries
+        content_log.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
 # ── Handlers ──────────────────────────────────────────────────────────────────
 
 def _handle_song_brief(song_query: str) -> list[str]:
@@ -252,6 +289,7 @@ def _handle_song_brief(song_query: str) -> list[str]:
 
     brief = _build_brief(title, row)
     _write_mix_brief(title, row, brief)
+    queued = _queue_marketing_handoff(title, row)
 
     readiness = _readiness_lines(row)
     reply_parts = [f"**Mix Brief: {title}**\n"]
@@ -259,6 +297,8 @@ def _handle_song_brief(song_query: str) -> list[str]:
         reply_parts.append(brief + "\n")
     reply_parts += readiness
     reply_parts.append(f"\nBrief saved to vault/Album/Mix Briefs/{title}.md")
+    if queued:
+        reply_parts.append(f"→ Release campaign queued in content pipeline.")
     return ["\n".join(reply_parts)]
 
 
