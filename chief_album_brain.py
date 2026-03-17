@@ -611,6 +611,72 @@ def _finalize(session: dict) -> list:
     ]
 
 
+# ── Status ─────────────────────────────────────────────────────────────────────
+
+_PHASE_LABELS = {
+    "song_name":          "waiting for song name",
+    "return_mode_choice": "waiting for review mode (full / targeted)",
+    "open":               "in conversation",
+    "follow_up":          "answering questions",
+    "finalizing":         "finalizing",
+    "restart_prompt":     "paused — waiting for continue / status / restart choice",
+}
+
+
+def handle_status() -> list:
+    """Return plain-language album session status."""
+    session = load_session()
+
+    if not session.get("active"):
+        return [
+            "No album session active.\n"
+            "Send 'album' to start one."
+        ]
+
+    song       = session.get("song_title") or "(song not named yet)"
+    phase      = session.get("phase", "idle")
+    covered    = session.get("topics_covered", [])
+    remaining  = [t for t in TOPIC_ORDER if t not in covered]
+    structured = {k: v for k, v in session.get("structured", {}).items() if v}
+    turn       = session.get("turn", 0)
+    last_q     = session.get("last_topic_asked")
+    notes      = {s: c for s, c in session.get("notes", {}).items()
+                  if c.strip() and s != "Session History"}
+
+    lines = [
+        f"Album session: ACTIVE",
+        f"Song: {song}",
+        f"Phase: {_PHASE_LABELS.get(phase, phase)}",
+    ]
+
+    if last_q:
+        lines.append(f"Last question asked: {last_q}")
+
+    if covered:
+        lines.append(f"Topics covered ({len(covered)}/{len(TOPIC_ORDER)}): {', '.join(covered)}")
+    if remaining:
+        shown = remaining[:5]
+        tail  = f" +{len(remaining)-5} more" if len(remaining) > 5 else ""
+        lines.append(f"Remaining: {', '.join(shown)}{tail}")
+
+    if structured:
+        field_str = ", ".join(f"{k}={v}" for k, v in list(structured.items())[:8])
+        lines.append(f"Recorded fields: {field_str}")
+
+    if notes:
+        lines.append(f"Notes sections: {', '.join(notes.keys())}")
+
+    if turn > 0:
+        lines.append(f"Turns: {turn}")
+
+    lines += [
+        "",
+        "Session is disk-persisted — survives stack restarts.",
+        "Writes to .md + CSV on 'done'. Say 'done' to finalize.",
+    ]
+    return ["\n".join(lines)]
+
+
 # ── handle() ──────────────────────────────────────────────────────────────────
 
 def handle(text: str) -> list:
@@ -623,6 +689,62 @@ def handle(text: str) -> list:
     replies = []
     msg = text.strip()
     phase = session.get("phase", "idle")
+
+    # ── Detect "album" alone as a restart-intent signal ───────────────────────
+    # If the user sends "album" while a session is already running, don't treat
+    # it as an answer — offer explicit choices instead.
+    if msg.lower().strip() in ("album", "album session") and phase not in ("song_name", "restart_prompt"):
+        song = session.get("song_title") or "this song"
+        session["_prev_phase"] = phase
+        session["phase"] = "restart_prompt"
+        save_session(session)
+        return [
+            f"Album session already active for *{song}*.\n\n"
+            "Options:\n"
+            "  `continue` — pick up where we left off\n"
+            "  `album status` — see what's been recorded\n"
+            "  `restart song` — start a new pass (vault notes kept)"
+        ]
+
+    if phase == "restart_prompt":
+        t = msg.lower().strip()
+        if any(k in t for k in ("continue", "pick up", "resume", "keep going")):
+            prev = session.get("_prev_phase", "open")
+            session["phase"] = prev
+            save_session(session)
+            song = session.get("song_title", "session")
+            last_q = session.get("last_topic_asked")
+            if last_q:
+                prompt = TOPIC_PROMPTS.get(last_q, "What's next?")
+                replies.append(f"Continuing *{song}*.\n\nBack to: {prompt}")
+            else:
+                replies.append(f"Continuing *{song}*. What's on your mind?")
+        elif "status" in t:
+            replies.extend(handle_status())
+        elif any(k in t for k in ("restart", "start over", "fresh", "new pass")):
+            song_title = session.get("song_title", "")
+            # Explicit: vault notes from prior sessions are kept — only session memory resets
+            reset_session()
+            set_workflow_state({
+                **_ALBUM_DEFAULT,
+                "active": True,
+                "phase": "open",
+                "song_title": song_title,
+                "return_mode": "full",
+                "notes": load_song_md(song_title) if song_title else {},
+            })
+            replies.append(
+                f"Starting a new pass for *{song_title}*.\n"
+                "Previous vault notes are kept — this session adds to them.\n\n"
+                "Talk to me — where does this song stand right now?"
+            )
+        else:
+            song = session.get("song_title", "this song")
+            replies.append(
+                f"Album session active for *{song}*. Reply:\n"
+                "  `continue` · `album status` · `restart song`"
+            )
+        return replies
 
     if phase == "song_name":
         song_title = _match_song_title(msg)
@@ -734,7 +856,7 @@ def handle(text: str) -> list:
                 session["last_topic_stack"] = stack
                 session["last_topic_asked"] = next_topic
                 save_session(session)
-                replies.append(next_prompt)
+                replies.append(f"OK, skipped. Next: {next_prompt}")
             else:
                 replies.extend(_finalize(session))
 
@@ -757,7 +879,9 @@ def handle(text: str) -> list:
             if next_topic:
                 session["last_topic_asked"] = next_topic
                 save_session(session)
-                replies.append(next_prompt)
+                song = session.get("song_title", "session")
+                # Brief acknowledgment so the user knows their answer was saved
+                replies.append(f"✓ Recorded for *{song}*.\n\nNext: {next_prompt}")
             else:
                 replies.extend(_finalize(session))
 

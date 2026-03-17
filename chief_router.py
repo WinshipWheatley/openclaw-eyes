@@ -70,6 +70,7 @@ from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
     handle_quick_update as album_quick_update,
+    handle_status as album_status_handle,
     _match_song_title,
     _ALBUM_SONGS,
 )
@@ -842,6 +843,12 @@ def route_message(text: str) -> dict:
             "intent": "album_arc_start",
             "reply": "Running album arc analysis across all songs...",
         }
+
+    # ── Album status — always available regardless of session state ──────────
+    if t_lower in ("album status", "session status") or \
+            re.match(r"^album\s+status\b", t_lower):
+        replies = album_status_handle()
+        return {"intent": "album_status", "replies": replies}
 
     if (session.get("status") == "active"
             and session.get("active_workflow") == "album"
