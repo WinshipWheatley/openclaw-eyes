@@ -205,6 +205,15 @@ def sync_business_logs() -> None:
             p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
 
 
+def sync_queue_log() -> None:
+    """Ensure Claude Queue Log.md exists in System/."""
+    sys_dir = VAULT / "System"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    p = sys_dir / "Claude Queue Log.md"
+    if not p.exists():
+        p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
+
+
 def sync_calendar_logs() -> None:
     """Ensure Calendar/ vault folder exists."""
     cal = VAULT / "Calendar"
@@ -325,6 +334,7 @@ def run_sync() -> str:
     sync_validation_log()
     sync_research_logs()
     sync_business_logs()
+    sync_queue_log()
     sync_calendar_logs()
     sync_fundo_logs()
     sync_website_logs()

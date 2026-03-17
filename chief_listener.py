@@ -9,6 +9,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTyp
 
 from chief_router import route_message
 from chief_validator_brain import validate_reply
+from chief_queue_brain import check_pending_queue
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -181,7 +182,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
-    if intent == "calendar_query":
+    if intent in ("calendar_query", "queue_request"):
         replies = routed.get("replies", [])
         for r in replies:
             await update.message.reply_text(r)
@@ -207,6 +208,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+# ── Startup: notify about pending queue items ─────────────────────────────────
+async def _post_startup_queue(application):
+    pending = check_pending_queue()
+    if not pending:
+        return
+    lines = [f"📋 *{len(pending)} pending queue item(s) from last session:*\n"]
+    for i, item in enumerate(pending, 1):
+        lines.append(f"  {i}. {item}")
+    lines.append("\nReview and tell me which to work on.")
+    try:
+        await application.bot.send_message(
+            chat_id=AUTHORIZED_USER_ID,
+            text="\n".join(lines),
+        )
+    except Exception as e:
+        print(f"Queue startup notification failed: {e}")
+
+app.post_init = _post_startup_queue
 
 print("Chief relay online.")
 app.run_polling()
