@@ -18,26 +18,60 @@ AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 
 async def _resume_interrupted_task(update: Update) -> None:
     """
-    After a Claude Code approval interrupts an active task session,
-    re-send the pending task question so the user can resume immediately.
-    Currently handles album brain; extend here for other task brains if needed.
+    After a Claude Code approval gate closes, resume the active album session.
+
+    Priority: use the snapshot saved at interrupt time (most precise), then
+    fall back to reading live session state. Sends a clean one-line header
+    followed by the pending question so the user knows exactly where to pick up.
     """
     try:
-        from chief_session_manager import load_session
         from chief_album_brain import TOPIC_PROMPTS
+        from chief_approval_brain import get_pending_album_snapshot
+
+        # ── 1. Try snapshot saved at interrupt time ────────────────────────
+        snapshot = get_pending_album_snapshot()
+        if snapshot:
+            song  = snapshot.get("song_title", "")
+            topic = snapshot.get("last_topic_asked")
+            phase = snapshot.get("phase", "")
+            if song and topic and phase in ("follow_up", "open"):
+                prompt = TOPIC_PROMPTS.get(topic, "")
+                if prompt:
+                    await update.message.reply_text(
+                        f"Back to album.\n"
+                        f"We're on *{song}*.\n\n"
+                        f"Pending question: {prompt}"
+                    )
+                    return
+            if song:
+                # Song was named but no specific pending question (e.g. open phase)
+                await update.message.reply_text(
+                    f"Back to album — *{song}*.\n"
+                    "What's on your mind for this song?"
+                )
+                return
+
+        # ── 2. Fall back to live session state ────────────────────────────
+        from chief_session_manager import load_session
         session = load_session()
         if (session.get("active_workflow") == "album"
                 and session.get("status") == "active"):
-            wf = session.get("workflow_state", {})
-            last_topic = wf.get("last_topic_asked")
-            phase      = wf.get("phase", "")
-            song       = wf.get("song_title", "")
-            if last_topic and phase in ("follow_up", "open"):
-                prompt = TOPIC_PROMPTS.get(last_topic)
+            wf    = session.get("workflow_state", {})
+            topic = wf.get("last_topic_asked")
+            phase = wf.get("phase", "")
+            song  = wf.get("song_title", "")
+            if song and topic and phase in ("follow_up", "open"):
+                prompt = TOPIC_PROMPTS.get(topic, "")
                 if prompt:
                     await update.message.reply_text(
-                        f"↩ *{song}* — resuming:\n\n{prompt}"
+                        f"Back to album.\n"
+                        f"We're on *{song}*.\n\n"
+                        f"Pending question: {prompt}"
                     )
+            elif song:
+                await update.message.reply_text(
+                    f"Back to album — *{song}*. What's on your mind?"
+                )
     except Exception:
         pass
 

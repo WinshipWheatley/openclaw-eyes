@@ -620,18 +620,12 @@ def route_message(text: str) -> dict:
         return {"intent": "approval_response", "reply": reply}
 
     # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──
-    # During an active album session, only explicit words (approve/deny) route to
-    # the bridge. Numbers 1/2/3 are reserved for album answers so they are never
-    # stolen mid-session. Numbered bridge choices can be resolved after the session.
+    # Note: approval brain (Claude Code permissions) is checked ABOVE this and
+    # takes absolute priority. The bridge (Chief multi-choice prompts) is checked
+    # here. During an active approval gate, has_pending_approval() fires first so
+    # bridge never runs concurrently with an active approval request.
     _BRIDGE_TOKENS = ("1", "2", "3", "approve", "deny")
-    _album_active  = (
-        load_session().get("status") == "active"
-        and load_session().get("active_workflow") == "album"
-    )
-    _bridge_allowed = (
-        ("approve", "deny") if _album_active else _BRIDGE_TOKENS
-    )
-    if has_pending_choice() and (t_lower in _bridge_allowed or
+    if has_pending_choice() and (t_lower in _BRIDGE_TOKENS or
                                   t_lower in ("status", "approval status", "choice status")):
         replies = bridge_handle(text)
         return {"intent": "choice_response", "replies": replies}

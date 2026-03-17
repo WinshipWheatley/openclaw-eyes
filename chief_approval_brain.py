@@ -91,6 +91,9 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
 
     Returns True if approved, False if denied or timed out.
     Logs every decision to the vault Approval Log.
+
+    If an album session is active when this is called, saves an album
+    snapshot so the listener can resume precisely after the gate closes.
     """
     approval_id = str(uuid.uuid4())[:8].upper()
     requested_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -104,8 +107,30 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
         "status":       "pending",
         "decision":     None,
     }
-    _save_pending(pending)
 
+    # Snapshot the active album session so the listener can resume it cleanly.
+    # The snapshot is read by the listener *before* _clear_pending() is called
+    # by the poll loop below, so the race window is the poll interval (2s).
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _home = str(_Path.home())
+        if _home not in _sys.path:
+            _sys.path.insert(0, _home)
+        from chief_session_manager import load_session as _load_sess
+        _s = _load_sess()
+        if _s.get("status") == "active" and _s.get("active_workflow") == "album":
+            _wf = _s.get("workflow_state", {})
+            pending["gating_workflow"] = "album"
+            pending["album_snapshot"] = {
+                "song_title":       _wf.get("song_title", ""),
+                "last_topic_asked": _wf.get("last_topic_asked"),
+                "phase":            _wf.get("phase", ""),
+            }
+    except Exception:
+        pass
+
+    _save_pending(pending)
     _send(
         f"{action}\n"
         f"1. Yes\n"
@@ -119,18 +144,20 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
         if data.get("id") == approval_id and data.get("status") == "decided":
             decision = data.get("decision", "NO").upper()
             elapsed = time.time() - start
-            _clear_pending()
             approved = decision == "YES"
             _append_log(action, requester, "APPROVED" if approved else "DENIED",
                         requested_at, elapsed)
-            _send(f"✅ Approved." if approved else f"❌ Denied.")
+            _clear_pending()
+            # NOTE: do NOT call _send() here for the decision reply.
+            # The listener already sent "✅ Approved." / "❌ Denied." from
+            # record_decision()'s return value. Sending again is a duplicate.
             return approved
 
-    # Timeout
+    # Timeout — user never responded; send notification since listener cannot.
     elapsed = time.time() - start
     _clear_pending()
     _append_log(action, requester, "TIMED OUT", requested_at, elapsed)
-    _send(f"⏱ Approval timed out — denied by default.")
+    _send("⏱ Approval timed out — denied by default.")
     return False
 
 
@@ -162,6 +189,24 @@ def record_decision(decision: str) -> str:
         return "✅ Approved."
     else:
         return "❌ Denied."
+
+
+def get_pending_album_snapshot() -> dict | None:
+    """Return the album snapshot saved when this approval was requested, or None.
+
+    Called by chief_listener AFTER recording the decision but BEFORE the
+    polling loop clears the pending file. The snapshot is used to resume
+    album flow precisely after the gate closes.
+
+    Returns None if the approval was not gating an album session, or if
+    the pending file has already been cleared.
+    """
+    data = _load_pending()
+    # Works for both "pending" and "decided" states — listener reads this
+    # before the CLI poll loop calls _clear_pending().
+    if data.get("status") not in ("pending", "decided"):
+        return None
+    return data.get("album_snapshot")   # None if no snapshot was saved
 
 
 def has_pending_approval() -> bool:
