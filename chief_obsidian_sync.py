@@ -214,6 +214,18 @@ def sync_queue_log() -> None:
         p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
 
 
+def sync_trinity_audit() -> None:
+    """Ensure Trinity Audit.md exists in System/."""
+    sys_dir = VAULT / "System"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    p = sys_dir / "Trinity Audit.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: trinity-audit\n---\n\n# Trinity Audit\n\n_(no audit run yet — say 'trinity check')_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_calendar_logs() -> None:
     """Ensure Calendar/ vault folder exists."""
     cal = VAULT / "Calendar"
@@ -335,6 +347,7 @@ def run_sync() -> str:
     sync_research_logs()
     sync_business_logs()
     sync_queue_log()
+    sync_trinity_audit()
     sync_calendar_logs()
     sync_fundo_logs()
     sync_website_logs()

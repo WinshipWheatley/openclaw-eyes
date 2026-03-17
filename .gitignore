@@ -38,6 +38,7 @@
 !chief_fundo_identity.py
 !chief_calendar_brain.py
 !chief_queue_brain.py
+!chief_trinity_brain.py
 !chief-inspect
 
 !start_chief.sh

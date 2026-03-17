@@ -182,6 +182,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent == "trinity_check":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent in ("calendar_query", "queue_request"):
         replies = routed.get("replies", [])
         for r in replies:

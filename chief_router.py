@@ -36,6 +36,7 @@ from chief_email_brain import (
 )
 from chief_calendar_brain import handle as calendar_handle
 from chief_queue_brain import handle as queue_handle
+from chief_trinity_brain import handle as trinity_handle
 from chief_fundo_session import handle as fundo_session_handle
 from chief_fundo_identity import handle as fundo_identity_handle
 from chief_website_creative import handle as website_creative_handle
@@ -259,6 +260,15 @@ def publishing_intent(text: str) -> bool:
         "publishing", "register ", "sync opportunities", "sync-ready",
         "sync ready", "update publishing", "publishing catalog",
         "song rights", "pro registration", "ascap", "bmi",
+    ])
+
+
+def trinity_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "trinity check", "system audit", "brain audit", "trinity status",
+        "trinity report", "check trinities", "what's missing",
+        "queue gaps", "propose gaps",
     ])
 
 
@@ -529,6 +539,10 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if trinity_intent(text):
+        replies = trinity_handle(text)
+        return {"intent": "trinity_check", "replies": replies}
 
     if queue_intent(text):
         replies = queue_handle(text)
