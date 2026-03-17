@@ -594,6 +594,13 @@ def _finalize(session: dict) -> list:
     except Exception:
         pass  # sync failure never blocks the brain
 
+    # Auto-queue to release/content pipeline if song is release-eligible
+    try:
+        from chief_album_mixer import _queue_marketing_handoff
+        _queue_marketing_handoff(song_title, structured)
+    except Exception:
+        pass
+
     batch_line = ", ".join(batch_days) if batch_days else "none — you might be done!"
     return [
         f"Locked in {song_title}.\n"
