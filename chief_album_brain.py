@@ -64,6 +64,7 @@ from chief_album_io import (
     ensure_csv,
     load_song_md,
     save_song_md,
+    checkpoint_song_md,
     upsert_csv_row,
     add_dynamic_column,
     append_session_history,
@@ -384,10 +385,21 @@ def _accumulate_notes(session: dict, text: str, topics: list) -> dict:
     section = _best_section(text, topics)
     # In targeted mode, only write to sections the user explicitly asked to update
     targeted = session.get("targeted_sections", [])
-    if targeted and section not in targeted:
-        return notes  # discard — not a section they want to touch
-    existing = notes.get(section, "").strip()
-    notes[section] = (existing + "\n\n" + text).strip() if existing else text
+    if not targeted or section in targeted:
+        existing = notes.get(section, "").strip()
+        notes[section] = (existing + "\n\n" + text).strip() if existing else text
+
+    # Always capture feels_magical / needs_refinement in their dedicated sections
+    # even if the primary section routing placed the text elsewhere.
+    # This preserves every preservation or refinement note regardless of context.
+    for special_topic, special_section in (
+        ("feels_magical",    "Feels Magical"),
+        ("needs_refinement", "Needs Refinement"),
+    ):
+        if special_topic in topics and section != special_section:
+            existing = notes.get(special_section, "").strip()
+            notes[special_section] = (existing + "\n\n" + text).strip() if existing else text
+
     return notes
 
 
@@ -407,6 +419,13 @@ def _process_message(session: dict, text: str) -> dict:
     session["structured"] = {**session.get("structured", {}), **new_structured}
     session.setdefault("history", []).append({"role": "user", "text": text})
     session["turn"] = session.get("turn", 0) + 1
+
+    # Intermediate checkpoint: write current notes to 'In Progress' section immediately.
+    # This ensures markdown is never more than one answer behind session state.
+    song_title = session.get("song_title", "")
+    if song_title and session.get("notes"):
+        checkpoint_song_md(song_title, session["notes"])
+
     return session
 
 
@@ -598,34 +617,52 @@ def _finalize(session: dict) -> list:
         if note_text and not structured.get(csv_field):
             structured[csv_field] = note_text[:150].replace("\n", " ")
 
+    # ── 1. Write CSV (source of truth) ────────────────────────────────────────
     ensure_csv()
     upsert_csv_row(structured)
-
     for col in session.get("dynamic_columns", []):
         add_dynamic_column(col)
 
-    existing_sections = load_song_md(song_title)
-    for section, content in session.get("notes", {}).items():
-        if content.strip():
-            old = existing_sections.get(section, "").strip()
-            existing_sections[section] = (old + "\n\n" + content).strip() if old else content
-    save_song_md(song_title, existing_sections)
+    # ── 2. Write markdown (independent error handling) ─────────────────────────
+    md_ok = False
+    try:
+        existing_sections = load_song_md(song_title)
+        for section, content in session.get("notes", {}).items():
+            if content.strip():
+                old = existing_sections.get(section, "").strip()
+                existing_sections[section] = (old + "\n\n" + content).strip() if old else content
+        existing_sections["In Progress"] = ""   # clear checkpoint draft at finalize
+        save_song_md(
+            song_title,
+            existing_sections,
+            metadata={"completion_pct": str(pct)},
+        )
+        md_ok = True
+    except Exception as e:
+        print(f"[album] Markdown write failed for {song_title}: {e}", flush=True)
 
+    # ── 3. Session history (only if markdown write succeeded) ──────────────────
     history_entry = (
         f"Session complete. Completion: {pct}%. "
         f"Blocker: {blocker}. "
         f"Batch days: {', '.join(batch_days) if batch_days else 'none'}."
     )
-    append_session_history(song_title, history_entry)
+    if md_ok:
+        try:
+            append_session_history(song_title, history_entry)
+        except Exception as e:
+            print(f"[album] Session history write failed: {e}", flush=True)
+
     reset_session()
 
+    # ── 4. Obsidian sync — failure reported, not silent ────────────────────────
     try:
         from chief_obsidian_sync import run_sync
         run_sync()
-    except Exception:
-        pass  # sync failure never blocks the brain
+    except Exception as e:
+        print(f"[album] Obsidian sync failed: {e}", flush=True)
 
-    # Auto-queue to release/content pipeline if song is release-eligible
+    # ── 5. Marketing handoff (best-effort) ────────────────────────────────────
     try:
         from chief_album_mixer import _queue_marketing_handoff
         _queue_marketing_handoff(song_title, structured)
@@ -633,12 +670,13 @@ def _finalize(session: dict) -> list:
         pass
 
     batch_line = ", ".join(batch_days) if batch_days else "none — you might be done!"
+    notes_status = f"Notes saved to {song_title}.md" if md_ok else "⚠ Markdown write failed — CSV saved. Check logs."
     return [
         f"Locked in {song_title}.\n"
         f"Completion: {pct}%\n"
         f"Blocker: {blocker}\n"
         f"Batch days needed: {batch_line}\n"
-        f"Notes saved to {song_title}.md"
+        f"{notes_status}"
     ]
 
 

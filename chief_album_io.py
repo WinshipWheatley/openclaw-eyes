@@ -3,9 +3,15 @@ import re
 from pathlib import Path
 
 ALBUM_DIR = Path("/mnt/c/OpenClawShared/album")
-SONGS_DIR = Path("/mnt/c/OpenClawShared/openclaw-vault/Album/Songs")
-CSV_PATH = ALBUM_DIR / "album_work_log.csv"
-ARC_PATH = ALBUM_DIR / "album_arc.md"
+VAULT_DIR = Path("/mnt/c/OpenClawShared/openclaw-vault")
+SONGS_DIR = VAULT_DIR / "Album" / "Songs"   # current active release
+CSV_PATH  = ALBUM_DIR / "album_work_log.csv"
+ARC_PATH  = ALBUM_DIR / "album_arc.md"
+
+# Current active release identity — update when adding new albums or artists
+CURRENT_ARTIST        = "Winship"
+CURRENT_RELEASE_TITLE = "Winship"   # self-titled debut
+CURRENT_RELEASE_TYPE  = "album"
 
 BASE_CSV_FIELDS = [
     "song_title",
@@ -47,8 +53,34 @@ MD_SECTIONS = [
     "Lyrics",
     "Feels Magical",
     "Needs Refinement",
+    "In Progress",      # live-session checkpoint — cleared automatically at finalize
     "Session History",
 ]
+
+
+# ── Release path resolver ─────────────────────────────────────────────────────
+
+def release_paths(artist: str, release_type: str, release_title: str) -> tuple[Path, Path]:
+    """Return (csv_path, songs_dir) for any artist + release combination.
+
+    Use this when adding a second album, an EP, a single, or a new artist.
+    The current Winship self-titled album uses the top-level defaults (CSV_PATH,
+    SONGS_DIR) for backward compatibility — do not move those files.
+
+    New releases follow the structure:
+      csv:       ALBUM_DIR / {artist} / {slug} / work_log.csv
+      songs_dir: VAULT_DIR / Album / {artist} / {release_title} / Songs
+
+    Directories are created when files are first written, not here.
+
+    Example:
+      csv, songs = release_paths("Winship", "album", "Second Album")
+      csv, songs = release_paths("Fundo", "album", "Volume 1")
+    """
+    slug = re.sub(r"[^\w\-]", "_", release_title.lower()).strip("_")
+    csv_path  = ALBUM_DIR / artist / slug / "work_log.csv"
+    songs_dir = VAULT_DIR / "Album" / artist / release_title / "Songs"
+    return csv_path, songs_dir
 
 
 # ── CSV ───────────────────────────────────────────────────────────────────────
@@ -144,26 +176,28 @@ def list_all_songs() -> list[str]:
 
 # ── Markdown ──────────────────────────────────────────────────────────────────
 
-def _song_path(song_title: str) -> Path:
-    return SONGS_DIR / f"{song_title}.md"
+def _song_path(song_title: str, songs_dir: "Path | None" = None) -> Path:
+    return (songs_dir or SONGS_DIR) / f"{song_title}.md"
 
 
-def load_song_md(song_title: str) -> dict:
+def load_song_md(song_title: str, songs_dir: "Path | None" = None) -> dict:
     """
     Load a song's markdown file into a dict keyed by section name.
     Returns empty sections if file doesn't exist.
+    Handles files with or without YAML frontmatter.
     """
-    path = _song_path(song_title)
+    path = _song_path(song_title, songs_dir)
     sections = {s: "" for s in MD_SECTIONS}
 
     if not path.exists():
         return sections
 
     content = path.read_text(encoding="utf-8")
-    # Split on ## headers (level 2 only)
+    # Split on ## headers (level 2 only).
+    # parts[0] contains the title block (and frontmatter if present) — skip it.
     parts = re.split(r"\n## ", content)
 
-    for part in parts[1:]:  # skip the title block
+    for part in parts[1:]:
         lines = part.split("\n", 1)
         header = lines[0].strip()
         body = lines[1].strip() if len(lines) > 1 else ""
@@ -172,12 +206,31 @@ def load_song_md(song_title: str) -> dict:
     return sections
 
 
-def save_song_md(song_title: str, sections: dict) -> None:
+def save_song_md(
+    song_title: str,
+    sections: dict,
+    metadata: "dict | None" = None,
+    songs_dir: "Path | None" = None,
+) -> None:
     """
     Write a song's sections dict back to its markdown file.
+    Writes YAML frontmatter with artist/release identity + any extra metadata.
     Preserves any dynamic sections not in MD_SECTIONS.
+    Creates parent directories if they don't exist.
     """
-    path = _song_path(song_title)
+    path = _song_path(song_title, songs_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # YAML frontmatter — Obsidian-compatible
+    fm: dict = {
+        "artist":  CURRENT_ARTIST,
+        "release": CURRENT_RELEASE_TITLE,
+        "type":    CURRENT_RELEASE_TYPE,
+        "song":    song_title,
+    }
+    if metadata:
+        fm.update(metadata)
+    fm_block = "---\n" + "".join(f"{k}: {v}\n" for k, v in fm.items()) + "---\n"
 
     # Build ordered section list: canonical first, then any extras
     ordered = list(MD_SECTIONS)
@@ -185,25 +238,54 @@ def save_song_md(song_title: str, sections: dict) -> None:
         if key not in ordered:
             ordered.append(key)
 
-    lines = [f"# {song_title}\n"]
+    body_lines = [f"# {song_title}\n"]
     for section in ordered:
         content = sections.get(section, "").strip()
-        lines.append(f"\n## {section}\n")
+        body_lines.append(f"\n## {section}\n")
         if content:
-            lines.append(f"\n{content}\n")
+            body_lines.append(f"\n{content}\n")
 
-    path.write_text("\n".join(lines), encoding="utf-8")
+    path.write_text(fm_block + "\n".join(body_lines), encoding="utf-8")
 
 
-def append_session_history(song_title: str, entry: str) -> None:
+def checkpoint_song_md(song_title: str, session_notes: dict) -> None:
+    """Write current session notes to the 'In Progress' section only.
+
+    Safe intermediate checkpoint — does not touch or merge with other sections.
+    Overwrites the previous checkpoint each call (always shows latest state).
+    Called after each accepted answer during an active session.
+    Cleared automatically at finalize.
+    """
+    if not song_title or not session_notes:
+        return
+    lines = []
+    for section, content in session_notes.items():
+        if content and content.strip() and section not in ("Session History", "In Progress"):
+            preview = content.strip().replace("\n", " ")[:300]
+            lines.append(f"**{section}:** {preview}")
+    if not lines:
+        return
+    try:
+        sections = load_song_md(song_title)
+        sections["In Progress"] = "\n".join(lines)
+        save_song_md(song_title, sections)
+    except Exception:
+        pass  # checkpoint is best-effort — never block the brain
+
+
+def append_session_history(
+    song_title: str,
+    entry: str,
+    songs_dir: "Path | None" = None,
+) -> None:
     """Append a timestamped entry to the Session History section."""
     from datetime import datetime
-    sections = load_song_md(song_title)
+    sections = load_song_md(song_title, songs_dir)
     existing = sections.get("Session History", "").strip()
     timestamp = datetime.now().strftime("%Y-%m-%d")
     new_entry = f"{timestamp}: {entry}"
     sections["Session History"] = (existing + "\n\n" + new_entry).strip()
-    save_song_md(song_title, sections)
+    save_song_md(song_title, sections, songs_dir=songs_dir)
 
 
 def load_arc_md() -> str:
