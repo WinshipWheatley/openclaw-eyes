@@ -121,6 +121,15 @@ DOMAIN_MAP = {
         ],
         "description": "Idea capture/synthesis, routing to destinations, condition-based watching",
     },
+    "Focus & Approvals": {
+        "members": [
+            "chief_focus_shield.py",
+            "chief_approval_bridge.py",
+            None,
+        ],
+        "description": "Work block interruption gating, multi-choice Telegram approval bridge",
+        "proposed_third": "chief_focus_reporter.py — end-of-day digest of held/approved items",
+    },
 }
 
 BRAIN_DIR = Path("/home/openclaw")

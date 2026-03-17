@@ -201,6 +201,20 @@ def capture_and_synthesize(raw_text: str) -> list[str]:
     route_line = f"\n→ Routed to: {item['route_target']}" if item.get("route_target") else ""
     cond_line  = f" — _{item['trigger_condition']}_" if item.get("trigger_condition") else ""
 
+    # ── Focus shield: hold non-urgent items during active work blocks ──────────
+    try:
+        from chief_focus_shield import classify_timing, is_focus_active, hold_item, should_surface
+        shield_timing = classify_timing(tc)
+        if not should_surface(item):
+            hold_item(item, shield_timing)
+            return [
+                f"💡 *{idea_id}: {item['title']}* — captured.\n"
+                f"Held until: *{shield_timing}* (focus block active)\n"
+                f"Say 'focus held' to see queue."
+            ]
+    except Exception:
+        pass
+
     return [
         f"💡 *{idea_id}: {item['title']}*\n\n"
         f"{item['summary']}\n\n"

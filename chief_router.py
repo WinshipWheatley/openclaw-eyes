@@ -61,6 +61,11 @@ from chief_scheduler_brain import handle as scheduler_handle, _load as _sched_lo
 from chief_brainstorm_brain import handle as brainstorm_handle
 from chief_brainstorm_router import handle as brainstorm_router_handle
 from chief_brainstorm_watcher import handle as brainstorm_watch_handle
+from chief_focus_shield import handle as focus_shield_handle
+from chief_approval_bridge import (
+    has_pending_choice,
+    handle as bridge_handle,
+)
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -600,7 +605,16 @@ def album_intent(text: str) -> bool:
 
 
 def route_message(text: str) -> dict:
-    # ── Approval gate — checked before ALL other routing ──────────────────────
+    t_lower = text.strip().lower()
+
+    # ── Approval bridge — multi-choice responses (1/2/3/approve/deny/status) ──
+    _BRIDGE_TOKENS = ("1", "2", "3", "approve", "deny")
+    if has_pending_choice() and (t_lower in _BRIDGE_TOKENS or
+                                  t_lower in ("status", "approval status", "choice status")):
+        replies = bridge_handle(text)
+        return {"intent": "choice_response", "replies": replies}
+
+    # ── Approval gate — Claude Code YES/NO gate (checked before other routing) ─
     t_upper = text.strip().upper()
     if has_pending_approval() and t_upper in ("YES", "NO"):
         reply = record_decision(text)
@@ -738,6 +752,12 @@ def route_message(text: str) -> dict:
     if trinity_intent(text):
         replies = trinity_handle(text)
         return {"intent": "trinity_check", "replies": replies}
+
+    if any(k in t_lower for k in ("focus status", "focus shield", "focus held",
+                                   "held items", "whats held", "what's held",
+                                   "surface now", "end of day")):
+        replies = focus_shield_handle(text)
+        return {"intent": "focus_status", "replies": replies}
 
     if queue_intent(text):
         replies = queue_handle(text)

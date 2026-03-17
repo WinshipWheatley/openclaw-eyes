@@ -202,7 +202,22 @@ def _handle_break(state: dict, text: str = "") -> list[str]:
     _start_timer(break_min, "break", task)
 
     ends = (datetime.now() + timedelta(minutes=break_min)).strftime("%H:%M")
-    return [f"☕ Break: {break_min}min. Notify at {ends}"]
+    reply = f"☕ Break: {break_min}min. Notify at {ends}"
+
+    # Surface any items held until next break
+    try:
+        from chief_focus_shield import surface_due
+        from chief_notify import send as notify_send
+        due = surface_due("next_break")
+        if due:
+            lines = [f"🔓 {len(due)} held idea(s) for your break:"]
+            for h in due:
+                lines.append(f"  • {h['id']}: {h.get('title', '—')}")
+            notify_send("\n".join(lines))
+    except Exception:
+        pass
+
+    return [reply]
 
 
 def _handle_switch(text: str, state: dict) -> list[str]:
@@ -240,7 +255,23 @@ def _handle_stop(state: dict) -> list[str]:
 
     state.update({"status": "idle", "task": ""})
     _save(state)
-    return ["✓ Session ended. Log saved to vault/System/Scheduler Log.md"]
+
+    reply = "✓ Session ended. Log saved to vault/System/Scheduler Log.md"
+
+    # Surface any items held until block completion
+    try:
+        from chief_focus_shield import surface_due
+        from chief_notify import send as notify_send
+        due = surface_due("after_current_block")
+        if due:
+            lines = [f"🔓 {len(due)} held idea(s) from your session:"]
+            for h in due:
+                lines.append(f"  • {h['id']}: {h.get('title', '—')}")
+            notify_send("\n".join(lines))
+    except Exception:
+        pass
+
+    return [reply]
 
 
 def _handle_status(state: dict) -> list[str]:
