@@ -42,6 +42,7 @@ from chief_goals_brain import handle as goals_handle
 from chief_momentum_brain import handle as momentum_handle
 from chief_fundo_session import handle as fundo_session_handle
 from chief_fundo_identity import handle as fundo_identity_handle
+from chief_fundo_release import handle as fundo_release_handle
 from chief_website_creative import handle as website_creative_handle
 from chief_website_coordinator import handle as website_coordinator_handle
 from chief_website_qa import handle as website_qa_handle
@@ -321,6 +322,14 @@ def calendar_intent(text: str) -> bool:
     ])
 
 
+def fundo_release_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "fundo release", "release fundo", "release checklist",
+        "fundo ready", "fundo releases", "release status",
+    ])
+
+
 def fundo_session_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
@@ -593,6 +602,10 @@ def route_message(text: str) -> dict:
     if calendar_intent(text):
         replies = calendar_handle(text)
         return {"intent": "calendar_query", "replies": replies}
+
+    if fundo_release_intent(text):
+        replies = fundo_release_handle(text)
+        return {"intent": "fundo_release", "replies": replies}
 
     if fundo_session_intent(text):
         replies = fundo_session_handle(text)

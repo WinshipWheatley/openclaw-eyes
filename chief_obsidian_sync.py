@@ -281,6 +281,12 @@ def sync_calendar_logs() -> None:
         p.write_text("# Calendar — Weekly Log\n\n_(no calendar runs yet)_\n", encoding="utf-8")
 
 
+def sync_fundo_releases() -> None:
+    """Ensure Fundo/Releases/ folder exists."""
+    releases_dir = VAULT / "Fundo" / "Releases"
+    releases_dir.mkdir(parents=True, exist_ok=True)
+
+
 def sync_fundo_logs() -> None:
     """Ensure Fundo/ vault files exist. Brains write directly."""
     fundo = VAULT / "Fundo"
@@ -399,6 +405,7 @@ def run_sync() -> str:
     sync_momentum_report()
     sync_trinity_audit()
     sync_calendar_logs()
+    sync_fundo_releases()
     sync_fundo_logs()
     sync_website_logs()
     return f"Obsidian sync complete. {updated} song file(s) updated."
