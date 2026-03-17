@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 from chief_router import route_message
+from chief_validator_brain import validate_reply
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -96,6 +97,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if intent == "album_continue":
         replies = routed.get("replies", [])
         for r in replies:
+            r = validate_reply(text, r, intent)
             await update.message.reply_text(r)
         return
 
@@ -104,6 +106,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from chief_album_brain import handle_arc
             arc_replies = handle_arc("")
             for r in arc_replies:
+                r = validate_reply(text, r, "album_arc_start")
                 await update.message.reply_text(r)
         except Exception as e:
             await update.message.reply_text(f"Arc analysis error: {e}")
@@ -112,6 +115,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if intent == "album_arc_continue":
         replies = routed.get("replies", [])
         for r in replies:
+            r = validate_reply(text, r, intent)
             await update.message.reply_text(r)
         return
 
@@ -124,15 +128,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if intent == "system_report":
         replies = routed.get("replies", [])
         for r in replies:
-            # Telegram max is 4096 chars — split if needed
-            if len(r) > 4000:
-                r = r[:4000] + "\n… (truncated)"
+            r = validate_reply(text, r, intent)
             await update.message.reply_text(r)
         return
 
     if intent in ("marketing_ideas", "content_draft", "content_log_update"):
         replies = routed.get("replies", [])
         for r in replies:
+            r = validate_reply(text, r, intent)
             await update.message.reply_text(r)
         return
 

@@ -173,6 +173,16 @@ def sync_arc() -> None:
 
 # ── Content log sync ──────────────────────────────────────────────────────────
 
+def sync_validation_log() -> None:
+    """No-op — validator writes directly to vault. Ensures file exists."""
+    vlog = VAULT / "System" / "Validation Log.md"
+    if not vlog.exists():
+        vlog.write_text(
+            "---\ntype: validation-log\n---\n\n# Validation Log\n\n_(no failures recorded yet)_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_daily_report() -> None:
     """No-op — reporter writes directly to vault. Ensures file exists."""
     if not (VAULT / "System" / "Daily Report.md").exists():
@@ -243,6 +253,7 @@ def run_sync() -> str:
     sync_arc()
     sync_content_log()
     sync_daily_report()
+    sync_validation_log()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 
