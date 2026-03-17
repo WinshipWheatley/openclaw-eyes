@@ -123,22 +123,22 @@ def _build_readout(items: list[str], header: str = "Ops intake processed") -> li
     waiting    = [(item, dest, note) for item, cls, dest, note in routed
                   if note in ("needs review", "needs attention")]
 
-    lines = [f"**{header}:**\n"]
+    lines = [f"{header}:\n"]
 
     # 1. What got routed
     for item, cls, dest, note in routed:
         lines.append(f"• {item[:90]}")
-        lines.append(f"  → {dest} ({note})")
+        lines.append(f"  -> {dest} ({note})")
 
     # 2. What's waiting
     if waiting:
-        lines.append(f"\n**Waiting on you ({len(waiting)}):**")
+        lines.append(f"\nWaiting on you ({len(waiting)}):")
         for item, dest, note in waiting:
             lines.append(f"• {item[:90]}")
 
     # 3. What to handle next
     if waiting:
-        lines.append(f"\n**Handle next:** {waiting[0][0][:90]}")
+        lines.append(f"\nHandle next: {waiting[0][0][:90]}")
     else:
         lines.append("\nNothing needs immediate action.")
 
@@ -212,6 +212,15 @@ def handle(text: str) -> list[str]:
 
 if __name__ == "__main__":
     import sys
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.text import Text
+        _console = Console()
+        _rich = True
+    except ImportError:
+        _rich = False
+
     text = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else (
         "Ops update:\n"
         "- sent follow-up email to Capital Hilton, deposit not received\n"
@@ -221,5 +230,24 @@ if __name__ == "__main__":
         "- Anna owns the cleaning company; front door will be unlocked\n"
         "- two drafted emails need review: Glenn / St. Anne's and Dane / Live Arts"
     )
-    for line in handle(text):
-        print(line)
+    result = handle(text)
+    for block in result:
+        if _rich:
+            # Color the readout: green for captured, yellow for waiting, bold for handle next
+            t = Text()
+            for line in block.splitlines():
+                if line.startswith("Waiting on you"):
+                    t.append(line + "\n", style="bold yellow")
+                elif line.startswith("Handle next:"):
+                    t.append(line + "\n", style="bold red")
+                elif line.startswith("Nothing needs"):
+                    t.append(line + "\n", style="green")
+                elif line.startswith("•") and "->" not in line:
+                    t.append(line + "\n", style="white")
+                elif "->" in line:
+                    t.append(line + "\n", style="dim cyan")
+                else:
+                    t.append(line + "\n", style="bold")
+            _console.print(Panel(t, border_style="blue"))
+        else:
+            print(block)

@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import re
 import subprocess
@@ -121,6 +123,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intent == "cancel":
         await update.message.reply_text(reply or "Current workflow cancelled.")
+        # Surface any deferred ops captured during a now-cancelled album session
+        try:
+            from chief_ops_brain import deferred_summary
+            summary = deferred_summary()
+            if summary:
+                for s in summary:
+                    await update.message.reply_text(s)
+        except Exception:
+            pass
         return
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -170,8 +181,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if intent == "ops_intake":
         replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
+        try:
+            for r in replies:
+                await update.message.reply_text(r)
+        except Exception as e:
+            print(f"Ops intake reply error: {e}")
+            await update.message.reply_text("Ops update captured. (Reply formatting error — check logs.)")
         return
 
     if intent == "album_continue":
@@ -360,15 +375,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# ── Startup: notify about pending queue items ─────────────────────────────────
+# ── Startup: notify about pending queue items (once per unique queue state) ───
+_QUEUE_NOTIF_STATE = Path("/mnt/c/OpenClaw/logs/queue_notif_state.json")
+
+
+def _queue_content_hash(items: list[str]) -> str:
+    return hashlib.md5("\n".join(items).encode()).hexdigest()
+
+
+def _load_queue_notif_state() -> dict:
+    if _QUEUE_NOTIF_STATE.exists():
+        try:
+            return json.loads(_QUEUE_NOTIF_STATE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def _save_queue_notif_state(content_hash: str) -> None:
+    _QUEUE_NOTIF_STATE.parent.mkdir(parents=True, exist_ok=True)
+    _QUEUE_NOTIF_STATE.write_text(
+        json.dumps({"hash": content_hash, "sent_at": datetime.now().isoformat()}, indent=2),
+        encoding="utf-8",
+    )
+
+
 async def _post_startup_queue(application):
     pending = check_pending_queue()
     if not pending:
         return
-    lines = [f"📋 *{len(pending)} pending queue item(s) from last session:*\n"]
+
+    current_hash = _queue_content_hash(pending)
+    last_state   = _load_queue_notif_state()
+
+    # Suppress if the queue content is identical to the last notification sent
+    if last_state.get("hash") == current_hash:
+        print(f"Queue startup: {len(pending)} pending item(s) unchanged — suppressing repeat notification.")
+        return
+
+    _save_queue_notif_state(current_hash)
+
+    lines = [f"📋 {len(pending)} pending queue item(s):\n"]
     for i, item in enumerate(pending, 1):
         lines.append(f"  {i}. {item}")
-    lines.append("\nReview and tell me which to work on.")
+    lines.append("\nTell me which to work on, or 'queue status' to review.")
     try:
         await application.bot.send_message(
             chat_id=AUTHORIZED_USER_ID,
