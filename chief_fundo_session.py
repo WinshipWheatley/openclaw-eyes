@@ -237,6 +237,33 @@ def _coach_next_element(session: dict) -> str:
     return result or f"Coaching unavailable for {label} — check Claude API."
 
 
+# ── Release handoff ──────────────────────────────────────────────────────────────
+
+def _queue_release_handoff(session: dict) -> bool:
+    """If all 10 elements are done, trigger fundo_release and return True. Idempotent."""
+    if set(session.get("elements", [])) < set(_ELEMENT_ORDER):
+        return False  # not all done yet
+
+    # Idempotency check — skip if a release entry already exists
+    releases_json = Path("/mnt/c/OpenClawShared/business/fundo_releases.json")
+    try:
+        if releases_json.exists():
+            data = json.loads(releases_json.read_text(encoding="utf-8"))
+            releases = data if isinstance(data, list) else data.get("releases", [])
+            slug = session["slug"]
+            if any(r.get("slug") == slug for r in releases):
+                return False
+    except Exception:
+        pass
+
+    try:
+        from chief_fundo_release import handle as release_handle
+        release_handle(f"fundo release {session['name']}")
+        return True
+    except Exception:
+        return False
+
+
 # ── Vault note writer ─────────────────────────────────────────────────────────────
 
 def _write_session_md(session: dict) -> None:
@@ -338,7 +365,10 @@ def handle(text: str = "") -> list[str]:
             _save_sessions(data)
             _write_session_md(session)
             coaching = _coach_next_element(session)
-            return [coaching]
+            reply = [coaching]
+            if _queue_release_handoff(session):
+                reply.append(f"\n→ Release checklist generated in vault/Fundo/Releases/{session['slug']}.md")
+            return reply
         return [f"All elements complete for '{session['name']}'! Great session."]
 
     # ── Log a session note ────────────────────────────────────────────────────────
