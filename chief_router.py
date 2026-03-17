@@ -67,6 +67,7 @@ from chief_approval_bridge import (
     handle as bridge_handle,
 )
 from chief_nli import detect_nli_query, handle as nli_handle
+from chief_ops_brain import is_ops_intake, handle as ops_handle, save_deferred as ops_save_deferred
 from chief_album_batch import handle as batch_handle, batch_intent
 from chief_album_brain import (
     handle as album_handle,
@@ -590,6 +591,11 @@ def _llm_prefill_billing(text: str, mode: str) -> dict:
     return {k: v for k, v in data.items() if k in allowed and isinstance(v, str) and v.strip()}
 
 
+def ops_intake_intent(text: str) -> bool:
+    """True for messages with an explicit ops/admin intake prefix marker."""
+    return is_ops_intake(text)
+
+
 def album_intent(text: str) -> bool:
     t = text.lower().strip()
     keywords = [
@@ -658,6 +664,19 @@ def route_message(text: str) -> dict:
 
     session = load_session()
     append_history("user", text)
+
+    # ── Ops intake — top-level; escapes correction and active-session routing ─
+    # Recognized by explicit prefix: "Ops update:", "Brain dump:", etc.
+    # During album focus: defers silently; delivers summary after session closes.
+    if ops_intake_intent(text):
+        album_active = (session.get("status") == "active"
+                        and session.get("active_workflow") == "album")
+        if album_active:
+            ops_save_deferred(text)
+            return {"intent": "ops_intake", "replies": [
+                "Captured. Album focus is on — I'll surface this after your session."
+            ]}
+        return {"intent": "ops_intake", "replies": ops_handle(text)}
 
     if looks_like_cancel(text):
         mark_cancelled()

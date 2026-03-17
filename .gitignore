@@ -57,6 +57,7 @@
 !chief_approval_bridge.py
 !chief_nli.py
 !chief_album_batch.py
+!chief_ops_brain.py
 !chief-inspect
 
 !start_chief.sh
@@ -65,3 +66,7 @@
 !start_album_brain.sh
 
 !DEEPPOCKET.md
+!CURRENT_STATE.md
+!KNOWN_GAPS.md
+!NEXT_ACTIONS.md
+!RUNBOOK.md

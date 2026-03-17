@@ -168,11 +168,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply or "What song are we working on?")
         return
 
+    if intent == "ops_intake":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent == "album_continue":
         replies = routed.get("replies", [])
         for r in replies:
             r = validate_reply(text, r, intent)
             await update.message.reply_text(r)
+        # Deferred ops delivery — fires once when album session closes
+        try:
+            from chief_session_manager import load_session as _ls
+            from chief_ops_brain import deferred_summary
+            if _ls().get("status") != "active":
+                summary = deferred_summary()
+                if summary:
+                    for s in summary:
+                        await update.message.reply_text(s)
+        except Exception:
+            pass
         return
 
     if intent == "album_arc_start":
