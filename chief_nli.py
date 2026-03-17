@@ -57,6 +57,12 @@ _STATUS_PATTERNS = [
     r"what do (you|we) (need|want) from me",
     r"remind me",
     r"(with|on) the album",
+    r"what('?s| is) the next question",
+    r"what('?s| is) next (up|after this)?",
+    r"am i (done|finished)",
+    r"how many (questions|topics) (left|to go|remain)",
+    r"what topics (are left|remain|haven'?t we covered)",
+    r"(still on|still doing) (this )?song",
 ]
 
 # Topic content words that suggest a message is an actual album answer
@@ -65,6 +71,7 @@ _TOPIC_SIGNALS = [
     "drums", "bass", "guitar", "vocals", "keys", "synth", "structure",
     "mix", "bridge", "chorus", "verse", "intro", "outro", "lyric",
     "rerecord", "re-record", "arrangement", "suno", "archetype",
+    "magical", "refinement", "protect", "preserve", "working well",
 ]
 
 
@@ -237,10 +244,11 @@ def _respond_album_status(wf: dict) -> list[str]:
     return ["\n".join(lines)]
 
 
-# Topic order reference (mirrors chief_album_brain without importing it for this)
+# Topic order reference (must stay in sync with TOPIC_ORDER in chief_album_brain)
 _TOPIC_ORDER = [
     "structure", "vocals", "drums", "bass", "guitars", "keys",
     "mix_readiness", "mix_prep", "suno_reference", "lyrics", "vocal_archetype",
+    "feels_magical", "needs_refinement",
 ]
 
 

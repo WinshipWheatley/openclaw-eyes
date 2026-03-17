@@ -165,9 +165,27 @@ def record_decision(decision: str) -> str:
 
 
 def has_pending_approval() -> bool:
-    """True if there is a pending (unanswered) approval request."""
+    """True if there is a fresh, pending (unanswered) approval request.
+    Auto-clears stale pending records so they cannot interrupt unrelated
+    sessions after the original requester has already timed out.
+    """
     data = _load_pending()
-    return bool(data) and data.get("status") == "pending"
+    if not data or data.get("status") != "pending":
+        return False
+    # Auto-clear requests that are older than TIMEOUT — the requester has
+    # already timed out and logged a denial, so this record is dead weight.
+    try:
+        requested_at = data.get("requested_at", "")
+        if requested_at:
+            age = (datetime.now()
+                   - datetime.strptime(requested_at, "%Y-%m-%d %H:%M:%S")
+                   ).total_seconds()
+            if age > TIMEOUT:
+                _clear_pending()
+                return False
+    except Exception:
+        pass
+    return True
 
 
 # ── CLI entry point ────────────────────────────────────────────────────────────

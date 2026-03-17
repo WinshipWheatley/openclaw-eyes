@@ -268,6 +268,20 @@ def batch_intent(text: str) -> bool:
     return any(k in t for k in triggers)
 
 
+# ── Coverage label ────────────────────────────────────────────────────────────
+
+def _coverage_note(covered: int, total: int) -> str | None:
+    """Return a provisional note when less than half the album has been reviewed.
+    Returns None when coverage is sufficient to trust the output.
+    """
+    if total <= 0 or covered >= total // 2:
+        return None
+    return (
+        f"_(Provisional — based on {covered}/{total} songs. "
+        f"Run album sessions for the remaining songs for full picture.)_"
+    )
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def handle(text: str) -> list[str]:
@@ -279,33 +293,42 @@ def handle(text: str) -> list[str]:
     if not rows:
         return ["No album data yet. Run album sessions first."]
 
+    total   = len(_ALBUM_SONGS) if _ALBUM_SONGS else len(rows)
+    covered = len(rows)
+    note    = _coverage_note(covered, total)
+
     t = text.lower()
     _save_batch_md(rows)
 
     # Specific batch type requests
     if "chill" in t or "maintenance" in t or "easy" in t or "light" in t:
-        return _reply_grouped(rows, ["cleanup", "decision", "magic"], "Chill / Maintenance")
-    if "creative" in t and "batch" in t:
-        return _reply_grouped(rows, ["creative", "arrangement", "vocals"], "Creative")
-    if "vocal" in t:
-        return _reply_single(rows, "vocals")
-    if "record" in t and ("batch" in t or "day" in t or "session" in t):
-        return _reply_single(rows, "recording")
-    if "mix" in t or "sonic" in t:
-        return _reply_single(rows, "mix")
-    if "cleanup" in t or "organiz" in t or "prep" in t or "housekeep" in t:
-        return _reply_single(rows, "cleanup")
-    if "decision" in t or "lock" in t:
-        return _reply_single(rows, "decision")
-    if "magic" in t or "special" in t or "protect" in t:
-        return _reply_single(rows, "magic")
-    if "arrangement" in t or "writing" in t or "structure" in t and "batch" in t:
-        return _reply_single(rows, "arrangement")
-    if "overview" in t or "all batch" in t or "all work" in t:
-        return _reply_overview(rows)
+        replies = _reply_grouped(rows, ["cleanup", "decision", "magic"], "Chill / Maintenance")
+    elif "creative" in t and "batch" in t:
+        replies = _reply_grouped(rows, ["creative", "arrangement", "vocals"], "Creative")
+    elif "vocal" in t:
+        replies = _reply_single(rows, "vocals")
+    elif "record" in t and ("batch" in t or "day" in t or "session" in t):
+        replies = _reply_single(rows, "recording")
+    elif "mix" in t or "sonic" in t:
+        replies = _reply_single(rows, "mix")
+    elif "cleanup" in t or "organiz" in t or "prep" in t or "housekeep" in t:
+        replies = _reply_single(rows, "cleanup")
+    elif "decision" in t or "lock" in t:
+        replies = _reply_single(rows, "decision")
+    elif "magic" in t or "special" in t or "protect" in t:
+        replies = _reply_single(rows, "magic")
+    elif "arrangement" in t or "writing" in t or ("structure" in t and "batch" in t):
+        replies = _reply_single(rows, "arrangement")
+    elif "overview" in t or "all batch" in t or "all work" in t:
+        replies = _reply_overview(rows)
+    else:
+        # Generic: "what should I do next", "best batch", "what to do"
+        replies = _reply_best(rows)
 
-    # Generic: "what should I do next", "best batch", "what to do"
-    return _reply_best(rows)
+    # Prepend provisional note when album coverage is low
+    if note and replies:
+        replies = [note + "\n\n" + replies[0]] + replies[1:]
+    return replies
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
