@@ -31,6 +31,57 @@ BUSINESS_DIR  = Path("/mnt/c/OpenClawShared/business")
 EXPENSE_JSON  = BUSINESS_DIR / "expense_log.json"
 CPA_LOG_MD    = Path("/mnt/c/OpenClawShared/openclaw-vault/Business/CPA Log.md")
 BILLING_CSV   = Path("/home/openclaw/OpenClaw/exports/billing_records.csv")
+TAX_DOCS_PATH = Path("/mnt/c/OpenClaw/data/tax_docs")
+
+# ── 2025 Tax Return Baseline ───────────────────────────────────────────────────
+# Source: 2025 Wheatley H IV Form 1040 + XLSX ledger
+# Filed: 2026-03-15 via TurboTax (electronically)
+
+BASELINE_2025 = {
+    "tax_year": 2025,
+    "filing_status": "Single",
+    "income": {
+        "w2_wages":           6762.50,   # Will Get It Done
+        "schedule_c_gross":  19818.00,   # Performance sole prop (incl $6,650 1099-NEC St. Anne's Parish)
+        "schedule_c_net":     6363.00,
+        "total_gross":       26580.50,
+    },
+    "schedule_c_expenses": {
+        "total":             13455.00,
+        "direct":             5458.00,   # Schedule C line 28
+        "home_office":        7997.00,   # Form 8829 (39.71% of 816 sq ft = 324 sq ft)
+        "breakdown": {
+            "contractors":         700.00,
+            "home_office_items":  1797.74,
+            "communications":     1235.06,
+            "equipment":           392.36,
+            "software":            908.81,
+            "insurance":           150.17,
+            "subscriptions":       450.09,
+            "cloud_storage":        80.37,
+            "tolls_parking":        18.95,
+            "misc":                 40.80,
+        },
+    },
+    "agi":                   12729.00,
+    "taxable_income":            0.00,   # standard deduction ($15,750) exceeded AGI
+    "self_employment_tax":     899.00,
+    "federal_balance_due":     186.00,
+    "maryland_refund":         655.00,
+    "home_office": {
+        "address":      "1009 1/2 Smithville St, Annapolis MD 21401",
+        "business_sqft": 324,
+        "total_sqft":    816,
+        "business_pct":  39.71,
+        "annual_dep":   1620.00,         # straight-line, purchased 2013
+    },
+    "vehicle": {
+        "make_model":      "Toyota Camry",
+        "business_miles":  1212,
+    },
+    "no_quarterly_payments_made": True,  # none paid in 2025 — start 2026 Q1 Apr 15
+    "tax_docs_dir": str(TAX_DOCS_PATH / "2025"),
+}
 
 # ── Tax constants ──────────────────────────────────────────────────────────────
 
@@ -203,7 +254,12 @@ Return plain text only, no markdown."""
 _TAX_PROMPT = """\
 You are a tax advisor for Winship Live, a sole proprietor music business.
 
-Current numbers:
+Prior year context (2025 actual):
+- 2025 gross income: $26,580.50 (W-2 $6,762.50 + Schedule C $19,818)
+- 2025 Schedule C net: $6,363 after $13,455 in deductions
+- 2025 SE tax paid: $899 | Federal balance due: $186 | No quarterly payments made
+
+Current 2026 numbers (YTD):
 - YTD income received (cash basis): ${ytd_income:.2f}
 - YTD business expenses logged: ${ytd_expenses:.2f}
 - Net income: ${net_income:.2f}
@@ -314,6 +370,15 @@ def _write_cpa_log_md() -> None:
         for e in recent_expenses
     ) or "| — | — | — | — |"
 
+    b = BASELINE_2025
+    inc = b["income"]
+    exp = b["schedule_c_expenses"]
+    ho  = b["home_office"]
+    breakdown_rows = "\n".join(
+        f"| {k.replace('_', ' ').title()} | ${v:.2f} |"
+        for k, v in exp["breakdown"].items()
+    )
+
     content = (
         "---\n"
         "type: cpa-log\n"
@@ -321,6 +386,30 @@ def _write_cpa_log_md() -> None:
         "---\n\n"
         "# CPA Log\n\n"
         "_Managed by `chief_cpa_brain.py` — do not edit manually._\n\n"
+        "## 2025 Tax Return Baseline\n\n"
+        f"_Filed 2026-03-15 · Single · Source docs: `{b['tax_docs_dir']}`_\n\n"
+        "| | |\n|---|---|\n"
+        f"| Gross Income | ${inc['total_gross']:,.2f} |\n"
+        f"| W-2 Wages (Will Get It Done) | ${inc['w2_wages']:,.2f} |\n"
+        f"| Schedule C Gross Receipts | ${inc['schedule_c_gross']:,.2f} |\n"
+        f"| Schedule C Net Profit | ${inc['schedule_c_net']:,.2f} |\n"
+        f"| AGI | ${b['agi']:,.2f} |\n"
+        f"| Federal Taxable Income | ${b['taxable_income']:,.2f} |\n"
+        f"| Self-Employment Tax | ${b['self_employment_tax']:,.2f} |\n"
+        f"| Federal Balance Due | ${b['federal_balance_due']:,.2f} |\n"
+        f"| Maryland Refund | ${b['maryland_refund']:,.2f} |\n\n"
+        "### 2025 Schedule C Expenses\n\n"
+        f"| Total Expenses | ${exp['total']:,.2f} |\n"
+        "|---|---|\n"
+        f"| Direct (Sched C line 28) | ${exp['direct']:,.2f} |\n"
+        f"| Home Office (Form 8829) | ${exp['home_office']:,.2f} |\n\n"
+        "| Category | Amount |\n|---|---|\n"
+        + breakdown_rows + "\n\n"
+        f"Home office: {ho['business_sqft']} sq ft / {ho['total_sqft']} sq ft = "
+        f"{ho['business_pct']}% · Annual depreciation ${ho['annual_dep']:,.2f}\n\n"
+        "> ⚠️ No estimated quarterly payments were made in 2025. "
+        "Start 2026 Q1 payment by **April 15, 2026**.\n\n"
+        "---\n\n"
         "## YTD Summary\n\n"
         f"| | |\n|---|---|\n"
         f"| YTD Income Received | ${ytd_income:.2f} |\n"
