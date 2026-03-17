@@ -21,6 +21,7 @@ from chief_reflection_brain import handle as reflection_handle
 from chief_cpa_brain import handle as cpa_handle
 from chief_musiclaw_brain import handle as musiclaw_handle
 from chief_publishing_brain import handle as publishing_handle
+from chief_phone_brain import handle as phone_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -177,6 +178,17 @@ def marketing_intent(text: str) -> bool:
         "i have", "what to post", "log that", "i posted", "mark as posted",
         "mark it as", "draft a caption", "draft a hook", "write a caption",
         "write a hook", "write me a", "marketing idea",
+    ])
+
+
+def phone_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "log call", "log a call", "just got off a call", "had a call with",
+        "got off the phone", "just spoke with", "just talked to",
+        "call script", "talking points", "what should i say to",
+        "how should i approach", "script for calling",
+        "call log", "call history", "recent calls", "show calls",
     ])
 
 
@@ -377,6 +389,26 @@ def route_message(text: str) -> dict:
             "replies": replies,
         }
 
+    # ── Explicit intents checked before billing keyword match ─────────────────
+    # These must run before billing_mode_from_text to prevent collisions
+    # (e.g. "log call...invoice" triggering billing instead of phone_log)
+
+    if phone_intent(text):
+        replies = phone_handle(text)
+        return {"intent": "phone_log", "replies": replies}
+
+    if cpa_intent(text):
+        replies = cpa_handle(text)
+        return {"intent": "cpa_query", "replies": replies}
+
+    if musiclaw_intent(text):
+        replies = musiclaw_handle(text)
+        return {"intent": "musiclaw_query", "replies": replies}
+
+    if publishing_intent(text):
+        replies = publishing_handle(text)
+        return {"intent": "publishing_query", "replies": replies}
+
     billing_mode = billing_mode_from_text(text)
     if billing_mode:
         prefilled = _llm_prefill_billing(text, billing_mode)
@@ -443,18 +475,6 @@ def route_message(text: str) -> dict:
         else:
             sub = "marketing_ideas"
         return {"intent": sub, "replies": replies}
-
-    if cpa_intent(text):
-        replies = cpa_handle(text)
-        return {"intent": "cpa_query", "replies": replies}
-
-    if musiclaw_intent(text):
-        replies = musiclaw_handle(text)
-        return {"intent": "musiclaw_query", "replies": replies}
-
-    if publishing_intent(text):
-        replies = publishing_handle(text)
-        return {"intent": "publishing_query", "replies": replies}
 
     if reflection_intent(text):
         replies = reflection_handle(text)

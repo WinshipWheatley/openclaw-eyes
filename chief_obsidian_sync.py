@@ -196,6 +196,9 @@ def sync_business_logs() -> None:
         ("CPA Log.md",          "_(no CPA data yet)_"),
         ("Music Law Log.md",    "_(no music law entries yet)_"),
         ("Publishing Log.md",   "_(no publishing data yet)_"),
+        ("Call Log.md",         "_(no calls logged yet)_"),
+        ("SMS Log.md",          "_(no SMS messages yet)_"),
+        ("Email Log.md",        "_(no emails sent yet)_"),
     ]:
         p = business / fname
         if not p.exists():

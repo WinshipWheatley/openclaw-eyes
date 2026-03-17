@@ -146,6 +146,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent == "phone_log":
+        replies = routed.get("replies", [])
+        for r in replies:
+            r = validate_reply(text, r, intent)
+            await update.message.reply_text(r)
+        return
+
     if intent in ("cpa_query", "musiclaw_query", "publishing_query"):
         replies = routed.get("replies", [])
         for r in replies:
