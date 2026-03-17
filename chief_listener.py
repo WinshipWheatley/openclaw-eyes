@@ -121,6 +121,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent == "system_report":
+        replies = routed.get("replies", [])
+        for r in replies:
+            # Telegram max is 4096 chars — split if needed
+            if len(r) > 4000:
+                r = r[:4000] + "\n… (truncated)"
+            await update.message.reply_text(r)
+        return
+
     if intent in ("marketing_ideas", "content_draft", "content_log_update"):
         replies = routed.get("replies", [])
         for r in replies:

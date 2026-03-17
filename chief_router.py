@@ -14,6 +14,7 @@ from chief_approval_brain import (
     has_pending_approval,
     record_decision,
 )
+from chief_reporter_brain import handle as reporter_handle
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -140,6 +141,15 @@ def looks_like_quick_update(text: str) -> bool:
     has_signal = any(s in t for s in _QUICK_UPDATE_SIGNALS)
     has_song = any(song.lower() in t for song in _ALBUM_SONGS)
     return has_signal and has_song
+
+
+def reporter_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "system report", "daily report", "what ran today", "status report",
+        "worker report", "watcher report", "what happened today",
+        "system status", "how is the system", "report",
+    ])
 
 
 def marketing_intent(text: str) -> bool:
@@ -367,6 +377,10 @@ def route_message(text: str) -> dict:
         else:
             sub = "marketing_ideas"
         return {"intent": sub, "replies": replies}
+
+    if reporter_intent(text):
+        replies = reporter_handle(text)
+        return {"intent": "system_report", "replies": replies}
 
     if album_intent(text):
         # Always start completely fresh regardless of any lingering session state

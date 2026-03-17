@@ -173,6 +173,15 @@ def sync_arc() -> None:
 
 # ── Content log sync ──────────────────────────────────────────────────────────
 
+def sync_daily_report() -> None:
+    """No-op — reporter writes directly to vault. Ensures file exists."""
+    if not (VAULT / "System" / "Daily Report.md").exists():
+        (VAULT / "System" / "Daily Report.md").write_text(
+            "---\ntype: daily-report\n---\n\n# Daily Report\n\n_(no report yet)_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_content_log() -> None:
     """Rewrite Marketing/Content Log.md from content_log.json."""
     if not CONTENT_LOG_JSON.exists():
@@ -233,6 +242,7 @@ def run_sync() -> str:
     sync_overview_table(csv_data)
     sync_arc()
     sync_content_log()
+    sync_daily_report()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 
