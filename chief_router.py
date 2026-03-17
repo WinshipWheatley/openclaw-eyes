@@ -34,6 +34,8 @@ from chief_email_brain import (
     confirm_send as email_confirm_send,
     clear_pending_draft as email_clear_draft,
 )
+from chief_fundo_session import handle as fundo_session_handle
+from chief_fundo_identity import handle as fundo_identity_handle
 from chief_website_creative import handle as website_creative_handle
 from chief_website_coordinator import handle as website_coordinator_handle
 from chief_website_qa import handle as website_qa_handle
@@ -255,6 +257,25 @@ def publishing_intent(text: str) -> bool:
         "publishing", "register ", "sync opportunities", "sync-ready",
         "sync ready", "update publishing", "publishing catalog",
         "song rights", "pro registration", "ascap", "bmi",
+    ])
+
+
+def fundo_session_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "fundo session", "work on fundo", "new fundo track",
+        "fundo track", "build fundo",
+    ]) or (t == "approve") or t.startswith("revise ") or any(
+        k in t for k in ("element done", "next element", "fundo note", "fundo status", "fundo progress")
+    )
+
+
+def fundo_identity_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "fundo brief", "fundo identity", "fundo brand", "fundo visual",
+        "who is fundo", "what is fundo", "fundo song", "track brief",
+        "fundo arc",
     ])
 
 
@@ -487,6 +508,14 @@ def route_message(text: str) -> dict:
     if publishing_intent(text):
         replies = publishing_handle(text)
         return {"intent": "publishing_query", "replies": replies}
+
+    if fundo_session_intent(text):
+        replies = fundo_session_handle(text)
+        return {"intent": "fundo_session", "replies": replies}
+
+    if fundo_identity_intent(text):
+        replies = fundo_identity_handle(text)
+        return {"intent": "fundo_identity", "replies": replies}
 
     if website_qa_intent(text):
         replies = website_qa_handle(text)

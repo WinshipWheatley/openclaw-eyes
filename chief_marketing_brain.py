@@ -22,10 +22,12 @@ from chief_llm import ollama_json, ollama_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-VAULT_MARKETING = Path("/mnt/c/OpenClawShared/openclaw-vault/Marketing")
-CONTENT_LOG_JSON = Path("/mnt/c/OpenClawShared/album/content_log.json")
-CONTENT_LOG_MD   = VAULT_MARKETING / "Content Log.md"
-CSV_PATH         = Path("/mnt/c/OpenClawShared/album/album_work_log.csv")
+VAULT_MARKETING      = Path("/mnt/c/OpenClawShared/openclaw-vault/Marketing")
+CONTENT_LOG_JSON     = Path("/mnt/c/OpenClawShared/album/content_log.json")
+CONTENT_LOG_MD       = VAULT_MARKETING / "Content Log.md"
+CSV_PATH             = Path("/mnt/c/OpenClawShared/album/album_work_log.csv")
+FUNDO_CONTENT_LOG    = Path("/mnt/c/OpenClawShared/business/fundo_content_log.json")
+FUNDO_CONTENT_MD     = Path("/mnt/c/OpenClawShared/openclaw-vault/Fundo/Content Log.md")
 
 # ── Artist profile ─────────────────────────────────────────────────────────────
 
@@ -521,10 +523,140 @@ def _update_log(text: str) -> list[str]:
     return ["Log update processed."]
 
 
+# ── Fundo persona mode ─────────────────────────────────────────────────────────
+
+def _is_fundo_request(text: str) -> bool:
+    t = text.lower()
+    return any(k in t for k in [
+        "fundo content", "fundo post", "fundo social", "fundo caption",
+        "fundo tiktok", "fundo instagram", "post for fundo", "content for fundo",
+        "fundo idea", "fundo marketing",
+    ])
+
+
+_FUNDO_IDEAS_PROMPT = """\
+{fundo_context}
+
+Generate 3-5 content ideas for the Fundo anonymous electronic project.
+
+PLATFORM RULES:
+- TikTok: fast visual hook (no face), rhythm-focused, mysterious — texture clips, extreme close-ups of gear
+- Instagram: dark aesthetic, minimal text, image-first, cryptic long captions
+
+PERSONA RULES:
+- No face, no real name, no location
+- Anonymous, mysterious, slightly unsettling in a good way
+- Nobody knows if it's human or AI — protect that ambiguity
+- Content should create intrigue, not explain
+
+Request: {request}
+
+Return a JSON array. Each object: title, platform, size (quick_win/medium_project/big_project),
+hook (one cryptic sentence), what_to_make (specific visual/audio direction), tool_note.
+Return only the JSON array."""
+
+_FUNDO_DRAFT_PROMPT = """\
+{fundo_context}
+
+Write content copy for Fundo. Request: {request}
+
+Rules:
+- No face, no real name, no location revealed
+- Lowercase preferred. Fragments. Cryptic but not annoying.
+- Leave something unexplained — that's the hook
+- Platform: {platform}
+
+Return only the finished copy."""
+
+
+def _get_fundo_ctx() -> str:
+    try:
+        from chief_fundo_identity import get_fundo_context
+        return get_fundo_context()
+    except ImportError:
+        return "FUNDO: anonymous electronic project. World rhythm + club/DnB/techno. No face."
+
+
+def _load_fundo_content_log() -> dict:
+    if FUNDO_CONTENT_LOG.exists():
+        try:
+            return json.loads(FUNDO_CONTENT_LOG.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"entries": []}
+
+
+def _save_fundo_content_log(data: dict) -> None:
+    FUNDO_CONTENT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    FUNDO_CONTENT_LOG.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_fundo_content_md(data)
+
+
+def _write_fundo_content_md(data: dict) -> None:
+    entries = data.get("entries", [])
+    today   = datetime.now().strftime("%Y-%m-%d")
+    rows    = "\n".join(
+        f"| {e.get('date_suggested','—')} | {e.get('platform','—')} | {e.get('title','—')} | {e.get('status','—')} |"
+        for e in reversed(entries[-20:])
+    ) or "| — | — | — | — |"
+    content = (
+        "---\ntype: fundo-content-log\n"
+        f"last_updated: {today}\n---\n\n"
+        "# Fundo Content Log\n\n"
+        "_Fundo content lane — completely separate from Winship/DPR content._\n\n"
+        "| Date | Platform | Title | Status |\n|---|---|---|---|\n"
+        + rows + "\n"
+    )
+    FUNDO_CONTENT_MD.parent.mkdir(parents=True, exist_ok=True)
+    FUNDO_CONTENT_MD.write_text(content, encoding="utf-8")
+
+
+def _fundo_ideas(text: str) -> list[str]:
+    ctx    = _get_fundo_ctx()
+    prompt = _FUNDO_IDEAS_PROMPT.format(fundo_context=ctx, request=text)
+    ideas  = ollama_json(prompt, timeout=45)
+    if not isinstance(ideas, list):
+        return ["Couldn't generate Fundo content ideas — check Claude API."]
+
+    data = _load_fundo_content_log()
+    lines = [f"Fundo content ideas ({len(ideas)}):\n"]
+    for i, idea in enumerate(ideas, 1):
+        lines.append(
+            f"{i}. {idea.get('title','?')} — {idea.get('platform','?')}\n"
+            f"   {idea.get('hook','')}\n"
+            f"   ↳ {idea.get('what_to_make','')}\n"
+            f"   🛠 {idea.get('tool_note','')}"
+        )
+        data.setdefault("entries", []).append({
+            "date_suggested": datetime.now().strftime("%Y-%m-%d"),
+            "title":    idea.get("title", "Untitled"),
+            "platform": idea.get("platform", ""),
+            "size":     idea.get("size", ""),
+            "status":   "suggested",
+            "hook":     idea.get("hook", ""),
+        })
+    _save_fundo_content_log(data)
+    return ["\n".join(lines)]
+
+
+def _fundo_draft(text: str) -> list[str]:
+    ctx      = _get_fundo_ctx()
+    platform = "TikTok" if "tiktok" in text.lower() else "Instagram"
+    prompt   = _FUNDO_DRAFT_PROMPT.format(fundo_context=ctx, request=text, platform=platform)
+    result   = ollama_call(prompt, timeout=40)
+    return [result or "Draft failed — check Claude API."]
+
+
 # ── Public entry point ─────────────────────────────────────────────────────────
 
 def handle(text: str) -> list[str]:
     """Route to the appropriate handler based on message content."""
+    # Fundo persona mode — completely separate from DPR/Winship content
+    if _is_fundo_request(text):
+        if _is_draft_request(text):
+            return _fundo_draft(text)
+        return _fundo_ideas(text)
+    # DPR/Winship mode (unchanged)
     if _is_log_update(text):
         return _update_log(text)
     if _is_draft_request(text):
