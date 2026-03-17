@@ -214,6 +214,16 @@ def sync_queue_log() -> None:
         p.write_text("# Claude Queue Log\n\n_(no queue items yet)_\n", encoding="utf-8")
 
 
+def sync_financial_report() -> None:
+    """Ensure Business/Financial Report.md exists."""
+    p = VAULT / "Business" / "Financial Report.md"
+    if not p.exists():
+        p.write_text(
+            "---\ntype: financial-report\n---\n\n# Financial Report\n\n_(no report yet — say 'financial report')_\n",
+            encoding="utf-8",
+        )
+
+
 def sync_content_calendar() -> None:
     """Ensure Marketing/Content Calendar.md exists."""
     p = VAULT / "Marketing" / "Content Calendar.md"
@@ -436,6 +446,7 @@ def run_sync() -> str:
     sync_research_logs()
     sync_business_logs()
     sync_queue_log()
+    sync_financial_report()
     sync_content_calendar()
     sync_brand_guide()
     sync_backup_status()

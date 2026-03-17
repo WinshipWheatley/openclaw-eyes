@@ -93,9 +93,9 @@ DOMAIN_MAP = {
         "members": [
             "chief_billing_brain.py",
             "chief_invoice_brain.py",
-            "chief_analytics_brain.py",
+            "chief_financial_brain.py",
         ],
-        "description": "Billing intake, invoice generation, financial analytics",
+        "description": "Billing intake, invoice generation, financial reporting (P&L, outstanding, tax projection)",
     },
     "Analytics": {
         "members": [

@@ -38,6 +38,7 @@ from chief_calendar_brain import handle as calendar_handle
 from chief_queue_brain import handle as queue_handle
 from chief_trinity_brain import handle as trinity_handle
 from chief_backup_brain import handle as backup_handle
+from chief_financial_brain import handle as financial_handle
 from chief_analytics_brain import handle as analytics_handle
 from chief_goals_brain import handle as goals_handle
 from chief_momentum_brain import handle as momentum_handle
@@ -289,12 +290,22 @@ def brand_guide_intent(text: str) -> bool:
     ])
 
 
+def financial_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "financial report", "p&l", "profit and loss",
+        "outstanding invoices", "who owes me", "unpaid invoices",
+        "payment history", "revenue this month", "quarterly projection",
+        "tax projection", "financial summary", "income report",
+        "how's business", "hows business",
+    ])
+
+
 def analytics_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
         "analytics", "weekly metrics", "metrics report", "show analytics",
-        "financial summary", "income report", "how's business",
-        "hows business", "business report",
+        "business report",
     ])
 
 
@@ -625,6 +636,10 @@ def route_message(text: str) -> dict:
     if brand_guide_intent(text):
         replies = brand_handle(text)
         return {"intent": "brand_guide", "replies": replies}
+
+    if financial_intent(text):
+        replies = financial_handle(text)
+        return {"intent": "financial_report", "replies": replies}
 
     if analytics_intent(text):
         replies = analytics_handle(text)

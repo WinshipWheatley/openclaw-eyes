@@ -1,13 +1,12 @@
 """
 chief_analytics_brain.py
 
-Reads all log files and data sources, produces weekly metrics tables
-and LLM narrative summaries. Financial overview, album progress,
-communication activity, content pipeline.
+Cross-domain metrics dashboard. Covers album progress, content pipeline,
+and bot activity. Does NOT handle financial data — that belongs to
+chief_financial_brain.py (Finance Operations domain).
 
 Triggered by:
   - "analytics" / "weekly metrics" / "metrics report" / "show analytics"
-  - "financial summary" / "income report" / "how's business"
 Intent: analytics_report in chief_router.py
 
 Saves to:

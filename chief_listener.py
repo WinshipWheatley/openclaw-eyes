@@ -194,7 +194,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
-    if intent in ("analytics_report", "goals_check", "momentum_check"):
+    if intent in ("financial_report", "analytics_report", "goals_check", "momentum_check"):
         replies = routed.get("replies", [])
         for r in replies:
             await update.message.reply_text(r)
