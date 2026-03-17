@@ -57,6 +57,7 @@ from chief_marketing_brain import (
     _is_log_update as _marketing_is_log_update,
 )
 from chief_album_mixer import handle as album_mixer_handle
+from chief_scheduler_brain import handle as scheduler_handle, _load as _sched_load
 from chief_album_brain import (
     handle as album_handle,
     handle_arc as album_arc_handle,
@@ -64,6 +65,23 @@ from chief_album_brain import (
     _match_song_title,
     _ALBUM_SONGS,
 )
+
+
+def scheduler_intent(text: str) -> bool:
+    t = text.lower().strip()
+    # Explicit start / status commands
+    if any(k in t for k in ("schedule ", "timer ", "start block", "work block",
+                             "timer status", "scheduler status", "block status")):
+        return True
+    # Stop session — only intercept when scheduler is running/prompting
+    if any(k in t for k in ("stop for now", "stop session", "done for now", "end session")):
+        return True
+    # Responses to end-of-block prompt — only when scheduler is in prompting state
+    state = _sched_load()
+    if state.get("status") == "prompting":
+        if t in ("continue", "break", "take break", "take a break", "stop") or t.startswith("switch"):
+            return True
+    return False
 
 
 def looks_like_inspection(text: str) -> bool:
@@ -571,6 +589,11 @@ def route_message(text: str) -> dict:
     if email_pending_draft() and t_upper in ("YES", "NO"):
         replies = email_confirm_send(t_upper == "YES")
         return {"intent": "email_send", "replies": replies}
+
+    # ── Scheduler — before cancel so "continue"/"stop" work during active blocks ─
+    if scheduler_intent(text):
+        replies = scheduler_handle(text)
+        return {"intent": "scheduler", "replies": replies}
 
     session = load_session()
     append_history("user", text)

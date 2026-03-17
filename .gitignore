@@ -48,6 +48,8 @@
 !chief_content_brain.py
 !chief_brand_brain.py
 !chief_financial_brain.py
+!chief_scheduler_brain.py
+!chief_notify.py
 !chief-inspect
 
 !start_chief.sh
