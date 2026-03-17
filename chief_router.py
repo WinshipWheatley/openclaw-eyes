@@ -612,11 +612,9 @@ def route_message(text: str) -> dict:
     t_upper = text.strip().upper()
 
     # ── Approval gate — HIGHEST PRIORITY. Claude Code approvals interrupt everything.
-    # Accepts 1/Yes or 2/No so the user doesn't have to type YES/NO.
-    _approval_map = {"1": "YES", "2": "NO"}
-    _approval_input = _approval_map.get(text.strip(), t_upper)
-    if has_pending_approval() and _approval_input in ("YES", "NO"):
-        reply = record_decision(_approval_input)
+    # Accepts 1/2/3 or YES/NO — record_decision() reads options count from pending JSON.
+    if has_pending_approval() and text.strip() in ("1", "2", "3", "YES", "NO", "yes", "no"):
+        reply = record_decision(text.strip())
         return {"intent": "approval_response", "reply": reply}
 
     # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──

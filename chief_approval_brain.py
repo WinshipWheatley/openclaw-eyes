@@ -85,11 +85,29 @@ def _send(message: str) -> None:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def request_approval(action: str, requester: str = "OpenClaw") -> bool:
-    """
-    Send a Telegram approval request and block until YES/NO or timeout.
+def _build_prompt(action: str, options: int) -> str:
+    """Render the approval prompt with the exact valid options for this request.
 
-    Returns True if approved, False if denied or timed out.
+    options=2  →  1. Yes  /  2. No
+    options=3  →  1. Yes  /  2. Yes for all  /  3. No
+    """
+    if options == 3:
+        return f"{action}\n1. Yes\n2. Yes for all\n3. No"
+    return f"{action}\n1. Yes\n2. No"
+
+
+def request_approval(
+    action: str,
+    requester: str = "OpenClaw",
+    allow_yes_for_all: bool = False,
+) -> bool:
+    """
+    Send a Telegram approval request and block until the user responds or timeout.
+
+    allow_yes_for_all=False  →  2-option prompt: 1. Yes / 2. No
+    allow_yes_for_all=True   →  3-option prompt: 1. Yes / 2. Yes for all / 3. No
+
+    Returns True if approved (Yes or Yes for all), False if denied or timed out.
     Logs every decision to the vault Approval Log.
 
     If an album session is active when this is called, saves an album
@@ -99,6 +117,7 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
     requested_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     start = time.time()
 
+    options = 3 if allow_yes_for_all else 2
     pending = {
         "id":           approval_id,
         "action":       action,
@@ -106,6 +125,7 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
         "requested_at": requested_at,
         "status":       "pending",
         "decision":     None,
+        "options":      options,   # 2 or 3 — tells record_decision() what numbers are valid
     }
 
     # Snapshot the active album session so the listener can resume it cleanly.
@@ -131,11 +151,7 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
         pass
 
     _save_pending(pending)
-    _send(
-        f"{action}\n"
-        f"1. Yes\n"
-        f"2. No"
-    )
+    _send(_build_prompt(action, options))
 
     # Poll for decision
     while time.time() - start < TIMEOUT:
@@ -164,22 +180,39 @@ def request_approval(action: str, requester: str = "OpenClaw") -> bool:
 def record_decision(decision: str) -> str:
     """
     Called by the listener when the user replies to a pending approval.
-    Accepts YES/NO or 1/2 (1=Yes, 2=No).
+
+    2-option (default):  1=Yes, 2=No
+    3-option:            1=Yes, 2=Yes for all, 3=No
+
+    The option count is read from the pending JSON so the mapping is always
+    consistent with the prompt that was actually shown.
     Returns a brief reply string to send back to the user.
     """
     data = _load_pending()
     if not data or data.get("status") != "pending":
         return "No pending approval request found."
 
-    d = decision.strip().upper()
-    # Accept numbered shorthand
-    if d == "1":
-        d = "YES"
-    elif d == "2":
-        d = "NO"
+    options = data.get("options", 2)   # default to 2 for any legacy pending records
+    raw = decision.strip().upper()
 
-    if d not in ("YES", "NO"):
-        return "Reply 1 (Yes) or 2 (No)."
+    if options == 3:
+        # 3-option: 1. Yes  2. Yes for all  3. No
+        if raw == "1" or raw == "YES":
+            d = "YES"
+        elif raw == "2" or raw == "YES_FOR_ALL":
+            d = "YES_FOR_ALL"
+        elif raw == "3" or raw == "NO":
+            d = "NO"
+        else:
+            return "Reply 1 (Yes), 2 (Yes for all), or 3 (No)."
+    else:
+        # 2-option: 1. Yes  2. No
+        if raw == "1" or raw == "YES":
+            d = "YES"
+        elif raw == "2" or raw == "NO":
+            d = "NO"
+        else:
+            return "Reply 1 (Yes) or 2 (No)."
 
     data["status"]   = "decided"
     data["decision"] = d
@@ -187,6 +220,8 @@ def record_decision(decision: str) -> str:
 
     if d == "YES":
         return "✅ Approved."
+    elif d == "YES_FOR_ALL":
+        return "✅ Approved for all."
     else:
         return "❌ Denied."
 
