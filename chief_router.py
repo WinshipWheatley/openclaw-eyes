@@ -22,6 +22,12 @@ from chief_cpa_brain import handle as cpa_handle
 from chief_musiclaw_brain import handle as musiclaw_handle
 from chief_publishing_brain import handle as publishing_handle
 from chief_phone_brain import handle as phone_handle
+from chief_sms_brain import (
+    handle as sms_handle,
+    get_pending_draft as sms_pending_draft,
+    confirm_send as sms_confirm_send,
+    clear_pending_draft as sms_clear_draft,
+)
 from chief_billing_brain import handle as billing_handle, get_questions as billing_questions
 from chief_marketing_brain import (
     handle as marketing_handle,
@@ -178,6 +184,15 @@ def marketing_intent(text: str) -> bool:
         "i have", "what to post", "log that", "i posted", "mark as posted",
         "mark it as", "draft a caption", "draft a hook", "write a caption",
         "write a hook", "write me a", "marketing idea",
+    ])
+
+
+def sms_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "send sms", "send a text", "text ", "sms to", "draft sms",
+        "draft a text", "draft a message", "sms log", "sent texts",
+        "text history", "message log",
     ])
 
 
@@ -360,6 +375,11 @@ def route_message(text: str) -> dict:
         reply = record_decision(text)
         return {"intent": "approval_response", "reply": reply}
 
+    # ── SMS draft confirmation — checked before all other routing ──────────────
+    if sms_pending_draft() and t_upper in ("YES", "NO"):
+        replies = sms_confirm_send(t_upper == "YES")
+        return {"intent": "sms_send", "replies": replies}
+
     session = load_session()
     append_history("user", text)
 
@@ -392,6 +412,10 @@ def route_message(text: str) -> dict:
     # ── Explicit intents checked before billing keyword match ─────────────────
     # These must run before billing_mode_from_text to prevent collisions
     # (e.g. "log call...invoice" triggering billing instead of phone_log)
+
+    if sms_intent(text):
+        replies = sms_handle(text)
+        return {"intent": "sms_draft", "replies": replies}
 
     if phone_intent(text):
         replies = phone_handle(text)
