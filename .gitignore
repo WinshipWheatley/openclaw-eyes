@@ -22,6 +22,9 @@
 !chief_reporter_brain.py
 !chief_validator_brain.py
 !CLAUDE.md
+!chief_scout_brain.py
+!chief_integration_brain.py
+!chief_reflection_brain.py
 !chief-inspect
 
 !start_chief.sh

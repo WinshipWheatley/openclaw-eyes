@@ -173,6 +173,21 @@ def sync_arc() -> None:
 
 # ── Content log sync ──────────────────────────────────────────────────────────
 
+def sync_research_logs() -> None:
+    """Ensure Research/ vault files exist. Brains write directly."""
+    research = VAULT / "Research"
+    research.mkdir(parents=True, exist_ok=True)
+    for fname, placeholder in [
+        ("Scout Log.md",               "_(no scout runs yet)_"),
+        ("Integration Proposals.md",   "_(no proposals yet)_"),
+        ("Reflection Log.md",          "_(no reflection runs yet)_"),
+        ("Research Overview.md",       "_(see Research Overview)_"),
+    ]:
+        p = research / fname
+        if not p.exists():
+            p.write_text(f"# {fname.replace('.md', '')}\n\n{placeholder}\n", encoding="utf-8")
+
+
 def sync_validation_log() -> None:
     """No-op — validator writes directly to vault. Ensures file exists."""
     vlog = VAULT / "System" / "Validation Log.md"
@@ -254,6 +269,7 @@ def run_sync() -> str:
     sync_content_log()
     sync_daily_report()
     sync_validation_log()
+    sync_research_logs()
     return f"Obsidian sync complete. {updated} song file(s) updated."
 
 
