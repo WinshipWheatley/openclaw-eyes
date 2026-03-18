@@ -22,9 +22,15 @@ Intent: ops_intake in chief_router.py
 Deferred state: /mnt/c/OpenClaw/logs/ops_intake_deferred.json
 """
 
-import json
 from datetime import datetime
 from pathlib import Path
+
+from chief_file_io import (
+    load_json,
+    save_json,
+    append_md_entry,
+    append_md_tagged,
+)
 
 INTAKE_JSON  = Path("/mnt/c/OpenClaw/logs/ops_intake_deferred.json")
 
@@ -210,29 +216,14 @@ def _status_for(item: str, cls: str) -> str:
 
 # ── Durable write layer ────────────────────────────────────────────────────────
 
-def _append_to_file(dest: Path, item: str, ts: str) -> None:
-    """Append one line to a destination file, creating it with a header if new."""
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if not dest.exists():
-        dest.write_text(
-            f"---\ntype: ops-log\n---\n\n# {dest.stem}\n\n",
-            encoding="utf-8",
-        )
-    with dest.open("a", encoding="utf-8") as f:
-        f.write(f"- [{ts}] {item}\n")
-
-
 def _write_item(item: str, cls: str, ts: str) -> str:
     """
     Write item to the class-specific destination file and the master log.
     Returns the destination filename (basename) for display.
     """
     dest = _DEST_MAP.get(cls, NOTES_MD)
-    _append_to_file(dest, item, ts)
-    # Master log: one line per item with class tag
-    MASTER_LOG.parent.mkdir(parents=True, exist_ok=True)
-    with MASTER_LOG.open("a", encoding="utf-8") as f:
-        f.write(f"- [{ts}] [{cls}] {item}\n")
+    append_md_entry(dest, ts, item)
+    append_md_tagged(MASTER_LOG, ts, cls, item)
     return dest.name
 
 
@@ -296,17 +287,11 @@ def _build_readout(results: list[dict], header: str = "Ops intake processed") ->
 # ── Deferred state ────────────────────────────────────────────────────────────
 
 def _load_deferred() -> list[dict]:
-    if INTAKE_JSON.exists():
-        try:
-            return json.loads(INTAKE_JSON.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return []
+    return load_json(INTAKE_JSON, [])
 
 
 def _save_deferred(items: list[dict]) -> None:
-    INTAKE_JSON.parent.mkdir(parents=True, exist_ok=True)
-    INTAKE_JSON.write_text(json.dumps(items, indent=2), encoding="utf-8")
+    save_json(INTAKE_JSON, items)
 
 
 def save_deferred(text: str) -> None:

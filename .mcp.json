@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/openclaw",
+        "/mnt/c/OpenClawShared/openclaw-vault",
+        "/mnt/c/OpenClaw/logs"
+      ]
+    }
+  }
+}

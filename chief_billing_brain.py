@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from chief_file_io import load_json, save_json
 from chief_llm import ollama_call
 
 from chief_session_manager import (
@@ -84,18 +85,6 @@ def send_reply(text: str) -> None:
         check=False,
     )
 
-
-def load_json(path: Path, default):
-    if path.exists():
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return default
-
-
-def save_json(path: Path, data) -> None:
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 _BILLING_DEFAULT = {
