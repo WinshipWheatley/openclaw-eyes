@@ -75,10 +75,15 @@ def ollama_call(prompt: str, timeout: int = 15) -> str:
     Automatically escalates to the deep model (14b) when should_escalate()
     returns True.  When escalating, timeout is raised to at least
     _DEEP_TIMEOUT_FLOOR so the larger model has enough time to respond.
+
+    Emits a single [llm] line to stdout only when escalating — non-noisy
+    for the 7b hot path, visible in listener.out for synthesis calls.
     """
     model = _pick_model(prompt)
     if model == OLLAMA_MODEL_DEEP:
         timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
+        print(f"[llm] escalated → 14b ({len(prompt.split())} words, timeout={timeout}s)",
+              flush=True)
     payload = json.dumps({
         "model": model,
         "prompt": prompt,

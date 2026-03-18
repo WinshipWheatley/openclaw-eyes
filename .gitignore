@@ -59,6 +59,7 @@
 !chief_album_batch.py
 !chief_ops_brain.py
 !chief_file_io.py
+!chief_chat.py
 !.mcp.json
 !.claude/
 .claude/*
