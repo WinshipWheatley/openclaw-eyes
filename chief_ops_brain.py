@@ -67,19 +67,85 @@ def _strip_marker(text: str) -> str:
     return t
 
 
+# ── Meta-instruction filter ────────────────────────────────────────────────────
+
+# Lines matching these are instructions to Chief, not ops content — skip them.
+_META_PATTERNS = (
+    "please capture",
+    "capture and route this",
+    "tell me what got",
+    "what got routed",
+    "what is waiting on me",
+    "what should i handle",
+    "what i should handle",
+    "what to handle next",
+    "after i finish the album",
+    "after the album block",
+    "operationally, then tell",
+    "route this operationally",
+)
+
+
+def _is_meta(content: str) -> bool:
+    t = content.lower()
+    return any(k in t for k in _META_PATTERNS)
+
+
 # ── Item parsing ──────────────────────────────────────────────────────────────
 
 def _parse_items(body: str) -> list[str]:
-    """Split body into individual line items. Strips bullets/numbers."""
-    lines = []
-    for line in body.splitlines():
-        line = line.strip().lstrip("-–•*0123456789.) ")
-        if line:
-            lines.append(line)
-    # If no line breaks, treat whole body as one item
-    if not lines and body.strip():
-        lines = [body.strip()]
-    return lines
+    """
+    Parse ops body into clean action items:
+    - Groups indented sub-lines under their parent item
+    - Filters meta-instruction lines (and their sub-items)
+    - Falls back to single item if body has no line breaks
+    """
+    raw_lines = body.splitlines()
+
+    # Build (indent_level, content) pairs, stripping bullet markers
+    entries: list[tuple[int, str]] = []
+    for line in raw_lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        indent  = len(line) - len(line.lstrip(" \t"))
+        content = stripped.lstrip("-–•*0123456789.) ").strip()
+        if content:
+            entries.append((indent, content))
+
+    if not entries:
+        return [body.strip()] if body.strip() else []
+
+    items: list[str] = []
+    i = 0
+    while i < len(entries):
+        indent, content = entries[i]
+
+        # Collect children: all immediately following lines that are more indented
+        j = i + 1
+        children: list[str] = []
+        while j < len(entries) and entries[j][0] > indent:
+            children.append(entries[j][1])
+            j += 1
+
+        # Skip meta lines (and their sub-items)
+        if _is_meta(content):
+            i = j
+            continue
+
+        # Filter any meta children
+        real_children = [c for c in children if not _is_meta(c)]
+
+        if real_children:
+            # Join sub-items into one composite item: "Parent: child1, child2"
+            full = content.rstrip(":").strip() + ": " + ", ".join(real_children)
+            items.append(full)
+        else:
+            items.append(content)
+
+        i = j
+
+    return items if items else ([body.strip()] if body.strip() else [])
 
 
 # ── Classification ────────────────────────────────────────────────────────────
@@ -180,29 +246,32 @@ def _process_and_write(items: list[str], ts: str = "") -> list[dict]:
 
 # ── Response builder ──────────────────────────────────────────────────────────
 
+def _shorten(text: str, n: int = 60) -> str:
+    return text if len(text) <= n else text[:n].rstrip() + "..."
+
+
 def _build_readout(results: list[dict], header: str = "Ops intake processed") -> list[str]:
-    """Build 3-part Telegram readout from processed results."""
+    """Build compact 3-part Telegram readout from processed results."""
     if not results:
         return [f"{header} (no items)."]
 
     waiting = [r for r in results if r["status"] in ("needs review", "needs attention")]
 
-    lines = [f"{header}:\n"]
+    lines = [f"{header} ({len(results)} item{'s' if len(results) != 1 else ''}):\n"]
 
-    # 1. What got written where
+    # 1. What got routed where — compact one-liner per item
     for r in results:
-        lines.append(f"• {r['item'][:80]}")
-        lines.append(f"  -> {r['filename']} ({r['status']})")
+        lines.append(f"• {_shorten(r['item'])} -> {r['filename']}")
 
-    # 2. What's waiting
+    # 2. What's waiting (full text so nothing is ambiguous)
     if waiting:
         lines.append(f"\nWaiting on you ({len(waiting)}):")
         for r in waiting:
-            lines.append(f"• {r['item'][:80]}")
+            lines.append(f"• {r['item']}")
 
-    # 3. What to handle next
+    # 3. What to handle next (full text — unambiguous)
     if waiting:
-        lines.append(f"\nHandle next: {waiting[0]['item'][:80]}")
+        lines.append(f"\nHandle next: {waiting[0]['item']}")
     else:
         lines.append("\nNothing needs immediate action.")
 
