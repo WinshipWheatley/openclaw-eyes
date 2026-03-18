@@ -58,6 +58,8 @@
 !chief_nli.py
 !chief_album_batch.py
 !chief_ops_brain.py
+!cassandra_brain.py
+!cassandra_watcher.py
 !chief_file_io.py
 !chief_chat.py
 !.mcp.json

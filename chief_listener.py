@@ -175,6 +175,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(r)
         return
 
+    if intent == "cassandra":
+        replies = routed.get("replies", [])
+        for r in replies:
+            await update.message.reply_text(r)
+        return
+
     if intent == "album_start":
         await update.message.reply_text(reply or "What song are we working on?")
         return

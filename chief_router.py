@@ -68,6 +68,7 @@ from chief_approval_bridge import (
 )
 from chief_nli import detect_nli_query, handle as nli_handle
 from chief_ops_brain import is_ops_intake, handle as ops_handle, save_deferred as ops_save_deferred
+from cassandra_brain import cassandra_intent, handle as cassandra_handle
 from chief_album_batch import handle as batch_handle, batch_intent
 from chief_album_brain import (
     handle as album_handle,
@@ -664,6 +665,12 @@ def route_message(text: str) -> dict:
 
     session = load_session()
     append_history("user", text)
+
+    # ── Cassandra — relational assistant; explicit prefix or conversational query ─
+    # Owns: orientation, priorities, context, relational continuity.
+    # Does NOT handle: billing, album, approvals, operational execution.
+    if cassandra_intent(text):
+        return {"intent": "cassandra", "replies": cassandra_handle(text, session)}
 
     # ── Ops intake — top-level; escapes correction and active-session routing ─
     # Recognized by explicit prefix: "Ops update:", "Brain dump:", etc.
