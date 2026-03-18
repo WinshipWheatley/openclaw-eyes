@@ -5,15 +5,82 @@ import urllib.request
 import urllib.error
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen2.5-coder:7b"
+OLLAMA_MODEL      = "qwen2.5-coder:7b"   # default: fast hot-path model
+OLLAMA_MODEL_DEEP = "qwen2.5-coder:14b"  # escalation: synthesis / deep analysis
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
 
+# ── Escalation logic ──────────────────────────────────────────────────────────
+#
+# Automatic local model escalation: use 14b instead of 7b when the prompt
+# clearly warrants deeper synthesis.  All thresholds are explicit and tunable.
+#
+# Rules (ANY one match → escalate):
+#   1. Long prompt  — > 400 words: synthesis prompts filled with dynamic data
+#                     always exceed this; hot-path prompts never do.
+#   2. Keyword hit  — > 150 words AND contains a synthesis keyword: catches
+#                     shorter synthesis prompts (mixer, financial narrative)
+#                     that have a clear semantic signal.
+#
+# Hot-path prompts (router classify, prefill, validator, billing) are all
+# < 150 words — they will never trigger rule 2, and never reach 400 words
+# for rule 1.  Safe to leave auto-escalation always on.
+
+_WORD_THRESHOLD_HARD  = 400   # escalate unconditionally above this word count
+_WORD_THRESHOLD_SOFT  = 100   # escalate above this count if keyword also matches
+_DEEP_TIMEOUT_FLOOR   = 60    # minimum timeout (s) when using 14b
+
+_ESCALATION_KEYWORDS = frozenset({
+    # explicit synthesis tasks
+    "synthesize", "synthesis",
+    # reflection brain — "reflection assessment"
+    "reflection",
+    # integration brain — "generate integration proposals"
+    "proposals",
+    # reporter brain — "daily digest"
+    "daily digest",
+    # scout brain — "technology scout"
+    "technology scout",
+    # album cross-analysis
+    "across all songs", "cross-song",
+})
+
+
+def should_escalate(prompt: str) -> bool:
+    """
+    Return True if this prompt warrants the deeper local model (14b).
+
+    Inspectable decision:
+      - Hard rule:  word count > 400
+      - Soft rule:  word count > 150  AND  prompt contains a synthesis keyword
+    """
+    words = len(prompt.split())
+    if words > _WORD_THRESHOLD_HARD:
+        return True
+    if words > _WORD_THRESHOLD_SOFT:
+        lower = prompt.lower()
+        if any(kw in lower for kw in _ESCALATION_KEYWORDS):
+            return True
+    return False
+
+
+def _pick_model(prompt: str) -> str:
+    """Return OLLAMA_MODEL_DEEP if escalation triggered, else OLLAMA_MODEL."""
+    return OLLAMA_MODEL_DEEP if should_escalate(prompt) else OLLAMA_MODEL
+
 
 def ollama_call(prompt: str, timeout: int = 15) -> str:
-    """Call Ollama and return raw text response. Returns '' on any error."""
+    """Call Ollama and return raw text response. Returns '' on any error.
+
+    Automatically escalates to the deep model (14b) when should_escalate()
+    returns True.  When escalating, timeout is raised to at least
+    _DEEP_TIMEOUT_FLOOR so the larger model has enough time to respond.
+    """
+    model = _pick_model(prompt)
+    if model == OLLAMA_MODEL_DEEP:
+        timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
     payload = json.dumps({
-        "model": OLLAMA_MODEL,
+        "model": model,
         "prompt": prompt,
         "stream": False,
     }).encode("utf-8")
