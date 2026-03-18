@@ -676,6 +676,10 @@ def route_message(text: str) -> dict:
             return {"intent": "ops_intake", "replies": [
                 "Captured. Album focus is on — I'll surface this after your session."
             ]}
+        # Clear any stale non-album active session so subsequent messages are
+        # not intercepted by a lingering billing or other workflow state.
+        if session.get("status") == "active":
+            reset_session()
         return {"intent": "ops_intake", "replies": ops_handle(text)}
 
     if looks_like_cancel(text):

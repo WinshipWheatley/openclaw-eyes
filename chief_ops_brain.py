@@ -35,6 +35,7 @@ EMAIL_MD    = _VAULT_SYS / "Ops Email Log.md"
 CALENDAR_MD = _VAULT_SYS / "Ops Calendar Notes.md"
 ACTIONS_MD  = _VAULT_SYS / "Ops Actions.md"
 NOTES_MD    = _VAULT_SYS / "Ops Notes.md"
+PAYMENT_MD  = _VAULT_SYS / "Ops Payment Follow-ups.md"
 MASTER_LOG  = Path("/mnt/c/OpenClaw/logs/ops_intake_log.md")
 
 _DEST_MAP: dict[str, Path] = {
@@ -42,6 +43,7 @@ _DEST_MAP: dict[str, Path] = {
     "calendar": CALENDAR_MD,
     "action":   ACTIONS_MD,
     "note":     NOTES_MD,
+    "payment":  PAYMENT_MD,
 }
 
 INTAKE_MARKERS = (
@@ -150,6 +152,14 @@ def _parse_items(body: str) -> list[str]:
 
 # ── Classification ────────────────────────────────────────────────────────────
 
+_PAYMENT_SIGNALS = (
+    "deposit not received", "deposit still", "not yet received",
+    "payment not received", "payment still", "still not received",
+    "not been received", "outstanding balance", "outstanding payment",
+    "unpaid", "overdue", "past due", "not paid", "still owed",
+    "still owes", "balance due", "invoice not", "awaiting payment",
+    "payment follow", "deposit follow",
+)
 _EMAIL_SIGNALS = (
     "email", "follow-up", "follow up", "drafted email", "draft email",
     "sent email", "sent follow", "reply", "outbox", "inbox",
@@ -169,7 +179,10 @@ _ACTION_SIGNALS = (
 
 def _classify(item: str) -> str:
     t = item.lower()
-    # Email wins over calendar if email signals present
+    # Payment wins — deposit/outstanding items go to dedicated follow-up file
+    if any(k in t for k in _PAYMENT_SIGNALS):
+        return "payment"
+    # Email wins over calendar for email workflow items
     if any(k in t for k in _EMAIL_SIGNALS):
         return "email"
     if any(k in t for k in _ACTION_SIGNALS):
@@ -182,6 +195,8 @@ def _classify(item: str) -> str:
 def _status_for(item: str, cls: str) -> str:
     """Return a short status label for an item."""
     t = item.lower()
+    if cls == "payment":
+        return "follow up needed"
     if cls == "email" and any(k in t for k in ("review", "drafted", "draft", "two", "needs")):
         return "needs review"
     if cls == "action":
@@ -255,7 +270,7 @@ def _build_readout(results: list[dict], header: str = "Ops intake processed") ->
     if not results:
         return [f"{header} (no items)."]
 
-    waiting = [r for r in results if r["status"] in ("needs review", "needs attention")]
+    waiting = [r for r in results if r["status"] in ("needs review", "needs attention", "follow up needed")]
 
     lines = [f"{header} ({len(results)} item{'s' if len(results) != 1 else ''}):\n"]
 
