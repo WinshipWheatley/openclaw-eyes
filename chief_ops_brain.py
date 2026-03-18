@@ -26,7 +26,23 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-INTAKE_JSON = Path("/mnt/c/OpenClaw/logs/ops_intake_deferred.json")
+INTAKE_JSON  = Path("/mnt/c/OpenClaw/logs/ops_intake_deferred.json")
+
+# ── Durable destination files ──────────────────────────────────────────────────
+_VAULT_SYS = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
+
+EMAIL_MD    = _VAULT_SYS / "Ops Email Log.md"
+CALENDAR_MD = _VAULT_SYS / "Ops Calendar Notes.md"
+ACTIONS_MD  = _VAULT_SYS / "Ops Actions.md"
+NOTES_MD    = _VAULT_SYS / "Ops Notes.md"
+MASTER_LOG  = Path("/mnt/c/OpenClaw/logs/ops_intake_log.md")
+
+_DEST_MAP: dict[str, Path] = {
+    "email":    EMAIL_MD,
+    "calendar": CALENDAR_MD,
+    "action":   ACTIONS_MD,
+    "note":     NOTES_MD,
+}
 
 INTAKE_MARKERS = (
     "ops update:",
@@ -97,48 +113,96 @@ def _classify(item: str) -> str:
     return "note"
 
 
-def _route_item(item: str, cls: str) -> tuple[str, str]:
-    """Return (destination_label, status) for display."""
+def _status_for(item: str, cls: str) -> str:
+    """Return a short status label for an item."""
     t = item.lower()
-    if cls == "email":
-        if any(k in t for k in ("review", "drafted", "draft", "two", "needs")):
-            return ("action queue", "needs review")
-        return ("email log", "logged")
-    if cls == "calendar":
-        return ("calendar notes", "noted")
+    if cls == "email" and any(k in t for k in ("review", "drafted", "draft", "two", "needs")):
+        return "needs review"
     if cls == "action":
-        return ("action queue", "needs attention")
-    return ("notes", "captured")
+        return "needs attention"
+    if cls == "email":
+        return "logged"
+    if cls == "calendar":
+        return "noted"
+    return "captured"
+
+
+# ── Durable write layer ────────────────────────────────────────────────────────
+
+def _append_to_file(dest: Path, item: str, ts: str) -> None:
+    """Append one line to a destination file, creating it with a header if new."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if not dest.exists():
+        dest.write_text(
+            f"---\ntype: ops-log\n---\n\n# {dest.stem}\n\n",
+            encoding="utf-8",
+        )
+    with dest.open("a", encoding="utf-8") as f:
+        f.write(f"- [{ts}] {item}\n")
+
+
+def _write_item(item: str, cls: str, ts: str) -> str:
+    """
+    Write item to the class-specific destination file and the master log.
+    Returns the destination filename (basename) for display.
+    """
+    dest = _DEST_MAP.get(cls, NOTES_MD)
+    _append_to_file(dest, item, ts)
+    # Master log: one line per item with class tag
+    MASTER_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with MASTER_LOG.open("a", encoding="utf-8") as f:
+        f.write(f"- [{ts}] [{cls}] {item}\n")
+    return dest.name
+
+
+# ── Process + write ────────────────────────────────────────────────────────────
+
+def _process_and_write(items: list[str], ts: str = "") -> list[dict]:
+    """
+    Classify each item, write it to disk, return a list of result dicts:
+      {item, cls, filename, status}
+    """
+    if not ts:
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    results = []
+    for item in items:
+        cls      = _classify(item)
+        filename = _write_item(item, cls, ts)
+        status   = _status_for(item, cls)
+        results.append({
+            "item":     item,
+            "cls":      cls,
+            "filename": filename,
+            "status":   status,
+        })
+    return results
 
 
 # ── Response builder ──────────────────────────────────────────────────────────
 
-def _build_readout(items: list[str], header: str = "Ops intake processed") -> list[str]:
-    """Build the standard 3-part readout for a list of items."""
-    if not items:
-        return [f"{header} (no items found)."]
+def _build_readout(results: list[dict], header: str = "Ops intake processed") -> list[str]:
+    """Build 3-part Telegram readout from processed results."""
+    if not results:
+        return [f"{header} (no items)."]
 
-    classified = [(item, _classify(item)) for item in items]
-    routed     = [(item, cls, *_route_item(item, cls)) for item, cls in classified]
-    waiting    = [(item, dest, note) for item, cls, dest, note in routed
-                  if note in ("needs review", "needs attention")]
+    waiting = [r for r in results if r["status"] in ("needs review", "needs attention")]
 
     lines = [f"{header}:\n"]
 
-    # 1. What got routed
-    for item, cls, dest, note in routed:
-        lines.append(f"• {item[:90]}")
-        lines.append(f"  -> {dest} ({note})")
+    # 1. What got written where
+    for r in results:
+        lines.append(f"• {r['item'][:80]}")
+        lines.append(f"  -> {r['filename']} ({r['status']})")
 
     # 2. What's waiting
     if waiting:
         lines.append(f"\nWaiting on you ({len(waiting)}):")
-        for item, dest, note in waiting:
-            lines.append(f"• {item[:90]}")
+        for r in waiting:
+            lines.append(f"• {r['item'][:80]}")
 
     # 3. What to handle next
     if waiting:
-        lines.append(f"\nHandle next: {waiting[0][0][:90]}")
+        lines.append(f"\nHandle next: {waiting[0]['item'][:80]}")
     else:
         lines.append("\nNothing needs immediate action.")
 
@@ -177,35 +241,39 @@ def clear_deferred() -> None:
 
 def deferred_summary() -> list[str] | None:
     """
-    Return deferred ops summary for post-album delivery, then clear the queue.
-    Returns None if nothing was deferred.
+    Write + surface deferred ops items captured during album focus.
+    Returns Telegram-ready readout, or None if nothing deferred.
+    Items are written to disk at surface time (with their original capture timestamp).
     """
     entries = _load_deferred()
     if not entries:
         return None
 
-    # Collect all items across all deferred messages
-    all_items: list[str] = []
+    all_results: list[dict] = []
     timestamps: list[str] = []
     for entry in entries:
         body = _strip_marker(entry.get("text", ""))
-        all_items.extend(_parse_items(body))
-        timestamps.append(entry.get("captured_at", ""))
+        items = _parse_items(body)
+        ts = entry.get("captured_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        timestamps.append(ts)
+        all_results.extend(_process_and_write(items, ts))
 
     time_range = timestamps[0] if len(timestamps) == 1 else f"{timestamps[0]} – {timestamps[-1]}"
     header = f"From focus ({time_range}) — {len(entries)} update(s) captured during album session"
 
     clear_deferred()
-    return _build_readout(all_items, header)
+    return _build_readout(all_results, header)
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def handle(text: str) -> list[str]:
-    """Parse and immediately route an ops intake message. Returns readout."""
-    body  = _strip_marker(text)
-    items = _parse_items(body)
-    return _build_readout(items)
+    """Parse, write, and return Telegram readout for an ops intake message."""
+    ts      = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    body    = _strip_marker(text)
+    items   = _parse_items(body)
+    results = _process_and_write(items, ts)
+    return _build_readout(results)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -233,7 +301,6 @@ if __name__ == "__main__":
     result = handle(text)
     for block in result:
         if _rich:
-            # Color the readout: green for captured, yellow for waiting, bold for handle next
             t = Text()
             for line in block.splitlines():
                 if line.startswith("Waiting on you"):
@@ -251,3 +318,9 @@ if __name__ == "__main__":
             _console.print(Panel(t, border_style="blue"))
         else:
             print(block)
+
+    if _rich:
+        _console.print("[dim]Files written:[/dim]")
+        for dest in (EMAIL_MD, CALENDAR_MD, ACTIONS_MD, NOTES_MD, MASTER_LOG):
+            if dest.exists():
+                _console.print(f"  [cyan]{dest}[/cyan]")
