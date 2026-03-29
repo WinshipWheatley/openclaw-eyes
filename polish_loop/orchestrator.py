@@ -43,7 +43,7 @@ MAC_REVIEW   = CURRENT_DIR / "mac_review.md"
 CLOSEOUT     = CURRENT_DIR / "closeout.ok"
 LOG_FILE     = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 
-VALID_STATES = {"idle", "pc_turn", "mac_turn", "approved", "blocked"}
+VALID_STATES = {"idle", "pc_turn", "mac_turn", "approved", "blocked", "parked"}
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -113,6 +113,8 @@ def write_status(
     pass_num: int | None = None,
     approved: bool | None = None,
     reason: str | None = None,
+    parked_from: str | None = None,
+    parked_reason: str | None = None,
 ) -> None:
     """Write a state transition to status.json."""
     updates: dict = {"status": new_state}
@@ -122,9 +124,17 @@ def write_status(
         updates["approved"] = approved
     if reason is not None:
         updates["block_reason"] = reason
-    elif new_state != "blocked":
-        # Clear stale block_reason when leaving blocked
+    elif new_state not in ("blocked", "parked"):
+        # Clear stale block_reason when leaving blocked or parked
         updates["block_reason"] = None
+    if parked_from is not None:
+        updates["parked_from"] = parked_from
+    elif new_state != "parked":
+        updates["parked_from"] = None   # clear when leaving parked
+    if parked_reason is not None:
+        updates["parked_reason"] = parked_reason
+    elif new_state != "parked":
+        updates["parked_reason"] = None  # clear when leaving parked
     _write_status_raw(updates)
 
 
@@ -187,10 +197,18 @@ def closeout_confirmed(task_name: str, pass_num: int) -> bool:
     """True if closeout.ok exists with matching task_name and pass."""
     if not CLOSEOUT.exists():
         return False
+    text = ""
     try:
-        d = json.loads(CLOSEOUT.read_text())
+        text = CLOSEOUT.read_text().strip()
+        d = json.loads(text)
         return d.get("task_name") == task_name and d.get("pass") == pass_num
-    except Exception:
+    except Exception as e:
+        log(
+            "ERROR",
+            f"closeout.ok is not valid JSON — Planner must rewrite it. "
+            f'Expected: {{"task_name": "{task_name}", "pass": {pass_num}}}. '
+            f"Parse error: {e!r}. Content: {text[:200]!r}",
+        )
         return False
 
 
@@ -200,6 +218,9 @@ def closeout_confirmed(task_name: str, pass_num: int) -> bool:
 
 # Set to True/False in tests to override real process check.
 _TEST_BUILDER_OVERRIDE: bool | None = None
+
+# Set to True/False in tests to override _relaunch_builder() return value.
+_TEST_RELAUNCH_OVERRIDE: bool | None = None
 
 
 def builder_running() -> bool:
@@ -214,6 +235,23 @@ def builder_running() -> bool:
         )
         return result.returncode == 0
     except Exception:
+        return False
+
+
+def _relaunch_builder() -> bool:
+    """Attempt to re-launch the Builder via run_polish_pass.sh. Returns True if process started."""
+    if _TEST_RELAUNCH_OVERRIDE is not None:
+        return _TEST_RELAUNCH_OVERRIDE
+    try:
+        subprocess.Popen(
+            ["bash", str(LOOP_DIR / "run_polish_pass.sh")],
+            stdout=open(LOG_FILE.parent / "polish_relaunch.log", "a"),
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        return True
+    except Exception as e:
+        log("ERROR", f"Builder re-launch failed: {e}")
         return False
 
 
@@ -246,9 +284,18 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
         log("STATE", f"idle | task={task} | task.md present — transitioning to pc_turn", dry_run)
         log("TRANSITION", "idle → pc_turn", dry_run)
         if not dry_run:
+            # Archive stale current/ artifacts before launching new Builder pass
+            ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+            for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+                if artifact.exists():
+                    dst_name = f"{artifact.stem}_{task}_{ts}{artifact.suffix}"
+                    dst = LOOP_DIR / "archive" / dst_name
+                    artifact.rename(dst)
+                    log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
             write_status("pc_turn")
+            _write_status_raw({"relaunch_attempted": False})
             subprocess.Popen(["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"])
-            log("ACTION", "launched Builder via run_polish_pass.sh", dry_run)    
+            log("ACTION", "launched Builder via run_polish_pass.sh")
     else:
         log("STATE", f"idle | task={task} | no task.md — waiting", dry_run)
 
@@ -286,9 +333,26 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
         log("STATE", f"pc_turn | builder not running, elapsed {elapsed:.0f}s < {BUILDER_TIMEOUT}s — waiting", dry_run)
         return
     log("STATE", f"pc_turn | builder dead, elapsed {elapsed:.0f}s >= {BUILDER_TIMEOUT}s", dry_run)
-    log("TRANSITION", "pc_turn → blocked (reason: builder_timeout)", dry_run)
+
+    # Check if we already attempted a re-launch this pass
+    relaunch_attempted = status.get("relaunch_attempted", False)
+
+    if not relaunch_attempted:
+        log("ACTION", "Attempting Builder re-launch before parking", dry_run)
+        if not dry_run:
+            launched = _relaunch_builder()
+            if launched:
+                log("ACTION", "Builder re-launched — resetting timeout, staying in pc_turn", dry_run)
+                _write_status_raw({"relaunch_attempted": True})
+                return
+            else:
+                log("ACTION", "Builder re-launch failed — parking", dry_run)
+        else:
+            return  # dry-run: would attempt re-launch
+
+    log("TRANSITION", "pc_turn → parked (parked_from=pc_turn, reason=builder_timeout)", dry_run)
     if not dry_run:
-        write_status("blocked", reason="builder_timeout")
+        write_status("parked", parked_from="pc_turn", parked_reason="builder_timeout")
 
 
 def _read_output_pass() -> int | str:
@@ -308,9 +372,9 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
     if not MAC_REVIEW.exists():
         if elapsed >= PLANNER_TIMEOUT:
             log("STATE", f"mac_turn | no review, elapsed {elapsed:.0f}s >= {PLANNER_TIMEOUT}s", dry_run)
-            log("TRANSITION", "mac_turn → blocked (reason: planner_timeout)", dry_run)
+            log("TRANSITION", "mac_turn → parked (parked_from=mac_turn, reason=planner_timeout)", dry_run)
             if not dry_run:
-                write_status("blocked", reason="planner_timeout")
+                write_status("parked", parked_from="mac_turn", parked_reason="planner_timeout")
         else:
             log("STATE", f"mac_turn | no review yet, elapsed {elapsed:.0f}s — waiting", dry_run)
         return
@@ -335,6 +399,17 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
             log("EVIDENCE", f"mac_review: NEEDS_REWORK — next pass {pass_num + 1}", dry_run)
             log("TRANSITION", f"mac_turn → pc_turn (pass {pass_num} → {pass_num + 1})", dry_run)
             if not dry_run:
+                # Archive stale artifacts before next pass — mirrors handle_idle archiving
+                ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+                task_name = status.get("task_name", "?")
+                archive_dir = LOOP_DIR / "archive"
+                archive_dir.mkdir(parents=True, exist_ok=True)
+                for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+                    if artifact.exists():
+                        dst_name = f"{artifact.stem}_{task_name}_p{pass_num}_{ts}{artifact.suffix}"
+                        dst = archive_dir / dst_name
+                        artifact.rename(dst)
+                        log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
                 write_status("pc_turn", pass_num=pass_num + 1)
         return
 
@@ -350,11 +425,29 @@ def handle_approved(status: dict, dry_run: bool = False) -> None:
     pass_num = status.get("pass", 1)
     log("STATE", f"approved | task={task} | pass={pass_num}", dry_run)
 
-    if closeout_confirmed(task, pass_num):
+    confirmed = closeout_confirmed(task, pass_num)
+    if confirmed:
         log("EVIDENCE", f"closeout.ok confirmed — task={task} pass={pass_num}", dry_run)
         log("TRANSITION", "approved → idle", dry_run)
         if not dry_run:
+            # Archive task.md before writing idle — prevents re-launch on next poll
+            ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+            task_md = LOOP_DIR / "task.md"
+            if task_md.exists():
+                dst = LOOP_DIR / "archive" / f"task_{task}_{ts}.md"
+                task_md.rename(dst)
+                log("ACTION", f"archived task.md → archive/task_{task}_{ts}.md")
+            # Archive current/ artifacts (pc_output, mac_review, closeout)
+            for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+                if artifact.exists():
+                    dst_name = f"{artifact.stem}_{task}_{ts}{artifact.suffix}"
+                    dst = LOOP_DIR / "archive" / dst_name
+                    artifact.rename(dst)
+                    log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
             write_status("idle")
+    elif CLOSEOUT.exists():
+        # File is present but failed JSON parse — closeout_confirmed() already logged ERROR
+        log("STATE", f"approved | closeout.ok is malformed — Planner must rewrite as valid JSON", dry_run)
     else:
         log("STATE", "approved | waiting for Planner to write closeout.ok", dry_run)
 
@@ -363,6 +456,29 @@ def handle_blocked(status: dict, dry_run: bool = False) -> None:
     reason = status.get("block_reason", "unknown")
     task   = status.get("task_name", "?")
     log("STATE", f"blocked | task={task} | reason={reason} — waiting for --reset-blocked", dry_run)
+
+
+def handle_parked(status: dict, dry_run: bool = False) -> None:
+    task        = status.get("task_name", "?")
+    parked_from = status.get("parked_from", "")
+    reason      = status.get("parked_reason", "unknown")
+    log("STATE", f"parked | task={task} | from={parked_from} | reason={reason}", dry_run)
+
+    if parked_from == "pc_turn":
+        if builder_running():
+            log("TRANSITION", "parked → pc_turn (Builder restarted)", dry_run)
+            if not dry_run:
+                write_status("pc_turn")
+                _write_status_raw({"relaunch_attempted": False})
+        else:
+            log("STATE", "parked | waiting for Builder to restart", dry_run)
+    elif parked_from == "mac_turn":
+        # Planner is present (this code is running) — auto-resume immediately
+        log("TRANSITION", "parked → mac_turn (Planner session active)", dry_run)
+        if not dry_run:
+            write_status("mac_turn")
+    else:
+        log("STATE", f"parked | unknown parked_from={parked_from!r} — use --resume to recover", dry_run)
 
 
 # ---------------------------------------------------------------------------
@@ -414,6 +530,8 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
         handle_approved(status, dry_run)
     elif state == "blocked":
         handle_blocked(status, dry_run)
+    elif state == "parked":
+        handle_parked(status, dry_run)
 
     return read_status()
 
@@ -441,6 +559,24 @@ def cmd_reset_blocked(reason: str) -> None:
     })
     log("RESET", f"blocked → idle | reason: {reason}")
     print(f"Reset: blocked → idle (reason: {reason})")
+
+
+def cmd_resume() -> None:
+    """Manually resume from parked state → parked_from state."""
+    status = read_status()
+    if status is None:
+        print("ERROR: cannot read status.json", file=sys.stderr)
+        sys.exit(1)
+    if status.get("status") != "parked":
+        current = status.get("status", "?")
+        print(f"ERROR: current state is {current!r}, not 'parked'", file=sys.stderr)
+        sys.exit(1)
+    parked_from = status.get("parked_from", "")
+    if parked_from not in ("pc_turn", "mac_turn"):
+        print(f"ERROR: unknown parked_from={parked_from!r} — cannot determine resume target", file=sys.stderr)
+        sys.exit(1)
+    write_status(parked_from)
+    print(f"[resume] parked → {parked_from}")
 
 
 def cmd_dry_run() -> None:
@@ -546,20 +682,23 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
-        # 4. pc_turn, builder dead, elapsed > timeout → blocked (builder_timeout)
+        # 4. pc_turn, builder dead, elapsed > timeout → parked (builder_timeout)
         #    Force builder_running() to return False so the test is independent
         #    of whether run_polish_pass.sh happens to be running on this machine.
-        global _TEST_BUILDER_OVERRIDE
+        #    Force _relaunch_builder() to return False so one cycle reaches parked.
+        global _TEST_BUILDER_OVERRIDE, _TEST_RELAUNCH_OVERRIDE
         _TEST_BUILDER_OVERRIDE = False
+        _TEST_RELAUNCH_OVERRIDE = False
         set_status(fresh_status(status="pc_turn", last_updated=old_iso))
         clear_artifacts()
         run_one_cycle(dry_run=False)
         _TEST_BUILDER_OVERRIDE = None
+        _TEST_RELAUNCH_OVERRIDE = None
         s = read_status()
         check(
-            "pc_turn, builder dead, elapsed > timeout → blocked (builder_timeout)",
-            s is not None and s["status"] == "blocked"
-            and s.get("block_reason") == "builder_timeout",
+            "pc_turn, builder dead, elapsed > timeout → parked (builder_timeout)",
+            s is not None and s["status"] == "parked"
+            and s.get("parked_from") == "pc_turn",
             f"got {s}",
         )
 
@@ -689,6 +828,54 @@ def cmd_run_tests() -> None:
         )
         CLOSEOUT.unlink(missing_ok=True)
 
+        # 15. approved + malformed closeout.ok → still approved (ERROR logged, not stuck-silent)
+        set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
+        CLOSEOUT.write_text("this is plain text, not json")
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "approved + malformed closeout.ok → still approved (ERROR logged)",
+            s is not None and s["status"] == "approved",
+            f"got {s}",
+        )
+        CLOSEOUT.unlink(missing_ok=True)
+
+        # 16. pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → parked
+        set_status(fresh_status(status="pc_turn", **{"pass": 1, "task_name": "test-orch", "last_updated": old_iso}))
+        _TEST_BUILDER_OVERRIDE = False
+        _TEST_RELAUNCH_OVERRIDE = False
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → parked",
+            s is not None and s["status"] == "parked" and s.get("parked_from") == "pc_turn",
+            f"got {s}",
+        )
+        _TEST_BUILDER_OVERRIDE = None
+        _TEST_RELAUNCH_OVERRIDE = None
+
+        # 17. parked (pc_turn) + builder running → pc_turn
+        set_status(fresh_status(status="parked", **{"pass": 1, "task_name": "test-orch", "parked_from": "pc_turn", "parked_reason": "builder_timeout"}))
+        _TEST_BUILDER_OVERRIDE = True
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "parked (pc_turn) + builder running → pc_turn",
+            s is not None and s["status"] == "pc_turn",
+            f"got {s}",
+        )
+        _TEST_BUILDER_OVERRIDE = None
+
+        # 18. parked (mac_turn) → mac_turn (auto-resume, Planner is here)
+        set_status(fresh_status(status="parked", **{"pass": 1, "task_name": "test-orch", "parked_from": "mac_turn", "parked_reason": "planner_timeout"}))
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "parked (mac_turn) → mac_turn (auto-resume)",
+            s is not None and s["status"] == "mac_turn",
+            f"got {s}",
+        )
+
     finally:
         # Restore original state
         if original_status is not None:
@@ -701,7 +888,7 @@ def cmd_run_tests() -> None:
             elif p.exists():
                 p.unlink()
 
-    # Print results
+    # Print results  (count is dynamic — len(results) reflects actual run)
     total = len(results)
     print(f"\nOrchestrator Test Matrix — {total} checks")
     for r in results:
@@ -724,6 +911,7 @@ def main() -> None:
     parser.add_argument("--dry-run",       action="store_true", help="Print eval, exit 0, write nothing")
     parser.add_argument("--reset-blocked", action="store_true", help="Reset blocked → idle (requires --reason)")
     parser.add_argument("--reason",        type=str,            help="Reason string for --reset-blocked")
+    parser.add_argument("--resume",        action="store_true", help="Resume from parked state → parked_from state")
     parser.add_argument("--run-tests",     action="store_true", help="Run orchestrator test matrix")
     parser.add_argument("--once",          action="store_true", help="Run one poll cycle then exit")
     parser.add_argument("--loop",          action="store_true", help="Continuous poll loop (default)")
@@ -739,6 +927,10 @@ def main() -> None:
             sys.exit(1)
         cmd_reset_blocked(args.reason)
         return
+
+    if args.resume:
+        cmd_resume()
+        sys.exit(0)
 
     if args.run_tests:
         cmd_run_tests()

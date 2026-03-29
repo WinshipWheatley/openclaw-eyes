@@ -11,9 +11,14 @@ if QUEUE_LOG.exists():
         for line in f:
             seen.add(line.rstrip("\n"))
 
-print("Chief worker online.")
+print("[chief_worker] starting...", flush=True)
+
+_heartbeat_count = 0
 
 while True:
+    _heartbeat_count += 1
+    if _heartbeat_count % 60 == 0:
+        print(f"[chief_worker] heartbeat — loop #{_heartbeat_count}", flush=True)
     if INPUT_LOG.exists():
         with INPUT_LOG.open("r", encoding="utf-8") as f:
             for line in f:

@@ -23,7 +23,7 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call, claude_json as ollama_json
+from chief_llm import claude_call, ollama_call, ollama_json, nemotron_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -170,12 +170,22 @@ def _income_this_month(records: list[dict]) -> dict:
 
 
 def _income_ytd(records: list[dict]) -> float:
-    """Sum all PAYMENT amounts this calendar year (cash basis)."""
+    """Sum all PAYMENT amounts this calendar year (cash basis).
+    Also includes income entries logged via Cassandra in expense_log.json."""
     year = str(date.today().year)
-    return sum(
+    total = sum(
         r["amount"] for r in records
         if r["type"] == "payment" and r["date"].startswith(year)
     )
+    # Include Cassandra-logged income (type="income" entries in expense_log.json)
+    expense_data = _load_expenses()
+    for e in expense_data.get("entries", []):
+        if e.get("type") == "income" and e.get("date", "").startswith(year):
+            try:
+                total += float(e.get("amount", 0))
+            except (ValueError, TypeError):
+                pass
+    return total
 
 
 # ── Expenses ───────────────────────────────────────────────────────────────────
@@ -194,11 +204,91 @@ def _save_expenses(data: dict) -> None:
     EXPENSE_JSON.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def log_entry(amount: float, description: str, category: str = "other",
+              entry_type: str = "expense", date_str: str = "",
+              payer: str = "") -> dict:
+    """
+    Public intake for external callers (e.g. Cassandra) to log a financial event.
+    entry_type: 'expense' or 'income'
+    """
+    from datetime import date as _date
+    prefix = "INC" if entry_type == "income" else "EXP"
+    entry = {
+        "id":          f"{prefix}-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "date":        date_str or _date.today().strftime("%Y-%m-%d"),
+        "amount":      round(float(amount), 2),
+        "type":        entry_type,
+        "category":    category,
+        "description": str(description)[:120],
+        "logged_at":   datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "source":      "cassandra",
+    }
+    if payer:
+        entry["payer"] = str(payer)[:80]
+    data = _load_expenses()
+    data.setdefault("entries", []).append(entry)
+    _save_expenses(data)
+    return entry
+
+
+def get_recent_income(days: int = 1) -> list[dict]:
+    """Return income entries from the last N days, newest first."""
+    from datetime import date as _date, timedelta
+    cutoff = (_date.today() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+    data = _load_expenses()
+    entries = [
+        e for e in data.get("entries", [])
+        if e.get("type") == "income" and e.get("date", "") >= cutoff
+    ]
+    return sorted(entries, key=lambda e: e.get("date", ""), reverse=True)
+
+
+def find_duplicate_today(amount: float) -> dict | None:
+    """Return an existing income entry for today with the same amount, or None."""
+    from datetime import date as _date
+    today = _date.today().strftime("%Y-%m-%d")
+    data = _load_expenses()
+    for e in data.get("entries", []):
+        if (e.get("type") == "income"
+                and e.get("date", "") == today
+                and abs(float(e.get("amount", 0)) - amount) < 0.01):
+            return e
+    return None
+
+
+def update_entry(entry_id: str, **fields) -> bool:
+    """Update fields on an existing entry by ID. Returns True if found."""
+    data = _load_expenses()
+    for e in data.get("entries", []):
+        if e.get("id") == entry_id:
+            e.update(fields)
+            _save_expenses(data)
+            return True
+    return False
+
+
+def log_expense_from_text(text: str) -> dict | None:
+    """
+    Parse natural-language expense text and log it. Returns entry dict or None.
+    Used by Cassandra for 'I spent $50 on guitar strings' style messages.
+    """
+    entry = _parse_expense_from_text(text)
+    if not entry:
+        return None
+    entry["source"] = "cassandra"
+    data = _load_expenses()
+    data.setdefault("entries", []).append(entry)
+    _save_expenses(data)
+    return entry
+
+
 def _expenses_ytd(entries: list[dict]) -> dict:
-    """Sum expenses by category for current year."""
+    """Sum expenses by category for current year. Skips income entries."""
     year = str(date.today().year)
     by_cat: dict[str, float] = {}
     for e in entries:
+        if e.get("type") == "income":
+            continue
         if e.get("date", "").startswith(year):
             cat = e.get("category", "other")
             by_cat[cat] = by_cat.get(cat, 0) + float(e.get("amount", 0))
@@ -301,7 +391,13 @@ def _format_income_reply(summary: dict) -> str:
         received_total=summary["received_total"],
         details=details,
     )
-    result = ollama_call(prompt, timeout=30).strip()
+    # Local Ollama — income summary includes client names and invoice numbers.
+    # This data class is LOCAL-ONLY; it must not be sent to any external LLM.
+    try:
+        result = ollama_call(prompt, timeout=30).strip()
+    except Exception as e:
+        print(f"[chief_cpa] income reply LLM error: {e}", flush=True)
+        result = ""
     if not result:
         return (
             f"Income for {summary['month']}:\n"
@@ -313,7 +409,11 @@ def _format_income_reply(summary: dict) -> str:
 
 def _format_tax_reply(est: dict) -> str:
     prompt = _TAX_PROMPT.format(**est)
-    result = ollama_call(prompt, timeout=30).strip()
+    try:
+        result = claude_call(prompt, timeout=30).strip()
+    except Exception as e:
+        print(f"[chief_cpa] tax reply LLM error: {e}", flush=True)
+        result = ""
     if not result:
         return (
             f"Estimated quarterly payment: ${est['per_quarter']:.2f}\n"
@@ -324,11 +424,83 @@ def _format_tax_reply(est: dict) -> str:
     return result
 
 
+# ── Expense cloud routing privacy check ───────────────────────────────────────
+#
+# SECURITY-CRITICAL BOUNDARY.
+# This function is the sole privacy gate for cloud routing of expense parsing.
+# Loosening any pattern (removing a blocker, raising the length limit, removing
+# the dollar-amount requirement) is a privacy policy change and requires the same
+# review discipline as chief_approval_policy.py.
+#
+def _expense_cloud_safe(text: str) -> bool:
+    """Return True only if the input is a narrow expense-logging statement with
+    no payer names, client names, income signals, or invoice references.
+    Requires a dollar amount to be present. Fails closed.
+    """
+    t = text.lower()
+    if not re.search(r"\$[\d,]+|\d+\s*(dollars?|bucks?)", t):
+        return False
+    # Keyword income signals — checked on lowercased text (case already folded)
+    _keyword_signals = [
+        r"\bfrom\b",              # "payment from X" → income
+        r"\breceived\b",          # "I received $..." → income
+        r"\bpaid\s+me\b",         # "they paid me" → income
+        r"\bdeposit\b",           # bank deposit → income
+        r"invoice|billing",       # billing context → not a simple expense
+        r"client|customer|payer", # any mention of payer identity
+    ]
+    for pattern in _keyword_signals:
+        if re.search(pattern, t):
+            return False
+    # Name pattern — checked against original text WITHOUT lowercasing.
+    # The regex requires truly capitalized words (e.g. "Marcus Brown").
+    # Applying re.IGNORECASE on lowercased text would match any two adjacent
+    # words — that bug would block all legitimate expense inputs.
+    if re.search(r"[A-Z][a-z]+\s+[A-Z][a-z]+", text):
+        return False
+    if len(text) > 200:
+        return False
+    return True
+
+
 def _parse_expense_from_text(text: str) -> dict | None:
     """Try to extract expense fields from a natural-language message."""
     today = date.today().strftime("%Y-%m-%d")
     prompt = _EXPENSE_PARSE_PROMPT.format(text=text, today=today)
-    parsed = ollama_json(prompt, timeout=20)
+
+    # ── Cloud routing: privacy-gated ─────────────────────────────────────────
+    # Route to Nemotron cloud only when _expense_cloud_safe() confirms no
+    # income signals, payer names, or client-identifying content.
+    # Blocked expense text does NOT go to Anthropic or any external cloud.
+    # Any failure (check blocked, cloud error, empty response) routes local.
+    raw = ""
+    if _expense_cloud_safe(text):
+        raw = nemotron_call(prompt, timeout=20).strip()
+        if raw:
+            print("[cpa] expense parse routed to Nemotron cloud", flush=True)
+        else:
+            print("[cpa] cloud call failed or returned empty, falling back to local", flush=True)
+    else:
+        print("[cpa] privacy check blocked cloud routing, using local", flush=True)
+
+    if raw:
+        # Parse JSON from Nemotron text response
+        _r = raw
+        if _r.startswith("```"):
+            lines = _r.splitlines()
+            _r = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        try:
+            parsed = json.loads(_r)
+        except Exception:
+            try:
+                m = re.search(r"\{.*\}", _r, re.DOTALL)
+                parsed = json.loads(m.group(0)) if m else {}
+            except Exception:
+                parsed = {}
+    else:
+        # Local Ollama fallback — does NOT send blocked content to any cloud.
+        parsed = ollama_json(prompt, timeout=20)
+
     if not isinstance(parsed, dict):
         return None
     try:

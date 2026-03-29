@@ -54,6 +54,6 @@ HEREDOC
 fi
 
 # Run Claude with full tool access, non-interactively
-echo "$PROMPT" | claude --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
+echo "$PROMPT" | claude --model claude-sonnet-4-5 --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
 
 echo "$(ts) [polish] Pass complete. Output at $OUTPUT_FILE" | tee -a "$LOG_FILE"

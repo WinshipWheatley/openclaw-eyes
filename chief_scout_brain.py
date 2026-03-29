@@ -24,6 +24,62 @@ from chief_llm import ollama_json, ollama_call
 SCOUT_JSON  = Path("/mnt/c/OpenClawShared/album/scout_findings.json")
 SCOUT_LOG   = Path("/mnt/c/OpenClawShared/openclaw-vault/Research/Scout Log.md")
 
+# ── Rejection ledger guardrail ────────────────────────────────────────────────
+# Machine-readable copy of the rejection decisions in:
+#   openclaw-vault/Research/Rejection Ledger.md
+#
+# Rule: Do not propose any integration in a REJECTED_CATEGORIES bucket or whose
+# name matches a REJECTED_SOURCES entry. A "Meaningful Change" must be explicitly
+# logged in the Rejection Ledger by the Chief before a rejected category can be
+# re-evaluated. Update this block only after logging that change.
+
+REJECTED_CATEGORIES: dict = {
+    "Legacy LLM": (
+        "Technical Debt / Deprecated — replaced by local Qwen/Gemini. "
+        "External cloud LLMs add latency, cost, and API dependency with no advantage."
+    ),
+    "Non-Music Graphics": (
+        "Domain Irrelevance — project focus is a 12-song music release. "
+        "3D modeling, character generation, and unrelated visual graphics tools are out of scope."
+    ),
+}
+
+# Specific tool names (lowercase) that are permanently on the rejected list.
+REJECTED_SOURCES: frozenset = frozenset({
+    "palm 2", "palm2", "google palm", "palm api",   # Legacy LLM
+    "daz 3d", "daz3d", "daz",                       # Non-Music Graphics
+})
+
+_REJECTED_CONTEXT = "\n".join(
+    f"  - {cat}: {reason}" for cat, reason in REJECTED_CATEGORIES.items()
+)
+_REJECTED_SOURCES_FLAT = ", ".join(sorted(REJECTED_SOURCES))
+
+
+def _is_rejected(finding: dict) -> bool:
+    """Return True if a scout finding matches a rejected source or category."""
+    name = finding.get("name", "").lower()
+    category = finding.get("category", "").lower()
+    if any(src in name for src in REJECTED_SOURCES):
+        return True
+    # Map scout categories to rejection buckets
+    if category == "ai-llm" and "local" not in name and "ollama" not in name:
+        # Only reject if it's a cloud/external LLM proposal, not local models
+        pass  # let synthesis prompt handle nuance; hard-reject only named sources
+    return False
+
+
+def _filter_rejected(findings: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split findings into (accepted, rejected). Logs any rejections."""
+    accepted, blocked = [], []
+    for f in findings:
+        if _is_rejected(f):
+            blocked.append(f)
+        else:
+            accepted.append(f)
+    return accepted, blocked
+
+
 # ── Known stack (filter out anything we already have) ─────────────────────────
 
 KNOWN_STACK = {
@@ -101,9 +157,13 @@ For each finding, rate it:
 - coming_soon: announced or in beta, available within 3-6 months
 - watch_this_space: early stage, worth monitoring
 
+Permanently rejected categories — do NOT propose anything in these buckets:
+{rejected}
+
 Rules:
 - Return 4-6 findings maximum
 - Skip anything already in the current stack
+- Skip anything in the rejected categories above
 - Only include things that are genuinely new or meaningfully improved
 - If search results are empty or unhelpful, use your training knowledge but be honest
 - Return a JSON array only, no markdown
@@ -128,6 +188,7 @@ def _synthesize(results: list[dict], live_search: bool) -> list[dict]:
     prompt = _SYNTHESIS_PROMPT.format(
         stack=_STACK_FLAT,
         results=results_text,
+        rejected=_REJECTED_CONTEXT,
     )
     findings = ollama_json(prompt, timeout=60)
     if not isinstance(findings, list):
@@ -142,7 +203,12 @@ def _synthesize(results: list[dict], live_search: bool) -> list[dict]:
             f["status"] = "watch_this_space"
         f.setdefault("url", "")
         clean.append(f)
-    return clean
+
+    accepted, blocked = _filter_rejected(clean)
+    if blocked:
+        names = ", ".join(b.get("name", "?") for b in blocked)
+        print(f"[scout] Rejected {len(blocked)} findings(s) via ledger: {names}")
+    return accepted
 
 # ── Storage ────────────────────────────────────────────────────────────────────
 

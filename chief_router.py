@@ -1,4 +1,57 @@
 import re
+import time as _time
+import hashlib as _hashlib
+import fcntl
+from pathlib import Path as _Path
+
+# -- Route logger -----------------------------------------------------------
+_ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
+_llm_fallback_fired = False
+
+def _rotate_route_log() -> None:
+    """Archive route_log.csv when it exceeds 10000 lines."""
+    try:
+        if not _ROUTE_LOG.exists():
+            return
+        with open(_ROUTE_LOG, "r") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                line_count = sum(1 for _ in f)
+                if line_count > 10000:
+                    archive = _ROUTE_LOG.with_suffix(
+                        f".{_time.strftime('%Y%m%d_%H%M%S')}.csv"
+                    )
+                    _ROUTE_LOG.rename(archive)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except Exception as e:
+        print(f"[route_log] rotation error: {e}", flush=True)
+
+
+def _log_route(msg_hash: str, intent: str, llm_fallback: bool) -> None:
+    """Append one row to route_log.csv. Fails open, never raises."""
+    try:
+        if llm_fallback:
+            method = "llm_local"
+        elif intent == "generic":
+            method = "fallback_generic"
+        else:
+            method = "pattern"
+        needs_header = not _ROUTE_LOG.exists() or _ROUTE_LOG.stat().st_size == 0
+        with open(_ROUTE_LOG, "a") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                if needs_header:
+                    f.write("timestamp,message_hash,intent,route_method,llm_fallback_used\n")
+                ts = _time.strftime("%Y-%m-%d %H:%M:%S")
+                f.write(f"{ts},{msg_hash},{intent},{method},{llm_fallback}\n")
+                f.flush()
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+        _rotate_route_log()
+    except Exception as e:
+        print(f"[route_log] write error: {e}", flush=True)
+
 from chief_llm import ollama_call, ollama_json
 from chief_session_manager import (
     load_session,
@@ -13,6 +66,8 @@ from chief_session_manager import (
 from chief_approval_brain import (
     has_pending_approval,
     record_decision,
+    get_pending_info,
+    parse_reply_code,
 )
 from chief_reporter_brain import handle as reporter_handle
 from chief_scout_brain import handle as scout_handle
@@ -28,12 +83,7 @@ from chief_sms_brain import (
     confirm_send as sms_confirm_send,
     clear_pending_draft as sms_clear_draft,
 )
-from chief_email_brain import (
-    handle as email_handle,
-    get_pending_draft as email_pending_draft,
-    confirm_send as email_confirm_send,
-    clear_pending_draft as email_clear_draft,
-)
+from chief_email_brain import handle as email_handle
 from chief_calendar_brain import handle as calendar_handle
 from chief_queue_brain import handle as queue_handle
 from chief_trinity_brain import handle as trinity_handle
@@ -68,7 +118,7 @@ from chief_approval_bridge import (
 )
 from chief_nli import detect_nli_query, handle as nli_handle
 from chief_ops_brain import is_ops_intake, handle as ops_handle, save_deferred as ops_save_deferred
-from cassandra_brain import cassandra_intent, handle as cassandra_handle
+from cassandra_brain import cassandra_intent, handle as cassandra_handle, get_cassandra_summary
 from chief_album_batch import handle as batch_handle, batch_intent
 from chief_album_brain import (
     handle as album_handle,
@@ -514,6 +564,10 @@ Classify the message below into exactly one of these intent labels:
   followup  — user wants to set a follow-up reminder for a client
   receipt   — user wants to issue a receipt to a client
   album     — user wants to work on a song, mix, vocal, or album session
+  cpa       — income, expenses, money made, tax, financial summary, how much earned
+  calendar  — schedule, what's coming up, upcoming events, what do I have today/this week
+  analytics — analytics, business report, how is the business doing, metrics
+  goals     — goals check, how am I doing on my goals, goal progress
   none      — does not match any of the above
 
 Rules:
@@ -545,12 +599,45 @@ _MODE_FIELDS = {
 }
 
 
+def _cassandra_context_for_chief() -> str:
+    """Format Cassandra's state as a context string for injection into LLM prompts.
+
+    NOTE: chief_router has no central LLM context assembly — each brain manages its
+    own prompts. This helper is ready for brain-level injection in a follow-up pass.
+    Call it from any brain's system prompt builder when Cassandra state is relevant.
+    """
+    try:
+        s = get_cassandra_summary()
+        parts = []
+        if s["project_mood"] != "neutral":
+            parts.append(f"Project mood: {s['project_mood']}")
+        if s["human_cues"]:
+            parts.append("Recent signals: " + ", ".join(s["human_cues"]))
+        if s["focus_mode"]:
+            parts.append("Focus mode: ACTIVE")
+        if s["social_mode"]:
+            parts.append("Social mode: ACTIVE")
+        if s["recurring_concerns"]:
+            parts.append("Recurring concerns: " + "; ".join(s["recurring_concerns"]))
+        return "\n".join(parts) if parts else ""
+    except Exception as e:
+        print(f"[chief_router] cassandra context error: {e}", flush=True)
+        return ""
+
+
 def _llm_classify_intent(text: str) -> str | None:
     """LLM fallback classifier. Returns intent label or None if unclear/error."""
-    prompt = _CLASSIFY_PROMPT.format(text=text)
-    result = ollama_call(prompt, timeout=10).lower().strip()
-    valid = {"invoice", "payment", "followup", "receipt", "album"}
-    return result if result in valid else None
+    global _llm_fallback_fired
+    _llm_fallback_fired = True
+    try:
+        prompt = _CLASSIFY_PROMPT.format(text=text)
+        result = ollama_call(prompt, timeout=10).lower().strip()
+        valid = {"invoice", "payment", "followup", "receipt", "album",
+                 "cpa", "calendar", "analytics", "goals"}
+        return result if result in valid else None
+    except Exception as e:
+        print(f"[chief_router] LLM classify error: {e}", flush=True)
+        return None
 
 
 def _prefill_summary(prefilled: dict) -> str:
@@ -614,15 +701,66 @@ def album_intent(text: str) -> bool:
     return any(k in t for k in keywords)
 
 
-def route_message(text: str) -> dict:
+def help_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return t in (
+        "help", "commands", "what can you do", "what can i do",
+        "what do you do", "capabilities", "options",
+    )
+
+
+_HELP_TEXT = """\
+Chief — what I can handle:
+
+Album: album session, arc, mix brief, batch planner, quick update
+Billing: invoice, payment, receipt, follow-up
+Finance: income summary, expenses, quarterly tax, deductions
+Calendar: what's on my schedule, upcoming events
+Email: draft email (send requires Guardian approval)
+Ops: ops update, pending actions, ops status
+Brainstorm: brainstorm, idea queue, watch ideas
+Goals: goals check, momentum check, analytics
+Publishing: publishing status, catalog, rights
+Marketing: content calendar, brand guide, content draft
+Music law: music law question, rights, co-write
+Reports: system report, scout report, reflection
+Fundo: fundo session, fundo release, fundo identity
+Stack: restart stack, restart chief
+Cassandra: cassandra [anything] — switches to executive assistant
+"""
+
+
+def stack_restart_intent(text: str) -> bool:
+    """True when user wants to restart the Chief/Cassandra stack."""
+    t = text.lower().strip()
+    return any(t == phrase or t.startswith(phrase) for phrase in (
+        "restart stack", "restart chief", "restart the stack", "reload stack",
+        "restart openclaw", "reboot stack",
+    ))
+
+
+def _route_message_inner(text: str) -> dict:
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
 
     # ── Approval gate — HIGHEST PRIORITY. Claude Code approvals interrupt everything.
-    # Accepts 1/2/3 or YES/NO — record_decision() reads options count from pending JSON.
-    if has_pending_approval() and text.strip() in ("1", "2", "3", "YES", "NO", "yes", "no"):
-        reply = record_decision(text.strip())
-        return {"intent": "approval_response", "reply": reply}
+    # Requires CODE DECISION format (e.g. "A3F2 1") — same model as Guardian.
+    # Also intercepts bare 1/2/3/YES/NO to return a format rejection rather than
+    # falling through to unrelated routing. Both paths enforce the same reply-code model.
+    if has_pending_approval():
+        _t = text.strip()
+        _is_approval_attempt = (
+            bool(re.match(r'^[A-Z0-9]{4}\s', _t, re.I))   # CODE DECISION (hex or non-hex)
+            or _t.upper() in ("1", "2", "3", "YES", "NO")  # bare reply → format error
+        )
+        if _is_approval_attempt:
+            _pending_id, _options = get_pending_info()
+            decision, error = parse_reply_code(_t, _pending_id, options=_options)
+            if decision:
+                reply = record_decision(decision, expected_id=_pending_id)
+            else:
+                reply = error
+            return {"intent": "approval_response", "reply": reply}
 
     # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──
     # Note: approval brain (Claude Code permissions) is checked ABOVE this and
@@ -639,11 +777,6 @@ def route_message(text: str) -> dict:
     if sms_pending_draft() and t_upper in ("YES", "NO"):
         replies = sms_confirm_send(t_upper == "YES")
         return {"intent": "sms_send", "replies": replies}
-
-    # ── Email draft confirmation ───────────────────────────────────────────────
-    if email_pending_draft() and t_upper in ("YES", "NO"):
-        replies = email_confirm_send(t_upper == "YES")
-        return {"intent": "email_send", "replies": replies}
 
     # ── Scheduler — before cancel so "continue"/"stop" work during active blocks ─
     if scheduler_intent(text):
@@ -671,6 +804,9 @@ def route_message(text: str) -> dict:
     # Does NOT handle: billing, album, approvals, operational execution.
     if cassandra_intent(text):
         return {"intent": "cassandra", "replies": cassandra_handle(text, session)}
+
+    if help_intent(text):
+        return {"intent": "generic", "reply": _HELP_TEXT}
 
     # ── Ops intake — top-level; escapes correction and active-session routing ─
     # Recognized by explicit prefix: "Ops update:", "Brain dump:", etc.
@@ -965,6 +1101,20 @@ def route_message(text: str) -> dict:
             "reply": "What song are we working on?",
         }
 
+    if stack_restart_intent(text):
+        import subprocess, threading
+        def _do_restart():
+            import time; time.sleep(3)
+            subprocess.Popen(
+                ["bash", "/home/openclaw/start_chief.sh"],
+                stdout=open("/mnt/c/OpenClaw/logs/restart.out", "w"),
+                stderr=subprocess.STDOUT,
+            )
+        threading.Thread(target=_do_restart, daemon=True).start()
+        return {"intent": "stack_restart", "replies": [
+            "Restarting the stack now. Back in a few seconds."
+        ]}
+
     # LLM fallback: try to classify when keyword matching found nothing
     llm_intent = _llm_classify_intent(text)
     if llm_intent in ("invoice", "payment", "followup", "receipt"):
@@ -1017,10 +1167,41 @@ def route_message(text: str) -> dict:
             "reply": "What song are we working on?",
         }
 
+    if llm_intent == "cpa":
+        replies = cpa_handle(text)
+        return {"intent": "cpa_query", "replies": replies}
+
+    if llm_intent == "calendar":
+        replies = calendar_handle(text)
+        return {"intent": "calendar_query", "replies": replies}
+
+    if llm_intent == "analytics":
+        replies = analytics_handle(text)
+        return {"intent": "analytics_report", "replies": replies}
+
+    if llm_intent == "goals":
+        replies = goals_handle(text)
+        return {"intent": "goals_check", "replies": replies}
+
     return {
         "intent": "generic",
         "reply": "Routed to Chief.",
     }
+
+
+def route_message(text: str) -> dict:
+    """Public entry point. Delegates to inner router, then logs the decision."""
+    global _llm_fallback_fired
+    _llm_fallback_fired = False
+    _h = _hashlib.sha256(text.encode()).hexdigest()[:8]
+    try:
+        result = _route_message_inner(text)
+    except Exception as e:
+        print(f"[chief_router] _route_message_inner error: {e}", flush=True)
+        result = {"intent": "error", "reply": "Chief hit a snag routing that. Try again."}
+    intent = result.get("intent", "unknown")
+    _log_route(_h, intent, _llm_fallback_fired)
+    return result
 
 
 if __name__ == "__main__":

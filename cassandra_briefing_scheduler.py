@@ -1,0 +1,111 @@
+"""
+cassandra_briefing_scheduler.py
+
+Daemon: polls every 5 minutes.  On each tick:
+  1. Check for briefing slots whose generation window is now open.
+  2. Generate any due slots that haven't been generated today.
+  3. If the window is protected → mark briefing pending, log reason, skip delivery.
+  4. If the window is clear → deliver immediately via Telegram + batch voice.
+  5. On every tick, also check for stale pending briefings and deliver them
+     if the protected window has since cleared.
+
+Protected windows (from cassandra_briefing_brain.protected_reason()):
+  focus_mode · social_mode · active_session:<workflow> · scheduler:<task> · approval_pending
+
+Voice on delivery
+-----------------
+  Uses speak_batch() — Qwen3-TTS if installed (slow but high-quality),
+  Kokoro fallback, then Piper, then silent.
+  Text is always sent to Telegram first; voice is secondary and non-blocking.
+"""
+
+import time
+from datetime import datetime
+from pathlib import Path
+
+from cassandra_briefing_brain import (
+    due_slots,
+    generate_briefing,
+    save_briefing,
+    mark_delivered,
+    pending_briefings,
+    is_protected_window,
+    protected_reason,
+)
+from cassandra_sender import send_message
+from cassandra_voice import speak_batch
+
+POLL_INTERVAL = 300  # 5 minutes
+
+
+# ── Delivery ──────────────────────────────────────────────────────────────────
+
+def _deliver(entry: dict) -> None:
+    """Send a briefing to Telegram then trigger batch voice render."""
+    slot  = entry["slot"]
+    date  = entry["date"]
+    text  = entry["text"]
+    label = f"[{slot.title()} · {date}]\n\n"
+
+    try:
+        send_message(label + text)
+        mark_delivered(date, slot)
+        print(
+            f"[briefing_scheduler] delivered {date}_{slot} ({len(text)} chars)",
+            flush=True,
+        )
+    except Exception as e:
+        print(f"[briefing_scheduler] delivery error ({slot}): {e}", flush=True)
+        return
+
+    # Batch voice — non-blocking, optional; failures are swallowed inside speak_batch
+    speak_batch(text)
+
+
+# ── Main tick ─────────────────────────────────────────────────────────────────
+
+def _tick() -> None:
+    # 1. Generate any slots that are newly due
+    for slot in due_slots():
+        print(f"[briefing_scheduler] generating {slot} briefing …", flush=True)
+        try:
+            text   = generate_briefing(slot)
+            reason = protected_reason()
+            entry  = save_briefing(slot, text, pending_reason=reason)
+
+            if reason:
+                print(
+                    f"[briefing_scheduler] {slot} pending — protected window: {reason}",
+                    flush=True,
+                )
+            else:
+                _deliver(entry)
+
+        except Exception as e:
+            print(f"[briefing_scheduler] error generating {slot}: {e}", flush=True)
+
+    # 2. Deliver any stale pending briefings now that the window may be clear
+    if not is_protected_window():
+        for entry in pending_briefings():
+            print(
+                f"[briefing_scheduler] delivering stale pending "
+                f"{entry['date']}_{entry['slot']}",
+                flush=True,
+            )
+            _deliver(entry)
+
+
+# ── Loop ──────────────────────────────────────────────────────────────────────
+
+def run_loop() -> None:
+    print("[briefing_scheduler] started.", flush=True)
+    while True:
+        try:
+            _tick()
+        except Exception as e:
+            print(f"[briefing_scheduler] unhandled error: {e}", flush=True)
+        time.sleep(POLL_INTERVAL)
+
+
+if __name__ == "__main__":
+    run_loop()

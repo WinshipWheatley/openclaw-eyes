@@ -24,7 +24,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call
+from chief_llm import ollama_call, nemotron_call
 from chief_session_manager import (
     set_workflow,
     set_workflow_state,
@@ -55,7 +55,8 @@ Return ONLY a valid JSON object with these exact fields:
   "timing_class": "now|soon|later|watch|archive",
   "trigger_condition": "only if timing_class=watch — what must happen first, otherwise empty string",
   "dependencies": ["list of existing brains or systems this touches"],
-  "recommended_next_step": "one specific actionable next step"
+  "recommended_next_step": "one specific actionable next step",
+  "idea_type": "new_project|task_within_existing_project|unclear"
 }}
 
 Timing class guide:
@@ -64,6 +65,13 @@ Timing class guide:
   later   = do eventually, no urgency
   watch   = wait for a specific condition before acting
   archive = interesting but not currently actionable
+
+Idea type guide:
+  new_project                = standalone initiative with its own scope, identity, and outcome
+                               (examples: website deployment, new bot, new integration)
+  task_within_existing_project = specific improvement, fix, or feature inside an existing system
+                               (examples: fix a bug in Chief, complete album data, patch approval gate)
+  unclear                    = spans multiple systems, under-defined, or cannot be classified yet
 
 Return only valid JSON, no markdown fences."""
 
@@ -88,16 +96,66 @@ def _next_id(items: list[dict]) -> str:
     return f"BS-{len(items) + 1:04d}"
 
 
+# ── Cloud routing privacy check ───────────────────────────────────────────────
+#
+# SECURITY-CRITICAL BOUNDARY.
+# This function is the sole privacy gate for cloud routing of brainstorm synthesis.
+# Loosening any pattern (removing a blocker, raising the length limit, adding an
+# exception) is a privacy policy change and requires the same review as
+# chief_approval_policy.py. Do not treat this as an ordinary code quality edit.
+#
+def _brainstorm_cloud_safe(raw_text: str) -> bool:
+    """Return True only if raw brainstorm input contains no personal, financial,
+    or credential-identifying content. Fails closed — ambiguous input routes local.
+    """
+    t = raw_text.lower()
+    _blockers = [
+        r"\$[\d,]+",                                          # dollar amounts
+        r"\b\d{3,}\.?\d*\s*(dollars?|usd)\b",                # spelled-out amounts
+        r"invoice|billing|payment\s+from|paid\s+by",
+        r"\.chief\.env|api.?key|bot.?token|secret|credential|oauth",
+        r"client\s+name|from\s+[A-Z][a-z]+\s+[A-Z][a-z]+",  # name patterns
+        r"parish|church|school|studio\s+name",               # known client-class terms
+        r"\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.{0,30}(meeting|session|call|gig)",
+        r"at\s+\d+\s*(am|pm)|scheduled\s+for",
+    ]
+    for pattern in _blockers:
+        if re.search(pattern, t, re.IGNORECASE):
+            return False
+    if len(raw_text) > 500:
+        return False
+    return True
+
+
 # ── LLM synthesis ─────────────────────────────────────────────────────────────
 
 def _synthesize(raw_text: str) -> dict:
     prompt = _SYNTHESIS_PROMPT.format(raw_text=raw_text)
-    result = claude_call(prompt, timeout=30).strip()
+
+    # ── Cloud routing: privacy-gated ─────────────────────────────────────────
+    # Route to Nemotron cloud only when _brainstorm_cloud_safe() confirms no
+    # personal/financial/credential content in the input. Any failure (check
+    # blocked, cloud error, empty response) falls back to local without raising.
+    result = ""
+    if _brainstorm_cloud_safe(raw_text):
+        result = nemotron_call(prompt, timeout=30).strip()
+        if result:
+            print("[brainstorm] synthesis routed to Nemotron cloud", flush=True)
+        else:
+            print("[brainstorm] cloud call failed or returned empty, falling back to local", flush=True)
+    else:
+        print("[brainstorm] privacy check blocked cloud routing, using local", flush=True)
+
+    if not result:
+        # Local Ollama fallback — used when privacy check blocks cloud routing,
+        # or when Nemotron call fails. Does NOT send blocked content to any cloud.
+        # ollama_call() auto-escalates to 14b for synthesis-length prompts.
+        result = ollama_call(prompt, timeout=60).strip()
     result = re.sub(r"^```[a-z]*\n?", "", result)
     result = re.sub(r"\n?```$", "", result.strip())
     try:
         data = json.loads(result)
-        required = ("title", "summary", "domain", "complexity", "timing_class", "recommended_next_step")
+        required = ("title", "summary", "domain", "complexity", "timing_class", "recommended_next_step", "idea_type")
         if all(k in data for k in required):
             return data
     except Exception:
@@ -112,6 +170,7 @@ def _synthesize(raw_text: str) -> dict:
         "trigger_condition":     "",
         "dependencies":          [],
         "recommended_next_step": "Review and classify manually",
+        "idea_type":             "unclear",
     }
 
 

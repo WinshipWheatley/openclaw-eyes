@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 from chief_llm import ollama_call
+from chief_output_utils import tts_clean
 
 VAULT_LOG = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Validation Log.md")
 MAX_TELEGRAM = 4096
@@ -104,24 +105,12 @@ def _retry_once(original_prompt: str, timeout: int = 45) -> str:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def validate_reply(
+def _run_checks(
     original_prompt: str,
     reply: str,
-    intent: str = "",
-    retry_prompt: str = "",
+    intent: str,
+    retry_prompt: str,
 ) -> str:
-    """
-    Validate and sanitize an LLM reply before it reaches Telegram.
-
-    Args:
-        original_prompt: The user's original message (for retry context).
-        reply:           The raw LLM reply string.
-        intent:          The routing intent (used to decide which checks apply).
-        retry_prompt:    Optional full prompt to use on retry (falls back to original_prompt).
-
-    Returns:
-        A clean, safe string ready to send via Telegram.
-    """
     if intent and intent not in VALIDATED_INTENTS:
         return _truncate(reply)  # Skip full validation for excluded intents
 
@@ -151,6 +140,27 @@ def validate_reply(
         return _truncate(reply)
 
     return reply
+
+
+def validate_reply(
+    original_prompt: str,
+    reply: str,
+    intent: str = "",
+    retry_prompt: str = "",
+) -> str:
+    """
+    Validate and sanitize an LLM reply before it reaches Telegram.
+
+    Args:
+        original_prompt: The user's original message (for retry context).
+        reply:           The raw LLM reply string.
+        intent:          The routing intent (used to decide which checks apply).
+        retry_prompt:    Optional full prompt to use on retry (falls back to original_prompt).
+
+    Returns:
+        A clean, safe string ready to send via Telegram.
+    """
+    return tts_clean(_run_checks(original_prompt, reply, intent, retry_prompt))
 
 
 # ── CLI smoke test ─────────────────────────────────────────────────────────────

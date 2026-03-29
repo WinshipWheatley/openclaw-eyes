@@ -4,8 +4,8 @@ chief_calendar_brain.py
 Reads Google Calendar via API and delivers clean, readable summaries.
 Not a data dump — categorized, flagged, and actionable.
 
-Dry-run mode when credentials are not configured. Setup instructions
-printed automatically the first time it runs without credentials.
+Reads Google Calendar via google_access_broker.py and delivers
+clean, readable summaries. Dry-run mode when broker is unavailable.
 
 Triggered by:
   - "what's my week" / "what's today" / "what's coming up"
@@ -15,16 +15,12 @@ Intent: calendar_query in chief_router.py
 Saves to:
   - /mnt/c/OpenClawShared/openclaw-vault/Calendar/Weekly Log.md
 
-Setup (one-time):
-  1. Go to console.cloud.google.com → create a project
-  2. Enable Google Calendar API
-  3. Create OAuth 2.0 credentials → download as credentials.json
-  4. Place credentials.json at /home/openclaw/gcal_credentials.json
-  5. Run: python3 chief_calendar_brain.py --auth
+Auth is handled exclusively by google_access_broker.py.
+Run: python3 google_access_broker.py --auth  (one-time setup)
 """
 
 import json
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 from chief_llm import ollama_call
@@ -33,10 +29,6 @@ from chief_llm import ollama_call
 
 VAULT_CAL_DIR  = Path("/mnt/c/OpenClawShared/openclaw-vault/Calendar")
 WEEKLY_LOG_MD  = VAULT_CAL_DIR / "Weekly Log.md"
-GCAL_CREDS     = Path("/home/openclaw/gcal_credentials.json")
-GCAL_TOKEN     = Path("/home/openclaw/gcal_token.json")
-
-GCAL_SCOPES    = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 # ── Category rules ───────────────────────────────────────────────────────────────
 
@@ -75,65 +67,23 @@ def _categorize(title: str) -> str:
 
 # ── Google Calendar reader ────────────────────────────────────────────────────────
 
-def _load_credentials():
-    """Load or refresh OAuth2 credentials. Returns None if not configured."""
-    try:
-        from google.oauth2.credentials import Credentials
-        from google.auth.transport.requests import Request
-
-        if not GCAL_CREDS.exists():
-            return None
-
-        creds = None
-        if GCAL_TOKEN.exists():
-            creds = Credentials.from_authorized_user_file(str(GCAL_TOKEN), GCAL_SCOPES)
-
-        if creds and creds.valid:
-            return creds
-
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            GCAL_TOKEN.write_text(creds.to_json(), encoding="utf-8")
-            return creds
-
-        return None  # Need --auth flow
-    except Exception:
-        return None
-
-
 def _fetch_events(days_ahead: int = 7) -> list[dict] | None:
-    """Fetch events from Google Calendar. Returns None if not configured."""
-    creds = _load_credentials()
-    if not creds:
-        return None
-
+    """Fetch events via the Google Access Broker. Returns None if broker unavailable."""
     try:
-        from googleapiclient.discovery import build
-
-        service  = build("calendar", "v3", credentials=creds)
-        now      = datetime.now(timezone.utc)
-        time_max = now + timedelta(days=days_ahead)
-
-        result = service.events().list(
-            calendarId="primary",
-            timeMin=now.isoformat(),
-            timeMax=time_max.isoformat(),
-            singleEvents=True,
-            orderBy="startTime",
-            maxResults=50,
-        ).execute()
-
+        from google_access_broker import call as broker_call
+        result = broker_call("cassandra", "google.calendar.read", {"days_ahead": days_ahead})
+        if not result["ok"]:
+            return None
         events = []
-        for item in result.get("items", []):
-            title    = item.get("summary", "(no title)")
-            start    = item.get("start", {})
-            start_dt = start.get("dateTime") or start.get("date", "")
-            end      = item.get("end", {})
-            end_dt   = end.get("dateTime") or end.get("date", "")
-            reminder = item.get("reminders", {}).get("useDefault", True)
+        for item in result["data"]:
+            title     = item.get("summary", "(no title)")
+            start     = item.get("start", {})
+            start_dt  = start.get("dateTime") or start.get("date", "")
+            end       = item.get("end", {})
+            end_dt    = end.get("dateTime") or end.get("date", "")
+            reminder  = item.get("reminders", {}).get("useDefault", True)
             overrides = item.get("reminders", {}).get("overrides", [])
             has_reminder = reminder or bool(overrides)
-
             events.append({
                 "title":        title,
                 "start":        start_dt,
@@ -144,8 +94,8 @@ def _fetch_events(days_ahead: int = 7) -> list[dict] | None:
                 "description":  item.get("description", ""),
             })
         return events
-    except Exception as e:
-        return []
+    except Exception:
+        return None
 
 
 # ── Hardcoded awareness injector ─────────────────────────────────────────────────
@@ -239,18 +189,10 @@ def _build_summary(events: list[dict], hardcoded: list[dict]) -> str:
 # ── Dry-run mode message ──────────────────────────────────────────────────────────
 
 _SETUP_MSG = """\
-Calendar brain is not connected to Google Calendar yet.
+Calendar brain could not reach Google Calendar via the broker.
 
-To connect:
-1. Go to console.cloud.google.com
-2. Create a project → Enable "Google Calendar API"
-3. Go to APIs & Services → Credentials → Create OAuth 2.0 Client ID (Desktop app)
-4. Download the JSON → save as /home/openclaw/gcal_credentials.json
-5. Run: python3 /home/openclaw/chief_calendar_brain.py --auth
-6. Complete the browser OAuth flow (one-time)
-7. Token saved automatically — all future reads are automatic
-
-Until connected, calendar queries will show this setup message.
+To reconnect: run python3 /home/openclaw/google_access_broker.py --auth
+and verify /home/openclaw/.google-secrets/token.json is present.
 
 Hardcoded reminders still active:
 {hardcoded}"""
@@ -308,27 +250,10 @@ def handle(text: str = "") -> list[str]:
     return [summary]
 
 
-# ── Auth flow + CLI ───────────────────────────────────────────────────────────────
-
-def _run_auth() -> None:
-    """One-time OAuth2 flow. Run: python3 chief_calendar_brain.py --auth"""
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    if not GCAL_CREDS.exists():
-        print(f"ERROR: {GCAL_CREDS} not found. Download from Google Cloud Console first.")
-        return
-    flow  = InstalledAppFlow.from_client_secrets_file(str(GCAL_CREDS), GCAL_SCOPES)
-    creds = flow.run_local_server(port=0)
-    GCAL_TOKEN.write_text(creds.to_json(), encoding="utf-8")
-    print(f"Auth complete. Token saved to {GCAL_TOKEN}")
-
-
 if __name__ == "__main__":
     import sys
-    if "--auth" in sys.argv:
-        _run_auth()
-    else:
-        text = " ".join(a for a in sys.argv[1:] if not a.startswith("--")) or "what's my week"
-        print(f"Running calendar brain: '{text}'\n")
-        for line in handle(text):
-            print(line)
-        print(f"\nWeekly Log: {WEEKLY_LOG_MD}")
+    text = " ".join(a for a in sys.argv[1:] if not a.startswith("--")) or "what's my week"
+    print(f"Running calendar brain: '{text}'\n")
+    for line in handle(text):
+        print(line)
+    print(f"\nWeekly Log: {WEEKLY_LOG_MD}")

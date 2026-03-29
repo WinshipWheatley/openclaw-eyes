@@ -30,6 +30,8 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+_CHOICE_TIMEOUT_MINUTES = 30
+
 PENDING_FILE = Path("/mnt/c/OpenClawShared/album/choice_pending.json")
 
 
@@ -55,16 +57,34 @@ def _clear() -> None:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+def _is_choice_expired(data: dict) -> bool:
+    """Return True if a pending choice is older than _CHOICE_TIMEOUT_MINUTES."""
+    requested_at = data.get("requested_at", "")
+    if not requested_at:
+        return False
+    try:
+        age_s = (datetime.now() - datetime.fromisoformat(requested_at)).total_seconds()
+        return age_s > _CHOICE_TIMEOUT_MINUTES * 60
+    except Exception:
+        return False
+
+
 def has_pending_choice() -> bool:
-    """True if there is an unanswered choice request."""
-    data = _load()
-    return bool(data) and data.get("status") == "pending"
+    """True if there is an unanswered, non-expired choice request."""
+    return pending_choice() is not None
 
 
 def pending_choice() -> dict | None:
-    """Return the current pending choice dict, or None."""
+    """Return the current pending choice dict, or None if none/expired."""
     data = _load()
-    return data if data.get("status") == "pending" else None
+    if data.get("status") != "pending":
+        return None
+    if _is_choice_expired(data):
+        data.update({"status": "expired", "answer": "timeout", "chosen": None,
+                     "resolved_at": datetime.now().isoformat()})
+        _save(data)
+        return None
+    return data
 
 
 def send_choice(prompt: str, options: list[str], requester: str = "Chief") -> str:
@@ -91,7 +111,14 @@ def send_choice(prompt: str, options: list[str], requester: str = "Chief") -> st
     for i, opt in enumerate(options, 1):
         lines.append(f"  {i}. {opt}")
     lines.append("\nReply `1`/`2`/`3`, `approve`, or `deny`.")
-    notify_send("\n".join(lines))
+    # Build inline keyboard: one row per option, callback_data = "1"/"2"/"3"
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": f"{i}. {opt}", "callback_data": str(i)}]
+            for i, opt in enumerate(options, 1)
+        ]
+    }
+    notify_send("\n".join(lines), reply_markup=keyboard)
 
     return request_id
 

@@ -12,9 +12,14 @@ if DECISION_LOG.exists():
             if line.startswith("- Inbox: "):
                 seen.add(line.replace("- Inbox: ", "").rstrip("\n"))
 
-print("Chief memory worker online.")
+print("[chief_memory_worker] starting...", flush=True)
+
+_heartbeat_count = 0
 
 while True:
+    _heartbeat_count += 1
+    if _heartbeat_count % 60 == 0:
+        print(f"[chief_memory_worker] heartbeat — loop #{_heartbeat_count}", flush=True)
     if QUEUE_LOG.exists():
         with QUEUE_LOG.open("r", encoding="utf-8") as f:
             for line in f:

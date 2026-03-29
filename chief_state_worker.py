@@ -15,9 +15,14 @@ if STATE_CSV.exists():
             if raw:
                 seen.add(raw)
 
-print("Chief state worker online.")
+print("[chief_state_worker] starting...", flush=True)
+
+_heartbeat_count = 0
 
 while True:
+    _heartbeat_count += 1
+    if _heartbeat_count % 60 == 0:
+        print(f"[chief_state_worker] heartbeat — loop #{_heartbeat_count}", flush=True)
     if QUEUE_LOG.exists():
         with QUEUE_LOG.open("r", encoding="utf-8") as f:
             for line in f:

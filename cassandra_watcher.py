@@ -31,6 +31,8 @@ from cassandra_brain import (
     chirp_allowed,
     log_chirp,
 )
+from chief_output_utils import tts_clean
+from cassandra_voice import speak
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
@@ -42,11 +44,13 @@ POLL_INTERVAL_S = 1800  # 30 minutes
 
 def _send(message: str) -> None:
     try:
+        message = tts_clean(message)
         subprocess.run(
-            ["python", str(Path.home() / "chief_sender.py"), message],
+            ["python", str(Path.home() / "cassandra_sender.py"), message],
             check=False,
             timeout=10,
         )
+        speak(message)
         print(f"[cassandra_watcher] chirped: {message[:80]}", flush=True)
     except Exception as e:
         print(f"[cassandra_watcher] send error: {e}", flush=True)
@@ -138,6 +142,8 @@ def run_loop() -> None:
                     candidate = _evaluate()
                     if candidate:
                         chirp_type, message = candidate
+                        if not chirp_allowed(chirp_type, state):
+                            continue
                         _send(message)
                         log_chirp(chirp_type, state)
                         save_state(state)

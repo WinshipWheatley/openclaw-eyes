@@ -42,6 +42,7 @@ EMAIL_JSON    = BUSINESS_DIR / "email_log.json"
 CONTACTS_JSON = BUSINESS_DIR / "contacts.json"
 EMAIL_MD      = Path("/mnt/c/OpenClawShared/openclaw-vault/Business/Email Log.md")
 BILLING_CSV   = Path("/home/openclaw/OpenClaw/exports/billing_records.csv")
+TRACKER_CSV   = Path("/mnt/c/OpenClaw/billing/tracker/invoice_tracker.csv")
 
 # ── Credential check ───────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ def _load_contacts() -> dict:
 
 
 def _lookup_email(name: str) -> str | None:
-    """Search contacts.json then billing CSV for an email address."""
+    """Search contacts.json, billing CSV, then invoice tracker for an email address."""
     name_lower = name.lower()
 
     # contacts.json first
@@ -102,6 +103,19 @@ def _lookup_email(name: str) -> str | None:
                             return email
         except Exception:
             pass
+
+    # invoice tracker fallback
+    if TRACKER_CSV.exists():
+        try:
+            with TRACKER_CSV.open(encoding="utf-8", newline="") as f:
+                for row in csv.DictReader(f):
+                    if name_lower in row.get("client_name", "").lower():
+                        email = row.get("client_email", "").strip()
+                        if email and "@" in email:
+                            return email
+        except Exception:
+            pass
+
     return None
 
 
@@ -475,16 +489,22 @@ def handle(text: str = "") -> list[str]:
         "body":     body,
     }
 
-    email_status = "✅ SMTP configured" if _email_ready() else "⚠️ SMTP not configured — dry run only"
     preview_body = body[:300] + "..." if len(body) > 300 else body
 
-    return [
+    from chief_notify import send as _notify_send
+    _notify_send(
         f"📧 Draft email to {to_name} <{to_email}>\n\n"
         f"Subject: {subject}\n\n"
         f"{preview_body}\n\n"
-        f"{email_status}\n\n"
-        f"Reply YES to send, NO to cancel."
-    ]
+        f"Approval request sent to Guardian. Tap Approve to send."
+    )
+
+    from chief_approval_brain import request_approval
+    approved = request_approval(
+        action=f"send email to {to_name}: {subject}",
+        requester="chief_email_brain",
+    )
+    return confirm_send(approved)
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────

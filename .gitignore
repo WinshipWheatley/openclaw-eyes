@@ -1,6 +1,18 @@
 *
 !/.gitignore
 
+# ALLOWLIST MODEL: everything is blocked by * above.
+# Only explicitly listed !file entries are tracked.
+# New source files MUST be added here to be committed.
+#
+# INTENTIONALLY EXCLUDED (never add ! entries for these):
+#   .google-secrets/              — broker secrets directory (credentials.json, token.json)
+#   gcal_credentials.json         — legacy GCP client secret (superseded by broker)
+#   gcal_token.json               — legacy OAuth token (superseded by broker)
+#   .chief.env                    — all runtime secrets
+#   *_credentials.json            — any credentials file
+#   *_token.json                  — any token file
+
 !chief_listener.py
 !chief_router.py
 !chief_session_manager.py
@@ -60,8 +72,22 @@
 !chief_ops_brain.py
 !cassandra_brain.py
 !cassandra_watcher.py
+!cassandra_capability.py
+!cassandra_listener.py
+!cassandra_briefing_brain.py
+!cassandra_briefing_scheduler.py
+!capability_registry.py
+!chief_approval_policy.py
+!chief_guardian_sender.py
+!chief_guardian_listener.py
+!google_access_broker.py
+!google_access_policy.py
 !chief_file_io.py
+!chief_output_utils.py
 !chief_chat.py
+!inbox_parser.py
+!pii_vault.py
+!queue_validator.py
 !.mcp.json
 !.claude/
 .claude/*

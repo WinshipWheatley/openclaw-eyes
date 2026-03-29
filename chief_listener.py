@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -7,15 +8,21 @@ from datetime import datetime
 from pathlib import Path
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 from chief_router import route_message
 from chief_validator_brain import validate_reply
 from chief_queue_brain import check_pending_queue
+from chief_output_utils import tts_clean
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
+
+
+async def _send_reply(update: Update, text: str) -> None:
+    """Send a tts_clean-normalized plain-text reply."""
+    await update.message.reply_text(tts_clean(text))
 
 
 async def _resume_interrupted_task(update: Update) -> None:
@@ -39,16 +46,16 @@ async def _resume_interrupted_task(update: Update) -> None:
             if song and topic and phase in ("follow_up", "open"):
                 prompt = TOPIC_PROMPTS.get(topic, "")
                 if prompt:
-                    await update.message.reply_text(
+                    await _send_reply(update,
                         f"Back to album.\n"
-                        f"We're on *{song}*.\n\n"
+                        f"We're on {song}.\n\n"
                         f"Pending question: {prompt}"
                     )
                     return
             if song:
                 # Song was named but no specific pending question (e.g. open phase)
-                await update.message.reply_text(
-                    f"Back to album — *{song}*.\n"
+                await _send_reply(update,
+                    f"Back to album — {song}.\n"
                     "What's on your mind for this song?"
                 )
                 return
@@ -65,14 +72,14 @@ async def _resume_interrupted_task(update: Update) -> None:
             if song and topic and phase in ("follow_up", "open"):
                 prompt = TOPIC_PROMPTS.get(topic, "")
                 if prompt:
-                    await update.message.reply_text(
+                    await _send_reply(update,
                         f"Back to album.\n"
-                        f"We're on *{song}*.\n\n"
+                        f"We're on {song}.\n\n"
                         f"Pending question: {prompt}"
                     )
             elif song:
-                await update.message.reply_text(
-                    f"Back to album — *{song}*. What's on your mind?"
+                await _send_reply(update,
+                    f"Back to album — {song}. What's on your mind?"
                 )
     except Exception:
         pass
@@ -91,295 +98,335 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
-    routed = route_message(text)
+    try:
+        routed = await asyncio.to_thread(route_message, text)
+    except Exception as e:
+        print(f"[chief_listener] route_message error: {e}", flush=True)
+        await update.message.reply_text("Chief hit a snag routing that. Try again.")
+        return
+
     intent = routed.get("intent")
     reply = routed.get("reply")
 
-    if intent == "approval_response":
-        await update.message.reply_text(reply or "Decision recorded.")
-        await _resume_interrupted_task(update)
-        return
-
-    if intent == "inspection":
-        try:
-            result = subprocess.run(
-                ["/home/openclaw/chief-inspect", "telegram requested snapshot"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            snapshot_name = extract_snapshot_name(result.stdout)
-            if snapshot_name:
-                await update.message.reply_text(f"Inspection snapshot created: {snapshot_name}")
-            else:
-                await update.message.reply_text("Inspection snapshot created. Check the latest exports folder on OpenClaw.")
-            print(result.stdout)
-        except Exception as e:
-            import traceback
-            print("Inspection error:")
-            traceback.print_exc()
-            await update.message.reply_text(f"Inspection failed: {e}")
-        return
-
-    if intent == "cancel":
-        await update.message.reply_text(reply or "Current workflow cancelled.")
-        # Surface any deferred ops captured during a now-cancelled album session
-        try:
-            from chief_ops_brain import deferred_summary
-            summary = deferred_summary()
-            if summary:
-                for s in summary:
-                    await update.message.reply_text(s)
-        except Exception:
-            pass
-        return
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    if intent == "billing_start":
-        await update.message.reply_text(reply or "Ready.")
-        return
-
-    if intent == "billing_continue":
-        replies = routed.get("replies", [])
-        if replies:
-            try:
-                for r in replies:
-                    await update.message.reply_text(r)
-            except Exception as e:
-                print(f"Billing direct reply error: {e}")
-                await update.message.reply_text("Billing reply error.")
+    try:
+        if intent == "approval_response":
+            await update.message.reply_text(reply or "Decision recorded.")
+            await _resume_interrupted_task(update)
             return
-        formatted = f"[PHONE][{timestamp}] {text}"
-        try:
-            with open(LOG_PATH, "a", encoding="utf-8") as f:
-                f.write(formatted + "\n")
-            await update.message.reply_text("Billing input captured.")
-        except Exception as e:
-            print(f"Billing fallback routing error: {e}")
-            await update.message.reply_text("Billing routing error.")
-        return
 
-    if intent == "billing_continue":
-        return
+        if intent == "inspection":
+            try:
+                result = await asyncio.to_thread(
+                    subprocess.run,
+                    ["/home/openclaw/chief-inspect", "telegram requested snapshot"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                snapshot_name = extract_snapshot_name(result.stdout)
+                if snapshot_name:
+                    await update.message.reply_text(f"Inspection snapshot created: {snapshot_name}")
+                else:
+                    await update.message.reply_text("Inspection snapshot created. Check the latest exports folder on OpenClaw.")
+                print(result.stdout)
+            except Exception as e:
+                import traceback
+                print("Inspection error:")
+                traceback.print_exc()
+                await update.message.reply_text(f"Inspection failed: {e}")
+            return
 
-    if intent == "batch_query":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("album_status", "nli_status"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "cassandra":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "album_start":
-        await update.message.reply_text(reply or "What song are we working on?")
-        return
-
-    if intent == "ops_intake":
-        replies = routed.get("replies", [])
-        try:
-            for r in replies:
-                await update.message.reply_text(r)
-        except Exception as e:
-            print(f"Ops intake reply error: {e}")
-            await update.message.reply_text("Ops update captured. (Reply formatting error — check logs.)")
-        return
-
-    if intent == "album_continue":
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        # Deferred ops delivery — fires once when album session closes
-        try:
-            from chief_session_manager import load_session as _ls
-            from chief_ops_brain import deferred_summary
-            if _ls().get("status") != "active":
+        if intent == "cancel":
+            await update.message.reply_text(reply or "Current workflow cancelled.")
+            # Surface any deferred ops captured during a now-cancelled album session
+            try:
+                from chief_ops_brain import deferred_summary
                 summary = deferred_summary()
                 if summary:
                     for s in summary:
-                        await update.message.reply_text(s)
-        except Exception:
-            pass
-        return
+                        await _send_reply(update, s)
+            except Exception:
+                pass
+            return
 
-    if intent == "album_arc_start":
-        try:
-            from chief_album_brain import handle_arc
-            arc_replies = handle_arc("")
-            for r in arc_replies:
-                r = validate_reply(text, r, "album_arc_start")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        if intent == "billing_start":
+            await update.message.reply_text(reply or "Ready.")
+            return
+
+        if intent == "billing_continue":
+            replies = routed.get("replies", [])
+            if replies:
+                try:
+                    for r in replies:
+                        await _send_reply(update, r)
+                except Exception as e:
+                    print(f"Billing direct reply error: {e}")
+                    await update.message.reply_text("Billing reply error.")
+                return
+            formatted = f"[PHONE][{timestamp}] {text}"
+            try:
+                with open(LOG_PATH, "a", encoding="utf-8") as f:
+                    f.write(formatted + "\n")
+                await update.message.reply_text("Billing input captured.")
+            except Exception as e:
+                print(f"Billing fallback routing error: {e}")
+                await update.message.reply_text("Billing routing error.")
+            return
+
+        if intent == "billing_continue":
+            return
+
+        if intent == "batch_query":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent in ("album_status", "nli_status"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "cassandra":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "album_start":
+            await update.message.reply_text(reply or "What song are we working on?")
+            return
+
+        if intent == "ops_intake":
+            replies = routed.get("replies", [])
+            try:
+                for r in replies:
+                    await _send_reply(update, r)
+            except Exception as e:
+                print(f"Ops intake reply error: {e}")
+                await update.message.reply_text("Ops update captured. (Reply formatting error — check logs.)")
+            return
+
+        if intent == "album_continue":
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
                 await update.message.reply_text(r)
+            # Deferred ops delivery — fires once when album session closes
+            try:
+                from chief_session_manager import load_session as _ls
+                from chief_ops_brain import deferred_summary
+                if _ls().get("status") != "active":
+                    summary = deferred_summary()
+                    if summary:
+                        for s in summary:
+                            await _send_reply(update, s)
+            except Exception:
+                pass
+            return
+
+        if intent == "album_arc_start":
+            try:
+                from chief_album_brain import handle_arc
+                arc_replies = handle_arc("")
+                for r in arc_replies:
+                    r = validate_reply(text, r, "album_arc_start")
+                    await update.message.reply_text(r)
+            except Exception as e:
+                await update.message.reply_text(f"Arc analysis error: {e}")
+            return
+
+        if intent == "album_arc_continue":
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent == "quick_song_update":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "system_report":
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("scout_report", "integration_proposals", "reflection_report"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("content_calendar", "brand_guide"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent in ("marketing_ideas", "content_draft", "content_log_update"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("email_draft", "email_send"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("sms_draft", "sms_send"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent == "phone_log":
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("cpa_query", "musiclaw_query", "publishing_query"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("website_qa", "website_coordinator", "website_creative"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent == "backup_status":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent in ("financial_report", "analytics_report", "goals_check", "momentum_check"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "trinity_check":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent in ("calendar_query", "queue_request"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "scheduler":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent in ("brainstorm_capture", "brainstorm_watch", "brainstorm_queue"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "focus_status":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "choice_response":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "mix_brief":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "stack_restart":
+            replies = routed.get("replies", [])
+            for r in replies:
+                await _send_reply(update, r)
+            return
+
+        if intent == "fundo_release":
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        if intent in ("fundo_session", "fundo_identity"):
+            replies = routed.get("replies", [])
+            for r in replies:
+                r = validate_reply(text, r, intent)
+                await update.message.reply_text(r)
+            return
+
+        formatted = f"[PHONE][{timestamp}] {text}"
+
+        try:
+            with open(LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(formatted + "\n")
+            await update.message.reply_text(
+                reply or "I didn't catch a specific action there. Try rephrasing."
+            )
         except Exception as e:
-            await update.message.reply_text(f"Arc analysis error: {e}")
-        return
-
-    if intent == "album_arc_continue":
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent == "quick_song_update":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "system_report":
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("scout_report", "integration_proposals", "reflection_report"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("content_calendar", "brand_guide"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("marketing_ideas", "content_draft", "content_log_update"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("email_draft", "email_send"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("sms_draft", "sms_send"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent == "phone_log":
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("cpa_query", "musiclaw_query", "publishing_query"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("website_qa", "website_coordinator", "website_creative"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent == "backup_status":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("financial_report", "analytics_report", "goals_check", "momentum_check"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "trinity_check":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("calendar_query", "queue_request"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "scheduler":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("brainstorm_capture", "brainstorm_watch", "brainstorm_queue"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "focus_status":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "choice_response":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "mix_brief":
-        replies = routed.get("replies", [])
-        for r in replies:
-            await update.message.reply_text(r)
-        return
-
-    if intent == "fundo_release":
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    if intent in ("fundo_session", "fundo_identity"):
-        replies = routed.get("replies", [])
-        for r in replies:
-            r = validate_reply(text, r, intent)
-            await update.message.reply_text(r)
-        return
-
-    formatted = f"[PHONE][{timestamp}] {text}"
-
-    try:
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(formatted + "\n")
-        await update.message.reply_text(reply or "Routed to Chief.")
+            print(f"Routing error: {e}")
+            await update.message.reply_text("Routing error.")
     except Exception as e:
-        print(f"Routing error: {e}")
-        await update.message.reply_text("Routing error.")
+        print(f"[chief_listener] dispatch error (intent={intent}): {e}", flush=True)
+        await update.message.reply_text("Chief hit a snag on that. Try again.")
+
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle inline keyboard button presses for choice prompts."""
+    query = update.callback_query
+    if not query or query.from_user.id != AUTHORIZED_USER_ID:
+        return
+    await query.answer()  # dismiss the loading spinner
+    callback_data = query.data or ""
+    try:
+        from chief_approval_bridge import has_pending_choice, handle as bridge_handle
+        if has_pending_choice():
+            replies = bridge_handle(callback_data)
+            for r in replies:
+                await query.message.reply_text(tts_clean(r))
+        else:
+            await query.message.reply_text("No pending choice.")
+    except Exception as e:
+        print(f"[chief_listener] callback error: {e}", flush=True)
+        await query.message.reply_text("Button response error.")
 
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+app.add_handler(CallbackQueryHandler(handle_callback))
 
 # ── Startup: notify about pending queue items (once per unique queue state) ───
 _QUEUE_NOTIF_STATE = Path("/mnt/c/OpenClaw/logs/queue_notif_state.json")
@@ -435,5 +482,5 @@ async def _post_startup_queue(application):
 
 app.post_init = _post_startup_queue
 
-print("Chief relay online.")
+print("[chief_listener] starting...", flush=True)
 app.run_polling()
