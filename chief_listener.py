@@ -175,8 +175,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Billing routing error.")
             return
 
-        if intent == "billing_continue":
-            return
 
         if intent == "batch_query":
             replies = routed.get("replies", [])
