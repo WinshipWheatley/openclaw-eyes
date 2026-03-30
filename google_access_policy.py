@@ -129,6 +129,7 @@ if __name__ == "__main__":
         ("unknown",   "google.calendar.read",       False, DENIED),
         ("cassandra", "google.nonexistent",          False, None),
     ]
+    assert ("google.calendar.write", CLASS_B) not in list_allowed("chief")
     print(f"{'Agent':<12} {'Capability':<35} {'Allowed?':<10} {'Class':<8} {'Pass'}")
     print("-" * 78)
     all_pass = True
