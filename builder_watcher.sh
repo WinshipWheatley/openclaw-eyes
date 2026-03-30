@@ -35,7 +35,7 @@ guard_pattern_for_runner() {
 launch_runner_once() {
   local runner="$1"
   if [ "$runner" = "codex" ]; then
-    cd /home/openclaw && timeout 900 codex "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
+    cd /home/openclaw && timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
   else
     cd /home/openclaw && timeout 900 claude --model claude-sonnet-4-5 --dangerously-skip-permissions < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
   fi
