@@ -402,7 +402,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Chief hit a snag on that. Try again.")
 
 
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_callback(update: Update, _context: ContextTypes.DEFAULT_TYPE):
     """Handle inline keyboard button presses for choice prompts."""
     query = update.callback_query
     if not query or query.from_user.id != AUTHORIZED_USER_ID:
