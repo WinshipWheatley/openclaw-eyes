@@ -9,6 +9,20 @@ _Generated: 2026-03-17 | Exact commands only. Based on real repo state._
 - Do not use Copilot as the primary autonomous OpenClaw engine.
 - For autonomous code tasks, use Claude Code or Codex with bounded prompts, explicit file scope, and diff-first review when possible.
 
+### Codex Invocation Pattern
+
+Use Codex from the repo root with a bounded prompt, explicit file scope, and diff-only closeout.
+
+```bash
+cd /home/openclaw && codex "You are working in /home/openclaw. Task: <task>. Edit only <exact file paths>. Do not touch polish_loop/orchestrator/approval logic unless the named files explicitly require it. Inspect first, make the smallest safe change, and show the exact diff only."
+```
+
+Read-only variant:
+
+```bash
+cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit anything. Return findings briefly."
+```
+
 ## Stack Start / Stop / Restart
 
 ### Start the main stack
