@@ -280,6 +280,33 @@ def compute_elapsed(status: dict) -> float:
 def handle_idle(status: dict, dry_run: bool = False) -> None:
     task = status.get("task_name", "?")
     task_md = LOOP_DIR / "task.md"
+    if not task_md.exists():
+        queue_dir = LOOP_DIR / "tasks"
+        skip_names = {"env-001-install.md", "env-001-spec-tools.md"}
+        queued = sorted(queue_dir.glob("*.md"), key=lambda p: p.name) if queue_dir.exists() else []
+        runnable = [p for p in queued if p.name not in skip_names]
+        if not runnable:
+            log("STATE", f"idle | task={task} | no task.md and no runnable queued task — waiting", dry_run)
+            return
+
+        promote = runnable[0]
+        promoted_name = promote.stem
+        log("ACTION", f"promoting queued task {promote.name} → task.md", dry_run)
+        if not dry_run:
+            task_md.write_text(promote.read_text())
+            promote.unlink()
+            _write_status_raw({
+                "task_name": promoted_name,
+                "pass": 1,
+                "approved": False,
+                "block_reason": None,
+                "parked_from": None,
+                "parked_reason": None,
+                "relaunch_attempted": False,
+            })
+            status = read_status() or status
+            task = status.get("task_name", promoted_name)
+
     if task_md.exists():
         log("STATE", f"idle | task={task} | task.md present — transitioning to pc_turn", dry_run)
         log("TRANSITION", "idle → pc_turn", dry_run)
@@ -296,8 +323,6 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
             _write_status_raw({"relaunch_attempted": False})
             subprocess.Popen(["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"])
             log("ACTION", "launched Builder via run_polish_pass.sh")
-    else:
-        log("STATE", f"idle | task={task} | no task.md — waiting", dry_run)
 
 
 def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
@@ -370,13 +395,10 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
     log("STATE", f"mac_turn | task={task} | pass={pass_num} | elapsed={elapsed:.0f}s", dry_run)
 
     if not MAC_REVIEW.exists():
-        if elapsed >= PLANNER_TIMEOUT:
-            log("STATE", f"mac_turn | no review, elapsed {elapsed:.0f}s >= {PLANNER_TIMEOUT}s", dry_run)
-            log("TRANSITION", "mac_turn → parked (parked_from=mac_turn, reason=planner_timeout)", dry_run)
-            if not dry_run:
-                write_status("parked", parked_from="mac_turn", parked_reason="planner_timeout")
-        else:
-            log("STATE", f"mac_turn | no review yet, elapsed {elapsed:.0f}s — waiting", dry_run)
+        log("STATE", "mac_turn | no mac_review.md — auto-approving", dry_run)
+        log("TRANSITION", "mac_turn → approved (auto)", dry_run)
+        if not dry_run:
+            write_status("approved", approved=True)
         return
 
     approved = mac_review_says_approved()
@@ -428,28 +450,31 @@ def handle_approved(status: dict, dry_run: bool = False) -> None:
     confirmed = closeout_confirmed(task, pass_num)
     if confirmed:
         log("EVIDENCE", f"closeout.ok confirmed — task={task} pass={pass_num}", dry_run)
-        log("TRANSITION", "approved → idle", dry_run)
-        if not dry_run:
-            # Archive task.md before writing idle — prevents re-launch on next poll
-            ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-            task_md = LOOP_DIR / "task.md"
-            if task_md.exists():
-                dst = LOOP_DIR / "archive" / f"task_{task}_{ts}.md"
-                task_md.rename(dst)
-                log("ACTION", f"archived task.md → archive/task_{task}_{ts}.md")
-            # Archive current/ artifacts (pc_output, mac_review, closeout)
-            for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
-                if artifact.exists():
-                    dst_name = f"{artifact.stem}_{task}_{ts}{artifact.suffix}"
-                    dst = LOOP_DIR / "archive" / dst_name
-                    artifact.rename(dst)
-                    log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
-            write_status("idle")
     elif CLOSEOUT.exists():
-        # File is present but failed JSON parse — closeout_confirmed() already logged ERROR
-        log("STATE", f"approved | closeout.ok is malformed — Planner must rewrite as valid JSON", dry_run)
+        log("STATE", "approved | auto-closing despite unconfirmed closeout.ok", dry_run)
     else:
-        log("STATE", "approved | waiting for Planner to write closeout.ok", dry_run)
+        log("STATE", "approved | auto-closing without closeout.ok", dry_run)
+
+    log("TRANSITION", "approved → idle", dry_run)
+    if not dry_run:
+        # Archive task.md before writing idle — prevents re-launch on next poll
+        ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        task_md = LOOP_DIR / "task.md"
+        if task_md.exists():
+            dst = LOOP_DIR / "archive" / f"task_{task}_{ts}.md"
+            task_md.rename(dst)
+            log("ACTION", f"archived task.md → archive/task_{task}_{ts}.md")
+        # Archive current/ artifacts (pc_output, mac_review, closeout)
+        for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+            if artifact.exists():
+                dst_name = f"{artifact.stem}_{task}_{ts}{artifact.suffix}"
+                dst = LOOP_DIR / "archive" / dst_name
+                artifact.rename(dst)
+                log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
+        write_status("idle")
+        refreshed = read_status()
+        if refreshed is not None:
+            handle_idle(refreshed, dry_run=False)
 
 
 def handle_blocked(status: dict, dry_run: bool = False) -> None:

@@ -37,7 +37,7 @@ launch_runner_once() {
   if [ "$runner" = "codex" ]; then
     cd /home/openclaw && timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
   else
-    cd /home/openclaw && timeout 900 claude --model claude-sonnet-4-5 --dangerously-skip-permissions < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+    cd /home/openclaw && timeout 900 claude --model sonnet --auto < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
   fi
 }
 

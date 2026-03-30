@@ -42,7 +42,7 @@ PENDING_FILE    = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md")
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
 POLL_INTERVAL   = 2     # seconds between checks
-TIMEOUT         = 300   # 5 minutes
+TIMEOUT         = 86400 # 24 hours
 
 
 # ── Lazy imports with fallback ─────────────────────────────────────────────────
