@@ -146,6 +146,10 @@ This pattern can be overridden per-task by explicit instruction.
 
 Claude Code (on any machine) is a **tactical operator, not a sovereign authority.** Workers may execute. Militaries may enforce. Only Winship may authorize scope exceptions.
 
+Autonomous operator surface for OpenClaw: Claude Code and Codex. Copilot is the manual IDE surface inside VS Code.
+
+Do not use Codex for routine manual IDE assistance. Do not use Copilot as the primary autonomous OpenClaw engine. For autonomous code tasks, prefer Claude Code or Codex with bounded prompts, explicit file scope, and diff-first review when possible.
+
 Before implementing any of the following, verify the action is covered by a Mac-reviewed spec or confirm it is within current approved scope by reading `vault/System/Command Authority and Bounded Autonomy.md`:
 - New bot identity, Telegram listener, or agent role
 - New external integration (API, service, or credential type)

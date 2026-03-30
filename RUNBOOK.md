@@ -3,6 +3,12 @@ _Generated: 2026-03-17 | Exact commands only. Based on real repo state._
 
 ---
 
+## Operator Surface
+
+- Copilot is the manual operator surface for interactive work inside VS Code.
+- Do not use Copilot as the primary autonomous OpenClaw engine.
+- For autonomous code tasks, use Claude Code or Codex with bounded prompts, explicit file scope, and diff-first review when possible.
+
 ## Stack Start / Stop / Restart
 
 ### Start the main stack
