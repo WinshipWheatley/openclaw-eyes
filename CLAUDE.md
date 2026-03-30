@@ -150,6 +150,8 @@ Autonomous operator surface for OpenClaw: Claude Code and Codex. Copilot is the 
 
 Do not use Codex for routine manual IDE assistance. Do not use Copilot as the primary autonomous OpenClaw engine. For autonomous code tasks, prefer Claude Code or Codex with bounded prompts, explicit file scope, and diff-first review when possible.
 
+When using Codex as the autonomous coding operator, invoke it from the repo root with the same bounded-prompt discipline: explicit task, explicit file scope, and diff-first review.
+
 Before implementing any of the following, verify the action is covered by a Mac-reviewed spec or confirm it is within current approved scope by reading `vault/System/Command Authority and Bounded Autonomy.md`:
 - New bot identity, Telegram listener, or agent role
 - New external integration (API, service, or credential type)
