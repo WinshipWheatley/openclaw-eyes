@@ -86,6 +86,7 @@ while true; do
     exit_code=$?
     launch_elapsed=$(( $(date +%s) - launch_start_ts ))
 
+    # Fast-failure fallback: only when runner is implicit, non-timeout failure, and <=20s runtime.
     if [ "$RUNNER_EXPLICIT" -eq 0 ] && [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 124 ] && [ "$launch_elapsed" -le 20 ]; then
       fallback_guard_pattern="$(guard_pattern_for_runner "$fallback_runner")"
       if pgrep -f "$fallback_guard_pattern" >/dev/null 2>&1; then
