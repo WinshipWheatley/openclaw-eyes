@@ -125,6 +125,7 @@ if __name__ == "__main__":
         ("cassandra", "google.gmail.send",           True,  CLASS_C),
         ("chief",     "google.calendar.read",       False, DENIED),
         ("chief",     "google.gmail.send",          False, DENIED),
+        ("Cassandra", "google.calendar.read",       True,  CLASS_A),
         ("unknown",   "google.calendar.read",       False, DENIED),
         ("cassandra", "google.nonexistent",          False, None),
     ]
