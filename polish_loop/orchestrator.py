@@ -222,6 +222,12 @@ _TEST_BUILDER_OVERRIDE: bool | None = None
 # Set to True/False in tests to override _relaunch_builder() return value.
 _TEST_RELAUNCH_OVERRIDE: bool | None = None
 
+# Test hook: when True, suppress idle auto-promotion/auto-start side effects.
+_TEST_DISABLE_IDLE_AUTOSTART: bool = False
+
+# Set to True in tests to keep idle-state queue promotion from touching live tasks.
+_TEST_DISABLE_IDLE_AUTOLAUNCH: bool = False
+
 
 def builder_running() -> bool:
     """True if run_polish_pass.sh is currently executing (the Builder agent)."""
@@ -280,6 +286,9 @@ def compute_elapsed(status: dict) -> float:
 def handle_idle(status: dict, dry_run: bool = False) -> None:
     task = status.get("task_name", "?")
     task_md = LOOP_DIR / "task.md"
+    if _TEST_DISABLE_IDLE_AUTOLAUNCH:
+        log("STATE", f"idle | task={task} | test mode — autolaunch disabled", dry_run)
+        return
     if not task_md.exists():
         queue_dir = LOOP_DIR / "tasks"
         skip_names = {"env-001-install.md", "env-001-spec-tools.md"}
@@ -395,10 +404,17 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
     log("STATE", f"mac_turn | task={task} | pass={pass_num} | elapsed={elapsed:.0f}s", dry_run)
 
     if not MAC_REVIEW.exists():
-        log("STATE", "mac_turn | no mac_review.md — auto-approving", dry_run)
-        log("TRANSITION", "mac_turn → approved (auto)", dry_run)
+        if elapsed < PLANNER_TIMEOUT:
+            log(
+                "STATE",
+                f"mac_turn | waiting for Planner review ({elapsed:.0f}s < {PLANNER_TIMEOUT}s)",
+                dry_run,
+            )
+            return
+        log("EVIDENCE", f"mac_turn | no mac_review.md after {elapsed:.0f}s", dry_run)
+        log("TRANSITION", "mac_turn → blocked (reason: planner_timeout_no_review)", dry_run)
         if not dry_run:
-            write_status("approved", approved=True)
+            write_status("blocked", reason="planner_timeout_no_review")
         return
 
     approved = mac_review_says_approved()
@@ -626,6 +642,8 @@ def cmd_run_tests() -> None:
     """Run the orchestrator test matrix against live files."""
     import copy
 
+    global _TEST_DISABLE_IDLE_AUTOLAUNCH
+
     results:  list[str] = []
     failures: list[str] = []
 
@@ -672,6 +690,8 @@ def cmd_run_tests() -> None:
         return base
 
     try:
+        _TEST_DISABLE_IDLE_AUTOLAUNCH = True
+
         # 1. status.json missing → blocked, invalid_or_missing_status
         clear_status()
         clear_artifacts()
@@ -752,7 +772,30 @@ def cmd_run_tests() -> None:
         )
         PC_OUTPUT.unlink(missing_ok=True)
 
-        # 7. mac_turn, ambiguous mac_review → blocked (ambiguous_mac_review)
+        # 7. mac_turn, no mac_review, elapsed < timeout → still mac_turn
+        set_status(fresh_status(status="mac_turn", last_updated=now_iso))
+        clear_artifacts()
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "mac_turn, no mac_review, elapsed < timeout → still mac_turn (wait)",
+            s is not None and s["status"] == "mac_turn",
+            f"got {s}",
+        )
+
+        # 8. mac_turn, no mac_review, elapsed > timeout → blocked (planner_timeout_no_review)
+        set_status(fresh_status(status="mac_turn", last_updated=old_iso))
+        clear_artifacts()
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "mac_turn, no mac_review, elapsed > timeout → blocked (planner_timeout_no_review)",
+            s is not None and s["status"] == "blocked"
+            and s.get("block_reason") == "planner_timeout_no_review",
+            f"got {s}",
+        )
+
+        # 9. mac_turn, ambiguous mac_review → blocked (ambiguous_mac_review)
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("This review says nothing definitive.\n")
         run_one_cycle(dry_run=False)
@@ -765,7 +808,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 8. mac_turn, NEEDS_REWORK, pass >= MAX_PASSES → blocked (max_passes_exceeded)
+        # 10. mac_turn, NEEDS_REWORK, pass >= MAX_PASSES → blocked (max_passes_exceeded)
         set_status(fresh_status(status="mac_turn", **{"pass": MAX_PASSES, "last_updated": now_iso}))
         MAC_REVIEW.write_text("NEEDS_REWORK\nSome issues found.\n")
         run_one_cycle(dry_run=False)
@@ -778,18 +821,18 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 9. approved, no closeout.ok → still approved (waiting)
+        # 11. approved, no closeout.ok → idle (auto-close)
         set_status(fresh_status(status="approved", approved=True, last_updated=now_iso))
         clear_artifacts()
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved, no closeout.ok → still approved (waiting)",
-            s is not None and s["status"] == "approved",
+            "approved, no closeout.ok → idle (auto-close)",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
 
-        # 10. --reset-blocked with reason → idle
+        # 12. --reset-blocked with reason → idle
         set_status(fresh_status(status="blocked", block_reason="test_block", last_updated=now_iso))
         cmd_reset_blocked("Builder auth expired — re-authed")
         s = read_status()
@@ -799,7 +842,7 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
-        # 11. dry_run=True writes nothing
+        # 13. dry_run=True writes nothing
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("APPROVED\n")
         before = STATUS_FILE.read_text()
@@ -812,7 +855,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 12. mac_turn, APPROVED → approved
+        # 14. mac_turn, APPROVED → approved
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("Some analysis.\nAPPROVED\nNo issues.\n")
         run_one_cycle(dry_run=False)
@@ -824,7 +867,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 13. mac_turn, NEEDS_REWORK, pass < MAX_PASSES → pc_turn (pass incremented)
+        # 15. mac_turn, NEEDS_REWORK, pass < MAX_PASSES → pc_turn (pass incremented)
         set_status(fresh_status(status="mac_turn", **{"pass": 1, "last_updated": now_iso}))
         MAC_REVIEW.write_text("NEEDS_REWORK\nFix these issues.\n")
         run_one_cycle(dry_run=False)
@@ -836,7 +879,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 14. approved + valid closeout.ok → idle
+        # 16. approved + valid closeout.ok → idle
         set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
         closeout_payload = {
             "task_name": "test-orch",
@@ -853,14 +896,14 @@ def cmd_run_tests() -> None:
         )
         CLOSEOUT.unlink(missing_ok=True)
 
-        # 15. approved + malformed closeout.ok → still approved (ERROR logged, not stuck-silent)
+        # 17. approved + malformed closeout.ok → idle (ERROR logged, not stuck-silent)
         set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
         CLOSEOUT.write_text("this is plain text, not json")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved + malformed closeout.ok → still approved (ERROR logged)",
-            s is not None and s["status"] == "approved",
+            "approved + malformed closeout.ok → idle (ERROR logged)",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
         CLOSEOUT.unlink(missing_ok=True)
@@ -902,6 +945,7 @@ def cmd_run_tests() -> None:
         )
 
     finally:
+        _TEST_DISABLE_IDLE_AUTOLAUNCH = False
         # Restore original state
         if original_status is not None:
             STATUS_FILE.write_text(original_status)

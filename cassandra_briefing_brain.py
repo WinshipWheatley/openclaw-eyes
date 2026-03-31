@@ -179,6 +179,18 @@ def mark_delivered(date: str, slot: str) -> None:
     append_md_tagged(BRIEFING_LOG, ts, f"{slot}/delivered", "✓")
 
 
+def refresh_briefing_text(date: str, slot: str, text: str, pending_reason: str | None = None) -> None:
+    """Update archived briefing text before delayed delivery."""
+    p = _briefing_path(date, slot)
+    entry = load_json(p, {})
+    if not entry:
+        return
+    entry["text"] = text
+    entry["generated_at"] = datetime.now().isoformat(timespec="seconds")
+    entry["pending_reason"] = pending_reason
+    save_json(p, entry)
+
+
 # ── Scheduling helpers ────────────────────────────────────────────────────────
 
 def due_slots() -> list[str]:
