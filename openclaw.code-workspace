@@ -18,6 +18,12 @@
       "PC bash": {
         "path": "/bin/bash",
         "icon": "terminal-linux"
+      },
+      "Mac SSH": {
+        "path": "/bin/bash",
+        "args": ["-c", "ssh -i ~/.ssh/id_mac mac"],
+        "icon": "terminal-bash",
+        "color": "terminal.ansiCyan"
       }
     },
     "terminal.integrated.defaultProfile.linux": "PC bash"
@@ -47,6 +53,20 @@
           "reveal": "always",
           "panel": "dedicated",
           "name": "PC bash"
+        }
+      },
+      {
+        "label": "Mac Terminal — Auto",
+        "type": "shell",
+        "command": "ssh -i ~/.ssh/id_mac mac",
+        "problemMatcher": [],
+        "runOptions": {
+          "runOn": "folderOpen"
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "name": "Mac SSH"
         }
       }
     ]
