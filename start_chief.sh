@@ -4,6 +4,9 @@ source ~/chief_env/bin/activate
 source /home/openclaw/.chief.env
 mkdir -p /mnt/c/OpenClaw/logs
 
+# Refresh runner registry (auto-discovers installed coding tools)
+python3 ~/runner_registry.py --refresh > /mnt/c/OpenClaw/logs/runner_discovery_startup.log 2>&1 &
+
 pkill -f chief_listener.py
 pkill -f cassandra_listener.py
 pkill -f chief_worker.py

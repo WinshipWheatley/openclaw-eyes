@@ -113,6 +113,10 @@
 !skill_vetter.py
 
 !builder_watcher.sh
+!loop_control.sh
+!runner_profiles.py
+!runner_registry.py
+!runners.d/
 !vscode_cleanup.sh
 !openclaw.code-workspace
 !sync_to_mobile.sh

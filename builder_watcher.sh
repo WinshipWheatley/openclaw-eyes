@@ -52,37 +52,65 @@ guard_pattern_for_runner() {
 
 any_builder_session_running() {
   # Prevent duplicate launches after watcher restart: detect active timed runner sessions.
-  pgrep -f 'timeout 900 (codex exec|claude --model sonnet .*--print)' >/dev/null 2>&1
+  # Match any runner wrapped in setsid timeout (claude, codex, gemini, aider, ollama, etc.)
+  pgrep -f 'timeout [0-9]+ (codex|claude|gemini|aider|ollama)' >/dev/null 2>&1
 }
 
 launch_runner_once() {
   local runner="$1"
-  local elevated
-
-  if [ "$runner" = "codex" ]; then
-    if ! command -v codex >/dev/null 2>&1; then
-      log "ALERT: codex CLI not found on PATH"
-      set_runner_alert "codex CLI missing from PATH"
-      return 127
-    fi
-  else
-    if ! command -v claude >/dev/null 2>&1; then
-      log "ALERT: claude CLI not found on PATH"
-      set_runner_alert "claude CLI missing from PATH"
-      return 127
-    fi
-  fi
 
   clear_runner_alert
 
-  # Use setsid to create a new session — prevents SIGSTOP/SIGTSTP from reaching
-  # the builder when the watcher runs in a backgrounded/nohup terminal.
-  # --dangerously-skip-permissions is required for --print mode with piped stdin,
-  # otherwise all write tools (Edit, Write, Bash) are blocked in "don't ask" mode.
-  if [ "$runner" = "codex" ]; then
-    cd /home/openclaw && setsid timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
+  # --- Smart profile selection via runner_profiles.py ---
+  # runner_profiles.py now uses runner_registry.py internally to pick the
+  # best available tool (claude, codex, gemini, aider, ollama, or any
+  # plugin runner).  It returns a fully-built invoke_cmd.
+  local profile_json
+  profile_json=$(cd /home/openclaw && python3 runner_profiles.py 2>/dev/null)
+  if [ -z "$profile_json" ]; then
+    log "PROFILE: runner_profiles.py failed — falling back to hardcoded defaults"
+    profile_json='{"runner":"claude","model":"sonnet","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 claude --model sonnet --effort high --dangerously-skip-permissions --print --max-budget-usd 2.0 --fallback-model sonnet < /home/openclaw/polish_loop/POLISH_PROMPT.md"}'
+  fi
+
+  local p_runner p_model p_timeout p_reason p_invoke_cmd
+  p_runner=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('runner','claude'))")
+  p_model=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model','sonnet'))")
+  p_timeout=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('timeout',600))")
+  p_reason=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('reason','unknown'))")
+  p_invoke_cmd=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('invoke_cmd',''))")
+
+  # Override runner if explicitly requested via CODING_RUNNER
+  if [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" != "$p_runner" ]; then
+    log "PROFILE: Explicit runner override → $RUNNER_PREFERRED (ignoring registry pick: $p_runner)"
+    p_runner="$RUNNER_PREFERRED"
+    # Fall back to hardcoded command for explicit override
+    p_invoke_cmd=""
+  fi
+
+  log "PROFILE: runner=$p_runner model=$p_model timeout=${p_timeout}s reason='$p_reason'"
+
+  # Verify the chosen runner binary exists
+  if ! command -v "$p_runner" >/dev/null 2>&1; then
+    log "ALERT: $p_runner CLI not found on PATH"
+    set_runner_alert "$p_runner CLI missing from PATH"
+    return 127
+  fi
+
+  # Execute: use the pre-built invoke_cmd if available, otherwise hardcoded
+  if [ -n "$p_invoke_cmd" ]; then
+    log "INVOKE: $p_invoke_cmd"
+    cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
+  elif [ "$p_runner" = "codex" ]; then
+    cd /home/openclaw && setsid timeout "$p_timeout" codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
   else
-    cd /home/openclaw && setsid timeout 900 claude --model sonnet --dangerously-skip-permissions --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+    cd /home/openclaw && setsid timeout "$p_timeout" claude \
+      --model "$p_model" \
+      --effort high \
+      --dangerously-skip-permissions \
+      --print \
+      --max-budget-usd 2.0 \
+      --fallback-model sonnet \
+      < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
   fi
 }
 
