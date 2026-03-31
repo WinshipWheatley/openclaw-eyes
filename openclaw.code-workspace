@@ -13,5 +13,28 @@
       "path": "/home/openclaw/mac_eyes"
     }
   ],
-  "settings": {}
+  "settings": {
+    "terminal.integrated.profiles.linux": {
+      "PC bash": {
+        "path": "/bin/bash",
+        "icon": "terminal-linux"
+      }
+    },
+    "terminal.integrated.defaultProfile.linux": "PC bash"
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "VS Code — Recover (cleanup PC server)",
+        "type": "shell",
+        "command": "bash /home/openclaw/vscode_cleanup.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      }
+    ]
+  }
 }
