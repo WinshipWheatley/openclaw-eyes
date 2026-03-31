@@ -28,8 +28,28 @@ import os
 import requests
 
 
+def _load_env_file() -> None:
+    env_path = "/home/openclaw/.chief.env"
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8", errors="ignore") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        pass
+
+
 def _token() -> str:
     """Return the bot token to use for approval delivery."""
+    _load_env_file()
     return (
         os.environ.get("GUARDIAN_BOT_TOKEN")
         or os.environ["TELEGRAM_BOT_TOKEN"]
@@ -38,6 +58,7 @@ def _token() -> str:
 
 def _chat_id() -> str:
     """Return the chat ID to send approval requests to."""
+    _load_env_file()
     return (
         os.environ.get("TELEGRAM_CHAT_ID")
         or os.environ["TELEGRAM_AUTHORIZED_USER_ID"]

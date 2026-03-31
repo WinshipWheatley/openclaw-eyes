@@ -146,7 +146,7 @@ def write_status(
 def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     """
     Returns (True, "ok") or (False, reason).
-    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "has_blocked"
+    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "has_blocked" | "quality_gate"
     """
     if not PC_OUTPUT.exists():
         return False, "missing"
@@ -168,6 +168,13 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
         return False, "stale"
     if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
         return False, "has_blocked"
+
+    required_headers = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:")
+    upper = content.upper()
+    for header in required_headers:
+        if header not in upper:
+            return False, "quality_gate"
+
     return True, "ok"
 
 
@@ -222,26 +229,32 @@ _TEST_BUILDER_OVERRIDE: bool | None = None
 # Set to True/False in tests to override _relaunch_builder() return value.
 _TEST_RELAUNCH_OVERRIDE: bool | None = None
 
-# Test hook: when True, suppress idle auto-promotion/auto-start side effects.
-_TEST_DISABLE_IDLE_AUTOSTART: bool = False
-
 # Set to True in tests to keep idle-state queue promotion from touching live tasks.
 _TEST_DISABLE_IDLE_AUTOLAUNCH: bool = False
 
 
 def builder_running() -> bool:
-    """True if run_polish_pass.sh is currently executing (the Builder agent)."""
+    """True if a builder pass process is currently executing."""
     if _TEST_BUILDER_OVERRIDE is not None:
         return _TEST_BUILDER_OVERRIDE
-    try:
-        result = subprocess.run(
-            ["pgrep", "-f", "run_polish_pass.sh"],
-            capture_output=True,
-            text=True,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
+    patterns = [
+        "run_polish_pass.sh",
+        "timeout 900 claude --model sonnet --print",
+        "timeout 900 claude --model sonnet --dangerously-skip-permissions --print",
+        "timeout 900 codex exec",
+    ]
+    for pattern in patterns:
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", pattern],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def _relaunch_builder() -> bool:
@@ -355,6 +368,25 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             if not dry_run:
                 write_status("blocked", reason="stale_pc_output")
             return
+        if reason == "quality_gate":
+            log("EVIDENCE", "pc_output failed quality gate (missing CHANGES/REASONING/ROLLBACK PLAN)", dry_run)
+            log("TRANSITION", "pc_turn → blocked (reason: weak_pc_output_quality)", dry_run)
+            if not dry_run:
+                write_status("blocked", reason="weak_pc_output_quality")
+            return
+        # If stale BLOCKED output remains and Builder is currently dead, attempt a
+        # bounded immediate relaunch instead of waiting the full timeout window.
+        if reason == "has_blocked" and not status.get("relaunch_attempted", False):
+            running_now = builder_running()
+            if not running_now:
+                log("ACTION", "pc_output shows STATUS:BLOCKED and Builder is dead — immediate re-launch attempt", dry_run)
+                if not dry_run:
+                    launched = _relaunch_builder()
+                    if launched:
+                        log("ACTION", "Builder re-launched from stale BLOCKED output condition", dry_run)
+                        _write_status_raw({"relaunch_attempted": True})
+                        return
+
         # Other invalid (no_pass_line, has_blocked, unreadable) — fall through to timeout logic
         log("STATE", f"pc_turn | pc_output invalid ({reason}) — checking agent status", dry_run)
 
@@ -617,6 +649,7 @@ def cmd_resume() -> None:
         print(f"ERROR: unknown parked_from={parked_from!r} — cannot determine resume target", file=sys.stderr)
         sys.exit(1)
     write_status(parked_from)
+    _write_status_raw({"relaunch_attempted": False})
     print(f"[resume] parked → {parked_from}")
 
 
@@ -749,7 +782,16 @@ def cmd_run_tests() -> None:
 
         # 5. pc_turn, valid pc_output → mac_turn
         set_status(fresh_status(status="pc_turn", **{"pass": 2, "last_updated": now_iso}))
-        PC_OUTPUT.write_text("PASS: 2\nSTATUS: DONE\n\nCHANGES:\ntest\n")
+        PC_OUTPUT.write_text(
+            "PASS: 2\n"
+            "STATUS: DONE\n\n"
+            "CHANGES:\n"
+            "- test\n\n"
+            "REASONING:\n"
+            "- test\n\n"
+            "ROLLBACK PLAN:\n"
+            "- revert test\n"
+        )
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
@@ -942,6 +984,40 @@ def cmd_run_tests() -> None:
             "parked (mac_turn) → mac_turn (auto-resume)",
             s is not None and s["status"] == "mac_turn",
             f"got {s}",
+        )
+
+        # 19. cmd_resume from parked pc_turn resets relaunch_attempted guard
+        set_status(fresh_status(status="parked", **{"pass": 1, "task_name": "test-orch", "parked_from": "pc_turn", "parked_reason": "builder_timeout", "relaunch_attempted": True}))
+        cmd_resume()
+        s = read_status()
+        check(
+            "cmd_resume parked(pc_turn) resets relaunch_attempted",
+            s is not None and s["status"] == "pc_turn" and s.get("relaunch_attempted") is False,
+            f"got {s}",
+        )
+
+        # 20. builder_running() recognizes watcher-launched runner process patterns
+        real_subprocess_run = subprocess.run
+        seen_patterns: list[str] = []
+        def fake_run(args, capture_output=False, text=False):
+            pattern = args[-1] if args else ""
+            seen_patterns.append(pattern)
+            class R:
+                def __init__(self, rc):
+                    self.returncode = rc
+            # Simulate watcher-launched Claude process present.
+            if pattern == "timeout 900 claude --model sonnet --print":
+                return R(0)
+            return R(1)
+        subprocess.run = fake_run
+        try:
+            detected = builder_running()
+        finally:
+            subprocess.run = real_subprocess_run
+        check(
+            "builder_running detects watcher-launched runner patterns",
+            detected is True and "timeout 900 claude --model sonnet --print" in seen_patterns,
+            f"detected={detected} patterns={seen_patterns}",
         )
 
     finally:

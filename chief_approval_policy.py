@@ -27,6 +27,9 @@ Design notes:
 
 import os
 import re
+import json
+from datetime import datetime
+from pathlib import Path
 
 TIER_0 = 0  # No gate
 TIER_1 = 1  # Local terminal confirm (escalates to T2 if no TTY)
@@ -46,6 +49,7 @@ TIER_2 = 2  # Remote phone approval — always out-of-band
 # When False (default): classify() behavior is identical to baseline. No relaxations apply.
 # When True: _OPENSHELL_T0_PATTERNS are checked before hard T2 rules.
 OPENSHELL_ACTIVE: bool = os.environ.get("OPENSHELL_ENFORCEMENT_CONFIRMED", "0") == "1"
+AUTONOMY_MODE_FILE = Path("/mnt/c/OpenClaw/logs/autonomy_mode.json")
 
 # ── OpenShell T0 relaxations — only active when OPENSHELL_ACTIVE is True ──────
 #
@@ -74,22 +78,34 @@ _OPENSHELL_T0_PATTERNS: list[str] = [
 
 
 def _is_autonomous_local_only(action: str) -> bool:
-    """True if the action is autonomous/unattended AND does not touch credentials,
-    external endpoints, or financial record writes.
+    """True if the action is local/reversible operational work and does not touch
+    sensitive data, external endpoints, or destructive financial changes.
 
     Used by classify() when OPENSHELL_ACTIVE is True to relax autonomous actions
     that operate entirely within the local sandbox to T0.
     """
     t = action.lower()
-    if not re.search(r"autonomous|unattended|while\s+.{0,10}away|scheduled\s+run", t, re.IGNORECASE):
+
+    # Allowlist: only routine local control/diagnostics/recovery actions.
+    _allowlist: list[str] = [
+        r"autonomous|unattended|while\s+.{0,20}away|walk\s+away|focus\s+mode",
+        r"restart\s+(builder|watcher|orchestrator|loop)",
+        r"resume\s+(loop|parked)|reset[-\s]?blocked",
+        r"run\s+(test|smoke\s+test)|diagnose|inspect|check\s+logs|refresh\s+dashboard",
+        r"auto[-\s]?heal|recovery|retry\s+delivery",
+    ]
+    if not any(re.search(p, t, re.IGNORECASE) for p in _allowlist):
         return False
+
     # Disqualifiers — any of these means the action is NOT local-only
     _disqualifiers: list[str] = [
         r"\.chief\.env|credentials?|token|api.?key|secret",
+        r"\bssn\b|social\s+security|tax\s*id|ein\b",
         r"publish\b|post\s+to\b|send\s+email|send\s+sms|telegram\s+broadcast|external\s+service",
         r"(delete|modify|edit|update|overwrite|truncate).{0,40}(billing|invoice|financial)",
         r"\.(csv|jsonl)\b",
         r"force.?push|reset\s+--hard|branch\s+-[dD]",
+        r"drift|sloppy|rogue|containment\s+sweep|broad\s+containment|global\s+fix",
     ]
     for pattern in _disqualifiers:
         if re.search(pattern, t, re.IGNORECASE):
@@ -113,6 +129,22 @@ def sync_egress_yaml(endpoint: str) -> None:
     print(f"[openshell] sync_egress_yaml: stub — would add {endpoint!r} to egress YAML", flush=True)
 
 
+def _focus_mode_active() -> bool:
+    """True when Focus Mode is enabled and not expired."""
+    if not AUTONOMY_MODE_FILE.exists():
+        return False
+    try:
+        data = json.loads(AUTONOMY_MODE_FILE.read_text(encoding="utf-8"))
+        if data.get("mode") != "focus_10h":
+            return False
+        expires_at = str(data.get("expires_at", "")).strip()
+        if not expires_at:
+            return False
+        return datetime.fromisoformat(expires_at) > datetime.now()
+    except Exception:
+        return False
+
+
 # ── Tier 2 hard rules — always phone, no downgrade ────────────────────────────
 
 _ALWAYS_T2: list[str] = [
@@ -132,17 +164,19 @@ _ALWAYS_T2: list[str] = [
     r"\.ssh[/\\]|ssh\s+key|private\s+key|id_rsa|id_ed25519",
     r"api.?key|bot.?token|telegram.*token|anthropic.*key|secret.*token",
     r"\bcredential|auth.?token|oauth\b",
+    r"\bssn\b|social\s+security|tax\s*id|ein\b",
     r"approval.?hmac.?secret|guardian.?bot.?token",
     # External publishing / sending
     r"publish\b|post\s+to\b|send\s+email|send\s+sms|telegram\s+broadcast",
     r"external\s+service|push\s+to\s+production",
+    # Broad quality/drift containment with elevated scope should be explicit.
+    r"(drift|sloppy|rogue).{0,40}(contain|containment|sweep|investigate|stabilize|fix)",
+    r"(contain|containment|sweep|investigate|stabilize|fix).{0,40}(drift|sloppy|rogue)",
     # Database / log destructive
     r"drop\s+table|truncate\b|drop\s+database",
     # Large deletions (when explicitly called out)
     r"large\s+deletion|bulk\s+delete",
     r"delete.{1,40}\d{3,}\s*mb|delete.{1,40}\d+\s*gb",
-    # Autonomous / unattended runs
-    r"autonomous|while\s+(i.?m\s+)?away|unattended|scheduled\s+run",
     # Windows system paths (non-trivial cleanup)
     r"program\s+files|appdata[/\\]local|\\windows\\|system32",
 ]
@@ -215,6 +249,11 @@ def classify(action: str) -> int:
     for pattern in _ALWAYS_T2:
         if re.search(pattern, t, re.IGNORECASE):
             return TIER_2
+
+    # Focus Mode 10h: permit local/reversible unattended ops without paging.
+    # High-risk classes above still force T2.
+    if _focus_mode_active() and _is_autonomous_local_only(action):
+        return TIER_0
 
     # T0 — clearly safe
     for pattern in _T0_PATTERNS:

@@ -43,6 +43,35 @@ VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
 POLL_INTERVAL   = 2     # seconds between checks
 TIMEOUT         = 86400 # 24 hours
+_CHIEF_ENV_FILE = Path("/home/openclaw/.chief.env")
+
+
+def _human_timeout(seconds: int) -> str:
+    if seconds % 3600 == 0:
+        hours = seconds // 3600
+        return f"{hours} hour" + ("s" if hours != 1 else "")
+    if seconds % 60 == 0:
+        mins = seconds // 60
+        return f"{mins} minute" + ("s" if mins != 1 else "")
+    return f"{seconds} seconds"
+
+
+def _load_env_file() -> None:
+    """Best-effort .chief.env loader so approval delivery works from bare shells."""
+    if not _CHIEF_ENV_FILE.exists():
+        return
+    try:
+        for raw in _CHIEF_ENV_FILE.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        pass
 
 
 # ── Lazy imports with fallback ─────────────────────────────────────────────────
@@ -118,6 +147,7 @@ def _build_l2_keyboard(approval_id: str, options: int, allow_delay: bool = True)
 
 
 def _send_via_guardian(message: str, keyboard: dict | None = None) -> None:
+    _load_env_file()
     try:
         from chief_guardian_sender import send_approval
         send_approval(message, reply_markup=keyboard)
@@ -237,10 +267,40 @@ def _append_log(action: str, requester: str, decision: str,
 
 def _send_chief(message: str) -> None:
     """Send via Chief bot (used for timeout/error notifications)."""
+    _load_env_file()
     subprocess.run(
         ["python3", str(Path.home() / "chief_sender.py"), message],
         check=False,
     )
+
+
+def resend_pending_request() -> bool:
+    """
+    Re-send the current pending approval request to Telegram.
+    Returns True when a pending request was found and resend was attempted.
+    """
+    data = _load_pending()
+    if data.get("status") != "pending":
+        return False
+
+    action = str(data.get("action", ""))
+    approval_id = str(data.get("id", ""))
+    requested_at = str(data.get("requested_at", ""))
+    options = int(data.get("options", 2) or 2)
+    action_hash = str(data.get("hash", ""))
+    if not action_hash and approval_id and requested_at:
+        action_hash = _compute_hash(action, approval_id, requested_at)
+
+    _send_via_guardian(
+        _build_l2_message(action, approval_id, action_hash, options),
+        keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
+    )
+    return True
+
+
+def send_no_pending_confirmation() -> None:
+    """Push a positive confirmation when no approval is currently pending."""
+    _send_via_guardian("✅ No pending approval requests.")
 
 
 # ── Approval message builder ───────────────────────────────────────────────────
@@ -269,7 +329,7 @@ def _build_l2_message(action: str, approval_id: str, action_hash: str,
         f"APPROVAL REQUIRED\n\n"
         f"ID: {approval_id}\n"
         f"Action: {action}{hash_line}{risk_line}\n"
-        f"Expires: 5 min"
+        f"Expires: {_human_timeout(TIMEOUT)}"
         f"{choice_line}"
     )
 
@@ -317,8 +377,8 @@ def request_approval(
 
       Tier 0 — Proceed immediately (no gate).
       Tier 1 — Local terminal y/N prompt; escalates to Tier 2 if no TTY.
-      Tier 2 — Remote phone approval via Guardian bot; blocks until response
-                or 5-minute timeout (auto-deny).
+    Tier 2 — Remote phone approval via Guardian bot; blocks until response
+            or timeout (auto-deny).
 
     explicit_tier overrides auto-classification. Tier 2 hard rules in
     chief_approval_policy.py cannot be downgraded by explicit_tier.
@@ -453,6 +513,7 @@ def request_approval(
             _append_log(action, requester, "APPROVED" if approved else "DENIED",
                         requested_at, elapsed, tier=tier)
             _clear_pending()
+            send_no_pending_confirmation()
             return approved
 
         elif data.get("id") == approval_id and data.get("status") == "delayed":
@@ -649,6 +710,15 @@ def get_pending_info() -> tuple[str, int]:
 # ── CLI entry point ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "--resend-pending":
+        ok = resend_pending_request()
+        if ok:
+            print("Pending approval re-sent.")
+            sys.exit(0)
+        send_no_pending_confirmation()
+        print("No pending approval to resend.")
+        sys.exit(0)
+
     if len(sys.argv) < 2:
         print("Usage: python3 chief_approval_brain.py \"action description\"")
         sys.exit(1)

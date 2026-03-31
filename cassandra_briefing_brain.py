@@ -53,6 +53,14 @@ _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
 _SCHEDULER_STATE  = Path("/mnt/c/OpenClawShared/album/scheduler_state.json")
 _APPROVAL_PENDING = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 
+# Treat very old pending approvals as stale so delayed/abandoned records
+# do not keep Cassandra in a permanent protected window.
+_APPROVAL_PENDING_MAX_AGE_SECONDS = 900
+_APPROVAL_IGNORED_REQUESTERS = {
+    "codex-test",
+    "claude-test",
+}
+
 # ── Slot definitions ──────────────────────────────────────────────────────────
 
 # {slot: (start_hour, end_hour_exclusive, briefing_directive)}
@@ -93,6 +101,36 @@ def _read_json_safe(path: Path) -> dict:
     return {}
 
 
+def _parse_requested_at(value: str) -> datetime | None:
+    value = (value or "").strip()
+    if not value:
+        return None
+    for parser in (datetime.fromisoformat, lambda s: datetime.strptime(s, "%Y-%m-%d %H:%M:%S")):
+        try:
+            return parser(value)
+        except Exception:
+            continue
+    return None
+
+
+def _approval_pending_active() -> bool:
+    approval = _read_json_safe(_APPROVAL_PENDING)
+    if approval.get("status") != "pending":
+        return False
+
+    requester = str(approval.get("requester", "")).strip().lower()
+    if requester in _APPROVAL_IGNORED_REQUESTERS:
+        return False
+
+    requested_at = _parse_requested_at(str(approval.get("requested_at", "")))
+    if requested_at is not None:
+        age = (datetime.now() - requested_at).total_seconds()
+        if age > _APPROVAL_PENDING_MAX_AGE_SECONDS:
+            return False
+
+    return True
+
+
 def protected_reason() -> str | None:
     """
     Return a short reason string if a protected window is active, else None.
@@ -118,8 +156,7 @@ def protected_reason() -> str | None:
         except Exception:
             pass  # malformed ends_at — treat as idle
 
-    approval = _read_json_safe(_APPROVAL_PENDING)
-    if approval.get("status") == "pending":
+    if _approval_pending_active():
         return "approval_pending"
 
     return None
