@@ -82,6 +82,8 @@
 !chief_guardian_listener.py
 !google_access_broker.py
 !google_access_policy.py
+!autonomy_mode.py
+!autonomy_qualification.py
 !chief_file_io.py
 !chief_output_utils.py
 !chief_chat.py

@@ -3,6 +3,7 @@ POLL_INTERVAL=20
 STATUS_FILE="/home/openclaw/polish_loop/status.json"
 PROMPT_FILE="/home/openclaw/polish_loop/POLISH_PROMPT.md"
 LOG_FILE="/home/openclaw/builder_watcher.log"
+ALERT_FILE="/home/openclaw/polish_loop/current/runner_alert.md"
 MAX_LAUNCHES=3
 
 if [ -n "${CODING_RUNNER+x}" ]; then
@@ -21,6 +22,19 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
 }
 
+set_runner_alert() {
+  local msg="$1"
+  {
+    echo "RUNNER STARTUP ALERT"
+    echo "time: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "message: $msg"
+  } > "$ALERT_FILE"
+}
+
+clear_runner_alert() {
+  rm -f "$ALERT_FILE" 2>/dev/null || true
+}
+
 guard_pattern_for_runner() {
   local runner="$1"
   if [ "$runner" = "codex" ]; then
@@ -34,10 +48,34 @@ guard_pattern_for_runner() {
 
 launch_runner_once() {
   local runner="$1"
+  local elevated
+
+  if [ "$runner" = "codex" ]; then
+    if ! command -v codex >/dev/null 2>&1; then
+      log "ALERT: codex CLI not found on PATH"
+      set_runner_alert "codex CLI missing from PATH"
+      return 127
+    fi
+  else
+    if ! command -v claude >/dev/null 2>&1; then
+      log "ALERT: claude CLI not found on PATH"
+      set_runner_alert "claude CLI missing from PATH"
+      return 127
+    fi
+  fi
+
+  clear_runner_alert
+
+  elevated=$(python3 -c "import json; d=json.load(open('$STATUS_FILE')); print(d.get('elevated_approved', False))" 2>/dev/null)
+
   if [ "$runner" = "codex" ]; then
     cd /home/openclaw && timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
   else
-    cd /home/openclaw && timeout 900 claude --model sonnet --auto < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+    if [ "$elevated" = "True" ]; then
+      cd /home/openclaw && timeout 900 claude --model sonnet --dangerously-skip-permissions --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+    else
+      cd /home/openclaw && timeout 900 claude --model sonnet --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+    fi
   fi
 }
 

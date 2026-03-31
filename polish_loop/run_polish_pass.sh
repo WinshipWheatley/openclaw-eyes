@@ -25,6 +25,8 @@ if [ "$STATUS" != "pc_turn" ]; then
     exit 0
 fi
 
+ELEVATED=$(python3 -c "import json; print(json.load(open('$STATUS_FILE')).get('elevated_approved', False))")
+
 echo "$(ts) [polish] pc_turn confirmed — pass ${PASS_NUM}, task: ${TASK_NAME}" | tee -a "$LOG_FILE"
 
 # Build prompt — inject pass context and mac_review at the top so it can't be missed
@@ -41,6 +43,11 @@ Your job this pass: address every item listed under ISSUES TO FIX above.
 Do NOT re-implement items listed under APPROVED ITEMS.
 Write PASS: ${PASS_NUM} in your pc_output.md.
 
+Output quality gate (required):
+- Include `STATUS: DONE` (or `STATUS: BLOCKED` only if truly blocked).
+- Include section headers exactly: `CHANGES:`, `REASONING:`, and `ROLLBACK PLAN:`.
+- Keep each section concrete and specific to files changed this pass.
+
 $(cat "$PROMPT_FILE")
 HEREDOC
 )"
@@ -48,12 +55,21 @@ else
     PROMPT="$(cat << HEREDOC
 This is pass 1 of task: ${TASK_NAME}
 
+Output quality gate (required):
+- Include `STATUS: DONE` (or `STATUS: BLOCKED` only if truly blocked).
+- Include section headers exactly: `CHANGES:`, `REASONING:`, and `ROLLBACK PLAN:`.
+- Keep each section concrete and specific to files changed this pass.
+
 $(cat "$PROMPT_FILE")
 HEREDOC
 )"
 fi
 
 # Run Claude with full tool access, non-interactively
-echo "$PROMPT" | claude --model sonnet --auto --print 2>&1 | tee -a "$LOG_FILE"
+if [ "$ELEVATED" = "True" ]; then
+    echo "$PROMPT" | claude --model sonnet --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
+else
+    echo "$PROMPT" | claude --model sonnet --print 2>&1 | tee -a "$LOG_FILE"
+fi
 
 echo "$(ts) [polish] Pass complete. Output at $OUTPUT_FILE" | tee -a "$LOG_FILE"

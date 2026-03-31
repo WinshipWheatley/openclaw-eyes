@@ -10,7 +10,11 @@ BILLING_TRACKER_CSV = BILLING_ROOT / "tracker" / "invoice_tracker.csv"
 ALBUM_STATE_CSV = Path("/mnt/c/OpenClaw/state/state.csv")
 
 STATE_FILE = Path("/mnt/c/OpenClaw/logs/chief_watcher_state.json")
+PENDING_APPROVAL_FILE = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 CHECK_EVERY_SECONDS = 900  # 15 minutes
+PENDING_REPLAY_AFTER_SECONDS = 120
+PENDING_REPLAY_COOLDOWN_SECONDS = 600
+PENDING_REPLAY_MAX_PER_ID = 3
 
 
 def send_reply(text: str):
@@ -27,7 +31,32 @@ def load_state():
                 return json.load(f)
         except Exception:
             pass
-    return {"sent_alert_keys": []}
+    return {"sent_alert_keys": [], "approval_replay": {}}
+
+
+def read_json(path: Path):
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def parse_pending_time(text: str):
+    text = (text or "").strip()
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(text)
+    except Exception:
+        return None
 
 
 def save_state(state):
@@ -226,6 +255,44 @@ def format_alert_message(alerts):
 
 
 def check_once(state):
+    state.setdefault("approval_replay", {})
+
+    # Keep approval flow alive without auto-deciding anything:
+    # if a pending request sits for a while, re-send it on bounded cooldown.
+    pending = read_json(PENDING_APPROVAL_FILE)
+    if pending.get("status") == "pending":
+        pending_id = (pending.get("id") or "unknown").strip() or "unknown"
+        pending_dt = parse_pending_time(pending.get("requested_at", ""))
+        pending_age = 0
+        if pending_dt is not None:
+            pending_age = max(0, int((datetime.now() - pending_dt).total_seconds()))
+
+        replay_state = state["approval_replay"].get(
+            pending_id,
+            {"last_replay": 0, "count": 0},
+        )
+        now_ts = int(time.time())
+        should_replay = (
+            pending_age >= PENDING_REPLAY_AFTER_SECONDS
+            and replay_state.get("count", 0) < PENDING_REPLAY_MAX_PER_ID
+            and (now_ts - int(replay_state.get("last_replay", 0))) >= PENDING_REPLAY_COOLDOWN_SECONDS
+        )
+        if should_replay:
+            result = subprocess.run(
+                ["python3", str(Path.home() / "chief_approval_brain.py"), "--resend-pending"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            replay_state["last_replay"] = now_ts
+            if result.returncode == 0:
+                replay_state["count"] = int(replay_state.get("count", 0)) + 1
+            state["approval_replay"][pending_id] = replay_state
+
+    # Prune replay memory for resolved approval IDs.
+    if pending.get("status") != "pending":
+        state["approval_replay"] = {}
+
     billing_rows = read_csv_rows(BILLING_TRACKER_CSV)
     album_rows = read_csv_rows(ALBUM_STATE_CSV)
 

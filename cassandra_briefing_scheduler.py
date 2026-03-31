@@ -28,6 +28,7 @@ from cassandra_briefing_brain import (
     generate_briefing,
     save_briefing,
     mark_delivered,
+    refresh_briefing_text,
     pending_briefings,
     is_protected_window,
     protected_reason,
@@ -87,6 +88,23 @@ def _tick() -> None:
     # 2. Deliver any stale pending briefings now that the window may be clear
     if not is_protected_window():
         for entry in pending_briefings():
+            # A pending briefing was written under a protected reason.
+            # Regenerate now so stale "paused/waiting" language is not delivered late.
+            if entry.get("pending_reason"):
+                try:
+                    refreshed_text = generate_briefing(entry["slot"])
+                    refresh_briefing_text(entry["date"], entry["slot"], refreshed_text, pending_reason=None)
+                    entry["text"] = refreshed_text
+                    entry["pending_reason"] = None
+                    print(
+                        f"[briefing_scheduler] refreshed pending {entry['date']}_{entry['slot']} before delivery",
+                        flush=True,
+                    )
+                except Exception as e:
+                    print(
+                        f"[briefing_scheduler] refresh failed for {entry['date']}_{entry['slot']}: {e}",
+                        flush=True,
+                    )
             print(
                 f"[briefing_scheduler] delivering stale pending "
                 f"{entry['date']}_{entry['slot']}",

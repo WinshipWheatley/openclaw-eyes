@@ -207,7 +207,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
     if not has_pending_approval():
-        await update.message.reply_text("No pending approval request.")
+        await update.message.reply_text("✅ No pending approval requests.")
         return
 
     # Read pending record once: id → binding; options → correct format hint.

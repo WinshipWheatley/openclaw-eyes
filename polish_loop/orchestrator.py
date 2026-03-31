@@ -146,7 +146,7 @@ def write_status(
 def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     """
     Returns (True, "ok") or (False, reason).
-    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "has_blocked"
+    reason values: "missing" | "empty" | "no_pass_line" | "stale" | "has_blocked" | "quality_gate"
     """
     if not PC_OUTPUT.exists():
         return False, "missing"
@@ -168,6 +168,13 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
         return False, "stale"
     if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
         return False, "has_blocked"
+
+    required_headers = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:")
+    upper = content.upper()
+    for header in required_headers:
+        if header not in upper:
+            return False, "quality_gate"
+
     return True, "ok"
 
 
@@ -222,20 +229,32 @@ _TEST_BUILDER_OVERRIDE: bool | None = None
 # Set to True/False in tests to override _relaunch_builder() return value.
 _TEST_RELAUNCH_OVERRIDE: bool | None = None
 
+# Set to True in tests to keep idle-state queue promotion from touching live tasks.
+_TEST_DISABLE_IDLE_AUTOLAUNCH: bool = False
+
 
 def builder_running() -> bool:
-    """True if run_polish_pass.sh is currently executing (the Builder agent)."""
+    """True if a builder pass process is currently executing."""
     if _TEST_BUILDER_OVERRIDE is not None:
         return _TEST_BUILDER_OVERRIDE
-    try:
-        result = subprocess.run(
-            ["pgrep", "-f", "run_polish_pass.sh"],
-            capture_output=True,
-            text=True,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
+    patterns = [
+        "run_polish_pass.sh",
+        "timeout 900 claude --model sonnet --print",
+        "timeout 900 claude --model sonnet --dangerously-skip-permissions --print",
+        "timeout 900 codex exec",
+    ]
+    for pattern in patterns:
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", pattern],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def _relaunch_builder() -> bool:
@@ -280,6 +299,9 @@ def compute_elapsed(status: dict) -> float:
 def handle_idle(status: dict, dry_run: bool = False) -> None:
     task = status.get("task_name", "?")
     task_md = LOOP_DIR / "task.md"
+    if _TEST_DISABLE_IDLE_AUTOLAUNCH:
+        log("STATE", f"idle | task={task} | test mode — autolaunch disabled", dry_run)
+        return
     if not task_md.exists():
         queue_dir = LOOP_DIR / "tasks"
         skip_names = {"env-001-install.md", "env-001-spec-tools.md"}
@@ -346,6 +368,25 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
             if not dry_run:
                 write_status("blocked", reason="stale_pc_output")
             return
+        if reason == "quality_gate":
+            log("EVIDENCE", "pc_output failed quality gate (missing CHANGES/REASONING/ROLLBACK PLAN)", dry_run)
+            log("TRANSITION", "pc_turn → blocked (reason: weak_pc_output_quality)", dry_run)
+            if not dry_run:
+                write_status("blocked", reason="weak_pc_output_quality")
+            return
+        # If stale BLOCKED output remains and Builder is currently dead, attempt a
+        # bounded immediate relaunch instead of waiting the full timeout window.
+        if reason == "has_blocked" and not status.get("relaunch_attempted", False):
+            running_now = builder_running()
+            if not running_now:
+                log("ACTION", "pc_output shows STATUS:BLOCKED and Builder is dead — immediate re-launch attempt", dry_run)
+                if not dry_run:
+                    launched = _relaunch_builder()
+                    if launched:
+                        log("ACTION", "Builder re-launched from stale BLOCKED output condition", dry_run)
+                        _write_status_raw({"relaunch_attempted": True})
+                        return
+
         # Other invalid (no_pass_line, has_blocked, unreadable) — fall through to timeout logic
         log("STATE", f"pc_turn | pc_output invalid ({reason}) — checking agent status", dry_run)
 
@@ -395,10 +436,17 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
     log("STATE", f"mac_turn | task={task} | pass={pass_num} | elapsed={elapsed:.0f}s", dry_run)
 
     if not MAC_REVIEW.exists():
-        log("STATE", "mac_turn | no mac_review.md — auto-approving", dry_run)
-        log("TRANSITION", "mac_turn → approved (auto)", dry_run)
+        if elapsed < PLANNER_TIMEOUT:
+            log(
+                "STATE",
+                f"mac_turn | waiting for Planner review ({elapsed:.0f}s < {PLANNER_TIMEOUT}s)",
+                dry_run,
+            )
+            return
+        log("EVIDENCE", f"mac_turn | no mac_review.md after {elapsed:.0f}s", dry_run)
+        log("TRANSITION", "mac_turn → blocked (reason: planner_timeout_no_review)", dry_run)
         if not dry_run:
-            write_status("approved", approved=True)
+            write_status("blocked", reason="planner_timeout_no_review")
         return
 
     approved = mac_review_says_approved()
@@ -601,6 +649,7 @@ def cmd_resume() -> None:
         print(f"ERROR: unknown parked_from={parked_from!r} — cannot determine resume target", file=sys.stderr)
         sys.exit(1)
     write_status(parked_from)
+    _write_status_raw({"relaunch_attempted": False})
     print(f"[resume] parked → {parked_from}")
 
 
@@ -625,6 +674,8 @@ def cmd_dry_run() -> None:
 def cmd_run_tests() -> None:
     """Run the orchestrator test matrix against live files."""
     import copy
+
+    global _TEST_DISABLE_IDLE_AUTOLAUNCH
 
     results:  list[str] = []
     failures: list[str] = []
@@ -672,6 +723,8 @@ def cmd_run_tests() -> None:
         return base
 
     try:
+        _TEST_DISABLE_IDLE_AUTOLAUNCH = True
+
         # 1. status.json missing → blocked, invalid_or_missing_status
         clear_status()
         clear_artifacts()
@@ -729,7 +782,16 @@ def cmd_run_tests() -> None:
 
         # 5. pc_turn, valid pc_output → mac_turn
         set_status(fresh_status(status="pc_turn", **{"pass": 2, "last_updated": now_iso}))
-        PC_OUTPUT.write_text("PASS: 2\nSTATUS: DONE\n\nCHANGES:\ntest\n")
+        PC_OUTPUT.write_text(
+            "PASS: 2\n"
+            "STATUS: DONE\n\n"
+            "CHANGES:\n"
+            "- test\n\n"
+            "REASONING:\n"
+            "- test\n\n"
+            "ROLLBACK PLAN:\n"
+            "- revert test\n"
+        )
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
@@ -752,7 +814,30 @@ def cmd_run_tests() -> None:
         )
         PC_OUTPUT.unlink(missing_ok=True)
 
-        # 7. mac_turn, ambiguous mac_review → blocked (ambiguous_mac_review)
+        # 7. mac_turn, no mac_review, elapsed < timeout → still mac_turn
+        set_status(fresh_status(status="mac_turn", last_updated=now_iso))
+        clear_artifacts()
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "mac_turn, no mac_review, elapsed < timeout → still mac_turn (wait)",
+            s is not None and s["status"] == "mac_turn",
+            f"got {s}",
+        )
+
+        # 8. mac_turn, no mac_review, elapsed > timeout → blocked (planner_timeout_no_review)
+        set_status(fresh_status(status="mac_turn", last_updated=old_iso))
+        clear_artifacts()
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "mac_turn, no mac_review, elapsed > timeout → blocked (planner_timeout_no_review)",
+            s is not None and s["status"] == "blocked"
+            and s.get("block_reason") == "planner_timeout_no_review",
+            f"got {s}",
+        )
+
+        # 9. mac_turn, ambiguous mac_review → blocked (ambiguous_mac_review)
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("This review says nothing definitive.\n")
         run_one_cycle(dry_run=False)
@@ -765,7 +850,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 8. mac_turn, NEEDS_REWORK, pass >= MAX_PASSES → blocked (max_passes_exceeded)
+        # 10. mac_turn, NEEDS_REWORK, pass >= MAX_PASSES → blocked (max_passes_exceeded)
         set_status(fresh_status(status="mac_turn", **{"pass": MAX_PASSES, "last_updated": now_iso}))
         MAC_REVIEW.write_text("NEEDS_REWORK\nSome issues found.\n")
         run_one_cycle(dry_run=False)
@@ -778,18 +863,18 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 9. approved, no closeout.ok → still approved (waiting)
+        # 11. approved, no closeout.ok → idle (auto-close)
         set_status(fresh_status(status="approved", approved=True, last_updated=now_iso))
         clear_artifacts()
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved, no closeout.ok → still approved (waiting)",
-            s is not None and s["status"] == "approved",
+            "approved, no closeout.ok → idle (auto-close)",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
 
-        # 10. --reset-blocked with reason → idle
+        # 12. --reset-blocked with reason → idle
         set_status(fresh_status(status="blocked", block_reason="test_block", last_updated=now_iso))
         cmd_reset_blocked("Builder auth expired — re-authed")
         s = read_status()
@@ -799,7 +884,7 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
-        # 11. dry_run=True writes nothing
+        # 13. dry_run=True writes nothing
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("APPROVED\n")
         before = STATUS_FILE.read_text()
@@ -812,7 +897,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 12. mac_turn, APPROVED → approved
+        # 14. mac_turn, APPROVED → approved
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
         MAC_REVIEW.write_text("Some analysis.\nAPPROVED\nNo issues.\n")
         run_one_cycle(dry_run=False)
@@ -824,7 +909,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 13. mac_turn, NEEDS_REWORK, pass < MAX_PASSES → pc_turn (pass incremented)
+        # 15. mac_turn, NEEDS_REWORK, pass < MAX_PASSES → pc_turn (pass incremented)
         set_status(fresh_status(status="mac_turn", **{"pass": 1, "last_updated": now_iso}))
         MAC_REVIEW.write_text("NEEDS_REWORK\nFix these issues.\n")
         run_one_cycle(dry_run=False)
@@ -836,7 +921,7 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 14. approved + valid closeout.ok → idle
+        # 16. approved + valid closeout.ok → idle
         set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
         closeout_payload = {
             "task_name": "test-orch",
@@ -853,14 +938,14 @@ def cmd_run_tests() -> None:
         )
         CLOSEOUT.unlink(missing_ok=True)
 
-        # 15. approved + malformed closeout.ok → still approved (ERROR logged, not stuck-silent)
+        # 17. approved + malformed closeout.ok → idle (ERROR logged, not stuck-silent)
         set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
         CLOSEOUT.write_text("this is plain text, not json")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved + malformed closeout.ok → still approved (ERROR logged)",
-            s is not None and s["status"] == "approved",
+            "approved + malformed closeout.ok → idle (ERROR logged)",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
         CLOSEOUT.unlink(missing_ok=True)
@@ -901,7 +986,42 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
+        # 19. cmd_resume from parked pc_turn resets relaunch_attempted guard
+        set_status(fresh_status(status="parked", **{"pass": 1, "task_name": "test-orch", "parked_from": "pc_turn", "parked_reason": "builder_timeout", "relaunch_attempted": True}))
+        cmd_resume()
+        s = read_status()
+        check(
+            "cmd_resume parked(pc_turn) resets relaunch_attempted",
+            s is not None and s["status"] == "pc_turn" and s.get("relaunch_attempted") is False,
+            f"got {s}",
+        )
+
+        # 20. builder_running() recognizes watcher-launched runner process patterns
+        real_subprocess_run = subprocess.run
+        seen_patterns: list[str] = []
+        def fake_run(args, capture_output=False, text=False):
+            pattern = args[-1] if args else ""
+            seen_patterns.append(pattern)
+            class R:
+                def __init__(self, rc):
+                    self.returncode = rc
+            # Simulate watcher-launched Claude process present.
+            if pattern == "timeout 900 claude --model sonnet --print":
+                return R(0)
+            return R(1)
+        subprocess.run = fake_run
+        try:
+            detected = builder_running()
+        finally:
+            subprocess.run = real_subprocess_run
+        check(
+            "builder_running detects watcher-launched runner patterns",
+            detected is True and "timeout 900 claude --model sonnet --print" in seen_patterns,
+            f"detected={detected} patterns={seen_patterns}",
+        )
+
     finally:
+        _TEST_DISABLE_IDLE_AUTOLAUNCH = False
         # Restore original state
         if original_status is not None:
             STATUS_FILE.write_text(original_status)
