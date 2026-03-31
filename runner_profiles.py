@@ -37,6 +37,19 @@ TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
 
 # ---------------------------------------------------------------------------
+# Planner-mode adjustments — planner reviews builder output, doesn't build
+# ---------------------------------------------------------------------------
+
+PLANNER_PREFERRED_MODELS = {
+    "quick": "sonnet",
+    "surgical": "sonnet",
+    "standard": "sonnet",
+    "architect": "sonnet",   # planner rarely needs opus even for big reviews
+}
+
+PLANNER_BUDGET_SCALE = 0.5  # planner reviews cost ~half of building
+
+# ---------------------------------------------------------------------------
 # Profile definitions — task parameters only, runner is chosen dynamically
 # ---------------------------------------------------------------------------
 
@@ -233,11 +246,17 @@ def _has_keywords(meta: dict, keywords: set[str]) -> bool:
     return any(kw in text for kw in keywords)
 
 
-def select_profile(task_text: str) -> dict:
+def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     """Select the best runner profile for the given task text.
 
     Returns a profile dict with all CLI parameters, chosen runner, and
     a fully-built invoke_cmd ready for shell execution.
+
+    If planner_mode=True, adjusts for the Mac planner role:
+      - Uses PLANNER_PREFERRED_MODELS (sonnet-heavy, opus only explicitly)
+      - Scales budget down (reviews cost less than building)
+      - Omits invoke_cmd (Mac builds its own with local paths)
+      - Adds role="planner" to output
     """
     meta = _parse_frontmatter(task_text)
 
@@ -270,13 +289,21 @@ def select_profile(task_text: str) -> dict:
 
     result = dict(PROFILES[tier])
     result["tier"] = tier
+    result["role"] = "planner" if planner_mode else "builder"
+
+    # Planner mode: scale budget down (reviews cost less)
+    if planner_mode:
+        result["budget"] = round(result["budget"] * PLANNER_BUDGET_SCALE, 2)
 
     # 3. Check if this is a blocking task (from frontmatter)
     is_blocking = meta.get("blocking", "").lower() in ("true", "yes", "1")
     task_id = meta.get("title", "unknown")
 
     # 4. Dynamic runner selection via registry + budget awareness
-    runner_name, model, runner_reason, budget_override = _pick_runner(tier, task_id, is_blocking)
+    model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
+    runner_name, model, runner_reason, budget_override = _pick_runner(
+        tier, task_id, is_blocking, model_prefs=model_prefs
+    )
     result["runner"] = runner_name
     result["model"] = model
     result["reason"] = f"{reason_prefix}; runner={runner_name} ({runner_reason})"
@@ -294,9 +321,12 @@ def select_profile(task_text: str) -> dict:
     else:
         result["defer"] = False
 
-    # 6. Build the full invoke command
-    prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
-    result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
+    # 6. Build the full invoke command (builder only — planner builds its own on Mac)
+    if planner_mode:
+        result["invoke_cmd"] = ""  # Mac planner_runner.py builds this with local paths
+    else:
+        prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
+        result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
 
     return result
 
@@ -319,12 +349,15 @@ def _check_deferral(task_id: str, tier: str, is_blocking: bool) -> Optional[dict
     return None
 
 
-def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False) -> tuple[str, str, str, Optional[float]]:
+def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
+                  *, model_prefs: Optional[dict] = None) -> tuple[str, str, str, Optional[float]]:
     """Pick the best available runner for a task tier, budget-aware.
 
     Returns (runner_name, model, reason_fragment, budget_override_or_None).
     Falls back to claude/sonnet if registry unavailable.
     """
+    if model_prefs is None:
+        model_prefs = PREFERRED_MODELS
     budget_override = None
 
     # Step 1: Get registry ranking
@@ -336,14 +369,14 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False)
         pass
 
     if not ranked_runners:
-        model = PREFERRED_MODELS.get(tier, "sonnet")
+        model = model_prefs.get(tier, "sonnet")
         return ("claude", model, "fallback — registry unavailable", None)
 
     # Step 2: Check budget for each candidate until we find one that's allowed
     try:
         import budget_tracker
         for candidate in ranked_runners:
-            preferred_model = PREFERRED_MODELS.get(tier, "sonnet")
+            preferred_model = model_prefs.get(tier, "sonnet")
             if candidate.models and preferred_model in candidate.models:
                 model = preferred_model
             elif candidate.models:
@@ -394,7 +427,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False)
     except Exception:
         score = 0
 
-    preferred_model = PREFERRED_MODELS.get(tier, "sonnet")
+    preferred_model = model_prefs.get(tier, "sonnet")
     if best.models and preferred_model in best.models:
         model = preferred_model
     elif best.models:
@@ -451,26 +484,64 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
 
 
 def main():
-    """CLI entry point — reads task.md and prints profile JSON to stdout."""
-    if not TASK_FILE.exists():
+    """CLI entry point — reads task.md and prints profile JSON to stdout.
+
+    Flags:
+      --planner-mode   Select profile for the Mac planner role (review, not build)
+      --task-stdin     Read task text from stdin instead of task.md file
+      --tier TIER      Force a specific tier (skip heuristic detection)
+    """
+    import argparse
+    parser = argparse.ArgumentParser(description="Smart runner profile selector")
+    parser.add_argument("--planner-mode", action="store_true",
+                        help="Select profile for Mac planner role")
+    parser.add_argument("--task-stdin", action="store_true",
+                        help="Read task text from stdin instead of task.md")
+    parser.add_argument("--tier", type=str, choices=list(PROFILES.keys()),
+                        help="Force a specific task tier")
+    args = parser.parse_args()
+
+    planner_mode = args.planner_mode
+
+    # Get task text
+    if args.task_stdin:
+        task_text = sys.stdin.read()
+    elif TASK_FILE.exists():
+        task_text = TASK_FILE.read_text()
+    else:
+        task_text = ""
+
+    if not task_text.strip():
         # No task — return default with dynamic runner
-        tier = DEFAULT_PROFILE
+        tier = args.tier or DEFAULT_PROFILE
         result = dict(PROFILES[tier])
         result["tier"] = tier
-        runner_name, model, runner_reason, budget_override = _pick_runner(tier)
+        result["role"] = "planner" if planner_mode else "builder"
+        if planner_mode:
+            result["budget"] = round(result["budget"] * PLANNER_BUDGET_SCALE, 2)
+        model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
+        runner_name, model, runner_reason, budget_override = _pick_runner(
+            tier, model_prefs=model_prefs
+        )
         result["runner"] = runner_name
         result["model"] = model
-        result["reason"] = f"no task.md found, using default; runner={runner_name} ({runner_reason})"
+        result["reason"] = f"no task text, using default; runner={runner_name} ({runner_reason})"
         result["defer"] = False
         if budget_override is not None:
             result["budget"] = budget_override
-        prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
-        result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
+        if not planner_mode:
+            prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
+            result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
+        else:
+            result["invoke_cmd"] = ""
         print(json.dumps(result))
         return
 
-    task_text = TASK_FILE.read_text()
-    profile = select_profile(task_text)
+    # If --tier is forced, inject it into the task text as frontmatter
+    if args.tier:
+        task_text = f"profile: {args.tier}\n{task_text}"
+
+    profile = select_profile(task_text, planner_mode=planner_mode)
     print(json.dumps(profile))
 
 

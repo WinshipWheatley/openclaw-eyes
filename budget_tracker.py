@@ -473,6 +473,14 @@ def main():
     parser.add_argument("--status", action="store_true", help="Show current budget status")
     parser.add_argument("--record", nargs=4, metavar=("RUNNER", "MODEL", "COST", "TASK_ID"),
                         help="Record a spend entry")
+    parser.add_argument("--completed", action="store_true", default=False,
+                        help="Mark spend entry as task-completed (with --record)")
+    parser.add_argument("--exit-code", type=int, default=None,
+                        help="Exit code from runner (with --record)")
+    parser.add_argument("--tier", type=str, default="",
+                        help="Task tier (with --record)")
+    parser.add_argument("--duration-ms", type=int, default=0,
+                        help="Run duration in ms (with --record)")
     parser.add_argument("--check", nargs=3, metavar=("RUNNER", "MODEL", "TIER"),
                         help="Check if a runner/model can afford a task tier")
     parser.add_argument("--strategy", nargs=3, metavar=("TASK_ID", "TIER", "IS_BLOCKING"),
@@ -506,7 +514,13 @@ def main():
 
     if args.record:
         runner, model, cost, task_id = args.record
-        status = record_spend(runner, model, float(cost), task_id)
+        status = record_spend(
+            runner, model, float(cost), task_id,
+            completed=args.completed,
+            exit_code=args.exit_code if args.exit_code is not None else -1,
+            tier=args.tier or "",
+            duration_ms=args.duration_ms or 0,
+        )
         if args.json:
             print(json.dumps(status, indent=2))
         else:
