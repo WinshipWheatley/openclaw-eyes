@@ -69,7 +69,7 @@ launch_runner_once() {
   profile_json=$(cd /home/openclaw && python3 runner_profiles.py 2>/dev/null)
   if [ -z "$profile_json" ]; then
     log "PROFILE: runner_profiles.py failed — falling back to hardcoded defaults"
-    profile_json='{"runner":"claude","model":"sonnet","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 claude --model sonnet --effort high --dangerously-skip-permissions --print --max-budget-usd 2.0 --fallback-model sonnet < /home/openclaw/polish_loop/POLISH_PROMPT.md","defer":false}'
+    profile_json='{"runner":"claude","model":"sonnet","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 claude --model sonnet --effort high --dangerously-skip-permissions --print --max-budget-usd 2.0 --fallback-model haiku < /home/openclaw/polish_loop/POLISH_PROMPT.md","defer":false}'
   fi
 
   local p_runner p_model p_timeout p_budget p_reason p_invoke_cmd p_defer p_tier p_task_id
@@ -131,13 +131,18 @@ launch_runner_once() {
     cd /home/openclaw && setsid timeout "$p_timeout" codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
     run_exit_code=$?
   else
+    # Fallback model must differ from primary; use haiku when primary is sonnet
+    local fallback_model="sonnet"
+    if [ "$p_model" = "sonnet" ]; then
+      fallback_model="haiku"
+    fi
     cd /home/openclaw && setsid timeout "$p_timeout" claude \
       --model "$p_model" \
       --effort high \
       --dangerously-skip-permissions \
       --print --output-format json \
       --max-budget-usd "$p_budget" \
-      --fallback-model sonnet \
+      --fallback-model "$fallback_model" \
       < "$PROMPT_FILE" > "$run_output_file" 2>> "$LOG_FILE"
     run_exit_code=$?
   fi
