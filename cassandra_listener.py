@@ -21,8 +21,9 @@ from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
-from cassandra_brain import handle as cassandra_handle
-from cassandra_voice import speak
+from cassandra_brain import handle as cassandra_handle, is_designated_contact_sender
+from cassandra_sender import send_voice_note
+from cassandra_voice import speak, synthesize_for_voice_note
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 
@@ -76,14 +77,28 @@ def _suppress_voice(user_text: str) -> bool:
 # ── Message handler ───────────────────────────────────────────────────────────
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != AUTHORIZED_USER_ID:
+    sender_name = update.effective_user.full_name if update.effective_user else None
+    sender_chat_id = update.effective_chat.id if update.effective_chat else None
+    is_authorized_user = bool(update.effective_user and update.effective_user.id == AUTHORIZED_USER_ID)
+    is_designated_contact = is_designated_contact_sender(
+        sender_name=sender_name,
+        sender_chat_id=sender_chat_id,
+    )
+    if not is_authorized_user and not is_designated_contact:
         return
     if not update.message or not update.message.text:
         return
 
     text = update.message.text.strip()
     try:
-        replies = await asyncio.to_thread(cassandra_handle, text)
+        replies = await asyncio.to_thread(
+            cassandra_handle,
+            text,
+            {
+                "sender_name": sender_name,
+                "sender_chat_id": sender_chat_id,
+            },
+        )
         for r in replies:
             await update.message.reply_text(r)
         _log_cassandra_route(text, "cassandra")
@@ -94,8 +109,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Speak after all text replies — in a separate try so voice failures
     # don't send the fallback message to Telegram
     try:
+        if not is_authorized_user:
+            return
         suppress = _suppress_voice(text)
         speak(" ".join(replies), suppress=suppress)
+        if not suppress:
+            wav_path = synthesize_for_voice_note(" ".join(replies))
+            if wav_path is not None:
+                send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
     except Exception as e:
         print(f"[cassandra_listener] voice error (suppressed): {e}", flush=True)
 

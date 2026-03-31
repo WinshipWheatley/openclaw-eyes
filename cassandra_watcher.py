@@ -27,6 +27,7 @@ from cassandra_brain import (
     is_focus_mode,
     is_social_mode,
     load_state,
+    process_pending_followups,
     save_state,
     chirp_allowed,
     log_chirp,
@@ -136,6 +137,7 @@ def run_loop() -> None:
     print("[cassandra_watcher] started.", flush=True)
     while True:
         try:
+            process_pending_followups()
             if not is_focus_mode() and not is_social_mode():
                 state = load_state()
                 if chirp_allowed("any", state):

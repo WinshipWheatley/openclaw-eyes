@@ -34,12 +34,13 @@ import re
 CALENDAR_CONNECTED         = True   # google.calendar.read via google_access_broker.py
 PAYMENT_EXTERNAL_CONNECTED = False  # no live bank or payment processor connection
 FILE_VERIFY_CONNECTED      = False  # Chief file-existence check not wired in
-EMAIL_SEND_CONNECTED       = False  # cannot send email; draft text only
+EMAIL_SEND_CONNECTED = True  # google.gmail.send via google_access_broker.py (L2 approval required)
 FUTURE_ACTION_CONNECTED    = False  # cannot autonomously check, send, or follow up
 FINANCIAL_LOG_CONNECTED    = True   # expense_log.json write via chief_cpa_brain.log_entry / log_expense_from_text
 GMAIL_METADATA_CONNECTED   = True   # google.gmail.read.metadata via google_access_broker.py
 CONTACTS_CONNECTED         = True   # google.contacts.read via google_access_broker.py
 PII_VAULT_CONNECTED        = False  # pii_vault.py ready; requires --generate-key + --write to activate
+VOICE_NOTE_CONNECTED       = True   # Telegram voice note sending via cassandra_sender.send_voice_note
 
 # ── Source state labels ───────────────────────────────────────────────────────
 

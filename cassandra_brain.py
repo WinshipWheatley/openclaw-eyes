@@ -20,6 +20,7 @@ build_context_snapshot()    — system state block for watcher prompts
 """
 
 import json
+import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -32,15 +33,141 @@ from capability_registry import registry_context_for_query
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-_STATE_PATH  = Path("/mnt/c/OpenClaw/logs/cassandra_state.json")
-_FOCUS_LOCK  = Path("/mnt/c/OpenClaw/logs/cassandra_focus.lock")
-_SOCIAL_LOCK = Path("/mnt/c/OpenClaw/logs/cassandra_social.lock")
+_STATE_PATH       = Path("/mnt/c/OpenClaw/logs/cassandra_state.json")
+_FOCUS_LOCK       = Path("/mnt/c/OpenClaw/logs/cassandra_focus.lock")
+_SOCIAL_LOCK      = Path("/mnt/c/OpenClaw/logs/cassandra_social.lock")
+_NICKNAMES_PATH   = Path("/home/openclaw/contact_nicknames.json")
+_FOLLOWUP_LOG     = Path("/mnt/c/OpenClaw/logs/cassandra_pending_followups.jsonl")
+_POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
+_POLISH_ARCHIVE   = Path("/home/openclaw/polish_loop/archive")
+_POLISH_STATUS    = Path("/home/openclaw/polish_loop/status.json")
+_POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
 _OPS_NOTES   = _VAULT_SYS / "Ops Notes.md"
 _OPS_EMAIL   = _VAULT_SYS / "Ops Email Log.md"
+
+_PARTIAL_FOLLOWUP_NOTE = (
+    "I can't fully answer the rest right now, but I'm working on getting "
+    "that capability. I'll follow up when I can."
+)
+
+_HEDGING_PATTERNS = (
+    r"\bi can'?t\b",
+    r"\bi cannot\b",
+    r"\bi do not have access\b",
+    r"\bi don't have access\b",
+    r"\bi'?m not able to\b",
+    r"\bthat'?s beyond my current\b",
+    r"\bi'?ll need to check\b",
+    r"\bi don'?t have\b",
+    r"\bi can'?t verify\b",
+    r"\bi can'?t confirm\b",
+    r"\bnot something i can do from here\b",
+    r"\bnot in my toolkit\b",
+)
+
+_CAPABILITY_GAP_SPECS = {
+    "payment_verify": {
+        "flag": "PAYMENT_EXTERNAL_CONNECTED",
+        "keywords": (
+            "payment", "deposit", "invoice", "cleared", "posted",
+            "arrived", "came in", "paid", "payment status",
+        ),
+        "reply_keywords": ("payment", "deposit", "invoice", "clear", "account"),
+        "goal": "Enable Cassandra to verify external payment status instead of relying on logs.",
+        "scope": [
+            "Add a safe payment verification path Cassandra can call for payment-status questions.",
+            "Keep source labeling clear so logged notes stay distinct from verified payment data.",
+            "Support the specific user request that exposed the gap.",
+        ],
+        "success": "Cassandra can verify payment status directly for the requested scenario.",
+        "manual_required": False,
+    },
+    "file_verify": {
+        "flag": "FILE_VERIFY_CONNECTED",
+        "keywords": (
+            "file", "path", "folder", "document", "exists", "exist",
+            "missing", "there", "present", "find the file",
+        ),
+        "reply_keywords": ("file", "path", "document", "folder"),
+        "goal": "Enable Cassandra to verify file and path existence when asked.",
+        "scope": [
+            "Wire a bounded file-existence check Cassandra can call safely.",
+            "Return direct yes/no or missing-path answers without overstating content verification.",
+            "Cover the user request that triggered the gap.",
+        ],
+        "success": "Cassandra can confirm file or path existence for direct verification requests.",
+        "manual_required": False,
+    },
+    "future_action": {
+        "flag": "FUTURE_ACTION_CONNECTED",
+        "keywords": (
+            "follow up", "follow-up", "remind", "check again", "later",
+            "tomorrow", "next week", "ping", "reach out", "let me know",
+            "check back", "send a reminder",
+        ),
+        "reply_keywords": ("follow", "remind", "check back", "autonomous", "next check-in"),
+        "goal": "Enable Cassandra to queue and complete bounded future follow-up actions.",
+        "scope": [
+            "Add a safe reminder or follow-up mechanism Cassandra can use for future-action requests.",
+            "Keep approvals and user-visible promises aligned with what the automation actually does.",
+            "Support the original request that triggered this capability gap.",
+        ],
+        "success": "Cassandra can complete the requested follow-up or reminder flow end to end.",
+        "manual_required": False,
+    },
+    "sms": {
+        "flag": None,
+        "keywords": (
+            "text", "sms", "message them", "send a text", "send a message",
+            "reply to them", "ping them",
+        ),
+        "reply_keywords": ("text", "sms", "message", "ping"),
+        "goal": "Enable Cassandra to send or verify SMS-style outreach when requested.",
+        "scope": [
+            "Wire Cassandra into the existing SMS pathway or add the missing bridge.",
+            "Preserve approval behavior for any real outbound send.",
+            "Support the concrete contact/message scenario from the triggering request.",
+        ],
+        "success": "Cassandra can complete the requested SMS workflow for the target scenario.",
+        "manual_required": False,
+    },
+    "email_send": {
+        "flag": "EMAIL_SEND_CONNECTED",
+        "keywords": (
+            "email", "send an email", "send email", "reply by email",
+            "email them", "email him", "email her",
+        ),
+        "reply_keywords": ("email", "gmail", "compose", "send"),
+        "goal": "Enable Cassandra to send email for the request that exposed the gap.",
+        "scope": [
+            "Finish the email-send path or the Gmail access needed for Cassandra to use it.",
+            "Preserve approval gating for outbound send actions.",
+            "Cover the user request that triggered the gap.",
+        ],
+        "success": "Cassandra can send the requested email workflow for the triggering scenario.",
+        "manual_required": True,
+    },
+    "calendar_access": {
+        "flag": "CALENDAR_CONNECTED",
+        "keywords": (
+            "calendar", "schedule", "appointment", "meeting", "what do i have",
+            "what's on", "when am i", "later today", "tomorrow morning",
+        ),
+        "reply_keywords": ("calendar", "schedule", "appointment", "meeting"),
+        "goal": "Enable Cassandra to answer live calendar questions directly.",
+        "scope": [
+            "Wire Cassandra to the calendar access path for live schedule lookups.",
+            "Keep source labeling clear between calendar data and logged notes.",
+            "Support the exact scheduling question that exposed the gap.",
+        ],
+        "success": "Cassandra can answer the targeted calendar question from live data.",
+        "manual_required": True,
+    },
+}
 
 # ── Chirp throttle constants ───────────────────────────────────────────────────
 
@@ -122,6 +249,14 @@ _KEYWORDS = (
     "any unread",
     "unread emails",
     "inbox",
+    # email send
+    "send an email",
+    "send email to",
+    "email to ",
+    "send a message to",
+    "send the intro emails",
+    "send intro emails",
+    "send outreach emails",
 )
 
 # Mode-toggle commands — also caught by cassandra_intent
@@ -644,6 +779,15 @@ GMAIL — when [GMAIL DATA] is present in context:
   If asked about email content: "I can see the subject and sender but not the body."
   Cap spoken summary at 5 messages total.
 
+EMAIL SEND — email_send is CONNECTED:
+  Sending email requires: recipient name, subject line, and body — all three.
+  To trigger a send, the user must say something like:
+    "send email to [name] subject: [subject] body: [message]"
+  If the user asks to send an email but hasn't provided the full structure, ask for the missing parts by name.
+  Do NOT say "I'll send that for you" or imply sending is happening unless the system is actually routing it.
+  Do NOT promise to email someone as a side effect of another request (calendar, follow-up, reminder, etc.) — that is a future_action.
+  Approval is required for every send — it goes through Guardian. A send may take up to 5 minutes to confirm.
+
 TONE: Grounded and direct. Not apologetic. Name the limit once, then pivot to what IS possible.\
 """
 
@@ -897,6 +1041,542 @@ def _extract_event_details(text: str) -> dict | None:
     except Exception as e:
         print(f"[cassandra] event extraction error: {e}", flush=True)
         return None
+
+
+# ── Email send pipeline ───────────────────────────────────────────────────────
+
+_SEND_EMAIL_KEYWORDS = (
+    "send an email to",
+    "send email to",
+    "email to ",
+    "send a message to",
+    "send a msg to",
+    "draft and send",
+    "compose an email to",
+    "compose email to",
+)
+
+_SEND_EMAIL_RE = re.compile(
+    r"(?:"
+    r"send\s+(?:an?\s+)?(?:email|message|msg)\s+to\s+"
+    r"|send\s+(?:an?\s+)?(?:email|message|msg)\s+(?:for\s+)?"
+    r"|email\s+to\s+"
+    r"|compose\s+(?:an?\s+)?(?:email|message)\s+to\s+"
+    r")"
+    r"([A-Za-z][A-Za-z0-9_' -]{0,40}?)"
+    r"(?:\s+(?:subject:|about|saying|re:|:)\s*|$)",
+    re.IGNORECASE,
+)
+
+_SUBJECT_RE = re.compile(r"(?:subject:|re:)\s*(.+?)(?:\s+body:|\s*\n|$)", re.IGNORECASE)
+_BODY_RE    = re.compile(r"body:\s*(.+)$", re.IGNORECASE | re.DOTALL)
+
+
+def _detect_send_email_intent(text: str) -> bool:
+    """True if the user's message is an email-send request."""
+    from cassandra_capability import EMAIL_SEND_CONNECTED
+    if not EMAIL_SEND_CONNECTED:
+        return False
+    t = text.lower()
+    return any(k in t for k in _SEND_EMAIL_KEYWORDS)
+
+
+_OUTREACH_EMAIL_PATTERNS = (
+    "send the intro emails",
+    "send intro emails",
+    "send the outreach emails",
+    "send outreach emails",
+    "send the cassandra intro emails",
+)
+
+
+def _detect_outreach_email_intent(text: str) -> bool:
+    from cassandra_capability import EMAIL_SEND_CONNECTED
+    if not EMAIL_SEND_CONNECTED:
+        return False
+    t = text.lower()
+    return any(pattern in t for pattern in _OUTREACH_EMAIL_PATTERNS)
+
+
+def _load_nicknames() -> dict:
+    """Load contact_nicknames.json. Returns empty dict on any error."""
+    try:
+        data = json.loads(_NICKNAMES_PATH.read_text(encoding="utf-8"))
+        return {k.lower(): v for k, v in data.items() if not k.startswith("_")}
+    except Exception:
+        return {}
+
+
+def _normalize_contact_entry(nickname: str, raw: object) -> dict:
+    names: set[str] = {nickname.lower()}
+    chat_ids: set[str] = set()
+    if isinstance(raw, str):
+        names.add(raw.lower())
+        display_name = raw
+    elif isinstance(raw, dict):
+        display_name = (
+            raw.get("name")
+            or raw.get("display_name")
+            or raw.get("real_name")
+            or nickname
+        )
+        for key in ("name", "display_name", "real_name", "telegram_name", "sender_name"):
+            value = raw.get(key)
+            if isinstance(value, str) and value.strip():
+                names.add(value.strip().lower())
+        for key in ("aliases", "sender_names"):
+            values = raw.get(key, [])
+            if isinstance(values, list):
+                for value in values:
+                    if isinstance(value, str) and value.strip():
+                        names.add(value.strip().lower())
+        for key in ("telegram_chat_id", "chat_id"):
+            value = raw.get(key)
+            if value not in (None, ""):
+                chat_ids.add(str(value))
+        values = raw.get("telegram_chat_ids", [])
+        if isinstance(values, list):
+            for value in values:
+                if value not in (None, ""):
+                    chat_ids.add(str(value))
+    else:
+        display_name = nickname
+    tier = raw.get("tier", "inner_circle") if isinstance(raw, dict) else "inner_circle"
+    response_sla = raw.get("response_sla") if isinstance(raw, dict) else None
+    return {
+        "nickname": nickname,
+        "display_name": display_name,
+        "sender_names": names,
+        "chat_ids": chat_ids,
+        "tier": tier,
+        "response_sla": response_sla,
+    }
+
+
+def _find_designated_contact(sender_name: str | None = None, sender_chat_id: object | None = None) -> dict | None:
+    name_key = sender_name.strip().lower() if isinstance(sender_name, str) and sender_name.strip() else ""
+    chat_key = str(sender_chat_id) if sender_chat_id not in (None, "") else ""
+    for nickname, raw in _load_nicknames().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if name_key and name_key in entry["sender_names"]:
+            return entry
+        if chat_key and chat_key in entry["chat_ids"]:
+            return entry
+    return None
+
+
+def is_designated_contact_sender(sender_name: str | None = None, sender_chat_id: object | None = None) -> bool:
+    return _find_designated_contact(sender_name=sender_name, sender_chat_id=sender_chat_id) is not None
+
+
+def _reply_has_hedging(reply: str) -> bool:
+    lowered = reply.lower()
+    return any(re.search(pattern, lowered) for pattern in _HEDGING_PATTERNS)
+
+
+def _capability_flag_value(flag_name: str | None) -> bool | None:
+    if not flag_name:
+        return None
+    try:
+        import cassandra_capability as capability_flags
+
+        return bool(getattr(capability_flags, flag_name))
+    except Exception:
+        return None
+
+
+def detect_capability_gaps(user_text: str, reply: str) -> list[dict]:
+    """
+    Infer capability gaps from the request text, known False capability flags,
+    and hedging language in the generated reply.
+    """
+    query = user_text.lower()
+    reply_lower = reply.lower()
+    reply_has_hedge = _reply_has_hedging(reply)
+    gaps: list[dict] = []
+    seen: set[str] = set()
+
+    for capability, spec in _CAPABILITY_GAP_SPECS.items():
+        query_match = any(keyword in query for keyword in spec["keywords"])
+        reply_match = any(keyword in reply_lower for keyword in spec.get("reply_keywords", ()))
+        flag_value = _capability_flag_value(spec.get("flag"))
+        known_missing = flag_value is False and query_match
+        hedged_gap = reply_has_hedge and (query_match or reply_match)
+        if not (known_missing or hedged_gap):
+            continue
+        if capability in seen:
+            continue
+        seen.add(capability)
+        gaps.append({
+            "capability": capability,
+            "goal": spec["goal"],
+            "scope": list(spec["scope"]),
+            "success": spec["success"],
+            "manual_required": bool(spec.get("manual_required")),
+            "known_missing": known_missing,
+            "hedging_detected": hedged_gap,
+        })
+    return gaps
+
+
+def _append_partial_followup_note(reply: str) -> str:
+    cleaned = reply.strip()
+    if not cleaned:
+        return _PARTIAL_FOLLOWUP_NOTE
+    if _PARTIAL_FOLLOWUP_NOTE.lower() in cleaned.lower():
+        return cleaned
+    separator = " " if cleaned.endswith((".", "!", "?")) else ". "
+    return f"{cleaned}{separator}{_PARTIAL_FOLLOWUP_NOTE}"
+
+
+def _load_followup_records() -> list[dict]:
+    if not _FOLLOWUP_LOG.exists():
+        return []
+    records: list[dict] = []
+    try:
+        for line in _FOLLOWUP_LOG.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    except Exception as exc:
+        print(f"[cassandra_followup] read error: {exc}", flush=True)
+    return records
+
+
+def _write_followup_records(records: list[dict]) -> None:
+    _FOLLOWUP_LOG.parent.mkdir(parents=True, exist_ok=True)
+    payload = "\n".join(json.dumps(record) for record in records)
+    if payload:
+        payload += "\n"
+    _FOLLOWUP_LOG.write_text(payload, encoding="utf-8")
+
+
+def _existing_upgrade_task_name(capability: str) -> str | None:
+    prefix = f"cas-upgrade-{capability}-"
+    for path in sorted(_POLISH_TASKS_DIR.glob(f"{prefix}*.md")):
+        return path.stem
+    try:
+        status = json.loads(_POLISH_STATUS.read_text(encoding="utf-8"))
+        task_name = str(status.get("task_name", "")).strip()
+        if task_name.startswith(prefix):
+            return task_name
+    except Exception:
+        pass
+    try:
+        title = ""
+        for line in _POLISH_TASK_FILE.read_text(encoding="utf-8").splitlines():
+            if line.startswith("title:"):
+                title = line.split(":", 1)[1].strip()
+                break
+        if title.startswith(prefix):
+            return title
+    except Exception:
+        pass
+    return None
+
+
+def _create_upgrade_task(capability_gap: dict, original_message: str) -> str | None:
+    capability = capability_gap["capability"]
+    existing = _existing_upgrade_task_name(capability)
+    if existing:
+        return existing
+    if capability_gap.get("manual_required"):
+        return None
+
+    _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    task_name = f"cas-upgrade-{capability}-{timestamp}"
+    task_path = _POLISH_TASKS_DIR / f"{task_name}.md"
+    scope_lines = "\n".join(f"- {line}" for line in capability_gap["scope"])
+    task_body = (
+        f"title: {task_name}\n"
+        f"goal: {capability_gap['goal']}\n"
+        "scope:\n"
+        f"{scope_lines}\n"
+        f"- Handle the triggering request safely: \"{original_message.strip()}\"\n"
+        "success:\n"
+        f"- {capability_gap['success']}\n"
+    )
+    task_path.write_text(task_body, encoding="utf-8")
+    return task_name
+
+
+def _notify_manual_gap(sender_name: str, original_message: str, capability: str) -> None:
+    try:
+        from chief_notify import send as notify_winship
+
+        notify_winship(
+            "Cassandra hit a manual setup gap.\n"
+            f"Sender: {sender_name or 'unknown'}\n"
+            f"Capability: {capability}\n"
+            f"Message: {original_message}"
+        )
+    except Exception as exc:
+        print(f"[cassandra_followup] manual-gap notify failed: {exc}", flush=True)
+
+
+def _notify_client_urgency(
+    contact_entry: dict,
+    original_message: str,
+    partial_reply: str,
+    capability_gaps: list[dict],
+) -> None:
+    name = contact_entry.get("display_name") or contact_entry.get("nickname") or "Unknown client"
+    gap_names = ", ".join(gap["capability"] for gap in capability_gaps)
+    sla = contact_entry.get("response_sla")
+    sla_line = f"\nClient expects response within {sla} minutes." if sla else ""
+    msg = (
+        f"CLIENT MESSAGE — Manual action needed.\n"
+        f"From: {name}\n"
+        f"Asked: {original_message}\n"
+        f"Cassandra answered: {partial_reply}\n"
+        f"Could not handle: {gap_names}\n"
+        f"Manual action needed — client is waiting.{sla_line}"
+    )
+    if os.environ.get("CASSANDRA_CLIENT_NOTIFY_ENABLED", "0") != "1":
+        print(f"[cassandra_urgency] dry-run (set CASSANDRA_CLIENT_NOTIFY_ENABLED=1 to enable): {msg}", flush=True)
+        return
+    try:
+        from chief_notify import send as notify_winship
+        notify_winship(msg)
+    except Exception as exc:
+        print(f"[cassandra_urgency] client notify failed: {exc}", flush=True)
+
+
+def _record_gap_followups(
+    sender_name: str,
+    sender_chat_id: object | None,
+    original_message: str,
+    partial_reply: str,
+    capability_gaps: list[dict],
+) -> None:
+    records = _load_followup_records()
+    changed = False
+    for gap in capability_gaps:
+        capability = gap["capability"]
+        duplicate = any(
+            record.get("status") in ("pending", "manual_required")
+            and record.get("sender_name") == sender_name
+            and record.get("original_message") == original_message
+            and record.get("gap_type") == capability
+            for record in records
+        )
+        if duplicate:
+            continue
+        task_name = _create_upgrade_task(gap, original_message)
+        status = "manual_required" if gap.get("manual_required") else "pending"
+        records.append({
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "sender_name": sender_name,
+            "sender_chat_id": sender_chat_id,
+            "original_message": original_message,
+            "partial_reply_sent": partial_reply,
+            "gap_type": capability,
+            "upgrade_task_name": task_name,
+            "status": status,
+        })
+        changed = True
+        if status == "manual_required":
+            _notify_manual_gap(sender_name, original_message, capability)
+    if changed:
+        _write_followup_records(records)
+
+
+def _upgrade_task_completed(task_name: str | None) -> bool:
+    if not task_name:
+        return False
+    if any(_POLISH_ARCHIVE.glob(f"closeout_{task_name}_*.ok")):
+        return True
+    return any(task_name in path.name for path in _POLISH_ARCHIVE.iterdir())
+
+
+def process_pending_followups() -> list[dict]:
+    records = _load_followup_records()
+    if not records:
+        return []
+
+    updated = False
+    completed: list[dict] = []
+    for record in records:
+        if record.get("status") != "pending":
+            continue
+        if not _upgrade_task_completed(record.get("upgrade_task_name")):
+            continue
+        try:
+            followup_reply = handle(
+                record["original_message"],
+                {
+                    "sender_name": record.get("sender_name"),
+                    "sender_chat_id": record.get("sender_chat_id"),
+                    "skip_followup_check": True,
+                    "followup_reprocess": True,
+                },
+            )[0]
+        except Exception as exc:
+            print(f"[cassandra_followup] reprocess error: {exc}", flush=True)
+            continue
+
+        remaining = detect_capability_gaps(record["original_message"], followup_reply)
+        if any(gap["capability"] == record.get("gap_type") for gap in remaining):
+            continue
+        try:
+            from cassandra_sender import send_message
+
+            send_message(followup_reply, chat_id=record.get("sender_chat_id"))
+        except Exception as exc:
+            print(f"[cassandra_followup] send error: {exc}", flush=True)
+            continue
+        record["status"] = "completed"
+        record["completed_at"] = datetime.now().isoformat(timespec="seconds")
+        record["followup_reply_sent"] = followup_reply
+        updated = True
+        completed.append(record)
+
+    if updated:
+        _write_followup_records(records)
+    return completed
+
+
+def _resolve_recipient_email(name: str) -> tuple[str, str]:
+    """
+    Resolve a name or nickname to (email_address, display_name).
+    Returns ("", error_message) if resolution fails.
+    Checks contact_nicknames.json first, then Google Contacts.
+    """
+    name_stripped = name.strip()
+    nicknames     = _load_nicknames()
+    raw_entry     = nicknames.get(name_stripped.lower(), name_stripped)
+    if isinstance(raw_entry, dict):
+        search_name = raw_entry.get("name") or raw_entry.get("display_name") or name_stripped
+    else:
+        search_name = raw_entry or name_stripped
+
+    try:
+        from google_access_broker import call as broker_call
+        result = broker_call("cassandra", "google.contacts.read", {"query": search_name})
+    except Exception as e:
+        return ("", f"Couldn't reach the contacts broker: {e}")
+
+    if not result.get("ok") or not result.get("data"):
+        return ("", f"I don't have a contact for {name_stripped} in your Google Contacts.")
+
+    contacts = result["data"]
+    for c in contacts:
+        if c.get("email"):
+            return (c["email"], c.get("display_name", search_name))
+
+    return ("", f"I have a contact for {name_stripped} but no email address on file.")
+
+
+def _parse_email_request(text: str) -> dict | None:
+    """
+    Parse an email send request from natural language.
+    Returns {"to_name": str, "subject": str, "body": str} on success,
+    or None if the recipient name cannot be extracted.
+
+    Supported format:
+        send email to [name] subject: [subject] body: [body]
+    """
+    m_to = _SEND_EMAIL_RE.search(text)
+    if not m_to:
+        return None
+
+    to_name = m_to.group(1).strip()
+
+    m_subj = _SUBJECT_RE.search(text)
+    subject = m_subj.group(1).strip() if m_subj else ""
+
+    m_body = _BODY_RE.search(text)
+    body    = m_body.group(1).strip() if m_body else ""
+
+    return {"to_name": to_name, "subject": subject, "body": body}
+
+
+def _handle_send_email(text: str) -> str | None:
+    """
+    Handle a send-email request.
+    Returns a reply string, or None to fall through to LLM.
+
+    Flow:
+      1. Parse to_name, subject, body from text.
+      2. Resolve to_name → email via nicknames + contacts.
+      3. If resolution fails: return clarification request.
+      4. If subject/body missing: return format instructions.
+      5. Call broker (L2 approval gate is inside broker for CLASS_C).
+      6. Return confirmation or error message.
+    """
+    parsed = _parse_email_request(text)
+    if parsed is None:
+        return None  # can't parse — fall through to LLM
+
+    to_name = parsed["to_name"]
+    subject = parsed["subject"]
+    body    = parsed["body"]
+
+    # Resolve recipient
+    email_addr, display_name = _resolve_recipient_email(to_name)
+    if not email_addr:
+        return display_name  # error message from resolution
+
+    # Require both subject and body — prompt if either is missing
+    if not subject or not body:
+        return (
+            f"Got it — sending to {display_name}. "
+            "To complete this, reply with:\n"
+            f"send email to {to_name} subject: [subject line] body: [your message]"
+        )
+
+    # Call broker — L2 Guardian approval happens inside broker.call() for CLASS_C
+    try:
+        from google_access_broker import call as broker_call
+        result = broker_call("cassandra", "google.gmail.send", {
+            "to":      email_addr,
+            "subject": subject,
+            "body":    body,
+        })
+    except Exception as e:
+        print(f"[cassandra] email broker error: {e}", flush=True)
+        return "Couldn't reach the email broker. Try again in a moment."
+
+    if result.get("ok"):
+        return f"Sent. Email to {display_name} with subject \"{subject}\"."
+    else:
+        err = result.get("error", "unknown error")
+        if "denied" in err.lower():
+            return "Email send was denied at the approval gate."
+        if "scope" in err.lower() or "permission" in err.lower() or "insufficien" in err.lower():
+            return (
+                "Email send failed — the Gmail token needs the compose scope. "
+                "Run: python3 /home/openclaw/google_access_broker.py --auth"
+            )
+        return f"Couldn't send the email: {err}"
+
+
+def _handle_outreach_email_request(text: str) -> str | None:
+    if not _detect_outreach_email_intent(text):
+        return None
+
+    try:
+        from cassandra_outreach import run_outreach
+        results = run_outreach(dry_run=False)
+    except Exception as e:
+        print(f"[cassandra] outreach flow error: {e}", flush=True)
+        return "The intro email flow hit a snag before it could finish."
+
+    sent = [row.get("display_name", row["nickname"]) for row in results if row.get("status") == "sent"]
+    failed = [row.get("display_name", row["nickname"]) for row in results if row.get("status") != "sent"]
+
+    if sent and not failed:
+        return "Intro emails sent to " + ", ".join(sent) + "."
+    if sent and failed:
+        return (
+            "Some intro emails went out: "
+            + ", ".join(sent)
+            + ". The rest need attention: "
+            + ", ".join(failed)
+            + "."
+        )
+    return "The intro email flow did not complete any sends."
 
 
 def _handle_calendar_create(text: str) -> str | None:
@@ -1470,6 +2150,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     Main Cassandra conversational handler.
     Returns a list of Telegram-ready reply strings.
     """
+    session_meta = dict(session or {})
+    if not session_meta.get("skip_followup_check"):
+        process_pending_followups()
+
     state = load_state()
     state["last_interaction_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1537,6 +2221,23 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [cal_reply]
     # fall through to LLM if extraction failed or unclear
 
+    # Outreach intro email routing — bypass LLM, uses the broker email pipeline
+    if _detect_outreach_email_intent(query):
+        outreach_reply = _handle_outreach_email_request(query)
+        if outreach_reply is not None:
+            save_state(state)
+            _log_conversation(text, [outreach_reply], route="outreach_email_send")
+            return [outreach_reply]
+
+    # Email send routing — bypass LLM, requires L2 Guardian approval
+    if _detect_send_email_intent(query):
+        email_reply = _handle_send_email(query)
+        if email_reply is not None:
+            save_state(state)
+            _log_conversation(text, [email_reply], route="email_send")
+            return [email_reply]
+    # fall through to LLM if parsing failed
+
     context  = build_context_snapshot(state)
     focus    = is_focus_mode()
     social   = is_social_mode()
@@ -1592,6 +2293,26 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     reply = gate_reply(reply, query,
                        has_registry_context=registry_ctx is not None)
     reply = tts_clean(reply)
+
+    contact_entry = _find_designated_contact(
+        sender_name=session_meta.get("sender_name"),
+        sender_chat_id=session_meta.get("sender_chat_id"),
+    )
+    should_queue_gap_followup = contact_entry is not None and not session_meta.get("followup_reprocess")
+    if should_queue_gap_followup:
+        capability_gaps = detect_capability_gaps(query, reply)
+        if capability_gaps:
+            reply = _append_partial_followup_note(reply)
+            _record_gap_followups(
+                sender_name=contact_entry["display_name"],
+                sender_chat_id=session_meta.get("sender_chat_id"),
+                original_message=query,
+                partial_reply=reply,
+                capability_gaps=capability_gaps,
+            )
+            if contact_entry.get("tier") == "client":
+                _notify_client_urgency(contact_entry, query, reply, capability_gaps)
+
     save_state(state)
 
     result = [reply] if reply else ["I'm here — something went quiet on my end. Try again."]

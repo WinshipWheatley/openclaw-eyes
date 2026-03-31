@@ -59,6 +59,7 @@ _ACTIVE_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/contacts.readonly",
     "https://www.googleapis.com/auth/gmail.metadata",
+    "https://www.googleapis.com/auth/gmail.compose",  # Pass 3: email send
 ]
 
 
@@ -325,6 +326,53 @@ def _exec_contacts_read(creds, params: dict) -> dict:
         return {"ok": False, "data": None, "error": str(e)}
 
 
+def _exec_gmail_send(creds, params: dict) -> dict:
+    """
+    Send an email via the Gmail API.
+
+    Required params:
+        to      : str — recipient email address (already resolved)
+        subject : str — email subject line
+        body    : str — plain-text email body
+
+    Requires gmail.compose scope in the active token.
+    Every call to this executor is already L2 approval-gated by the broker dispatcher.
+    """
+    to      = params.get("to", "").strip()
+    subject = params.get("subject", "").strip()
+    body    = params.get("body", "").strip()
+
+    if not to or not subject or not body:
+        return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
+
+    try:
+        import base64
+        from email.mime.text import MIMEText
+        from googleapiclient.discovery import build
+
+        service = build("gmail", "v1", credentials=creds)
+
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["to"]      = to
+        msg["subject"] = subject
+
+        raw     = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        sent    = service.users().messages().send(
+            userId="me", body={"raw": raw}
+        ).execute()
+
+        return {
+            "ok":   True,
+            "data": {
+                "message_id": sent.get("id", ""),
+                "thread_id":  sent.get("threadId", ""),
+            },
+            "error": "",
+        }
+    except Exception as e:
+        return {"ok": False, "data": None, "error": str(e)}
+
+
 def _exec_not_implemented(capability: str) -> dict:
     return {
         "ok":    False,
@@ -411,6 +459,8 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         result = _exec_gmail_read_metadata(creds, params)
     elif capability == "google.contacts.read":
         result = _exec_contacts_read(creds, params)
+    elif capability == "google.gmail.send":
+        result = _exec_gmail_send(creds, params)
     else:
         result = _exec_not_implemented(capability)
 
