@@ -108,6 +108,9 @@
 !NEXT_ACTIONS.md
 !RUNBOOK.md
 
+!skill_loader.py
+!skill_vetter.py
+
 !builder_watcher.sh
 
 # Polish loop
@@ -117,4 +120,9 @@
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
 !tests/
+!tests/fixtures/
+!tests/fixtures/skills/
+!tests/fixtures/skills/*.md
+!tests/fixtures/skills/**/*.md
 !tests/test_pc_review_fallback.py
+!tests/test_skill_pipeline_smoke.py

@@ -267,7 +267,7 @@ _TEST_DISABLE_PC_REVIEW_FALLBACK: bool = False
 
 
 def builder_running() -> bool:
-    """True if a builder pass process is currently executing."""
+    """True if a builder pass process is currently executing (not stopped/frozen)."""
     if _TEST_BUILDER_OVERRIDE is not None:
         return _TEST_BUILDER_OVERRIDE
     patterns = [
@@ -284,7 +284,31 @@ def builder_running() -> bool:
                 text=True,
             )
             if result.returncode == 0:
-                return True
+                # Check if any matched PID is stopped (state T).
+                # If we can't read /proc, assume running (safe fallback).
+                pids = getattr(result, "stdout", "") or ""
+                pids = pids.strip().split("\n")
+                any_stopped_all = True  # assume all stopped until proven otherwise
+                for pid in pids:
+                    pid = pid.strip()
+                    if not pid or not pid.isdigit():
+                        any_stopped_all = False
+                        break
+                    try:
+                        with open(f"/proc/{pid}/status") as f:
+                            for line in f:
+                                if line.startswith("State:"):
+                                    if "T (stopped)" in line:
+                                        log("WARN", f"Builder PID {pid} exists but is stopped (SIGSTOP) — treating as dead")
+                                    else:
+                                        return True  # at least one PID is alive and not stopped
+                                    break
+                    except (OSError, IOError):
+                        # Process vanished or /proc unreadable — skip this PID
+                        continue
+                if not any_stopped_all:
+                    return True  # couldn't verify state, assume running
+                # All matched PIDs are stopped — fall through
         except Exception:
             continue
     return False

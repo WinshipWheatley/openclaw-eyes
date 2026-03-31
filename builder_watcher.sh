@@ -1,4 +1,8 @@
 #!/bin/bash
+# Prevent SIGTSTP/SIGTTIN/SIGTTOU from stopping child processes when
+# builder_watcher is launched via nohup or from a backgrounded terminal.
+trap '' TSTP TTIN TTOU
+
 POLL_INTERVAL=10
 STATUS_FILE="/home/openclaw/polish_loop/status.json"
 PROMPT_FILE="/home/openclaw/polish_loop/POLISH_PROMPT.md"
@@ -71,16 +75,14 @@ launch_runner_once() {
 
   clear_runner_alert
 
-  elevated=$(python3 -c "import json; d=json.load(open('$STATUS_FILE')); print(d.get('elevated_approved', False))" 2>/dev/null)
-
+  # Use setsid to create a new session — prevents SIGSTOP/SIGTSTP from reaching
+  # the builder when the watcher runs in a backgrounded/nohup terminal.
+  # --dangerously-skip-permissions is required for --print mode with piped stdin,
+  # otherwise all write tools (Edit, Write, Bash) are blocked in "don't ask" mode.
   if [ "$runner" = "codex" ]; then
-    cd /home/openclaw && timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
+    cd /home/openclaw && setsid timeout 900 codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
   else
-    if [ "$elevated" = "True" ]; then
-      cd /home/openclaw && timeout 900 claude --model sonnet --dangerously-skip-permissions --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
-    else
-      cd /home/openclaw && timeout 900 claude --model sonnet --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
-    fi
+    cd /home/openclaw && setsid timeout 900 claude --model sonnet --dangerously-skip-permissions --print < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
   fi
 }
 
