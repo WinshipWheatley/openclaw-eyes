@@ -136,3 +136,5 @@
 !tests/test_pc_review_fallback.py
 !tests/test_skill_pipeline_smoke.py
 !tests/test_cassandra_outreach.py
+!dashboard_gen.py
+!loop_dashboard_watchdog.sh
