@@ -304,6 +304,14 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     runner_name, model, runner_reason, budget_override = _pick_runner(
         tier, task_id, is_blocking, model_prefs=model_prefs
     )
+
+    # Planner runs on Mac — ollama is PC-only; fall back to claude/sonnet
+    if planner_mode and runner_name == "ollama":
+        runner_name = "claude"
+        model = model_prefs.get(tier, "sonnet")
+        runner_reason += " → planner override: ollama unavailable on Mac"
+        budget_override = None  # let default planner budget apply
+
     result["runner"] = runner_name
     result["model"] = model
     result["reason"] = f"{reason_prefix}; runner={runner_name} ({runner_reason})"
