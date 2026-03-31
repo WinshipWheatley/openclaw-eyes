@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "name": "openclaw",
+      "path": "/home/openclaw"
+    },
+    {
+      "name": "current",
+      "path": "/home/openclaw/polish_loop/current"
+    },
+    {
+      "name": "mac_eyes",
+      "path": "/home/openclaw/mac_eyes"
+    }
+  ],
+  "settings": {}
+}

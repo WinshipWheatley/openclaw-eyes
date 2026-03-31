@@ -76,6 +76,7 @@
 !cassandra_listener.py
 !cassandra_briefing_brain.py
 !cassandra_briefing_scheduler.py
+!cassandra_outreach.py
 !capability_registry.py
 !chief_approval_policy.py
 !chief_guardian_sender.py
@@ -112,6 +113,8 @@
 !skill_vetter.py
 
 !builder_watcher.sh
+!vscode_cleanup.sh
+!openclaw.code-workspace
 
 # Polish loop
 !polish_loop/
@@ -126,3 +129,4 @@
 !tests/fixtures/skills/**/*.md
 !tests/test_pc_review_fallback.py
 !tests/test_skill_pipeline_smoke.py
+!tests/test_cassandra_outreach.py
