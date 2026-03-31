@@ -34,6 +34,20 @@
           "reveal": "always",
           "panel": "shared"
         }
+      },
+      {
+        "label": "PC Terminal — Auto",
+        "type": "shell",
+        "command": "echo '✓ PC terminal ready — openclaw@$(hostname)'",
+        "problemMatcher": [],
+        "runOptions": {
+          "runOn": "folderOpen"
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "name": "PC bash"
+        }
       }
     ]
   }
