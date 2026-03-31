@@ -31,6 +31,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
@@ -270,48 +271,138 @@ def select_profile(task_text: str) -> dict:
     result = dict(PROFILES[tier])
     result["tier"] = tier
 
-    # 3. Dynamic runner selection via registry
-    runner_name, model, runner_reason = _pick_runner(tier)
+    # 3. Check if this is a blocking task (from frontmatter)
+    is_blocking = meta.get("blocking", "").lower() in ("true", "yes", "1")
+    task_id = meta.get("title", "unknown")
+
+    # 4. Dynamic runner selection via registry + budget awareness
+    runner_name, model, runner_reason, budget_override = _pick_runner(tier, task_id, is_blocking)
     result["runner"] = runner_name
     result["model"] = model
     result["reason"] = f"{reason_prefix}; runner={runner_name} ({runner_reason})"
 
-    # 4. Build the full invoke command
+    # Budget tracker may override the per-task budget cap
+    if budget_override is not None:
+        result["budget"] = budget_override
+
+    # 5. Check for task deferral (budget too low to even start)
+    defer_info = _check_deferral(task_id, tier, is_blocking)
+    if defer_info:
+        result["defer"] = True
+        result["defer_strategy"] = defer_info["strategy"]
+        result["defer_reason"] = defer_info["reason"]
+    else:
+        result["defer"] = False
+
+    # 6. Build the full invoke command
     prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
     result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
 
     return result
 
 
-def _pick_runner(tier: str) -> tuple[str, str, str]:
-    """Pick the best available runner for a task tier.
+def _check_deferral(task_id: str, tier: str, is_blocking: bool) -> Optional[dict]:
+    """Check if task should be deferred due to budget constraints.
 
-    Returns (runner_name, model, reason_fragment).
-    Falls back to claude/sonnet if registry unavailable.
+    Returns None if task should run, or a strategy dict if deferred.
     """
     try:
-        import runner_registry
-        ranked = runner_registry.get_runners_for_task(tier)
-        if ranked:
-            best = ranked[0]
-            score = runner_registry._score_runner_for_task(best, tier)
+        import budget_tracker
+        strategy = budget_tracker.check_partial_completion_strategy(task_id, tier, is_blocking)
+        if strategy["strategy"] == "defer_to_next_window":
+            return strategy
+        if strategy["strategy"] == "partial_now_continue_later":
+            # Not a full deferral — let it run with a note
+            return None
+    except Exception:
+        pass
+    return None
 
-            # Pick model: prefer tier-specific model if runner supports it
+
+def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False) -> tuple[str, str, str, Optional[float]]:
+    """Pick the best available runner for a task tier, budget-aware.
+
+    Returns (runner_name, model, reason_fragment, budget_override_or_None).
+    Falls back to claude/sonnet if registry unavailable.
+    """
+    budget_override = None
+
+    # Step 1: Get registry ranking
+    ranked_runners = []
+    try:
+        import runner_registry
+        ranked_runners = runner_registry.get_runners_for_task(tier)
+    except Exception:
+        pass
+
+    if not ranked_runners:
+        model = PREFERRED_MODELS.get(tier, "sonnet")
+        return ("claude", model, "fallback — registry unavailable", None)
+
+    # Step 2: Check budget for each candidate until we find one that's allowed
+    try:
+        import budget_tracker
+        for candidate in ranked_runners:
             preferred_model = PREFERRED_MODELS.get(tier, "sonnet")
-            if best.models and preferred_model in best.models:
+            if candidate.models and preferred_model in candidate.models:
                 model = preferred_model
-            elif best.models:
-                model = best.models[0]
+            elif candidate.models:
+                model = candidate.models[0]
             else:
                 model = "default"
 
-            return (best.name, model, f"registry score={score:.0f}")
-    except Exception as e:
-        pass  # Registry unavailable — fall back
+            allowance = budget_tracker.get_runner_allowance(candidate.name, model, tier)
 
-    # Hardcoded fallback
-    model = PREFERRED_MODELS.get(tier, "sonnet")
-    return ("claude", model, "fallback — registry unavailable")
+            if allowance["allowed"]:
+                import runner_registry as rr
+                score = rr._score_runner_for_task(candidate, tier)
+                budget_override = allowance["max_budget"]
+                return (
+                    candidate.name,
+                    model,
+                    f"registry score={score:.0f}, budget={allowance['reason']}",
+                    budget_override,
+                )
+
+            # Not allowed — check if there's a suggested alternative
+            alt = allowance.get("alternative")
+            if alt:
+                # Try the alternative directly
+                alt_runner = alt["runner"]
+                alt_model = alt.get("model", "default")
+                alt_allowance = budget_tracker.get_runner_allowance(alt_runner, alt_model, tier)
+                if alt_allowance["allowed"]:
+                    budget_override = alt_allowance["max_budget"]
+                    return (
+                        alt_runner,
+                        alt_model,
+                        f"budget downgrade from {candidate.name}/{model}: {alt.get('reason', 'budget')}",
+                        budget_override,
+                    )
+
+        # All runners rejected by budget — fall back to free local
+        return ("ollama", "qwen2.5-coder:14b", "all paid runners over budget — free local fallback", 0)
+
+    except ImportError:
+        pass  # budget_tracker not available — skip budget checks
+
+    # No budget tracker — use registry ranking without budget awareness
+    best = ranked_runners[0]
+    try:
+        import runner_registry as rr
+        score = rr._score_runner_for_task(best, tier)
+    except Exception:
+        score = 0
+
+    preferred_model = PREFERRED_MODELS.get(tier, "sonnet")
+    if best.models and preferred_model in best.models:
+        model = preferred_model
+    elif best.models:
+        model = best.models[0]
+    else:
+        model = "default"
+
+    return (best.name, model, f"registry score={score:.0f}", None)
 
 
 def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
@@ -366,10 +457,13 @@ def main():
         tier = DEFAULT_PROFILE
         result = dict(PROFILES[tier])
         result["tier"] = tier
-        runner_name, model, runner_reason = _pick_runner(tier)
+        runner_name, model, runner_reason, budget_override = _pick_runner(tier)
         result["runner"] = runner_name
         result["model"] = model
         result["reason"] = f"no task.md found, using default; runner={runner_name} ({runner_reason})"
+        result["defer"] = False
+        if budget_override is not None:
+            result["budget"] = budget_override
         prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
         result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
         print(json.dumps(result))

@@ -69,15 +69,27 @@ launch_runner_once() {
   profile_json=$(cd /home/openclaw && python3 runner_profiles.py 2>/dev/null)
   if [ -z "$profile_json" ]; then
     log "PROFILE: runner_profiles.py failed — falling back to hardcoded defaults"
-    profile_json='{"runner":"claude","model":"sonnet","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 claude --model sonnet --effort high --dangerously-skip-permissions --print --max-budget-usd 2.0 --fallback-model sonnet < /home/openclaw/polish_loop/POLISH_PROMPT.md"}'
+    profile_json='{"runner":"claude","model":"sonnet","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 claude --model sonnet --effort high --dangerously-skip-permissions --print --max-budget-usd 2.0 --fallback-model sonnet < /home/openclaw/polish_loop/POLISH_PROMPT.md","defer":false}'
   fi
 
-  local p_runner p_model p_timeout p_reason p_invoke_cmd
+  local p_runner p_model p_timeout p_budget p_reason p_invoke_cmd p_defer p_tier p_task_id
   p_runner=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('runner','claude'))")
   p_model=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model','sonnet'))")
   p_timeout=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('timeout',600))")
+  p_budget=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('budget',2.0))")
   p_reason=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('reason','unknown'))")
   p_invoke_cmd=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('invoke_cmd',''))")
+  p_defer=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('defer',False))")
+  p_tier=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tier','standard'))")
+
+  # Task deferral — budget says don't run this yet
+  if [ "$p_defer" = "True" ]; then
+    local defer_reason
+    defer_reason=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('defer_reason','budget exhausted'))")
+    log "DEFER: Task deferred — $defer_reason"
+    # Don't count this as a launch failure. Let orchestrator handle it.
+    return 0
+  fi
 
   # Override runner if explicitly requested via CODING_RUNNER
   if [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" != "$p_runner" ]; then
@@ -87,7 +99,7 @@ launch_runner_once() {
     p_invoke_cmd=""
   fi
 
-  log "PROFILE: runner=$p_runner model=$p_model timeout=${p_timeout}s reason='$p_reason'"
+  log "PROFILE: runner=$p_runner model=$p_model timeout=${p_timeout}s budget=\$${p_budget} tier=$p_tier reason='$p_reason'"
 
   # Verify the chosen runner binary exists
   if ! command -v "$p_runner" >/dev/null 2>&1; then
@@ -96,22 +108,78 @@ launch_runner_once() {
     return 127
   fi
 
+  # Record start time for cost tracking
+  local run_start_ts
+  run_start_ts=$(date +%s%3N)
+
   # Execute: use the pre-built invoke_cmd if available, otherwise hardcoded
+  local run_exit_code=0
+  local run_output_file="/tmp/builder_run_output_$$.json"
   if [ -n "$p_invoke_cmd" ]; then
     log "INVOKE: $p_invoke_cmd"
-    cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
+    # For Claude with JSON output, capture cost data
+    if [ "$p_runner" = "claude" ]; then
+      local json_cmd
+      json_cmd=$(echo "$p_invoke_cmd" | sed 's/--print/--print --output-format json/')
+      cd /home/openclaw && eval "$json_cmd" > "$run_output_file" 2>> "$LOG_FILE"
+      run_exit_code=$?
+    else
+      cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
+      run_exit_code=$?
+    fi
   elif [ "$p_runner" = "codex" ]; then
     cd /home/openclaw && setsid timeout "$p_timeout" codex exec "$(cat "$PROMPT_FILE")" >> "$LOG_FILE" 2>&1
+    run_exit_code=$?
   else
     cd /home/openclaw && setsid timeout "$p_timeout" claude \
       --model "$p_model" \
       --effort high \
       --dangerously-skip-permissions \
-      --print \
-      --max-budget-usd 2.0 \
+      --print --output-format json \
+      --max-budget-usd "$p_budget" \
       --fallback-model sonnet \
-      < "$PROMPT_FILE" >> "$LOG_FILE" 2>&1
+      < "$PROMPT_FILE" > "$run_output_file" 2>> "$LOG_FILE"
+    run_exit_code=$?
   fi
+
+  local run_end_ts
+  run_end_ts=$(date +%s%3N)
+  local run_duration_ms=$(( run_end_ts - run_start_ts ))
+
+  # Extract cost from Claude JSON output and record in budget tracker
+  local actual_cost="0"
+  if [ -f "$run_output_file" ] && [ -s "$run_output_file" ]; then
+    actual_cost=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$run_output_file'))
+    print(d.get('total_cost_usd', 0))
+except: print(0)
+" 2>/dev/null)
+    log "COST: \$${actual_cost} for ${p_runner}/${p_model} (${run_duration_ms}ms, exit=${run_exit_code})"
+  fi
+
+  # Record spend in budget tracker
+  local task_completed="false"
+  [ "$run_exit_code" -eq 0 ] && task_completed="true"
+  python3 -c "
+import budget_tracker
+budget_tracker.record_spend(
+    runner='$p_runner',
+    model='$p_model',
+    cost_usd=$actual_cost,
+    task_id='$(head -1 /home/openclaw/polish_loop/task.md 2>/dev/null | sed "s/['\"]//g" | head -c 80)',
+    duration_ms=$run_duration_ms,
+    completed=$task_completed,
+    exit_code=$run_exit_code,
+    tier='$p_tier',
+)
+" 2>/dev/null || log "BUDGET: Failed to record spend (budget_tracker error)"
+
+  # Clean up
+  rm -f "$run_output_file" 2>/dev/null
+
+  return $run_exit_code
 }
 
 LAST_STATE=""
