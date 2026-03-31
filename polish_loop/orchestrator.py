@@ -1021,19 +1021,67 @@ def cmd_run_tests() -> None:
         )
         PC_OUTPUT.unlink(missing_ok=True)
 
-        # 6. pc_turn, pc_output PASS mismatch → blocked (stale_pc_output)
+        # 6. pc_turn, stale pc_output while Builder running → still pc_turn
         set_status(fresh_status(status="pc_turn", **{"pass": 3, "last_updated": now_iso}))
         clear_test_watcher_log()
+        _TEST_BUILDER_OVERRIDE = True
         PC_OUTPUT.write_text("PASS: 2\nSTATUS: DONE\n")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "pc_turn, pc_output PASS mismatch → blocked (stale_pc_output)",
-            s is not None and s["status"] == "blocked"
-            and s.get("block_reason") == "stale_pc_output",
+            "pc_turn, stale pc_output while Builder running → still pc_turn",
+            s is not None and s["status"] == "pc_turn",
             f"got {s}",
         )
+        _TEST_BUILDER_OVERRIDE = None
         PC_OUTPUT.unlink(missing_ok=True)
+
+        # 6b. pc_turn, stale pc_output with dead Builder → relaunch once, stay pc_turn
+        set_status(fresh_status(status="pc_turn", **{"pass": 3, "last_updated": now_iso}))
+        clear_test_watcher_log()
+        _TEST_BUILDER_OVERRIDE = False
+        _TEST_RELAUNCH_OVERRIDE = True
+        PC_OUTPUT.write_text("PASS: 2\nSTATUS: DONE\n")
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "pc_turn, stale pc_output with dead Builder → relaunch once",
+            s is not None and s["status"] == "pc_turn" and s.get("relaunch_attempted") is True and not PC_OUTPUT.exists(),
+            f"got {s}",
+        )
+        _TEST_BUILDER_OVERRIDE = None
+        _TEST_RELAUNCH_OVERRIDE = None
+
+        # 6c. pc_turn, invalid quality-gate output while Builder running → still pc_turn
+        set_status(fresh_status(status="pc_turn", **{"pass": 1, "last_updated": now_iso}))
+        clear_test_watcher_log()
+        _TEST_BUILDER_OVERRIDE = True
+        PC_OUTPUT.write_text("PASS: 1\nSTATUS: DONE\n")
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "pc_turn, invalid quality-gate output while Builder running → still pc_turn",
+            s is not None and s["status"] == "pc_turn",
+            f"got {s}",
+        )
+        _TEST_BUILDER_OVERRIDE = None
+        PC_OUTPUT.unlink(missing_ok=True)
+
+        # 6d. pc_turn, invalid quality-gate output with dead Builder → relaunch once
+        set_status(fresh_status(status="pc_turn", **{"pass": 1, "last_updated": now_iso}))
+        clear_test_watcher_log()
+        _TEST_BUILDER_OVERRIDE = False
+        _TEST_RELAUNCH_OVERRIDE = True
+        PC_OUTPUT.write_text("PASS: 1\nSTATUS: DONE\n")
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "pc_turn, invalid quality-gate output with dead Builder → relaunch once",
+            s is not None and s["status"] == "pc_turn" and s.get("relaunch_attempted") is True and not PC_OUTPUT.exists(),
+            f"got {s}",
+        )
+        _TEST_BUILDER_OVERRIDE = None
+        _TEST_RELAUNCH_OVERRIDE = None
 
         # 7. mac_turn, no mac_review, elapsed < timeout → still mac_turn
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))

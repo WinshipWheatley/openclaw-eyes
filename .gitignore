@@ -116,3 +116,5 @@
 !polish_loop/pc_review_fallback.py
 !polish_loop/tasks/
 !polish_loop/tasks/*.md
+!tests/
+!tests/test_pc_review_fallback.py
