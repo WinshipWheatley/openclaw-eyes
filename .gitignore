@@ -115,6 +115,7 @@
 !builder_watcher.sh
 !vscode_cleanup.sh
 !openclaw.code-workspace
+!sync_to_mobile.sh
 
 # Polish loop
 !polish_loop/
