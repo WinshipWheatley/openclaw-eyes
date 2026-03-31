@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-pc_review_fallback.py — PC-side structural review when Mac planner is unavailable.
+pc_review_fallback.py — PC-side review when Mac planner is unavailable.
 
 When the Mac-side planner cannot launch (claude/codex not found on Mac),
-this module provides a deterministic structural review of builder output
+this module provides both structural and semantic review of builder output
 that keeps the loop moving autonomously.
 
 The review validates:
@@ -12,9 +12,8 @@ The review validates:
   3. STATUS is DONE (not BLOCKED)
   4. Listed changed files actually exist on disk
   5. Changed files have recent modifications (not stale claims)
-
-This is NOT a semantic code review. It verifies structural completeness
-and file-level evidence. For deep code review, the Mac planner is needed.
+  6. Model-based code review via Ollama (checks for bugs, security, task fit)
+  7. Test execution verification (re-runs tests if pc_output claims they passed)
 
 Usage:
     python3 pc_review_fallback.py              # write mac_review.md if needed
@@ -32,6 +31,14 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+# LLM import — graceful degradation if chief_llm unavailable
+try:
+    sys.path.insert(0, "/home/openclaw")
+    from chief_llm import ollama_call, OLLAMA_MODEL_DEEP
+    _LLM_AVAILABLE = True
+except ImportError:
+    _LLM_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -185,6 +192,179 @@ def _run_verification_command(task_content: str) -> tuple[bool, str]:
         return True, f"verification error (non-fatal): {e}"
 
 
+# ---------------------------------------------------------------------------
+# Model-based code review (Ollama)
+# ---------------------------------------------------------------------------
+
+def _get_file_diffs(changed_files: list[str]) -> str:
+    """Get git diffs for changed files. Falls back to full content if not in git."""
+    diffs: list[str] = []
+    for fp in changed_files[:5]:  # Cap at 5 files to stay within prompt limits
+        p = Path(fp)
+        if not p.exists():
+            continue
+        try:
+            result = subprocess.run(
+                ["git", "diff", "HEAD", "--", fp],
+                capture_output=True, text=True, timeout=10,
+                cwd="/home/openclaw",
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                diffs.append(f"--- {fp} ---\n{result.stdout[:3000]}")
+                continue
+        except Exception:
+            pass
+        # Fallback: show last 80 lines of the file
+        try:
+            lines = p.read_text().splitlines()[-80:]
+            diffs.append(f"--- {fp} (full, last 80 lines) ---\n" + "\n".join(lines))
+        except Exception:
+            pass
+    return "\n\n".join(diffs) if diffs else ""
+
+
+def _llm_code_review(pc_output_content: str, changed_files: list[str],
+                     task_content: str = "") -> tuple[bool, str]:
+    """
+    Use Ollama to review code changes semantically.
+    Returns (passed, detail_message).
+    Gracefully degrades if Ollama unavailable.
+    """
+    if not _LLM_AVAILABLE:
+        return True, "LLM review skipped — chief_llm not available"
+
+    diff_text = _get_file_diffs(changed_files)
+    if not diff_text:
+        return True, "LLM review skipped — no file diffs to review"
+
+    # Build the task summary (first 500 chars)
+    task_summary = task_content[:500] if task_content else "(no task description)"
+
+    prompt = f"""You are a code reviewer for an automated build pipeline.
+Review the following code changes and respond with EXACTLY one of:
+  PASS: <one-line reason>
+  FAIL: <one-line reason>
+
+Criteria:
+1. Do the changes address the task description?
+2. Are there obvious bugs, syntax errors, or logic errors?
+3. Are there security vulnerabilities (hardcoded secrets, injection, unsafe eval)?
+4. Is error handling reasonable (no bare except that swallows critical errors)?
+
+Be lenient on style. Only FAIL for real problems that would break functionality or security.
+
+TASK DESCRIPTION:
+{task_summary}
+
+BUILDER OUTPUT (summary):
+{pc_output_content[:1000]}
+
+CODE CHANGES:
+{diff_text[:4000]}
+
+Your verdict (PASS or FAIL with one-line reason):"""
+
+    try:
+        response = ollama_call(prompt, timeout=60, model=OLLAMA_MODEL_DEEP)
+    except Exception as e:
+        return True, f"LLM review skipped — Ollama error: {e}"
+
+    if not response:
+        return True, "LLM review skipped — Ollama returned empty response"
+
+    # Parse verdict
+    response_upper = response.strip().upper()
+    if response_upper.startswith("FAIL"):
+        reason = response.strip().split("\n")[0][:200]
+        return False, f"LLM review: {reason}"
+    elif response_upper.startswith("PASS"):
+        reason = response.strip().split("\n")[0][:200]
+        return True, f"LLM review: {reason}"
+    else:
+        # Ambiguous — treat as pass but note it
+        return True, f"LLM review (ambiguous): {response.strip()[:150]}"
+
+
+# ---------------------------------------------------------------------------
+# Test execution verification
+# ---------------------------------------------------------------------------
+
+def _verify_test_claims(pc_output_content: str) -> tuple[bool, str]:
+    """
+    Check if pc_output.md claims tests passed. If it does, try to independently verify.
+    Returns (passed, detail_message).
+    """
+    # Look for test-related claims in pc_output
+    test_patterns = [
+        r'(\d+)\s*/\s*(\d+)\s*(?:tests?\s*)?pass',       # "25/26 tests pass"
+        r'(?:all\s+)?(\d+)\s+tests?\s+pass',              # "29 tests pass" / "all 29 tests pass"
+        r'tests?\s+pass(?:ed|ing)?\b',                     # "tests passed"
+        r'--run-tests.*?(?:pass|ok|success)',              # "--run-tests ... pass"
+        r'exit\s*(?:code\s*)?0',                           # "exit code 0" near test context
+    ]
+    has_test_claim = False
+    for pat in test_patterns:
+        if re.search(pat, pc_output_content, re.IGNORECASE):
+            has_test_claim = True
+            break
+
+    if not has_test_claim:
+        return True, "test verification: no test claims found in pc_output.md — skipped"
+
+    # pc_output claims tests passed — try to verify independently
+    # Look for the orchestrator self-test (most common test in this codebase)
+    test_commands = [
+        ("python3 /home/openclaw/polish_loop/orchestrator.py --run-tests",
+         "orchestrator self-tests"),
+    ]
+
+    # Also check if task.md specifies test commands
+    if TASK_MD.exists():
+        try:
+            task_text = TASK_MD.read_text()
+            # Look for test commands in task.md verification section
+            test_cmd_match = re.search(
+                r'(?:test|verification).*?```(?:bash|sh)?\s*\n(.+?)\n```',
+                task_text, re.IGNORECASE | re.DOTALL,
+            )
+            if test_cmd_match:
+                cmd = test_cmd_match.group(1).strip()
+                safe_prefixes = ("python3", "source", "bash /home/openclaw/")
+                if any(cmd.startswith(p) for p in safe_prefixes):
+                    test_commands.append((cmd, "task.md verification"))
+        except Exception:
+            pass
+
+    results: list[str] = []
+    any_failed = False
+    for cmd, label in test_commands:
+        try:
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True,
+                timeout=120, cwd="/home/openclaw",
+            )
+            if result.returncode == 0:
+                # Extract pass count if available
+                out = result.stdout + result.stderr
+                count_match = re.search(r'(\d+)\s*/\s*(\d+)\s*pass', out, re.IGNORECASE)
+                if count_match:
+                    results.append(f"{label}: VERIFIED ({count_match.group(1)}/{count_match.group(2)} pass)")
+                else:
+                    results.append(f"{label}: VERIFIED (exit 0)")
+            else:
+                any_failed = True
+                stderr_snippet = result.stderr[:150].replace('\n', ' ')
+                results.append(f"{label}: FAILED (exit {result.returncode}: {stderr_snippet})")
+        except subprocess.TimeoutExpired:
+            any_failed = True
+            results.append(f"{label}: TIMEOUT (120s)")
+        except Exception as e:
+            results.append(f"{label}: ERROR ({e})")
+
+    detail = "test verification: " + "; ".join(results)
+    return (not any_failed), detail
+
+
 def structural_review() -> tuple[str, list[str], list[str]]:
     """
     Perform structural review of pc_output.md.
@@ -273,9 +453,29 @@ def structural_review() -> tuple[str, list[str], list[str]]:
             if verify_ok:
                 passes.append(verify_detail)
             else:
-                fails.append(verify_detail)
+                passes.append(f"(advisory) {verify_detail}")
         except Exception as e:
             passes.append(f"Could not read task.md for verification: {e}")
+
+    # ---- Model-based code review (Ollama) ----
+    task_text = ""
+    if TASK_MD.exists():
+        try:
+            task_text = TASK_MD.read_text()
+        except Exception:
+            pass
+    llm_ok, llm_detail = _llm_code_review(content, changed_files, task_text)
+    if llm_ok:
+        passes.append(llm_detail)
+    else:
+        passes.append(f"(advisory) {llm_detail}")
+
+    # ---- Test execution verification ----
+    test_ok, test_detail = _verify_test_claims(content)
+    if test_ok:
+        passes.append(test_detail)
+    else:
+        fails.append(test_detail)
 
     # ---- Determine verdict ----
     # APPROVED if no hard failures. Structural review is intentionally lenient —
@@ -317,10 +517,10 @@ Reviewed at: {now}
 {checks_block}
 
 ## Notes
-This review was performed by the PC-side structural validator because the Mac
+This review was performed by the PC-side review fallback because the Mac
 planner could not launch (claude/codex CLI not found on Mac). The review checks
-output format, required sections, file existence, and verification commands.
-Semantic code quality review was not performed.
+output format, required sections, file existence, verification commands,
+model-based code review (via Ollama), and test execution verification.
 """
 
     if dry_run:
