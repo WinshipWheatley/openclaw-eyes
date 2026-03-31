@@ -1,5 +1,5 @@
 #!/bin/bash
-POLL_INTERVAL=20
+POLL_INTERVAL=10
 STATUS_FILE="/home/openclaw/polish_loop/status.json"
 PROMPT_FILE="/home/openclaw/polish_loop/POLISH_PROMPT.md"
 LOG_FILE="/home/openclaw/builder_watcher.log"
@@ -44,6 +44,11 @@ guard_pattern_for_runner() {
   else
     printf 'claude.*POLISH_PROMPT'
   fi
+}
+
+any_builder_session_running() {
+  # Prevent duplicate launches after watcher restart: detect active timed runner sessions.
+  pgrep -f 'timeout 900 (codex exec|claude --model sonnet .*--print)' >/dev/null 2>&1
 }
 
 launch_runner_once() {
@@ -110,7 +115,15 @@ while true; do
     fallback_runner="codex"
     [ "$launch_runner" = "codex" ] && fallback_runner="claude"
 
-    # Guard: skip launch if the selected runner is already running (crash-restart safety)
+    # Guard: skip launch if any Builder session is already running (crash-restart safety).
+    if any_builder_session_running; then
+      log "SKIP: pc_turn transition detected but Builder session already running — skipping launch"
+      LAST_STATE="$status"
+      sleep "$POLL_INTERVAL"
+      continue
+    fi
+
+    # Runner-specific guard remains as a fallback check.
     runner_guard_pattern="$(guard_pattern_for_runner "$launch_runner")"
     if pgrep -f "$runner_guard_pattern" >/dev/null 2>&1; then
       log "SKIP: pc_turn transition detected but $launch_runner session already running — skipping launch"

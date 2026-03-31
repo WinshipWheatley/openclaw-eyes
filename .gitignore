@@ -109,3 +109,10 @@
 !RUNBOOK.md
 
 !builder_watcher.sh
+
+# Polish loop
+!polish_loop/
+!polish_loop/orchestrator.py
+!polish_loop/pc_review_fallback.py
+!polish_loop/tasks/
+!polish_loop/tasks/*.md
