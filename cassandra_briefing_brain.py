@@ -35,6 +35,7 @@ Protected-window checks (read-only, no imports from approval/session logic):
 """
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -47,6 +48,7 @@ from chief_file_io import save_json, load_json, append_md_tagged
 
 BRIEFING_DIR  = Path("/mnt/c/OpenClaw/logs/cassandra_briefings")
 BRIEFING_LOG  = BRIEFING_DIR / "briefing_log.md"
+_OPS_ACTIONS  = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions.md")
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -261,6 +263,73 @@ def pending_briefings() -> list[dict]:
     return result
 
 
+# ── Action classification ─────────────────────────────────────────────────────
+
+_DONE_RE = re.compile(
+    r"\[done\]|\[completed\]|\[x\]|✓|~~.+~~|\(done\)",
+    re.IGNORECASE,
+)
+_PRIORITY_RE = re.compile(
+    r"\burgent\b|\basap\b|\bcritical\b|\bhigh.?priority\b|\btoday\b|\boverdue\b",
+    re.IGNORECASE,
+)
+
+
+def classify_ops_actions(lines: list[str]) -> tuple[list[str], list[str]]:
+    """
+    Split action lines into (pending, completed).
+    Lines matching _DONE_RE are completed; all others are pending.
+    Pending list is sorted: priority items first.
+    """
+    pending: list[str] = []
+    completed: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _DONE_RE.search(stripped):
+            completed.append(stripped)
+        else:
+            pending.append(stripped)
+    pending.sort(key=lambda l: (0 if _PRIORITY_RE.search(l) else 1))
+    return pending, completed
+
+
+def build_action_summary(n_actions: int = 12) -> str:
+    """
+    Read Ops Actions.md, classify into pending/completed, and return a
+    structured summary string with counts and priority items first in Pending.
+    Used to enrich the morning briefing context.
+    """
+    lines: list[str] = []
+    if _OPS_ACTIONS.exists():
+        raw = _OPS_ACTIONS.read_text(encoding="utf-8").splitlines()
+        lines = [
+            l.strip() for l in raw
+            if l.strip() and not l.startswith("#") and not l.startswith("---")
+        ][-n_actions:]
+
+    pending, completed = classify_ops_actions(lines)
+
+    parts: list[str] = []
+    parts.append(f"Pending ({len(pending)}):")
+    if pending:
+        for item in pending:
+            marker = "[PRIORITY] " if _PRIORITY_RE.search(item) else ""
+            parts.append(f"  {marker}{item}")
+    else:
+        parts.append("  (none)")
+
+    parts.append(f"Completed ({len(completed)}):")
+    if completed:
+        for item in completed:
+            parts.append(f"  {item}")
+    else:
+        parts.append("  (none)")
+
+    return "\n".join(parts)
+
+
 # ── LLM generation ────────────────────────────────────────────────────────────
 
 _PERSONA_BRIEF = """\
@@ -291,6 +360,11 @@ def generate_briefing(slot: str) -> str:
     """
     _, _, directive = SLOTS[slot]
     context = build_context_snapshot()
+
+    # Morning briefings include a classified action summary (pending vs completed).
+    if slot == "morning":
+        action_summary = build_action_summary()
+        context = f"Action summary:\n{action_summary}\n\n{context}"
 
     prompt = (
         f"{_PERSONA_BRIEF}\n\n"

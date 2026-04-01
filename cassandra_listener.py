@@ -10,12 +10,21 @@ Voice suppression
 Content/social/tweet-style requests stay text-only.
 The user can explicitly request voice ("say this aloud", "read that out") to
 override the suppression.
+
+Voice input (Whisper relay)
+---------------------------
+Telegram voice messages from the authorized user are transcribed with
+openai-whisper via cassandra_whisper_relay.  Requires ffmpeg on PATH.
+If ffmpeg is absent the handler logs a warning and replies with a prompt
+to send the request as text instead.
 """
 
 import asyncio
 import fcntl
 import hashlib as _hashlib
 import os
+import shutil
+import tempfile
 import time as _time
 from pathlib import Path as _Path
 from telegram import Update
@@ -24,6 +33,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTyp
 from cassandra_brain import handle as cassandra_handle, is_designated_contact_sender
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
+from cassandra_whisper_relay import relay_transcript, transcribe_audio
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 
@@ -121,8 +131,93 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[cassandra_listener] voice error (suppressed): {e}", flush=True)
 
 
+# ── Voice input handler (Whisper relay) ──────────────────────────────────────
+
+_FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
+
+
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle Telegram voice messages from the authorized user.
+
+    Downloads the OGG/Opus file, transcribes with openai-whisper, and
+    passes the transcript through cassandra_whisper_relay for confidence
+    checking, deduplication, and Cassandra command intake.
+    """
+    if not update.effective_user or update.effective_user.id != AUTHORIZED_USER_ID:
+        return
+    if not update.message or not update.message.voice:
+        return
+
+    if not _FFMPEG_AVAILABLE:
+        print("[cassandra_listener] voice input skipped: ffmpeg not on PATH", flush=True)
+        await update.message.reply_text(
+            "Voice input needs ffmpeg installed. Send as text for now."
+        )
+        return
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        ogg_path = os.path.join(tmp_dir, "voice.ogg")
+        try:
+            voice_file = await update.message.voice.get_file()
+            await voice_file.download_to_drive(ogg_path)
+        except Exception as e:
+            print(f"[cassandra_listener] voice download error: {e}", flush=True)
+            await update.message.reply_text("Could not download your voice message. Try again.")
+            return
+
+        try:
+            transcript, confidence = await asyncio.to_thread(transcribe_audio, ogg_path)
+        except Exception as e:
+            print(f"[cassandra_listener] whisper transcription error: {e}", flush=True)
+            await update.message.reply_text("Could not transcribe your message. Try again.")
+            return
+
+    if not transcript:
+        await update.message.reply_text("I could not make out any words. Please try again.")
+        return
+
+    result = await asyncio.to_thread(relay_transcript, transcript, confidence)
+    status = result["status"]
+
+    if status == "rejected":
+        reason = result["reason"]
+        await update.message.reply_text(
+            f"Could not process voice input ({reason}). Please resend or type it."
+        )
+        return
+
+    if status == "duplicate":
+        await update.message.reply_text("Got it — already processed that one.")
+        return
+
+    # accepted or flagged
+    sender_chat_id = update.effective_chat.id if update.effective_chat else None
+    for r in result["reply"]:
+        await update.message.reply_text(r)
+
+    if status == "flagged":
+        await update.message.reply_text(
+            f"(Low confidence transcript — {result['confidence']:.0%}. "
+            "Say it again or type it if that was not right.)"
+        )
+
+    _log_cassandra_route(transcript, "whisper_relay")
+
+    try:
+        suppress = _suppress_voice(transcript)
+        speak(" ".join(result["reply"]), suppress=suppress)
+        if not suppress and result["reply"]:
+            wav_path = synthesize_for_voice_note(" ".join(result["reply"]))
+            if wav_path is not None:
+                send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
+    except Exception as e:
+        print(f"[cassandra_listener] voice reply error (suppressed): {e}", flush=True)
+
+
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
 print("Cassandra online.", flush=True)
 app.run_polling()

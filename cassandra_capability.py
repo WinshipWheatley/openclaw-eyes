@@ -35,6 +35,7 @@ CALENDAR_CONNECTED         = True   # google.calendar.read via google_access_bro
 PAYMENT_EXTERNAL_CONNECTED = False  # no live bank or payment processor connection
 FILE_VERIFY_CONNECTED      = False  # Chief file-existence check not wired in
 EMAIL_SEND_CONNECTED = True  # google.gmail.send via google_access_broker.py (L2 approval required)
+INVOICE_PDF_CONNECTED = True  # reportlab PDF invoice generation via Cassandra
 FUTURE_ACTION_CONNECTED    = False  # cannot autonomously check, send, or follow up
 FINANCIAL_LOG_CONNECTED    = True   # expense_log.json write via chief_cpa_brain.log_entry / log_expense_from_text
 GMAIL_METADATA_CONNECTED   = True   # google.gmail.read.metadata via google_access_broker.py
@@ -327,6 +328,8 @@ def capability_context() -> str:
                  "contacts not connected — cannot look up phone numbers or emails"),
         cap_line("pii_vault",         PII_VAULT_CONNECTED,
                  "PII vault not connected. Never state, infer, or repeat SSN, tax info, or personal financial data."),
+        cap_line("invoice_pdf",       INVOICE_PDF_CONNECTED,
+                 "invoice_pdf not connected — cannot generate PDF invoices."),
     ]
     return "\n".join(lines)
 

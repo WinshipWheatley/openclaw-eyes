@@ -20,8 +20,6 @@ Voice on delivery
 """
 
 import time
-from datetime import datetime
-from pathlib import Path
 
 from cassandra_briefing_brain import (
     due_slots,

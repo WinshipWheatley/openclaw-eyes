@@ -22,7 +22,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from chief_file_io import load_json
 from cassandra_brain import (
     is_focus_mode,
     is_social_mode,
