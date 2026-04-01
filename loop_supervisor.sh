@@ -100,7 +100,7 @@ check_dashboard_watchdog() {
 
 check_mac_watcher() {
     # Check via SSH if the Mac loop_watcher is alive
-    # We CANNOT restart it — it must be started from a local Mac terminal
+    # Prefer auto-restart via SSH. If restart fails, fall back to manual warning.
     local mac_alive
     mac_alive=$(ssh -o ConnectTimeout=5 -o BatchMode=yes mac \
         'pgrep -f loop_watcher.sh > /dev/null 2>&1 && echo "yes" || echo "no"' 2>/dev/null || echo "unreachable")
@@ -110,7 +110,20 @@ check_mac_watcher() {
     elif [ "$mac_alive" = "unreachable" ]; then
         log "WARN: Mac unreachable via SSH — cannot check loop_watcher"
     else
-        log "WARN: Mac loop_watcher.sh is DEAD — requires manual restart from Mac terminal"
+        log "WARN: Mac loop_watcher.sh is DEAD — attempting SSH restart"
+        ssh -o ConnectTimeout=8 -o BatchMode=yes mac \
+            'cd ~/Eyes && nohup bash loop_watcher.sh >> ~/Eyes/loop_watcher.out 2>&1 & disown' \
+            >/dev/null 2>&1
+        sleep 2
+        mac_alive=$(ssh -o ConnectTimeout=5 -o BatchMode=yes mac \
+            'pgrep -f loop_watcher.sh > /dev/null 2>&1 && echo "yes" || echo "no"' 2>/dev/null || echo "unreachable")
+
+        if [ "$mac_alive" = "yes" ]; then
+            log "RESTART OK: Mac loop_watcher.sh restarted via SSH"
+            return 0
+        fi
+
+        log "RESTART FAILED: Mac loop_watcher.sh still down after SSH restart attempt"
         log "WARN: Run on Mac: cd ~/Eyes && nohup bash loop_watcher.sh >> ~/Eyes/loop_watcher.out 2>&1 & disown"
     fi
 }
