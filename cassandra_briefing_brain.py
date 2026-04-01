@@ -69,11 +69,15 @@ _APPROVAL_IGNORED_REQUESTERS = {
 SLOTS = {
     "morning": (
         8, 10,
-        "Generate a brief morning briefing (3–5 sentences).\n"
-        "Acknowledge the time of day naturally.\n"
-        "Surface the most important pending item or concern.\n"
-        "Name one clear priority for the morning.\n"
-        "Do not be motivational. Do not pad.",
+        "Generate the sovereign morning briefing. Use the SOVEREIGN MORNING BRIEFING CONTEXT above.\n"
+        "Structure the output in this order — no section headers, flowing prose:\n"
+        "1. Task milestone — call out the 400+ completed-task milestone if it is present in context.\n"
+        "2. Financial status — what income is logged, what follow-ups are open.\n"
+        "3. Music / album — where the album stands right now.\n"
+        "4. Ocean City conditions — call the surf/golf/work directive by name.\n"
+        "Close with a single decisive directive line: SURF MODE, GOLF WINDOW, or WORK MODE.\n"
+        "If a data source shows unavailable, say so plainly in one clause and move on.\n"
+        "3–5 sentences total. No filler. No motivational language. No markdown.",
     ),
     "afternoon": (
         13, 15,
@@ -357,14 +361,26 @@ def generate_briefing(slot: str) -> str:
     """
     Call the fast local LLM to generate a briefing for the given slot.
     Returns the briefing text (may be a fallback if LLM fails).
+    Morning slot prepends the sovereign context block (task/financial/music/surf).
     """
     _, _, directive = SLOTS[slot]
     context = build_context_snapshot()
 
-    # Morning briefings include a classified action summary (pending vs completed).
     if slot == "morning":
+        # Sovereign context: task milestone, financial, music, surf/weather cue.
+        try:
+            from cassandra_sovereign_briefing import build_sovereign_context
+            sovereign = build_sovereign_context()
+        except Exception as _e:
+            sovereign = f"[sovereign context unavailable: {_e}]"
+
+        # Classified action summary alongside the sovereign block.
         action_summary = build_action_summary()
-        context = f"Action summary:\n{action_summary}\n\n{context}"
+        context = (
+            f"{sovereign}\n\n"
+            f"Action summary:\n{action_summary}\n\n"
+            f"{context}"
+        )
 
     prompt = (
         f"{_PERSONA_BRIEF}\n\n"
@@ -377,8 +393,26 @@ def generate_briefing(slot: str) -> str:
     if result:
         return tts_clean(result.strip())
 
-    # Minimal fallback if LLM is unreachable
+    # Minimal fallback if LLM is unreachable — for morning, include sovereign summary.
     ts = datetime.now().strftime("%H:%M")
+    if slot == "morning":
+        try:
+            from cassandra_sovereign_briefing import (
+                _task_milestone_snapshot,
+                _financial_snapshot,
+                _music_snapshot,
+                _surf_cue_text,
+            )
+            fallback_body = " ".join([
+                _task_milestone_snapshot(),
+                _financial_snapshot().replace("\n", " "),
+                _music_snapshot(),
+                _surf_cue_text(),
+            ])
+            return tts_clean(f"[{ts} — morning briefing, LLM offline] {fallback_body}")
+        except Exception:
+            pass
+
     return (
         f"[{ts} — {slot} log unavailable. LLM did not respond. "
         "Check Ollama and retry.]"

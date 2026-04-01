@@ -122,6 +122,14 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
     decision_token, approval_id_from_cb = callback_data.split(":", 1)
 
+    # ── HITL Action Approve/Deny (pending HITL action queue) ─────────────────
+    if decision_token == "HITL":
+        from hitl_notification_service import process_callback as _hitl_cb
+        _approved_by = str(update.effective_user.id) if update.effective_user else "operator"
+        _result = _hitl_cb(callback_data, approved_by=_approved_by)
+        await _update(f"{_orig}\n\n{_result}")
+        return
+
     from chief_approval_brain import (
         record_decision, has_pending_approval, _load_pending, _save_pending, _is_hard_t2,
     )

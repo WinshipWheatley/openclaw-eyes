@@ -87,6 +87,8 @@ from chief_queue_brain import handle as queue_handle
 from chief_trinity_brain import handle as trinity_handle
 from chief_backup_brain import handle as backup_handle
 from chief_financial_brain import handle as financial_handle
+from chief_tax_sorter import handle as tax_sorter_handle
+from fin_fortress_auditor import handle as fin_fortress_handle
 from chief_analytics_brain import handle as analytics_handle
 from chief_goals_brain import handle as goals_handle
 from chief_momentum_brain import handle as momentum_handle
@@ -376,6 +378,24 @@ def financial_intent(text: str) -> bool:
         "payment history", "revenue this month", "quarterly projection",
         "tax projection", "financial summary", "income report",
         "how's business", "hows business",
+    ])
+
+
+def tax_sorter_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "sort taxes", "tax sort", "classify transactions", "business deductions",
+        "deduction review", "tax categories", "smart tax", "tax sorter",
+        "sort my taxes", "classify deductions",
+    ])
+
+
+def fin_fortress_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "financial fortress", "fortress audit", "gear audit", "music gear",
+        "gear deduction", "studio gear", "flag gear", "gear expenses",
+        "equipment deduction", "gear report",
     ])
 
 
@@ -736,6 +756,21 @@ def stack_restart_intent(text: str) -> bool:
     ))
 
 
+def _hitl_command(text: str) -> tuple[str, str] | None:
+    """Return (decision, token) if text is a /hitl_approve or /hitl_deny command.
+
+    decision is 'Y' (approve) or 'N' (deny).
+    Returns None if the text does not match.
+    """
+    t = text.strip()
+    t_lower = t.lower()
+    if t_lower.startswith("/hitl_approve "):
+        return "Y", t[len("/hitl_approve "):].strip()
+    if t_lower.startswith("/hitl_deny "):
+        return "N", t[len("/hitl_deny "):].strip()
+    return None
+
+
 def _route_message_inner(text: str) -> dict:
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
@@ -900,6 +935,14 @@ def _route_message_inner(text: str) -> dict:
     if brand_guide_intent(text):
         replies = brand_handle(text)
         return {"intent": "brand_guide", "replies": replies}
+
+    if fin_fortress_intent(text):
+        replies = fin_fortress_handle(text)
+        return {"intent": "fin_fortress", "replies": replies}
+
+    if tax_sorter_intent(text):
+        replies = tax_sorter_handle(text)
+        return {"intent": "tax_sort", "replies": replies}
 
     if financial_intent(text):
         replies = financial_handle(text)
@@ -1097,6 +1140,21 @@ def _route_message_inner(text: str) -> dict:
             "intent": "album_start",
             "reply": "What song are we working on?",
         }
+
+    hitl_cmd = _hitl_command(text)
+    if hitl_cmd is not None:
+        decision, token = hitl_cmd
+        try:
+            from hitl_notification_service import handle_callback as _hitl_cb
+            result = _hitl_cb(token, approved_by="telegram_command")
+            if result["ok"]:
+                label = "Approved" if result["decision"] == "Y" else "Denied"
+                reply = f"HITL {result['action_id']}: {label}."
+            else:
+                reply = f"HITL callback failed: {result.get('error', 'unknown')}."
+        except Exception as _e:
+            reply = f"HITL command error: {_e}"
+        return {"intent": "hitl_decision", "replies": [reply]}
 
     if stack_restart_intent(text):
         import subprocess, threading

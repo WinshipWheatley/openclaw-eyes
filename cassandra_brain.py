@@ -30,6 +30,12 @@ from chief_llm import ollama_call, nemotron_call, claude_json, OLLAMA_MODEL, OLL
 from chief_output_utils import tts_clean
 from cassandra_capability import capability_context, gate_reply
 from capability_registry import registry_context_for_query
+from hitl_pending_store import propose_action as _hitl_propose
+from cassandra_pii_hooks import (
+    tokenize_prompt as _pii_tokenize,
+    rehydrate_reply as _pii_rehydrate_reply,
+    detokenize_for_dashboard,
+)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -168,6 +174,38 @@ _CAPABILITY_GAP_SPECS = {
         "manual_required": True,
     },
 }
+
+# ── HITL integration point ───────────────────────────────────────────────────
+#
+# Cassandra calls _propose_external_action() before executing any action that
+# reaches outside the read-only/logging boundary (email send, SMS, calendar
+# writes, outreach, etc.).
+#
+# When HITL is disabled (default), this is a no-op — (True, None) is returned
+# and the caller proceeds as before.  When HITL is enabled, a pending action
+# record is created and (False, action_id) is returned.  The caller must NOT
+# execute the action; instead, surface a message like:
+#   "I've queued that for your approval. Action ID: <action_id>"
+#
+# Example:
+#   ok, aid = _propose_external_action("email_send", {"to": addr, "body": text})
+#   if not ok:
+#       return [f"Queued for approval. Action ID: {aid}"]
+#   # proceed with send
+
+def _propose_external_action(
+    action_type: str,
+    payload: dict,
+    ttl_seconds: int = 3600,
+) -> tuple[bool, str | None]:
+    """
+    Wrap hitl_pending_store.propose_action for Cassandra.
+
+    Returns (True, None) when HITL is off or already approved.
+    Returns (False, action_id) when HITL is on and a pending record was created.
+    """
+    return _hitl_propose("cassandra", action_type, payload, ttl_seconds)
+
 
 # ── Chirp throttle constants ───────────────────────────────────────────────────
 
@@ -2516,14 +2554,26 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         f"Cassandra:"
     )
 
+    # PII guard — tokenize sensitive content from the assembled prompt before
+    # sending to any LLM (local or cloud).  Tokens are rehydrated after the
+    # response so the reply can reference the original values if needed.
+    # If all tokenization paths fail, block the send rather than leak plaintext.
+    safe_prompt, _pii_ctx = _pii_tokenize(prompt)
+    if safe_prompt is None:
+        save_state(state)
+        blocked_reply = ["I need to protect some sensitive context before replying. Please try again in a moment."]
+        _log_conversation(text, blocked_reply, route="pii_block")
+        return blocked_reply
+
     try:
-        reply = _call(prompt, deep, cloud_ok=cloud_ok)
+        reply = _call(safe_prompt, deep, cloud_ok=cloud_ok)
     except Exception as e:
         print(f"[cassandra] _call error: {e}", flush=True)
         save_state(state)
         error_reply = ["I'm here, but I hit a snag thinking that through. Try again in a moment."]
         _log_conversation(text, error_reply, route="error")
         return error_reply
+    reply = _pii_rehydrate_reply(reply, _pii_ctx)
     reply = gate_reply(reply, query,
                        has_registry_context=registry_ctx is not None)
     reply = tts_clean(reply)
