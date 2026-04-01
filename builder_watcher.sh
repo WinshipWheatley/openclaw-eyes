@@ -88,7 +88,7 @@ launch_runner_once() {
 
   # Forced runner path (fallback attempts): override profile-selected runner.
   # This ensures fast-failure fallback actually switches tools.
-  if [ -n "$runner" ] && [ "$runner" != "$p_runner" ]; then
+  if [ -n "$runner" ] && [ "$runner" != "$p_runner" ] && [ "$runner" != "$RUNNER_PREFERRED" ]; then
     log "PROFILE: Forced runner override -> $runner (profile had $p_runner)"
     p_runner="$runner"
     p_invoke_cmd=""  # use hardcoded fallback invocation for forced runner
