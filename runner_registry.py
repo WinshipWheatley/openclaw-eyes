@@ -90,7 +90,7 @@ KNOWN_RUNNERS = {
         "runner_type": "cloud",
         "cost_tier": "moderate",
         "headless_flag": "--print",
-        "invoke_pattern": "setsid timeout {timeout} claude --model {model} --effort {effort} --dangerously-skip-permissions --print --max-budget-usd {budget} --fallback-model sonnet < {prompt_file}",
+        "invoke_pattern": "setsid timeout {timeout} claude --model {model} --effort {effort} --dangerously-skip-permissions --print --max-budget-usd {budget} --fallback-model {fallback_model} < {prompt_file}",
         "strengths": ["architecture", "complex-reasoning", "multi-file", "safety"],
         "weaknesses": ["cost-on-opus"],
         "flag_parser": "_parse_claude_help",

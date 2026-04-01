@@ -469,12 +469,14 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
 
     if invoke_pattern:
         # Substitute template variables
+        fallback_model = "haiku" if model == "sonnet" else "sonnet"
         cmd = invoke_pattern.format(
             timeout=timeout,
             model=model,
             effort=effort,
             budget=budget,
             prompt_file=prompt_file,
+            fallback_model=fallback_model,
         )
         return cmd
 
@@ -482,11 +484,12 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
     if runner_name == "codex":
         return f'setsid timeout {timeout} codex exec "$(cat {prompt_file})"'
     else:
+        fallback_model = "haiku" if model == "sonnet" else "sonnet"
         return (
             f"setsid timeout {timeout} claude"
             f" --model {model} --effort {effort}"
             f" --dangerously-skip-permissions --print"
-            f" --max-budget-usd {budget} --fallback-model sonnet"
+            f" --max-budget-usd {budget} --fallback-model {fallback_model}"
             f" < {prompt_file}"
         )
 
