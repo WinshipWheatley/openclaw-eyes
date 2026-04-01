@@ -463,36 +463,39 @@ def _score_runner_for_task(runner: Runner, task_type: str) -> float:
     """Score a runner's fit for a task type. Higher = better.
 
     Scoring philosophy:
-      - Each tier values different capabilities
-      - Strengths that ACTUALLY MATTER for the task get big bonuses
-      - Cost efficiency matters for all tiers (not just quick)
-      - Sandbox/isolation is valuable for surgical and standard work
-      - Large context helps standard and architect tiers
-      - Every runner should have a realistic path to winning at least one tier
+      - Gemini is the default quick runner (smart + cheap + fast)
+      - Ollama is RESERVED for: sensitive data, token exhaustion, local ops
+      - Codex competes for surgical (sandboxed, code-review)
+      - Claude dominates standard/architect (best reasoning)
+      - Gemini gets ~1/3 of standard work via ratio rotation (not scored here)
     """
     score = 50.0  # base
 
     # --- Universal cost efficiency ---
-    if runner.cost_tier == "free":
-        score += 10
-    elif runner.cost_tier == "cheap":
+    if runner.cost_tier == "cheap":
         score += 7
+    # free/local gets NO universal bonus — ollama shouldn't win by default
     # moderate = 0 (baseline), expensive = penalty below
 
     if task_type == "quick":
-        # Prefer: fast, cheap, local — reasoning doesn't matter much
-        if runner.cost_tier == "free":
-            score += 20  # stacks with universal +10 = +30 total
-        elif runner.cost_tier == "cheap":
-            score += 13  # stacks with +7 = +20 total
-        if runner.runner_type == "local":
-            score += 15
+        # Prefer: smart + cheap + fast.  Gemini > ollama for most quick tasks.
+        # Ollama only wins when local_required flag is set (handled in _pick_runner).
         if "fast" in runner.strengths:
-            score += 10
-        if "fast-for-small-tasks" in runner.strengths:
-            score += 8
+            score += 15
+        if runner.cost_tier == "cheap":
+            score += 15  # stacks with universal +7 = +22 total
+        elif runner.cost_tier == "free":
+            score += 8   # free is nice but not the priority
+        if "large-context" in runner.strengths:
+            score += 5
+        if "sandbox" in runner.strengths:
+            score += 5
+        if runner.runner_type == "local":
+            score += 3   # small bonus — not dominant
         if "limited-reasoning" in runner.weaknesses:
-            score -= 3  # minor penalty — quick tasks don't need deep reasoning
+            score -= 8   # quick tasks still benefit from smarts
+        if "fast-for-small-tasks" in runner.strengths:
+            score += 5
 
     elif task_type == "surgical":
         # Prefer: accurate, sandboxed, cost-controlled
@@ -511,6 +514,7 @@ def _score_runner_for_task(runner: Runner, task_type: str) -> float:
 
     elif task_type == "standard":
         # Prefer: good all-around, large context, multi-file
+        # Gemini gets ~1/3 of standard work via ratio rotation in _pick_runner
         if "complex-reasoning" in runner.strengths:
             score += 15
         if "multi-file" in runner.strengths:

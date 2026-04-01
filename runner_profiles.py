@@ -302,7 +302,8 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     # 4. Dynamic runner selection via registry + budget awareness
     model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
     runner_name, model, runner_reason, budget_override = _pick_runner(
-        tier, task_id, is_blocking, model_prefs=model_prefs
+        tier, task_id, is_blocking, model_prefs=model_prefs,
+        task_text=task_text, task_meta=meta,
     )
 
     # Planner runs on Mac — ollama is PC-only; fall back to claude/sonnet
@@ -358,90 +359,190 @@ def _check_deferral(task_id: str, tier: str, is_blocking: bool) -> Optional[dict
 
 
 # ---------------------------------------------------------------------------
-# Runner rotation — spread work across runners overnight
+# Runner rotation — ratio-based with queue look-ahead
 # ---------------------------------------------------------------------------
 
-# After this many consecutive tasks on the SAME cloud runner, try the next one.
-# Doesn't apply to ollama (free/local) or architect tier (needs the best).
-ROTATION_THRESHOLD = 3
+# Standard tier target ratio: 2 claude tasks per 1 gemini task.
+# The easiest upcoming standard task gets assigned to gemini.
+CLAUDE_GEMINI_RATIO = (2, 1)  # (claude_share, gemini_share)
+
+TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
+ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
+
+# Keywords that signal sensitive data requiring local-only processing
+SENSITIVE_KEYWORDS = {
+    "ssn", "social security", "credentials", "password", "secret",
+    "private key", "api key", "token file", "billing record",
+    "financial", "identity", "pii", "hipaa",
+}
 
 
-def _get_recent_runner_streak() -> tuple[str, int]:
-    """Check how many consecutive recent tasks used the same runner.
+def _task_is_sensitive(meta: dict) -> bool:
+    """Check if a task requires local-only processing for data sensitivity."""
+    # Explicit flag in frontmatter
+    if meta.get("local_required", "").lower() in ("true", "yes", "1"):
+        return True
+    if meta.get("sensitive", "").lower() in ("true", "yes", "1"):
+        return True
 
-    Returns (runner_name, streak_count).  Returns ("", 0) if no history.
+    # Keyword scan across goal and scope
+    text = " ".join([
+        str(meta.get("title", "")),
+        str(meta.get("goal", "")),
+        str(meta.get("scope", "")),
+    ]).lower()
+    return any(kw in text for kw in SENSITIVE_KEYWORDS)
+
+
+def _get_recent_runner_ratio(runner_a: str = "claude", runner_b: str = "gemini",
+                              window: int = 6) -> tuple[int, int]:
+    """Count recent tasks assigned to runner_a vs runner_b.
+
+    Looks at the last `window` budget_tracker entries (roughly the last
+    batch of tasks).  Returns (count_a, count_b).
     """
     try:
         import budget_tracker
         state = budget_tracker._load_state()
-        entries = state.entries
-        if not entries:
-            return ("", 0)
-
-        # Walk backwards through entries to find the streak
-        last_runner = entries[-1].get("runner", "")
-        if not last_runner:
-            return ("", 0)
-
-        streak = 0
-        for entry in reversed(entries):
-            if entry.get("runner", "") == last_runner:
-                streak += 1
-            else:
-                break
-
-        return (last_runner, streak)
+        entries = state.entries[-window:] if state.entries else []
+        a = sum(1 for e in entries if e.get("runner") == runner_a)
+        b = sum(1 for e in entries if e.get("runner") == runner_b)
+        return (a, b)
     except Exception:
-        return ("", 0)
+        return (0, 0)
 
 
-def _apply_rotation(ranked_runners: list, tier: str) -> list:
-    """Reorder runners to spread work when one runner dominates.
+def _estimate_task_complexity(task_text: str) -> int:
+    """Quick complexity score from task text.  Lower = easier.
 
-    Rules:
-      - Only activates after ROTATION_THRESHOLD consecutive tasks on same runner
-      - Never rotates for architect tier (needs the best tool available)
-      - Only promotes cloud runners (won't force-promote ollama for standard work)
-      - The promoted runner must be within a competitive score range
-      - Rotation is a soft preference, not mandatory — budget checks still apply
+    Used to decide which task in a batch should go to gemini.
+    """
+    meta = _parse_frontmatter(task_text)
+    files = _count_files(meta)
+    scope = _scope_size(meta)
+    # Simple composite: files + scope bullets
+    return files + scope
+
+
+def _should_gemini_take_this(task_text: str, tier: str) -> bool:
+    """Decide if this standard-tier task should go to gemini.
+
+    Logic:
+      1. Check the 2:1 claude:gemini ratio — is it gemini's turn?
+      2. If yes, peek at upcoming queued tasks.  If this task is the
+         easiest in the next batch of 3, gemini takes it.  Otherwise
+         wait for an easier one.
+      3. If the queue is empty (this is the only task), and it's
+         gemini's turn by ratio, gemini takes it regardless.
+    """
+    if tier != "standard":
+        return False
+
+    # Check ratio
+    claude_count, gemini_count = _get_recent_runner_ratio("claude", "gemini")
+    target_claude, target_gemini = CLAUDE_GEMINI_RATIO
+    total = claude_count + gemini_count
+
+    # Determine if gemini is "due" a task
+    if total == 0:
+        # Fresh start — let claude go first
+        return False
+
+    # Current gemini share vs target share
+    target_gemini_pct = target_gemini / (target_claude + target_gemini)  # 0.333
+    actual_gemini_pct = gemini_count / total if total > 0 else 0
+
+    if actual_gemini_pct >= target_gemini_pct:
+        # Gemini has had enough turns — claude's turn
+        return False
+
+    # Gemini is under-represented.  Check queue to find easiest task.
+    current_complexity = _estimate_task_complexity(task_text)
+
+    # Peek at queued tasks
+    queue_complexities = []
+    if TASK_QUEUE_DIR.exists():
+        # Build skip set (same logic as orchestrator)
+        skip_names = {"env-001-install.md", "env-001-spec-tools.md"}
+        completed_names: set[str] = set()
+        if ARCHIVE_DIR.exists():
+            for archived in ARCHIVE_DIR.glob("task_*"):
+                parts = archived.stem.split("_", 1)
+                if len(parts) > 1:
+                    name_part = parts[1].rsplit("_", 1)[0]
+                    completed_names.add(name_part)
+
+        for qf in sorted(TASK_QUEUE_DIR.glob("*.md"), key=lambda p: p.name):
+            if qf.name in skip_names or qf.stem in completed_names:
+                continue
+            try:
+                qtxt = qf.read_text()
+                qmeta = _parse_frontmatter(qtxt)
+                # Only consider standard-tier tasks
+                qprofile = qmeta.get("profile", "").strip().lower()
+                if qprofile and qprofile != "standard":
+                    continue
+                # Quick heuristic: if it looks like architect or quick, skip
+                qfiles = _count_files(qmeta)
+                qscope = _scope_size(qmeta)
+                if qfiles >= 6 or qscope >= 8:
+                    continue  # likely architect
+                if qfiles <= 1 and qscope <= 2:
+                    continue  # likely quick
+                queue_complexities.append(qfiles + qscope)
+            except Exception:
+                continue
+            if len(queue_complexities) >= 2:
+                break  # only peek at next 2
+
+    if not queue_complexities:
+        # No upcoming standard tasks — gemini takes this one (it's due)
+        return True
+
+    # Is this the easiest in the batch?
+    all_complexities = [current_complexity] + queue_complexities
+    min_complexity = min(all_complexities)
+    if current_complexity <= min_complexity:
+        return True  # this is the easiest — gemini gets it
+
+    # This isn't the easiest — save gemini for an easier upcoming task
+    return False
+
+
+def _apply_rotation(ranked_runners: list, tier: str, task_text: str = "") -> list:
+    """Reorder runners based on ratio targets and task complexity.
+
+    Standard tier: 2:1 claude:gemini ratio.  Gemini gets the easiest task
+    in each batch of 3.  Queue look-ahead picks the right moment.
+
+    Surgical tier: natural alternation (claude and codex are tied in scoring).
+
+    Architect tier: no rotation — always picks best tool.
+
+    Quick tier: gemini is already the scoring winner.  Ollama only wins when
+    local_required/sensitive flag is set (handled in _pick_runner).
     """
     if tier == "architect":
         return ranked_runners  # architect always gets the best
 
-    if len(ranked_runners) < 2:
-        return ranked_runners
+    if tier == "standard" and len(ranked_runners) >= 2:
+        # Ratio-based: should gemini take this task?
+        if _should_gemini_take_this(task_text, tier):
+            # Promote gemini to #1
+            for i, r in enumerate(ranked_runners):
+                if r.name == "gemini":
+                    rotated = list(ranked_runners)
+                    rotated.insert(0, rotated.pop(i))
+                    return rotated
 
-    last_runner, streak = _get_recent_runner_streak()
-    if streak < ROTATION_THRESHOLD:
-        return ranked_runners
-
-    top = ranked_runners[0]
-    if top.name != last_runner:
-        return ranked_runners  # top pick is already different
-
-    # Find the best alternative that's NOT the streak runner and NOT local
-    try:
-        import runner_registry as rr
-        top_score = rr._score_runner_for_task(top, tier)
-
-        for i, candidate in enumerate(ranked_runners[1:], 1):
-            if candidate.runner_type == "local":
-                continue  # don't promote local for paid-tier work
-            alt_score = rr._score_runner_for_task(candidate, tier)
-            # Only promote if within reasonable range (not a terrible fit)
-            if alt_score >= top_score * 0.5:
-                # Swap: promote this runner to #1
-                rotated = list(ranked_runners)
-                rotated.insert(0, rotated.pop(i))
-                return rotated
-    except Exception:
-        pass
-
+    # For other tiers, no rotation needed — scoring handles it
     return ranked_runners
 
 
 def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
-                  *, model_prefs: Optional[dict] = None) -> tuple[str, str, str, Optional[float]]:
+                  *, model_prefs: Optional[dict] = None,
+                  task_text: str = "", task_meta: Optional[dict] = None,
+                  ) -> tuple[str, str, str, Optional[float]]:
     """Pick the best available runner for a task tier, budget-aware + rotation.
 
     Returns (runner_name, model, reason_fragment, budget_override_or_None).
@@ -450,6 +551,11 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
     if model_prefs is None:
         model_prefs = PREFERRED_MODELS
     budget_override = None
+
+    # Step 0: Sensitive data → force ollama
+    if task_meta and _task_is_sensitive(task_meta):
+        return ("ollama", "chief-fast:latest",
+                "sensitive data — local-only required", 0)
 
     # Step 1: Get registry ranking
     ranked_runners = []
@@ -463,9 +569,8 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         model = model_prefs.get(tier, "sonnet")
         return ("claude", model, "fallback — registry unavailable", None)
 
-    # Step 2: Apply rotation — if top runner has been used too many times
-    # consecutively, promote the next-best runner that's within competitive range
-    ranked_runners = _apply_rotation(ranked_runners, tier)
+    # Step 2: Apply ratio-based rotation for standard tier
+    ranked_runners = _apply_rotation(ranked_runners, tier, task_text)
 
     # Step 3: Check budget for each candidate until we find one that's allowed
     try:
