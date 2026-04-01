@@ -531,6 +531,12 @@ def main():
         runner_name, model, runner_reason, budget_override = _pick_runner(
             tier, model_prefs=model_prefs
         )
+        # Planner runs on Mac — ollama is PC-only
+        if planner_mode and runner_name == "ollama":
+            runner_name = "claude"
+            model = model_prefs.get(tier, "sonnet")
+            runner_reason += " → planner override: ollama unavailable on Mac"
+            budget_override = None
         result["runner"] = runner_name
         result["model"] = model
         result["reason"] = f"no task text, using default; runner={runner_name} ({runner_reason})"

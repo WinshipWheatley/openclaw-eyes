@@ -231,6 +231,28 @@ def translate_log_line(line: str) -> str:
 
 # ── Generators ────────────────────────────────────────────────────────────────
 
+def get_runner_settings() -> dict:
+    """Get current planner and builder runner profiles."""
+    settings = {"planner": None, "builder": None}
+    try:
+        # Read task text for context-aware profile
+        task_text = ""
+        for path in [TASK_FILE, CURRENT_TASK_FILE]:
+            try:
+                task_text = path.read_text(encoding="utf-8", errors="ignore")
+                if task_text.strip():
+                    break
+            except Exception:
+                continue
+
+        import runner_profiles
+        settings["planner"] = runner_profiles.select_profile(task_text, planner_mode=True)
+        settings["builder"] = runner_profiles.select_profile(task_text, planner_mode=False)
+    except Exception:
+        pass
+    return settings
+
+
 def gen_right_now() -> str:
     """Generate 'For Winship 1 - Right Now.md'."""
     status = load_json(STATUS_FILE)
@@ -267,6 +289,23 @@ def gen_right_now() -> str:
         lines.extend(["", f"### Current Task: {task_title}"])
         if task_goal:
             lines.append(f"> {task_goal}")
+
+    # Active runner settings
+    rs = get_runner_settings()
+    lines.extend(["", "### Active Runner Settings"])
+    for role in ["planner", "builder"]:
+        p = rs.get(role)
+        if p:
+            runner = p.get("runner", "?")
+            model = p.get("model", "?")
+            tier = p.get("tier", "?")
+            budget = f"{float(p.get('budget', 0)):.2f}"
+            effort = p.get("effort", "?")
+            defer = p.get("defer", False)
+            defer_tag = " ⚠️ DEFERRED" if defer else ""
+            lines.append(f"- **{role.title()}:** {runner}/{model} · tier={tier} · effort={effort} · budget=${budget}{defer_tag}")
+        else:
+            lines.append(f"- **{role.title()}:** unavailable")
 
     lines.extend([
         "", "### What happens next",
