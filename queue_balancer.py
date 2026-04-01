@@ -62,6 +62,8 @@ SKIP_TASK_NAMES = {"env-001-install.md", "env-001-spec-tools.md"}
 # come from planning, not auto-generation.
 
 MIN_EASY_RATIO = 0.25   # at least 25% of queue should be quick/surgical
+MIN_STANDARD_RATIO = 0.35
+MIN_ARCHITECT_RATIO = 0.10
 MAX_GENERATE = 3         # never generate more than 3 tasks at once
 COOLDOWN_HOURS = 4       # don't re-generate within this window
 
@@ -434,6 +436,178 @@ def _gen_guardian_cassandra_tests() -> list[TaskCandidate]:
     return candidates
 
 
+def _gen_standard_architect() -> list[TaskCandidate]:
+    """Generate deeper standard/architect tasks for cross-system throughput."""
+    candidates = []
+    completed = _get_completed_names()
+    queued = _get_queued_names()
+
+    specs = [
+        ("std-chief-router-table-tests", "standard", "chief_router.py",
+         "Build table-driven regression tests for chief_router intent precedence",
+         ["Create tests/test_chief_router_table.py with >=20 intent samples",
+          "Cover overlaps: billing vs ops vs approval routing",
+          "Verify fallback route stays deterministic"],
+         "Routing precedence regressions are caught by table tests"),
+        ("std-chief-session-persistence", "standard", "chief_session_manager.py",
+         "Harden session lifecycle with persistence edge-case tests",
+         ["Test stale session eviction and restore behavior",
+          "Test concurrent update ordering on same session id",
+          "Add explicit serialization roundtrip checks"],
+         "Session lifecycle is deterministic under edge conditions"),
+        ("std-approval-replay-observability", "standard", "chief_approval_brain.py",
+         "Add observability around approval replay and cooldown paths",
+         ["Log replay decisions with reason codes",
+          "Add tests for cooldown and replay cap enforcement",
+          "Ensure no duplicate resend during cooldown"],
+         "Approval replay behavior is traceable and tested"),
+        ("std-cassandra-routing-matrix", "standard", "cassandra_brain.py",
+         "Add routing matrix tests for Cassandra keyword and hedge paths",
+         ["Cover financial/calendar/email/file/future-action matrices",
+          "Verify hedge-only responses do not over-trigger gaps",
+          "Lock expected route labels in tests"],
+         "Routing matrix has stable, test-backed expectations"),
+        ("std-cassandra-briefing-retry-policy", "standard", "cassandra_briefing_scheduler.py",
+         "Implement bounded retry policy for briefing PENDING deliveries",
+         ["Retry PENDING items with exponential backoff and cap",
+          "Log attempts and terminal outcomes",
+          "Avoid duplicate delivery spam"],
+         "Briefing delivery retries are bounded and visible"),
+        ("std-dashboard-loop-health-panel", "standard", "dashboard_gen.py",
+         "Add loop health panel with staleness and runner drift indicators",
+         ["Surface stale last_updated age threshold warnings",
+          "Show planner/builder mismatch and defer flags",
+          "Summarize blocked/parked frequency from orchestrator log"],
+         "Right Now dashboard highlights actionable health risks"),
+        ("std-orchestrator-promotion-audit", "standard", "polish_loop/orchestrator.py",
+         "Add structured promotion audit logging for queue decisions",
+         ["Log skip reasons per task candidate",
+          "Log completed-name suppression hits",
+          "Add unit tests for runnable task selection"],
+         "Task promotion decisions are auditable"),
+        ("std-builder-relaunch-guard-tests", "standard", "builder_watcher.sh",
+         "Add regression checks for builder relaunch guard behavior",
+         ["Test stopped-process detection paths",
+          "Test relaunch guard reset on resume",
+          "Validate timeout parking behavior"],
+         "Builder relaunch behavior remains regression-safe"),
+        ("std-budget-anomaly-alerts", "standard", "budget_tracker.py",
+         "Add anomaly alerts for single-run spend spikes",
+         ["Detect run cost outliers per runner",
+          "Emit warning with task and runner context",
+          "Add tests for threshold calculations"],
+         "Budget spikes are caught and visible"),
+        ("std-queue-balancer-tier-report", "standard", "queue_balancer.py",
+         "Add reporting output for candidate pools by tier/source",
+         ["Add --pool-status CLI view",
+          "Print counts by quick/surgical/standard/architect",
+          "Print counts by generator source"],
+         "Balancer pool health can be inspected quickly"),
+        ("std-cassandra-error-bundle", "standard", "cassandra_brain.py",
+         "Bundle Cassandra hard-error context for debug tasks",
+         ["Attach traceback excerpt and route context to cas-debug tasks",
+          "Add dedup key based on exception signature",
+          "Prevent repeated tasks for identical failures"],
+         "Debug tasks are richer and less noisy"),
+        ("std-chief-watcher-state-guards", "standard", "chief_watcher_brain.py",
+         "Harden watcher state transitions with explicit guard checks",
+         ["Reject invalid state transitions with reason",
+          "Add tests for pending/replay edge cases",
+          "Expose guard failure counters"],
+         "Watcher state transitions are validated and observable"),
+
+        ("arch-cross-bot-telemetry-schema", "architect", "dashboard_gen.py",
+         "Design and implement shared telemetry schema for Chief/Guardian/Cassandra",
+         ["Define canonical event fields and severity",
+          "Wire event emitters in core loops",
+          "Add dashboard views consuming the unified schema"],
+         "Cross-bot telemetry is normalized and queryable"),
+        ("arch-loop-self-heal-policy", "architect", "polish_loop/orchestrator.py",
+         "Implement policy-driven self-heal for stuck loop states",
+         ["Add policy table for recoverable vs terminal states",
+          "Execute bounded automated remediation",
+          "Escalate irrecoverable failures with clear reason"],
+         "Loop self-heal behavior is policy-based and bounded"),
+        ("arch-chief-capability-registry", "architect", "capability_registry.py",
+         "Build unified capability registry consumed by all bots",
+         ["Represent capability metadata, owner, approval tier",
+          "Expose read API for planner and runtime checks",
+          "Migrate duplicated capability flags to registry lookups"],
+         "Capabilities are centrally defined and reused"),
+        ("arch-cassandra-outreach-pipeline", "architect", "cassandra_outreach.py",
+         "Create end-to-end outreach pipeline with retries and review points",
+         ["Model draft->review->send lifecycle",
+          "Add retry/error handling and audit trail",
+          "Preserve approval gating on external sends"],
+         "Outreach pipeline is reliable and auditable"),
+        ("arch-approval-audit-timeline", "architect", "chief_approval_brain.py",
+         "Implement full approval timeline reconstruction",
+         ["Link request, resend, response, final decision events",
+          "Persist timeline ids in pending records",
+          "Add dashboard timeline rendering"],
+         "Any approval can be reconstructed end-to-end"),
+        ("arch-runner-policy-engine", "architect", "runner_profiles.py",
+         "Refactor runner selection into policy engine with constraints",
+         ["Define declarative policy for tiers, budgets, sensitivity",
+          "Evaluate candidates through policy graph",
+          "Add explain output for selection decisions"],
+         "Runner decisions are policy-driven and explainable"),
+        ("arch-briefing-source-of-truth", "architect", "cassandra_briefing_brain.py",
+         "Unify briefing generation and delivery state under one source of truth",
+         ["Replace split status derivation with canonical record",
+          "Track generated/queued/delivered/failed transitions",
+          "Migrate dashboard metrics to canonical record"],
+         "Briefing status is consistent across logs and dashboards"),
+        ("arch-state-machine-contract-tests", "architect", "polish_loop/orchestrator.py",
+         "Add contract tests for all allowed/forbidden state transitions",
+         ["Codify transition matrix from STATE_MACHINE.md",
+          "Test every edge in matrix",
+          "Block release when forbidden transition is introduced"],
+         "State-machine behavior is contract-tested"),
+        ("arch-chief-dispatch-isolation", "architect", "chief_listener.py",
+         "Isolate dispatch path from long-running side effects",
+         ["Split fast-path message intake from heavy work",
+          "Queue side effects to worker boundary",
+          "Add backpressure handling and metrics"],
+         "Listener remains responsive under load"),
+        ("arch-cassandra-knowledge-store", "architect", "cassandra_brain.py",
+         "Add structured knowledge store for long-horizon follow-ups",
+         ["Persist follow-up intents with status lifecycle",
+          "Link intents to contact and capability",
+          "Surface pending/overdue in dashboard"],
+         "Long-horizon follow-ups are durable and trackable"),
+        ("arch-guardian-safety-contract", "architect", "chief_approval_policy.py",
+         "Define machine-readable safety contract for Guardian decisions",
+         ["Formalize immutable L2 categories and justifications",
+          "Add validation against accidental downgrades",
+          "Produce contract report for audits"],
+         "Guardian safety boundaries are explicit and testable"),
+        ("arch-end-to-end-replay-harness", "architect", "polish_loop/orchestrator.py",
+         "Create replay harness for full-loop incident reproduction",
+         ["Replay status/log/task sequence from captured incident",
+          "Assert expected transitions and outcomes",
+          "Generate diff report between expected and observed"],
+         "Incidents can be reproduced and debugged deterministically"),
+    ]
+
+    for name, tier, file_name, goal, scope, success in specs:
+        if name in completed or name in queued:
+            continue
+        if file_name and not (SRC_DIR / file_name).exists():
+            continue
+        candidates.append(TaskCandidate(
+            name=name,
+            tier=tier,
+            title=name,
+            goal=goal,
+            scope=scope,
+            success=success,
+            source="standard_architect",
+        ))
+
+    return candidates
+
+
 def _gen_doc_and_quality() -> list[TaskCandidate]:
     """Generate documentation and code quality tasks."""
     candidates = []
@@ -515,25 +689,42 @@ def balance_queue(dry_run: bool = True) -> list[TaskCandidate]:
     breakdown = get_queue_breakdown()
     total = sum(len(v) for v in breakdown.values())
     easy_count = len(breakdown["quick"]) + len(breakdown["surgical"])
+    standard_count = len(breakdown["standard"])
+    architect_count = len(breakdown["architect"])
 
     _log(f"Queue: {total} tasks — quick={len(breakdown['quick'])}, "
          f"surgical={len(breakdown['surgical'])}, standard={len(breakdown['standard'])}, "
          f"architect={len(breakdown['architect'])}")
 
     easy_ratio = easy_count / total if total > 0 else 0.0
+    standard_ratio = standard_count / total if total > 0 else 0.0
+    architect_ratio = architect_count / total if total > 0 else 0.0
 
-    if total > 0 and easy_ratio >= MIN_EASY_RATIO:
-        _log(f"Queue balanced: {easy_ratio:.0%} easy (>= {MIN_EASY_RATIO:.0%} target)")
-        return []
-
-    # Queue is either empty or imbalanced — generate tasks
+    # Decide tier slots to generate this round.
+    # Empty queue: seed with 2 easy + 1 standard for momentum + depth.
+    slots = {"easy": 0, "standard": 0, "architect": 0}
     if total == 0:
-        _log("Queue empty — generating starter tasks")
-        deficit = MAX_GENERATE
+        slots = {"easy": 2, "standard": 1, "architect": 0}
+        _log("Queue empty — generating starter mix (2 easy + 1 standard)")
     else:
-        deficit = max(1, round(total * MIN_EASY_RATIO) - easy_count)
-        deficit = min(deficit, MAX_GENERATE)
-        _log(f"Queue imbalanced: {easy_ratio:.0%} easy, need {deficit} more easy tasks")
+        if easy_ratio < MIN_EASY_RATIO:
+            slots["easy"] = max(1, round(total * MIN_EASY_RATIO) - easy_count)
+        if total >= 3 and standard_ratio < MIN_STANDARD_RATIO:
+            slots["standard"] = 1
+        if total >= 6 and architect_ratio < MIN_ARCHITECT_RATIO:
+            slots["architect"] = 1
+
+        slot_total = slots["easy"] + slots["standard"] + slots["architect"]
+        if slot_total == 0:
+            _log(
+                f"Queue balanced: easy={easy_ratio:.0%}, standard={standard_ratio:.0%}, architect={architect_ratio:.0%}"
+            )
+            return []
+
+        _log(
+            "Queue tier deficits: "
+            f"easy={slots['easy']}, standard={slots['standard']}, architect={slots['architect']}"
+        )
 
     # Gather candidates from all sources
     all_candidates: list[TaskCandidate] = []
@@ -542,13 +733,36 @@ def balance_queue(dry_run: bool = True) -> list[TaskCandidate]:
     all_candidates.extend(_gen_chief_tests())
     all_candidates.extend(_gen_guardian_cassandra_tests())
     all_candidates.extend(_gen_doc_and_quality())
+    all_candidates.extend(_gen_standard_architect())
 
-    # Sort: quick first (cheapest), then surgical
-    tier_order = {"quick": 0, "surgical": 1}
-    all_candidates.sort(key=lambda c: tier_order.get(c.tier, 2))
+    easy_candidates = [c for c in all_candidates if c.tier in ("quick", "surgical")]
+    standard_candidates = [c for c in all_candidates if c.tier == "standard"]
+    architect_candidates = [c for c in all_candidates if c.tier == "architect"]
 
-    # Pick the top N
-    selected = all_candidates[:deficit]
+    easy_candidates.sort(key=lambda c: 0 if c.tier == "quick" else 1)
+
+    selected: list[TaskCandidate] = []
+
+    def _take(src: list[TaskCandidate], n: int):
+        for c in src:
+            if n <= 0 or len(selected) >= MAX_GENERATE:
+                break
+            if c.name in {s.name for s in selected}:
+                continue
+            selected.append(c)
+            n -= 1
+
+    _take(easy_candidates, slots["easy"])
+    _take(standard_candidates, slots["standard"])
+    _take(architect_candidates, slots["architect"])
+
+    # Fill remaining capacity with deeper work first, then easy work.
+    if len(selected) < MAX_GENERATE:
+        _take(standard_candidates, MAX_GENERATE - len(selected))
+    if len(selected) < MAX_GENERATE:
+        _take(easy_candidates, MAX_GENERATE - len(selected))
+    if len(selected) < MAX_GENERATE:
+        _take(architect_candidates, MAX_GENERATE - len(selected))
 
     if not selected:
         _log("No candidate tasks available to generate")
