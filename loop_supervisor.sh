@@ -183,9 +183,24 @@ check_duplicates() {
     fi
 }
 
+# --- Queue balancer: maintain healthy tier mix ---
+
+run_queue_balancer() {
+    # Runs every BALANCE_EVERY cycles (~10 min with INTERVAL=60).
+    # Generates easy quick/surgical tasks when queue is all hard tasks.
+    local result
+    result=$(python3 /home/openclaw/queue_balancer.py --apply 2>&1)
+    if echo "$result" | grep -q "GENERATED:"; then
+        log "BALANCE: $result"
+    fi
+}
+
 # --- Main loop ---
 
 log "Starting loop supervisor (interval=${INTERVAL}s)"
+
+BALANCE_EVERY=10   # run queue balancer every N cycles
+cycle=0
 
 while true; do
     check_orchestrator
@@ -195,5 +210,11 @@ while true; do
     check_mac_watcher
     check_status_health
     check_duplicates
+
+    cycle=$((cycle + 1))
+    if [ $((cycle % BALANCE_EVERY)) -eq 0 ]; then
+        run_queue_balancer
+    fi
+
     sleep "$INTERVAL"
 done

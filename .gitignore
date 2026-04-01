@@ -91,6 +91,7 @@
 !inbox_parser.py
 !pii_vault.py
 !queue_validator.py
+!queue_balancer.py
 !.mcp.json
 !.claude/
 .claude/*
