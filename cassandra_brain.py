@@ -788,7 +788,13 @@ EMAIL SEND — email_send is CONNECTED:
   Do NOT promise to email someone as a side effect of another request (calendar, follow-up, reminder, etc.) — that is a future_action.
   Approval is required for every send — it goes through Guardian. A send may take up to 5 minutes to confirm.
 
-TONE: Grounded and direct. Not apologetic. Name the limit once, then pivot to what IS possible.\
+TONE: Grounded and direct. Not apologetic. Name the limit once, then pivot to what IS possible.
+
+INVOICE — invoice_pdf is CONNECTED
+  - Cassandra can generate PDF invoices for Winship Live (WL-YYYY-NNNN numbering)
+  - Trigger: "create invoice for [client] for $[amount]" or "make invoice for [event]"
+  - Net terms are auto-detected: institutional clients get Net 30, others get Due on Receipt
+  - Payment methods: Cash, Check (Winship Live), Venmo @Winship, Zelle 443-758-4913, Square/card\
 """
 
 
@@ -1253,8 +1259,19 @@ def _write_followup_records(records: list[dict]) -> None:
 
 def _existing_upgrade_task_name(capability: str) -> str | None:
     prefix = f"cas-upgrade-{capability}-"
+    # Check active queue
     for path in sorted(_POLISH_TASKS_DIR.glob(f"{prefix}*.md")):
         return path.stem
+    # Check archive — don't re-create tasks that are already done
+    archive_dir = _POLISH_TASKS_DIR.parent / "archive"
+    if archive_dir.exists():
+        for path in archive_dir.glob(f"task_{prefix}*"):
+            # Extract task name: task_cas-upgrade-foo-timestamp → cas-upgrade-foo-timestamp
+            parts = path.stem.split("_", 1)
+            if len(parts) > 1:
+                name_part = parts[1].rsplit("_", 1)[0]
+                if name_part.startswith(prefix):
+                    return name_part
     try:
         status = json.loads(_POLISH_STATUS.read_text(encoding="utf-8"))
         task_name = str(status.get("task_name", "")).strip()
@@ -2051,6 +2068,166 @@ def _handle_income_followup(text: str, pending: dict, state: dict) -> str | None
     return f"Updated the {amt} entry."
 
 
+# ── Invoice generation ───────────────────────────────────────────────────────
+
+_INVOICE_INTENT_PATTERNS = [
+    re.compile(r"\b(create|make|generate|draft|write|send)\b.*\binvoice\b", re.I),
+    re.compile(r"\binvoice\b.*(for|to)\b", re.I),
+    re.compile(r"\bneed\b.*\binvoice\b", re.I),
+    re.compile(r"\binvoice\b.*(hilton|draper|capital|client|gig|show|event)\b", re.I),
+]
+
+_INVOICE_DATE_PATTERNS = [
+    re.compile(r"\b(\d{4}-\d{2}-\d{2})\b"),
+    re.compile(r"\b(\d{1,2}/\d{1,2}/\d{4})\b"),
+    re.compile(
+        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
+        r"\s+(\d{1,2})\b",
+        re.I,
+    ),
+]
+
+_MONTH_MAP = {
+    "january": "01", "february": "02", "march": "03", "april": "04",
+    "may": "05", "june": "06", "july": "07", "august": "08",
+    "september": "09", "october": "10", "november": "11", "december": "12",
+}
+
+
+def _detect_invoice_intent(text: str) -> bool:
+    """Return True if any invoice intent pattern matches."""
+    return any(p.search(text) for p in _INVOICE_INTENT_PATTERNS)
+
+
+def _parse_invoice_details(text: str) -> dict | None:
+    """
+    Extract invoice details from natural language text.
+    Returns dict with keys: client_name, project_desc, amount_total,
+    deposit_paid, service_date — or None if client_name or amount_total
+    could not be extracted (signal Cassandra to ask).
+    """
+    t = text
+
+    # client_name: "for [Name]" or "to [Name]"
+    client_name = None
+    m = re.search(r"\b(?:for|to)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3})", t)
+    if m:
+        client_name = m.group(1).strip()
+
+    # project_desc: look for "for [desc]" — prefer descriptions that look like events
+    project_desc = ""
+    m2 = re.search(
+        r"\bfor\s+(.{5,80}?)(?:\s+for\s|\s+\$|\s+amount|\s*,|\s*\.|$)", t, re.I
+    )
+    if m2:
+        candidate = m2.group(1).strip()
+        # If it looks like a name (titlecase, 1-3 words) use it as desc too
+        project_desc = candidate
+
+    # amount_total: "$NNN" or "NNN dollars" or "NNN bucks"
+    amount_total = None
+    m3 = re.search(r"\$\s*(\d[\d,]*(?:\.\d{1,2})?)", t)
+    if m3:
+        amount_total = float(m3.group(1).replace(",", ""))
+    else:
+        m3b = re.search(r"\b(\d[\d,]*(?:\.\d{1,2})?)\s+(?:dollars?|bucks?)\b", t, re.I)
+        if m3b:
+            amount_total = float(m3b.group(1).replace(",", ""))
+
+    # deposit_paid: "deposit" followed by an amount
+    deposit_paid = 0.0
+    m4 = re.search(r"\bdeposit\b[^$\d]{0,20}\$\s*(\d[\d,]*(?:\.\d{1,2})?)", t, re.I)
+    if m4:
+        deposit_paid = float(m4.group(1).replace(",", ""))
+
+    # service_date: YYYY-MM-DD, MM/DD/YYYY, or "Month DD"
+    service_date = "TBD"
+    m5 = _INVOICE_DATE_PATTERNS[0].search(t)
+    if m5:
+        service_date = m5.group(1)
+    else:
+        m5b = _INVOICE_DATE_PATTERNS[1].search(t)
+        if m5b:
+            parts = m5b.group(1).split("/")
+            service_date = f"{parts[2]}-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
+        else:
+            m5c = _INVOICE_DATE_PATTERNS[2].search(t)
+            if m5c:
+                month = _MONTH_MAP[m5c.group(1).lower()]
+                day   = m5c.group(2).zfill(2)
+                year  = datetime.now().year
+                service_date = f"{year}-{month}-{day}"
+
+    if client_name is None or amount_total is None:
+        return None
+
+    return {
+        "client_name":  client_name,
+        "project_desc": project_desc or f"Services for {client_name}",
+        "amount_total": amount_total,
+        "deposit_paid": deposit_paid,
+        "service_date": service_date,
+    }
+
+
+def _handle_create_invoice(text: str, state: dict) -> str | None:
+    """
+    Handle a create-invoice request from Cassandra.
+    Returns a reply string, or None to fall through to LLM.
+    """
+    parsed = _parse_invoice_details(text)
+    if parsed is None:
+        return (
+            "I need a few details — who is this invoice for, "
+            "what service, and what's the total amount?"
+        )
+
+    try:
+        from invoice_generator import (
+            get_next_invoice_number,
+            generate_invoice_pdf,
+            detect_net_terms,
+            append_tracker_row,
+        )
+    except ImportError as e:
+        print(f"[cassandra] invoice_generator import error: {e}", flush=True)
+        return f"Invoice generation failed: {e}"
+
+    try:
+        issue_date     = datetime.now().strftime("%Y-%m-%d")
+        net_terms      = detect_net_terms(parsed["client_name"], parsed.get("project_desc", ""))
+        invoice_number = get_next_invoice_number()
+        amount_total   = parsed["amount_total"]
+        deposit_paid   = parsed.get("deposit_paid", 0.0)
+        balance_due    = max(amount_total - deposit_paid, 0.0)
+
+        data = {
+            "invoice_number": invoice_number,
+            "client_name":    parsed["client_name"],
+            "client_email":   "unknown",
+            "project_desc":   parsed.get("project_desc", ""),
+            "service_date":   parsed.get("service_date", "TBD"),
+            "issue_date":     issue_date,
+            "net_terms":      net_terms,
+            "amount_total":   amount_total,
+            "deposit_paid":   deposit_paid,
+            "balance_due":    balance_due,
+        }
+
+        pdf_path = generate_invoice_pdf(data)
+        data["pdf_path"] = pdf_path
+        append_tracker_row(data)
+
+        return (
+            f"Invoice {invoice_number} drafted for {parsed['client_name']}.\n"
+            f"Total: ${amount_total:.2f} | Balance: ${balance_due:.2f} | Terms: {net_terms}\n"
+            f"Saved: {pdf_path.name}"
+        )
+    except Exception as e:
+        print(f"[cassandra] invoice generation error: {e}", flush=True)
+        return f"Invoice generation failed: {e}"
+
+
 # ── Cloud routing privacy gate ────────────────────────────────────────────────
 #
 # SECURITY-CRITICAL BOUNDARY.
@@ -2237,6 +2414,14 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [email_reply], route="email_send")
             return [email_reply]
     # fall through to LLM if parsing failed
+
+    # Invoice generation — PDF invoice via reportlab
+    if _detect_invoice_intent(query):
+        invoice_reply = _handle_create_invoice(query, state)
+        if invoice_reply is not None:
+            save_state(state)
+            _log_conversation(text, [invoice_reply], route="invoice_create")
+            return [invoice_reply]
 
     context  = build_context_snapshot(state)
     focus    = is_focus_mode()

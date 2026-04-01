@@ -303,6 +303,137 @@ def _gen_config_hardening() -> list[TaskCandidate]:
     return candidates
 
 
+def _gen_chief_tests() -> list[TaskCandidate]:
+    """Generate test and quality tasks for Chief system modules."""
+    candidates = []
+    completed = _get_completed_names()
+    queued = _get_queued_names()
+
+    chief_tasks = [
+        ("test-chief-router", "chief_router.py",
+         "Write unit tests for chief_router.py intent routing",
+         ["Test route_message() returns expected handler for known intents",
+          "Test fallback behavior when no intent matches",
+          "Test that routing respects intent priority order",
+          "Do NOT import or call network-bound modules — mock LLM calls"],
+         "All tests pass covering main routing paths"),
+        ("test-chief-session-manager", "chief_session_manager.py",
+         "Write unit tests for chief_session_manager.py shared session state",
+         ["Test get_session() returns a fresh session dict for new session IDs",
+          "Test set_session() stores and retrieves values correctly",
+          "Test session expiry/TTL logic if present",
+          "No network calls — test pure state management only"],
+         "All tests pass covering session get/set/expire"),
+        ("test-chief-approval-policy", "chief_approval_policy.py",
+         "Write unit tests for chief_approval_policy.py tier classification",
+         ["Test each explicit L0/L1/L2 category correctly classified",
+          "Test L2 always-escalate items: billing, credentials, force push",
+          "Test L0 always-pass items: reads, git log/status/diff",
+          "Test unknown actions default to correct tier (L1 or L2)"],
+         "All tests pass confirming tier classification is stable"),
+        ("test-chief-llm", "chief_llm.py",
+         "Write unit tests for chief_llm.py Ollama client wrapper",
+         ["Test build_prompt() formats context correctly",
+          "Test that _call() returns a string (mock the HTTP call)",
+          "Test timeout/error handling returns a graceful fallback string",
+          "Use unittest.mock to avoid real Ollama calls"],
+         "All tests pass, LLM wrapper behavior is verified offline"),
+        ("doc-chief-architecture", "chief_listener.py",
+         "Add module-level architecture comment to chief_listener.py",
+         ["Add a comment block at the top of chief_listener.py explaining:",
+          "  - Which bot identity this runs as",
+          "  - What it routes to (chief_router, brains)",
+          "  - What it does NOT do (no direct LLM calls, no DB writes)",
+          "Keep the comment concise — max 10 lines"],
+         "chief_listener.py has a clear architecture comment at the top"),
+    ]
+
+    for module_name, filename, goal, scope, success in chief_tasks:
+        task_name = f"chief-{module_name}" if not module_name.startswith("test-") else module_name
+        # Normalize: test-chief-router stays as is, doc-chief-architecture stays
+        task_name = module_name
+        if task_name in completed or task_name in queued:
+            continue
+        if filename and not (SRC_DIR / filename).exists():
+            continue
+        tier = "quick" if module_name.startswith("doc-") else "surgical"
+        candidates.append(TaskCandidate(
+            name=task_name,
+            tier=tier,
+            title=task_name,
+            goal=goal,
+            scope=scope,
+            success=success,
+            source="chief_tests",
+        ))
+
+    return candidates
+
+
+def _gen_guardian_cassandra_tests() -> list[TaskCandidate]:
+    """Generate test and quality tasks for Guardian and Cassandra modules."""
+    candidates = []
+    completed = _get_completed_names()
+    queued = _get_queued_names()
+
+    gc_tasks = [
+        ("test-cassandra-briefing-brain", "cassandra_briefing_brain.py",
+         "Write unit tests for cassandra_briefing_brain.py delivery logic",
+         ["Test _should_send_briefing() time-window logic for morning/afternoon/evening",
+          "Test that briefing is suppressed when approval_pending.json is fresh and active",
+          "Test that stale pending records do NOT suppress briefings",
+          "Mock Telegram calls — test logic, not network"],
+         "All tests pass, briefing suppression and delivery timing verified"),
+        ("test-cassandra-brain-routing", "cassandra_brain.py",
+         "Write unit tests for Cassandra's message routing dispatch",
+         ["Test that financial keywords route to financial_event handler",
+          "Test that calendar keywords route to calendar handler",
+          "Test that unrecognized messages fall through to LLM",
+          "Test that sensitive keywords trigger pii handling path",
+          "Mock all external calls (Telegram, LLM, Google) — test dispatch only"],
+         "All tests pass, routing dispatch verified for 5+ routes"),
+        ("test-approval-brain", "chief_approval_brain.py",
+         "Write unit tests for chief_approval_brain.py tier logic",
+         ["Test that L0 actions return immediately without prompting",
+          "Test that L2 actions require Guardian approval",
+          "Test --resend-pending reads approval_pending.json and resends",
+          "Test cooldown/replay cap prevents spam",
+          "Mock Telegram send — do not actually send messages"],
+         "All tests pass, L0/L1/L2 gate behavior is verified offline"),
+        ("doc-cassandra-gap-detection", "cassandra_brain.py",
+         "Add inline documentation to detect_capability_gaps()",
+         ["Add a docstring explaining the 3 detection signals: flag_value=False, query_match, hedging",
+          "Document why _reply_has_hedging() is checked alongside flag state",
+          "Add a comment explaining why manual_required=True gaps are skipped by _create_upgrade_task()"],
+         "detect_capability_gaps() docstring explains the detection logic clearly"),
+        ("fix-cassandra-requeue", "cassandra_brain.py",
+         "Prevent _create_upgrade_task() from re-queueing already-completed tasks",
+         ["In _existing_upgrade_task_name(), also scan the archive directory for task_* files",
+          "If a matching completed task exists in archive, return its name and skip creation",
+          "This prevents capability gap detection from re-queueing tasks the loop already finished"],
+         "Cassandra stops re-queueing tasks that are already in the archive"),
+    ]
+
+    for module_name, filename, goal, scope, success in gc_tasks:
+        task_name = module_name
+        if task_name in completed or task_name in queued:
+            continue
+        if filename and not (SRC_DIR / filename).exists():
+            continue
+        tier = "quick" if module_name.startswith("doc-") or module_name.startswith("fix-") else "surgical"
+        candidates.append(TaskCandidate(
+            name=task_name,
+            tier=tier,
+            title=task_name,
+            goal=goal,
+            scope=scope,
+            success=success,
+            source="guardian_cassandra_tests",
+        ))
+
+    return candidates
+
+
 def _gen_doc_and_quality() -> list[TaskCandidate]:
     """Generate documentation and code quality tasks."""
     candidates = []
@@ -389,24 +520,27 @@ def balance_queue(dry_run: bool = True) -> list[TaskCandidate]:
          f"surgical={len(breakdown['surgical'])}, standard={len(breakdown['standard'])}, "
          f"architect={len(breakdown['architect'])}")
 
-    if total == 0:
-        _log("Queue empty — nothing to balance")
-        return []
+    easy_ratio = easy_count / total if total > 0 else 0.0
 
-    easy_ratio = easy_count / total if total > 0 else 0
-    if easy_ratio >= MIN_EASY_RATIO:
+    if total > 0 and easy_ratio >= MIN_EASY_RATIO:
         _log(f"Queue balanced: {easy_ratio:.0%} easy (>= {MIN_EASY_RATIO:.0%} target)")
         return []
 
-    # Need more easy tasks
-    deficit = max(1, round(total * MIN_EASY_RATIO) - easy_count)
-    deficit = min(deficit, MAX_GENERATE)
-    _log(f"Queue imbalanced: {easy_ratio:.0%} easy, need {deficit} more easy tasks")
+    # Queue is either empty or imbalanced — generate tasks
+    if total == 0:
+        _log("Queue empty — generating starter tasks")
+        deficit = MAX_GENERATE
+    else:
+        deficit = max(1, round(total * MIN_EASY_RATIO) - easy_count)
+        deficit = min(deficit, MAX_GENERATE)
+        _log(f"Queue imbalanced: {easy_ratio:.0%} easy, need {deficit} more easy tasks")
 
     # Gather candidates from all sources
     all_candidates: list[TaskCandidate] = []
     all_candidates.extend(_gen_missing_tests())
     all_candidates.extend(_gen_config_hardening())
+    all_candidates.extend(_gen_chief_tests())
+    all_candidates.extend(_gen_guardian_cassandra_tests())
     all_candidates.extend(_gen_doc_and_quality())
 
     # Sort: quick first (cheapest), then surgical

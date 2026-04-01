@@ -425,22 +425,55 @@ def gen_cassandra() -> str:
         for t in cas_tasks:
             lines.append(f"- 📋 {t}")
 
-    # Recent conversations
+    # Recent conversations — show wins (routed) and fails (error/unrouted) separately
     convos = load_jsonl(CONVERSATIONS_LOG)
     if convos:
-        recent = convos[-10:]  # Show last 10
-        lines.extend(["", f"### Recent Messages ({len(convos)} total)"])
+        wins = [c for c in convos if c.get("route") not in ("llm", "llm_deep", "error")]
+        fallbacks = [c for c in convos if c.get("route") in ("llm", "llm_deep")]
+        errors = [c for c in convos if c.get("route") == "error"]
+        recent = convos[-10:]
+        lines.extend(["", f"### Recent Messages ({len(convos)} total — {len(wins)} routed, {len(fallbacks)} unrouted, {len(errors)} errors)"])
         for c in reversed(recent):
             ts = c.get("ts", "?")
             user_msg = c.get("user", "")[:80]
             route = c.get("route", "?")
             replies = c.get("replies", [])
             reply_preview = replies[0][:80] if replies else ""
+            # Visual distinction: routed=✅, unrouted=⚠️, error=❌
+            if route in ("llm", "llm_deep"):
+                route_icon = "⚠️"
+                route_label = f"unrouted ({route})"
+            elif route == "error":
+                route_icon = "❌"
+                route_label = "error"
+            else:
+                route_icon = "✅"
+                route_label = route
             lines.extend([
-                f"- **{ts}** [{route}]",
+                f"- **{ts}** {route_icon} [{route_label}]",
                 f"  - 👤 {user_msg}",
                 f"  - 🔮 {reply_preview}",
             ])
+
+    # Briefing delivery failures (PENDING in briefing_log.md)
+    briefing_log = Path("/mnt/c/OpenClaw/logs/cassandra_briefings/briefing_log.md")
+    if briefing_log.exists():
+        try:
+            log_lines = briefing_log.read_text().splitlines()
+            pending = [l for l in log_lines if "/PENDING]" in l]
+            delivered = [l for l in log_lines if "/delivered]" in l]
+            failed_llm = [l for l in log_lines if "LLM did not respond" in l or "unavailable" in l.lower()]
+            if pending or failed_llm:
+                lines.extend(["", f"### Briefing Delivery Issues"])
+                lines.append(f"- Total generated: {len(pending) + len(delivered)}")
+                lines.append(f"- Delivered (Telegram): {len(delivered)}")
+                lines.append(f"- PENDING (not delivered): {len(pending)}")
+                if failed_llm:
+                    lines.append(f"- LLM failures during generation: {len(failed_llm)}")
+                    for fl in failed_llm[-3:]:
+                        lines.append(f"  - {fl.strip()[:100]}")
+        except Exception:
+            pass
 
     return "\n".join(lines) + "\n"
 
