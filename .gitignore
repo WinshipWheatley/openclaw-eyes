@@ -138,3 +138,4 @@
 !tests/test_cassandra_outreach.py
 !dashboard_gen.py
 !loop_dashboard_watchdog.sh
+!loop_supervisor.sh

@@ -34,3 +34,10 @@ if [ -n "$GUARDIAN_BOT_TOKEN" ]; then
 fi
 
 echo "Chief stack started."
+
+# Loop supervisor — monitors orchestrator, builder_watcher, dashboard_gen, watchdog
+# Restarts any that die. Checks every 60s.
+pkill -f loop_supervisor.sh 2>/dev/null
+sleep 1
+setsid nohup bash ~/loop_supervisor.sh >> /mnt/c/OpenClaw/logs/supervisor.out 2>&1 &
+echo "Loop supervisor started."
