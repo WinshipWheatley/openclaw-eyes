@@ -460,61 +460,98 @@ def get_runners_for_task(task_type: str) -> list[Runner]:
 
 
 def _score_runner_for_task(runner: Runner, task_type: str) -> float:
-    """Score a runner's fit for a task type. Higher = better."""
+    """Score a runner's fit for a task type. Higher = better.
+
+    Scoring philosophy:
+      - Each tier values different capabilities
+      - Strengths that ACTUALLY MATTER for the task get big bonuses
+      - Cost efficiency matters for all tiers (not just quick)
+      - Sandbox/isolation is valuable for surgical and standard work
+      - Large context helps standard and architect tiers
+      - Every runner should have a realistic path to winning at least one tier
+    """
     score = 50.0  # base
 
-    # Task-type specific scoring
+    # --- Universal cost efficiency ---
+    if runner.cost_tier == "free":
+        score += 10
+    elif runner.cost_tier == "cheap":
+        score += 7
+    # moderate = 0 (baseline), expensive = penalty below
+
     if task_type == "quick":
-        # Prefer: fast, cheap, local
+        # Prefer: fast, cheap, local — reasoning doesn't matter much
         if runner.cost_tier == "free":
-            score += 30
+            score += 20  # stacks with universal +10 = +30 total
         elif runner.cost_tier == "cheap":
-            score += 20
+            score += 13  # stacks with +7 = +20 total
         if runner.runner_type == "local":
             score += 15
         if "fast" in runner.strengths:
             score += 10
+        if "fast-for-small-tasks" in runner.strengths:
+            score += 8
         if "limited-reasoning" in runner.weaknesses:
-            score -= 5  # still ok for quick tasks
+            score -= 3  # minor penalty — quick tasks don't need deep reasoning
 
     elif task_type == "surgical":
-        # Prefer: accurate, moderate cost
+        # Prefer: accurate, sandboxed, cost-controlled
         if "safety" in runner.strengths:
-            score += 15
+            score += 12
+        if "sandbox-isolation" in runner.strengths:
+            score += 10  # sandboxed execution catches regressions
+        if "sandbox" in runner.strengths:
+            score += 8
+        if "code-review" in runner.strengths:
+            score += 8  # good at reviewing changes for correctness
         if runner.cost_tier in ("moderate", "cheap"):
+            score += 5
+        if runner.supports_flag("--effort"):
+            score += 3
+
+    elif task_type == "standard":
+        # Prefer: good all-around, large context, multi-file
+        if "complex-reasoning" in runner.strengths:
+            score += 15
+        if "multi-file" in runner.strengths:
+            score += 8
+        if "large-context" in runner.strengths:
+            score += 10  # standard tasks often span many files
+        if "sandbox" in runner.strengths:
+            score += 5
+        if "sandbox-isolation" in runner.strengths:
+            score += 5
+        if runner.supports_flag("--effort"):
+            score += 5
+        if runner.cost_tier == "expensive":
+            score -= 10
+        if "limited-reasoning" in runner.weaknesses:
+            score -= 15
+
+    elif task_type == "architect":
+        # Prefer: best reasoning, large context, don't care about cost
+        if "architecture" in runner.strengths:
+            score += 25
+        if "complex-reasoning" in runner.strengths:
+            score += 20
+        if "large-context" in runner.strengths:
             score += 10
         if runner.supports_flag("--effort"):
             score += 5
-
-    elif task_type == "standard":
-        # Prefer: good all-around, tool use, agentic
-        if "complex-reasoning" in runner.strengths:
-            score += 20
-        if "multi-file" in runner.strengths:
-            score += 10
-        if runner.supports_flag("--effort"):
-            score += 10
-        if runner.cost_tier == "expensive":
-            score -= 10
-
-    elif task_type == "architect":
-        # Prefer: best reasoning, don't care about cost
-        if "architecture" in runner.strengths:
-            score += 30
-        if "complex-reasoning" in runner.strengths:
-            score += 20
-        if runner.supports_flag("--effort"):
-            score += 10
         if runner.runner_type == "local":
-            score -= 20  # local models can't do architecture well
+            score -= 20
         if "limited-reasoning" in runner.weaknesses:
             score -= 30
+        if "less-agentic-than-claude" in runner.weaknesses:
+            score -= 5
+        if "small-context" in runner.weaknesses:
+            score -= 10
 
-    # General bonuses
+    # General bonuses (minor — shouldn't dominate)
     if runner.supports_flag("--max-budget-usd"):
-        score += 5  # cost control
+        score += 2  # cost control
     if runner.supports_flag("--fallback-model"):
-        score += 3  # resilience
+        score += 1  # resilience
 
     return score
 

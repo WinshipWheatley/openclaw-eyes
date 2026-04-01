@@ -357,9 +357,92 @@ def _check_deferral(task_id: str, tier: str, is_blocking: bool) -> Optional[dict
     return None
 
 
+# ---------------------------------------------------------------------------
+# Runner rotation — spread work across runners overnight
+# ---------------------------------------------------------------------------
+
+# After this many consecutive tasks on the SAME cloud runner, try the next one.
+# Doesn't apply to ollama (free/local) or architect tier (needs the best).
+ROTATION_THRESHOLD = 3
+
+
+def _get_recent_runner_streak() -> tuple[str, int]:
+    """Check how many consecutive recent tasks used the same runner.
+
+    Returns (runner_name, streak_count).  Returns ("", 0) if no history.
+    """
+    try:
+        import budget_tracker
+        state = budget_tracker._load_state()
+        entries = state.entries
+        if not entries:
+            return ("", 0)
+
+        # Walk backwards through entries to find the streak
+        last_runner = entries[-1].get("runner", "")
+        if not last_runner:
+            return ("", 0)
+
+        streak = 0
+        for entry in reversed(entries):
+            if entry.get("runner", "") == last_runner:
+                streak += 1
+            else:
+                break
+
+        return (last_runner, streak)
+    except Exception:
+        return ("", 0)
+
+
+def _apply_rotation(ranked_runners: list, tier: str) -> list:
+    """Reorder runners to spread work when one runner dominates.
+
+    Rules:
+      - Only activates after ROTATION_THRESHOLD consecutive tasks on same runner
+      - Never rotates for architect tier (needs the best tool available)
+      - Only promotes cloud runners (won't force-promote ollama for standard work)
+      - The promoted runner must be within a competitive score range
+      - Rotation is a soft preference, not mandatory — budget checks still apply
+    """
+    if tier == "architect":
+        return ranked_runners  # architect always gets the best
+
+    if len(ranked_runners) < 2:
+        return ranked_runners
+
+    last_runner, streak = _get_recent_runner_streak()
+    if streak < ROTATION_THRESHOLD:
+        return ranked_runners
+
+    top = ranked_runners[0]
+    if top.name != last_runner:
+        return ranked_runners  # top pick is already different
+
+    # Find the best alternative that's NOT the streak runner and NOT local
+    try:
+        import runner_registry as rr
+        top_score = rr._score_runner_for_task(top, tier)
+
+        for i, candidate in enumerate(ranked_runners[1:], 1):
+            if candidate.runner_type == "local":
+                continue  # don't promote local for paid-tier work
+            alt_score = rr._score_runner_for_task(candidate, tier)
+            # Only promote if within reasonable range (not a terrible fit)
+            if alt_score >= top_score * 0.5:
+                # Swap: promote this runner to #1
+                rotated = list(ranked_runners)
+                rotated.insert(0, rotated.pop(i))
+                return rotated
+    except Exception:
+        pass
+
+    return ranked_runners
+
+
 def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
                   *, model_prefs: Optional[dict] = None) -> tuple[str, str, str, Optional[float]]:
-    """Pick the best available runner for a task tier, budget-aware.
+    """Pick the best available runner for a task tier, budget-aware + rotation.
 
     Returns (runner_name, model, reason_fragment, budget_override_or_None).
     Falls back to claude/sonnet if registry unavailable.
@@ -380,7 +463,11 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         model = model_prefs.get(tier, "sonnet")
         return ("claude", model, "fallback — registry unavailable", None)
 
-    # Step 2: Check budget for each candidate until we find one that's allowed
+    # Step 2: Apply rotation — if top runner has been used too many times
+    # consecutively, promote the next-best runner that's within competitive range
+    ranked_runners = _apply_rotation(ranked_runners, tier)
+
+    # Step 3: Check budget for each candidate until we find one that's allowed
     try:
         import budget_tracker
         for candidate in ranked_runners:
