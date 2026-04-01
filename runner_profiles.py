@@ -35,6 +35,8 @@ from typing import Optional
 
 TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
+TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
+ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 
 # ---------------------------------------------------------------------------
 # Planner-mode adjustments — planner reviews builder output, doesn't build
@@ -103,6 +105,8 @@ ARCHITECT_KEYWORDS = {
     "multi-file", "new module", "new brain", "new listener",
     "new integration", "broker", "pipeline", "framework",
 }
+
+MAX_CASCADE_CHILDREN = 5
 
 QUICK_KEYWORDS = {
     "typo", "config change", "flag flip", "toggle", "rename",
@@ -246,6 +250,94 @@ def _has_keywords(meta: dict, keywords: set[str]) -> bool:
     return any(kw in text for kw in keywords)
 
 
+def _as_list(value) -> list[str]:
+    """Normalize frontmatter field values to a clean list of strings."""
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return [line.strip("- ").strip() for line in value.splitlines() if line.strip()]
+    return []
+
+
+def _safe_slug(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9-]+", "-", text.lower())
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug[:60] or "task"
+
+
+def _is_completed_task(task_name: str) -> bool:
+    if not ARCHIVE_DIR.exists():
+        return False
+    return any(ARCHIVE_DIR.glob(f"task_{task_name}_*"))
+
+
+def _cascade_child_exists(task_name: str) -> bool:
+    return (TASK_QUEUE_DIR / f"{task_name}.md").exists() or _is_completed_task(task_name)
+
+
+def _build_child_chunks(scope_items: list[str], max_children: int = MAX_CASCADE_CHILDREN) -> list[list[str]]:
+    """Chunk scope bullets into bounded child-task scopes."""
+    if not scope_items:
+        return []
+    # Prefer 2-3 bullets per child to keep chunks executable by lower-tier runners.
+    chunk_size = 3 if len(scope_items) >= 6 else 2
+    chunks: list[list[str]] = []
+    for i in range(0, len(scope_items), chunk_size):
+        chunks.append(scope_items[i:i + chunk_size])
+        if len(chunks) >= max_children:
+            break
+    return chunks
+
+
+def _queue_cascade_children(meta: dict, parent_tier: str, task_id: str) -> list[str]:
+    """Queue smaller child tasks for budget-edge high-tier work.
+
+    Architect -> standard children
+    Standard  -> surgical children
+    """
+    if parent_tier not in ("architect", "standard"):
+        return []
+
+    scope_items = _as_list(meta.get("scope"))
+    success_items = _as_list(meta.get("success"))
+    if not scope_items:
+        return []
+
+    child_tier = "standard" if parent_tier == "architect" else "surgical"
+    parent_title = str(meta.get("title", task_id or "task")).strip() or "task"
+    parent_slug = _safe_slug(parent_title)
+    chunks = _build_child_chunks(scope_items)
+    if not chunks:
+        return []
+
+    TASK_QUEUE_DIR.mkdir(parents=True, exist_ok=True)
+    created: list[str] = []
+    for idx, chunk in enumerate(chunks, start=1):
+        child_name = f"cascade-{parent_slug}-{idx:02d}"
+        if _cascade_child_exists(child_name):
+            continue
+
+        scope_lines = "\n".join(f"- {line}" for line in chunk)
+        success_line = success_items[0] if success_items else "Child scope completed and verified."
+        body = (
+            f"title: {child_name}\n"
+            f"profile: {child_tier}\n"
+            f"goal: Execute child chunk {idx} of parent task '{parent_title}'\n"
+            f"parent_task: {parent_title}\n"
+            f"scope:\n"
+            f"{scope_lines}\n"
+            f"- Keep changes bounded and reviewable\n"
+            f"success:\n"
+            f"- {success_line}\n"
+            f"- Child task is complete with clear verification notes\n"
+            f"generated_by: cascade_decomposition\n"
+        )
+        (TASK_QUEUE_DIR / f"{child_name}.md").write_text(body)
+        created.append(child_name)
+
+    return created
+
+
 def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     """Select the best runner profile for the given task text.
 
@@ -317,17 +409,36 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     result["model"] = model
     result["reason"] = f"{reason_prefix}; runner={runner_name} ({runner_reason})"
 
+    # 4b. Cascade decomposition path for budget-edge high-tier work.
+    # If a big task is near/over budget, break it down so lower-tier runners can execute well.
+    budget_edge = (
+        "budget downgrade" in runner_reason.lower()
+        or "over budget" in runner_reason.lower()
+    )
+    if (not planner_mode) and tier in ("architect", "standard") and budget_edge:
+        children = _queue_cascade_children(meta, tier, str(task_id))
+        if children:
+            result["defer"] = True
+            result["defer_strategy"] = "cascade_decomposition"
+            result["defer_reason"] = (
+                f"budget-edge {tier} task decomposed into {len(children)} child tasks for lower-tier execution"
+            )
+            result["cascade_decomposed"] = True
+            result["cascade_child_count"] = len(children)
+            result["cascade_children"] = children
+            result["reason"] += f"; cascade queued {len(children)} child tasks"
+
     # Budget tracker may override the per-task budget cap
     if budget_override is not None:
         result["budget"] = budget_override
 
     # 5. Check for task deferral (budget too low to even start)
     defer_info = _check_deferral(task_id, tier, is_blocking)
-    if defer_info:
+    if defer_info and not result.get("defer", False):
         result["defer"] = True
         result["defer_strategy"] = defer_info["strategy"]
         result["defer_reason"] = defer_info["reason"]
-    else:
+    elif not result.get("defer", False):
         result["defer"] = False
 
     # 6. Build the full invoke command (builder only — planner builds its own on Mac)

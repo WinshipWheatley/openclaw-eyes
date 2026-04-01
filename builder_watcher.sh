@@ -6,6 +6,7 @@ trap '' TSTP TTIN TTOU
 POLL_INTERVAL=10
 STATUS_FILE="/home/openclaw/polish_loop/status.json"
 PROMPT_FILE="/home/openclaw/polish_loop/POLISH_PROMPT.md"
+PC_OUTPUT_FILE="/home/openclaw/polish_loop/current/pc_output.md"
 LOG_FILE="/home/openclaw/builder_watcher.log"
 ALERT_FILE="/home/openclaw/polish_loop/current/runner_alert.md"
 MAX_LAUNCHES=3
@@ -81,12 +82,35 @@ launch_runner_once() {
   p_invoke_cmd=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('invoke_cmd',''))")
   p_defer=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('defer',False))")
   p_tier=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tier','standard'))")
+  local p_cascade p_cascade_count
+  p_cascade=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cascade_decomposed',False))")
+  p_cascade_count=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cascade_child_count',0))")
 
   # Task deferral — budget says don't run this yet
   if [ "$p_defer" = "True" ]; then
     local defer_reason
     defer_reason=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('defer_reason','budget exhausted'))")
     log "DEFER: Task deferred — $defer_reason"
+    if [ "$p_cascade" = "True" ]; then
+      # Cascade decomposition completed: write a valid pc_output so orchestrator
+      # can advance to Planner review and then on to queued child tasks.
+      local pass_num
+      pass_num=$(python3 -c "import json; d=json.load(open('$STATUS_FILE')); print(d.get('pass',1))" 2>/dev/null || echo 1)
+      {
+        echo "PASS: $pass_num"
+        echo "STATUS: DONE"
+        echo "CHANGES:"
+        echo "- Decomposed high-tier task into $p_cascade_count bounded child tasks"
+        echo "- Queued child tasks for lower-tier execution (cascade delegation)"
+        echo "REASONING:"
+        echo "- Budget-edge condition detected for high-tier work"
+        echo "- Planning-first cascade chosen to preserve quality while stepping down runner cost"
+        echo "ROLLBACK PLAN:"
+        echo "- Remove cascade-* child tasks from polish_loop/tasks if decomposition is not desired"
+        echo "- Re-run parent task directly with higher-tier runner when budget allows"
+      } > "$PC_OUTPUT_FILE"
+      log "CASCADE: wrote pc_output for decomposed task (children=$p_cascade_count)"
+    fi
     # Don't count this as a launch failure. Let orchestrator handle it.
     return 0
   fi
