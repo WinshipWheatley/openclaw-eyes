@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call, nemotron_call, claude_call, claude_json, OLLAMA_MODEL, OLLAMA_MODEL_DEEP
+from chief_llm import ollama_call, nemotron_call, claude_json, OLLAMA_MODEL, OLLAMA_MODEL_DEEP
 from chief_output_utils import tts_clean
 from cassandra_capability import capability_context, gate_reply
 from capability_registry import registry_context_for_query
@@ -362,7 +362,10 @@ def _rotate_convo_log() -> None:
         print(f"[cassandra_convo] rotation error: {e}", flush=True)
 
 def _log_conversation(user_text: str, replies: list[str], route: str = "llm") -> None:
-    """Append one exchange to the conversation JSONL log. Fails open."""
+    """Append one exchange to the conversation JSONL log. Fails open.
+
+    If route='error', also queues a debug task so the loop can investigate.
+    """
     try:
         entry = {
             "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -376,6 +379,53 @@ def _log_conversation(user_text: str, replies: list[str], route: str = "llm") ->
         _rotate_convo_log()
     except Exception as e:
         print(f"[cassandra_convo] write error: {e}", flush=True)
+
+    if route == "error":
+        try:
+            _queue_error_debug_task(user_text, replies)
+        except Exception as e:
+            print(f"[cassandra_convo] error task creation failed: {e}", flush=True)
+
+
+def _queue_error_debug_task(user_text: str, replies: list[str]) -> None:
+    """Create a debug task in the polish loop queue when Cassandra hard-errors."""
+    _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    task_name = f"cas-debug-{timestamp}"
+
+    # Check if there's already a recent debug task (within last hour) to avoid spam
+    for existing in _POLISH_TASKS_DIR.glob("cas-debug-*.md"):
+        # Format: cas-debug-20260331T210000 — extract timestamp
+        parts = existing.stem.split("-")
+        if len(parts) >= 3:
+            try:
+                ts_str = parts[-1]
+                task_dt = datetime.strptime(ts_str, "%Y%m%dT%H%M%S")
+                if (datetime.now() - task_dt).total_seconds() < 3600:
+                    print(f"[cassandra_convo] skipping debug task — recent one exists: {existing.name}", flush=True)
+                    return
+            except ValueError:
+                pass
+
+    reply_preview = replies[0][:120] if replies else "(no reply)"
+    user_preview = _redact_pii(user_text[:120])
+    task_body = (
+        f"title: {task_name}\n"
+        f"profile: quick\n"
+        f"goal: Debug why Cassandra hard-errored on a user message\n"
+        f"scope:\n"
+        f"- Check cassandra_listener.out and cassandra_brain.py for the error at {timestamp}\n"
+        f"- User message was: \"{user_preview}\"\n"
+        f"- Cassandra replied: \"{reply_preview}\"\n"
+        f"- Identify the exception, fix the root cause or add a graceful fallback\n"
+        f"success:\n"
+        f"- The same request no longer causes a hard error\n"
+        f"generated_by: cassandra_error_handler\n"
+        f"generated_at: {datetime.now().isoformat()}\n"
+    )
+    task_path = _POLISH_TASKS_DIR / f"{task_name}.md"
+    task_path.write_text(task_body, encoding="utf-8")
+    print(f"[cassandra_convo] queued debug task: {task_name}", flush=True)
 
 
 def get_cassandra_summary() -> dict:
@@ -955,7 +1005,6 @@ def _fetch_calendar_context(query: str) -> str:
             - delta 2-6 → weekday name ("Friday")
             At 1 AM Friday a Friday 8:30 AM event is delta=0 → "later today" — accurate and clear.
             """
-            from datetime import timedelta
             delta = (event_dt.date() - _now.date()).days
             if delta == 0:
                 return "later today" if event_dt.replace(tzinfo=None) > _now else "today"
