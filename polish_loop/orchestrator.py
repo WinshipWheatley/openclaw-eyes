@@ -22,6 +22,14 @@ import sys
 import time
 from pathlib import Path
 
+# Notification support
+sys.path.insert(0, "/home/openclaw")
+try:
+    import chief_notify as _chief_notify
+    _NOTIFY_AVAILABLE = True
+except ImportError:
+    _NOTIFY_AVAILABLE = False
+
 # PC-side review fallback — used when Mac planner cannot launch
 try:
     from pc_review_fallback import run_review as _pc_review_run
@@ -58,8 +66,10 @@ CURRENT_DIR  = LOOP_DIR / "current"
 PC_OUTPUT    = CURRENT_DIR / "pc_output.md"
 MAC_REVIEW   = CURRENT_DIR / "mac_review.md"
 CLOSEOUT     = CURRENT_DIR / "closeout.ok"
+TASK_MD      = LOOP_DIR / "task.md"
 LOG_FILE     = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 WATCHER_LOG  = Path("/home/openclaw/mac_eyes/sync/watcher.log")
+BUILDER_LOG  = Path("/mnt/c/OpenClaw/logs/builder_watcher.out")
 
 VALID_STATES = {"idle", "pc_turn", "mac_turn", "approved", "blocked", "parked"}
 WATCHER_TS_RE = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
@@ -67,6 +77,7 @@ WATCHER_RUNNER_FAILURE_TOKENS = (
     "no planner runner found",
     "command not found",
 )
+TASK_FRONTMATTER_FIELD_RE = re.compile(r"^(title|goal):\s*\S.*$", re.MULTILINE)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -148,8 +159,9 @@ def write_status(
     if reason is not None:
         updates["block_reason"] = reason
     elif new_state not in ("blocked", "parked"):
-        # Clear stale block_reason when leaving blocked or parked
+        # Clear stale block_reason and notification flag when leaving blocked or parked
         updates["block_reason"] = None
+        updates["blocked_notified"] = False
     if parked_from is not None:
         updates["parked_from"] = parked_from
     elif new_state != "parked":
@@ -242,6 +254,20 @@ def closeout_confirmed(task_name: str, pass_num: int) -> bool:
         return False
 
 
+def queued_task_frontmatter_error(task_path: Path) -> str | None:
+    """Return a brief validation error if a queued task is missing required frontmatter."""
+    try:
+        content = task_path.read_text()
+    except Exception as exc:
+        return f"unreadable task file ({exc})"
+
+    found_fields = {match.group(1) for match in TASK_FRONTMATTER_FIELD_RE.finditer(content)}
+    missing_fields = [field for field in ("title", "goal") if field not in found_fields]
+    if missing_fields:
+        return f"missing required frontmatter field(s): {', '.join(missing_fields)}"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Agent process detection
 # ---------------------------------------------------------------------------
@@ -264,6 +290,9 @@ _TEST_WATCHER_LOG_OVERRIDE: Path | None = None
 
 # Set to True during tests to disable the PC-side review fallback in handle_mac_turn.
 _TEST_DISABLE_PC_REVIEW_FALLBACK: bool = False
+
+# Set to True during tests to suppress self-heal task creation side effects.
+_TEST_DISABLE_SELF_HEAL_TASKS: bool = False
 
 
 def builder_running() -> bool:
@@ -448,23 +477,36 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
             log("STATE", f"idle | task={task} | no task.md and no runnable queued task — waiting", dry_run)
             return
 
-        promote = runnable[0]
-        promoted_name = promote.stem
-        log("ACTION", f"promoting queued task {promote.name} → task.md", dry_run)
-        if not dry_run:
-            task_md.write_text(promote.read_text())
-            promote.unlink()
-            _write_status_raw({
-                "task_name": promoted_name,
-                "pass": 1,
-                "approved": False,
-                "block_reason": None,
-                "parked_from": None,
-                "parked_reason": None,
-                "relaunch_attempted": False,
-            })
-            status = read_status() or status
-            task = status.get("task_name", promoted_name)
+        for promote in runnable:
+            validation_error = queued_task_frontmatter_error(promote)
+            if validation_error:
+                log("WARN", f"skipping queued task {promote.name}: {validation_error}", dry_run)
+                continue
+
+            promoted_name = promote.stem
+            log("ACTION", f"promoting queued task {promote.name} → task.md", dry_run)
+            if not dry_run:
+                task_md.write_text(promote.read_text())
+                promote.unlink()
+                _write_status_raw({
+                    "task_name": promoted_name,
+                    "pass": 1,
+                    "approved": False,
+                    "block_reason": None,
+                    "parked_from": None,
+                    "parked_reason": None,
+                    "relaunch_attempted": False,
+                })
+                status = read_status() or status
+                task = status.get("task_name", promoted_name)
+            break
+        else:
+            log(
+                "STATE",
+                f"idle | task={task} | queued tasks invalid or skipped — waiting",
+                dry_run,
+            )
+            return
 
     if task_md.exists():
         log("STATE", f"idle | task={task} | task.md present — transitioning to pc_turn", dry_run)
@@ -597,9 +639,12 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
         else:
             return  # dry-run: would attempt re-launch
 
-    log("TRANSITION", "pc_turn → parked (parked_from=pc_turn, reason=builder_timeout)", dry_run)
+    log("TRANSITION", "pc_turn → idle (self-heal skip after repeated builder failure)", dry_run)
     if not dry_run:
-        write_status("parked", parked_from="pc_turn", parked_reason="builder_timeout")
+        recovery_task = _queue_manus_recovery_task(task, "builder_timeout_after_retry")
+        if recovery_task:
+            log("ACTION", f"queued self-heal recovery task: {recovery_task}")
+        _skip_failed_task_to_next(task, pass_num, "builder_timeout")
 
 
 def _read_output_pass() -> int | str:
@@ -621,6 +666,97 @@ def _archive_current_artifact(path: Path, task: str, suffix: str) -> None:
     dst_name = f"{path.stem}_{task}_{suffix}_{ts}{path.suffix}"
     path.rename(archive_dir / dst_name)
     log("ACTION", f"archived {path.name} → archive/{dst_name}")
+
+
+def _next_auto_gen_task_name() -> str:
+    """Allocate next available auto-gen-XXX id across queue and archive."""
+    queue_dir = LOOP_DIR / "tasks"
+    archive_dir = LOOP_DIR / "archive"
+    used: set[int] = set()
+
+    def _collect(value: str) -> None:
+        m = re.search(r"auto-gen-(\d{3})", value)
+        if m:
+            used.add(int(m.group(1)))
+
+    if queue_dir.exists():
+        for p in queue_dir.glob("auto-gen-*.md"):
+            _collect(p.stem)
+    if archive_dir.exists():
+        for p in archive_dir.glob("task_auto-gen-*.md"):
+            _collect(p.stem)
+
+    i = 1
+    while i in used:
+        i += 1
+    return f"auto-gen-{i:03d}"
+
+
+def _latest_error_excerpt(max_lines: int = 6) -> str:
+    """Extract recent error signatures to seed self-heal follow-up tasks."""
+    hits: list[str] = []
+    for path in (BUILDER_LOG, LOG_FILE):
+        if not path.exists():
+            continue
+        try:
+            tail = path.read_text(errors="replace").splitlines()[-300:]
+        except Exception:
+            continue
+        for ln in tail:
+            low = ln.lower()
+            if any(tok in low for tok in ("error", "exception", "traceback", "failed", "timeout")):
+                hits.append(ln.strip())
+    if not hits:
+        return "No explicit error signature captured; inspect latest builder timeout context."
+    return " | ".join(hits[-max_lines:])[:1200]
+
+
+def _queue_manus_recovery_task(failed_task: str, reason: str) -> str | None:
+    """Queue a bounded Manus/doc-search recovery task and return task name."""
+    if _TEST_DISABLE_SELF_HEAL_TASKS:
+        return None
+    try:
+        queue_dir = LOOP_DIR / "tasks"
+        queue_dir.mkdir(parents=True, exist_ok=True)
+        task_name = f"{_next_auto_gen_task_name()}-manus-recovery"
+        excerpt = _latest_error_excerpt()
+        body = (
+            f"title: {task_name}\n"
+            f"profile: standard\n"
+            f"goal: Diagnose '{failed_task}' failure via Manus documentation research and queue a fix task.\n"
+            f"scope:\n"
+            f"- Research error signatures and root-cause paths for reason: {reason}.\n"
+            f"- Produce one implementation-ready fix task with file scope and rollback.\n"
+            f"- Include explicit verification commands for the proposed fix.\n"
+            f"- Enforce PII Vault handling for all sensitive payload references.\n"
+            f"- Never execute external payments; queue payment actions in Future Action for manual approval.\n"
+            f"- Error excerpt: {excerpt}\n"
+            f"success:\n"
+            f"- Recovery fix task is queued and loop proceeds without hanging on this failure.\n"
+            f"generated_by: orchestrator_self_heal\n"
+            f"generated_at: {datetime.datetime.now().isoformat()}\n"
+        )
+        (queue_dir / f"{task_name}.md").write_text(body)
+        return task_name
+    except Exception as exc:
+        log("WARN", f"Could not queue recovery task: {exc}")
+        return None
+
+
+def _skip_failed_task_to_next(task: str, pass_num: int, reason: str) -> None:
+    """Archive current failed artifacts and return loop to idle for next queued task."""
+    ts = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
+    archive_dir = LOOP_DIR / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    for artifact in (TASK_MD, PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+        if artifact.exists():
+            dst_name = f"{artifact.stem}_{task}_p{pass_num}_{reason}_{ts}{artifact.suffix}"
+            artifact.rename(archive_dir / dst_name)
+            log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
+
+    write_status("idle")
+    _write_status_raw({"relaunch_attempted": False})
 
 
 def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
@@ -754,6 +890,18 @@ def handle_blocked(status: dict, dry_run: bool = False) -> None:
     task   = status.get("task_name", "?")
     log("STATE", f"blocked | task={task} | reason={reason} — waiting for --reset-blocked", dry_run)
 
+    # Send one-shot Telegram notification to Winship — only on first entry into blocked
+    if not dry_run and _NOTIFY_AVAILABLE and not status.get("blocked_notified", False):
+        msg = (
+            f"🚨 *Loop blocked* — human action required\n\n"
+            f"*Task:* `{task}`\n"
+            f"*Reason:* `{reason}`\n\n"
+            f"To unblock, run:\n"
+            f"`ssh openclaw \"python3 /home/openclaw/polish_loop/orchestrator.py --reset-blocked --reason 'fixed'\"`"
+        )
+        _chief_notify.send(msg)
+        _write_status_raw({"blocked_notified": True})
+
 
 def handle_parked(status: dict, dry_run: bool = False) -> None:
     task        = status.get("task_name", "?")
@@ -829,6 +977,8 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
         handle_blocked(status, dry_run)
     elif state == "parked":
         handle_parked(status, dry_run)
+    elif state in ("paused", "emergency_freeze", "stopped"):
+        log("STATE", f"Loop is {state} — no action taken (use loop_control.sh resume)", dry_run)
 
     return read_status()
 
@@ -900,7 +1050,7 @@ def cmd_run_tests() -> None:
     import copy
 
     global _TEST_DISABLE_IDLE_AUTOLAUNCH, _TEST_SUPPRESS_FILE_LOGS, _TEST_WATCHER_LOG_OVERRIDE
-    global _TEST_DISABLE_PC_REVIEW_FALLBACK
+    global _TEST_DISABLE_PC_REVIEW_FALLBACK, _TEST_DISABLE_SELF_HEAL_TASKS
 
     results:  list[str] = []
     failures: list[str] = []
@@ -961,6 +1111,7 @@ def cmd_run_tests() -> None:
         _TEST_SUPPRESS_FILE_LOGS = True
         _TEST_WATCHER_LOG_OVERRIDE = test_watcher_log
         _TEST_DISABLE_PC_REVIEW_FALLBACK = True
+        _TEST_DISABLE_SELF_HEAL_TASKS = True
         if _pc_review_mod is not None:
             _pc_review_mod._SUPPRESS_FILE_LOGS = True
 
@@ -1002,7 +1153,7 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
-        # 4. pc_turn, builder dead, elapsed > timeout → parked (builder_timeout)
+        # 4. pc_turn, builder dead, elapsed > timeout → self-heal skip to idle
         #    Force builder_running() to return False so the test is independent
         #    of whether run_polish_pass.sh happens to be running on this machine.
         #    Force _relaunch_builder() to return False so one cycle reaches parked.
@@ -1017,9 +1168,8 @@ def cmd_run_tests() -> None:
         _TEST_RELAUNCH_OVERRIDE = None
         s = read_status()
         check(
-            "pc_turn, builder dead, elapsed > timeout → parked (builder_timeout)",
-            s is not None and s["status"] == "parked"
-            and s.get("parked_from") == "pc_turn",
+            "pc_turn, builder dead, elapsed > timeout → idle (self-heal skip)",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
 
@@ -1311,7 +1461,7 @@ def cmd_run_tests() -> None:
         )
         CLOSEOUT.unlink(missing_ok=True)
 
-        # 20. pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → parked
+        # 20. pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → idle (self-heal skip)
         set_status(fresh_status(status="pc_turn", **{"pass": 1, "task_name": "test-orch", "last_updated": old_iso}))
         clear_test_watcher_log()
         _TEST_BUILDER_OVERRIDE = False
@@ -1319,8 +1469,8 @@ def cmd_run_tests() -> None:
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → parked",
-            s is not None and s["status"] == "parked" and s.get("parked_from") == "pc_turn",
+            "pc_turn, builder dead, elapsed > BUILDER_TIMEOUT → idle",
+            s is not None and s["status"] == "idle",
             f"got {s}",
         )
         _TEST_BUILDER_OVERRIDE = None
@@ -1397,6 +1547,7 @@ def cmd_run_tests() -> None:
         _TEST_WATCHER_LOG_OVERRIDE = None
         _TEST_DISABLE_IDLE_AUTOLAUNCH = False
         _TEST_DISABLE_PC_REVIEW_FALLBACK = False
+        _TEST_DISABLE_SELF_HEAL_TASKS = False
         if _pc_review_mod is not None:
             _pc_review_mod._SUPPRESS_FILE_LOGS = False
         # Restore original state

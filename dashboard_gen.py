@@ -129,9 +129,11 @@ def get_capability_flags() -> dict[str, bool]:
     return flags
 
 
+_SKIP_TASKS = {"env-001-install", "env-001-spec-tools"}
+
 def get_queued_tasks() -> list[str]:
     try:
-        return sorted(p.stem for p in TASKS_DIR.glob("*.md"))
+        return sorted(p.stem for p in TASKS_DIR.glob("*.md") if p.stem not in _SKIP_TASKS)
     except Exception:
         return []
 

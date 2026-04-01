@@ -2,6 +2,22 @@
 
 source ~/chief_env/bin/activate
 source /home/openclaw/.chief.env
+
+validate_env() {
+    local missing=()
+    for var in TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID PII_VAULT_KEY; do
+        if [ -z "${!var}" ]; then
+            missing+=("$var")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "ERROR: Missing required env vars: ${missing[*]}" >&2
+        echo "Check /home/openclaw/.chief.env and ensure all required vars are set." >&2
+        exit 1
+    fi
+}
+validate_env
+
 mkdir -p /mnt/c/OpenClaw/logs
 
 # Refresh runner registry (auto-discovers installed coding tools)

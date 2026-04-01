@@ -9,6 +9,7 @@
 #   2. builder_watcher.sh              (PC — launches coding runners)
 #   3. dashboard_gen.py                (PC — generates VS Code dashboard files)
 #   4. loop_dashboard_watchdog.sh      (PC — keeps dashboard_gen alive)
+#   5. ceo_briefing_worker.py           (PC — resilient 8:00 AM EST briefing sender)
 #
 # Mac loop_watcher.sh is NOT monitored here because it must be started
 # from a local Mac terminal (Claude CLI auth requires macOS Keychain).
@@ -95,6 +96,21 @@ check_dashboard_watchdog() {
         log "RESTART OK: loop_dashboard_watchdog.sh (PID $(pgrep -f 'loop_dashboard_watchdog.sh' | head -1))"
     else
         log "RESTART FAILED: loop_dashboard_watchdog.sh — manual intervention needed"
+    fi
+}
+
+check_ceo_briefing_worker() {
+    if pgrep -f "ceo_briefing_worker.py" > /dev/null 2>&1; then
+        return 0
+    fi
+    log "DEAD: ceo_briefing_worker.py not running — restarting"
+    cd /home/openclaw
+    setsid nohup /home/openclaw/chief_env/bin/python /home/openclaw/ceo_briefing_worker.py >> /mnt/c/OpenClaw/logs/ceo_briefing_worker.out 2>&1 &
+    sleep 2
+    if pgrep -f "ceo_briefing_worker.py" > /dev/null 2>&1; then
+        log "RESTART OK: ceo_briefing_worker.py (PID $(pgrep -f 'ceo_briefing_worker.py' | head -1))"
+    else
+        log "RESTART FAILED: ceo_briefing_worker.py — manual intervention needed"
     fi
 }
 
@@ -220,6 +236,7 @@ while true; do
     check_builder_watcher
     check_dashboard_gen
     check_dashboard_watchdog
+    check_ceo_briefing_worker
     check_mac_watcher
     check_status_health
     check_duplicates

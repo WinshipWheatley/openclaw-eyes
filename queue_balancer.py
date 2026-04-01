@@ -45,6 +45,13 @@ STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
 SRC_DIR = Path("/home/openclaw")
 TEST_DIR = Path("/home/openclaw/tests")
 LOG_FILE = Path("/mnt/c/OpenClaw/logs/queue_balancer.log")
+ORCH_LOG = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
+
+PERSONAL_CONTEXT_CANDIDATES = (
+    Path("/home/openclaw/mac_eyes/For Winship 1 - Right Now.md"),
+    Path("/home/openclaw/mac_eyes/Big Picture.md"),
+    Path("/mnt/c/OpenClawShared/openclaw-vault/System/Overview.md"),
+)
 
 SKIP_TASK_NAMES = {"env-001-install.md", "env-001-spec-tools.md"}
 
@@ -66,6 +73,8 @@ MIN_STANDARD_RATIO = 0.35
 MIN_ARCHITECT_RATIO = 0.10
 MAX_GENERATE = 3         # never generate more than 3 tasks at once
 COOLDOWN_HOURS = 4       # don't re-generate within this window
+AUTOPILOT_MIN_QUEUE = 5  # Deep-Flight mode: if queue drops below this, refill
+AUTOPILOT_BATCH = 5      # number of auto-gen tasks to create in one refill
 
 COOLDOWN_FILE = Path("/home/openclaw/.queue_balancer_last_run")
 
@@ -107,6 +116,150 @@ def _get_queued_names() -> set[str]:
         except Exception:
             pass
     return names
+
+
+def _next_auto_gen_ids(count: int) -> list[str]:
+    """Return next available auto-gen-XXX names, skipping existing/archived ids."""
+    used: set[int] = set()
+
+    def _collect_from_name(name: str):
+        m = re.search(r"auto-gen-(\d{3})", name)
+        if m:
+            used.add(int(m.group(1)))
+
+    for n in _get_queued_names():
+        _collect_from_name(n)
+    for n in _get_completed_names():
+        _collect_from_name(n)
+
+    out: list[str] = []
+    i = 1
+    while len(out) < count:
+        if i not in used:
+            out.append(f"auto-gen-{i:03d}")
+        i += 1
+    return out
+
+
+def _recent_orchestrator_signals() -> list[str]:
+    """Extract high-signal operational pain points from recent orchestrator activity."""
+    if not ORCH_LOG.exists():
+        return ["orchestrator log unavailable"]
+    try:
+        tail = ORCH_LOG.read_text(errors="replace").splitlines()[-500:]
+    except Exception:
+        return ["orchestrator log unreadable"]
+
+    checks = {
+        "builder_timeout": r"builder_timeout|builder dead|elapsed .*>=",
+        "planner_delay": r"planner_timeout|waiting for Planner|mac_turn",
+        "blocked_events": r"\[TRANSITION\].*blocked",
+        "parked_events": r"\[TRANSITION\].*parked",
+        "relaunches": r"re-launch|relaunch",
+    }
+    signals: list[str] = []
+    for label, pat in checks.items():
+        count = sum(1 for ln in tail if re.search(pat, ln, flags=re.IGNORECASE))
+        if count:
+            signals.append(f"{label}:{count}")
+    return signals or ["no dominant failure pattern in recent tail"]
+
+
+def _personal_context_signals() -> list[str]:
+    """Extract lightweight personal/business context hints from known context docs."""
+    key_terms = (
+        "golf", "surf", "music", "album", "briefing", "approval", "billing", "queue",
+    )
+    hits: list[str] = []
+    for path in PERSONAL_CONTEXT_CANDIDATES:
+        if not path.exists():
+            continue
+        try:
+            text = path.read_text(errors="replace").lower()
+        except Exception:
+            continue
+        local_hits = [k for k in key_terms if k in text]
+        if local_hits:
+            hits.append(f"{path.name}:" + ",".join(local_hits[:4]))
+    return hits or ["personal context docs missing or sparse"]
+
+
+def _gen_autopilot_optimizations(count: int = AUTOPILOT_BATCH) -> list[TaskCandidate]:
+    """Deep-Flight autopilot tasks that reduce daily manual work.
+
+    These tasks are constrained to PII-safe handling and payment deferral only.
+    """
+    names = _next_auto_gen_ids(count)
+    ops = _recent_orchestrator_signals()
+    ctx = _personal_context_signals()
+
+    templates = [
+        (
+            "Reduce approval click load with grouped decision bundles",
+            [
+                "Chief + Cassandra analyze pending approvals and cluster similar low-risk actions.",
+                "Generate one-click bundle proposals with clear rollback notes.",
+                "Tag all payload fields with PII-vault required handling.",
+                "Any payment action must be queued in Future Action table (no execution).",
+            ],
+            "Dashboard shows grouped approval bundles with at least 30% fewer manual clicks.",
+        ),
+        (
+            "Automate overnight ops cleanup and morning handoff quality",
+            [
+                "Mine recent orchestrator failures and auto-generate remediation checklists.",
+                "Summarize unresolved blockers for 8AM briefing with owner + next action.",
+                "Ensure task notes include PII-vault scope guard before any data references.",
+                "Payment-related follow-ups must be deferred to Future Action table.",
+            ],
+            "Morning handoff contains actionable blockers with zero manual log triage required.",
+        ),
+        (
+            "Build personal-time protection automations",
+            [
+                "Use context signals to suppress non-urgent admin interruptions during creative windows.",
+                "Auto-route low-priority business chores to queue with due windows.",
+                "Enforce PII-vault masking in generated notes and summaries.",
+                "Do not send or execute payments; queue for manual approval only.",
+            ],
+            "Admin interrupts are reduced and non-urgent work is queued automatically.",
+        ),
+        (
+            "Create billing and ledger autopilot exception detector",
+            [
+                "Detect missing ledger fields and invoice anomalies before they require manual correction.",
+                "Generate reconciliation tasks with deterministic acceptance checks.",
+                "Apply PII-vault policy to all financial identifiers in task artifacts.",
+                "All external payment intents go to Future Action queue pending approval.",
+            ],
+            "Ledger anomalies are surfaced proactively with ready-to-execute fix tasks.",
+        ),
+        (
+            "Implement self-heal task authoring from runtime failure patterns",
+            [
+                "Translate repeated builder/planner failures into bounded documentation-research tasks.",
+                "Attach failure signatures and affected files for faster fix execution.",
+                "Mark generated tasks with PII-vault mandatory handling requirements.",
+                "Payment outcomes must remain queued, never auto-executed externally.",
+            ],
+            "Runtime failures automatically spawn focused fix tasks without operator intervention.",
+        ),
+    ]
+
+    candidates: list[TaskCandidate] = []
+    for idx, task_name in enumerate(names):
+        goal, scope, success = templates[idx % len(templates)]
+        context_line = f"Signals: ops={'; '.join(ops[:3])} | context={'; '.join(ctx[:2])}"
+        candidates.append(TaskCandidate(
+            name=task_name,
+            tier="standard",
+            title=task_name,
+            goal=goal,
+            scope=scope + [context_line],
+            success=success,
+            source="autopilot_deep_flight",
+        ))
+    return candidates
 
 
 # ---------------------------------------------------------------------------
@@ -699,6 +852,33 @@ def balance_queue(dry_run: bool = True) -> list[TaskCandidate]:
     easy_ratio = easy_count / total if total > 0 else 0.0
     standard_ratio = standard_count / total if total > 0 else 0.0
     architect_ratio = architect_count / total if total > 0 else 0.0
+
+    # Deep-Flight autopilot: aggressively refill when queue runs thin.
+    if total < AUTOPILOT_MIN_QUEUE:
+        auto_tasks = _gen_autopilot_optimizations(AUTOPILOT_BATCH)
+        _log(f"Autopilot refill triggered: queue={total} < {AUTOPILOT_MIN_QUEUE}; generating {len(auto_tasks)} auto-gen tasks")
+        if not dry_run:
+            TASK_QUEUE.mkdir(parents=True, exist_ok=True)
+            for candidate in auto_tasks:
+                scope_lines = "\n".join(f"- {s}" for s in candidate.scope)
+                task_body = (
+                    f"title: {candidate.title}\n"
+                    f"profile: {candidate.tier}\n"
+                    f"goal: {candidate.goal}\n"
+                    f"pii_vault_required: true\n"
+                    f"payment_execution_policy: future_action_only\n"
+                    f"scope:\n"
+                    f"{scope_lines}\n"
+                    f"success:\n"
+                    f"- {candidate.success}\n"
+                    f"generated_by: queue_balancer\n"
+                    f"generated_at: {datetime.now().isoformat()}\n"
+                    f"autopilot_mode: deep_flight\n"
+                )
+                task_path = TASK_QUEUE / f"{candidate.name}.md"
+                task_path.write_text(task_body)
+                _log(f"Generated autopilot task: {task_path.name}")
+        return auto_tasks
 
     # Decide tier slots to generate this round.
     # Empty queue: seed with 2 easy + 1 standard for momentum + depth.

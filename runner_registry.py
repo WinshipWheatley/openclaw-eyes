@@ -1,19 +1,52 @@
 #!/usr/bin/env python3
 """Runner Registry — dynamic, self-discovering programmer tool catalog.
 
-This is the single source of truth for what coding tools are available,
-what they can do, and how to invoke them.  It does NOT choose which tool
-to use (that's runner_profiles.py).  It only answers: "what's on this
-machine and what can each thing do?"
+This module is the inventory layer for the polish-loop runner pipeline.
+It answers three questions:
+  1. Which coding runners are installed on this machine?
+  2. What capabilities, flags, and models does each runner expose?
+  3. How should that runner be invoked once another module chooses it?
 
-Auto-discovery runs on import or via `refresh()`.  New tools are detected
-by scanning PATH for known binary names AND by reading a plug-in directory
-for third-party runner definitions.
+It does NOT decide which runner gets a task. That policy lives in
+`runner_profiles.py`, which asks this registry for discovered runners and
+then applies task-tier scoring.
+
+Runner selection intent, as implemented across the pipeline:
+  - `quick` prefers Gemini as the default smart/cheap/fast option.
+  - `surgical` favors Codex or Claude because they are stronger on
+    sandboxed, correctness-oriented edits.
+  - `standard` mostly prefers Claude, while `runner_profiles.py` rotates
+    roughly one out of every three standard tasks to Gemini for cost control.
+  - `architect` strongly prefers Claude for its architecture and reasoning
+    strengths.
+
+Auto-discovery runs on import or via `refresh()`. New tools are detected by
+scanning PATH for known binary names and by reading the plug-in directory for
+third-party runner definitions.
+
+Discovery flow each time `refresh()` runs:
+  1. In-memory cache check — if `_registry` is populated and fresh
+     (`< CACHE_TTL`), return immediately without hitting disk or spawning
+     subprocesses.
+  2. Disk cache check — if `.runner_registry_cache.json` exists and is within
+     TTL, deserialize it into `Runner` objects and return it. This avoids
+     shelling out to every binary on startup.
+  3. Full scan — for each entry in `KNOWN_RUNNERS`, check PATH for the binary,
+     run `--version` and `--help`, and parse flags. Ollama also enumerates
+     locally available models via `ollama list`.
+  4. Plugin scan — load any `*.json` files from `/home/openclaw/runners.d/`.
+     Each file defines a custom runner; the binary is still validated via PATH
+     before the entry is accepted.
+  5. Change detection — new or removed runners, flag additions, and version
+     bumps are logged to `DISCOVERY_LOG` for auditability.
+  6. Cache write — the updated registry is serialized to
+     `.runner_registry_cache.json` so the next startup can take the disk-cache
+     fast path.
 
 Adding a new runner:
-  Option A: Drop a JSON file in /home/openclaw/runners.d/<name>.json
-  Option B: Install the CLI tool — discovery will find it automatically
-            if it matches a known pattern or has a help flag.
+  Option A: Drop a JSON file in `/home/openclaw/runners.d/<name>.json`
+  Option B: Install the CLI tool. Discovery will find it automatically if it
+            matches a known pattern or has a parseable help flag.
 """
 
 from __future__ import annotations
@@ -460,14 +493,24 @@ def get_runners_for_task(task_type: str) -> list[Runner]:
 
 
 def _score_runner_for_task(runner: Runner, task_type: str) -> float:
-    """Score a runner's fit for a task type. Higher = better.
+    """Score a runner's fit for a task tier. Higher scores rank earlier.
 
-    Scoring philosophy:
-      - Gemini is the default quick runner (smart + cheap + fast)
-      - Ollama is RESERVED for: sensitive data, token exhaustion, local ops
-      - Codex competes for surgical (sandboxed, code-review)
-      - Claude dominates standard/architect (best reasoning)
-      - Gemini gets ~1/3 of standard work via ratio rotation (not scored here)
+    This function is intentionally heuristic, not absolute. It biases toward
+    the runner that should usually win for a given tier based on strengths,
+    weaknesses, cost, and CLI capabilities, while leaving final selection
+    details to `runner_profiles.py`.
+
+    The policy being expressed here is:
+      - `quick`: Gemini should usually rank first because it is cheap, fast,
+        and still capable. Ollama gets a smaller boost, but it is not meant to
+        win general quick work by default.
+      - `surgical`: Codex and Claude should rise because sandboxing, safety,
+        and code-review traits matter more than raw speed.
+      - `standard`: Claude should usually rank first for multi-file reasoning,
+        but `runner_profiles.py` may still route about one-third of standard
+        tasks to Gemini through ratio rotation after scoring.
+      - `architect`: Claude should dominate because architecture and complex
+        reasoning matter more than cost.
     """
     score = 50.0  # base
 
