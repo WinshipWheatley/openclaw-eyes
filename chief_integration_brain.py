@@ -21,7 +21,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_json, ollama_call
+from chief_llm import ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 

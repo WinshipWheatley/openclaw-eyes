@@ -18,7 +18,6 @@ Saves to:
   - /mnt/c/OpenClawShared/openclaw-vault/Website/QA Log.md
 """
 
-import re
 import time
 from datetime import datetime
 from pathlib import Path

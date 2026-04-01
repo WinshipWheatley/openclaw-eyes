@@ -20,11 +20,10 @@ Saves to:
 
 import csv
 import json
-import re
-from datetime import datetime, date
+from datetime import date
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call, claude_json as ollama_json
+from chief_llm import claude_json as ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 

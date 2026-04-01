@@ -57,7 +57,6 @@ JSON:"""
 from chief_session_manager import (
     get_workflow_state,
     set_workflow_state,
-    mark_complete,
     reset_session as sm_reset_session,
 )
 from chief_album_io import (
@@ -69,7 +68,6 @@ from chief_album_io import (
     add_dynamic_column,
     append_session_history,
     list_all_songs,
-    load_arc_md,
     save_arc_md,
     score_completion,
     derive_batch_days,

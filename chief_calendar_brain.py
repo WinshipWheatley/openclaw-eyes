@@ -19,7 +19,6 @@ Auth is handled exclusively by google_access_broker.py.
 Run: python3 google_access_broker.py --auth  (one-time setup)
 """
 
-import json
 from datetime import datetime, date, timedelta
 from pathlib import Path
 

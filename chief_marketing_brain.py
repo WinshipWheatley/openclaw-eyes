@@ -15,7 +15,7 @@ Does NOT auto-post anything. Suggests and drafts only.
 import json
 import re
 import sys
-from datetime import datetime, date
+from datetime import datetime
 from pathlib import Path
 
 from chief_llm import ollama_json, ollama_call

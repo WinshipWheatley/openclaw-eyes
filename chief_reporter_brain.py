@@ -13,7 +13,6 @@ Saves report to openclaw-vault/System/Daily Report.md.
 """
 
 import json
-import re
 from datetime import datetime
 from pathlib import Path
 

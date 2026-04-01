@@ -24,7 +24,6 @@ Saves to:
   - /mnt/c/OpenClawShared/openclaw-vault/Website/Creative Log.md
 """
 
-import json
 import re
 from datetime import datetime
 from pathlib import Path

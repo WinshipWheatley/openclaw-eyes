@@ -20,8 +20,6 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call
-
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 REPO_DIR    = Path("/home/openclaw")

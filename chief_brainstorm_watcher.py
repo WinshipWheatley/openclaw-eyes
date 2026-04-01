@@ -19,7 +19,6 @@ Saves to: /mnt/c/OpenClawShared/openclaw-vault/System/Brainstorm Log.md (status 
 
 import json
 import re
-from datetime import datetime
 from pathlib import Path
 
 BRAINSTORM_JSON = Path("/mnt/c/OpenClawShared/album/brainstorm_log.json")

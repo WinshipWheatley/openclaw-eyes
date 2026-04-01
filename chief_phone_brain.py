@@ -18,7 +18,6 @@ Saves to:
 """
 
 import json
-import re
 from datetime import datetime, date
 from pathlib import Path
 
