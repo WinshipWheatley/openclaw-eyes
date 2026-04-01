@@ -144,6 +144,7 @@
 !tests/test_cassandra_whisper_relay.py
 !tests/test_orchestrator_task_frontmatter.py
 !dashboard_gen.py
+!hitl_flowchart_gen.py
 !loop_dashboard_watchdog.sh
 !loop_supervisor.sh
 !retry_send_demo_dashboard.sh
