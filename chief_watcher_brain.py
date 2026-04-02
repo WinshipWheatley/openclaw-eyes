@@ -17,6 +17,13 @@ PENDING_REPLAY_COOLDOWN_SECONDS = 600
 PENDING_REPLAY_MAX_PER_ID = 3
 
 
+def log_replay_event(reason_code: str, pending_id: str, **details):
+    parts = [f"reason={reason_code}", f"id={pending_id or 'unknown'}"]
+    for key, value in details.items():
+        parts.append(f"{key}={value}")
+    print("[approval_replay] " + " ".join(parts), flush=True)
+
+
 def send_reply(text: str):
     subprocess.run(
         ["python3", str(Path.home() / "chief_sender.py"), text],
@@ -254,6 +261,49 @@ def format_alert_message(alerts):
     return "\n".join(lines)
 
 
+def evaluate_pending_replay(pending: dict, replay_state: dict, now_ts: int | None = None):
+    pending_id = str(pending.get("id") or "unknown").strip() or "unknown"
+
+    if pending.get("status") != "pending":
+        return {
+            "pending_id": pending_id,
+            "pending_age": 0,
+            "reason_code": "no_pending",
+            "should_replay": False,
+            "cooldown_remaining": 0,
+            "replay_count": int(replay_state.get("count", 0) or 0),
+        }
+
+    pending_dt = parse_pending_time(pending.get("requested_at", ""))
+    pending_age = 0
+    if pending_dt is not None:
+        pending_age = max(0, int((datetime.now() - pending_dt).total_seconds()))
+
+    replay_count = int(replay_state.get("count", 0) or 0)
+    last_replay = int(replay_state.get("last_replay", 0) or 0)
+    now_ts = int(time.time()) if now_ts is None else int(now_ts)
+    elapsed_since_replay = now_ts - last_replay
+    cooldown_remaining = max(0, PENDING_REPLAY_COOLDOWN_SECONDS - elapsed_since_replay)
+
+    if pending_age < PENDING_REPLAY_AFTER_SECONDS:
+        reason_code = "pending_too_young"
+    elif replay_count >= PENDING_REPLAY_MAX_PER_ID:
+        reason_code = "replay_cap_reached"
+    elif elapsed_since_replay < PENDING_REPLAY_COOLDOWN_SECONDS:
+        reason_code = "cooldown_active"
+    else:
+        reason_code = "replay_ready"
+
+    return {
+        "pending_id": pending_id,
+        "pending_age": pending_age,
+        "reason_code": reason_code,
+        "should_replay": reason_code == "replay_ready",
+        "cooldown_remaining": cooldown_remaining if reason_code == "cooldown_active" else 0,
+        "replay_count": replay_count,
+    }
+
+
 def check_once(state):
     state.setdefault("approval_replay", {})
 
@@ -262,22 +312,24 @@ def check_once(state):
     pending = read_json(PENDING_APPROVAL_FILE)
     if pending.get("status") == "pending":
         pending_id = (pending.get("id") or "unknown").strip() or "unknown"
-        pending_dt = parse_pending_time(pending.get("requested_at", ""))
-        pending_age = 0
-        if pending_dt is not None:
-            pending_age = max(0, int((datetime.now() - pending_dt).total_seconds()))
-
         replay_state = state["approval_replay"].get(
             pending_id,
             {"last_replay": 0, "count": 0},
         )
         now_ts = int(time.time())
-        should_replay = (
-            pending_age >= PENDING_REPLAY_AFTER_SECONDS
-            and replay_state.get("count", 0) < PENDING_REPLAY_MAX_PER_ID
-            and (now_ts - int(replay_state.get("last_replay", 0))) >= PENDING_REPLAY_COOLDOWN_SECONDS
+        replay_decision = evaluate_pending_replay(
+            pending,
+            replay_state,
+            now_ts=now_ts,
         )
-        if should_replay:
+        log_replay_event(
+            replay_decision["reason_code"],
+            replay_decision["pending_id"],
+            age_seconds=replay_decision["pending_age"],
+            replay_count=replay_decision["replay_count"],
+            cooldown_remaining=replay_decision["cooldown_remaining"],
+        )
+        if replay_decision["should_replay"]:
             result = subprocess.run(
                 ["python3", str(Path.home() / "chief_approval_brain.py"), "--resend-pending"],
                 capture_output=True,
@@ -287,6 +339,17 @@ def check_once(state):
             replay_state["last_replay"] = now_ts
             if result.returncode == 0:
                 replay_state["count"] = int(replay_state.get("count", 0)) + 1
+                log_replay_event(
+                    "resend_succeeded",
+                    pending_id,
+                    replay_count=replay_state["count"],
+                )
+            else:
+                log_replay_event(
+                    "resend_failed",
+                    pending_id,
+                    returncode=result.returncode,
+                )
             state["approval_replay"][pending_id] = replay_state
 
     # Prune replay memory for resolved approval IDs.
@@ -321,14 +384,17 @@ def check_once(state):
     return state
 
 
-print("Chief watcher brain online.")
-
-state = load_state()
-state = check_once(state)
-save_state(state)
-
-while True:
-    time.sleep(CHECK_EVERY_SECONDS)
+def main():
+    print("Chief watcher brain online.")
     state = load_state()
     state = check_once(state)
     save_state(state)
+    while True:
+        time.sleep(CHECK_EVERY_SECONDS)
+        state = load_state()
+        state = check_once(state)
+        save_state(state)
+
+
+if __name__ == "__main__":
+    main()

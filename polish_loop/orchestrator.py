@@ -739,6 +739,13 @@ def _queue_manus_recovery_task(failed_task: str, reason: str) -> str | None:
     """Queue a bounded Manus/doc-search recovery task and return task name."""
     if _TEST_DISABLE_SELF_HEAL_TASKS:
         return None
+    # Guard: never self-heal a recovery task, or failures can recurse forever.
+    if "manus-recovery" in failed_task or re.match(r"auto-gen-\d+", failed_task):
+        log(
+            "WARN",
+            f"Skipping self-heal for '{failed_task}' because it is already a recovery task; cascading would create an infinite loop",
+        )
+        return None
     if audit_lock_active():
         log("STATE", "Audit lock active — refusing to queue recovery task")
         return None
@@ -1560,6 +1567,27 @@ def cmd_run_tests() -> None:
             "builder_running detects watcher-launched runner patterns",
             detected is True and "timeout 900 claude --model sonnet --print" in seen_patterns,
             f"detected={detected} patterns={seen_patterns}",
+        )
+
+        # 25. _queue_manus_recovery_task blocks recursive recovery-task cascades
+        queue_dir = LOOP_DIR / "tasks"
+        before_auto_gen = sorted(p.name for p in queue_dir.glob("auto-gen-*.md")) if queue_dir.exists() else []
+        prior_self_heal_disable = _TEST_DISABLE_SELF_HEAL_TASKS
+        real_audit_lock_active = audit_lock_active
+        _TEST_DISABLE_SELF_HEAL_TASKS = False
+        globals()["audit_lock_active"] = lambda: False
+        try:
+            plain_recovery_result = _queue_manus_recovery_task("manual-manus-recovery", "builder_timeout_after_retry")
+            nested_result = _queue_manus_recovery_task("auto-gen-005-manus-recovery", "builder_timeout_after_retry")
+            auto_gen_result = _queue_manus_recovery_task("auto-gen-005", "builder_timeout_after_retry")
+        finally:
+            _TEST_DISABLE_SELF_HEAL_TASKS = prior_self_heal_disable
+            globals()["audit_lock_active"] = real_audit_lock_active
+        after_auto_gen = sorted(p.name for p in queue_dir.glob("auto-gen-*.md")) if queue_dir.exists() else []
+        check(
+            "_queue_manus_recovery_task skips recursive recovery tasks",
+            plain_recovery_result is None and nested_result is None and auto_gen_result is None and before_auto_gen == after_auto_gen,
+            f"plain={plain_recovery_result!r} nested={nested_result!r} auto_gen={auto_gen_result!r} before={before_auto_gen} after={after_auto_gen}",
         )
 
         current_log_contents = LOG_FILE.read_text() if LOG_FILE.exists() else None
