@@ -201,3 +201,22 @@ def test_structural_review_rejects_when_no_claimed_changed_files_exist(isolated_
     assert verdict == "NEEDS_REWORK"
     assert "None of the listed changed files exist on disk" in fails
     assert any(str(missing_file) in entry for entry in passes)
+
+
+def test_extract_changed_files_strips_trailing_colon():
+    """Regression: dash-prefixed lines like '- /path/file.py: description' must not
+    retain the trailing colon in the parsed path."""
+    content = (
+        "PASS: 1\nSTATUS: DONE\n\n"
+        "CHANGES:\n"
+        "- /home/openclaw/polish_loop/orchestrator.py: added cascade guard\n"
+        "- /home/openclaw/chief_watcher_brain.py — extracted helper\n"
+        "\n"
+        "REASONING:\nWhy.\n"
+    )
+    paths = fallback._extract_changed_files(content)
+    assert "/home/openclaw/polish_loop/orchestrator.py" in paths, f"colon-separated path missing: {paths}"
+    assert "/home/openclaw/chief_watcher_brain.py" in paths, f"em-dash path missing: {paths}"
+    # Must not contain trailing colon
+    for p in paths:
+        assert not p.endswith(":"), f"trailing colon not stripped: {p}"

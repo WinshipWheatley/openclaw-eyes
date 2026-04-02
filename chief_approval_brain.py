@@ -42,7 +42,7 @@ PENDING_FILE    = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md")
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
 POLL_INTERVAL   = 2     # seconds between checks
-TIMEOUT         = 86400 # 24 hours
+TIMEOUT         = 300   # 5 minutes — matches CLAUDE.md L2 tier spec
 _CHIEF_ENV_FILE = Path("/home/openclaw/.chief.env")
 
 
@@ -508,6 +508,7 @@ def request_approval(
                 _append_log(action, requester, "DENIED - HASH MISMATCH",
                             requested_at, elapsed, tier=tier)
                 _clear_pending()
+                send_no_pending_confirmation()
                 return False
 
             _append_log(action, requester, "APPROVED" if approved else "DENIED",
@@ -534,6 +535,7 @@ def request_approval(
     _clear_pending()
     _append_log(action, requester, "TIMED OUT", requested_at, elapsed, tier=tier)
     _send_via_guardian("Approval timed out — denied by default.")
+    send_no_pending_confirmation()
     return False
 
 

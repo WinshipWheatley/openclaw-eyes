@@ -178,6 +178,21 @@ Default policy:
 
 This rule applies across all stacks and implementation surfaces.
 
+### 9. Document Layer Hierarchy
+
+Three layers govern OpenClaw documentation. Higher layers override lower layers on conflict.
+
+| Layer | Purpose | Examples | Change frequency |
+|---|---|---|---|
+| **Runtime law** | Governs agent behavior during execution | `CLAUDE.md`, `STATE_MACHINE.md`, `CORE_ARCHITECTURE_PRINCIPLES.md` | Rarely — only when a principle is ambiguous, two principles conflict, reality disproves a principle, or a missing invariant causes repeat failure |
+| **Session rehydration** | Orients new AI/human sessions | `vault/System/Overview.md`, `ChatGPT Updates.md`, `Capability Ladder.md` | As needed after state changes |
+| **Reference/archive** | Historical or point-in-time records | `Proof of Build.md`, completed task specs, generated diagrams | Append-only or frozen |
+
+Rules:
+- Every new `.md` file that could influence agent behavior must declare its layer in a frontmatter field or header note.
+- A lower-layer document cannot override a higher-layer document. Session-rehydration files that conflict with runtime law are wrong, not authoritative.
+- Runtime-law changes require explicit justification. Process, workflow, and module-specific guidance belongs in session-rehydration or reference docs.
+
 ---
 
 ## Durable Lessons (updated as earned)
@@ -198,6 +213,7 @@ This rule applies across all stacks and implementation surfaces.
 - **Claude `--print` mode with piped stdin blocks all write tools (fixed 2026-03-30).** When claude CLI receives a prompt via stdin pipe in `--print` mode, it enters "don't ask" permission mode — all file-write tools (Edit, Write, Bash) are silently blocked. The builder produces analysis text but writes no files, exiting 0. Fix: always use `--dangerously-skip-permissions` alongside `--print` for any piped/autonomous execution. Both `builder_watcher.sh` and `run_polish_pass.sh` must include this flag.
 - **Builder processes get SIGSTOP from nohup terminals (fixed 2026-03-30).** When `builder_watcher.sh` runs via `nohup &`, child processes (claude) receive SIGSTOP and freeze. `pgrep` still finds them, so `builder_running()` reports them as alive — the orchestrator never times them out. Fix: (a) `setsid` wrapper in builder_watcher creates new session for the child, (b) `builder_running()` reads `/proc/{pid}/status` to detect `T (stopped)` state and treats those PIDs as dead.
 - **Contact-gated behavior must be enforced at the listener boundary, not only inside the brain (fixed 2026-03-31).** If a feature is meant to apply only to designated external contacts, the Telegram listener must admit those senders explicitly. Brain-level contact checks alone are insufficient because the listener may still hard-block every non-owner message, leaving the feature unreachable in production.
+- **VS Code Copilot workspace memory is non-canonical (verified 2026-04-02).** Treat VS Code Copilot workspace memory (under `.vscode-server/data/User/workspaceStorage/.../GitHub.copilot-chat/memory-tool/`) as non-canonical assistant residue; never rely on it, sync it, ingest it into OpenClaw runtime, or treat it as continuity memory. Canonical state lives only in vault, handoff, mac_eyes, polish_loop, and CLAUDE.md.
 
 ---
 

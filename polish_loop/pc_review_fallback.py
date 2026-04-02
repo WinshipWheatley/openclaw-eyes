@@ -121,7 +121,8 @@ def _extract_changed_files(content: str) -> list[str]:
     # Match paths in backticks or after - 
     paths = re.findall(r'`(/[^`]+)`', block)
     # Also match paths after "- " that look like absolute paths
-    paths += re.findall(r'^-\s+(/\S+)', block, re.MULTILINE)
+    # Strip trailing colon that separates path from description ("- /path/file.py: desc")
+    paths += [p.rstrip(':') for p in re.findall(r'^-\s+(/\S+)', block, re.MULTILINE)]
     # Also match "—" separated entries like `/path/to/file` — description
     paths += re.findall(r'`(/[^`]+\.(?:py|sh|md|json|yaml|yml|toml|cfg|conf|txt))`', block)
     # Deduplicate preserving order
