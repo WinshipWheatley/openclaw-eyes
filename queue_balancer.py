@@ -42,6 +42,7 @@ from typing import Optional
 TASK_QUEUE = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
+AUDIT_LOCK = Path("/home/openclaw/polish_loop/.audit_lock")
 SRC_DIR = Path("/home/openclaw")
 TEST_DIR = Path("/home/openclaw/tests")
 LOG_FILE = Path("/mnt/c/OpenClaw/logs/queue_balancer.log")
@@ -834,11 +835,20 @@ def _set_cooldown():
         pass
 
 
+def _audit_lock_active() -> bool:
+    """Hard stop for queue generation during system audit freeze."""
+    return AUDIT_LOCK.exists()
+
+
 def balance_queue(dry_run: bool = True) -> list[TaskCandidate]:
     """Check queue balance and generate filler tasks if needed.
 
     Returns list of tasks that were (or would be) generated.
     """
+    if _audit_lock_active():
+        _log(f"Audit lock active at {AUDIT_LOCK}; queue generation blocked")
+        return []
+
     breakdown = get_queue_breakdown()
     total = sum(len(v) for v in breakdown.values())
     easy_count = len(breakdown["quick"]) + len(breakdown["surgical"])

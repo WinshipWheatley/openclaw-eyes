@@ -61,6 +61,7 @@ MAX_PASSES       = 3     # block if task needs a 4th pass
 # ---------------------------------------------------------------------------
 
 LOOP_DIR     = Path("/home/openclaw/polish_loop")
+AUDIT_LOCK   = LOOP_DIR / ".audit_lock"
 STATUS_FILE  = LOOP_DIR / "status.json"
 CURRENT_DIR  = LOOP_DIR / "current"
 PC_OUTPUT    = CURRENT_DIR / "pc_output.md"
@@ -78,6 +79,14 @@ WATCHER_RUNNER_FAILURE_TOKENS = (
     "command not found",
 )
 TASK_FRONTMATTER_FIELD_RE = re.compile(r"^(title|goal):\s*\S.*$", re.MULTILINE)
+
+# Cassandra extension architecture lock:
+# Future tool/capability additions must be implemented in cassandra_custom_tools.py,
+# not by adding feature logic directly inside cassandra_brain.py.
+_CASSANDRA_TOOL_ARCH_LOCK_MSG = (
+    "cassandra tool/capability tasks must use cassandra_custom_tools.py; "
+    "direct cassandra_brain.py feature additions are forbidden"
+)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -265,7 +274,22 @@ def queued_task_frontmatter_error(task_path: Path) -> str | None:
     missing_fields = [field for field in ("title", "goal") if field not in found_fields]
     if missing_fields:
         return f"missing required frontmatter field(s): {', '.join(missing_fields)}"
+
+    lower = content.lower()
+    mentions_cassandra_feature_work = (
+        "cassandra" in lower and any(k in lower for k in ("tool", "tools", "capability", "capabilities", "feature"))
+    )
+    attempts_direct_brain_edit = "cassandra_brain.py" in lower
+    allows_custom_tools_path = "cassandra_custom_tools.py" in lower
+    if mentions_cassandra_feature_work and attempts_direct_brain_edit and not allows_custom_tools_path:
+        return _CASSANDRA_TOOL_ARCH_LOCK_MSG
+
     return None
+
+
+def audit_lock_active() -> bool:
+    """True when queue-generation must be frozen for audit mode."""
+    return AUDIT_LOCK.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -714,6 +738,9 @@ def _latest_error_excerpt(max_lines: int = 6) -> str:
 def _queue_manus_recovery_task(failed_task: str, reason: str) -> str | None:
     """Queue a bounded Manus/doc-search recovery task and return task name."""
     if _TEST_DISABLE_SELF_HEAL_TASKS:
+        return None
+    if audit_lock_active():
+        log("STATE", "Audit lock active — refusing to queue recovery task")
         return None
     try:
         queue_dir = LOOP_DIR / "tasks"

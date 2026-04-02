@@ -1,5 +1,7 @@
 # OpenClaw — Claude Code Operating Rules
 
+CRITICAL: All development, tool selection, and architectural proposals MUST strictly comply with the mandates in CORE_ARCHITECTURE_PRINCIPLES.md. Do not propose or implement "system-to-manage-the-system" abstractions or third-party memory layers.
+
 ## Approval Gate (REQUIRED)
 
 Before performing any of the following actions, you MUST call the approval brain and check the exit code. Do not proceed if exit code is 1.
@@ -165,10 +167,22 @@ PC-side implementation of the above without Mac review is not permitted.
 
 If a PC worker is blocked, execution stops. A workaround proposal may be drafted and sent to Mac military (Mac review layer). It must not go directly to Winship without Mac review. A blocked task may not resume through self-approval, model-only reinterpretation, or informal workaround behavior.
 
+### 8. Core Architecture Principles Compliance
+
+Before proposing any new tool, architecture, dependency, integration layer, plugin, or major refactor, perform a silent compliance check against `/home/openclaw/CORE_ARCHITECTURE_PRINCIPLES.md`.
+
+Default policy:
+- If the proposal violates those principles, do not recommend it.
+- Prefer existing stack-native capabilities before adding anything new.
+- Any exception must include explicit rationale, owner, rollback path, and decommission criteria.
+
+This rule applies across all stacks and implementation surfaces.
+
 ---
 
 ## Durable Lessons (updated as earned)
 
+- **Cassandra capability dashboards must read live module state, not source-text booleans, and dashboard refresh is a separate process (fixed 2026-04-01).** `dashboard_gen.py` must import `cassandra_capability` and evaluate the flags at runtime instead of scraping literal `= True/False` assignments from source. Also, `start_chief.sh` / `init_openclaw_master.sh` do not guarantee a fresh `dashboard_gen.py`; if `mac_eyes/Cassandra.md` disagrees with runtime, restart the dashboard generator separately before debugging the capability layer further. For background processes that may miss inherited env, capability checks like `PII_VAULT_CONNECTED` should tolerate `.chief.env` key-presence detection without exposing secret values.
 - **Planner launch failures must block on watcher evidence, not age into generic timeouts (fixed 2026-03-30).** In `polish_loop/orchestrator.py`, `handle_mac_turn()` should inspect `mac_eyes/sync/watcher.log` for runner-start failures like "No planner runner found" or shell `command not found` after the current `mac_turn` begins. When present, block with a specific `planner_runner_missing` reason immediately instead of waiting 10 minutes and misclassifying it as `planner_timeout_no_review`.
 - **True walk-away autonomy needs a mode toggle plus hard metrics (implemented 2026-03-30).** Added `autonomy_mode.py` (`--enable-focus-10h`) and `autonomy_qualification.py` to enforce explicit unattended boundaries and measure 24h trust criteria. In focus mode, routine local/reversible operations can run without extra pings, while Guardian remains mandatory for external irreversible actions, SSN/identity-sensitive operations, scope expansion, and broad drift-containment authority requests.
 - **Builder-timeout parking must use runner-aware liveness and reset relaunch guards (fixed 2026-03-30).** In `polish_loop/orchestrator.py`, `builder_running()` must detect watcher-launched builder commands (not only `run_polish_pass.sh`), and `--resume` must reset `relaunch_attempted=false`. Otherwise the loop can falsely mark `builder_timeout` while Builder is actually active, or re-park immediately after resume without attempting recovery.
