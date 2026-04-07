@@ -26,16 +26,32 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call, nemotron_call, claude_json, OLLAMA_MODEL, OLLAMA_MODEL_DEEP
+from chief_llm import ollama_call, nemotron_call, claude_json
 from chief_output_utils import tts_clean
 from cassandra_capability import capability_context, gate_reply
-from capability_registry import registry_context_for_query
+from cassandra_email_config import get_review_inbox
+from finance_state import (
+    build_finance_snapshot,
+    detect_finance_status_intent,
+    finance_entity_terms,
+    format_finance_context,
+    get_finance_payment_answer,
+    get_finance_status_answer,
+)
+from capability_registry import get_actor, registry_context_for_query
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
     detokenize_for_dashboard,
 )
+
+
+# ── Broker call import for test patching ──
+try:
+    from google_access_broker import call as broker_call
+except ImportError:
+    broker_call = None
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -48,17 +64,57 @@ _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _POLISH_ARCHIVE   = Path("/home/openclaw/polish_loop/archive")
 _POLISH_STATUS    = Path("/home/openclaw/polish_loop/status.json")
 _POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
+_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
+_OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")
+_EMAIL_THREAD_ANALYSIS_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_analysis.jsonl")
+_EMAIL_THREAD_STATE = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_state.json")
+_REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
+_CASSANDRA_OLLAMA_FAST = "gemma3:12b"
+_CASSANDRA_OLLAMA_DEEP = "gemma3:27b-it-qat"
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
 _OPS_NOTES   = _VAULT_SYS / "Ops Notes.md"
 _OPS_EMAIL   = _VAULT_SYS / "Ops Email Log.md"
+_OPS_WORKSTREAMS = _VAULT_SYS / "Ops Workstreams.md"
+
+# Canonical send-state strings (spec: SEND-STATE TRUTH POLICY)
+_SS_DRAFT             = "draft"
+_SS_QUEUED            = "queued"
+_SS_AWAITING_APPROVAL = "awaiting_approval"
+_SS_SEND_ATTEMPTED    = "send_attempted"
+_SS_SENT_CONFIRMED    = "sent_confirmed"
+_SS_SEND_FAILED       = "send_failed"
+_SS_BLOCKED           = "blocked"
+_SS_PARTIAL           = "partial"
 
 _PARTIAL_FOLLOWUP_NOTE = (
     "I can't fully answer the rest right now, but I'm working on getting "
     "that capability. I'll follow up when I can."
 )
+
+_EMAIL_REVIEW_UNCERTAINTY_PREFIX = "I don't want to overstate what I can confirm."
+_EMAIL_THREAD_FOLLOWUP_DAYS = 4
+
+_EMAIL_REVIEW_PAYMENT_ASSERTIONS = (
+    r"\b(payment|deposit|invoice|transfer)\b.*\b(came through|cleared|arrived|landed|posted|was received|has been received)\b",
+    r"\b(i|we)\s+(confirmed|verified)\b.*\b(payment|deposit|invoice|transfer)\b",
+)
+
+_EMAIL_REVIEW_CALENDAR_ASSERTIONS = (
+    r"\b(on|in)\s+(your|the)\s+calendar\b",
+    r"\b(you('?re| are)|we('?re| are)|it('?s| is))\s+(scheduled|booked|set)\b",
+    r"\bcalendar\s+(is|looks)\s+clear\b",
+)
+
+_EMAIL_REVIEW_CAPABILITY_ASSERTIONS = {
+    "email_send": (
+        r"\b(send|sent|sending)\b.*\b(directly|from here|on my end)\b",
+        r"\bi\s+(can|will|sent|have sent|just sent)\b.*\b(email|message|contract|invoice|note)\b",
+    ),
+}
 
 _HEDGING_PATTERNS = (
     r"\bi can'?t\b",
@@ -156,6 +212,7 @@ _CAPABILITY_GAP_SPECS = {
         ],
         "success": "Cassandra can send the requested email workflow for the triggering scenario.",
         "manual_required": True,
+        "suppress_when_flag": "EMAIL_DRAFT_CONNECTED",
     },
     "calendar_access": {
         "flag": "CALENDAR_CONNECTED",
@@ -196,7 +253,7 @@ _CAPABILITY_GAP_SPECS = {
 def _propose_external_action(
     action_type: str,
     payload: dict,
-    ttl_seconds: int = 3600,
+    ttl_seconds: int = 86400,
 ) -> tuple[bool, str | None]:
     """
     Wrap hitl_pending_store.propose_action for Cassandra.
@@ -425,6 +482,580 @@ def _log_conversation(user_text: str, replies: list[str], route: str = "llm") ->
             print(f"[cassandra_convo] error task creation failed: {e}", flush=True)
 
 
+def _log_correspondence_state(
+    recipient: str,
+    state: str,
+    detail: str = "",
+    route: str = "",
+    metadata: dict | None = None,
+) -> None:
+    """Append one send-state transition to the correspondence JSONL log. Fails open."""
+    entry: dict = {
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "recipient": recipient,
+        "state": state,
+    }
+    if detail:
+        entry["detail"] = detail
+    if route:
+        entry["route"] = route
+    if metadata:
+        for key, value in metadata.items():
+            if value not in (None, "", []):
+                entry[key] = value
+    try:
+        _CORRESPONDENCE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _CORRESPONDENCE_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] correspondence log write failed: {exc}", flush=True)
+
+
+def _bridge_preview(text: str, limit: int = 140) -> str:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 1].rstrip() + "…"
+
+
+def _email_bridge_message_seen(message_id: str) -> bool:
+    if not message_id or not _EMAIL_BRIDGE_LOG.exists():
+        return False
+    try:
+        for line in _EMAIL_BRIDGE_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("message_id") == message_id:
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _log_email_bridge_event(
+    *,
+    message_id: str,
+    thread_id: str,
+    nickname: str,
+    contact_name: str,
+    sender_email: str,
+    subject: str,
+    preview: str,
+    lane: str,
+    status: str,
+    unread: bool,
+    dedupe: bool = True,
+) -> None:
+    if dedupe and _email_bridge_message_seen(message_id):
+        return
+    entry = {
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "message_id": message_id,
+        "thread_id": thread_id,
+        "nickname": nickname,
+        "contact_name": contact_name,
+        "sender_email": sender_email,
+        "subject": _bridge_preview(subject, limit=120),
+        "preview": _bridge_preview(preview, limit=160),
+        "lane": lane,
+        "status": status,
+        "unread": bool(unread),
+        "route": "inner_circle_email_reply",
+    }
+    try:
+        _EMAIL_BRIDGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _EMAIL_BRIDGE_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] email bridge log write failed: {exc}", flush=True)
+
+
+def _load_jsonl_records(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    records: list[dict] = []
+    try:
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    except Exception as exc:
+        print(f"[cassandra] jsonl read failed for {path}: {exc}", flush=True)
+    return records
+
+
+def _parse_event_datetime(raw: object, fallback: datetime | None = None) -> datetime:
+    if isinstance(raw, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(raw))
+        except Exception:
+            pass
+
+    raw_text = str(raw or "").strip()
+    if raw_text.isdigit():
+        try:
+            ts = int(raw_text)
+            if ts > 10_000_000_000:
+                return datetime.fromtimestamp(ts / 1000.0)
+            return datetime.fromtimestamp(ts)
+        except Exception:
+            pass
+
+    if raw_text:
+        try:
+            from email.utils import parsedate_to_datetime
+
+            dt = parsedate_to_datetime(raw_text)
+            if dt.tzinfo is not None:
+                return dt.astimezone().replace(tzinfo=None)
+            return dt.replace(tzinfo=None)
+        except Exception:
+            pass
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(raw_text[:19], fmt)
+            except Exception:
+                continue
+
+    return fallback or datetime.now()
+
+
+def _normalize_email_subject(subject: str) -> str:
+    value = str(subject or "").strip()
+    while True:
+        lowered = value.lower()
+        if lowered.startswith(("re:", "fw:", "fwd:")):
+            value = value.split(":", 1)[1].strip()
+            continue
+        return value
+
+
+_EMAIL_THREAD_STOPWORDS = {
+    "a", "an", "and", "are", "be", "did", "do", "does", "for", "from", "get",
+    "had", "has", "have", "how", "i", "if", "in", "is", "it", "me", "my",
+    "of", "on", "or", "our", "that", "the", "their", "there", "this", "to",
+    "was", "we", "what", "when", "where", "who", "will", "with", "yet", "you",
+    "your",
+}
+
+_EMAIL_THREAD_REQUEST_PREFIXES = (
+    "can you",
+    "could you",
+    "would you",
+    "will you",
+    "did ",
+    "do ",
+    "does ",
+    "how ",
+    "what ",
+    "when ",
+    "where ",
+    "who ",
+    "why ",
+    "is ",
+    "are ",
+    "should ",
+    "let me know",
+    "tell me",
+    "check whether",
+    "check if",
+)
+
+
+def _significant_terms(text: str) -> set[str]:
+    tokens = re.findall(r"[a-z0-9']+", str(text or "").lower())
+    return {
+        token
+        for token in tokens
+        if len(token) > 2 and token not in _EMAIL_THREAD_STOPWORDS
+    }
+
+
+def _question_key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(text or "").lower()).strip()
+
+
+def _extract_question_candidates(text: str) -> list[str]:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not cleaned:
+        return []
+
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def _push(candidate: str) -> None:
+        value = candidate.strip(" -\t")
+        if not value or not any(ch.isalpha() for ch in value):
+            return
+        key = _question_key(value)
+        if not key or key in seen:
+            return
+        seen.add(key)
+        candidates.append(value)
+
+    for sentence in re.split(r"(?<=[?])\s+", cleaned):
+        sentence = sentence.strip()
+        if "?" not in sentence:
+            continue
+        for piece in re.findall(r"[^?]{3,240}\?", sentence):
+            _push(piece)
+
+    if candidates:
+        return candidates[:5]
+
+    for sentence in re.split(r"(?<=[.!])\s+|\n+", cleaned):
+        sentence = sentence.strip(" -\t")
+        lowered = sentence.lower()
+        if any(lowered.startswith(prefix) for prefix in _EMAIL_THREAD_REQUEST_PREFIXES):
+            _push(sentence.rstrip(".!"))
+
+    return candidates[:5]
+
+
+def _extract_subject_from_detail(detail: str) -> str:
+    match = re.search(r"subject=([^;]+)", str(detail or ""))
+    return match.group(1).strip() if match else ""
+
+
+def _extract_email_from_detail(detail: str) -> str:
+    match = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", str(detail or ""))
+    return match.group(1).strip().lower() if match else ""
+
+
+def _load_outbound_email_records() -> list[dict]:
+    records: list[dict] = []
+    for path, source in ((_CORRESPONDENCE_LOG, "correspondence"), (_OUTREACH_LOG, "outreach")):
+        for entry in _load_jsonl_records(path):
+            state = str(entry.get("state", entry.get("status", ""))).strip().lower()
+            if state not in {
+                _SS_DRAFT,
+                _SS_QUEUED,
+                _SS_AWAITING_APPROVAL,
+                _SS_SEND_ATTEMPTED,
+                _SS_SENT_CONFIRMED,
+            }:
+                continue
+            subject = str(entry.get("subject") or _extract_subject_from_detail(entry.get("detail", ""))).strip()
+            recipient_email = str(entry.get("recipient_email") or _extract_email_from_detail(entry.get("detail", ""))).strip().lower()
+            records.append({
+                "source": source,
+                "ts": str(entry.get("ts", "")),
+                "state": state,
+                "recipient": str(entry.get("recipient", "")),
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "subject_norm": _normalize_email_subject(subject).lower(),
+                "thread_id": str(entry.get("thread_id", "")),
+                "message_id": str(entry.get("message_id", "")),
+                "draft_id": str(entry.get("draft_id", "")),
+                "mailbox_identity": str(entry.get("mailbox_identity", "primary") or "primary"),
+                "route": str(entry.get("route", "")),
+            })
+    records.sort(key=lambda row: row.get("ts", ""), reverse=True)
+    return records
+
+
+def _match_outbound_email_record(message: dict, sender_email: str) -> dict | None:
+    subject_norm = _normalize_email_subject(message.get("subject", "")).lower()
+    thread_id = str(message.get("thread_id", "")).strip()
+    for record in _load_outbound_email_records():
+        if thread_id and record.get("thread_id") and record["thread_id"] == thread_id:
+            return {**record, "matched_via": "thread_id"}
+    for record in _load_outbound_email_records():
+        if not record.get("recipient_email"):
+            continue
+        if record["recipient_email"] != str(sender_email or "").strip().lower():
+            continue
+        if record.get("subject_norm") == subject_norm:
+            return {**record, "matched_via": "subject+recipient"}
+    return None
+
+
+def _fetch_email_thread_messages(message: dict) -> tuple[list[dict], str]:
+    try:
+        call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
+        result = call_fn(
+            "cassandra",
+            "google.gmail.read.body",
+            {
+                "thread_id": str(message.get("thread_id", "")),
+                "message_id": str(message.get("message_id", "")),
+                "max_messages": 8,
+            },
+        )
+    except Exception as exc:
+        print(f"[cassandra] gmail thread body fetch failed: {exc}", flush=True)
+        result = {"ok": False, "data": None, "error": str(exc)}
+
+    if result.get("ok") and isinstance(result.get("data"), dict):
+        messages = list((result["data"] or {}).get("messages", []) or [])
+        if messages:
+            return messages, "gmail.read.body"
+
+    fallback = dict(message)
+    fallback.setdefault("body_text", "")
+    fallback.setdefault("internal_date", "")
+    return [fallback], "gmail.read.metadata"
+
+
+def _message_evidence_rows(thread_messages: list[dict], sender_email: str) -> list[dict]:
+    rows: list[dict] = []
+    target_email = str(sender_email or "").strip().lower()
+    for message in sorted(thread_messages, key=lambda row: _parse_event_datetime(row.get("internal_date") or row.get("date_raw"))):
+        rows.append({
+            "message_id": str(message.get("message_id", "")),
+            "from_name": str(message.get("from_name", "")),
+            "from_email": str(message.get("from_email", "")).strip().lower(),
+            "direction": "inbound" if str(message.get("from_email", "")).strip().lower() == target_email else "outbound_or_other",
+            "date_raw": str(message.get("date_raw", "")),
+            "body_preview": _bridge_preview(message.get("body_text") or message.get("snippet", ""), limit=220),
+        })
+    return rows
+
+
+def _bundle_answered_in_thread(bundle: dict, thread_messages: list[dict], sender_email: str) -> bool:
+    target_email = str(sender_email or "").strip().lower()
+    question_terms = _significant_terms(bundle.get("question", ""))
+    asked_after = _parse_event_datetime(bundle.get("last_asked_at"))
+    if not question_terms:
+        return False
+
+    for message in thread_messages:
+        from_email = str(message.get("from_email", "")).strip().lower()
+        if from_email == target_email:
+            continue
+        message_dt = _parse_event_datetime(message.get("internal_date") or message.get("date_raw"))
+        if message_dt <= asked_after:
+            continue
+        message_text = " ".join(
+            part for part in (
+                message.get("subject", ""),
+                message.get("body_text", ""),
+                message.get("snippet", ""),
+            )
+            if isinstance(part, str) and part.strip()
+        )
+        overlap = question_terms & _significant_terms(message_text)
+        if len(overlap) >= min(2, len(question_terms)):
+            return True
+    return False
+
+
+def _detect_request_capability_gaps(user_text: str) -> list[dict]:
+    query = user_text.lower()
+    gaps: list[dict] = []
+    for capability, spec in _CAPABILITY_GAP_SPECS.items():
+        suppress_flag = spec.get("suppress_when_flag")
+        if suppress_flag and _capability_flag_value(suppress_flag) is True:
+            continue
+        if not any(keyword in query for keyword in spec["keywords"]):
+            continue
+        flag_name = spec.get("flag")
+        if not flag_name or _capability_flag_value(flag_name) is not False:
+            continue
+        gaps.append({
+            "capability": capability,
+            "goal": spec["goal"],
+            "scope": list(spec["scope"]),
+            "success": spec["success"],
+            "manual_required": bool(spec.get("manual_required")),
+            "known_missing": True,
+            "hedging_detected": False,
+        })
+    return gaps
+
+
+def _queue_inbound_email_gap_task(
+    capability_gap: dict,
+    *,
+    question_text: str,
+    contact_name: str,
+    sender_email: str,
+    subject: str,
+    thread_id: str,
+    message_ids: list[str],
+) -> str | None:
+    extra_scope = [
+        f"Inbound email contact: {contact_name} <{sender_email}>",
+        f"Inbound email subject: {subject or '(no subject)'}",
+        f"Inbound email thread id: {thread_id}",
+        f"Inbound message ids: {', '.join(mid for mid in message_ids if mid) or 'unknown'}",
+        f"Grounded unanswered question: {question_text}",
+        "Keep the task tied back to the email thread evidence so later review can confirm the original question is solved.",
+    ]
+    return _create_upgrade_task(
+        capability_gap,
+        question_text,
+        extra_scope_lines=extra_scope,
+        force_queue_manual=bool(capability_gap.get("manual_required")),
+    )
+
+
+def _predict_likely_next_questions(question_bundles: list[dict]) -> list[dict]:
+    predictions: list[dict] = []
+    for bundle in question_bundles:
+        lowered = bundle.get("question", "").lower()
+        if not any(keyword in lowered for keyword in ("payment", "deposit", "invoice")):
+            continue
+        finance_reply = get_finance_status_answer(bundle["question"])
+        if not finance_reply or "Next:" not in finance_reply:
+            continue
+        next_step = finance_reply.split("Next:", 1)[1].strip()
+        if not next_step:
+            continue
+        predictions.append({
+            "question": "What needs to happen next?",
+            "because": next_step,
+            "bundle_id": bundle.get("bundle_id", ""),
+        })
+        break
+    return predictions
+
+
+def _load_email_thread_states() -> dict:
+    try:
+        return load_json(_EMAIL_THREAD_STATE, {})
+    except Exception:
+        return {}
+
+
+def _save_email_thread_states(state: dict) -> None:
+    try:
+        save_json(_EMAIL_THREAD_STATE, state)
+    except Exception as exc:
+        print(f"[cassandra] email thread state save failed: {exc}", flush=True)
+
+
+def _build_thread_followup_suggestion(contact_name: str, unresolved_bundles: list[dict]) -> str:
+    if not unresolved_bundles:
+        return ""
+    first = unresolved_bundles[0]
+    if first.get("status") == "needs_winship_review":
+        return (
+            f"If you follow up with {contact_name}, keep it short: "
+            "\"I have the question and I’m checking with Winship before I answer.\""
+        )
+    if first.get("status") == "needs_capability":
+        return (
+            f"If you follow up with {contact_name}, acknowledge the question and avoid bluffing "
+            "until the missing capability is built."
+        )
+    return (
+        f"If you follow up with {contact_name}, answer the open question directly and keep it to one clean reply."
+    )
+
+
+def _build_parked_thread_suggestions(unresolved_bundles: list[dict], predictions: list[dict]) -> list[str]:
+    suggestions: list[str] = []
+    lane_blocked = [bundle for bundle in unresolved_bundles if bundle.get("status") == "needs_winship_review"]
+    capability_blocked = [bundle for bundle in unresolved_bundles if bundle.get("status") == "needs_capability"]
+    if lane_blocked:
+        suggestions.append("Decide what Cassandra is cleared to say before reopening the thread.")
+    if capability_blocked:
+        capabilities = ", ".join(sorted({gap["capability"] for bundle in capability_blocked for gap in bundle.get("capability_gaps", [])}))
+        if capabilities:
+            suggestions.append(f"Use the queued capability work before answering again: {capabilities}.")
+    if predictions:
+        suggestions.append(f"If you reply manually, pre-empt the likely next ask: {predictions[0]['question']}")
+    if not suggestions:
+        suggestions.append("Reply manually only if the relationship context now warrants reopening the thread.")
+    return suggestions[:3]
+
+
+def _advance_email_thread_cadence(
+    *,
+    thread_id: str,
+    contact_name: str,
+    unresolved_bundles: list[dict],
+    predictions: list[dict],
+    now: datetime | None = None,
+) -> dict:
+    now_dt = now or datetime.now()
+    states = _load_email_thread_states()
+    current = dict(states.get(thread_id, {}))
+
+    if not unresolved_bundles:
+        states[thread_id] = {
+            "status": "resolved",
+            "last_evaluated_at": now_dt.isoformat(timespec="seconds"),
+        }
+        _save_email_thread_states(states)
+        return {
+            "status": "resolved",
+            "user_update": "This thread no longer has an open email question bundle.",
+            "suggested_followup": "",
+            "next_followup_at": "",
+            "parked_suggestions": [],
+        }
+
+    latest_asked_at = max(_parse_event_datetime(bundle.get("last_asked_at"), now_dt) for bundle in unresolved_bundles)
+    latest_asked_iso = latest_asked_at.isoformat(timespec="seconds")
+    previous_last_asked = str(current.get("last_asked_at", ""))
+    followup_attempts = int(current.get("followup_attempts", 0) or 0)
+
+    if previous_last_asked != latest_asked_iso:
+        followup_attempts = 0
+        current = {}
+
+    next_followup_at = _parse_event_datetime(
+        current.get("next_followup_at"),
+        latest_asked_at + timedelta(days=_EMAIL_THREAD_FOLLOWUP_DAYS),
+    )
+
+    status = "waiting"
+    suggested_followup = ""
+    parked_suggestions: list[str] = []
+    if followup_attempts >= 1 and now_dt >= next_followup_at:
+        status = "parked"
+        parked_suggestions = _build_parked_thread_suggestions(unresolved_bundles, predictions)
+        user_update = (
+            "I parked this thread after one bounded follow-up window. "
+            + " ".join(parked_suggestions)
+        )
+    elif now_dt >= next_followup_at:
+        status = "followup_due"
+        followup_attempts = 1
+        suggested_followup = _build_thread_followup_suggestion(contact_name, unresolved_bundles)
+        next_followup_at = now_dt + timedelta(days=_EMAIL_THREAD_FOLLOWUP_DAYS)
+        user_update = (
+            f"This has been unresolved since {latest_asked_at.strftime('%Y-%m-%d')}. "
+            f"One short follow-up is reasonable now. {suggested_followup}"
+        )
+    else:
+        user_update = (
+            f"I'll leave this thread alone for now and revisit after "
+            f"{next_followup_at.strftime('%Y-%m-%d')} if it still needs an answer."
+        )
+
+    states[thread_id] = {
+        "status": status,
+        "last_asked_at": latest_asked_iso,
+        "last_evaluated_at": now_dt.isoformat(timespec="seconds"),
+        "followup_attempts": followup_attempts,
+        "next_followup_at": next_followup_at.isoformat(timespec="seconds"),
+        "suggested_followup": suggested_followup,
+        "parked_suggestions": parked_suggestions,
+    }
+    _save_email_thread_states(states)
+    return {
+        "status": status,
+        "user_update": user_update,
+        "suggested_followup": suggested_followup,
+        "next_followup_at": next_followup_at.isoformat(timespec="seconds"),
+        "parked_suggestions": parked_suggestions,
+    }
+
+
+def _log_email_thread_analysis(entry: dict) -> None:
+    try:
+        _EMAIL_THREAD_ANALYSIS_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _EMAIL_THREAD_ANALYSIS_LOG.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] email thread analysis log write failed: {exc}", flush=True)
+
+
 def _queue_error_debug_task(user_text: str, replies: list[str]) -> None:
     """Create a debug task in the polish loop queue when Cassandra hard-errors."""
     _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
@@ -567,8 +1198,133 @@ def _tail_md(path: Path, n: int = 6) -> list[str]:
     if not path.exists():
         return []
     lines = path.read_text(encoding="utf-8").splitlines()
+    skip_prefixes = ("type:", "last_updated:", "updated:")
     return [l.strip() for l in lines
-            if l.strip() and not l.startswith("#") and not l.startswith("---")][-n:]
+            if l.strip()
+            and not l.startswith("#")
+            and not l.startswith("---")
+            and not any(l.strip().lower().startswith(prefix) for prefix in skip_prefixes)][-n:]
+
+
+_HISTORICAL_LOG_TS_RE = re.compile(r"^\s*[-*]?\s*\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s*(.*)$")
+
+
+def _sanitize_historical_log_line(line: str) -> str | None:
+    cleaned = line.strip()
+    ts_match = _HISTORICAL_LOG_TS_RE.match(cleaned)
+    if ts_match:
+        cleaned = f"[{ts_match.group(1)}] {ts_match.group(2).strip()}"
+    replacements = {
+        " tomorrow ": " the next day ",
+        " today ": " that day ",
+        " yesterday ": " the previous day ",
+        " tonight ": " that night ",
+    }
+    padded = f" {cleaned} "
+    for old, new in replacements.items():
+        padded = padded.replace(old, new)
+    return " ".join(padded.strip().split())
+
+
+def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) -> list[str]:
+    """Last n non-header markdown log lines, optionally filtered by age and with
+    stale relative-day words normalized so raw history does not masquerade as live timing.
+    """
+    raw_lines = _tail_md(path, n=500)
+    kept: list[str] = []
+    now = datetime.now()
+    for line in raw_lines:
+        ts_match = _HISTORICAL_LOG_TS_RE.match(line)
+        if ts_match and max_age_days is not None:
+            try:
+                stamp = datetime.strptime(ts_match.group(1), "%Y-%m-%d %H:%M:%S")
+                if (now - stamp).days > max_age_days:
+                    continue
+            except ValueError:
+                pass
+        cleaned = _sanitize_historical_log_line(line)
+        if cleaned:
+            kept.append(cleaned)
+    return kept[-n:]
+
+
+def _load_reality_notes() -> dict:
+    data = load_json(_REALITY_NOTES, {})
+    return data if isinstance(data, dict) else {}
+
+
+def _find_reality_entry(query: str) -> tuple[str, dict] | None:
+    q = (query or "").lower()
+    notes = _load_reality_notes()
+    for key, raw in notes.items():
+        if not isinstance(raw, dict):
+            continue
+        aliases = [key]
+        aliases.extend(a for a in raw.get("aliases", []) if isinstance(a, str))
+        if any(alias.lower() in q for alias in aliases):
+            return key, raw
+    return None
+
+
+def _reality_entity_terms(query: str) -> tuple[str, ...]:
+    finance_terms = finance_entity_terms(query)
+    found = _find_reality_entry(query)
+    if found is None:
+        return finance_terms
+    key, entry = found
+    aliases = [key]
+    aliases.extend(a for a in entry.get("aliases", []) if isinstance(a, str))
+    combined = list(finance_terms)
+    combined.extend(a.lower() for a in aliases if isinstance(a, str) and a.strip())
+    return tuple(dict.fromkeys(combined))
+
+
+def _format_reality_context(query: str) -> str:
+    found = _find_reality_entry(query)
+    if found is None:
+        return ""
+    _, entry = found
+    label = str(entry.get("label") or "Known reality")
+    facts = [fact for fact in entry.get("facts", []) if isinstance(fact, str) and fact.strip()]
+    if not facts:
+        return ""
+    lines = [f"[CANONICAL REALITY — {label}]"]
+    summary = str(entry.get("status_summary") or "").strip()
+    if summary:
+        lines.append(f"Status summary: {summary}")
+    lines.extend(f"  {fact}" for fact in facts)
+    return "\n".join(lines)
+
+
+def _build_reality_snapshot() -> str:
+    """Compact always-on canonical reality summary for prompts and briefings."""
+    notes = _load_reality_notes()
+    lines: list[str] = []
+    for key, raw in notes.items():
+        if not isinstance(raw, dict):
+            continue
+        summary = str(raw.get("status_summary") or "").strip()
+        if not summary:
+            continue
+        label = str(raw.get("label") or key).strip()
+        if not label:
+            continue
+        lines.append(f"  {label}: {summary}")
+    if not lines:
+        return ""
+    return "[CANONICAL REALITY SNAPSHOT]\n" + "\n".join(lines)
+
+
+def _known_payment_status_reply(query: str) -> str | None:
+    finance_reply = get_finance_payment_answer(query)
+    if finance_reply is not None:
+        return finance_reply
+    found = _find_reality_entry(query)
+    if found is None:
+        return None
+    _, entry = found
+    reply = str(entry.get("payment_answer") or "").strip()
+    return reply or None
 
 
 def _time_label() -> str:
@@ -583,14 +1339,48 @@ def _time_label() -> str:
     return "late night"
 
 
+def _build_temporal_anchor(now: datetime) -> str:
+    local_now = now.astimezone()
+    tz_label = local_now.tzname() or "local"
+    yesterday = local_now.date() - timedelta(days=1)
+    today = local_now.date()
+    tomorrow = today + timedelta(days=1)
+    return (
+        f"Time: {_time_label()} ({local_now.strftime('%Y-%m-%d %H:%M')}, {tz_label})\n"
+        "Relative date anchors: "
+        f"yesterday is {yesterday.strftime('%Y-%m-%d')} ({yesterday.strftime('%A')}); "
+        f"today is {today.strftime('%Y-%m-%d')} ({today.strftime('%A')}); "
+        f"tomorrow is {tomorrow.strftime('%Y-%m-%d')} ({tomorrow.strftime('%A')})"
+    )
+
+
+def _build_context_invariants() -> str:
+    return (
+        "Context invariants: interpret relative day words against the date anchors above. "
+        "Use source priority in this order: live connector data, finance state, canonical reality, current-state ops files, then historical logs."
+    )
+
+
 def build_context_snapshot(state: dict | None = None) -> str:
     if state is None:
         state = load_state()
     parts = []
+    now = datetime.now()
 
-    parts.append(
-        f"Time: {_time_label()} ({datetime.now().strftime('%H:%M, %A %B %d')})"
-    )
+    parts.append(_build_temporal_anchor(now))
+    parts.append(_build_context_invariants())
+
+    finance_snapshot = build_finance_snapshot(limit=3)
+    if finance_snapshot:
+        parts.append(finance_snapshot)
+
+    reality_snapshot = _build_reality_snapshot()
+    if reality_snapshot:
+        parts.append(reality_snapshot)
+
+    workstreams = _tail_md(_OPS_WORKSTREAMS, 8)
+    if workstreams:
+        parts.append("Active workstreams:\n" + "\n".join(f"  {l}" for l in workstreams))
 
     cues = state.get("human_cues", [])[-3:]
     if cues:
@@ -601,11 +1391,11 @@ def build_context_snapshot(state: dict | None = None) -> str:
     if is_social_mode():
         parts.append("Social mode: ACTIVE")
 
-    actions = _tail_md(_OPS_ACTIONS, 6)
+    actions = _tail_md_recent(_OPS_ACTIONS, 6, max_age_days=3)
     if actions:
         parts.append("Pending actions:\n" + "\n".join(f"  {l}" for l in actions))
 
-    payments = _tail_md(_OPS_PAYMENT, 4)
+    payments = _tail_md_recent(_OPS_PAYMENT, 4, max_age_days=7)
     if payments:
         parts.append("Payment follow-ups:\n" + "\n".join(f"  {l}" for l in payments))
 
@@ -635,7 +1425,9 @@ def build_context_snapshot(state: dict | None = None) -> str:
                 _rem_h = int(_total_h % 24)
                 _auth = _gate.get("authorized_to_pay", False)
                 _cancel = _gate.get("cancel_required", False)
-                if _cancel:
+                if _total_h < 0:
+                    _sentry = "SENTRY: target timestamp passed — review gate file"
+                elif _cancel:
                     _sentry = f"SENTRY: cancel required — T-minus {_h}h {_m}m"
                 elif _total_h < 48:
                     _sentry = f"SENTRY: T-minus {_h}h {_m}m — monitor"
@@ -655,8 +1447,6 @@ def build_context_snapshot(state: dict | None = None) -> str:
             _items = [f"${e['amount']} from {e.get('description', e.get('category', '?'))}"
                       for e in _entries[:3]]
             parts.append("Recent income (48h): " + ", ".join(_items))
-        else:
-            parts.append("No income logged in last 48 hours.")
     except Exception:
         pass
 
@@ -874,7 +1664,7 @@ EMAIL SEND — email_send is CONNECTED:
   If the user asks to send an email but hasn't provided the full structure, ask for the missing parts by name.
   Do NOT say "I'll send that for you" or imply sending is happening unless the system is actually routing it.
   Do NOT promise to email someone as a side effect of another request (calendar, follow-up, reminder, etc.) — that is a future_action.
-  Approval is required for every send — it goes through Guardian. A send may take up to 5 minutes to confirm.
+  Approval is required for every send — it goes through Guardian. A send may remain pending for up to 24 hours before timing out.
 
 TONE: Grounded and direct. Not apologetic. Name the limit once, then pivot to what IS possible.
 
@@ -1000,6 +1790,7 @@ _CALENDAR_QUERY_WORDS = (
     # natural variants that were missing
     "do i have anything", "any meetings", "any appointments",
     "what time", "when is", "what's next",
+    "what do you show for work on",
 )
 
 _CALENDAR_CREATE_WORDS = (
@@ -1167,11 +1958,35 @@ _BODY_RE    = re.compile(r"body:\s*(.+)$", re.IGNORECASE | re.DOTALL)
 
 def _detect_send_email_intent(text: str) -> bool:
     """True if the user's message is an email-send request."""
-    from cassandra_capability import EMAIL_SEND_CONNECTED
-    if not EMAIL_SEND_CONNECTED:
+    from cassandra_capability import EMAIL_DRAFT_CONNECTED
+    if not EMAIL_DRAFT_CONNECTED:
         return False
     t = text.lower()
     return any(k in t for k in _SEND_EMAIL_KEYWORDS)
+
+
+_EMAIL_REPLY_BRIDGE_PATTERNS = (
+    "check inner circle email replies",
+    "check inner-circle email replies",
+    "show inner circle email replies",
+    "show inner-circle email replies",
+    "list inner circle email replies",
+    "list inner-circle email replies",
+    "any inner circle email replies",
+    "any inner-circle email replies",
+    "check pinned email replies",
+    "show pinned email replies",
+    "list pinned email replies",
+    "check email replies from",
+    "show email replies from",
+    "list email replies from",
+    "any email replies from",
+)
+
+
+def _detect_inner_circle_email_reply_intent(text: str) -> bool:
+    t = text.lower()
+    return any(pattern in t for pattern in _EMAIL_REPLY_BRIDGE_PATTERNS)
 
 
 _OUTREACH_EMAIL_PATTERNS = (
@@ -1184,11 +1999,173 @@ _OUTREACH_EMAIL_PATTERNS = (
 
 
 def _detect_outreach_email_intent(text: str) -> bool:
-    from cassandra_capability import EMAIL_SEND_CONNECTED
-    if not EMAIL_SEND_CONNECTED:
+    from cassandra_capability import EMAIL_DRAFT_CONNECTED
+    if not EMAIL_DRAFT_CONNECTED:
         return False
     t = text.lower()
     return any(pattern in t for pattern in _OUTREACH_EMAIL_PATTERNS)
+
+
+def _detect_file_verify_intent(text: str) -> bool:
+    """Return True if the message is asking about file or path existence."""
+    t = text.lower()
+    # Require a file/path noun
+    nouns = ("file", "path", "folder", "directory", "document")
+    has_noun = any(n in t for n in nouns)
+    # Or an explicit absolute path (starts with /)
+    has_path = bool(re.search(r'(/[^\s,;:]+)', t))
+    if not has_noun and not has_path:
+        return False
+    # Require an existence verb or question pattern
+    verbs = ("exist", "exists", "there", "present", "missing",
+             "find the", "check if", "check whether", "is there",
+             "does it exist", "verify", "confirm")
+    return any(v in t for v in verbs)
+
+
+def _handle_file_verification_request(text: str) -> str | None:
+    """Route file-existence queries to tools/file_verify. Returns reply or None."""
+    if not _detect_file_verify_intent(text):
+        return None
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "tools"))
+        from file_verify import answer_file_verification
+        return answer_file_verification(text)
+    except Exception as e:
+        print(f"[cassandra] file_verify error: {e}", flush=True)
+        return "I tried to check that path but hit a problem. You may need to verify it directly."
+
+
+def _detect_payment_verify_intent(text: str) -> bool:
+    """Return True if the message is asking to verify an external payment status."""
+    from cassandra_capability import PAYMENT_EXTERNAL_CONNECTED
+    if not PAYMENT_EXTERNAL_CONNECTED:
+        return False
+    return _looks_like_payment_verify_query(text)
+
+
+def _handle_payment_verification_request(text: str) -> str | None:
+    """
+    Route payment verification queries to Gmail metadata and logs.
+    Returns a direct Cassandra reply or None to fall through to LLM.
+    """
+    if not _detect_payment_verify_intent(text):
+        return None
+
+    known_reply = _known_payment_status_reply(text)
+    if known_reply is not None:
+        return known_reply
+
+    ctx = _fetch_payment_verify_context(text)
+    if not ctx:
+        return None
+
+    if "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]" in ctx:
+        # Check logs before giving up
+        try:
+            from chief_cpa_brain import get_recent_income
+            # Extract possible entity like "Hilton"
+            m = re.search(r"(?:the\s+)?([A-Za-z0-9]{3,20})\s+payment", text, re.I)
+            if not m:
+                m = re.search(r"payment\s+from\s+([A-Za-z0-9]{3,20})", text, re.I)
+            entity = m.group(1).lower() if m else None
+            logs = get_recent_income(days=7)
+            if entity:
+                match = next((e for e in logs if entity in (e.get("payer") or "").lower()), None)
+                if match:
+                    return f"I don't see a Gmail notification for that, but I do have a {match.get('payer')} payment logged for ${match['amount']} on {match['date']}."
+        except Exception:
+            pass
+        return "I checked your recent Gmail notifications but didn't see any matching that payment yet."
+
+    if "Gmail unreachable" in ctx:
+        return "I tried to check your Gmail for payment notifications but the service is unreachable right now."
+
+    if "From:" in ctx:
+        # Extract first match for a direct answer
+        try:
+            lines = ctx.splitlines()
+            from_name = ""
+            subject = ""
+            for l in lines:
+                if "From:" in l: from_name = l.split("From:")[1].strip()
+                if "Subject:" in l: subject = l.split("Subject:")[1].strip()
+                if from_name and subject: break
+            if from_name and subject:
+                return f"I've verified a matching notification in your Gmail: {subject} from {from_name}."
+        except Exception:
+            pass
+
+    # Fall through to LLM for nuanced answers if we can't format a simple one
+    return None
+
+
+def _handle_finance_status_request(text: str) -> str | None:
+    if not detect_finance_status_intent(text):
+        return None
+    return get_finance_status_answer(text)
+
+
+# ── Future-action enqueue pipeline ───────────────────────────────────────────
+
+# Direct action phrases that unambiguously signal a reminder/queue request.
+# "tomorrow" and "next week" alone are excluded — they appear in calendar and
+# scheduling contexts. Co-occurrence with a verb phrase is required instead.
+_FUTURE_ACTION_PHRASES = (
+    "remind me",
+    "remind us",
+    "follow up",
+    "follow-up",
+    "check back",
+    "check again",
+    "send a reminder",
+    "set a reminder",
+)
+
+# Action verbs that, when co-present with a time reference, indicate future-action intent.
+_FUTURE_ACTION_VERBS = ("remind", "follow up", "follow-up", "check back", "check again", "ping me")
+_FUTURE_ACTION_TIME_WORDS = ("tomorrow", "next week", "next month")
+
+
+def _detect_future_action_intent(text: str) -> bool:
+    """True if the query is a reminder or future follow-up queue request.
+
+    Matches direct action phrases (e.g. "remind me", "follow up") and also
+    the combination of a time word + action verb. Does NOT match bare "tomorrow"
+    or "next week" to avoid capturing calendar and scheduling queries.
+    """
+    t = text.lower()
+    if any(phrase in t for phrase in _FUTURE_ACTION_PHRASES):
+        return True
+    # Require both a time word and an action verb to match indirect patterns
+    has_time = any(word in t for word in _FUTURE_ACTION_TIME_WORDS)
+    has_verb = any(verb in t for verb in _FUTURE_ACTION_VERBS)
+    return has_time and has_verb
+
+
+def _handle_future_action_queue_request(text: str, sender_chat_id: object | None = None) -> str | None:
+    """Enqueue a future-action reminder. Returns reply string or None if not a match."""
+    if not _detect_future_action_intent(text):
+        return None
+    try:
+        from cassandra_capability import FUTURE_ACTION_CONNECTED
+    except Exception:
+        FUTURE_ACTION_CONNECTED = False
+    if not FUTURE_ACTION_CONNECTED:
+        return (
+            "I can't check back or send a reminder from here — "
+            "future-action isn't connected yet. You may need to check back manually."
+        )
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path.home() / "tools"))
+        from future_action_queue import enqueue_request
+        result = enqueue_request(text, chat_id=str(sender_chat_id or ""))
+        return result["message"]
+    except Exception as e:
+        print(f"[cassandra] future_action_queue error: {e}", flush=True)
+        return "I tried to queue that but hit a problem. You may want to check back manually."
 
 
 def _load_nicknames() -> dict:
@@ -1236,6 +2213,18 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
         display_name = nickname
     tier = raw.get("tier", "inner_circle") if isinstance(raw, dict) else "inner_circle"
     response_sla = raw.get("response_sla") if isinstance(raw, dict) else None
+    pinned_email = None
+    pinned_phone = None
+    pinned_whatsapp = None
+    if isinstance(raw, dict):
+        v = raw.get("pinned_email")
+        if isinstance(v, str):
+            normalized = v.strip().lower()
+            pinned_email = normalized or None
+        v = raw.get("pinned_phone")
+        pinned_phone = v if isinstance(v, str) else None
+        v = raw.get("pinned_whatsapp")
+        pinned_whatsapp = v if isinstance(v, str) else None
     return {
         "nickname": nickname,
         "display_name": display_name,
@@ -1243,6 +2232,9 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
         "chat_ids": chat_ids,
         "tier": tier,
         "response_sla": response_sla,
+        "pinned_email": pinned_email,
+        "pinned_phone": pinned_phone,
+        "pinned_whatsapp": pinned_whatsapp,
     }
 
 
@@ -1258,8 +2250,144 @@ def _find_designated_contact(sender_name: str | None = None, sender_chat_id: obj
     return None
 
 
-def is_designated_contact_sender(sender_name: str | None = None, sender_chat_id: object | None = None) -> bool:
+def find_contact_by_nickname(nickname: str) -> dict | None:
+    """Finds a contact by its nickname, case-insensitive."""
+    norm_nickname = nickname.lower()
+    data = _load_nicknames()
+    if norm_nickname in data:
+        return _normalize_contact_entry(norm_nickname, data[norm_nickname])
+    return None
+
+
+def pin_telegram_chat_id(nickname: str, chat_id: str | int) -> bool:
+    """Updates contact_nicknames.json with a pinned telegram_chat_id for a nickname."""
+    try:
+        if not _NICKNAMES_PATH.exists():
+            print(f"[cassandra_brain] pin error: {_NICKNAMES_PATH} not found", flush=True)
+            return False
+
+        data = json.loads(_NICKNAMES_PATH.read_text(encoding="utf-8"))
+        norm_nickname = nickname.lower()
+        if norm_nickname not in data:
+            print(f"[cassandra_brain] pin error: nickname '{nickname}' not in contact_nicknames.json", flush=True)
+            return False
+
+        data[norm_nickname]["telegram_chat_id"] = str(chat_id)
+        _NICKNAMES_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+        # Log it to conversation log
+        _log_conversation(
+            f"ADMIN: Pin telegram_chat_id={chat_id} to nickname='{nickname}'",
+            [f"Pinned {chat_id} to '{nickname}' successfully."],
+            route="admin_pin"
+        )
+        return True
+    except Exception as e:
+        print(f"[cassandra_brain] pin error: {e}", flush=True)
+        return False
+
+
+def is_designated_contact_sender(
+sender_name: str | None = None, sender_chat_id: object | None = None) -> bool:
     return _find_designated_contact(sender_name=sender_name, sender_chat_id=sender_chat_id) is not None
+
+
+def _find_designated_contact_by_channel_id(channel: str, sender_id: str | None) -> dict | None:
+    if sender_id in (None, ""):
+        return None
+    normalized_id = str(sender_id).strip()
+    if channel == "email":
+        normalized_id = normalized_id.lower()
+    for nickname, raw in _load_nicknames().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if channel == "email" and entry["pinned_email"] == normalized_id:
+            return entry
+        if channel in ("sms", "phone") and entry["pinned_phone"] == normalized_id:
+            return entry
+        if channel == "whatsapp" and entry["pinned_whatsapp"] == normalized_id:
+            return entry
+    return None
+
+
+def is_pinned_on_channel(nickname: str, channel: str) -> bool:
+    """Check if a contact has a verified identity pin on the given channel.
+
+    Args:
+        nickname: Contact nickname (e.g., 'dad', 'mom', 'draper')
+        channel: One of 'telegram', 'email', 'sms', 'phone', 'whatsapp'
+
+    Returns:
+        True if the contact has a non-null pin for this channel.
+    """
+    raw = _load_nicknames().get(nickname.lower())
+    if raw is None:
+        return False
+    entry = _normalize_contact_entry(nickname.lower(), raw)
+    if channel == "telegram":
+        return bool(entry["chat_ids"])
+    elif channel == "email":
+        return entry["pinned_email"] is not None
+    elif channel in ("sms", "phone"):
+        return entry["pinned_phone"] is not None
+    elif channel == "whatsapp":
+        return entry["pinned_whatsapp"] is not None
+    return False
+
+
+def verify_sender_on_channel(
+    sender_name: str | None,
+    sender_id: str | None,
+    channel: str,
+) -> dict | None:
+    """Find and verify a designated contact on the specified channel.
+
+    Returns the contact entry if:
+    - The sender matches a designated contact (by name or channel-specific ID)
+    - AND the contact is pinned on this channel
+
+    Returns None if:
+    - No matching contact found
+    - Contact found by name but NOT pinned on this channel (identity unverified)
+    - sender_id is provided and does not match the stored pin value
+
+    Callers must refuse to act when this returns None for a recognized name.
+    """
+    if channel == "telegram":
+        contact = _find_designated_contact(sender_name=sender_name, sender_chat_id=sender_id)
+        if contact is None:
+            return None
+        if not contact["chat_ids"]:
+            return None
+        if not sender_id or str(sender_id) not in contact["chat_ids"]:
+            return None
+        return contact
+
+    contact = _find_designated_contact_by_channel_id(channel, sender_id)
+    if contact is not None:
+        return contact
+
+    contact = _find_designated_contact(sender_name=sender_name, sender_chat_id=None)
+    if contact is None:
+        return None
+
+    nickname = contact["nickname"]
+    if not is_pinned_on_channel(nickname, channel):
+        return None
+
+    # For non-Telegram channels, also verify sender_id matches the stored pin
+    if sender_id:
+        if channel == "email":
+            normalized_sender = sender_id.strip().lower()
+            if contact["pinned_email"] and normalized_sender != contact["pinned_email"]:
+                return None
+        elif channel in ("sms", "phone"):
+            if contact["pinned_phone"] and sender_id != contact["pinned_phone"]:
+                return None
+        elif channel == "whatsapp":
+            if contact["pinned_whatsapp"] and sender_id != contact["pinned_whatsapp"]:
+                return None
+
+    return contact
 
 
 def _reply_has_hedging(reply: str) -> bool:
@@ -1290,6 +2418,9 @@ def detect_capability_gaps(user_text: str, reply: str) -> list[dict]:
     seen: set[str] = set()
 
     for capability, spec in _CAPABILITY_GAP_SPECS.items():
+        suppress_flag = spec.get("suppress_when_flag")
+        if suppress_flag and _capability_flag_value(suppress_flag) is True:
+            continue
         query_match = any(keyword in query for keyword in spec["keywords"])
         reply_match = any(keyword in reply_lower for keyword in spec.get("reply_keywords", ()))
         flag_value = _capability_flag_value(spec.get("flag"))
@@ -1379,30 +2510,229 @@ def _existing_upgrade_task_name(capability: str) -> str | None:
     return None
 
 
-def _create_upgrade_task(capability_gap: dict, original_message: str) -> str | None:
+def _create_upgrade_task(
+    capability_gap: dict,
+    original_message: str,
+    *,
+    extra_scope_lines: list[str] | None = None,
+    force_queue_manual: bool = False,
+) -> str | None:
     capability = capability_gap["capability"]
     existing = _existing_upgrade_task_name(capability)
     if existing:
         return existing
-    if capability_gap.get("manual_required"):
+    if capability_gap.get("manual_required") and not force_queue_manual:
         return None
 
     _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     task_name = f"cas-upgrade-{capability}-{timestamp}"
     task_path = _POLISH_TASKS_DIR / f"{task_name}.md"
-    scope_lines = "\n".join(f"- {line}" for line in capability_gap["scope"])
+    safe_original = original_message.strip().replace("\n", " ").replace('"', "'")
+    scope_items = list(capability_gap["scope"])
+    if extra_scope_lines:
+        scope_items.extend(extra_scope_lines)
+    scope_lines = "\n".join(f"- {line}" for line in scope_items)
     task_body = (
         f"title: {task_name}\n"
         f"goal: {capability_gap['goal']}\n"
         "scope:\n"
         f"{scope_lines}\n"
-        f"- Handle the triggering request safely: \"{original_message.strip()}\"\n"
+        f"- Handle the triggering request safely: \"{safe_original}\"\n"
         "success:\n"
         f"- {capability_gap['success']}\n"
     )
+    if capability_gap.get("manual_required") and force_queue_manual:
+        task_body += "execution mode: human-supervised\n"
     task_path.write_text(task_body, encoding="utf-8")
     return task_name
+
+
+def _registry_capability_connected(capability_name: str) -> bool | None:
+    actor = get_actor("cassandra")
+    if actor is None:
+        return None
+    for capability in actor.capabilities:
+        if capability.name == capability_name:
+            return bool(capability.connected)
+    return None
+
+
+def _detect_email_review_capability_gap(review_text: str) -> dict | None:
+    lowered = review_text.lower()
+    for capability_name, patterns in _EMAIL_REVIEW_CAPABILITY_ASSERTIONS.items():
+        if _registry_capability_connected(capability_name) is not False:
+            continue
+        if not any(re.search(pattern, lowered) for pattern in patterns):
+            continue
+        gap = dict(_CAPABILITY_GAP_SPECS.get(capability_name, {}))
+        if not gap:
+            continue
+        gap["capability"] = capability_name
+        return gap
+    return None
+
+
+def _queue_email_review_gap_task(
+    capability_gap: dict,
+    *,
+    original_message: str,
+    recipient_name: str,
+    recipient_email: str,
+    draft_subject: str,
+) -> str | None:
+    extra_scope = [
+        f"Email review recipient: {recipient_name} <{recipient_email}>",
+        f"Blocked draft subject: {draft_subject}",
+        "Keep the grounded email review path honest so Cassandra stops bluffing about this gap.",
+    ]
+    return _create_upgrade_task(
+        capability_gap,
+        original_message,
+        extra_scope_lines=extra_scope,
+        force_queue_manual=True,
+    )
+
+
+def _email_draft_has_payment_assertion(text: str) -> bool:
+    lowered = text.lower()
+    return any(re.search(pattern, lowered) for pattern in _EMAIL_REVIEW_PAYMENT_ASSERTIONS)
+
+
+def _email_draft_has_calendar_assertion(text: str) -> bool:
+    lowered = text.lower()
+    return any(re.search(pattern, lowered) for pattern in _EMAIL_REVIEW_CALENDAR_ASSERTIONS)
+
+
+def _payment_context_is_verified(payment_ctx: str) -> bool:
+    return payment_ctx.startswith("[VERIFIED GMAIL NOTIFICATIONS")
+
+
+def _calendar_context_is_verified(calendar_ctx: str) -> bool:
+    return calendar_ctx.startswith("[CALENDAR DATA")
+
+
+def _rewrite_payment_email_uncertainty(payment_ctx: str) -> str:
+    if payment_ctx.startswith("[VERIFIED PAYMENT DATA — no recent Gmail notifications found]"):
+        detail = "I checked the current payment notifications and I don't have confirmation that it came through yet."
+    elif "Gmail unreachable" in payment_ctx or "error during Gmail fetch" in payment_ctx:
+        detail = "I couldn't verify the current payment status because the live Gmail check is unavailable right now."
+    else:
+        detail = "I can't confirm the current payment status from the live record I have."
+    return f"{_EMAIL_REVIEW_UNCERTAINTY_PREFIX} {detail}"
+
+
+def _rewrite_calendar_email_uncertainty() -> str:
+    return (
+        f"{_EMAIL_REVIEW_UNCERTAINTY_PREFIX} "
+        "I need a live calendar check before I state that schedule as settled."
+    )
+
+
+def _review_grounded_email_draft(
+    *,
+    recipient_name: str,
+    recipient_email: str,
+    original_message: str,
+    draft_subject: str,
+    draft_body: str,
+) -> dict:
+    review_text = "\n".join(
+        part.strip()
+        for part in (original_message, draft_subject, draft_body)
+        if isinstance(part, str) and part.strip()
+    )
+
+    contact_entry = _find_designated_contact(sender_name=recipient_name)
+    if contact_entry is not None and contact_entry.get("tier") == "inner_circle":
+        verified_contact = verify_sender_on_channel(
+            sender_name=recipient_name,
+            sender_id=recipient_email,
+            channel="email",
+        )
+        if verified_contact is None:
+            return {
+                "status": "blocked",
+                "subject": draft_subject,
+                "body": draft_body,
+                "detail": "grounded review blocked — recipient email pin is not verified",
+                "queued_task_name": None,
+                "user_reply": (
+                    "I didn't draft that because the recipient's pinned email address "
+                    "isn't verified yet."
+                ),
+            }
+
+        from cassandra_contact_policy import classify_topic
+
+        lane = classify_topic(review_text, verified_contact["nickname"])
+        if lane != "allowed":
+            return {
+                "status": "blocked",
+                "subject": draft_subject,
+                "body": draft_body,
+                "detail": f"grounded review blocked — {verified_contact['nickname']} trust lane={lane}",
+                "queued_task_name": None,
+                "user_reply": (
+                    "I didn't draft that because it crosses this contact's trust lane. "
+                    "Winship should review that reply directly."
+                ),
+            }
+
+    capability_gap = _detect_email_review_capability_gap(review_text)
+    if capability_gap:
+        task_name = _queue_email_review_gap_task(
+            capability_gap,
+            original_message=original_message or review_text,
+            recipient_name=recipient_name,
+            recipient_email=recipient_email,
+            draft_subject=draft_subject,
+        )
+        task_note = f" I queued {task_name}." if task_name else ""
+        return {
+            "status": "blocked",
+            "subject": draft_subject,
+            "body": draft_body,
+            "detail": f"grounded review blocked — capability gap {capability_gap['capability']}",
+            "queued_task_name": task_name,
+            "user_reply": (
+                "I didn't draft that because it leans on a capability I can't back up yet."
+                f"{task_note}"
+            ),
+        }
+
+    if _email_draft_has_payment_assertion(draft_body):
+        payment_ctx = _fetch_payment_verify_context(review_text)
+        if not _payment_context_is_verified(payment_ctx):
+            return {
+                "status": "rewritten",
+                "subject": draft_subject,
+                "body": _rewrite_payment_email_uncertainty(payment_ctx),
+                "detail": "grounded review rewrote payment certainty",
+                "queued_task_name": None,
+                "user_reply": "",
+            }
+
+    if _email_draft_has_calendar_assertion(draft_body):
+        calendar_ctx = _fetch_calendar_context(review_text)
+        if not _calendar_context_is_verified(calendar_ctx):
+            return {
+                "status": "rewritten",
+                "subject": draft_subject,
+                "body": _rewrite_calendar_email_uncertainty(),
+                "detail": "grounded review rewrote calendar certainty",
+                "queued_task_name": None,
+                "user_reply": "",
+            }
+
+    return {
+        "status": "allowed",
+        "subject": draft_subject,
+        "body": draft_body,
+        "detail": "grounded review allowed",
+        "queued_task_name": None,
+        "user_reply": "",
+    }
 
 
 def _notify_manual_gap(sender_name: str, original_message: str, capability: str) -> None:
@@ -1606,8 +2936,8 @@ def _handle_send_email(text: str) -> str | None:
       2. Resolve to_name → email via nicknames + contacts.
       3. If resolution fails: return clarification request.
       4. If subject/body missing: return format instructions.
-      5. Call broker (L2 approval gate is inside broker for CLASS_C).
-      6. Return confirmation or error message.
+      5. Create a brokered Gmail draft (L1 approval gate is inside broker for CLASS_B).
+      6. Return honest draft confirmation or error message.
     """
     parsed = _parse_email_request(text)
     if parsed is None:
@@ -1624,36 +2954,144 @@ def _handle_send_email(text: str) -> str | None:
 
     # Require both subject and body — prompt if either is missing
     if not subject or not body:
+        _log_correspondence_state(
+            display_name,
+            _SS_DRAFT,
+            "awaiting subject/body from user",
+            route="email_send",
+            metadata={
+                "recipient_email": email_addr,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
         return (
-            f"Got it — sending to {display_name}. "
+            f"Got it — I can draft that for {display_name}. "
             "To complete this, reply with:\n"
             f"send email to {to_name} subject: [subject line] body: [your message]"
         )
 
-    # Call broker — L2 Guardian approval happens inside broker.call() for CLASS_C
+    review = _review_grounded_email_draft(
+        recipient_name=display_name,
+        recipient_email=email_addr,
+        original_message=text,
+        draft_subject=subject,
+        draft_body=body,
+    )
+    if review["status"] == "blocked":
+        _log_correspondence_state(
+            display_name,
+            _SS_BLOCKED,
+            review["detail"],
+            route="email_review",
+            metadata={
+                "recipient_email": email_addr,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
+        return review["user_reply"]
+    subject = review["subject"]
+    body = review["body"]
+    review_inbox = get_review_inbox()
+
+    # Create brokered Gmail draft — direct email sending is intentionally disabled.
     try:
         from google_access_broker import call as broker_call
-        result = broker_call("cassandra", "google.gmail.send", {
+        result = broker_call("cassandra", "google.gmail.draft.create", {
             "to":      email_addr,
+            "cc":      review_inbox,
             "subject": subject,
             "body":    body,
         })
     except Exception as e:
-        print(f"[cassandra] email broker error: {e}", flush=True)
-        return "Couldn't reach the email broker. Try again in a moment."
+        err_str = str(e)
+        print(f"[cassandra] email draft broker error: {err_str}", flush=True)
+        _log_correspondence_state(
+            display_name,
+            _SS_SEND_FAILED,
+            err_str,
+            route="email_send",
+            metadata={
+                "recipient_email": email_addr,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
+        return "The email draft system isn't reachable right now. No draft was created — try again in a moment."
 
     if result.get("ok"):
-        return f"Sent. Email to {display_name} with subject \"{subject}\"."
+        result_data = result.get("data") or {}
+        draft_id = result_data.get("draft_id", "")
+        detail = f"subject={subject}"
+        if review["status"] == "rewritten":
+            detail += f"; {review['detail']}"
+        if draft_id:
+            detail += f"; draft_id={draft_id}"
+        _log_correspondence_state(
+            display_name,
+            _SS_DRAFT,
+            detail,
+            route="email_send",
+            metadata={
+                "recipient_email": email_addr,
+                "subject": subject,
+                "mailbox_identity": "primary",
+                "draft_id": draft_id,
+                "message_id": result_data.get("message_id", ""),
+                "thread_id": result_data.get("thread_id", ""),
+            },
+        )
+        reply = (
+            f"Drafted. Email to {display_name} with subject \"{subject}\" is ready in "
+            f"{review_inbox} for review, with {review_inbox} on CC."
+        )
+        if review["status"] == "rewritten":
+            reply += " I tightened the wording so it stays inside what I can confirm from the current record."
+        return reply
     else:
         err = result.get("error", "unknown error")
         if "denied" in err.lower():
-            return "Email send was denied at the approval gate."
+            _log_correspondence_state(
+                display_name,
+                _SS_BLOCKED,
+                "denied at approval gate",
+                route="email_send",
+                metadata={
+                    "recipient_email": email_addr,
+                    "subject": subject,
+                    "mailbox_identity": "primary",
+                },
+            )
+            return "That draft needed approval, and it was denied. No draft was created."
         if "scope" in err.lower() or "permission" in err.lower() or "insufficien" in err.lower():
+            _log_correspondence_state(
+                display_name,
+                _SS_SEND_FAILED,
+                err,
+                route="email_send",
+                metadata={
+                    "recipient_email": email_addr,
+                    "subject": subject,
+                    "mailbox_identity": "primary",
+                },
+            )
             return (
-                "Email send failed — the Gmail token needs the compose scope. "
+                "Email draft creation failed — the Gmail token needs the compose scope. "
                 "Run: python3 /home/openclaw/google_access_broker.py --auth"
             )
-        return f"Couldn't send the email: {err}"
+        _log_correspondence_state(
+            display_name,
+            _SS_SEND_FAILED,
+            err,
+            route="email_send",
+            metadata={
+                "recipient_email": email_addr,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
+        return f"That email draft didn't go through. {err}"
 
 
 def _handle_outreach_email_request(text: str) -> str | None:
@@ -1662,25 +3100,32 @@ def _handle_outreach_email_request(text: str) -> str | None:
 
     try:
         from cassandra_outreach import run_outreach
-        results = run_outreach(dry_run=False)
+        results = run_outreach(dry_run=False, mode="draft")
     except Exception as e:
         print(f"[cassandra] outreach flow error: {e}", flush=True)
-        return "The intro email flow hit a snag before it could finish."
+        _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, str(e), route="outreach_email_send")
+        return "The intro email draft flow hit a problem. No drafts were created — I'll need to try again."
 
-    sent = [row.get("display_name", row["nickname"]) for row in results if row.get("status") == "sent"]
-    failed = [row.get("display_name", row["nickname"]) for row in results if row.get("status") != "sent"]
+    drafted = [row.get("display_name", row["nickname"]) for row in results if row.get("status") == "draft"]
+    failed = [row.get("display_name", row["nickname"]) for row in results if row.get("status") != "draft"]
 
-    if sent and not failed:
-        return "Intro emails sent to " + ", ".join(sent) + "."
-    if sent and failed:
+    for name in drafted:
+        _log_correspondence_state(name, _SS_DRAFT, route="outreach_email_send")
+    for name in failed:
+        _log_correspondence_state(name, _SS_SEND_FAILED, route="outreach_email_send")
+
+    if drafted and not failed:
+        return "Intro email drafts prepared for " + ", ".join(drafted) + "."
+    if drafted and failed:
         return (
-            "Some intro emails went out: "
-            + ", ".join(sent)
-            + ". The rest need attention: "
+            "Drafted for "
+            + ", ".join(drafted)
+            + ". The rest didn't go through: "
             + ", ".join(failed)
             + "."
         )
-    return "The intro email flow did not complete any sends."
+    _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, "no successful sends", route="outreach_email_send")
+    return "The intro email drafts didn't go through. No drafts were created."
 
 
 def _handle_calendar_create(text: str) -> str | None:
@@ -1732,6 +3177,294 @@ def _handle_calendar_create(text: str) -> str | None:
         if "denied" in err.lower():
             return "Calendar write was denied at the approval gate."
         return f"Couldn't create the event: {err}"
+
+
+# ── Inner-circle email reply bridge ──────────────────────────────────────────
+
+def _extract_inner_circle_contact_filter(text: str) -> str | None:
+    lowered = text.lower()
+    for nickname, raw in _load_nicknames().items():
+        if str(nickname).startswith("_"):
+            continue
+        entry = _normalize_contact_entry(nickname, raw)
+        for candidate in {entry["nickname"], entry["display_name"], *entry["sender_names"]}:
+            if not candidate:
+                continue
+            if re.search(rf"\b{re.escape(str(candidate).lower())}\b", lowered):
+                return entry["nickname"]
+    return None
+
+
+def _is_reply_like_email_message(message: dict) -> bool:
+    subject = str(message.get("subject", "")).strip().lower()
+    return bool(
+        subject.startswith("re:")
+        or str(message.get("in_reply_to", "")).strip()
+        or str(message.get("references", "")).strip()
+    )
+
+
+def _build_email_bridge_review_text(message: dict) -> str:
+    parts = []
+    subject = str(message.get("subject", "")).strip()
+    preview = _bridge_preview(message.get("snippet", ""), limit=240)
+    if subject:
+        parts.append(subject)
+    if preview:
+        parts.append(preview)
+    return "\n".join(parts)
+
+
+def _analyze_inner_circle_email_thread(message: dict, verified_contact: dict) -> dict:
+    from cassandra_contact_policy import classify_topic
+
+    thread_messages, evidence_source = _fetch_email_thread_messages(message)
+    contact_email = str(message.get("from_email", "")).strip().lower()
+    thread_id = str(message.get("thread_id", ""))
+    sorted_messages = sorted(
+        thread_messages,
+        key=lambda row: _parse_event_datetime(row.get("internal_date") or row.get("date_raw")),
+    )
+    reply_round = sum(
+        1
+        for row in sorted_messages
+        if str(row.get("from_email", "")).strip().lower() == contact_email and _is_reply_like_email_message(row)
+    ) or 1
+
+    linked_outbound = _match_outbound_email_record(message, contact_email)
+    question_map: dict[str, dict] = {}
+    for thread_message in sorted_messages:
+        if str(thread_message.get("from_email", "")).strip().lower() != contact_email:
+            continue
+        extracted = _extract_question_candidates(
+            thread_message.get("body_text") or thread_message.get("snippet", "")
+        )
+        for candidate in extracted:
+            key = _question_key(candidate)
+            bundle = question_map.setdefault(
+                key,
+                {
+                    "question": candidate,
+                    "message_ids": [],
+                    "evidence": [],
+                    "last_asked_at": "",
+                },
+            )
+            asked_at = _parse_event_datetime(thread_message.get("internal_date") or thread_message.get("date_raw"))
+            bundle["message_ids"].append(str(thread_message.get("message_id", "")))
+            bundle["last_asked_at"] = max(
+                filter(None, [bundle.get("last_asked_at"), asked_at.isoformat(timespec="seconds")])
+            )
+            bundle["evidence"].append({
+                "message_id": str(thread_message.get("message_id", "")),
+                "quote": _bridge_preview(thread_message.get("body_text") or thread_message.get("snippet", ""), limit=220),
+                "asked_at": asked_at.isoformat(timespec="seconds"),
+            })
+
+    question_bundles: list[dict] = []
+    for index, bundle in enumerate(question_map.values(), start=1):
+        lane = classify_topic(bundle["question"], verified_contact["nickname"])
+        answered_in_thread = _bundle_answered_in_thread(bundle, sorted_messages, contact_email)
+        capability_gaps: list[dict] = []
+        queued_tasks: list[str] = []
+        if answered_in_thread:
+            status = "answered_in_thread"
+        elif lane != "allowed":
+            status = "needs_winship_review"
+        else:
+            capability_gaps = _detect_request_capability_gaps(bundle["question"])
+            if capability_gaps:
+                status = "needs_capability"
+                for gap in capability_gaps:
+                    task_name = _queue_inbound_email_gap_task(
+                        gap,
+                        question_text=bundle["question"],
+                        contact_name=verified_contact["display_name"],
+                        sender_email=contact_email,
+                        subject=str(message.get("subject", "")),
+                        thread_id=thread_id,
+                        message_ids=bundle["message_ids"],
+                    )
+                    if task_name:
+                        queued_tasks.append(task_name)
+            else:
+                status = "answer_now"
+        question_bundles.append({
+            "bundle_id": f"{thread_id or 'thread'}-q{index}",
+            "question": bundle["question"],
+            "lane": lane,
+            "status": status,
+            "message_ids": bundle["message_ids"],
+            "last_asked_at": bundle["last_asked_at"],
+            "evidence": bundle["evidence"],
+            "capability_gaps": capability_gaps,
+            "queued_task_names": queued_tasks,
+        })
+
+    predictions = _predict_likely_next_questions(question_bundles)
+    unresolved = [bundle for bundle in question_bundles if bundle["status"] != "answered_in_thread"]
+    cadence = _advance_email_thread_cadence(
+        thread_id=thread_id or f"message:{message.get('message_id', '')}",
+        contact_name=verified_contact["display_name"],
+        unresolved_bundles=unresolved,
+        predictions=predictions,
+    )
+
+    analysis = {
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "mailbox_identity": "primary",
+        "thread_id": thread_id,
+        "message_id": str(message.get("message_id", "")),
+        "reply_round": reply_round,
+        "promotion_gate": "evaluated_reply_rounds",
+        "contact_identity": {
+            "nickname": verified_contact["nickname"],
+            "display_name": verified_contact["display_name"],
+            "sender_email": contact_email,
+        },
+        "linked_outbound": linked_outbound or {},
+        "thread_evidence": {
+            "subject": str(message.get("subject", "")),
+            "message_count": len(sorted_messages),
+            "evidence_source": evidence_source,
+        },
+        "message_evidence": _message_evidence_rows(sorted_messages, contact_email),
+        "question_bundles": question_bundles,
+        "likely_next_questions": predictions,
+        "cadence": cadence,
+    }
+    _log_email_thread_analysis(analysis)
+    return analysis
+
+
+def _handle_inner_circle_email_reply_bridge(text: str) -> str | None:
+    if not _detect_inner_circle_email_reply_intent(text):
+        return None
+
+    try:
+        call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
+        result = call_fn("cassandra", "google.gmail.read.metadata", {"max_results": 20})
+    except Exception as exc:
+        print(f"[cassandra] email reply bridge broker error: {exc}", flush=True)
+        return "I couldn't reach the inbox metadata bridge right now."
+
+    if not result.get("ok"):
+        return "I couldn't reach the inbox metadata bridge right now."
+
+    from cassandra_contact_policy import classify_topic
+
+    contact_filter = _extract_inner_circle_contact_filter(text)
+    admitted = []
+    for message in result.get("data") or []:
+        if not _is_reply_like_email_message(message):
+            continue
+
+        sender_email = str(message.get("from_email", "")).strip().lower()
+        verified = verify_sender_on_channel(
+            sender_name=message.get("from_name"),
+            sender_id=sender_email,
+            channel="email",
+        )
+        if verified is None or verified.get("tier") != "inner_circle":
+            continue
+        if contact_filter and verified["nickname"] != contact_filter:
+            continue
+
+        lane = classify_topic(_build_email_bridge_review_text(message), verified["nickname"])
+        status = {
+            "allowed": "admitted",
+            "caution": "held",
+            "escalate": "escalated",
+        }.get(lane, "held")
+        preview = _bridge_preview(message.get("snippet", ""), limit=160)
+        analysis = _analyze_inner_circle_email_thread(message, verified)
+        admitted.append({
+            "nickname": verified["nickname"],
+            "display_name": verified["display_name"],
+            "subject": str(message.get("subject", "")).strip() or "(no subject)",
+            "preview": preview,
+            "lane": lane,
+            "status": status,
+            "unread": "UNREAD" in (message.get("labels") or []),
+            "analysis": analysis,
+        })
+        _log_email_bridge_event(
+            message_id=str(message.get("message_id", "")),
+            thread_id=str(message.get("thread_id", "")),
+            nickname=verified["nickname"],
+            contact_name=verified["display_name"],
+            sender_email=sender_email,
+            subject=str(message.get("subject", "")),
+            preview=preview,
+            lane=lane,
+            status=status,
+            unread="UNREAD" in (message.get("labels") or []),
+        )
+
+    if not admitted:
+        if contact_filter:
+            return "I didn't find any pinned email replies from that inner-circle contact in the recent inbox window."
+        return "I didn't find any pinned inner-circle email replies in the recent inbox window."
+
+    admitted.sort(key=lambda item: (not item["unread"], item["display_name"].lower()))
+    lines = [
+        f"I found {len(admitted)} pinned inner-circle email {'reply' if len(admitted) == 1 else 'replies'} in the recent inbox window."
+    ]
+    for item in admitted[:3]:
+        status_bits = [f"{item['lane']} lane"]
+        if item["unread"]:
+            status_bits.append("unread")
+        lines.append(f"{item['display_name']} — {', '.join(status_bits)}.")
+        lines.append(f"Subject: {item['subject']}")
+        if item["preview"]:
+            lines.append(f"Preview: {item['preview']}")
+        analysis = item.get("analysis") or {}
+        linked_outbound = analysis.get("linked_outbound") or {}
+        if linked_outbound:
+            lines.append(
+                "Linked thread: "
+                f"{linked_outbound.get('state', 'draft')} via {linked_outbound.get('matched_via', 'unknown')} "
+                f"({linked_outbound.get('source', 'log')})."
+            )
+        bundles = list(analysis.get("question_bundles") or [])
+        if not bundles:
+            lines.append("I didn't find a clean question bundle in the grounded thread content.")
+        else:
+            for bundle in bundles[:2]:
+                if bundle["status"] == "answered_in_thread":
+                    prefix = "Answered in thread"
+                elif bundle["status"] == "needs_capability":
+                    prefix = "Capability gap"
+                elif bundle["status"] == "needs_winship_review":
+                    prefix = "Needs Winship review"
+                else:
+                    prefix = "Can answer now"
+                lines.append(f"{prefix}: {bundle['question']}")
+                if bundle["status"] == "needs_capability":
+                    capabilities = ", ".join(
+                        gap["capability"] for gap in bundle.get("capability_gaps", [])
+                    )
+                    task_names = ", ".join(bundle.get("queued_task_names", []))
+                    if capabilities:
+                        lines.append(f"Gap type: {capabilities}")
+                    if task_names:
+                        lines.append(f"Queued task: {task_names}")
+            predictions = list(analysis.get("likely_next_questions") or [])
+            if predictions:
+                lines.append(f"Likely next ask: {predictions[0]['question']}")
+                lines.append(f"Why: {predictions[0]['because']}")
+        cadence = analysis.get("cadence") or {}
+        if cadence.get("user_update"):
+            lines.append(cadence["user_update"])
+        if item["lane"] == "caution":
+            lines.append("I held that for Winship review.")
+        elif item["lane"] == "escalate":
+            lines.append("That needs Winship authorization before any reply.")
+        else:
+            lines.append("That one is safe to route through the normal draft-review flow.")
+    if len(admitted) > 3:
+        lines.append(f"There are {len(admitted) - 3} more pinned replies in the same recent window.")
+    return "\n".join(lines)
 
 
 # ── Gmail context injection ───────────────────────────────────────────────────
@@ -1836,6 +3569,116 @@ def _fetch_contacts_context(query: str) -> str:
         return "\n".join(lines)
     except Exception:
         return "[CONTACTS DATA — not found or unreachable]"
+
+
+# ── Payment verification context injection ───────────────────────────────────
+
+_PAY_VERIFY_QUERY_WORDS = (
+    "payment", "deposit", "invoice", "cleared", "posted",
+    "arrived", "came in", "paid", "payment status", "come through",
+    "hilton", "zelle", "venmo", "square", "check", "funds", "hit the account",
+    "did it land", "did we get"
+)
+
+_PAY_VERIFY_VERBS = (
+    "did", "verify", "check", "confirm", "has", "status", "any", "search",
+    "see the", "find the", "land", "arrived", "come through"
+)
+
+_PAYMENT_VERIFY_RESCUE_MARKERS = (
+    "can't verify deposit or payment status",
+    "payment status isn't something i can check externally",
+    "external payment data isn't accessible",
+    "the payment follow-ups log",
+    "follow-ups log shows what was recorded",
+    "the account is the source of truth",
+    "the account is the only way to confirm clearance",
+    "file or path existence",
+    "path existence isn't something i can confirm",
+    "can't verify that path",
+)
+
+
+def _looks_like_payment_verify_query(text: str) -> bool:
+    t = (text or "").lower()
+    if not any(w in t for w in _PAY_VERIFY_QUERY_WORDS):
+        return False
+    return any(v in t for v in _PAY_VERIFY_VERBS)
+
+
+def _needs_payment_verify_rescue(query: str, reply: str) -> bool:
+    if not _looks_like_payment_verify_query(query):
+        return False
+    t = (reply or "").lower()
+    return any(marker in t for marker in _PAYMENT_VERIFY_RESCUE_MARKERS)
+
+
+def _rescue_payment_verify_reply(query: str, reply: str) -> str | None:
+    if not _needs_payment_verify_rescue(query, reply):
+        return None
+    rescued = _handle_payment_verification_request(query)
+    if rescued is not None:
+        return rescued
+    return "I can't confirm the current payment status from the live record I have."
+
+
+def _fetch_payment_verify_context(query: str) -> str:
+    """
+    If the query has payment verification intent, search Gmail metadata for
+    recent payment notifications (Zelle, Venmo, Hilton, etc.) and return
+    a formatted block for prompt injection.
+    """
+    q_low = query.lower()
+    if not _looks_like_payment_verify_query(q_low):
+        return ""
+
+    try:
+        from google_access_broker import call as broker_call
+        # Search last 20 inbox messages for payment signals
+        result = broker_call("cassandra", "google.gmail.read.metadata", {"max_results": 20})
+        if not result["ok"]:
+            return "[VERIFIED PAYMENT DATA — Gmail unreachable]"
+
+        messages = result.get("data") or []
+        entity_terms = _reality_entity_terms(query)
+        # Keywords for payment notifications (subjects/snippets)
+        pay_signals = (
+            "payment", "deposit", "received", "zelle", "venmo", "square",
+            "paypal", "check", "hilton", "credit", "posted", "cleared",
+            "arrived", "landed", "sent you"
+        )
+
+        matches = []
+        for m in messages:
+            subj = m.get("subject", "").lower()
+            snip = m.get("snippet", "").lower()
+            from_name = m.get("from_name", "").lower()
+            haystack = " ".join(part for part in (subj, snip, from_name) if part)
+            if entity_terms and not any(term in haystack for term in entity_terms):
+                continue
+            if any(s in subj or s in snip for s in pay_signals):
+                matches.append(m)
+
+        if not matches:
+            return "[VERIFIED PAYMENT DATA — no recent Gmail notifications found]"
+
+        lines = ["[VERIFIED GMAIL NOTIFICATIONS — recent payment-related emails]"]
+        for m in matches[:5]:
+            from_name = m.get("from_name", "Unknown")
+            subject   = m.get("subject", "(no subject)")
+            snippet   = m.get("snippet", "(no snippet)")
+            # Clean snippet for voice-readability (no markdown, no dashes)
+            snippet = snippet.replace("*", "").replace("-", " ").replace("#", "").strip()
+            date_raw  = m.get("date_raw", "")
+            lines.append(f"  From: {from_name}")
+            lines.append(f"  Subject: {subject}")
+            lines.append(f"  Snippet: {snippet}")
+            lines.append(f"  Date: {date_raw[:16]}")
+            lines.append("")
+
+        return "\n".join(lines).strip()
+    except Exception:
+        return "[VERIFIED PAYMENT DATA — error during Gmail fetch]"
 
 
 # ── Financial event routing ───────────────────────────────────────────────────
@@ -2328,6 +4171,9 @@ def _cassandra_context_clean(
     calendar_ctx: str,
     gmail_ctx: str,
     contacts_ctx: str,
+    finance_ctx: str,
+    payment_verify_ctx: str,
+    reality_ctx: str,
     context_snapshot: str,
     query: str,
 ) -> bool:
@@ -2337,12 +4183,13 @@ def _cassandra_context_clean(
     Block conditions:
     1. Calendar broker was called (event titles, times, locations)
     2. Gmail broker was called (sender names, subject lines)
-    3. Payment follow-ups present — UNCONDITIONAL. Live content contains client
+    3. Payment verification Gmail metadata present (snippets, subjects)
+    4. Payment follow-ups present — UNCONDITIONAL. Live content contains client
        names (e.g. "Capital Hilton") and financial status. Always sensitive.
-    4. Pending actions present AND actions text contains sensitive patterns.
+    5. Pending actions present AND actions text contains sensitive patterns.
        Audited 2026-03-21: current live content is raw user meta-queries with
        no client names or financial figures. Block only on content, not presence.
-    5. Query contains financial/payment/credential keywords.
+    6. Query contains financial/payment/credential keywords.
     """
     # Blocks 1–3: any live data fetch contaminates the context
     if calendar_ctx:
@@ -2351,8 +4198,14 @@ def _cassandra_context_clean(
         return False
     if contacts_ctx:
         return False
+    if finance_ctx:
+        return False
+    if payment_verify_ctx:
+        return False
+    if reality_ctx:
+        return False
 
-    # Block 3: payment follow-ups — always block regardless of content.
+    # Block 4: payment follow-ups — always block regardless of content.
     # Live file contains client names and financial status by design.
     if "Payment follow-ups:" in context_snapshot:
         return False
@@ -2400,9 +4253,9 @@ def _call(prompt: str, deep: bool, cloud_ok: bool = False) -> str:
             return result
         print("[cassandra] cloud call failed or empty, falling back to local", flush=True)
 
-    model = OLLAMA_MODEL_DEEP if deep else OLLAMA_MODEL
+    model = _CASSANDRA_OLLAMA_DEEP if deep else _CASSANDRA_OLLAMA_FAST
     if deep:
-        print(f"[cassandra] 14b selected ({len(prompt.split())} words)", flush=True)
+        print(f"[cassandra] deep Gemma selected ({len(prompt.split())} words)", flush=True)
     result = ollama_call(prompt, timeout=90 if deep else 60, model=model)
     return result
 
@@ -2410,6 +4263,64 @@ def _call(prompt: str, deep: bool, cloud_ok: bool = False) -> str:
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 def handle(text: str, session: dict | None = None) -> list[str]:
+    # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
+    inbox_list_patterns = [
+        "any new emails", "list my 5 newest unread inbox emails with sender and subject only",
+        "list my 5 newest unread emails", "show my 5 newest unread emails", "show unread inbox emails",
+        "show unread emails", "list unread emails", "list unread inbox emails"
+    ]
+    query = _strip_prefix(text)
+    t_query = query.lower().strip()
+    # Always initialize state for logging and saving
+    state = load_state()
+    if t_query in (p.lower() for p in inbox_list_patterns) or (
+        t_query.startswith("list my ") and "unread inbox" in t_query and "sender" in t_query and "subject" in t_query
+    ):
+        try:
+            call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
+            # Use direct unread count for count queries
+            if (
+                "count" in t_query or
+                "any new emails" in t_query or
+                t_query.startswith("any new email") or
+                t_query.startswith("show unread") or
+                t_query.startswith("list unread")
+            ):
+                count_result = call_fn("cassandra", "google.gmail.unread_count", {})
+                if not count_result["ok"]:
+                    reply = ["[GMAIL] Inbox is empty or unreachable."]
+                else:
+                    reply = [f"You have {count_result['data']} unread inbox emails."]
+            else:
+                result = call_fn("cassandra", "google.gmail.read.metadata", {"max_results": 10})
+                if not result["ok"]:
+                    reply = ["[GMAIL] Inbox is empty or unreachable."]
+                else:
+                    messages = result.get("data") or []
+                    unread = [m for m in messages if "UNREAD" in m.get("labels", [])]
+                    lines = [f"{min(len(unread), 5)} newest unread inbox emails:"]
+                    for m in unread[:5]:
+                        from_name = m.get("from_name", "Unknown")
+                        subject = m.get("subject", "(no subject)")
+                        lines.append(f"- {from_name}: {subject}")
+                    if len(unread) == 0:
+                        lines.append("(No unread inbox emails)")
+                    reply = ["\n".join(lines)]
+            save_state(state)
+            _log_conversation(text, reply, route="gmail_live")
+            return reply
+        except Exception as e:
+            reply = ["[GMAIL] Inbox is empty or unreachable."]
+            save_state(state)
+            _log_conversation(text, reply, route="gmail_live_error")
+            return reply
+    if _detect_inner_circle_email_reply_intent(query):
+        bridge_reply = _handle_inner_circle_email_reply_bridge(query)
+        if bridge_reply is not None:
+            reply = [bridge_reply]
+            save_state(state)
+            _log_conversation(text, reply, route="email_reply_bridge")
+            return reply
     """
     Main Cassandra conversational handler.
     Returns a list of Telegram-ready reply strings.
@@ -2449,6 +4360,73 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     query = _strip_prefix(text)
     _update_cues(state, query)
 
+    # ── Topic-sensitivity gate for inner-circle contacts ──────────────────────
+    _sender_name = session_meta.get("sender_name")
+    _sender_chat_id = session_meta.get("sender_chat_id")
+    _contact_entry = None
+    if _sender_name and _sender_chat_id not in (None, ""):
+        _name_contact = _find_designated_contact(sender_name=_sender_name, sender_chat_id=None)
+        if _name_contact is not None and _name_contact.get("tier") == "inner_circle":
+            _verified_contact = verify_sender_on_channel(
+                sender_name=_sender_name,
+                sender_id=str(_sender_chat_id),
+                channel="telegram",
+            )
+            if _verified_contact is None:
+                _identity_reply = (
+                    "I can't verify who this is. Winship will need to help me connect us."
+                )
+                log_chirp("unverified_sender", state)
+                save_state(state)
+                _log_conversation(text, [_identity_reply], route="identity_challenge")
+                return [_identity_reply]
+            _contact_entry = _verified_contact
+    if _contact_entry is None:
+        _contact_entry = _find_designated_contact(
+            sender_name=_sender_name, sender_chat_id=_sender_chat_id
+        )
+    if _contact_entry is not None:
+        from cassandra_contact_policy import classify_topic as _classify_topic
+        _lane = _classify_topic(query, _contact_entry["nickname"])
+        if _lane == "caution":
+            _hold_reply = (
+                "I have context on that, but I'd like to verify with Winship "
+                "before sharing. I'll follow up shortly."
+            )
+            try:
+                from chief_notify import send as _notify_winship
+                _notify_winship(
+                    f"Cassandra topic hold \u2014 caution lane.\n"
+                    f"From: {_contact_entry['display_name']} ({_contact_entry['nickname']})\n"
+                    f"Asked: {query}\n"
+                    f"Lane: caution \u2014 awaiting your confirmation."
+                )
+            except Exception as _e:
+                print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
+            save_state(state)
+            _log_conversation(text, [_hold_reply], route="topic_gate_hold")
+            return [_hold_reply]
+        if _lane == "escalate":
+            _escalate_reply = (
+                "That's something I'd need Winship to authorize. "
+                "I'll flag it for him."
+            )
+            try:
+                from chief_notify import send as _notify_winship
+                _notify_winship(
+                    f"Cassandra topic ESCALATION.\n"
+                    f"From: {_contact_entry['display_name']} ({_contact_entry['nickname']})\n"
+                    f"Asked: {query}\n"
+                    f"Lane: escalate \u2014 do not answer without your approval."
+                )
+            except Exception as _e:
+                print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
+            save_state(state)
+            _log_conversation(text, [_escalate_reply], route="topic_gate_escalate")
+            return [_escalate_reply]
+        # _lane == "allowed" → fall through to normal dispatch
+    # ── End topic-sensitivity gate ────────────────────────────────────────────
+
     # Pending income follow-up — check before financial detection
     pending = state.get("pending_income_followup")
     if pending:
@@ -2476,6 +4454,16 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [fin_reply]
     # fall through to LLM if detection or parsing failed
 
+    # Future-action enqueue — bypass LLM, queues reminder for later dispatch.
+    # Must come before calendar_create because "remind me " is in _CALENDAR_CREATE_WORDS.
+    if _detect_future_action_intent(query):
+        future_reply = _handle_future_action_queue_request(query, sender_chat_id=session_meta.get("sender_chat_id"))
+        if future_reply is not None:
+            save_state(state)
+            _log_conversation(text, [future_reply], route="future_action")
+            return [future_reply]
+    # fall through to LLM if enqueue returned None
+
     # Calendar create routing — bypass LLM for event creation
     if _detect_calendar_create_intent(query):
         cal_reply = _handle_calendar_create(query)
@@ -2485,7 +4473,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [cal_reply]
     # fall through to LLM if extraction failed or unclear
 
-    # Outreach intro email routing — bypass LLM, uses the broker email pipeline
+    # Outreach intro email routing — bypass LLM, creates brokered Gmail drafts
     if _detect_outreach_email_intent(query):
         outreach_reply = _handle_outreach_email_request(query)
         if outreach_reply is not None:
@@ -2493,7 +4481,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [outreach_reply], route="outreach_email_send")
             return [outreach_reply]
 
-    # Email send routing — bypass LLM, requires L2 Guardian approval
+    # Email routing — bypass LLM, creates brokered review drafts instead of sending
     if _detect_send_email_intent(query):
         email_reply = _handle_send_email(query)
         if email_reply is not None:
@@ -2509,6 +4497,29 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [invoice_reply], route="invoice_create")
             return [invoice_reply]
+
+    # File verification — bypass LLM, direct filesystem check
+    if _detect_file_verify_intent(query):
+        file_reply = _handle_file_verification_request(query)
+        if file_reply is not None:
+            save_state(state)
+            _log_conversation(text, [file_reply], route="file_verify")
+            return [file_reply]
+
+    # Payment verification — bypass LLM, direct Gmail/log check
+    if _detect_payment_verify_intent(query):
+        pay_reply = _handle_payment_verification_request(query)
+        if pay_reply is not None:
+            save_state(state)
+            _log_conversation(text, [pay_reply], route="payment_verify")
+            return [pay_reply]
+
+    if not _looks_like_payment_verify_query(query) and detect_finance_status_intent(query):
+        finance_reply = _handle_finance_status_request(query)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status")
+            return [finance_reply]
 
     context  = build_context_snapshot(state)
     focus    = is_focus_mode()
@@ -2537,10 +4548,20 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     contacts_ctx   = _fetch_contacts_context(query)
     contacts_block = f"{contacts_ctx}\n\n" if contacts_ctx else ""
 
+    finance_ctx   = format_finance_context(query)
+    finance_block = f"{finance_ctx}\n\n" if finance_ctx else ""
+
+    payment_verify_ctx   = _fetch_payment_verify_context(query)
+    payment_verify_block = f"{payment_verify_ctx}\n\n" if payment_verify_ctx else ""
+    reality_ctx   = _format_reality_context(query)
+    reality_block = f"{reality_ctx}\n\n" if reality_ctx else ""
+
     # Cloud routing gate — evaluated after all context sources are known.
     # Passes context pieces (not the assembled prompt) so the check can inspect
     # exactly what was injected rather than pattern-matching the full prompt string.
-    cloud_ok = _cassandra_context_clean(calendar_ctx, gmail_ctx, contacts_ctx, context, query)
+    cloud_ok = _cassandra_context_clean(
+        calendar_ctx, gmail_ctx, contacts_ctx, finance_ctx, payment_verify_ctx, reality_ctx, context, query
+    )
 
     prompt = (
         f"{persona}\n"
@@ -2549,6 +4570,9 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         f"{calendar_block}"
         f"{gmail_block}"
         f"{contacts_block}"
+        f"{finance_block}"
+        f"{payment_verify_block}"
+        f"{reality_block}"
         f"{registry_block}"
         f"User: {query}\n"
         f"Cassandra:"
@@ -2573,7 +4597,12 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         error_reply = ["I'm here, but I hit a snag thinking that through. Try again in a moment."]
         _log_conversation(text, error_reply, route="error")
         return error_reply
+    route_override = None
     reply = _pii_rehydrate_reply(reply, _pii_ctx)
+    rescued_payment_reply = _rescue_payment_verify_reply(query, reply)
+    if rescued_payment_reply is not None:
+        reply = rescued_payment_reply
+        route_override = "payment_verify_rescue"
     reply = gate_reply(reply, query,
                        has_registry_context=registry_ctx is not None)
     reply = tts_clean(reply)
@@ -2600,5 +4629,5 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     save_state(state)
 
     result = [reply] if reply else ["I'm here — something went quiet on my end. Try again."]
-    _log_conversation(text, result, route="llm_deep" if deep else "llm")
+    _log_conversation(text, result, route=route_override or ("llm_deep" if deep else "llm"))
     return result

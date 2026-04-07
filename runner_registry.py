@@ -58,6 +58,7 @@ import shutil
 import subprocess
 import sys
 import time
+from glob import glob
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -66,6 +67,12 @@ REGISTRY_CACHE = Path("/home/openclaw/.runner_registry_cache.json")
 RUNNERS_D = Path("/home/openclaw/runners.d")
 DISCOVERY_LOG = Path("/mnt/c/OpenClaw/logs/runner_discovery.log")
 CACHE_TTL = 3600  # Re-discover every hour
+
+EXTRA_BINARY_GLOBS = (
+    "/home/openclaw/.local/bin",
+    "/home/openclaw/.nvm/versions/node/*/bin",
+    "/home/openclaw/.vscode-server/extensions/openai.chatgpt-*/bin/linux-x86_64",
+)
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -135,7 +142,7 @@ KNOWN_RUNNERS = {
         "runner_type": "cloud",
         "cost_tier": "moderate",
         "headless_flag": "exec",
-        "invoke_pattern": "setsid timeout {timeout} codex exec \"$(cat {prompt_file})\"",
+        "invoke_pattern": "setsid timeout {timeout} codex exec --sandbox workspace-write - < \"{prompt_file}\"",
         "strengths": ["code-review", "sandbox-isolation", "openai-models"],
         "weaknesses": ["less-context-than-claude"],
         "flag_parser": "_parse_codex_help",
@@ -147,7 +154,7 @@ KNOWN_RUNNERS = {
         "runner_type": "cloud",
         "cost_tier": "cheap",
         "headless_flag": "--prompt",
-        "invoke_pattern": "setsid timeout {timeout} gemini --prompt \"$(cat {prompt_file})\" --yolo --sandbox --output-format text",
+        "invoke_pattern": "setsid timeout {timeout} gemini --prompt \"$(cat {prompt_file})\" --yolo --output-format text",
         "strengths": ["fast", "cheap", "large-context", "sandbox"],
         "weaknesses": ["less-agentic-than-claude"],
         "flag_parser": "_parse_generic_help",
@@ -190,6 +197,24 @@ def _run_cmd(cmd: list[str], timeout: int = 10) -> str:
         return r.stdout + r.stderr
     except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError):
         return ""
+
+
+def _find_binary(binary_names: list[str]) -> Optional[str]:
+    """Resolve a CLI binary from PATH or known non-login shell locations."""
+    for bname in binary_names:
+        found = shutil.which(bname)
+        if found:
+            return found
+
+    for base_glob in EXTRA_BINARY_GLOBS:
+        for base_dir in sorted(glob(base_glob)):
+            if not os.path.isdir(base_dir):
+                continue
+            for bname in binary_names:
+                candidate = os.path.join(base_dir, bname)
+                if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                    return candidate
+    return None
 
 
 def _parse_flags_generic(help_text: str) -> list[RunnerFlag]:
@@ -257,23 +282,21 @@ PARSERS = {
 
 def _discover_runner(name: str, spec: dict) -> Optional[Runner]:
     """Discover a single runner from its spec."""
-    binary = None
-    for bname in spec["binary_names"]:
-        found = shutil.which(bname)
-        if found:
-            binary = found
-            break
-
+    binary = _find_binary(spec["binary_names"])
     if not binary:
         return None
 
     # Get version
-    version = _run_cmd(spec["version_cmd"]).strip().split("\n")[0][:100]
+    version_cmd = list(spec["version_cmd"])
+    help_cmd = list(spec["help_cmd"])
+    version_cmd[0] = binary
+    help_cmd[0] = binary
+    version = _run_cmd(version_cmd).strip().split("\n")[0][:100]
     if not version:
         version = "unknown"
 
     # Get help and parse flags
-    help_text = _run_cmd(spec["help_cmd"])
+    help_text = _run_cmd(help_cmd)
     parser_name = spec.get("flag_parser", "_parse_generic_help")
     parser_fn = PARSERS.get(parser_name, _parse_generic_help)
     flags = parser_fn(help_text) if help_text else []
@@ -398,7 +421,12 @@ def refresh(force: bool = False) -> dict[str, Runner]:
                     if name.startswith("_"):
                         continue
                     flags = [RunnerFlag(**f) for f in data.pop("flags", [])]
-                    _registry[name] = Runner(**data, flags=flags)
+                    runner = Runner(**data, flags=flags)
+                    spec = KNOWN_RUNNERS.get(name)
+                    if spec:
+                        runner.invoke_pattern = spec.get("invoke_pattern", runner.invoke_pattern)
+                        runner.headless_flag = spec.get("headless_flag", runner.headless_flag)
+                    _registry[name] = runner
                 _last_refresh = time.time()
                 return _registry
         except Exception:
@@ -490,6 +518,23 @@ def get_runners_for_task(task_type: str) -> list[Runner]:
 
     scored.sort(key=lambda x: -x[0])
     return [r for _, r in scored]
+
+
+def get_fallback_runner(failed_runner: str, task_type: str = "standard") -> Optional[str]:
+    """Return the name of the next best available runner after failed_runner fails.
+
+    Queries the live registry ranked by task_type fit and returns the first
+    available runner that is not failed_runner.  Returns None if no alternative
+    is available (single-runner installs).
+
+    This is the authoritative fallback selection path — builder_watcher.sh calls
+    this instead of a static mapping so that only installed runners are selected.
+    """
+    ranked = get_runners_for_task(task_type)
+    for r in ranked:
+        if r.name != failed_runner:
+            return r.name
+    return None
 
 
 def _score_runner_for_task(runner: Runner, task_type: str) -> float:
@@ -614,9 +659,18 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--refresh", action="store_true", help="Force rediscovery")
     parser.add_argument("--for-task", type=str, help="Rank runners for a task type")
+    parser.add_argument("--fallback-for", type=str, metavar="RUNNER",
+                        help="Print the best fallback runner name for the given runner")
+    parser.add_argument("--task-type", type=str, default="standard",
+                        help="Task type for fallback ranking (default: standard)")
     args = parser.parse_args()
 
     reg = refresh(force=args.refresh)
+
+    if args.fallback_for:
+        result = get_fallback_runner(args.fallback_for, task_type=args.task_type)
+        print(result if result else "")
+        return
 
     if args.for_task:
         ranked = get_runners_for_task(args.for_task)

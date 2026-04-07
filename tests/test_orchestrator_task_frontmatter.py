@@ -34,6 +34,7 @@ def isolated_orchestrator(tmp_path, monkeypatch):
     monkeypatch.setattr(orchestrator, "LOOP_DIR", loop_dir, raising=False)
     monkeypatch.setattr(orchestrator, "CURRENT_DIR", current_dir, raising=False)
     monkeypatch.setattr(orchestrator, "STATUS_FILE", status_file, raising=False)
+    monkeypatch.setattr(orchestrator, "TASK_MD", task_file, raising=False)
     monkeypatch.setattr(orchestrator, "PC_OUTPUT", pc_output, raising=False)
     monkeypatch.setattr(orchestrator, "MAC_REVIEW", mac_review, raising=False)
     monkeypatch.setattr(orchestrator, "CLOSEOUT", closeout, raising=False)
@@ -118,3 +119,384 @@ def test_handle_idle_skips_all_invalid_queued_tasks_without_promoting(isolated_o
     log_text = isolated_orchestrator["log_file"].read_text()
     assert "skipping queued task a-invalid.md: missing required frontmatter field(s): title" in log_text
     assert "queued tasks invalid or skipped — waiting" in log_text
+
+
+def test_handle_idle_skips_human_supervised_queued_task_and_promotes_next_valid_one(isolated_orchestrator):
+    human_task = isolated_orchestrator["tasks_dir"] / "a-human.md"
+    valid_task = isolated_orchestrator["tasks_dir"] / "b-valid.md"
+    human_task.write_text(
+        "title: Human Task\n"
+        "goal: Needs real-world verification\n"
+        "**Assigned to:** Human-supervised\n"
+        "**Execution mode:** Human-supervised capture and record\n"
+    )
+    valid_content = "title: Valid task\ngoal: Ship it\nscope:\n- yep\n"
+    valid_task.write_text(valid_content)
+
+    orchestrator.handle_idle({"status": "idle", "task_name": "previous-task"})
+
+    assert "b-valid" == json.loads(isolated_orchestrator["status_file"].read_text())["task_name"]
+    assert isolated_orchestrator["task_file"].read_text() == valid_content
+    assert human_task.exists()
+    assert not valid_task.exists()
+    assert isolated_orchestrator["launches"] == [["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"]]
+    log_text = isolated_orchestrator["log_file"].read_text()
+    assert "skipping queued task a-human.md: human-supervised execution mode" in log_text
+    assert "promoting queued task b-valid.md → task.md" in log_text
+
+
+def test_pc_output_valid_requires_cost_truth_and_headroom_sections(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: Valid\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps({"status": "pc_turn", "task_name": "x", "pass": 16, "approved": False})
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text(
+        "\n".join(
+            [
+                "PASS: 16",
+                "STATUS: DONE",
+                "",
+                "CHANGES:",
+                "- file",
+                "",
+                "REASONING:",
+                "- why",
+                "",
+                "ROLLBACK PLAN:",
+                "- revert",
+            ]
+        )
+    )
+
+    valid, reason = orchestrator.pc_output_valid(16)
+    assert valid is False
+    assert reason == "quality_gate"
+
+
+def test_handle_pc_turn_builder_timeout_archives_using_task_md_title(
+    isolated_orchestrator, monkeypatch
+):
+    isolated_orchestrator["task_file"].write_text(
+        "---\n"
+        "title: Real Active Task\n"
+        "goal: Ship it\n"
+        "---\n"
+    )
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "pc_turn",
+                "task_name": "stale-status-task",
+                "pass": 2,
+                "approved": False,
+                "relaunch_attempted": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text(
+        "PASS: 2\nSTATUS: BLOCKED\n"
+    )
+
+    recovery_calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(orchestrator, "builder_running", lambda: False)
+    monkeypatch.setattr(
+        orchestrator,
+        "_queue_manus_recovery_task",
+        lambda failed_task, reason: recovery_calls.append((failed_task, reason)) or None,
+    )
+
+    orchestrator.handle_pc_turn(
+        {
+            "status": "pc_turn",
+            "task_name": "stale-status-task",
+            "pass": 2,
+            "approved": False,
+            "relaunch_attempted": True,
+        },
+        elapsed=orchestrator.BUILDER_TIMEOUT,
+    )
+
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert any(name.startswith("task_Real Active Task_p2_builder_timeout_") for name in archive_names)
+    assert any(name.startswith("pc_output_Real Active Task_p2_builder_timeout_") for name in archive_names)
+    assert not any("stale-status-task" in name for name in archive_names)
+    assert recovery_calls == [("Real Active Task", "builder_timeout_after_retry")]
+
+
+def test_handle_pc_turn_builder_timeout_falls_back_to_status_task_name_when_task_md_missing(
+    isolated_orchestrator, monkeypatch
+):
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "pc_turn",
+                "task_name": "status-task-name",
+                "pass": 1,
+                "approved": False,
+                "relaunch_attempted": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text(
+        "PASS: 1\nSTATUS: BLOCKED\n"
+    )
+
+    monkeypatch.setattr(orchestrator, "builder_running", lambda: False)
+    monkeypatch.setattr(orchestrator, "_queue_manus_recovery_task", lambda failed_task, reason: None)
+
+    orchestrator.handle_pc_turn(
+        {
+            "status": "pc_turn",
+            "task_name": "status-task-name",
+            "pass": 1,
+            "approved": False,
+            "relaunch_attempted": True,
+        },
+        elapsed=orchestrator.BUILDER_TIMEOUT,
+    )
+
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert any(name.startswith("pc_output_status-task-name_p1_builder_timeout_") for name in archive_names)
+
+
+def test_handle_approved_waits_when_closeout_ok_missing(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: Real Task\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "task_name": "real-task",
+                "pass": 1,
+                "approved": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text("PASS: 1\nSTATUS: DONE\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+
+    orchestrator.handle_approved(
+        {
+            "status": "approved",
+            "task_name": "real-task",
+            "pass": 1,
+            "approved": True,
+        }
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert status["status"] == "approved"
+    assert isolated_orchestrator["task_file"].exists()
+    assert isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").exists()
+    assert isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").exists()
+    assert archive_names == []
+
+
+def test_handle_approved_waits_when_closeout_ok_is_invalid(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: Real Task\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "task_name": "real-task",
+                "pass": 1,
+                "approved": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text("PASS: 1\nSTATUS: DONE\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "closeout.ok").write_text("not json")
+
+    orchestrator.handle_approved(
+        {
+            "status": "approved",
+            "task_name": "real-task",
+            "pass": 1,
+            "approved": True,
+        }
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert status["status"] == "approved"
+    assert isolated_orchestrator["task_file"].exists()
+    assert isolated_orchestrator["loop_dir"].joinpath("current", "closeout.ok").exists()
+    assert archive_names == []
+
+
+def test_handle_approved_idles_when_closeout_ok_matches(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: real-task\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "task_name": "real-task",
+                "pass": 1,
+                "approved": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text("PASS: 1\nSTATUS: DONE\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "closeout.ok").write_text(
+        json.dumps({"task_name": "real-task", "pass": 1, "confirmed_at": "2026-04-04T12:00:00"})
+    )
+
+    orchestrator.handle_approved(
+        {
+            "status": "approved",
+            "task_name": "real-task",
+            "pass": 1,
+            "approved": True,
+        }
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert status["status"] == "idle"
+    assert not isolated_orchestrator["task_file"].exists()
+    assert any(name.startswith("task_real-task_") for name in archive_names)
+    assert any(name.startswith("pc_output_real-task_") for name in archive_names)
+    assert any(name.startswith("mac_review_real-task_") for name in archive_names)
+    assert any(name.startswith("closeout_real-task_") for name in archive_names)
+
+
+def test_handle_approved_archives_using_task_md_title_when_status_task_is_stale(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text(
+        "---\n"
+        "title: Real Approved Task\n"
+        "goal: Ship it\n"
+        "---\n"
+    )
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "task_name": "stale-status-task",
+                "pass": 1,
+                "approved": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text("PASS: 1\nSTATUS: DONE\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "closeout.ok").write_text(
+        json.dumps({"task_name": "stale-status-task", "pass": 1, "confirmed_at": "2026-04-04T12:00:00"})
+    )
+
+    orchestrator.handle_approved(
+        {
+            "status": "approved",
+            "task_name": "stale-status-task",
+            "pass": 1,
+            "approved": True,
+        }
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert status["status"] == "idle"
+    assert any(name.startswith("task_Real Approved Task_") for name in archive_names)
+    assert any(name.startswith("pc_output_Real Approved Task_") for name in archive_names)
+    assert any(name.startswith("mac_review_Real Approved Task_") for name in archive_names)
+    assert any(name.startswith("closeout_Real Approved Task_") for name in archive_names)
+    assert not any("stale-status-task" in name for name in archive_names)
+
+
+def test_handle_approved_archives_using_status_task_name_when_task_md_missing(isolated_orchestrator):
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "task_name": "status-approved-task",
+                "pass": 1,
+                "approved": True,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text("PASS: 1\nSTATUS: DONE\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    isolated_orchestrator["loop_dir"].joinpath("current", "closeout.ok").write_text(
+        json.dumps({"task_name": "status-approved-task", "pass": 1, "confirmed_at": "2026-04-04T12:00:00"})
+    )
+
+    orchestrator.handle_approved(
+        {
+            "status": "approved",
+            "task_name": "status-approved-task",
+            "pass": 1,
+            "approved": True,
+        }
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    archive_names = sorted(p.name for p in isolated_orchestrator["loop_dir"].joinpath("archive").iterdir())
+    assert status["status"] == "idle"
+    assert not any(name.startswith("task_status-approved-task_") for name in archive_names)
+    assert any(name.startswith("pc_output_status-approved-task_") for name in archive_names)
+    assert any(name.startswith("mac_review_status-approved-task_") for name in archive_names)
+    assert any(name.startswith("closeout_status-approved-task_") for name in archive_names)
+
+
+def test_handle_mac_turn_blocks_when_review_header_mismatches_task_and_pass(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: Current Active Task\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "mac_turn",
+                "task_name": "current-task",
+                "pass": 2,
+                "approved": False,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text(
+        "# Mac Review — old-task Pass 1\n\nNEEDS_REWORK\n"
+    )
+
+    orchestrator.handle_mac_turn(
+        {
+            "status": "mac_turn",
+            "task_name": "current-task",
+            "pass": 2,
+            "approved": False,
+        },
+        elapsed=0,
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "blocked"
+    assert status["block_reason"] == "stale_mac_review"
+
+
+def test_handle_mac_turn_accepts_review_header_matching_active_task_title(isolated_orchestrator):
+    isolated_orchestrator["task_file"].write_text("title: Current Active Task\ngoal: Ship it\n")
+    isolated_orchestrator["status_file"].write_text(
+        json.dumps(
+            {
+                "status": "mac_turn",
+                "task_name": "current-task",
+                "pass": 2,
+                "approved": False,
+            }
+        )
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text(
+        "# Mac Review — Current Active Task Pass 2\n\nNEEDS_REWORK\n"
+    )
+
+    orchestrator.handle_mac_turn(
+        {
+            "status": "mac_turn",
+            "task_name": "current-task",
+            "pass": 2,
+            "approved": False,
+        },
+        elapsed=0,
+    )
+
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "pc_turn"
+    assert status["pass"] == 3

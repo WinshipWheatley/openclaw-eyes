@@ -18,9 +18,14 @@ Throttle:
 
 import re
 import subprocess
+import sys
 import time
+import os
 from datetime import datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path.home() / "tools"))
+from future_action_queue import dispatch_due_actions
 
 from cassandra_brain import (
     is_focus_mode,
@@ -31,6 +36,7 @@ from cassandra_brain import (
     chirp_allowed,
     log_chirp,
 )
+from cassandra_sender import send_message as _telegram_send
 from chief_output_utils import tts_clean
 from cassandra_voice import speak
 
@@ -40,6 +46,28 @@ _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"
 _OPS_LOG     = Path("/mnt/c/OpenClaw/logs/ops_intake_log.md")
 
 POLL_INTERVAL_S = 1800  # 30 minutes
+_RELOAD_PATHS = (
+    Path(__file__),
+    Path("/home/openclaw/cassandra_brain.py"),
+    Path("/home/openclaw/cassandra_reality_notes.json"),
+    Path("/home/openclaw/tools/future_action_queue.py"),
+)
+_SOURCE_MTIMES = {
+    str(path): (path.stat().st_mtime if path.exists() else 0.0)
+    for path in _RELOAD_PATHS
+}
+
+
+def _restart_if_sources_changed() -> None:
+    for raw_path, start_mtime in _SOURCE_MTIMES.items():
+        path = Path(raw_path)
+        current = path.stat().st_mtime if path.exists() else 0.0
+        if current > start_mtime:
+            print(
+                f"[cassandra_watcher] source change detected ({path.name}) — reloading process",
+                flush=True,
+            )
+            os.execv(sys.executable, [sys.executable, "-u", str(Path(__file__))])
 
 
 def _send(message: str) -> None:
@@ -54,6 +82,23 @@ def _send(message: str) -> None:
         print(f"[cassandra_watcher] chirped: {message[:80]}", flush=True)
     except Exception as e:
         print(f"[cassandra_watcher] send error: {e}", flush=True)
+
+
+def _dispatch_future_actions() -> None:
+    """Deliver any future-action reminders whose due_at has passed."""
+    try:
+        def _send_reminder(message: str, chat_id: str | None) -> None:
+            _telegram_send(message, chat_id=chat_id)
+
+        delivered = dispatch_due_actions(_send_reminder)
+        for item in delivered:
+            print(
+                f"[cassandra_watcher] future-action delivered: "
+                f"id={item['id']} due={item['due_at']} text={item['request_text'][:60]}",
+                flush=True,
+            )
+    except Exception as e:
+        print(f"[cassandra_watcher] future-action dispatch error: {e}", flush=True)
 
 
 def _tail_md(path: Path, n: int = 10) -> list[str]:
@@ -136,7 +181,9 @@ def run_loop() -> None:
     print("[cassandra_watcher] started.", flush=True)
     while True:
         try:
+            _restart_if_sources_changed()
             process_pending_followups()
+            _dispatch_future_actions()
             if not is_focus_mode() and not is_social_mode():
                 state = load_state()
                 if chirp_allowed("any", state):

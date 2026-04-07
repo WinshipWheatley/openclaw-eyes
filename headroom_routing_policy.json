@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "policy_note": "Thresholds for headroom-aware runner selection. Tunable by operator without code changes.",
+  "providers": {
+    "claude": {
+      "five_hour_window": {
+        "divert_above_pct": 70,
+        "reserve_for_tiers": ["architect"],
+        "divert_to": ["gemini", "codex"]
+      },
+      "seven_day_window": {
+        "divert_above_pct": 85,
+        "reserve_for_tiers": ["architect", "standard"],
+        "divert_to": ["gemini", "codex"]
+      }
+    },
+    "codex": {
+      "headroom_available": false,
+      "policy": "passthrough_to_budget_zone"
+    },
+    "gemini": {
+      "headroom_available": false,
+      "policy": "passthrough_to_budget_zone"
+    },
+    "ollama": {
+      "headroom_available": false,
+      "policy": "always_allow_local"
+    }
+  },
+  "overrides": {
+    "sensitive_task": "ollama_only_no_headroom_check",
+    "coding_runner_env": "bypass_headroom_check",
+    "explicit_profile_force": "honor_then_headroom_check"
+  },
+  "fallback_when_all_diverted": "ollama"
+}

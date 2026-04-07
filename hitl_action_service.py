@@ -50,7 +50,7 @@ FINANCIAL_ACTION_TYPES: frozenset[str] = frozenset({
     "charge",
 })
 
-_DEFAULT_TTL_SECONDS = 3600  # 1 hour
+_DEFAULT_TTL_SECONDS = 86400  # 24 hours
 
 
 # ── Validation ────────────────────────────────────────────────────────────────

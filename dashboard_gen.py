@@ -2,8 +2,12 @@
 """dashboard_gen.py — Unified dashboard generator for OpenClaw VS Code windows.
 
 Generates markdown files in /home/openclaw/mac_eyes/ every INTERVAL seconds:
-  - For Winship 1 - Right Now.md   (loop status overview)
-  - For Winship 2 - What Happened.md (activity log)
+  - Winship/Big Picture.md         (system-wide overview)
+  - Winship/AI Big Picture.md      (dense system diagnostics)
+  - Winship/Right now.md           (loop status overview)
+  - Winship/AI Right now.md        (dense loop diagnostics)
+  - Winship/What happened.md       (activity log)
+  - Winship/AI What happened.md    (dense activity diagnostics)
   - Cassandra.md                    (Cassandra status, capabilities, messages)
   - Chief.md                        (Chief process status, workers)
   - Guardian.md                     (approval status, pending, history)
@@ -24,6 +28,8 @@ from pathlib import Path
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 OUT_DIR = Path("/home/openclaw/mac_eyes")
+WINSHIP_DIR = OUT_DIR / "Winship"
+LEGACY_DIR = OUT_DIR / "legacy"
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
 ORCH_LOG = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
@@ -36,10 +42,34 @@ CONTACT_NICKNAMES = Path("/home/openclaw/contact_nicknames.json")
 APPROVAL_PENDING = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 FOLLOWUP_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_followup.jsonl")
 CONVERSATIONS_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl")
+OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
+EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")
+FUTURE_ACTIONS_DB = Path("/mnt/c/OpenClaw/logs/cassandra_future_actions.db")
 BUDGET_TRACKER = Path("/home/openclaw/budget_tracker.py")
 AUTONOMY_QUAL = Path("/home/openclaw/autonomy_qualification.py")
+RECEIPT_DIR = Path("/home/openclaw/execution_receipts")
+VERDICT_DIR = Path("/home/openclaw/compliance_verdicts")
+HEADROOM_POLICY = Path("/home/openclaw/headroom_routing_policy.json")
 
 INTERVAL = 30  # seconds
+
+# ── Guarded optional imports ──────────────────────────────────────────────────
+
+try:
+    from cost_truth_surface import load_receipt, latest_receipts, get_headroom
+    _HAS_COST_TRUTH = True
+except ImportError:
+    _HAS_COST_TRUTH = False
+
+try:
+    from mode_compliance_checker import (
+        check_latest, latest_verdicts,
+        format_compact as _fmt_verdict,
+    )
+    _HAS_COMPLIANCE = True
+except ImportError:
+    _HAS_COMPLIANCE = False
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,6 +108,30 @@ def age_str(ts_str: str) -> str:
             if delta.total_seconds() < 86400:
                 return f"{int(delta.total_seconds() / 3600)}h ago"
             return f"{delta.days}d ago"
+        except ValueError:
+            continue
+    return ts_str
+
+
+def friendly_time_str(ts_str: str) -> str:
+    """Human-friendly timestamp: relative when recent, otherwise 12-hour local time."""
+    try:
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        if dt.tzinfo is not None:
+            dt = dt.astimezone().replace(tzinfo=None)
+        delta = datetime.now() - dt
+        if delta.total_seconds() < 86400:
+            return age_str(dt.isoformat(timespec="seconds"))
+        return dt.strftime("%b %-d, %-I:%M %p")
+    except ValueError:
+        pass
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            dt = datetime.strptime(ts_str, fmt)
+            delta = datetime.now() - dt
+            if delta.total_seconds() < 86400:
+                return age_str(ts_str)
+            return dt.strftime("%b %-d, %-I:%M %p")
         except ValueError:
             continue
     return ts_str
@@ -145,6 +199,71 @@ def get_archive_count() -> int:
         return 0
 
 
+_MEANINGFUL_INCLUDE_PREFIXES = (
+    "impl-",
+    "spec-",
+    "ops-",
+    "test-",
+    "cas-",
+    "hitl-",
+    "fin-",
+    "env-",
+    "doc-",
+    "cleanup-",
+    "harden-",
+)
+_MEANINGFUL_EXCLUDE_PREFIXES = (
+    "test-orch",
+    "auto-",
+    "auto-gen-",
+    "orch-",
+    "ar-",
+    "audit-",
+    "quick-",
+    "res-",
+    "sys-",
+    "hd-",
+    "cas-deb-",
+    "cas-gap-",
+    "cas-final-test",
+)
+
+
+def _task_id_from_closeout(path: Path) -> str | None:
+    stem = path.stem
+    if not stem.startswith("closeout_"):
+        return None
+    remainder = stem[len("closeout_"):]
+    if not remainder:
+        return None
+    task_id = remainder.rsplit("_", 1)[0]
+    return task_id or None
+
+
+def get_successful_loop_cycles() -> int:
+    try:
+        return len(list(ARCHIVE_DIR.glob("closeout_*.ok")))
+    except Exception:
+        return 0
+
+
+def get_completed_meaningful_tasks() -> int:
+    try:
+        count = 0
+        for path in ARCHIVE_DIR.glob("closeout_*.ok"):
+            task_id = _task_id_from_closeout(path)
+            if not task_id:
+                continue
+            if any(task_id.startswith(prefix) for prefix in _MEANINGFUL_EXCLUDE_PREFIXES):
+                continue
+            if not any(task_id.startswith(prefix) for prefix in _MEANINGFUL_INCLUDE_PREFIXES):
+                continue
+            count += 1
+        return count
+    except Exception:
+        return 0
+
+
 def get_budget_status() -> str:
     try:
         out = subprocess.check_output(
@@ -154,6 +273,326 @@ def get_budget_status() -> str:
         return out.strip()
     except Exception:
         return "Budget tracker unavailable"
+
+
+# ── Cost / headroom / compliance data helpers ─────────────────────────────────
+
+def _get_last_receipt() -> "dict | None":
+    if not _HAS_COST_TRUTH:
+        return None
+    try:
+        status = load_json(STATUS_FILE)
+        task_id = status.get("task_name", "")
+        if task_id:
+            receipt = load_receipt(task_id)
+            if receipt:
+                return receipt
+        recent = latest_receipts(1)
+        return recent[0] if recent else None
+    except Exception:
+        return None
+
+
+def _get_headroom_summary() -> dict:
+    if not _HAS_COST_TRUTH:
+        return {}
+    try:
+        return get_headroom()
+    except Exception:
+        return {}
+
+
+def _get_last_verdict() -> "dict | None":
+    if not _HAS_COMPLIANCE:
+        return None
+    try:
+        status = load_json(STATUS_FILE)
+        task_id = status.get("task_name", "")
+        if task_id:
+            verdict = check_latest(task_id)
+            if verdict:
+                return verdict
+        recent = latest_verdicts(1)
+        return recent[0] if recent else None
+    except Exception:
+        return None
+
+
+def _get_last_attempted_task() -> tuple[str, str] | None:
+    if not _HAS_COST_TRUTH:
+        return None
+    try:
+        recent = latest_receipts(1)
+    except Exception:
+        return None
+    if not recent:
+        return None
+    receipt = recent[0]
+    task_id = receipt.get("task_id") or "—"
+    recorded_at = receipt.get("recorded_at") or ""
+    return str(task_id), str(recorded_at)
+
+
+def _get_last_successful_task() -> tuple[str, str] | None:
+    try:
+        closeouts = sorted(ARCHIVE_DIR.glob("closeout_*.ok"), key=lambda p: p.stat().st_mtime, reverse=True)
+    except Exception:
+        return None
+    if not closeouts:
+        return None
+    path = closeouts[0]
+    task_id = _task_id_from_closeout(path) or "—"
+    try:
+        ts = datetime.fromtimestamp(path.stat().st_mtime).isoformat()
+    except Exception:
+        ts = ""
+    return task_id, ts
+
+
+def _is_meaningful_task_id(task_id: str) -> bool:
+    if any(task_id.startswith(prefix) for prefix in _MEANINGFUL_EXCLUDE_PREFIXES):
+        return False
+    return any(task_id.startswith(prefix) for prefix in _MEANINGFUL_INCLUDE_PREFIXES)
+
+
+def _get_last_meaningful_successful_task() -> tuple[str, str] | None:
+    try:
+        closeouts = sorted(ARCHIVE_DIR.glob("closeout_*.ok"), key=lambda p: p.stat().st_mtime, reverse=True)
+    except Exception:
+        return None
+    for path in closeouts:
+        task_id = _task_id_from_closeout(path) or ""
+        if not task_id or not _is_meaningful_task_id(task_id):
+            continue
+        try:
+            ts = datetime.fromtimestamp(path.stat().st_mtime).isoformat()
+        except Exception:
+            ts = ""
+        return task_id, ts
+    return None
+
+
+def _get_structured_budget() -> "dict | None":
+    try:
+        out = subprocess.run(
+            ["python3", str(BUDGET_TRACKER), "--status", "--json"],
+            capture_output=True, text=True, timeout=5, cwd="/home/openclaw"
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return json.loads(out.stdout)
+    except Exception:
+        pass
+    return None
+
+
+# ── Render helpers ────────────────────────────────────────────────────────────
+
+def _render_cost_mode_section(receipt: "dict | None", verdict: "dict | None") -> str:
+    lines = ["", "### Last Run"]
+    if receipt is None:
+        lines.append("- No execution receipt yet.")
+        return "\n".join(lines)
+
+    cost = receipt.get("cost", {})
+    execution = receipt.get("execution", {})
+    total_cost = cost.get("total_cost_usd")
+    estimated_cap = cost.get("estimated_budget_cap_usd")
+
+    model_req = execution.get("model_requested", "?")
+    model_act = execution.get("model_actual", model_req)
+    runner = execution.get("runner", "?")
+    expected_runner = None
+    specific = ""
+    reason = ""
+
+    if verdict is not None:
+        dims = verdict.get("dimensions", [])
+        first_noncompliant = next((d for d in dims if d.get("verdict") == "noncompliant"), None)
+        reason = verdict.get("overall_reason", "")
+        if first_noncompliant:
+            dim = first_noncompliant.get("dimension", "mismatch")
+            intended = first_noncompliant.get("intended")
+            actual = first_noncompliant.get("actual")
+            if dim == "runner" and intended is not None:
+                expected_runner = str(intended)
+            if intended is not None or actual is not None:
+                specific = f"{dim}: intended {intended}, got {actual}"
+
+    if not expected_runner:
+        expected_runner = runner
+
+    lines.append(f"- **Expected runner:** {expected_runner}")
+    if model_req and model_act and model_req != model_act:
+        lines.append(f"- **Actual runner:** {runner}/{model_req} → fallback {model_act}")
+    else:
+        lines.append(f"- **Actual runner:** {runner}/{model_act}")
+
+    exit_code = execution.get("exit_code")
+    outcome = "finished"
+    meaning = ""
+    if isinstance(exit_code, int) and exit_code != 0:
+        if exit_code == 124:
+            outcome = "timed out"
+            meaning = "The builder hit its time limit before finishing."
+        else:
+            outcome = f"failed (exit code {exit_code})"
+    if verdict is not None and verdict.get("overall_verdict") == "noncompliant" and specific:
+        if "runner:" in specific:
+            meaning = "The task ran on a different runner than intended."
+    lines.append(f"- **Outcome:** {outcome}")
+    if meaning:
+        lines.append(f"- **What it likely means:** {meaning}")
+
+    if verdict is None:
+        lines.append("- **Compliance:** not yet checked")
+    else:
+        overall = verdict.get("overall_verdict", "unknown")
+        icon = {"compliant": "✅", "noncompliant": "❌", "partially-verified": "⚠️"}.get(overall, "❓")
+        cats = verdict.get("deviation_categories", [])
+        cat_str = f" [{', '.join(cats)}]" if cats else ""
+        tail = specific or reason
+        if tail:
+            lines.append(f"- **Compliance:** {icon} {overall} — {tail}{cat_str}")
+        else:
+            lines.append(f"- **Compliance:** {icon} {overall}{cat_str}")
+
+    if total_cost is not None:
+        lines.append(f"- **Spend:** ${total_cost:.4f}")
+    elif estimated_cap is not None:
+        lines.append(f"- **Spend:** about ${estimated_cap:.2f}")
+
+    return "\n".join(lines)
+
+
+def _render_headroom_section(headroom: dict) -> str:
+    lines = ["", "### Provider Headroom"]
+    if not headroom:
+        lines.append("- No live provider headroom data yet.")
+        return "\n".join(lines)
+
+    # Load divert threshold from policy file
+    divert_5h = 70
+    divert_7d = 85
+    try:
+        policy = json.loads(HEADROOM_POLICY.read_text())
+        claude_pol = policy.get("providers", {}).get("claude", {})
+        divert_5h = claude_pol.get("five_hour_window", {}).get("divert_above_pct", 70)
+        divert_7d = claude_pol.get("seven_day_window", {}).get("divert_above_pct", 85)
+    except Exception:
+        pass
+
+    claude = headroom.get("claude", {})
+    available = claude.get("available", False)
+    prov = claude.get("provenance", "unavailable")
+    if not available or prov == "unavailable":
+        lines.append("- Claude headroom is not available yet.")
+        return "\n".join(lines)
+
+    rate_limits = claude.get("rate_limits", {})
+    parts = []
+    warn = False
+    for window_key, label in [("five_hour_window", "5h"), ("seven_day_window", "7d")]:
+        w = rate_limits.get(window_key, {})
+        pct = w.get("used_percentage")
+        reset = w.get("reset_at", "")
+        threshold = divert_5h if window_key == "five_hour_window" else divert_7d
+        if pct is not None:
+            if pct >= threshold:
+                warn = True
+            reset_str = f" (resets {reset})" if reset else ""
+            parts.append(f"{label}: {pct}% used{reset_str}")
+    icon = "⚠️" if warn else "✅"
+    parts_str = " · ".join(parts) if parts else "no window data"
+    captured_at = claude.get("captured_at")
+    age_suffix = f" · {age_str(captured_at)}" if captured_at else ""
+    lines.append(f"- **Claude:** {icon} {parts_str}{age_suffix}")
+
+    return "\n".join(lines)
+
+
+def _render_structured_budget(budget: "dict | None", fallback_text: str = "") -> str:
+    lines = ["", "### Budget & Spend"]
+    if budget is None:
+        if fallback_text:
+            for bline in fallback_text.splitlines()[:5]:
+                lines.append(f"  {bline}")
+        else:
+            lines.append("  Budget tracker unavailable")
+        return "\n".join(lines)
+
+    zone = budget.get("budget_zone", "UNKNOWN")
+    zone_emoji = {"GREEN": "🟢", "YELLOW": "🟡", "ORANGE": "🟠", "RED": "🔴"}.get(zone.upper(), "⬜")
+    spent = budget.get("global_spent", 0)
+    cap = budget.get("global_cap", 0)
+    pct = budget.get("global_pct", 0)
+    lines.append(f"- **Zone:** {zone_emoji} {zone.upper()} — ${spent:.2f} / ${cap:.2f} ({pct:.0f}%) *(measured)*")
+
+    per_runner = budget.get("per_runner", {})
+    for runner, stats in sorted(per_runner.items()):
+        r_spent = stats.get("spent", 0)
+        r_cap = stats.get("cap", 0)
+        r_pct = stats.get("pct", 0)
+        lines.append(f"- **{runner.title()}:** ${r_spent:.2f} / ${r_cap:.2f} ({r_pct:.0f}%)")
+
+    today = budget.get("entries_today", 0)
+    lines.append(f"- **Tasks today:** {today}")
+
+    stuck = budget.get("stuck_loop", False)
+    if stuck:
+        lines.append(f"- ⚠️ **Stuck loop:** {budget.get('stuck_loop_count', '?')} iterations")
+
+    return "\n".join(lines)
+
+
+def _render_big_picture_budget(budget: "dict | None", fallback_text: str = "") -> str:
+    lines = ["", "### Budget & Spend"]
+    if budget is not None:
+        zone = budget.get("budget_zone", "UNKNOWN")
+        zone_emoji = {"GREEN": "🟢", "YELLOW": "🟡", "ORANGE": "🟠", "RED": "🔴"}.get(zone.upper(), "⬜")
+        spent = budget.get("global_spent", 0)
+        cap = budget.get("global_cap", 0)
+        pct = budget.get("global_pct", 0)
+        lines.append(f"- **Overall spend:** ${spent:.2f} / ${cap:.2f} ({pct:.0f}%) *(measured)*")
+        lines.append(f"- **Budget zone:** {zone_emoji} {zone.upper()} *(measured)*")
+        per_runner = budget.get("per_runner", {})
+        if per_runner:
+            top = sorted(per_runner.items(), key=lambda item: item[1].get("spent", 0), reverse=True)[:5]
+            for runner, stats in top:
+                lines.append(f"- **{runner.title()}:** ${stats.get('spent', 0):.2f} / ${stats.get('cap', 0):.2f} ({stats.get('pct', 0):.0f}%) *(measured)*")
+        lines.append(f"- **Tasks today:** {budget.get('entries_today', 0)} *(measured)*")
+        return "\n".join(lines)
+
+    if fallback_text:
+        lines.append("- **Spend detail:** structured budget data unavailable; fallback summary below may be incomplete.")
+        for bline in fallback_text.splitlines()[:4]:
+            lines.append(f"  {bline}")
+        return "\n".join(lines)
+
+    lines.append("- **Spend detail:** unavailable")
+    return "\n".join(lines)
+
+
+def _render_recent_compliance(n: int = 5) -> str:
+    lines = ["", f"### Recent Compliance (last {n})"]
+    if not _HAS_COMPLIANCE:
+        lines.append("- ⏳ No compliance verdicts yet")
+        return "\n".join(lines)
+    try:
+        verdicts = latest_verdicts(n)
+    except Exception:
+        verdicts = []
+
+    if not verdicts:
+        lines.append("- ⏳ No compliance verdicts yet")
+        return "\n".join(lines)
+
+    for v in verdicts:
+        overall = v.get("overall_verdict", "unknown")
+        icon = {"compliant": "✅", "noncompliant": "❌", "partially-verified": "⚠️"}.get(overall, "❓")
+        compact = _fmt_verdict(v)
+        lines.append(f"- {icon} {compact}")
+
+    return "\n".join(lines)
 
 
 def get_orch_log_tail(lines: int = 30) -> list[str]:
@@ -180,6 +619,56 @@ def get_task_info() -> tuple[str, str]:
         except Exception:
             continue
     return "", ""
+
+
+# ── Inner-circle correspondence helpers ──────────────────────────────────────
+
+def _get_future_action_pending() -> "int | None":
+    """Return pending future-action count from SQLite DB, or None if unavailable."""
+    if not FUTURE_ACTIONS_DB.exists():
+        return None
+    try:
+        import sqlite3
+        conn = sqlite3.connect(FUTURE_ACTIONS_DB)
+        row = conn.execute("SELECT COUNT(*) FROM future_actions WHERE status = 'pending'").fetchone()
+        conn.close()
+        return int(row[0]) if row else 0
+    except Exception:
+        return None
+
+
+def _get_contact_pin_status(nicknames: dict) -> list:
+    """Return [{nickname, display_name, pinned}] for inner_circle contacts."""
+    results = []
+    for nick, data in nicknames.items():
+        if nick.startswith("_"):
+            continue
+        if not isinstance(data, dict):
+            continue
+        if data.get("tier") != "inner_circle":
+            continue
+        results.append({
+            "nickname": nick,
+            "display_name": data.get("name", nick),
+            "pinned": bool(data.get("telegram_chat_id")),
+        })
+    return results
+
+
+def _get_recent_send_states(limit: int = 5) -> list:
+    """Return most recent send-state entries from correspondence and outreach logs."""
+    entries = []
+    for path in (CORRESPONDENCE_LOG, OUTREACH_LOG):
+        entries.extend(load_jsonl(path))
+    entries.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    return entries[:limit]
+
+
+def _get_recent_email_bridge_events(limit: int = 5) -> list:
+    """Return most recent inner-circle email bridge events."""
+    entries = load_jsonl(EMAIL_BRIDGE_LOG)
+    entries.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    return entries[:limit]
 
 
 # ── Status translations ──────────────────────────────────────────────────────
@@ -218,23 +707,41 @@ LOG_TRANSLATIONS = {
     "mac_turn → blocked": "🚨 **Review had a problem**",
     "pc_turn → parked": "💤 **Builder timed out**",
     "mac_turn → pc_turn": "🔁 **Needs rework** — sent back to builder",
+    "no task.md and no runnable queued task": "⏸ **Idle and waiting** — no active task file and nothing queued",
+    "queued tasks invalid or skipped — waiting": "⏸ **Idle and waiting** — queued tasks were skipped or invalid",
 }
 
 
 def translate_log_line(line: str) -> str:
+    ts_match = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]", line)
+    ts = ts_match.group(1) if ts_match else ""
     for pattern, translation in LOG_TRANSLATIONS.items():
         if pattern in line:
-            # Extract timestamp
-            ts_match = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]", line)
-            ts = ts_match.group(1) if ts_match else ""
-            return f"- {ts} {translation}"
+            cost_match = re.search(r"COST:\s*\$?([\d.]+)", line)
+            suffix = f" (${cost_match.group(1)})" if cost_match else ""
+            return f"- {ts} {translation}{suffix}"
+    cost_match = re.search(r"COST:\s*\$?([\d.]+)", line)
+    if cost_match:
+        return f"- {ts} 💰 **Cost recorded:** ${cost_match.group(1)}"
     return ""
+
+
+def _dedupe_recent_lines(lines: list[str]) -> list[str]:
+    out: list[str] = []
+    prev = None
+    for line in lines:
+        normalized = re.sub(r"^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} ", "- ", line)
+        if normalized == prev:
+            continue
+        out.append(line)
+        prev = normalized
+    return out
 
 
 # ── Generators ────────────────────────────────────────────────────────────────
 
 def get_runner_settings() -> dict:
-    """Get current planner and builder runner profiles."""
+    """Get configured planner and builder runner profiles for the active task."""
     settings = {"planner": None, "builder": None}
     try:
         # Read task text for context-aware profile
@@ -246,6 +753,8 @@ def get_runner_settings() -> dict:
                     break
             except Exception:
                 continue
+        if not task_text.strip():
+            return settings
 
         import runner_profiles
         settings["planner"] = runner_profiles.select_profile(task_text, planner_mode=True)
@@ -255,8 +764,96 @@ def get_runner_settings() -> dict:
     return settings
 
 
+def _get_builder_scorecard(limit: int = 200) -> list[dict]:
+    if not _HAS_COST_TRUTH:
+        return []
+    try:
+        receipts = latest_receipts(limit)
+    except Exception:
+        return []
+
+    attempts: dict[str, int] = {}
+    latest_model_by_task: dict[str, str] = {}
+
+    for receipt in reversed(receipts):
+        execution = receipt.get("execution", {})
+        runner = execution.get("runner")
+        if not runner:
+            continue
+        model = execution.get("model_actual") or execution.get("model_requested") or "?"
+        key = f"{runner}/{model}"
+        attempts[key] = attempts.get(key, 0) + 1
+        task_id = receipt.get("task_id")
+        if task_id:
+            latest_model_by_task[task_id] = key
+
+    if not attempts:
+        return []
+
+    completed: dict[str, set[str]] = {}
+    rework: dict[str, set[str]] = {}
+    timeout: dict[str, set[str]] = {}
+
+    for task_id, key in latest_model_by_task.items():
+        if list(ARCHIVE_DIR.glob(f"closeout_{task_id}_*.ok")):
+            completed.setdefault(key, set()).add(task_id)
+        if list(ARCHIVE_DIR.glob(f"mac_review_{task_id}_p*.md")):
+            rework.setdefault(key, set()).add(task_id)
+        if list(ARCHIVE_DIR.glob(f"task_{task_id}_p*_builder_timeout_*.md")):
+            timeout.setdefault(key, set()).add(task_id)
+
+    rows = []
+    for key, count in sorted(attempts.items(), key=lambda item: (-item[1], item[0])):
+        rows.append(
+            {
+                "model": key,
+                "attempts": count,
+                "completed": len(completed.get(key, set())),
+                "rework": len(rework.get(key, set())),
+                "timeout": len(timeout.get(key, set())),
+            }
+        )
+    return rows
+
+
+def _human_state_reason(state: str, *, block_reason: str | None, parked_reason: str | None,
+                        task_title: str, queued: list[str]) -> str | None:
+    if state == "blocked" and block_reason:
+        return f"The loop is blocked because {block_reason.replace('_', ' ')}."
+    if state == "parked" and parked_reason:
+        return f"The last run was paused because {parked_reason.replace('_', ' ')}."
+    if state == "idle":
+        if task_title:
+            return "The loop is idle because it is waiting to pick up the active task file."
+        if queued:
+            return "The loop is idle because there is no active task file right now."
+        return "The loop is idle because there is no active task file and nothing is queued."
+    return None
+
+
+def _likely_next_action(state: str, *, queued: list[str], task_title: str,
+                        receipt: "dict | None", verdict: "dict | None") -> str:
+    if verdict:
+        dims = verdict.get("dimensions", [])
+        runner_issue = next((d for d in dims if d.get("dimension") == "runner" and d.get("verdict") == "noncompliant"), None)
+        if runner_issue:
+            intended = runner_issue.get("intended")
+            return f"Retry the last task on {intended} instead of the runner that was actually used."
+    if receipt:
+        exit_code = receipt.get("execution", {}).get("exit_code")
+        if exit_code == 124:
+            return "Retry the last task on a stronger runner or narrow the task before retrying."
+    if state == "blocked":
+        return "Unblock the loop, then rerun the task."
+    if state == "idle" and queued:
+        return "Queue promotion should happen next; if it does not, check why task.md is missing."
+    if state == "idle" and not task_title:
+        return "Queue the next task when you're ready."
+    return "Let the loop continue."
+
+
 def gen_right_now() -> str:
-    """Generate 'For Winship 1 - Right Now.md'."""
+    """Generate 'Right now.md'."""
     status = load_json(STATUS_FILE)
     state = status.get("status", "unknown")
     task_name = status.get("task_name", "—")
@@ -275,43 +872,86 @@ def gen_right_now() -> str:
         f"# {icon} Loop Status — Right Now",
         f"*Updated: {now_str()}*",
         "",
-        f"**Status:** {state} — {explain}",
-        f"**Last task:** {task_name} (pass {pass_num})",
+        f"**Loop status:** {state} — {explain}",
     ]
+
+    last_attempted = _get_last_attempted_task()
+    last_successful = _get_last_meaningful_successful_task()
+    if last_attempted:
+        attempted_task, attempted_ts = last_attempted
+        attempted_age = f" ({friendly_time_str(attempted_ts)})" if attempted_ts else ""
+        lines.append(f"**Last attempted task:** {attempted_task}{attempted_age}")
+    else:
+        lines.append(f"**Last attempted task:** {task_name} (pass {pass_num})")
+    if last_successful:
+        successful_task, successful_ts = last_successful
+        successful_age = f" ({friendly_time_str(successful_ts)})" if successful_ts else ""
+        lines.append(f"**Last meaningful success:** {successful_task}{successful_age}")
+    else:
+        lines.append("**Last meaningful success:** —")
 
     if updated:
         lines.append(f"**Last change:** {age_str(updated)}")
 
-    if block_reason:
-        lines.append(f"**⚠️ Blocked:** {block_reason}")
-    if parked_reason:
-        lines.append(f"**💤 Parked:** {parked_reason}")
+    why_now = _human_state_reason(
+        state,
+        block_reason=block_reason,
+        parked_reason=parked_reason,
+        task_title=task_title,
+        queued=queued,
+    )
+    if why_now:
+        if state == "blocked":
+            lines.append(f"**Why blocked now:** {why_now}")
+        elif state == "idle":
+            lines.append(f"**Why idle now:** {why_now}")
+        elif state == "parked":
+            lines.append(f"**Why paused now:** {why_now}")
 
     if task_title:
         lines.extend(["", f"### Current Task: {task_title}"])
         if task_goal:
             lines.append(f"> {task_goal}")
 
-    # Active runner settings
     rs = get_runner_settings()
-    lines.extend(["", "### Active Runner Settings"])
-    for role in ["planner", "builder"]:
-        p = rs.get(role)
-        if p:
-            runner = p.get("runner", "?")
-            model = p.get("model", "?")
-            tier = p.get("tier", "?")
-            budget = f"{float(p.get('budget', 0)):.2f}"
-            effort = p.get("effort", "?")
-            defer = p.get("defer", False)
-            defer_tag = " ⚠️ DEFERRED" if defer else ""
-            lines.append(f"- **{role.title()}:** {runner}/{model} · tier={tier} · effort={effort} · budget=${budget}{defer_tag}")
-        else:
-            lines.append(f"- **{role.title()}:** unavailable")
+    if rs.get("planner") or rs.get("builder"):
+        lines.extend(["", "### Configured Runner Settings"])
+        lines.append("*These are the intended defaults for the active task, not proof of what actually ran.*")
+        for role in ["planner", "builder"]:
+            p = rs.get(role)
+            if p:
+                runner = p.get("runner", "?")
+                model = p.get("model", "?")
+                tier = p.get("tier", "?")
+                defer = p.get("defer", False)
+                defer_tag = " ⚠️ delayed" if defer else ""
+                lines.append(f"- **{role.title()}:** {runner}/{model} · {tier}{defer_tag}")
+
+    receipt = _get_last_receipt()
+    verdict = _get_last_verdict()
+    lines.append(_render_cost_mode_section(receipt, verdict))
+
+    scorecard = _get_builder_scorecard()
+    if scorecard:
+        lines.extend(["", "### Recent Builder Results"])
+        for row in scorecard[:5]:
+            summary = [f"{row['attempts']} run(s)"]
+            if row["completed"]:
+                summary.append(f"{row['completed']} completed")
+            if row["rework"]:
+                summary.append(f"{row['rework']} sent back for rework")
+            if row["timeout"]:
+                summary.append(f"{row['timeout']} timed out")
+            if len(summary) == 1:
+                summary.append("no completion yet")
+            lines.append(f"- **{row['model']}:** {', '.join(summary)}")
+
+    headroom = _get_headroom_summary()
+    lines.append(_render_headroom_section(headroom))
 
     lines.extend([
-        "", "### What happens next",
-        next_step,
+        "", "### What you likely need to do next",
+        _likely_next_action(state, queued=queued, task_title=task_title, receipt=receipt, verdict=verdict),
         "", f"### Task Queue ({len(queued)} waiting)",
     ])
     if queued:
@@ -323,15 +963,16 @@ def gen_right_now() -> str:
         lines.append("*No tasks queued*")
 
     lines.extend([
-        "", f"### Completed Tasks",
-        f"**{get_archive_count()}** tasks completed in archive",
+        "", "### Completion Metrics",
+        f"- **Successful Loop Cycles:** {get_successful_loop_cycles()}",
+        f"- **Completed Meaningful Tasks:** {get_completed_meaningful_tasks()}",
     ])
 
     return "\n".join(lines) + "\n"
 
 
 def gen_what_happened() -> str:
-    """Generate 'For Winship 2 - What Happened.md'."""
+    """Generate 'What happened.md'."""
     lines = [
         "# What Happened — Activity Log",
         f"*Updated: {now_str()}*",
@@ -344,12 +985,162 @@ def gen_what_happened() -> str:
         t = translate_log_line(raw)
         if t:
             translated.append(t)
+    translated = _dedupe_recent_lines(translated)
+    fallback = _dedupe_recent_lines([
+        f"- {raw}"
+        for raw in log_lines
+        if any(tag in raw for tag in ("[STATE]", "[TRANSITION]", "[ACTION]", "[WARN]", "[ERROR]", "[EVIDENCE]"))
+    ])
 
     if translated:
         lines.append("### Recent Loop Activity")
         lines.extend(translated[-30:])  # Last 30 translated events
+    elif fallback:
+        lines.append("### Recent Loop Activity")
+        lines.extend(fallback[-20:])
     else:
         lines.append("*No recent loop activity to show.*")
+
+    return "\n".join(lines) + "\n"
+
+
+def gen_for_ai_1() -> str:
+    """Generate 'AI Right now.md' — dense diagnostic companion to Right now."""
+    status = load_json(STATUS_FILE)
+    task_title, task_goal = get_task_info()
+    queued = get_queued_tasks()
+    receipt = _get_last_receipt()
+    verdict = _get_last_verdict()
+    settings = get_runner_settings()
+    headroom = _get_headroom_summary()
+
+    lines = [
+        "# AI Right now — Loop Diagnostics",
+        f"*Updated: {now_str()}*",
+        "",
+        "## Status Snapshot",
+        f"```json\n{json.dumps(status, indent=2, sort_keys=True)}\n```",
+        "",
+        "## Active Task",
+        f"- Title: {task_title or '—'}",
+        f"- Goal: {task_goal or '—'}",
+        f"- Queued: {len(queued)}",
+    ]
+
+    if settings.get("planner") or settings.get("builder"):
+        lines.extend([
+            "",
+            "## Configured Runner Settings",
+            f"```json\n{json.dumps(settings, indent=2, sort_keys=True)}\n```",
+        ])
+
+    if receipt is not None:
+        lines.extend([
+            "",
+            "## Last Receipt",
+            f"```json\n{json.dumps(receipt, indent=2, sort_keys=True)}\n```",
+        ])
+
+    if verdict is not None:
+        lines.extend([
+            "",
+            "## Last Compliance Verdict",
+            f"```json\n{json.dumps(verdict, indent=2, sort_keys=True)}\n```",
+        ])
+
+    if headroom:
+        lines.extend([
+            "",
+            "## Provider Headroom Snapshot",
+            f"```json\n{json.dumps(headroom, indent=2, sort_keys=True)}\n```",
+        ])
+
+    lines.extend([
+        "",
+        "## Queue and Completion",
+        f"- Successful loop cycles: {get_successful_loop_cycles()}",
+        f"- Completed meaningful tasks: {get_completed_meaningful_tasks()}",
+    ])
+    if queued:
+        lines.append(f"- Next queued tasks: {', '.join(queued[:10])}")
+
+    return "\n".join(lines) + "\n"
+
+
+def gen_for_ai_2() -> str:
+    """Generate 'AI What happened.md' — dense diagnostic companion to What happened."""
+    raw_log = get_orch_log_tail(60)
+    translated = []
+    for raw in raw_log:
+        t = translate_log_line(raw)
+        if t:
+            translated.append(t)
+    translated = _dedupe_recent_lines(translated)
+
+    lines = [
+        "# AI What happened — Recent Activity Diagnostics",
+        f"*Updated: {now_str()}*",
+        "",
+    ]
+
+    if raw_log:
+        state_n = sum("[STATE]" in line for line in raw_log)
+        transition_n = sum("[TRANSITION]" in line for line in raw_log)
+        action_n = sum("[ACTION]" in line for line in raw_log)
+        warn_n = sum("[WARN]" in line for line in raw_log)
+        error_n = sum("[ERROR]" in line for line in raw_log)
+        evidence_n = sum("[EVIDENCE]" in line for line in raw_log)
+        recent_raw = _dedupe_recent_lines([
+            f"- {raw}"
+            for raw in raw_log
+            if any(tag in raw for tag in ("[STATE]", "[TRANSITION]", "[ACTION]", "[WARN]", "[ERROR]", "[EVIDENCE]"))
+        ])
+        lines.extend([
+            "## Activity Summary",
+            f"- Raw loop lines scanned: {len(raw_log)}",
+            f"- State={state_n}, transition={transition_n}, action={action_n}, warn={warn_n}, error={error_n}, evidence={evidence_n}",
+            f"- Last raw event: {raw_log[-1]}",
+        ])
+        if recent_raw:
+            lines.extend(["", "## Recent Distinct Raw Events", *recent_raw[-10:]])
+
+    if translated:
+        lines.extend(["## Interpreted Activity", *translated[-20:]])
+    else:
+        lines.extend(["## Interpreted Activity", "- No translated recent activity"])
+
+    if raw_log:
+        lines.extend([
+            "",
+            "## Raw Orchestrator Log Tail",
+            "```text",
+            *raw_log[-40:],
+            "```",
+        ])
+
+    if _HAS_COST_TRUTH:
+        try:
+            receipts = latest_receipts(5)
+        except Exception:
+            receipts = []
+        if receipts:
+            lines.extend([
+                "",
+                "## Recent Receipts",
+                f"```json\n{json.dumps(receipts, indent=2, sort_keys=True)}\n```",
+            ])
+
+    if _HAS_COMPLIANCE:
+        try:
+            verdicts = latest_verdicts(5)
+        except Exception:
+            verdicts = []
+        if verdicts:
+            lines.extend([
+                "",
+                "## Recent Compliance Verdicts",
+                f"```json\n{json.dumps(verdicts, indent=2, sort_keys=True)}\n```",
+            ])
 
     return "\n".join(lines) + "\n"
 
@@ -386,7 +1177,7 @@ def gen_cassandra() -> str:
         lines.append(f"- {icon} {name}: {'Connected' if connected else 'Not connected'}")
 
     # Last interaction
-    last_interaction = state.get("last_interaction_at", "N/A")
+    last_interaction = state.get("last_interaction_at") or "N/A"
     lines.extend([
         "", "### Last Activity",
         f"- Last interaction: {last_interaction} ({age_str(last_interaction) if last_interaction != 'N/A' else 'N/A'})",
@@ -420,12 +1211,113 @@ def gen_cassandra() -> str:
         for f in followups[-5:]:
             lines.append(f"- {f.get('capability', '?')}: {f.get('status', '?')}")
 
-    # Queued Cassandra upgrade tasks
-    cas_tasks = [t for t in get_queued_tasks() if t.startswith("cas-")]
+    # Inner Circle — per-contact chat_id pin status
+    pin_status = _get_contact_pin_status(nicknames)
+    if pin_status:
+        lines.extend(["", "### Inner Circle"])
+        for c in pin_status:
+            pin_icon = "🔒" if c["pinned"] else "🔓"
+            pin_label = "chat_id pinned" if c["pinned"] else "chat_id not pinned"
+            lines.append(f"- {pin_icon} {c['nickname']} ({c['display_name'][:30]}): {pin_label}")
+
+    # Cassandra-relevant pending approvals
+    pending_approval = load_json(APPROVAL_PENDING)
+    if pending_approval and pending_approval.get("status") == "pending":
+        action = pending_approval.get("action", "")
+        if any(kw in action.lower() for kw in ("cassandra", "google", "email", "gmail")):
+            lines.extend([
+                "", "### Pending Approval",
+                f"- ⏳ {action}",
+                f"  - Tier: L{pending_approval.get('tier', '?')} | Requested: {pending_approval.get('requested_at', '?')}",
+            ])
+
+    # Recent send states (from correspondence + outreach logs)
+    send_states = _get_recent_send_states(limit=5)
+    if send_states:
+        lines.extend(["", f"### Recent Send States ({len(send_states)})"])
+        state_icons = {
+            "sent_confirmed": "✅", "sent": "✅", "send_failed": "❌",
+            "blocked": "🚫", "draft": "📝", "dry_run": "🧪",
+        }
+        for s in send_states:
+            state = s.get("state", s.get("status", "?"))
+            recipient = s.get("recipient", "?")
+            ts = s.get("ts", "?")
+            icon = state_icons.get(state, "⚠️")
+            lines.append(f"- {icon} [{state}] {recipient} — {ts}")
+
+    bridge_events = _get_recent_email_bridge_events(limit=5)
+    if bridge_events:
+        lines.extend(["", f"### Email Reply Bridge ({len(bridge_events)})"])
+        bridge_icons = {
+            "admitted": "📥",
+            "held": "⏸️",
+            "escalated": "🚨",
+        }
+        for event in bridge_events:
+            status = event.get("status", "?")
+            contact_name = event.get("contact_name", event.get("nickname", "?"))
+            lane = event.get("lane", "?")
+            subject = event.get("subject", "(no subject)")
+            ts = event.get("ts", "?")
+            icon = bridge_icons.get(status, "⚠️")
+            lines.append(f"- {icon} [{status}/{lane}] {contact_name} — {subject} — {ts}")
+
+    # Future-action reminder queue
+    fa_pending = _get_future_action_pending()
+    if fa_pending is not None:
+        lines.extend(["", "### Reminder Queue"])
+        if fa_pending > 0:
+            lines.append(f"- ⏰ {fa_pending} pending reminder(s)")
+        else:
+            lines.append("- ✅ No pending reminders")
+
+    # Gaps and next recommended action
+    gap_lines = []
+    disconnected = [name for name, connected in flags.items() if not connected]
+    unpinned = [c["nickname"] for c in pin_status if not c["pinned"]]
+    if disconnected:
+        gap_lines.append(f"- ⚠️ {len(disconnected)} capability gap(s): {', '.join(sorted(disconnected))}")
+    if unpinned:
+        gap_lines.append(f"- 🔓 {len(unpinned)} contact(s) without pinned chat_id: {', '.join(unpinned)}")
+    if not send_states:
+        gap_lines.append("- ℹ️ No correspondence log yet (will appear after first send)")
+    if gap_lines:
+        lines.extend(["", "### Gaps / Unknowns"])
+        lines.extend(gap_lines)
+
+    next_actions = []
+    if unpinned:
+        next_actions.append(f"Pin chat_ids for: {', '.join(unpinned)}")
+    if "PII_VAULT_CONNECTED" in disconnected:
+        next_actions.append("Activate PII vault (ops-pii-vault-activate)")
+    if "FUTURE_ACTION_CONNECTED" in disconnected:
+        next_actions.append("Wire future-action queue (impl-future-action-brain-wire → dispatcher)")
+    if next_actions:
+        lines.extend(["", "### Next Recommended Action"])
+        lines.append(f"- 👉 {next_actions[0]}")
+        for a in next_actions[1:]:
+            lines.append(f"- {a}")
+
+    # Queued tasks (Cassandra-relevant: cas-*, impl-*, ops-*, test-* from inner-circle spec)
+    all_tasks = get_queued_tasks()
+    cas_tasks = [t for t in all_tasks if t.startswith(("cas-", "impl-", "ops-", "test-"))]
     if cas_tasks:
-        lines.extend(["", f"### Queued Upgrade Tasks ({len(cas_tasks)})"])
+        lines.extend(["", f"### Queued Tasks ({len(cas_tasks)})"])
         for t in cas_tasks:
-            lines.append(f"- 📋 {t}")
+            mode_hint = ""
+            task_path = TASKS_DIR / f"{t}.md"
+            if task_path.exists():
+                try:
+                    head = task_path.read_text(encoding="utf-8").splitlines()[:20]
+                    for line in head:
+                        if "execution mode:" in line.lower() or "recommended execution mode:" in line.lower():
+                            mode_hint = line.split(":", 1)[1].strip().lstrip("* ").strip()[:40]
+                            break
+                except Exception:
+                    pass
+            mode_suffix = f" · `{mode_hint}`" if mode_hint else ""
+            lines.append(f"- 📋 {t}{mode_suffix}")
 
     # Recent conversations — show wins (routed) and fails (error/unrouted) separately
     convos = load_jsonl(CONVERSATIONS_LOG)
@@ -619,46 +1511,23 @@ def gen_big_picture() -> str:
 
     lines.append(f"- 📊 Total: {total_procs} processes")
 
-    # Budget
-    lines.extend(["", "### Budget"])
-    budget = get_budget_status()
-    for bline in budget.splitlines()[:5]:
-        lines.append(f"  {bline}")
+    # Budget — favor explicit trust labels
+    structured = _get_structured_budget()
+    fallback = "" if structured is not None else get_budget_status()
+    lines.append(_render_big_picture_budget(structured, fallback_text=fallback))
+
+    # Recent compliance verdicts
+    lines.append(_render_recent_compliance(5))
 
     # Capabilities summary
     connected = sum(1 for v in flags.values() if v)
     total = len(flags)
-    lines.extend([
-        "", f"### Cassandra Capabilities ({connected}/{total} connected)",
-    ])
-    for name, val in sorted(flags.items()):
-        icon = "✅" if val else "❌"
-        lines.append(f"- {icon} {name}")
-
-    # Task queue
-    lines.extend([
-        "", f"### Task Queue ({len(queued)} waiting, {get_archive_count()} completed)",
-    ])
-    for t in queued[:8]:
-        lines.append(f"- {t}")
-    if len(queued) > 8:
-        lines.append(f"- ... {len(queued) - 8} more")
-
-    # Runners
-    lines.extend(["", "### Runners"])
-    try:
-        out = subprocess.check_output(
-            ["python3", "/home/openclaw/runner_registry.py", "--json"],
-            text=True, timeout=5, cwd="/home/openclaw"
-        )
-        runners = json.loads(out)
-        for r in runners:
-            name = r.get("name", "?")
-            host = r.get("host", "?")
-            cost = r.get("cost_tier", "?")
-            lines.append(f"- {name} ({host}, {cost})")
-    except Exception:
-        lines.append("  (runner registry unavailable)")
+    disconnected = [k for k, v in flags.items() if not v]
+    lines.extend(["", f"### System Coverage ({connected}/{total} connected)"])
+    if disconnected:
+        lines.append(f"- Missing integrations: {', '.join(disconnected)}")
+    else:
+        lines.append("- All tracked integrations connected")
 
     # Manual action items
     action_items = []
@@ -678,9 +1547,8 @@ def gen_big_picture() -> str:
     if status.get("block_reason"):
         action_items.append(f"Loop blocked: {status['block_reason']}")
 
-    not_connected = [k for k, v in flags.items() if not v]
-    if not_connected:
-        action_items.append(f"{len(not_connected)} capabilities not connected: {', '.join(not_connected)}")
+    if disconnected:
+        action_items.append(f"{len(disconnected)} capabilities not connected: {', '.join(disconnected)}")
 
     if action_items:
         lines.extend(["", "### ⚠️ Action Items"])
@@ -688,6 +1556,59 @@ def gen_big_picture() -> str:
             lines.append(f"- {item}")
     else:
         lines.extend(["", "### ✅ No action items — system healthy"])
+
+    return "\n".join(lines) + "\n"
+
+
+def gen_ai_system() -> str:
+    """Generate 'AI Big Picture.md' — dense system diagnostic companion to Big Picture."""
+    status = load_json(STATUS_FILE)
+    procs = get_processes()
+    flags = get_capability_flags()
+    queued = get_queued_tasks()
+    receipt = _get_last_receipt()
+    verdict = _get_last_verdict()
+    headroom = _get_headroom_summary()
+
+    process_counts = {name: len(entries) for name, entries in procs.items()}
+
+    lines = [
+        "# AI Big Picture — System Diagnostics",
+        f"*Updated: {now_str()}*",
+        "",
+        "## Status Snapshot",
+        f"```json\n{json.dumps(status, indent=2, sort_keys=True)}\n```",
+        "",
+        "## Process Counts",
+        f"```json\n{json.dumps(process_counts, indent=2, sort_keys=True)}\n```",
+        "",
+        "## Capability Flags",
+        f"```json\n{json.dumps(flags, indent=2, sort_keys=True)}\n```",
+        "",
+        "## Queue",
+        f"```json\n{json.dumps(queued, indent=2)}\n```",
+    ]
+
+    if receipt is not None:
+        lines.extend([
+            "",
+            "## Last Receipt",
+            f"```json\n{json.dumps(receipt, indent=2, sort_keys=True)}\n```",
+        ])
+
+    if verdict is not None:
+        lines.extend([
+            "",
+            "## Last Compliance Verdict",
+            f"```json\n{json.dumps(verdict, indent=2, sort_keys=True)}\n```",
+        ])
+
+    if headroom:
+        lines.extend([
+            "",
+            "## Provider Headroom Snapshot",
+            f"```json\n{json.dumps(headroom, indent=2, sort_keys=True)}\n```",
+        ])
 
     return "\n".join(lines) + "\n"
 
@@ -740,11 +1661,64 @@ def auto_queue_system_tasks():
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
+def _check_cron_jobs() -> None:
+    """Spawn any enabled cron job that has exceeded its cadence. Fire-and-forget."""
+    try:
+        cron_path = Path("/home/openclaw/.openclaw/cron/jobs.json")
+        if not cron_path.exists():
+            return
+        data = json.loads(cron_path.read_text())
+        for job in data.get("jobs", []):
+            if not job.get("enabled", False):
+                continue
+            last_run = job.get("last_run")
+            cadence_h = job.get("cadence_hours", 168)
+            if last_run:
+                lr = datetime.fromisoformat(last_run.replace("+00:00", ""))
+                if (datetime.utcnow() - lr).total_seconds() / 3600 < cadence_h:
+                    continue
+            cmd = job.get("command", "").split()
+            if cmd:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
 def write_dashboard(path: Path, content: str):
     """Write content to file atomically."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(content, encoding="utf-8")
     tmp.rename(path)
+    os.chmod(path, 0o444)
+
+
+def _retire_legacy_winship_outputs() -> None:
+    LEGACY_DIR.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "For Winship 1 - Right Now.md",
+        "For Winship 2 - What Happened.md",
+        "Big Picture.md",
+    ):
+        path = OUT_DIR / name
+        if not path.exists():
+            continue
+        target = LEGACY_DIR / name
+        if target.exists():
+            stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+            target = LEGACY_DIR / f"{path.stem}.{stamp}{path.suffix}"
+        path.rename(target)
+
+
+def _winship_outputs() -> list[tuple[Path, str]]:
+    return [
+        (WINSHIP_DIR / "Big Picture.md", gen_big_picture()),
+        (WINSHIP_DIR / "AI Big Picture.md", gen_ai_system()),
+        (WINSHIP_DIR / "Right now.md", gen_right_now()),
+        (WINSHIP_DIR / "AI Right now.md", gen_for_ai_1()),
+        (WINSHIP_DIR / "What happened.md", gen_what_happened()),
+        (WINSHIP_DIR / "AI What happened.md", gen_for_ai_2()),
+    ]
 
 
 def main():
@@ -753,13 +1727,14 @@ def main():
 
     while True:
         try:
-            write_dashboard(OUT_DIR / "For Winship 1 - Right Now.md", gen_right_now())
-            write_dashboard(OUT_DIR / "For Winship 2 - What Happened.md", gen_what_happened())
+            _retire_legacy_winship_outputs()
+            for path, content in _winship_outputs():
+                write_dashboard(path, content)
             write_dashboard(OUT_DIR / "Cassandra.md", gen_cassandra())
             write_dashboard(OUT_DIR / "Chief.md", gen_chief())
             write_dashboard(OUT_DIR / "Guardian.md", gen_guardian())
-            write_dashboard(OUT_DIR / "Big Picture.md", gen_big_picture())
             run_autonomy_qual()
+            _check_cron_jobs()
         except Exception as exc:
             print(f"[{now_str()}] Error generating dashboards: {exc}", flush=True)
 

@@ -79,6 +79,8 @@ WATCHER_RUNNER_FAILURE_TOKENS = (
     "command not found",
 )
 TASK_FRONTMATTER_FIELD_RE = re.compile(r"^(title|goal):\s*\S.*$", re.MULTILINE)
+TASK_TITLE_RE = re.compile(r"^title:\s*(\S.*)$", re.MULTILINE)
+MAC_REVIEW_HEADER_RE = re.compile(r"^#\s*Mac Review\s+[—-]\s*(.+?)\s+Pass\s+(\d+)\s*$", re.MULTILINE)
 
 # Cassandra extension architecture lock:
 # Future tool/capability additions must be implemented in cassandra_custom_tools.py,
@@ -201,7 +203,14 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     lines = content.splitlines()
     if not lines:
         return False, "empty"
+    # Accept optional RUNNER: header
+    runner_used = None
     first = lines[0].strip()
+    if first.upper().startswith("RUNNER:"):
+        runner_used = first.split(":", 1)[1].strip()
+        if len(lines) < 2:
+            return False, "no_pass_line"
+        first = lines[1].strip()
     if not first.upper().startswith("PASS:"):
         return False, "no_pass_line"
     try:
@@ -213,11 +222,15 @@ def pc_output_valid(expected_pass: int) -> tuple[bool, str]:
     if re.search(r"^\s*STATUS:\s*BLOCKED\s*$", content, re.IGNORECASE | re.MULTILINE):
         return False, "has_blocked"
 
-    required_headers = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:")
+    required_headers = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:", "COST:", "TRUTH:", "HEADROOM:")
     upper = content.upper()
     for header in required_headers:
         if header not in upper:
             return False, "quality_gate"
+
+    # Log runner used for evidence
+    if runner_used:
+        log("EVIDENCE", f"pc_output RUNNER: {runner_used}")
 
     return True, "ok"
 
@@ -244,6 +257,20 @@ def mac_review_says_rework() -> bool:
     return False
 
 
+def mac_review_identity() -> tuple[str, int] | None:
+    """Return review header task/pass when mac_review.md declares them."""
+    if not MAC_REVIEW.exists():
+        return None
+    try:
+        content = MAC_REVIEW.read_text()
+    except Exception:
+        return None
+    match = MAC_REVIEW_HEADER_RE.search(content)
+    if not match:
+        return None
+    return match.group(1).strip(), int(match.group(2))
+
+
 def closeout_confirmed(task_name: str, pass_num: int) -> bool:
     """True if closeout.ok exists with matching task_name and pass."""
     if not CLOSEOUT.exists():
@@ -261,6 +288,22 @@ def closeout_confirmed(task_name: str, pass_num: int) -> bool:
             f"Parse error: {e!r}. Content: {text[:200]!r}",
         )
         return False
+
+
+def active_task_identity(fallback: str = "?") -> str:
+    """Return task.md title when available; otherwise keep the provided fallback."""
+    task_md = TASK_MD
+    if not task_md.exists():
+        return fallback
+    try:
+        content = task_md.read_text()
+    except Exception:
+        return fallback
+    match = TASK_TITLE_RE.search(content)
+    if not match:
+        return fallback
+    title = match.group(1).strip()
+    return title or fallback
 
 
 def queued_task_frontmatter_error(task_path: Path) -> str | None:
@@ -284,6 +327,23 @@ def queued_task_frontmatter_error(task_path: Path) -> str | None:
     if mentions_cassandra_feature_work and attempts_direct_brain_edit and not allows_custom_tools_path:
         return _CASSANDRA_TOOL_ARCH_LOCK_MSG
 
+    return None
+
+
+def queued_task_autonomous_skip_reason(task_path: Path) -> str | None:
+    """Return a brief reason when a queued task explicitly requires human-supervised execution."""
+    try:
+        content = task_path.read_text()
+    except Exception:
+        return None
+
+    lower = content.lower()
+    if "execution mode:" in lower and "human-supervised" in lower:
+        return "human-supervised execution mode"
+    if "assigned to:" in lower and "human-supervised" in lower:
+        return "assigned to human-supervised work"
+    if "not suitable for unattended autonomous execution" in lower:
+        return "not suitable for unattended autonomous execution"
     return None
 
 
@@ -325,9 +385,7 @@ def builder_running() -> bool:
         return _TEST_BUILDER_OVERRIDE
     patterns = [
         "run_polish_pass.sh",
-        "timeout 900 claude --model sonnet --print",
-        "timeout 900 claude --model sonnet --dangerously-skip-permissions --print",
-        "timeout 900 codex exec",
+        r"timeout [0-9]+ (codex|gemini|claude|aider)( .*)?",
     ]
     for pattern in patterns:
         try:
@@ -506,6 +564,10 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
             if validation_error:
                 log("WARN", f"skipping queued task {promote.name}: {validation_error}", dry_run)
                 continue
+            autonomous_skip_reason = queued_task_autonomous_skip_reason(promote)
+            if autonomous_skip_reason:
+                log("WARN", f"skipping queued task {promote.name}: {autonomous_skip_reason}", dry_run)
+                continue
 
             promoted_name = promote.stem
             log("ACTION", f"promoting queued task {promote.name} → task.md", dry_run)
@@ -554,6 +616,7 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
     task     = status.get("task_name", "?")
     pass_num = status.get("pass", 1)
     log("STATE", f"pc_turn | task={task} | pass={pass_num} | elapsed={elapsed:.0f}s", dry_run)
+    archive_task = active_task_identity(task)
 
     # Check for valid output first
     if PC_OUTPUT.exists():
@@ -583,7 +646,7 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
                     dry_run,
                 )
                 if not dry_run:
-                    _archive_current_artifact(PC_OUTPUT, task, "stale")
+                    _archive_current_artifact(PC_OUTPUT, archive_task, "stale")
                     launched = _relaunch_builder()
                     if launched:
                         _write_status_raw({"relaunch_attempted": True})
@@ -610,14 +673,14 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
                     dry_run,
                 )
                 if not dry_run:
-                    _archive_current_artifact(PC_OUTPUT, task, "quality_gate")
+                    _archive_current_artifact(PC_OUTPUT, archive_task, "quality_gate")
                     launched = _relaunch_builder()
                     if launched:
                         _write_status_raw({"relaunch_attempted": True})
                         return
                 else:
                     return
-            log("EVIDENCE", "pc_output failed quality gate (missing CHANGES/REASONING/ROLLBACK PLAN)", dry_run)
+            log("EVIDENCE", "pc_output failed quality gate (missing required narrative/reporting sections)", dry_run)
             log("TRANSITION", "pc_turn → blocked (reason: weak_pc_output_quality)", dry_run)
             if not dry_run:
                 write_status("blocked", reason="weak_pc_output_quality")
@@ -665,16 +728,23 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
 
     log("TRANSITION", "pc_turn → idle (self-heal skip after repeated builder failure)", dry_run)
     if not dry_run:
-        recovery_task = _queue_manus_recovery_task(task, "builder_timeout_after_retry")
+        recovery_task = _queue_manus_recovery_task(archive_task, "builder_timeout_after_retry")
         if recovery_task:
             log("ACTION", f"queued self-heal recovery task: {recovery_task}")
-        _skip_failed_task_to_next(task, pass_num, "builder_timeout")
+        _skip_failed_task_to_next(archive_task, pass_num, "builder_timeout")
 
 
 def _read_output_pass() -> int | str:
     """Helper: read PASS number from pc_output.md first line, or '?' on failure."""
     try:
-        first = PC_OUTPUT.read_text().splitlines()[0]
+        lines = PC_OUTPUT.read_text().splitlines()
+        if not lines:
+            return "?"
+        first = lines[0].strip()
+        if first.upper().startswith("RUNNER:") and len(lines) > 1:
+            first = lines[1].strip()
+        if not first.upper().startswith("PASS:"):
+            return "?"
         return int(first.split(":", 1)[1].strip())
     except Exception:
         return "?"
@@ -779,6 +849,7 @@ def _queue_manus_recovery_task(failed_task: str, reason: str) -> str | None:
 
 def _skip_failed_task_to_next(task: str, pass_num: int, reason: str) -> None:
     """Archive current failed artifacts and return loop to idle for next queued task."""
+    task = active_task_identity(task)
     ts = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
     archive_dir = LOOP_DIR / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
@@ -802,30 +873,65 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
     if not MAC_REVIEW.exists():
         planner_failed = planner_runner_missing_since(status)
         timed_out = elapsed >= PLANNER_TIMEOUT
+        # If watcher.log has never been written, the Mac watcher has not started —
+        # no human planner will appear. Use the PC-review fallback immediately rather
+        # than waiting the full timeout window.
+        watcher_absent = not _watcher_log_path().exists()
 
-        if planner_failed or timed_out:
-            # --- PC-side review fallback ---
-            # Instead of immediately blocking, try the PC structural reviewer.
-            # This keeps the loop autonomous when the Mac planner can't launch.
-            if _PC_REVIEW_AVAILABLE and not dry_run and not _TEST_DISABLE_PC_REVIEW_FALLBACK:
-                reason_label = "planner_runner_missing" if planner_failed else "planner_timeout"
-                log("EVIDENCE", f"mac_turn | {reason_label} — attempting PC-side review fallback", dry_run)
-                rc = _pc_review_run(dry_run=False)
-                if rc == 0 and MAC_REVIEW.exists():
-                    log("ACTION", "PC-side review fallback wrote mac_review.md — continuing with review", dry_run)
-                    # mac_review.md now exists — fall through to Step 2
-                else:
-                    log("EVIDENCE", f"PC-side review fallback did not produce mac_review.md (rc={rc})", dry_run)
-                    block_reason = "planner_runner_missing" if planner_failed else "planner_timeout_no_review"
-                    log("TRANSITION", f"mac_turn → blocked (reason: {block_reason})", dry_run)
-                    write_status("blocked", reason=block_reason)
-                    return
-            elif planner_failed:
+        def _attempt_pc_review_fallback(trigger_reason: str) -> bool:
+            if not _PC_REVIEW_AVAILABLE or dry_run or _TEST_DISABLE_PC_REVIEW_FALLBACK:
+                return False
+            if not pc_output_valid(pass_num)[0]:
+                log(
+                    "EVIDENCE",
+                    f"mac_turn | {trigger_reason} but pc_output is not reviewable yet — skipping PC-side review fallback",
+                    dry_run,
+                )
+                return False
+            log(
+                "EVIDENCE",
+                f"mac_turn | {trigger_reason} — attempting PC-side review fallback",
+                dry_run,
+            )
+            rc = _pc_review_run(dry_run=False)
+            if rc == 0 and MAC_REVIEW.exists():
+                log("ACTION", "PC-side review fallback wrote mac_review.md — continuing with review", dry_run)
+                return True
+            log("EVIDENCE", f"PC-side review fallback did not produce mac_review.md (rc={rc})", dry_run)
+            return False
+
+        if planner_failed:
+            # Only use the PC fallback when the watcher explicitly showed that
+            # the Mac planner runner could not start for this mac_turn.
+            if _attempt_pc_review_fallback("planner_runner_missing"):
+                pass
+            else:
                 log("EVIDENCE", "mac_turn | watcher reported planner runner startup failure", dry_run)
                 log("TRANSITION", "mac_turn → blocked (reason: planner_runner_missing)", dry_run)
                 if not dry_run:
                     write_status("blocked", reason="planner_runner_missing")
                 return
+        elif watcher_absent:
+            # Mac watcher log has never been written — no human planner will arrive.
+            # Fire PC-review fallback immediately; fall through to timeout/block if it fails.
+            if _attempt_pc_review_fallback("watcher_log_absent"):
+                pass
+            else:
+                # Fallback unavailable or pc_output not reviewable yet — wait for timeout.
+                log(
+                    "STATE",
+                    f"mac_turn | watcher absent, PC-review fallback unavailable — waiting ({elapsed:.0f}s / {PLANNER_TIMEOUT}s)",
+                    dry_run,
+                )
+                if timed_out:
+                    log("EVIDENCE", f"mac_turn | no mac_review.md after {elapsed:.0f}s", dry_run)
+                    log("TRANSITION", "mac_turn → blocked (reason: planner_timeout_no_review)", dry_run)
+                    if not dry_run:
+                        write_status("blocked", reason="planner_timeout_no_review")
+                return
+        elif timed_out:
+            if _attempt_pc_review_fallback("planner_timeout_no_review"):
+                pass
             else:
                 log("EVIDENCE", f"mac_turn | no mac_review.md after {elapsed:.0f}s", dry_run)
                 log("TRANSITION", "mac_turn → blocked (reason: planner_timeout_no_review)", dry_run)
@@ -842,6 +948,22 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
             return
 
     # --- Step 2: Process the review ---
+    review_identity = mac_review_identity()
+    if review_identity is not None:
+        review_task, review_pass = review_identity
+        accepted_tasks = {task, active_task_identity(task)}
+        if review_pass != pass_num or review_task not in accepted_tasks:
+            expected_tasks = ", ".join(sorted(accepted_tasks))
+            log(
+                "EVIDENCE",
+                f"mac_review header mismatch — file task={review_task!r} pass={review_pass}, "
+                f"expected task in {{{expected_tasks}}} and pass={pass_num}",
+                dry_run,
+            )
+            log("TRANSITION", "mac_turn → blocked (reason: stale_mac_review)", dry_run)
+            if not dry_run:
+                write_status("blocked", reason="stale_mac_review")
+            return
 
     approved = mac_review_says_approved()
     rework   = mac_review_says_rework()
@@ -888,28 +1010,31 @@ def handle_approved(status: dict, dry_run: bool = False) -> None:
     task     = status.get("task_name", "?")
     pass_num = status.get("pass", 1)
     log("STATE", f"approved | task={task} | pass={pass_num}", dry_run)
+    archive_task = active_task_identity(task)
 
     confirmed = closeout_confirmed(task, pass_num)
     if confirmed:
         log("EVIDENCE", f"closeout.ok confirmed — task={task} pass={pass_num}", dry_run)
-    elif CLOSEOUT.exists():
-        log("STATE", "approved | auto-closing despite unconfirmed closeout.ok", dry_run)
     else:
-        log("STATE", "approved | auto-closing without closeout.ok", dry_run)
+        if CLOSEOUT.exists():
+            log("STATE", "approved | waiting for valid matching closeout.ok", dry_run)
+        else:
+            log("STATE", "approved | waiting for closeout.ok", dry_run)
+        return
 
     log("TRANSITION", "approved → idle", dry_run)
     if not dry_run:
         # Archive task.md before writing idle — prevents re-launch on next poll
         ts = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
-        task_md = LOOP_DIR / "task.md"
+        task_md = TASK_MD
         if task_md.exists():
-            dst = LOOP_DIR / "archive" / f"task_{task}_{ts}.md"
+            dst = LOOP_DIR / "archive" / f"task_{archive_task}_{ts}.md"
             task_md.rename(dst)
-            log("ACTION", f"archived task.md → archive/task_{task}_{ts}.md")
+            log("ACTION", f"archived task.md → archive/task_{archive_task}_{ts}.md")
         # Archive current/ artifacts (pc_output, mac_review, closeout)
         for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
             if artifact.exists():
-                dst_name = f"{artifact.stem}_{task}_{ts}{artifact.suffix}"
+                dst_name = f"{artifact.stem}_{archive_task}_{ts}{artifact.suffix}"
                 dst = LOOP_DIR / "archive" / dst_name
                 artifact.rename(dst)
                 log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
@@ -923,6 +1048,22 @@ def handle_blocked(status: dict, dry_run: bool = False) -> None:
     reason = status.get("block_reason", "unknown")
     task   = status.get("task_name", "?")
     log("STATE", f"blocked | task={task} | reason={reason} — waiting for --reset-blocked", dry_run)
+
+    if (
+        reason in {"planner_timeout_no_review", "planner_runner_missing"}
+        and _PC_REVIEW_AVAILABLE
+        and not dry_run
+        and not _TEST_DISABLE_PC_REVIEW_FALLBACK
+        and not MAC_REVIEW.exists()
+    ):
+        pass_num = status.get("pass", 1)
+        if pc_output_valid(pass_num)[0]:
+            log("ACTION", f"blocked | attempting late PC-side review fallback for {reason}", dry_run)
+            rc = _pc_review_run(dry_run=False)
+            if rc == 0 and MAC_REVIEW.exists():
+                log("TRANSITION", "blocked → mac_turn (late PC-side review fallback succeeded)", dry_run)
+                write_status("mac_turn")
+                return
 
     # Send one-shot Telegram notification to Winship — only on first entry into blocked
     if not dry_run and _NOTIFY_AVAILABLE and not status.get("blocked_notified", False):
@@ -1023,7 +1164,7 @@ def run_one_cycle(dry_run: bool = False) -> dict | None:
 
 
 def cmd_reset_blocked(reason: str) -> None:
-    """Reset blocked → idle. Human-controlled only, requires reason."""
+    """Reset blocked → idle (or mac_turn for planner-timeout). Human-controlled only, requires reason."""
     status = read_status()
     if status is None:
         print("ERROR: status.json missing or invalid", file=sys.stderr)
@@ -1032,14 +1173,22 @@ def cmd_reset_blocked(reason: str) -> None:
         print(f"ERROR: current state is {status['status']!r}, not 'blocked'", file=sys.stderr)
         sys.exit(1)
 
+    block_reason = status.get("block_reason", "")
+    # planner_timeout_no_review: valid builder output already exists — resume at mac_turn
+    # to preserve the artifact rather than archiving it and relaunching builder.
+    if block_reason == "planner_timeout_no_review" and PC_OUTPUT.exists():
+        target_state = "mac_turn"
+    else:
+        target_state = "idle"
+
     _write_status_raw({
-        "status": "idle",
+        "status": target_state,
         "block_reason": None,
         "reset_reason": reason,
         "reset_at": datetime.datetime.now().isoformat(),
     })
-    log("RESET", f"blocked → idle | reason: {reason}")
-    print(f"Reset: blocked → idle (reason: {reason})")
+    log("RESET", f"blocked → {target_state} | reason: {reason}")
+    print(f"Reset: blocked → {target_state} (reason: {reason})")
 
 
 def cmd_resume() -> None:
@@ -1085,6 +1234,7 @@ def cmd_run_tests() -> None:
 
     global _TEST_DISABLE_IDLE_AUTOLAUNCH, _TEST_SUPPRESS_FILE_LOGS, _TEST_WATCHER_LOG_OVERRIDE
     global _TEST_DISABLE_PC_REVIEW_FALLBACK, _TEST_DISABLE_SELF_HEAL_TASKS
+    global LOG_FILE
 
     results:  list[str] = []
     failures: list[str] = []
@@ -1103,13 +1253,17 @@ def cmd_run_tests() -> None:
     original_status: str | None = None
     if STATUS_FILE.exists():
         original_status = STATUS_FILE.read_text()
-    original_log_contents: str | None = LOG_FILE.read_text() if LOG_FILE.exists() else None
+    live_log_file = LOG_FILE
+    original_log_contents: str = live_log_file.read_text() if live_log_file.exists() else ""
+    original_pc_log_file = _pc_review_mod.LOG_FILE if _pc_review_mod is not None else None
 
     original_artifacts: dict[Path, str | None] = {}
     for p in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
         original_artifacts[p] = p.read_text() if p.exists() else None
 
     CURRENT_DIR.mkdir(parents=True, exist_ok=True)
+    test_log_file = CURRENT_DIR / "test_orchestrator.log"
+    test_log_file.unlink(missing_ok=True)
 
     def set_status(d: dict) -> None:
         STATUS_FILE.write_text(json.dumps(d, indent=2))
@@ -1146,8 +1300,10 @@ def cmd_run_tests() -> None:
         _TEST_WATCHER_LOG_OVERRIDE = test_watcher_log
         _TEST_DISABLE_PC_REVIEW_FALLBACK = True
         _TEST_DISABLE_SELF_HEAL_TASKS = True
+        LOG_FILE = test_log_file
         if _pc_review_mod is not None:
             _pc_review_mod._SUPPRESS_FILE_LOGS = True
+            _pc_review_mod.LOG_FILE = test_log_file
 
         # 1. status.json missing → blocked, invalid_or_missing_status
         clear_status()
@@ -1211,6 +1367,7 @@ def cmd_run_tests() -> None:
         set_status(fresh_status(status="pc_turn", **{"pass": 2, "last_updated": now_iso}))
         clear_test_watcher_log()
         PC_OUTPUT.write_text(
+            "RUNNER: claude\n"
             "PASS: 2\n"
             "STATUS: DONE\n\n"
             "CHANGES:\n"
@@ -1218,7 +1375,13 @@ def cmd_run_tests() -> None:
             "REASONING:\n"
             "- test\n\n"
             "ROLLBACK PLAN:\n"
-            "- revert test\n"
+            "- revert test\n\n"
+            "COST:\n"
+            "- spend unavailable\n\n"
+            "TRUTH:\n"
+            "- verified: none\n\n"
+            "HEADROOM:\n"
+            "- unknown\n"
         )
         run_one_cycle(dry_run=False)
         s = read_status()
@@ -1233,7 +1396,7 @@ def cmd_run_tests() -> None:
         set_status(fresh_status(status="pc_turn", **{"pass": 3, "last_updated": now_iso}))
         clear_test_watcher_log()
         _TEST_BUILDER_OVERRIDE = True
-        PC_OUTPUT.write_text("PASS: 2\nSTATUS: DONE\n")
+        PC_OUTPUT.write_text("RUNNER: claude\nPASS: 2\nSTATUS: DONE\n")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
@@ -1264,7 +1427,7 @@ def cmd_run_tests() -> None:
         set_status(fresh_status(status="pc_turn", **{"pass": 1, "last_updated": now_iso}))
         clear_test_watcher_log()
         _TEST_BUILDER_OVERRIDE = True
-        PC_OUTPUT.write_text("PASS: 1\nSTATUS: DONE\n")
+        PC_OUTPUT.write_text("RUNNER: claude\nPASS: 1\nSTATUS: DONE\n")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
@@ -1280,7 +1443,7 @@ def cmd_run_tests() -> None:
         clear_test_watcher_log()
         _TEST_BUILDER_OVERRIDE = False
         _TEST_RELAUNCH_OVERRIDE = True
-        PC_OUTPUT.write_text("PASS: 1\nSTATUS: DONE\n")
+        PC_OUTPUT.write_text("RUNNER: claude\nPASS: 1\nSTATUS: DONE\n")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
@@ -1349,6 +1512,31 @@ def cmd_run_tests() -> None:
             f"got {s}",
         )
 
+        # 10a. PC review fallback: planner timeout + valid pc_output → approved
+        _TEST_DISABLE_PC_REVIEW_FALLBACK = False
+        set_status(fresh_status(status="mac_turn", last_updated=old_iso))
+        clear_artifacts()
+        clear_test_watcher_log()
+        PC_OUTPUT.write_text(
+            "RUNNER: codex\n"
+            "PASS: 1\nSTATUS: DONE\n\n"
+            "CHANGES:\n- /home/openclaw/polish_loop/orchestrator.py\n\n"
+            "REASONING:\n- test reasoning\n\n"
+            "ROLLBACK PLAN:\n- revert test\n\n"
+            "COST:\n- spend unavailable\n\n"
+            "TRUTH:\n- verified: none\n\n"
+            "HEADROOM:\n- unknown\n"
+        )
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "PC review fallback: planner_timeout_no_review + valid pc_output → approved",
+            s is not None and s["status"] == "approved" and MAC_REVIEW.exists(),
+            f"got {s}",
+        )
+        _TEST_DISABLE_PC_REVIEW_FALLBACK = True
+        clear_artifacts()
+
         # 10b. PC review fallback: planner_runner_missing + valid pc_output → approved
         _TEST_DISABLE_PC_REVIEW_FALLBACK = False
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
@@ -1359,10 +1547,14 @@ def cmd_run_tests() -> None:
             "Checked PATH and common install directories.\n"
         )
         PC_OUTPUT.write_text(
+            "RUNNER: gemini\n"
             "PASS: 1\nSTATUS: DONE\n\n"
             "CHANGES:\n- test change\n\n"
             "REASONING:\n- test reasoning\n\n"
-            "ROLLBACK PLAN:\n- revert test\n"
+            "ROLLBACK PLAN:\n- revert test\n\n"
+            "COST:\n- spend unavailable\n\n"
+            "TRUTH:\n- verified: none\n\n"
+            "HEADROOM:\n- unknown\n"
         )
         run_one_cycle(dry_run=False)
         s = read_status()
@@ -1373,6 +1565,56 @@ def cmd_run_tests() -> None:
         )
         _TEST_DISABLE_PC_REVIEW_FALLBACK = True
         clear_artifacts()
+
+        # 10c. watcher_absent + valid pc_output + PC-review enabled → approved immediately (no timeout wait)
+        _TEST_DISABLE_PC_REVIEW_FALLBACK = False
+        set_status(fresh_status(status="mac_turn", last_updated=now_iso))  # NOT timed out
+        clear_artifacts()
+        clear_test_watcher_log()  # watcher log absent
+        PC_OUTPUT.write_text(
+            "RUNNER: codex\n"
+            "PASS: 1\nSTATUS: DONE\n\n"
+            "CHANGES:\n- /home/openclaw/polish_loop/orchestrator.py\n\n"
+            "REASONING:\n- test reasoning\n\n"
+            "ROLLBACK PLAN:\n- revert test\n\n"
+            "COST:\n- spend unavailable\n\n"
+            "TRUTH:\n- verified: none\n\n"
+            "HEADROOM:\n- unknown\n"
+        )
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "watcher absent + valid pc_output + PC-review enabled → approved immediately (no timeout wait)",
+            s is not None and s["status"] == "approved" and MAC_REVIEW.exists(),
+            f"got {s}",
+        )
+        _TEST_DISABLE_PC_REVIEW_FALLBACK = True
+        clear_artifacts()
+
+        # 10d. watcher_absent + PC-review disabled + no timeout → still mac_turn (wait)
+        set_status(fresh_status(status="mac_turn", last_updated=now_iso))  # NOT timed out
+        clear_artifacts()
+        clear_test_watcher_log()  # watcher log absent
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "watcher absent + PC-review disabled + no timeout → still mac_turn (wait)",
+            s is not None and s["status"] == "mac_turn",
+            f"got {s}",
+        )
+
+        # 10e. watcher_absent + PC-review disabled + timeout → blocked (planner_timeout_no_review)
+        set_status(fresh_status(status="mac_turn", last_updated=old_iso))  # timed out
+        clear_artifacts()
+        clear_test_watcher_log()  # watcher log absent
+        run_one_cycle(dry_run=False)
+        s = read_status()
+        check(
+            "watcher absent + PC-review disabled + timeout → blocked (planner_timeout_no_review)",
+            s is not None and s["status"] == "blocked"
+            and s.get("block_reason") == "planner_timeout_no_review",
+            f"got {s}",
+        )
 
         # 11. mac_turn, ambiguous mac_review → blocked (ambiguous_mac_review)
         set_status(fresh_status(status="mac_turn", last_updated=now_iso))
@@ -1402,15 +1644,15 @@ def cmd_run_tests() -> None:
         )
         MAC_REVIEW.unlink(missing_ok=True)
 
-        # 13. approved, no closeout.ok → idle (auto-close)
+        # 13. approved, no closeout.ok → approved (wait for closeout)
         set_status(fresh_status(status="approved", approved=True, last_updated=now_iso))
         clear_artifacts()
         clear_test_watcher_log()
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved, no closeout.ok → idle (auto-close)",
-            s is not None and s["status"] == "idle",
+            "approved, no closeout.ok → approved (wait)",
+            s is not None and s["status"] == "approved",
             f"got {s}",
         )
 
@@ -1420,6 +1662,28 @@ def cmd_run_tests() -> None:
         s = read_status()
         check(
             "--reset-blocked with reason → idle",
+            s is not None and s["status"] == "idle",
+            f"got {s}",
+        )
+
+        # 14b. --reset-blocked planner_timeout_no_review + pc_output present → mac_turn (preserve artifact)
+        set_status(fresh_status(status="blocked", block_reason="planner_timeout_no_review", last_updated=now_iso))
+        PC_OUTPUT.write_text("# PASS:1\nsome output\n")
+        cmd_reset_blocked("planner review missing — retrying")
+        s = read_status()
+        check(
+            "--reset-blocked planner_timeout_no_review + pc_output → mac_turn (artifact preserved)",
+            s is not None and s["status"] == "mac_turn" and PC_OUTPUT.exists(),
+            f"got {s}, pc_output exists={PC_OUTPUT.exists()}",
+        )
+        PC_OUTPUT.unlink(missing_ok=True)
+
+        # 14c. --reset-blocked planner_timeout_no_review but no pc_output → idle (fallback)
+        set_status(fresh_status(status="blocked", block_reason="planner_timeout_no_review", last_updated=now_iso))
+        cmd_reset_blocked("planner review missing — no artifact")
+        s = read_status()
+        check(
+            "--reset-blocked planner_timeout_no_review + no pc_output → idle",
             s is not None and s["status"] == "idle",
             f"got {s}",
         )
@@ -1482,15 +1746,15 @@ def cmd_run_tests() -> None:
         )
         CLOSEOUT.unlink(missing_ok=True)
 
-        # 19. approved + malformed closeout.ok → idle (ERROR logged, not stuck-silent)
+        # 19. approved + malformed closeout.ok → approved (ERROR logged, waits)
         set_status(fresh_status(status="approved", **{"pass": 1, "task_name": "test-orch", "approved": True}))
         clear_test_watcher_log()
         CLOSEOUT.write_text("this is plain text, not json")
         run_one_cycle(dry_run=False)
         s = read_status()
         check(
-            "approved + malformed closeout.ok → idle (ERROR logged)",
-            s is not None and s["status"] == "idle",
+            "approved + malformed closeout.ok → approved (ERROR logged)",
+            s is not None and s["status"] == "approved",
             f"got {s}",
         )
         CLOSEOUT.unlink(missing_ok=True)
@@ -1555,7 +1819,7 @@ def cmd_run_tests() -> None:
                 def __init__(self, rc):
                     self.returncode = rc
             # Simulate watcher-launched Claude process present.
-            if pattern == "timeout 900 claude --model sonnet --print":
+            if pattern == r"timeout [0-9]+ (codex|gemini|claude|aider)( .*)?":
                 return R(0)
             return R(1)
         subprocess.run = fake_run
@@ -1565,7 +1829,7 @@ def cmd_run_tests() -> None:
             subprocess.run = real_subprocess_run
         check(
             "builder_running detects watcher-launched runner patterns",
-            detected is True and "timeout 900 claude --model sonnet --print" in seen_patterns,
+            detected is True and r"timeout [0-9]+ (codex|gemini|claude|aider)( .*)?" in seen_patterns,
             f"detected={detected} patterns={seen_patterns}",
         )
 
@@ -1590,11 +1854,10 @@ def cmd_run_tests() -> None:
             f"plain={plain_recovery_result!r} nested={nested_result!r} auto_gen={auto_gen_result!r} before={before_auto_gen} after={after_auto_gen}",
         )
 
-        current_log_contents = LOG_FILE.read_text() if LOG_FILE.exists() else None
         check(
-            "run-tests does not mutate live orchestrator.log",
-            current_log_contents == original_log_contents,
-            "live log changed during self-test run",
+            "run-tests isolates self-test log target from live orchestrator.log",
+            LOG_FILE == test_log_file and live_log_file != test_log_file,
+            f"LOG_FILE={LOG_FILE} live_log_file={live_log_file}",
         )
 
     finally:
@@ -1603,8 +1866,10 @@ def cmd_run_tests() -> None:
         _TEST_DISABLE_IDLE_AUTOLAUNCH = False
         _TEST_DISABLE_PC_REVIEW_FALLBACK = False
         _TEST_DISABLE_SELF_HEAL_TASKS = False
+        LOG_FILE = live_log_file
         if _pc_review_mod is not None:
             _pc_review_mod._SUPPRESS_FILE_LOGS = False
+            _pc_review_mod.LOG_FILE = original_pc_log_file
         # Restore original state
         if original_status is not None:
             STATUS_FILE.write_text(original_status)

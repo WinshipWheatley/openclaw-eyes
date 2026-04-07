@@ -6,14 +6,55 @@
 set -euo pipefail
 export PATH="/home/openclaw/.local/bin:$PATH"
 
+bootstrap_runner_path() {
+    local dir
+    for dir in \
+        /home/openclaw/.local/bin \
+        /home/openclaw/.nvm/versions/node/*/bin \
+        /home/openclaw/.vscode-server/extensions/openai.chatgpt-*/bin/linux-x86_64
+    do
+        [ -d "$dir" ] || continue
+        case ":$PATH:" in
+            *":$dir:"*) ;;
+            *) PATH="$dir:$PATH" ;;
+        esac
+    done
+    export PATH
+}
+
+bootstrap_runner_path
+
 LOOP_DIR="/home/openclaw/polish_loop"
 STATUS_FILE="$LOOP_DIR/status.json"
 OUTPUT_FILE="$LOOP_DIR/current/pc_output.md"
 PROMPT_FILE="$LOOP_DIR/POLISH_PROMPT.md"
 REVIEW_FILE="$LOOP_DIR/current/mac_review.md"
 LOG_FILE="/mnt/c/OpenClaw/logs/polish_loop.log"
+RUNNER_TIMEOUT="${POLISH_RUNNER_TIMEOUT:-600}"
 
 ts() { date '+%Y-%m-%d %H:%M:%S'; }
+
+inject_runner_header() {
+    local runner_name="$1"
+    [ -f "$OUTPUT_FILE" ] || return 0
+    local first_line
+    first_line=$(head -1 "$OUTPUT_FILE" 2>/dev/null || echo "")
+    local tmp="${OUTPUT_FILE}.tmp"
+    case "$(printf '%s' "$first_line" | tr '[:lower:]' '[:upper:]')" in
+        RUNNER:*)
+            local current_runner
+            current_runner="${first_line#*:}"
+            current_runner="$(printf '%s' "$current_runner" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+            [ "$current_runner" = "$runner_name" ] && return 0
+            { printf 'RUNNER: %s\n' "$runner_name"; tail -n +2 "$OUTPUT_FILE"; } > "$tmp" \
+                && mv "$tmp" "$OUTPUT_FILE"
+            ;;
+        *)
+            { printf 'RUNNER: %s\n' "$runner_name"; cat "$OUTPUT_FILE"; } > "$tmp" \
+                && mv "$tmp" "$OUTPUT_FILE"
+            ;;
+    esac
+}
 
 # Read current state
 STATUS=$(python3 -c "import json; print(json.load(open('$STATUS_FILE'))['status'])")
@@ -65,9 +106,18 @@ HEREDOC
 )"
 fi
 
-# Run Claude with full tool access, non-interactively.
-# --dangerously-skip-permissions is required for --print mode with piped stdin,
-# otherwise all write tools are blocked in "don't ask" mode.
-echo "$PROMPT" | claude --model sonnet --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
+# Run Codex as autonomous builder (Claude blocked from autonomous spawning).
+# Use stdin instead of argv so long prompts do not depend on shell arg limits.
+set +e
+printf '%s' "$PROMPT" | timeout "$RUNNER_TIMEOUT" codex exec --sandbox workspace-write - 2>&1 | tee -a "$LOG_FILE"
+runner_rc=${PIPESTATUS[1]}
+set -e
+
+if [ "$runner_rc" -eq 124 ]; then
+    echo "$(ts) [polish] Builder timed out after ${RUNNER_TIMEOUT}s" | tee -a "$LOG_FILE"
+fi
+
+inject_runner_header "codex"
 
 echo "$(ts) [polish] Pass complete. Output at $OUTPUT_FILE" | tee -a "$LOG_FILE"
+exit "$runner_rc"

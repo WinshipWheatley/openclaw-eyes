@@ -14,6 +14,12 @@
     }
   ],
   "settings": {
+    "files.exclude": {
+      "**/Winship": true
+    },
+    "explorer.autoRevealExclude": {
+      "**/Winship": true
+    },
     "terminal.integrated.profiles.linux": {
       "PC bash": {
         "path": "/bin/bash",
@@ -35,6 +41,66 @@
         "label": "VS Code — Recover (cleanup PC server)",
         "type": "shell",
         "command": "bash /home/openclaw/vscode_cleanup.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Window 1 — Open Winship Dashboard Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_window1_layout.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Open Winship Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_window1_layout.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Open Cassandra Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_cassandra_layout.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Open Chief Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_chief_layout.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Open Guardian Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_guardian_layout.sh",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Open Ops / Big Picture Layout",
+        "type": "shell",
+        "command": "bash /home/openclaw/launch_ops_layout.sh",
         "problemMatcher": [],
         "presentation": {
           "reveal": "always",

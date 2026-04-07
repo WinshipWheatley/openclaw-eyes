@@ -1,0 +1,777 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-04-03T20:19:16Z",
+  "generated_by": "impl-settings-suite-registry task (pass 1)",
+  "claude_code_version": "2.1.91",
+
+  "slash_commands": [
+    {
+      "name": "/add-dir",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91 (slash commands not enumerable via --help in headless mode; classification based on Anthropic documentation and version)",
+      "description": "Add a directory to the session's allowed tool access paths",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/agents",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "List and manage configured agents",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/bug",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Report a bug to Anthropic",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/clear",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Clear the conversation context",
+      "governance_relevant": true,
+      "notes": "Affects context window state — governance-relevant for cost and mode tracking"
+    },
+    {
+      "name": "/compact",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Compact the conversation to reduce context size",
+      "governance_relevant": true,
+      "notes": "Modifies context; affects cost and subsequent behavior"
+    },
+    {
+      "name": "/config",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "View and edit Claude Code configuration settings",
+      "governance_relevant": true,
+      "notes": "Can modify settings that affect execution mode"
+    },
+    {
+      "name": "/cost",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Show the current session cost",
+      "governance_relevant": true,
+      "notes": "Cost surface; used for budget tracking"
+    },
+    {
+      "name": "/doctor",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Health check for Claude Code auto-updater",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/help",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Show available slash commands and help",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/init",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Initialize a new Claude Code project",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/login",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Log in to Claude Code / Anthropic account",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/logout",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Log out of Claude Code",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/mcp",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Configure and manage MCP servers",
+      "governance_relevant": true,
+      "notes": "MCP surface affects tool availability"
+    },
+    {
+      "name": "/memory",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "View and manage auto-memory (runtime law files such as AGENTS.md and memory files)",
+      "governance_relevant": true,
+      "notes": "Auto-memory is controlled by autoDreamEnabled setting"
+    },
+    {
+      "name": "/model",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "View or change the model for the current session",
+      "governance_relevant": true,
+      "notes": "Model selection directly affects cost and capability"
+    },
+    {
+      "name": "/permissions",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "View current permission settings",
+      "governance_relevant": true,
+      "notes": "Permission surface affects what tools can be used"
+    },
+    {
+      "name": "/pr_comments",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "View comments on the current pull request",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/review",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Start a code review session",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/status",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Show Claude Code session status",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/terminal-setup",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Set up terminal integration (shift+enter, etc.)",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/vim",
+      "classification": "officially_documented_builtin",
+      "available": true,
+      "evidence": "Documented built-in; installed version 2.1.91",
+      "description": "Enable vim keybindings in the Claude Code UI",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/simplify",
+      "classification": "bundled_slash_command",
+      "available": true,
+      "evidence": "Introduced in v2.1.63 changelog entry: 'Added /simplify and /batch bundled slash commands'. Installed version 2.1.91 >= 2.1.63.",
+      "description": "Reduced-capability execution mode — disables some autonomous behaviors",
+      "governance_relevant": true,
+      "notes": "Referenced in task artifacts (ops-pii-vault-activate.md, test-inner-circle-integration.md, test-file-verify-e2e.md) as recommended execution mode for small-model-suitable tasks"
+    },
+    {
+      "name": "/batch",
+      "classification": "bundled_slash_command",
+      "available": true,
+      "evidence": "Introduced in v2.1.63 changelog entry: 'Added /simplify and /batch bundled slash commands'. Installed version 2.1.91 >= 2.1.63.",
+      "description": "Batch execution mode for running multiple operations",
+      "governance_relevant": true,
+      "notes": "Referenced in test-inner-circle-integration.md and test-file-verify-e2e.md task artifacts"
+    },
+    {
+      "name": "/context",
+      "classification": "bundled_slash_command",
+      "available": true,
+      "evidence": "Added in v2.1.74 changelog: 'Added actionable suggestions to /context command'. Installed version 2.1.91 >= 2.1.74.",
+      "description": "Inspect context usage; provides optimization suggestions for context-heavy sessions",
+      "governance_relevant": true,
+      "notes": "Useful for identifying context bloat during long polish loop passes"
+    },
+    {
+      "name": "/powerup",
+      "classification": "bundled_slash_command",
+      "available": true,
+      "evidence": "Introduced in v2.1.90 changelog: 'Added /powerup — interactive lessons teaching Claude Code features'. Installed version 2.1.91 >= 2.1.90.",
+      "description": "Interactive lessons for Claude Code features with animated demos",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/feedback",
+      "classification": "bundled_slash_command",
+      "available": true,
+      "evidence": "Referenced in v2.1.91 changelog: '/feedback now explains why it's unavailable instead of disappearing'. Implies this command exists as of 2.1.91.",
+      "description": "Submit feedback to Anthropic",
+      "governance_relevant": false,
+      "notes": ""
+    },
+    {
+      "name": "/dream",
+      "classification": "nonexistent_stale_assumption",
+      "available": false,
+      "evidence": "Not found in claude --help, changelog, .claude/commands/, ~/.claude/commands/, or .mcp.json. autoDreamEnabled in settings.json is a settings TOGGLE — not a slash command. No /dream command evidence anywhere.",
+      "description": "",
+      "governance_relevant": false,
+      "notes": "autoDreamEnabled=true in .claude/settings.json is the related setting. That is a configuration key, not a slash command."
+    },
+    {
+      "name": "/auto-dream",
+      "classification": "nonexistent_stale_assumption",
+      "available": false,
+      "evidence": "Not found in claude --help, changelog, .claude/commands/, ~/.claude/commands/, or .mcp.json. No evidence this exists in any form.",
+      "description": "",
+      "governance_relevant": false,
+      "notes": "No related setting, config key, or command by this name found anywhere."
+    },
+    {
+      "name": "/automemory",
+      "classification": "nonexistent_stale_assumption",
+      "available": false,
+      "evidence": "Not found in claude --help, changelog, .claude/commands/, ~/.claude/commands/, or .mcp.json. autoMemoryDirectory is a settings KEY (added in v2.1.74) — not a slash command.",
+      "description": "",
+      "governance_relevant": false,
+      "notes": "autoMemoryDirectory (v2.1.74 setting) configures the directory for auto-memory storage. It is a config key, not a slash command."
+    },
+    {
+      "name": "/cassandra",
+      "classification": "project_custom_slash_command",
+      "available": true,
+      "evidence": "/home/openclaw/.claude/commands/cassandra.md (project root/.claude/commands/cassandra.md)",
+      "description": "Cassandra brain testing, debugging, and extension skill",
+      "governance_relevant": false,
+      "notes": "Note: project root (~) and user home are the same path (/home/openclaw), so this appears in both project and user command directories."
+    },
+    {
+      "name": "/ops-intake",
+      "classification": "project_custom_slash_command",
+      "available": true,
+      "evidence": "/home/openclaw/.claude/commands/ops-intake.md (project root/.claude/commands/ops-intake.md)",
+      "description": "Process, test, or debug an ops intake message for OpenClaw/Chief",
+      "governance_relevant": false,
+      "notes": "Note: project root (~) and user home are the same path (/home/openclaw)."
+    }
+  ],
+
+  "settings_toggles": [
+    {
+      "key": "autoDreamEnabled",
+      "file": ".claude/settings.json",
+      "scope": "project",
+      "current_value": true,
+      "type": "boolean",
+      "governance_relevant": true,
+      "notes": "Controls whether the tool automatically maintains memory/context summaries from runtime-law files and memory files. Currently ENABLED. Not a slash command despite the name."
+    },
+    {
+      "key": "skipDangerousModePermissionPrompt",
+      "file": ".claude/settings.json",
+      "scope": "project",
+      "current_value": false,
+      "type": "boolean",
+      "governance_relevant": true,
+      "notes": "When true, skips the permission prompt when --dangerously-skip-permissions is used. Currently DISABLED — explicit flag is still required."
+    },
+    {
+      "key": "effortLevel",
+      "file": ".claude/settings.json",
+      "scope": "project",
+      "current_value": "max",
+      "type": "string",
+      "governance_relevant": true,
+      "notes": "Default effort level for interactive sessions. Set to 'max'. Runner profiles override this for autonomous builder invocations via --effort flag."
+    },
+    {
+      "key": "permissions.defaultMode",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": "dontAsk",
+      "type": "string",
+      "governance_relevant": true,
+      "notes": "Permission fallback when no allow/deny/ask rule matches. 'dontAsk' = auto-approve unmatched tool calls. Governance-critical: determines what Claude can do without explicit permission."
+    },
+    {
+      "key": "enableAllProjectMcpServers",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": true,
+      "type": "boolean",
+      "governance_relevant": false,
+      "notes": "Enables all MCP servers defined in .mcp.json for this local environment."
+    },
+    {
+      "key": "enabledMcpjsonServers",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": ["filesystem"],
+      "type": "array",
+      "governance_relevant": false,
+      "notes": "Explicitly enabled MCP servers from .mcp.json. Currently: filesystem only."
+    },
+    {
+      "key": "permissions.allow",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": "54 tool-specific allow rules",
+      "type": "array",
+      "governance_relevant": true,
+      "notes": "Explicit allow list for tool calls (e.g., Bash(python3:*), Bash(git status:*), Read(//home/openclaw/**)). Full list in .claude/settings.local.json."
+    },
+    {
+      "key": "permissions.deny",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": "5 deny rules",
+      "type": "array",
+      "governance_relevant": true,
+      "notes": "Explicit deny list: blocks Read on .chief.env, .google-secrets/**, .env, .env.*, secrets/**. Hard security guardrail."
+    },
+    {
+      "key": "permissions.ask",
+      "file": ".claude/settings.local.json",
+      "scope": "local",
+      "current_value": "10 ask rules",
+      "type": "array",
+      "governance_relevant": true,
+      "notes": "Requires explicit user confirmation for: git push, git commit, sudo, rm -rf, powershell, kill, pkill, chmod, npm, pip, pip3."
+    }
+  ],
+
+  "cli_flags": [
+    {
+      "flag": "--model",
+      "runner": "claude",
+      "values": ["sonnet", "opus", "haiku", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Dynamic via runner_profiles.py PREFERRED_MODELS. quick/surgical/standard → sonnet; architect → opus. Used in builder_watcher.sh and run_polish_pass.sh invocations."
+    },
+    {
+      "flag": "--effort",
+      "runner": "claude",
+      "values": ["low", "medium", "high", "max"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Per-session effort level. Mapped from profile tier: quick=low, surgical=medium, standard=high, architect=max. Used in builder_watcher.sh. Overrides effortLevel from settings.json."
+    },
+    {
+      "flag": "--dangerously-skip-permissions",
+      "runner": "claude",
+      "values": ["boolean"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Required for --print mode with piped stdin (see OPENCLAW_RUNTIME.md guidance and related operator lessons). Used in builder_watcher.sh and run_polish_pass.sh. Without this, all write tools are silently blocked in --print mode."
+    },
+    {
+      "flag": "--print",
+      "runner": "claude",
+      "values": ["boolean"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Headless execution: print response and exit. Required for all autonomous builder invocations. Must be paired with --dangerously-skip-permissions for write access."
+    },
+    {
+      "flag": "--output-format",
+      "runner": "claude",
+      "values": ["text", "json", "stream-json"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Used as 'json' in builder_watcher.sh for cost capture (sed replaces --print with '--print --output-format json'). Default is 'text'."
+    },
+    {
+      "flag": "--max-budget-usd",
+      "runner": "claude",
+      "values": ["number"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Per-invocation spending cap. Values from runner_profiles: quick=0.25, surgical=0.50, standard=2.00, architect=5.00. Only works with --print."
+    },
+    {
+      "flag": "--fallback-model",
+      "runner": "claude",
+      "values": ["sonnet", "haiku"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Fallback when primary model is overloaded. Currently: haiku. Only works with --print. Used in builder_watcher.sh invoke pattern."
+    },
+    {
+      "flag": "--bare",
+      "runner": "claude",
+      "values": ["boolean"],
+      "currently_used": false,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Minimal mode: skips hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and runtime-law auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. NOT currently used by OpenClaw but governance-relevant — would disable tool auto-loading of adapter files."
+    },
+    {
+      "flag": "--permission-mode",
+      "runner": "claude",
+      "values": ["acceptEdits", "auto", "bypassPermissions", "default", "dontAsk", "plan"],
+      "currently_used": false,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Override permission mode for the session. OpenClaw currently uses defaultMode in settings.local.json instead of this flag directly. Governance-critical if used — bypassPermissions equivalent to --dangerously-skip-permissions."
+    },
+    {
+      "flag": "exec",
+      "runner": "codex",
+      "values": ["subcommand"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Codex headless mode. invoke_pattern: setsid timeout {timeout} codex exec \"$(cat {prompt_file})\""
+    },
+    {
+      "flag": "--prompt",
+      "runner": "gemini",
+      "values": ["string"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Gemini headless prompt flag. invoke_pattern: setsid timeout {timeout} gemini --prompt \"$(cat {prompt_file})\" --yolo --output-format text"
+    },
+    {
+      "flag": "--yolo",
+      "runner": "gemini",
+      "values": ["boolean"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": true,
+      "notes": "Gemini skip-confirmations flag. Equivalent to --dangerously-skip-permissions for Claude. Always used in OpenClaw gemini invocations."
+    },
+    {
+      "flag": "run",
+      "runner": "ollama",
+      "values": ["subcommand"],
+      "currently_used": true,
+      "classification": "cli_flag",
+      "governance_relevant": false,
+      "notes": "Ollama model invocation subcommand. invoke_pattern: setsid timeout {timeout} ollama run {model} < {prompt_file}"
+    },
+    {
+      "flag": "--message-file",
+      "runner": "aider",
+      "values": ["path"],
+      "currently_used": false,
+      "classification": "cli_flag",
+      "governance_relevant": false,
+      "notes": "Aider headless prompt file. Not currently used because aider is NOT on PATH."
+    },
+    {
+      "flag": "--yes-always",
+      "runner": "aider",
+      "values": ["boolean"],
+      "currently_used": false,
+      "classification": "cli_flag",
+      "governance_relevant": false,
+      "notes": "Aider skip-confirmations flag. Not currently used because aider is NOT on PATH."
+    },
+    {
+      "flag": "--no-auto-commits",
+      "runner": "aider",
+      "values": ["boolean"],
+      "currently_used": false,
+      "classification": "cli_flag",
+      "governance_relevant": false,
+      "notes": "Aider disable auto-commit flag. Not currently used because aider is NOT on PATH."
+    }
+  ],
+
+  "runners": [
+    {
+      "name": "claude",
+      "runner_type": "cloud",
+      "cost_tier": "moderate",
+      "available": true,
+      "version": "2.1.91",
+      "models": ["sonnet", "opus", "haiku"],
+      "invoke_pattern": "setsid timeout {timeout} claude --model {model} --effort {effort} --dangerously-skip-permissions --print --max-budget-usd {budget} --fallback-model {fallback_model} < {prompt_file}",
+      "headless_flag": "--print",
+      "strengths": ["architecture", "complex-reasoning", "multi-file", "safety"],
+      "weaknesses": ["cost-on-opus"],
+      "governance_relevant": true,
+      "notes": "Primary OpenClaw autonomous builder runner. Version verified via 'claude --version'."
+    },
+    {
+      "name": "codex",
+      "runner_type": "cloud",
+      "cost_tier": "moderate",
+      "available": true,
+      "version": "0.117.0",
+      "models": [],
+      "invoke_pattern": "setsid timeout {timeout} codex exec \"$(cat {prompt_file})\"",
+      "headless_flag": "exec",
+      "strengths": ["code-review", "sandbox-isolation", "openai-models"],
+      "weaknesses": ["less-context-than-claude"],
+      "governance_relevant": true,
+      "notes": "OpenAI Codex CLI. Version verified via 'codex --version'. Authorized for autonomous code tasks per OPENCLAW_RUNTIME.md via the AGENTS.md adapter."
+    },
+    {
+      "name": "gemini",
+      "runner_type": "cloud",
+      "cost_tier": "cheap",
+      "available": true,
+      "version": "0.35.3",
+      "models": [],
+      "invoke_pattern": "setsid timeout {timeout} gemini --prompt \"$(cat {prompt_file})\" --yolo --output-format text",
+      "headless_flag": "--prompt",
+      "strengths": ["fast", "cheap", "large-context", "sandbox"],
+      "weaknesses": ["less-agentic-than-claude"],
+      "governance_relevant": true,
+      "notes": "Google Gemini CLI. Version verified via 'gemini --version'."
+    },
+    {
+      "name": "aider",
+      "runner_type": "hybrid",
+      "cost_tier": "variable",
+      "available": false,
+      "version": "unknown",
+      "models": [],
+      "invoke_pattern": "setsid timeout {timeout} aider --model {model} --yes-always --no-auto-commits --message-file {prompt_file}",
+      "headless_flag": "--yes-always --no-auto-commits",
+      "strengths": ["git-aware", "multi-model", "edit-format"],
+      "weaknesses": ["needs-model-config"],
+      "governance_relevant": true,
+      "notes": "NOT on PATH. 'which aider' returns nothing. Registered in KNOWN_RUNNERS but not installed in this environment. Cannot be used for builder invocations."
+    },
+    {
+      "name": "ollama",
+      "runner_type": "local",
+      "cost_tier": "free",
+      "available": true,
+      "version": "0.18.0",
+      "models": [],
+      "invoke_pattern": "setsid timeout {timeout} ollama run {model} < {prompt_file}",
+      "headless_flag": "run",
+      "strengths": ["free", "private", "fast-for-small-tasks", "no-internet-needed"],
+      "weaknesses": ["limited-reasoning", "small-context", "no-tool-use"],
+      "governance_relevant": false,
+      "notes": "Local Ollama instance. Version verified via 'ollama --version'. Used for Chief LLM (chief_llm.py) but not currently in builder runner pool."
+    }
+  ],
+
+  "profile_tiers": {
+    "quick": {
+      "effort": "low",
+      "timeout": 120,
+      "budget": 0.25,
+      "permission_mode": "auto",
+      "preferred_model": "sonnet",
+      "extra_flags": []
+    },
+    "surgical": {
+      "effort": "medium",
+      "timeout": 300,
+      "budget": 0.5,
+      "permission_mode": "auto",
+      "preferred_model": "sonnet",
+      "extra_flags": []
+    },
+    "standard": {
+      "effort": "high",
+      "timeout": 600,
+      "budget": 2.0,
+      "permission_mode": "auto",
+      "preferred_model": "sonnet",
+      "extra_flags": []
+    },
+    "architect": {
+      "effort": "max",
+      "timeout": 900,
+      "budget": 5.0,
+      "permission_mode": "auto",
+      "preferred_model": "opus",
+      "extra_flags": []
+    }
+  },
+
+  "hooks": {
+    "directory_exists": false,
+    "directory_path": "/home/openclaw/.claude/hooks/",
+    "available_types": [
+      "PreToolUse",
+      "PostToolUse",
+      "SessionStart",
+      "SessionEnd",
+      "Elicitation",
+      "ElicitationResult",
+      "PermissionDenied",
+      "TaskCreated",
+      "HTTP"
+    ],
+    "adopted": [],
+    "governance_relevant": true,
+    "notes": "Hook infrastructure available in Claude Code 2.1.91 but OpenClaw has no hooks directory and has not adopted any hooks. High governance potential: PreToolUse hooks could enforce mode verification and audit logging before tool execution. HTTP hooks (added v2.1.63) could POST tool events to OpenClaw's own approval pipeline."
+  },
+
+  "mcp_servers": [
+    {
+      "name": "filesystem",
+      "transport": "stdio",
+      "config_file": ".mcp.json",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "allowed_directories": [
+        "/home/openclaw",
+        "/mnt/c/OpenClawShared/openclaw-vault",
+        "/mnt/c/OpenClaw/logs"
+      ],
+      "tools_exposed": [
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__directory_tree",
+        "mcp__filesystem__edit_file",
+        "mcp__filesystem__get_file_info",
+        "mcp__filesystem__list_allowed_directories",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__list_directory_with_sizes",
+        "mcp__filesystem__move_file",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__read_media_file",
+        "mcp__filesystem__read_multiple_files",
+        "mcp__filesystem__read_text_file",
+        "mcp__filesystem__search_files",
+        "mcp__filesystem__write_file"
+      ],
+      "enabled_in_local": true,
+      "governance_relevant": false,
+      "notes": "Active MCP server. Enabled via enabledMcpjsonServers in settings.local.json. Tools exposed verified from session deferred tool list."
+    }
+  ],
+
+  "plugins": {
+    "marketplace_available": true,
+    "marketplace_path": "/home/openclaw/.claude/plugins/marketplaces/claude-plugins-official/",
+    "available_count": 32,
+    "installed_active": [],
+    "blocklisted": [
+      {
+        "plugin": "code-review@claude-plugins-official",
+        "reason": "just-a-test",
+        "blocked_at": "2026-02-11T03:16:31.424Z"
+      }
+    ],
+    "governance_relevant": false,
+    "notes": "32 plugins available in claude-plugins-official marketplace (agent-sdk-dev, clangd-lsp, code-review, code-simplifier, commit-commands, etc.). None are installed/active in this workspace. blocklist.json blocks code-review@claude-plugins-official."
+  },
+
+  "user_commands_directory": {
+    "path": "~/.claude/commands/",
+    "resolved_path": "/home/openclaw/.claude/commands/",
+    "note": "Project root and user home are the same path (/home/openclaw). The user-level commands directory IS the project commands directory. No separate user-global commands exist outside the project.",
+    "files": ["cassandra.md", "ops-intake.md"]
+  },
+
+  "settings_hierarchy": {
+    "precedence_order": [
+      {
+        "level": 1,
+        "file": ".claude/settings.local.json",
+        "scope": "local",
+        "gitignored": true,
+        "note": "Highest priority. Local overrides. Contains permission allow/deny/ask rules and defaultMode."
+      },
+      {
+        "level": 2,
+        "file": ".claude/settings.json",
+        "scope": "project",
+        "gitignored": false,
+        "note": "Project-level settings committed to git. Contains autoDreamEnabled, skipDangerousModePermissionPrompt, effortLevel."
+      },
+      {
+        "level": 3,
+        "file": "~/.claude/settings.json",
+        "scope": "user-global",
+        "gitignored": false,
+        "note": "User-global settings. Lowest priority. Overridden by project and local settings. Not inspected in this pass (path: /home/openclaw/.claude/settings.json is same as project — no separate global file)."
+      }
+    ]
+  },
+
+  "classification_taxonomy": {
+    "officially_documented_builtin": "Ships with Claude Code as a documented built-in slash command. Present in all recent versions.",
+    "bundled_slash_command": "Ships with Claude Code, added in a specific release (e.g., /simplify, /batch added in v2.1.63).",
+    "mcp_provided_command": "Exposed by an MCP server. May appear as a slash command or tool in the session.",
+    "project_custom_slash_command": "Defined in .claude/commands/ directory in the project root.",
+    "user_custom_slash_command": "Defined in ~/.claude/commands/ directory (user home). In this system, identical path to project commands.",
+    "plugin_provided_command": "Exposed by an installed .claude/plugins/ plugin. None currently installed in this workspace.",
+    "local_alias_wrapper": "OpenClaw shell script or launcher that maps a mode name to a CLI invocation (e.g., run_polish_pass.sh, builder_watcher.sh).",
+    "settings_toggle": "Configuration key in settings.json or settings.local.json that controls Claude Code behavior.",
+    "cli_flag": "Command-line flag passed to a runner binary (claude, codex, gemini, aider, ollama).",
+    "nonexistent_stale_assumption": "Referenced in documentation, tasks, or planning discussions but does not actually exist as a command or flag."
+  },
+
+  "stale_references": [],
+
+  "open_gaps": [
+    {
+      "gap": "aider not on PATH",
+      "severity": "low",
+      "detail": "aider is registered in KNOWN_RUNNERS and runner_registry.py but 'which aider' returns nothing. Any task routed to aider will fail at launch. Drift from registry spec.",
+      "action": "Install aider or remove from KNOWN_RUNNERS if not planned for use."
+    },
+    {
+      "gap": "Slash commands cannot be live-verified from --help in headless mode",
+      "severity": "info",
+      "detail": "Claude Code --help output lists CLI flags and subcommands, not in-session slash commands. Classification for built-ins is based on Anthropic documentation and changelog version comparisons, not live enumeration.",
+      "action": "Accept as-is. Changelog version evidence is sufficient for registry purposes."
+    },
+    {
+      "gap": "No hooks adopted despite high governance potential",
+      "severity": "medium",
+      "detail": "OpenClaw has no .claude/hooks/ directory. PreToolUse hooks could enforce mode verification (e.g., reject --effort max in quick tier). HTTP hooks could POST tool events to the approval pipeline. This is explicitly a later task but is a significant governance gap.",
+      "action": "Address in a future mode-governance task (hooks implementation)."
+    },
+    {
+      "gap": "User-global ~/.claude/settings.json not inspected",
+      "severity": "low",
+      "detail": "Since project root and user home are the same (/home/openclaw), the user-global settings file path is identical to the project settings file. No truly global user settings exist separately from the project in this environment.",
+      "action": "No action needed. Document the co-location in registry."
+    },
+    {
+      "gap": "runner_registry.refresh() returns unhashable type",
+      "severity": "low",
+      "detail": "Calling runner_registry.refresh() raises 'str object has no attribute name'. The KNOWN_RUNNERS static dict was used as fallback for runner enumeration. Live availability was verified via 'which <runner>' and '--version' commands instead.",
+      "action": "Runner availability in registry is accurate (live-verified). The refresh() API issue does not affect registry accuracy."
+    }
+  ]
+}

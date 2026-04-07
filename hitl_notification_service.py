@@ -52,7 +52,7 @@ from hitl_pending_store import WAITING_FOR_APPROVAL
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-_TOKEN_TTL_SECONDS = 7200  # 2 hours
+_TOKEN_TTL_SECONDS = 86400  # 24 hours
 _LOGS_DIR = Path("/mnt/c/OpenClaw/logs")
 _NOTIFY_LOG = _LOGS_DIR / "hitl_notifications.jsonl"
 
@@ -78,6 +78,8 @@ def _load_env_file() -> None:
                 line = raw.strip()
                 if not line or line.startswith("#") or "=" not in line:
                     continue
+                if line.startswith("export "):
+                    line = line[len("export "):].strip()
                 key, value = line.split("=", 1)
                 key = key.strip()
                 value = value.strip().strip('"').strip("'")
@@ -212,6 +214,11 @@ def format_notification(action: dict) -> str:
     payload = action.get("payload", {})
     risk = _risk_level(a_type)
     expires_at = action.get("expires_at", "unknown")
+    review_state = action.get("review_state", "NORMAL")
+    review_reasons = action.get("review_reason_codes") or []
+    normalized_amount = action.get("normalized_amount")
+    super_flag_limit = action.get("super_flag_limit")
+    hard_limit = action.get("hard_limit")
 
     approve_token = generate_token(action_id, "Y")
     deny_token = generate_token(action_id, "N")
@@ -222,15 +229,26 @@ def format_notification(action: dict) -> str:
         f"Agent: {source}",
         f"Type: {a_type}",
         f"Risk: {risk}",
+        f"Review: {review_state}",
         f"Expires: {expires_at}",
         f"Payload: {_payload_preview(payload)}",
+    ]
+    if normalized_amount is not None:
+        lines.append(f"Amount: ${normalized_amount:,.2f}")
+    if super_flag_limit is not None and hard_limit is not None:
+        lines.append(
+            f"Limits: super-flag >= ${super_flag_limit:,.2f}, hard > ${hard_limit:,.2f}"
+        )
+    if review_reasons:
+        lines.append(f"Review reasons: {', '.join(review_reasons)}")
+    lines.extend([
         "",
         "To approve:",
         f"/hitl_approve {approve_token}",
         "",
         "To deny:",
         f"/hitl_deny {deny_token}",
-    ]
+    ])
     return "\n".join(lines)
 
 
@@ -246,6 +264,23 @@ def _audit_notify(action_id: str, event: str, detail: dict | None = None) -> Non
     }
     with _NOTIFY_LOG.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
+
+
+def _maybe_send_no_pending_confirmation() -> None:
+    """
+    If no HITL approvals remain, send the same green-check confirmation the
+    legacy approval gate uses.
+    """
+    try:
+        pending = _svc.list_pending_actions(status=WAITING_FOR_APPROVAL)
+        if pending:
+            return
+        from chief_guardian_sender import send_approval
+
+        send_approval("✅ No pending approval requests.")
+        _audit_notify("none", "all_clear_confirmation_sent", {"pending_count": 0})
+    except Exception as exc:
+        _audit_notify("none", "all_clear_confirmation_failed", {"error": str(exc)})
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -338,6 +373,7 @@ def handle_callback(raw_token: str, *, approved_by: str = "operator") -> dict:
         _audit_notify(action_id, "callback_applied", detail)
         print(f"[hitl_notify] callback applied: {action_id} decision={decision}",
               flush=True)
+        _maybe_send_no_pending_confirmation()
         return {"ok": True, "action_id": action_id, "decision": decision, "error": None}
     else:
         error = "action_not_found_or_terminal"

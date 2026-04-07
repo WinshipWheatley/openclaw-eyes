@@ -38,9 +38,9 @@ print('Status set to: $new_status')
 " 2>&1
 }
 
-# Get PIDs of builder processes (claude or codex under timeout)
+# Get PIDs of builder processes (codex or gemini under timeout)
 get_builder_pids() {
-  pgrep -f 'timeout [0-9]+ (claude|codex)' 2>/dev/null || true
+  pgrep -f 'timeout [0-9]+ (codex|gemini)' 2>/dev/null || true
 }
 
 get_orchestrator_pid() {

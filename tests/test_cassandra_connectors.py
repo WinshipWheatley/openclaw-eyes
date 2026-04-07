@@ -91,6 +91,73 @@ def test_gmail_metadata_function_callable():
     )
 
 
+# ── Capability: GMAIL_UNREAD_COUNT — policy + executor integrity ──────────────
+
+def test_google_access_policy_importable():
+    """google_access_policy must be importable without SyntaxError."""
+    _import("google_access_policy")
+
+
+def test_gmail_unread_count_in_policy():
+    """google.gmail.unread_count must be present and permitted for cassandra."""
+    mod = _import("google_access_policy")
+    assert mod.allowed("cassandra", "google.gmail.unread_count"), (
+        "google.gmail.unread_count is not permitted for cassandra in _POLICY — "
+        "unread count queries will silently fall through to 'inbox unreachable' fallback"
+    )
+    assert mod.get_class("cassandra", "google.gmail.unread_count") == "A", (
+        "google.gmail.unread_count must be CLASS_A (safe read) for cassandra"
+    )
+
+
+def test_gmail_unread_count_function_callable():
+    """google_access_broker._exec_gmail_unread_count must be callable."""
+    mod = _import("google_access_broker")
+    assert callable(getattr(mod, "_exec_gmail_unread_count", None)), (
+        "google_access_broker._exec_gmail_unread_count is not callable"
+    )
+
+
+def test_gmail_read_metadata_in_policy():
+    """google.gmail.read.metadata must be present and permitted for cassandra."""
+    mod = _import("google_access_policy")
+    assert mod.allowed("cassandra", "google.gmail.read.metadata"), (
+        "google.gmail.read.metadata not permitted for cassandra — list path broken"
+    )
+
+
+def test_broker_call_passes_policy_for_unread_count():
+    """
+    broker.call('cassandra', 'google.gmail.unread_count') must not fail at the
+    policy check step. It may fail at credentials, but must NOT return
+    'policy module unavailable' or 'not permitted'.
+    """
+    mod = _import("google_access_broker")
+    result = mod.call("cassandra", "google.gmail.unread_count", {})
+    assert result.get("error") != "policy module unavailable", (
+        "Policy module failed to import — unread count blocked at policy check"
+    )
+    assert "not permitted" not in (result.get("error") or ""), (
+        f"cassandra denied for google.gmail.unread_count by policy: {result['error']}"
+    )
+    # Allowed to fail at credentials/network — only policy step must pass
+
+
+def test_broker_call_passes_policy_for_read_metadata():
+    """
+    broker.call('cassandra', 'google.gmail.read.metadata') must not fail at the
+    policy check step.
+    """
+    mod = _import("google_access_broker")
+    result = mod.call("cassandra", "google.gmail.read.metadata", {})
+    assert result.get("error") != "policy module unavailable", (
+        "Policy module failed to import — read.metadata blocked at policy check"
+    )
+    assert "not permitted" not in (result.get("error") or ""), (
+        f"cassandra denied for google.gmail.read.metadata by policy: {result['error']}"
+    )
+
+
 # ── Capability: CONTACTS_CONNECTED ────────────────────────────────────────────
 
 def test_contacts_function_callable():

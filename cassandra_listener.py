@@ -30,12 +30,21 @@ from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
-from cassandra_brain import handle as cassandra_handle, is_designated_contact_sender
+from cassandra_brain import (
+    handle as cassandra_handle,
+    is_designated_contact_sender,
+    pin_telegram_chat_id,
+    find_contact_by_nickname,
+)
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
+
+# ── Tracking for identity pins ───────────────────────────────────────────────
+
+_RECENT_SENDERS = {}  # sender_name.lower() -> chat_id (int)
 
 
 def _log_cassandra_route(text: str, intent: str) -> None:
@@ -89,6 +98,20 @@ def _suppress_voice(user_text: str) -> bool:
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_name = update.effective_user.full_name if update.effective_user else None
     sender_chat_id = update.effective_chat.id if update.effective_chat else None
+    print(f"[chatid-pin] sender_name={sender_name!r} chat_id={sender_chat_id} user_id={update.effective_user.id if update.effective_user else None}", flush=True)
+
+    # Record recent sender mapping for pinning
+    if sender_name and sender_chat_id:
+        _RECENT_SENDERS[sender_name.lower()] = sender_chat_id
+
+    # Handle forwarded message metadata
+    if update.message and update.message.forward_from:
+        f_name = update.message.forward_from.full_name
+        f_id = update.message.forward_from.id
+        if f_name:
+            _RECENT_SENDERS[f_name.lower()] = f_id
+            print(f"[chatid-pin] recorded forward: {f_name} -> {f_id}", flush=True)
+
     is_authorized_user = bool(update.effective_user and update.effective_user.id == AUTHORIZED_USER_ID)
     is_designated_contact = is_designated_contact_sender(
         sender_name=sender_name,
@@ -100,6 +123,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+
+    # Admin: Pin chat_id to nickname
+    if is_authorized_user and text.lower().startswith("pin chatid "):
+        nickname = text[len("pin chatid "):].strip().lower()
+        target_chat_id = None
+
+        # Look up nickname names in _RECENT_SENDERS
+        entry = find_contact_by_nickname(nickname)
+        if entry:
+            for sn in entry["sender_names"]:
+                if sn in _RECENT_SENDERS:
+                    target_chat_id = _RECENT_SENDERS[sn]
+                    break
+
+        if target_chat_id:
+            if pin_telegram_chat_id(nickname, target_chat_id):
+                await update.message.reply_text(f"✅ Pinned chat_id {target_chat_id} to nickname '{nickname}'.")
+            else:
+                await update.message.reply_text(f"❌ Failed to pin to nickname '{nickname}'. See logs.")
+        else:
+            await update.message.reply_text(
+                f"❓ Could not find a recent message from anyone matching nickname '{nickname}'. "
+                "Try forwarding a message from them first."
+            )
+        return
+
     try:
         replies = await asyncio.to_thread(
             cassandra_handle,

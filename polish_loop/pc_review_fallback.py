@@ -7,7 +7,7 @@ this module provides both structural and semantic review of builder output
 that keeps the loop moving autonomously.
 
 The review validates:
-  1. pc_output.md has all required sections (CHANGES, REASONING, ROLLBACK PLAN)
+  1. pc_output.md has all required sections (CHANGES, REASONING, ROLLBACK PLAN, COST, TRUTH, HEADROOM)
   2. PASS number matches the current pass in status.json
   3. STATUS is DONE (not BLOCKED)
   4. Listed changed files actually exist on disk
@@ -52,7 +52,7 @@ MAC_REVIEW  = CURRENT_DIR / "mac_review.md"
 TASK_MD     = LOOP_DIR / "task.md"
 LOG_FILE    = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 
-REQUIRED_SECTIONS = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:")
+REQUIRED_SECTIONS = ("CHANGES:", "REASONING:", "ROLLBACK PLAN:", "COST:", "TRUTH:", "HEADROOM:")
 
 
 # ---------------------------------------------------------------------------
@@ -95,12 +95,14 @@ def needs_review() -> bool:
     if not status:
         return False
     state = status.get("status")
-    # Fire when mac_turn (planner should be reviewing) or blocked due to planner failure
+    # Fire when mac_turn (planner should be reviewing) or blocked due to a
+    # planner-side failure/timeout. Timeouts only become eligible once the
+    # loop has already entered the explicit blocked state.
     if state == "mac_turn":
         return not MAC_REVIEW.exists()
     if state == "blocked":
         reason = status.get("block_reason", "")
-        return reason in ("planner_runner_missing", "planner_timeout_no_review")
+        return reason in {"planner_runner_missing", "planner_timeout_no_review"}
     return False
 
 
@@ -397,7 +399,10 @@ def structural_review() -> tuple[str, list[str], list[str]]:
         return "NEEDS_REWORK", passes, fails
 
     # ---- Check PASS number ----
-    first_line = content.splitlines()[0] if content.splitlines() else ""
+    lines = content.splitlines()
+    first_line = lines[0] if lines else ""
+    if re.match(r"RUNNER:\s*\S+", first_line, re.IGNORECASE) and len(lines) > 1:
+        first_line = lines[1]
     pass_match = re.match(r"PASS:\s*(\d+)", first_line, re.IGNORECASE)
     if pass_match:
         found_pass = int(pass_match.group(1))

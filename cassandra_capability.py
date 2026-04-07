@@ -33,14 +33,15 @@ import re
 
 CALENDAR_CONNECTED         = True   # google.calendar.read via google_access_broker.py
 PAYMENT_EXTERNAL_CONNECTED = False  # no live bank or payment processor connection
-FILE_VERIFY_CONNECTED      = False  # Chief file-existence check not wired in
-EMAIL_SEND_CONNECTED = True  # google.gmail.send via google_access_broker.py (L2 approval required)
+FILE_VERIFY_CONNECTED      = True   # tools/file_verify.py wired via cassandra_brain._handle_file_verification_request
+EMAIL_DRAFT_CONNECTED      = True   # google.gmail.draft.create via google_access_broker.py (L1 approval)
+EMAIL_SEND_CONNECTED       = False  # direct outbound send intentionally disabled for Cassandra
 INVOICE_PDF_CONNECTED = True  # reportlab PDF invoice generation via Cassandra
-FUTURE_ACTION_CONNECTED    = False  # cannot autonomously check, send, or follow up
+FUTURE_ACTION_CONNECTED    = True   # dispatch via cassandra_watcher.py, enqueue via cassandra_brain.py
 FINANCIAL_LOG_CONNECTED    = True   # expense_log.json write via chief_cpa_brain.log_entry / log_expense_from_text
 GMAIL_METADATA_CONNECTED   = True   # google.gmail.read.metadata via google_access_broker.py
 CONTACTS_CONNECTED         = True   # google.contacts.read via google_access_broker.py
-PII_VAULT_CONNECTED        = False  # pii_vault.py ready; requires --generate-key + --write to activate
+PII_VAULT_CONNECTED        = True   # activated 2026-04-03 — vault key in .chief.env, vault file at .pii_vault.enc
 VOICE_NOTE_CONNECTED       = True   # Telegram voice note sending via cassandra_sender.send_voice_note
 
 # ── Source state labels ───────────────────────────────────────────────────────
@@ -198,14 +199,13 @@ _FILE_RESPONSES = (
 )
 
 _EMAIL_RESPONSES = (
-    "I can draft that — sending isn't set up on my end. "
-    "You send it from your client.",
+    "I can create a Gmail draft for review — direct sending isn't set up on my end. "
+    "You review and send it from the configured Gmail review inbox.",
 
-    "Draft, yes. Send, no — sending isn't on my side. "
-    "I'll write it; you dispatch it.",
+    "Draft, yes. Direct send, no — I can prepare the Gmail draft and you review it before dispatch.",
 
-    "Writing is on my side. Sending isn't — not set up yet. "
-    "I'll draft; you send.",
+    "Writing is on my side. Direct sending isn't. "
+    "I'll draft it in Gmail for your review.",
 )
 
 _FUTURE_ACTION_RESPONSES = (
@@ -316,8 +316,10 @@ def capability_context() -> str:
                  "Never state deposit or payment status as an external fact. Log entries only."),
         cap_line("file_verification", FILE_VERIFY_CONNECTED,
                  "Never confirm or deny that a file or path exists."),
+        cap_line("email_draft",       EMAIL_DRAFT_CONNECTED,
+                 "Email draft creation is not connected."),
         cap_line("email_send",        EMAIL_SEND_CONNECTED,
-                 "You can draft. You cannot send."),
+                 "You can create brokered Gmail drafts for review. You cannot send email directly."),
         cap_line("future_exec",       FUTURE_ACTION_CONNECTED,
                  "You cannot check, send, or follow up autonomously. You can draft, log, or surface."),
         cap_line("financial_log",     FINANCIAL_LOG_CONNECTED,

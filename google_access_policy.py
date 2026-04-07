@@ -32,9 +32,8 @@ DENIED  = None  # Access explicitly denied
 # Format: { capability: { agent: class_or_DENIED } }
 #
 # Phase 1 active:    google.calendar.read for Cassandra only.
-# Phase 1 placeholder: contacts.read, gmail.read.metadata (defined, not yet wired).
-# Phase 2 placeholder: gmail.read.body (needs audit log verified before activation).
-# Phase 3 placeholder: gmail.draft.create (first write — L1 confirm, structured input).
+# Active safe reads: contacts.read, gmail.read.metadata, gmail.read.body.
+# Active review-first write: gmail.draft.create (L1 confirm, structured input).
 # Chief denied for all until phase 2 deliberate decision.
 #
 # Do not change a DENIED entry to CLASS_A/B/C without reviewing the approval class.
@@ -57,14 +56,18 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "cassandra": CLASS_A,
         "chief":     DENIED,
     },
+    "google.gmail.unread_count": {
+        "cassandra": CLASS_A,
+        "chief":     DENIED,
+    },
 
-    # ── Phase 2 placeholder — requires audit log verified before activation ──
+    # ── Grounded thread read — stays inside broker boundary with audit log ───
     "google.gmail.read.body": {
         "cassandra": CLASS_A,
         "chief":     DENIED,
     },
 
-    # ── Phase 3 placeholder — first write; L1 confirm, structured input req. ─
+    # ── Active review-first write — reversible draft creation; L1 confirm ─────
     "google.gmail.draft.create": {
         "cassandra": CLASS_B,
         "chief":     DENIED,

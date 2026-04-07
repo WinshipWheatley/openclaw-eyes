@@ -49,8 +49,8 @@ LOG_FILE = Path("/mnt/c/OpenClaw/logs/queue_balancer.log")
 ORCH_LOG = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 
 PERSONAL_CONTEXT_CANDIDATES = (
-    Path("/home/openclaw/mac_eyes/For Winship 1 - Right Now.md"),
-    Path("/home/openclaw/mac_eyes/Big Picture.md"),
+    Path("/home/openclaw/mac_eyes/Winship/Right now.md"),
+    Path("/home/openclaw/mac_eyes/Winship/Big Picture.md"),
     Path("/mnt/c/OpenClawShared/openclaw-vault/System/Overview.md"),
 )
 

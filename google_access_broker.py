@@ -1,3 +1,16 @@
+def _exec_gmail_unread_count(creds, params: dict) -> dict:
+    """
+    Fetch the unread count for the INBOX label from Gmail API.
+    """
+    try:
+        from googleapiclient.discovery import build
+        service = build("gmail", "v1", credentials=creds)
+        label_resp = service.users().labels().get(userId="me", id="INBOX").execute()
+        unread_count = label_resp.get("messagesUnread", 0)
+        return {"ok": True, "data": unread_count, "error": ""}
+    except Exception as e:
+        return {"ok": False, "data": None, "error": str(e)}
+
 """
 google_access_broker.py
 
@@ -59,6 +72,7 @@ _ACTIVE_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/contacts.readonly",
     "https://www.googleapis.com/auth/gmail.metadata",
+    "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.compose",  # Pass 3: email send
 ]
 
@@ -236,6 +250,80 @@ def _exec_calendar_write(creds, params: dict) -> dict:
         return {"ok": False, "data": None, "error": str(e)}
 
 
+def _gmail_header_map(detail: dict) -> dict:
+    return {
+        h["name"]: h["value"]
+        for h in detail.get("payload", {}).get("headers", [])
+        if "name" in h and "value" in h
+    }
+
+
+def _gmail_sender_fields(headers: dict) -> tuple[str, str]:
+    from email.utils import parseaddr
+
+    raw_from = headers.get("From", "")
+    from_name, from_email = parseaddr(raw_from)
+    from_name = from_name.strip().strip('"')
+    if not from_name and from_email:
+        from_name = from_email.split("@")[0].strip()
+    if not from_name:
+        from_name = raw_from
+    return from_name, from_email.strip().lower()
+
+
+def _gmail_reply_to_email(headers: dict) -> str:
+    from email.utils import parseaddr
+
+    _, reply_to_email = parseaddr(headers.get("Reply-To", ""))
+    return reply_to_email.strip().lower()
+
+
+def _decode_gmail_body(data: str) -> str:
+    if not data:
+        return ""
+    try:
+        import base64
+
+        padding = "=" * (-len(data) % 4)
+        decoded = base64.urlsafe_b64decode(data + padding)
+        return decoded.decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+
+def _gmail_payload_text(payload: dict) -> str:
+    if not isinstance(payload, dict):
+        return ""
+
+    mime_type = str(payload.get("mimeType", "")).lower()
+    body_data = str((payload.get("body") or {}).get("data", "") or "")
+
+    if mime_type == "text/plain":
+        return _decode_gmail_body(body_data)
+
+    parts = payload.get("parts") or []
+    texts: list[str] = []
+    if isinstance(parts, list):
+        for part in parts:
+            part_text = _gmail_payload_text(part)
+            if part_text:
+                texts.append(part_text)
+    if texts:
+        return "\n".join(chunk.strip() for chunk in texts if chunk.strip()).strip()
+
+    if mime_type == "text/html":
+        html = _decode_gmail_body(body_data)
+        if html:
+            import re
+
+            text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", html)
+            text = re.sub(r"(?s)<[^>]+>", " ", text)
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
+
+    return _decode_gmail_body(body_data).strip()
+
+
 def _exec_gmail_read_metadata(creds, params: dict) -> dict:
     """
     Fetch inbox message metadata from Gmail API.
@@ -262,32 +350,115 @@ def _exec_gmail_read_metadata(creds, params: dict) -> dict:
                 userId="me",
                 id=msg_id,
                 format="metadata",
-                metadataHeaders=["From", "Subject", "Date"],
+                metadataHeaders=[
+                    "From",
+                    "To",
+                    "Reply-To",
+                    "Subject",
+                    "Date",
+                    "In-Reply-To",
+                    "References",
+                ],
             ).execute()
 
-            headers = {
-                h["name"]: h["value"]
-                for h in detail.get("payload", {}).get("headers", [])
-            }
-
-            raw_from = headers.get("From", "")
-            if "<" in raw_from:
-                from_name = raw_from[: raw_from.index("<")].strip().strip('"')
-            else:
-                from_name = raw_from.split("@")[0].strip()
-            if not from_name:
-                from_name = raw_from
+            headers = _gmail_header_map(detail)
+            from_name, from_email = _gmail_sender_fields(headers)
+            reply_to_email = _gmail_reply_to_email(headers)
 
             messages.append({
                 "message_id": msg_id,
+                "thread_id":  detail.get("threadId", ""),
                 "from_name":  from_name,
+                "from_email": from_email.strip().lower(),
                 "subject":    headers.get("Subject", "(no subject)"),
                 "date_raw":   headers.get("Date", ""),
+                "to_raw":     headers.get("To", ""),
+                "reply_to_raw": headers.get("Reply-To", ""),
+                "reply_to_email": reply_to_email.strip().lower(),
+                "in_reply_to": headers.get("In-Reply-To", ""),
+                "references": headers.get("References", ""),
                 "labels":     detail.get("labelIds", []),
                 "snippet":    detail.get("snippet", ""),
             })
 
         return {"ok": True, "data": messages, "error": ""}
+    except Exception as e:
+        return {"ok": False, "data": None, "error": str(e)}
+
+
+def _exec_gmail_read_body(creds, params: dict) -> dict:
+    """
+    Fetch grounded Gmail thread content through the broker boundary.
+
+    Supported params:
+        thread_id    : str — Gmail thread id to inspect
+        message_id   : str — specific message id if thread_id is unavailable
+        max_messages : int — max messages to return from the tail of the thread
+    """
+    thread_id = str(params.get("thread_id", "")).strip()
+    message_id = str(params.get("message_id", "")).strip()
+    max_messages = int(params.get("max_messages", 6) or 6)
+    max_messages = max(1, min(max_messages, 20))
+
+    if not thread_id and not message_id:
+        return {"ok": False, "data": None, "error": "thread_id or message_id is required"}
+
+    try:
+        from googleapiclient.discovery import build
+
+        service = build("gmail", "v1", credentials=creds)
+        raw_messages: list[dict]
+        if thread_id:
+            thread = service.users().threads().get(
+                userId="me",
+                id=thread_id,
+                format="full",
+            ).execute()
+            raw_messages = list(thread.get("messages", []) or [])
+        else:
+            detail = service.users().messages().get(
+                userId="me",
+                id=message_id,
+                format="full",
+            ).execute()
+            raw_messages = [detail]
+            thread_id = str(detail.get("threadId", "")).strip()
+
+        if not raw_messages:
+            return {"ok": True, "data": {"thread_id": thread_id, "messages": []}, "error": ""}
+
+        messages = []
+        for detail in raw_messages[-max_messages:]:
+            headers = _gmail_header_map(detail)
+            from_name, from_email = _gmail_sender_fields(headers)
+            body_text = _gmail_payload_text(detail.get("payload") or {})
+            messages.append({
+                "message_id": str(detail.get("id", "")),
+                "thread_id": str(detail.get("threadId", thread_id)),
+                "internal_date": str(detail.get("internalDate", "")),
+                "from_name": from_name,
+                "from_email": from_email,
+                "subject": headers.get("Subject", "(no subject)"),
+                "date_raw": headers.get("Date", ""),
+                "to_raw": headers.get("To", ""),
+                "reply_to_raw": headers.get("Reply-To", ""),
+                "reply_to_email": _gmail_reply_to_email(headers),
+                "in_reply_to": headers.get("In-Reply-To", ""),
+                "references": headers.get("References", ""),
+                "labels": detail.get("labelIds", []),
+                "snippet": detail.get("snippet", ""),
+                "body_text": body_text,
+            })
+
+        return {
+            "ok": True,
+            "data": {
+                "thread_id": thread_id,
+                "message_count": len(messages),
+                "messages": messages,
+            },
+            "error": "",
+        }
     except Exception as e:
         return {"ok": False, "data": None, "error": str(e)}
 
@@ -335,10 +506,14 @@ def _exec_gmail_send(creds, params: dict) -> dict:
         subject : str — email subject line
         body    : str — plain-text email body
 
+    Optional params:
+        cc      : str — comma-separated CC recipients
+
     Requires gmail.compose scope in the active token.
     Every call to this executor is already L2 approval-gated by the broker dispatcher.
     """
     to      = params.get("to", "").strip()
+    cc      = params.get("cc", "").strip()
     subject = params.get("subject", "").strip()
     body    = params.get("body", "").strip()
 
@@ -354,6 +529,8 @@ def _exec_gmail_send(creds, params: dict) -> dict:
 
         msg = MIMEText(body, "plain", "utf-8")
         msg["to"]      = to
+        if cc:
+            msg["cc"] = cc
         msg["subject"] = subject
 
         raw     = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
@@ -366,6 +543,59 @@ def _exec_gmail_send(creds, params: dict) -> dict:
             "data": {
                 "message_id": sent.get("id", ""),
                 "thread_id":  sent.get("threadId", ""),
+            },
+            "error": "",
+        }
+    except Exception as e:
+        return {"ok": False, "data": None, "error": str(e)}
+
+
+def _exec_gmail_draft_create(creds, params: dict) -> dict:
+    """
+    Create a Gmail draft via the Gmail API.
+
+    Required params:
+        to      : str — recipient email address (already resolved)
+        subject : str — draft subject line
+        body    : str — plain-text draft body
+
+    Optional params:
+        cc      : str — comma-separated CC recipients
+    """
+    to      = params.get("to", "").strip()
+    cc      = params.get("cc", "").strip()
+    subject = params.get("subject", "").strip()
+    body    = params.get("body", "").strip()
+
+    if not to or not subject or not body:
+        return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
+
+    try:
+        import base64
+        from email.mime.text import MIMEText
+        from googleapiclient.discovery import build
+
+        service = build("gmail", "v1", credentials=creds)
+
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["to"] = to
+        if cc:
+            msg["cc"] = cc
+        msg["subject"] = subject
+
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        created = service.users().drafts().create(
+            userId="me",
+            body={"message": {"raw": raw}},
+        ).execute()
+
+        message = created.get("message", {}) or {}
+        return {
+            "ok": True,
+            "data": {
+                "draft_id": created.get("id", ""),
+                "message_id": message.get("id", ""),
+                "thread_id": message.get("threadId", ""),
             },
             "error": "",
         }
@@ -457,8 +687,14 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         result = _exec_calendar_write(creds, params)
     elif capability == "google.gmail.read.metadata":
         result = _exec_gmail_read_metadata(creds, params)
+    elif capability == "google.gmail.read.body":
+        result = _exec_gmail_read_body(creds, params)
+    elif capability == "google.gmail.unread_count":
+        result = _exec_gmail_unread_count(creds, params)
     elif capability == "google.contacts.read":
         result = _exec_contacts_read(creds, params)
+    elif capability == "google.gmail.draft.create":
+        result = _exec_gmail_draft_create(creds, params)
     elif capability == "google.gmail.send":
         result = _exec_gmail_send(creds, params)
     else:

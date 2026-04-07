@@ -20,6 +20,9 @@ Voice on delivery
 """
 
 import time
+import os
+import sys
+from pathlib import Path
 
 from cassandra_briefing_brain import (
     due_slots,
@@ -35,6 +38,31 @@ from cassandra_sender import send_message
 from cassandra_voice import speak_batch
 
 POLL_INTERVAL = 300  # 5 minutes
+_RELOAD_PATHS = (
+    Path(__file__),
+    Path("/home/openclaw/cassandra_brain.py"),
+    Path("/home/openclaw/cassandra_briefing_brain.py"),
+    Path("/home/openclaw/cassandra_briefing_morning_context.py"),
+    Path("/home/openclaw/finance_state.py"),
+    Path("/home/openclaw/finance_state.json"),
+    Path("/home/openclaw/cassandra_reality_notes.json"),
+)
+_SOURCE_MTIMES = {
+    str(path): (path.stat().st_mtime if path.exists() else 0.0)
+    for path in _RELOAD_PATHS
+}
+
+
+def _restart_if_sources_changed() -> None:
+    for raw_path, start_mtime in _SOURCE_MTIMES.items():
+        path = Path(raw_path)
+        current = path.stat().st_mtime if path.exists() else 0.0
+        if current > start_mtime:
+            print(
+                f"[briefing_scheduler] source change detected ({path.name}) — reloading process",
+                flush=True,
+            )
+            os.execv(sys.executable, [sys.executable, "-u", str(Path(__file__))])
 
 
 # ── Delivery ──────────────────────────────────────────────────────────────────
@@ -64,6 +92,7 @@ def _deliver(entry: dict) -> None:
 # ── Main tick ─────────────────────────────────────────────────────────────────
 
 def _tick() -> None:
+    _restart_if_sources_changed()
     # 1. Generate any slots that are newly due
     for slot in due_slots():
         print(f"[briefing_scheduler] generating {slot} briefing …", flush=True)

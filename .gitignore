@@ -4,6 +4,13 @@
 # ALLOWLIST MODEL: everything is blocked by * above.
 # Only explicitly listed !file entries are tracked.
 # New source files MUST be added here to be committed.
+!polish_loop/
+!polish_loop/current/
+!polish_loop/pc_context.md
+!polish_loop/task.md
+!polish_loop/status.json
+!polish_loop/current/mac_review.md
+!polish_loop/builder_output_validator.py
 #
 # INTENTIONALLY EXCLUDED (never add ! entries for these):
 #   .google-secrets/              — broker secrets directory (credentials.json, token.json)
@@ -33,7 +40,9 @@
 !chief_approval_brain.py
 !chief_reporter_brain.py
 !chief_validator_brain.py
-!CLAUDE.md
+!AGENTS.md
+!OPENCLAW_RUNTIME.md
+!USER.md
 !chief_scout_brain.py
 !chief_integration_brain.py
 !chief_reflection_brain.py
@@ -78,6 +87,7 @@
 !cassandra_briefing_scheduler.py
 !cassandra_outreach.py
 !cassandra_whisper_relay.py
+!cassandra_contact_policy.py
 !capability_registry.py
 !chief_approval_policy.py
 !chief_guardian_sender.py
@@ -99,6 +109,9 @@
 !.claude/commands/
 !.claude/commands/*.md
 !chief-inspect
+!.codex/
+.codex/*
+!.codex/AGENTS.md
 
 !start_chief.sh
 !start_chief_logged.sh
@@ -119,6 +132,14 @@
 !loop_control.sh
 !runner_profiles.py
 !runner_registry.py
+!headroom_routing_policy.json
+!cost_truth_surface.py
+!drift_control_scanner.py
+!mode_compliance_checker.py
+# Settings suite registry — mode governance source of truth
+!settings_suite_registry.json
+!settings_suite_registry.py
+!compliance_verdicts/
 !send_demo_dashboard.py
 !chief_ceo_briefing.py
 !ceo_briefing_worker.py
@@ -139,10 +160,24 @@
 !tests/fixtures/skills/*.md
 !tests/fixtures/skills/**/*.md
 !tests/test_pc_review_fallback.py
+!tests/test_builder_fallback.py
 !tests/test_skill_pipeline_smoke.py
 !tests/test_cassandra_outreach.py
 !tests/test_cassandra_whisper_relay.py
+!tests/test_topic_sensitivity_gate.py
+!tests/test_cassandra_md_enrichment.py
 !tests/test_orchestrator_task_frontmatter.py
+!tests/test_file_verify_brain_wire.py
+!tests/test_cassandra_payment_verify.py
+!tests/test_send_truth.py
+!tests/test_hitl_transaction_limit_gate.py
+!tests/test_cassandra_email_thread_analysis.py
+!tests/test_inner_circle_integration.py
+
+# tools/ — standalone utility modules
+!tools/
+!tools/file_verify.py
+
 !dashboard_gen.py
 !hitl_flowchart_gen.py
 !hitl_notification_service.py

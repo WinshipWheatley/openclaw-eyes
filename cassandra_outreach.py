@@ -15,6 +15,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from cassandra_email_config import get_review_inbox
 
 _NICKNAMES_PATH = Path("/home/openclaw/contact_nicknames.json")
 _OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
@@ -107,13 +108,22 @@ def _body_for(nickname: str, display_name: str) -> str:
         "He’s using me in the real world now to help keep the system useful, grounded, and worth improving. "
         "This note is a quick intro and a live test.\n\n"
         f"{blurb}\n\n"
-        "If anything feels confusing, useful, off, or worth improving, just reply with your questions, comments, or concerns.\n\n"
+        "If anything feels confusing, useful, off, or worth improving, just reply with your questions, comments, or concerns. "
+        "Even basic or edge-case questions are useful.\n\n"
+        "If there is something I cannot handle directly yet, that still helps — it gives us a clean way to turn the gap into the next improvement.\n\n"
         "Thanks,\n"
         "Cassandra"
     )
 
 
-def _log_attempt(recipient: str, subject: str, status: str, detail: str = "") -> None:
+def _log_attempt(
+    recipient: str,
+    subject: str,
+    status: str,
+    detail: str = "",
+    *,
+    metadata: dict | None = None,
+) -> None:
     entry = {
         "ts": _now(),
         "recipient": recipient,
@@ -122,6 +132,10 @@ def _log_attempt(recipient: str, subject: str, status: str, detail: str = "") ->
     }
     if detail:
         entry["detail"] = detail
+    if metadata:
+        for key, value in metadata.items():
+            if value not in (None, "", []):
+                entry[key] = value
 
     try:
         _OUTREACH_LOG.parent.mkdir(parents=True, exist_ok=True)
@@ -163,14 +177,19 @@ def build_outreach_messages() -> list[dict]:
     return messages
 
 
-def run_outreach(*, dry_run: bool = False) -> list[dict]:
+def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
     """
-    Build and optionally send the outreach email set.
+    Build and optionally draft or send the outreach email set.
 
-    Returns a per-recipient result list for both dry runs and real sends.
+    mode:
+        "draft" — create brokered Gmail drafts for review (default)
+        "send"  — send immediately via the broker
+
+    Returns a per-recipient result list for both dry runs and real execution.
     """
     results: list[dict] = []
     from google_access_broker import call as broker_call
+    review_inbox = get_review_inbox()
 
     for message in build_outreach_messages():
         nickname = message["nickname"]
@@ -180,6 +199,7 @@ def run_outreach(*, dry_run: bool = False) -> list[dict]:
             email = ""
             status = "dry_run"
             detail = "not sent"
+            metadata = {}
         else:
             try:
                 email, resolved_name = _resolve_contact_email(nickname)
@@ -189,20 +209,35 @@ def run_outreach(*, dry_run: bool = False) -> list[dict]:
                     message["subject"] = _subject_for(resolved_name)
                     message["body"] = _body_for(nickname, resolved_name)
                     subject = message["subject"]
-                result = broker_call(
-                    "cassandra",
-                    "google.gmail.send",
-                    {
-                        "to": email,
-                        "subject": message["subject"],
-                        "body": message["body"],
-                    },
-                )
+                capability = "google.gmail.draft.create" if mode == "draft" else "google.gmail.send"
+                params = {
+                    "to": email,
+                    "cc": review_inbox,
+                    "subject": message["subject"],
+                    "body": message["body"],
+                }
+                result = broker_call("cassandra", capability, params)
                 if result.get("ok"):
-                    status = "sent"
-                    detail = f"sent to {email}"
+                    result_data = result.get("data") or {}
+                    if mode == "draft":
+                        draft_id = result_data.get("draft_id", "")
+                        status = "draft"
+                        detail = f"drafted for {email}; cc {review_inbox}"
+                        if draft_id:
+                            detail += f"; draft_id={draft_id}"
+                    else:
+                        status = "sent_confirmed"
+                        detail = f"sent to {email}; cc {review_inbox}"
+                    metadata = {
+                        "recipient_email": email,
+                        "mailbox_identity": "primary",
+                        "draft_id": result_data.get("draft_id", ""),
+                        "message_id": result_data.get("message_id", ""),
+                        "thread_id": result_data.get("thread_id", ""),
+                        "route": "outreach_email",
+                    }
                     notify_error = _safe_notify_winship(
-                        f"Cassandra outreach sent to {message['display_name']} at {email}. "
+                        f"Cassandra outreach {status} for {message['display_name']} at {email}. "
                         f"Subject: {message['subject']}"
                     )
                     if notify_error:
@@ -210,6 +245,11 @@ def run_outreach(*, dry_run: bool = False) -> list[dict]:
                 else:
                     status = "send_failed"
                     detail = str(result.get("error", "unknown error"))
+                    metadata = {
+                        "recipient_email": email,
+                        "mailbox_identity": "primary",
+                        "route": "outreach_email",
+                    }
                     _safe_notify_winship(
                         f"Cassandra outreach to {message['display_name']} was not sent. "
                         f"Reason: {detail}"
@@ -218,13 +258,14 @@ def run_outreach(*, dry_run: bool = False) -> list[dict]:
                 status = "send_failed"
                 detail = str(exc)
                 email = ""
+                metadata = {"route": "outreach_email", "mailbox_identity": "primary"}
                 _safe_notify_winship(
                     f"Cassandra outreach to {message['display_name']} was not sent. "
                     f"Reason: {detail}"
                 )
 
         if not dry_run:
-            _log_attempt(nickname, subject, status, detail)
+            _log_attempt(nickname, subject, status, detail, metadata=metadata)
 
         result_row = dict(message)
         if email:

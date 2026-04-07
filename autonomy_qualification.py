@@ -10,6 +10,7 @@ Outputs JSON and markdown:
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -143,6 +144,7 @@ def write_outputs(metrics: dict) -> None:
         "",
     ]
     OUT_MD.write_text("\n".join(md), encoding="utf-8")
+    os.chmod(OUT_MD, 0o444)
 
 
 def main() -> int:

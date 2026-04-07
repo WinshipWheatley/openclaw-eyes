@@ -69,7 +69,7 @@ _APPROVAL_IGNORED_REQUESTERS = {
 SLOTS = {
     "morning": (
         8, 10,
-        "Generate the sovereign morning briefing. Use the SOVEREIGN MORNING BRIEFING CONTEXT above.\n"
+        "Generate the morning briefing. Use the MORNING BRIEFING CONTEXT above.\n"
         "Structure the output in this order — no section headers, flowing prose:\n"
         "1. Task milestone — call out the 400+ completed-task milestone if it is present in context.\n"
         "2. Financial status — what income is logged, what follow-ups are open.\n"
@@ -347,13 +347,15 @@ Response discipline:
 - Separate confirmed, inferred, and unknown clearly. Never use fake certainty.
 - Status order: active lane first, verified live, code/test-only, unresolved, exact next action, backlog.
 - Name the exact context when relevant: Mac, PowerShell, WSL, tmux, Telegram, Claude prompt, or vault/repo.
-- Treat handoff and Drive docs as reflection layers. Vault and repo are source of truth.
+- Treat handoff and Drive docs as reflection layers. Finance state is source of truth for client, invoice, and payment workflow. Vault and repo are source of truth for the rest.
 
 Capability honesty (always):
 - Every claim must be labeled by source: "the log shows", "what's in Ops Actions", "based on the note" — never presented as externally verified fact.
 - DO NOT SAY "your calendar shows", "the payment hasn't cleared", "the deposit is pending" as real-world fact.
 - INSTEAD SAY "what's logged", "I can't confirm externally", "the follow-up is still open in the log".
 - Never say a task was completed, sent, or synced unless the log entry explicitly confirms it.\
+- When a FINANCE STATE block appears, treat it as higher priority than raw historical log lines for client, invoice, and payment facts.\
+- When a CANONICAL REALITY block appears, treat it as higher priority than raw historical log lines. If a raw log conflicts with canonical reality, follow canonical reality.\
 """
 
 
@@ -361,23 +363,23 @@ def generate_briefing(slot: str) -> str:
     """
     Call the fast local LLM to generate a briefing for the given slot.
     Returns the briefing text (may be a fallback if LLM fails).
-    Morning slot prepends the sovereign context block (task/financial/music/surf).
+    Morning slot prepends the morning briefing context block (task/financial/music/surf).
     """
     _, _, directive = SLOTS[slot]
     context = build_context_snapshot()
 
     if slot == "morning":
-        # Sovereign context: task milestone, financial, music, surf/weather cue.
+        # Morning briefing context: task milestone, financial, music, surf/weather cue.
         try:
-            from cassandra_sovereign_briefing import build_sovereign_context
-            sovereign = build_sovereign_context()
+            from cassandra_briefing_morning_context import build_morning_briefing_context
+            morning_context = build_morning_briefing_context()
         except Exception as _e:
-            sovereign = f"[sovereign context unavailable: {_e}]"
+            morning_context = f"[morning briefing context unavailable: {_e}]"
 
-        # Classified action summary alongside the sovereign block.
+        # Classified action summary alongside the morning context block.
         action_summary = build_action_summary()
         context = (
-            f"{sovereign}\n\n"
+            f"{morning_context}\n\n"
             f"Action summary:\n{action_summary}\n\n"
             f"{context}"
         )
@@ -393,11 +395,11 @@ def generate_briefing(slot: str) -> str:
     if result:
         return tts_clean(result.strip())
 
-    # Minimal fallback if LLM is unreachable — for morning, include sovereign summary.
+    # Minimal fallback if LLM is unreachable — for morning, include the morning context summary.
     ts = datetime.now().strftime("%H:%M")
     if slot == "morning":
         try:
-            from cassandra_sovereign_briefing import (
+            from cassandra_briefing_morning_context import (
                 _task_milestone_snapshot,
                 _financial_snapshot,
                 _music_snapshot,

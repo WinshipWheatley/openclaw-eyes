@@ -1,0 +1,14 @@
+{
+  "pass": 1,
+  "task_name": "cas-roll-008a-thread-linkage-and-reply-classification",
+  "last_updated": "2026-04-07T08:15:50.364310",
+  "approved": false,
+  "status": "idle",
+  "block_reason": null,
+  "parked_from": null,
+  "parked_reason": null,
+  "blocked_notified": false,
+  "reset_reason": "planner review missing",
+  "reset_at": "2026-04-05T20:41:33.568529",
+  "relaunch_attempted": false
+}

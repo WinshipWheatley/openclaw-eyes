@@ -32,6 +32,15 @@ def _build_pc_output(pass_num: int, status: str, changes_block: str, include_rea
             "ROLLBACK PLAN:",
             "Revert the test file if needed.",
             "",
+            "COST:",
+            "- Spend unavailable.",
+            "",
+            "TRUTH:",
+            "- Verified: changed file exists.",
+            "",
+            "HEADROOM:",
+            "- Claude: unavailable.",
+            "",
             "NOT CHANGED:",
             "Core implementation left untouched.",
             "",
@@ -70,6 +79,7 @@ def isolated_loop(tmp_path, monkeypatch):
     monkeypatch.setattr(orchestrator, "CLOSEOUT", closeout, raising=False)
     monkeypatch.setattr(fallback, "TASK_MD", task_file, raising=False)
     monkeypatch.setattr(fallback, "_SUPPRESS_FILE_LOGS", True, raising=False)
+    monkeypatch.setattr(fallback, "_LLM_AVAILABLE", False, raising=False)
 
     def write_status(pass_num: int = 1, status: str = "mac_turn", block_reason=None):
         status_file.write_text(
@@ -220,3 +230,13 @@ def test_extract_changed_files_strips_trailing_colon():
     # Must not contain trailing colon
     for p in paths:
         assert not p.endswith(":"), f"trailing colon not stripped: {p}"
+
+
+def test_needs_review_true_for_planner_runner_missing_block(isolated_loop):
+    isolated_loop.write_status(status="blocked", block_reason="planner_runner_missing")
+    assert fallback.needs_review() is True
+
+
+def test_needs_review_false_for_planner_timeout_block(isolated_loop):
+    isolated_loop.write_status(status="blocked", block_reason="planner_timeout_no_review")
+    assert fallback.needs_review() is True

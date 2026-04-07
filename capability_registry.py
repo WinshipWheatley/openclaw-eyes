@@ -81,26 +81,32 @@ REGISTRY: dict = {
             Capability(
                 "payment_verify", "payment",
                 "Verify external deposit or payment clearance status",
-                connected=False, scope=[],
-                caveats="No bank, Stripe, or payment processor connection",
+                connected=True, scope=["read"],
+                caveats=(
+                    "Grounded against recent Gmail payment notifications and income logs only; "
+                    "not a direct bank, Stripe, or payment processor connection"
+                ),
             ),
             Capability(
                 "file_verify", "file",
                 "Verify file or path existence on the filesystem",
-                connected=False, scope=[],
-                caveats="No filesystem access from this interface",
+                connected=True, scope=["read"],
+                caveats="Bounded file/path existence checks only — not file content review",
             ),
             Capability(
                 "email_draft", "email",
                 "Draft email text",
                 connected=True, scope=["write"],
-                caveats="Draft only — cannot send",
+                caveats=(
+                    "Brokered Gmail draft creation is connected; drafts are prepared "
+                    "for review in the configured review inbox and CC that mailbox"
+                ),
             ),
             Capability(
                 "email_send", "email_send",
                 "Send email via SMTP or API",
                 connected=False, scope=[],
-                caveats="No email send integration wired in",
+                caveats="Direct send is intentionally disabled for Cassandra; draft-review flow only",
             ),
             Capability(
                 "future_exec", "automation",

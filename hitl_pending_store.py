@@ -22,6 +22,9 @@ Schema (one record per action)
   action_type     : str  — category (e.g. "email_send", "sms", "calendar_write")
   payload         : dict — action-specific data (recipient, body, etc.)
   status          : str  — one of the status constants above
+  review_state    : str  — NORMAL | SUPER_FLAG | AUTO_DENIED
+  review_reason_codes : list[str] — policy / threshold reason codes
+  normalized_amount : float | None — parsed transaction amount used for limits
   requested_at    : str  — ISO datetime string
   expires_at      : str  — ISO datetime string (requested_at + ttl_seconds)
   approved_by     : str | None — identifier of who approved, or None
@@ -41,6 +44,7 @@ Every state transition is appended to HITL_AUDIT_LOG (JSONL, one record per line
 
 import json
 import os
+import re
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -62,8 +66,36 @@ HITL_STATE_PATH  = _LOGS_DIR / "hitl_pending_state.json"
 HITL_AUDIT_LOG   = _LOGS_DIR / "hitl_audit.jsonl"
 HITL_FLAG_PATH   = _LOGS_DIR / "hitl_enabled.flag"
 
-# Default TTL: 1 hour
-_DEFAULT_TTL_SECONDS = 3600
+# Default TTL: 24 hours
+_DEFAULT_TTL_SECONDS = 86400
+
+# ── Transaction-limit policy ──────────────────────────────────────────────────
+
+_LIMIT_GATED_ACTION_TYPES = frozenset({
+    "financial_transfer",
+    "payment",
+    "bill_pay",
+    "wire_transfer",
+    "refund",
+    "charge",
+})
+_POLICY_SENSITIVE_ACTION_TYPES = frozenset({
+    "wire_transfer",
+    "refund",
+    "charge",
+})
+
+REVIEW_NORMAL = "NORMAL"
+REVIEW_SUPER_FLAG = "SUPER_FLAG"
+REVIEW_AUTO_DENIED = "AUTO_DENIED"
+
+_DEFAULT_SUPER_FLAG_LIMIT = 1000.0
+_DEFAULT_HARD_LIMIT = 2500.0
+
+REASON_HARD_LIMIT_EXCEEDED = "transaction_limit_exceeded"
+REASON_SUPER_FLAG_THRESHOLD = "transaction_super_flag_threshold"
+REASON_POLICY_SENSITIVE = "transaction_policy_sensitive"
+REASON_MISSING_AMOUNT = "transaction_amount_missing"
 
 
 # ── Toggle ────────────────────────────────────────────────────────────────────
@@ -120,6 +152,120 @@ def _is_expired(record: dict) -> bool:
         return False
 
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _limit_thresholds() -> tuple[float, float]:
+    super_flag_limit = _env_float(
+        "HITL_TRANSACTION_SUPER_FLAG_LIMIT",
+        _DEFAULT_SUPER_FLAG_LIMIT,
+    )
+    hard_limit = _env_float(
+        "HITL_TRANSACTION_HARD_LIMIT",
+        _DEFAULT_HARD_LIMIT,
+    )
+    if hard_limit < super_flag_limit:
+        hard_limit = super_flag_limit
+    return super_flag_limit, hard_limit
+
+
+def _parse_amount(value) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return abs(float(value))
+    if isinstance(value, str):
+        cleaned = re.sub(r"[^0-9.\-]", "", value)
+        if not cleaned or cleaned in {"-", ".", "-."}:
+            return None
+        try:
+            return abs(float(cleaned))
+        except ValueError:
+            return None
+    return None
+
+
+def _extract_transaction_amount(payload: dict) -> float | None:
+    for key in (
+        "amount",
+        "payment_amount",
+        "amount_total",
+        "amount_due",
+        "total_amount",
+        "value",
+    ):
+        parsed = _parse_amount(payload.get(key))
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _is_truthy(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return False
+
+
+def _evaluate_transaction_guard(action_type: str, payload: dict) -> dict:
+    """Return limit metadata for money-moving actions."""
+    metadata = {
+        "review_state": REVIEW_NORMAL,
+        "review_reason_codes": [],
+        "normalized_amount": None,
+        "super_flag_limit": None,
+        "hard_limit": None,
+    }
+    if action_type not in _LIMIT_GATED_ACTION_TYPES:
+        return metadata
+
+    super_flag_limit, hard_limit = _limit_thresholds()
+    metadata["super_flag_limit"] = super_flag_limit
+    metadata["hard_limit"] = hard_limit
+
+    amount = _extract_transaction_amount(payload)
+    metadata["normalized_amount"] = amount
+    reasons: list[str] = []
+
+    payload_sensitive = any(
+        _is_truthy(payload.get(key))
+        for key in (
+            "policy_sensitive",
+            "requires_manual_review",
+            "super_flag",
+        )
+    )
+
+    if action_type in _POLICY_SENSITIVE_ACTION_TYPES or payload_sensitive:
+        reasons.append(REASON_POLICY_SENSITIVE)
+
+    if amount is None:
+        reasons.append(REASON_MISSING_AMOUNT)
+    elif amount > hard_limit:
+        metadata["review_state"] = REVIEW_AUTO_DENIED
+        metadata["review_reason_codes"] = [REASON_HARD_LIMIT_EXCEEDED]
+        return metadata
+    elif amount >= super_flag_limit:
+        reasons.append(REASON_SUPER_FLAG_THRESHOLD)
+
+    if reasons:
+        metadata["review_state"] = REVIEW_SUPER_FLAG
+        metadata["review_reason_codes"] = sorted(set(reasons))
+
+    return metadata
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def create_pending_action(
@@ -129,9 +275,16 @@ def create_pending_action(
     ttl_seconds: int = _DEFAULT_TTL_SECONDS,
     *,
     idempotency_key: str | None = None,
+    initial_status: str = WAITING_FOR_APPROVAL,
+    denied_reason: str | None = None,
+    review_state: str = REVIEW_NORMAL,
+    review_reason_codes: list[str] | None = None,
+    normalized_amount: float | None = None,
+    super_flag_limit: float | None = None,
+    hard_limit: float | None = None,
 ) -> dict:
     """
-    Create a new pending action in WAITING_FOR_APPROVAL state.
+    Create a new action record, defaulting to WAITING_FOR_APPROVAL.
 
     If idempotency_key is provided and an active (WAITING_FOR_APPROVAL) record
     with the same key already exists, returns that record without creating a new one.
@@ -162,12 +315,17 @@ def create_pending_action(
         "action_type":    action_type,
         "payload":        payload,
         "idempotency_key": idempotency_key,
-        "status":         WAITING_FOR_APPROVAL,
+        "status":         initial_status,
+        "review_state":   review_state,
+        "review_reason_codes": list(review_reason_codes or []),
+        "normalized_amount": normalized_amount,
+        "super_flag_limit": super_flag_limit,
+        "hard_limit": hard_limit,
         "requested_at":   requested_at,
         "expires_at":     expires_at,
         "approved_by":    None,
         "approved_at":    None,
-        "denied_reason":  None,
+        "denied_reason":  denied_reason,
     }
 
     state[action_id] = record
@@ -302,7 +460,12 @@ def propose_action(
     """
     Main entry point for Cassandra to propose an external action.
 
-    If HITL is disabled:
+    Money-moving payment actions are always checked against configurable
+    thresholds, even when HITL is otherwise disabled. This provides a hard
+    stop for over-limit actions and a mandatory escalation path for near-limit
+    or policy-sensitive requests.
+
+    If HITL is disabled and the action is not limit-gated:
         Returns (True, None) — action may proceed immediately.
 
     If HITL is enabled:
@@ -314,11 +477,28 @@ def propose_action(
     "I've queued this for your approval." and include the action_id for
     status lookup.
     """
-    if not is_hitl_enabled():
+    guard = _evaluate_transaction_guard(action_type, payload)
+    needs_manual_review = guard["review_state"] == REVIEW_SUPER_FLAG
+    auto_denied = guard["review_state"] == REVIEW_AUTO_DENIED
+
+    if not is_hitl_enabled() and not needs_manual_review and not auto_denied:
         return True, None
+
+    initial_status = WAITING_FOR_APPROVAL
+    denied_reason = None
+    if auto_denied:
+        initial_status = DENIED
+        denied_reason = REASON_HARD_LIMIT_EXCEEDED
 
     record = create_pending_action(
         source_agent, action_type, payload, ttl_seconds,
         idempotency_key=idempotency_key,
+        initial_status=initial_status,
+        denied_reason=denied_reason,
+        review_state=guard["review_state"],
+        review_reason_codes=guard["review_reason_codes"],
+        normalized_amount=guard["normalized_amount"],
+        super_flag_limit=guard["super_flag_limit"],
+        hard_limit=guard["hard_limit"],
     )
     return False, record["action_id"]

@@ -2,7 +2,7 @@
 chief_approval_brain.py
 
 Gatekeeper for all destructive, publishing, and irreversible actions.
-Any brain or Claude Code session calls request_approval() before proceeding.
+Any brain or OpenClaw session calls request_approval() before proceeding.
 
 Tier model:
   Tier 0 — No gate. Action proceeds immediately.
@@ -18,7 +18,7 @@ Usage as Python function:
     # Override auto-classified tier:
     approved = request_approval("...", explicit_tier=2)
 
-Usage as CLI (for Claude Code shell calls):
+Usage as CLI:
     python3 /home/openclaw/chief_approval_brain.py "plain English description"
     # exit code 0 = approved, exit code 1 = denied or timed out
 
@@ -42,8 +42,14 @@ PENDING_FILE    = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md")
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
 POLL_INTERVAL   = 2     # seconds between checks
-TIMEOUT         = 300   # 5 minutes — matches CLAUDE.md L2 tier spec
+TIMEOUT         = 86400  # 24 hours — remote approvals should survive a real day
 _CHIEF_ENV_FILE = Path("/home/openclaw/.chief.env")
+_USAGE = (
+    "Usage:\n"
+    "  python3 /home/openclaw/chief_approval_brain.py \"action description\"\n"
+    "  python3 /home/openclaw/chief_approval_brain.py --resend-pending\n"
+    "  python3 /home/openclaw/chief_approval_brain.py --help\n"
+)
 
 
 def _human_timeout(seconds: int) -> str:
@@ -65,6 +71,8 @@ def _load_env_file() -> None:
             line = raw.strip()
             if not line or line.startswith("#") or "=" not in line:
                 continue
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
@@ -711,22 +719,37 @@ def get_pending_info() -> tuple[str, int]:
 
 # ── CLI entry point ────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "--resend-pending":
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if len(argv) == 1 and argv[0] == "--resend-pending":
         ok = resend_pending_request()
         if ok:
             print("Pending approval re-sent.")
-            sys.exit(0)
+            return 0
         send_no_pending_confirmation()
         print("No pending approval to resend.")
-        sys.exit(0)
+        return 0
 
-    if len(sys.argv) < 2:
-        print("Usage: python3 chief_approval_brain.py \"action description\"")
-        sys.exit(1)
+    if len(argv) == 1 and argv[0] in {"--help", "-h", "help"}:
+        print(_USAGE.rstrip())
+        return 0
 
-    action_desc = " ".join(sys.argv[1:])
-    requester   = "Claude Code"
+    if not argv:
+        print(_USAGE.rstrip())
+        return 1
+
+    if argv[0].startswith("-"):
+        print(_USAGE.rstrip())
+        return 2
+
+    action_desc = " ".join(argv)
+    requester = os.environ.get("OPENCLAW_APPROVAL_REQUESTER", "OpenClaw CLI")
 
     approved = request_approval(action_desc, requester)
-    sys.exit(0 if approved else 1)
+    return 0 if approved else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

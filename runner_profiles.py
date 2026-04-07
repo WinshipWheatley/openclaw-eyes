@@ -33,10 +33,21 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
+TASK_FILE_CANDIDATES = (
+    Path("/home/openclaw/polish_loop/current/task.md"),
+    Path("/home/openclaw/polish_loop/task.md"),
+)
 STATUS_FILE = Path("/home/openclaw/polish_loop/status.json")
 TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
+
+
+def _get_task_file() -> Path:
+    """Return the live task file path, preferring the canonical current/ path."""
+    for path in TASK_FILE_CANDIDATES:
+        if path.exists():
+            return path
+    return TASK_FILE_CANDIDATES[0]
 
 # ---------------------------------------------------------------------------
 # Planner-mode adjustments — planner reviews builder output, doesn't build
@@ -50,6 +61,14 @@ PLANNER_PREFERRED_MODELS = {
 }
 
 PLANNER_BUDGET_SCALE = 0.5  # planner reviews cost ~half of building
+
+# ---------------------------------------------------------------------------
+# Autonomous runner policy (2026-04-04)
+#   Gemini = planner, Codex = builder, Claude = manual exception only.
+#   Claude must never be selected for autonomous loop spawning.
+# ---------------------------------------------------------------------------
+AUTONOMOUS_BLOCKED_RUNNERS = {"claude"}
+AUTONOMOUS_BUILDER_BLOCKED_RUNNERS = AUTONOMOUS_BLOCKED_RUNNERS | {"gemini", "aider", "ollama"}
 
 # ---------------------------------------------------------------------------
 # Profile definitions — task parameters only, runner is chosen dynamically
@@ -393,16 +412,20 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
 
     # 4. Dynamic runner selection via registry + budget awareness
     model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
+    blocked_runners = AUTONOMOUS_BLOCKED_RUNNERS if planner_mode else AUTONOMOUS_BUILDER_BLOCKED_RUNNERS
     runner_name, model, runner_reason, budget_override = _pick_runner(
         tier, task_id, is_blocking, model_prefs=model_prefs,
         task_text=task_text, task_meta=meta,
+        blocked_runners=blocked_runners,
     )
 
-    # Planner runs on Mac — ollama is PC-only; fall back to claude/sonnet
-    if planner_mode and runner_name == "ollama":
-        runner_name = "claude"
-        model = model_prefs.get(tier, "sonnet")
-        runner_reason += " → planner override: ollama unavailable on Mac"
+    # Planner policy surface: Gemini is the planner runner on Mac.
+    # TODO: the real Mac-side launcher is outside this repo, so Gemini
+    # invocation remains unverified here; only the routing surface is enforced.
+    if planner_mode and runner_name != "gemini":
+        runner_name = "gemini"
+        model = "default"
+        runner_reason += " → planner policy override: gemini required on Mac planner surface"
         budget_override = None  # let default planner budget apply
 
     result["runner"] = runner_name
@@ -441,9 +464,9 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     elif not result.get("defer", False):
         result["defer"] = False
 
-    # 6. Build the full invoke command (builder only — planner builds its own on Mac)
+    # 6. Build the full invoke command (builder only — Mac planner launch is external)
     if planner_mode:
-        result["invoke_cmd"] = ""  # Mac planner_runner.py builds this with local paths
+        result["invoke_cmd"] = ""  # External Mac-side planner launcher is not present in this repo
     else:
         prompt_file = str(Path("/home/openclaw/polish_loop/POLISH_PROMPT.md"))
         result["invoke_cmd"] = _build_invoke_cmd(runner_name, result, prompt_file)
@@ -650,9 +673,134 @@ def _apply_rotation(ranked_runners: list, tier: str, task_text: str = "") -> lis
     return ranked_runners
 
 
+_HEADROOM_POLICY_FILE = Path("/home/openclaw/headroom_routing_policy.json")
+_headroom_policy_cache: Optional[dict] = None
+_headroom_policy_mtime: float = 0.0
+
+
+def _load_headroom_policy() -> dict:
+    """Load (and cache) headroom_routing_policy.json. Reloads if mtime changes."""
+    global _headroom_policy_cache, _headroom_policy_mtime
+    try:
+        mtime = _HEADROOM_POLICY_FILE.stat().st_mtime
+        if _headroom_policy_cache is not None and mtime <= _headroom_policy_mtime:
+            return _headroom_policy_cache
+        _headroom_policy_cache = json.loads(_HEADROOM_POLICY_FILE.read_text())
+        _headroom_policy_mtime = mtime
+        return _headroom_policy_cache
+    except Exception:
+        return {}
+
+
+def _check_headroom_policy(runner: str, tier: str, task_meta: dict) -> dict:
+    """Check if provider headroom allows this runner for this tier.
+
+    Returns:
+        {"allow": bool, "reason": str, "headroom_state": dict}
+
+    When headroom data is unavailable for a provider, returns allow=True
+    with reason="headroom_unknown_passthrough". The system never blocks
+    a runner solely because headroom data is missing.
+    """
+    try:
+        policy = _load_headroom_policy()
+        if not policy:
+            return {"allow": True, "reason": "headroom_check_error_passthrough",
+                    "headroom_state": {"provenance": "policy_missing"}}
+
+        provider_policy = policy.get("providers", {}).get(runner)
+        if provider_policy is None:
+            return {"allow": True, "reason": f"headroom_unknown: {runner} (not in policy)",
+                    "headroom_state": {"provenance": "unavailable"}}
+
+        # Passthrough / always-allow policies
+        runner_policy_type = provider_policy.get("policy", "")
+        if runner_policy_type == "always_allow_local":
+            return {"allow": True,
+                    "reason": f"headroom_unknown: {runner} (local, no limits)",
+                    "headroom_state": {"provenance": "not_applicable"}}
+        if runner_policy_type == "passthrough_to_budget_zone":
+            return {"allow": True,
+                    "reason": f"headroom_unknown: {runner} (passthrough)",
+                    "headroom_state": {"provenance": "unavailable"}}
+
+        # Provider has real headroom config — fetch actual headroom data
+        try:
+            from cost_truth_surface import get_headroom
+            headroom = get_headroom()
+        except Exception:
+            return {"allow": True, "reason": "headroom_check_error_passthrough",
+                    "headroom_state": {"provenance": "error"}}
+
+        provider_headroom = headroom.get(runner, {})
+        if not provider_headroom.get("available", False):
+            return {"allow": True,
+                    "reason": f"headroom_unknown: {runner} (passthrough)",
+                    "headroom_state": {"provenance": "unavailable"}}
+
+        # Real headroom data available — check each rate limit window
+        rate_limits = provider_headroom.get("rate_limits", {})
+        for wslug, wdata in rate_limits.items():
+            used_pct = wdata.get("used_percentage")
+            if used_pct is None:
+                continue
+
+            wname = wdata.get("window", "").lower()
+            wslug_lower = wslug.lower()
+            # Detect window type from name/slug
+            is_short = any(x in wslug_lower or x in wname
+                           for x in ["5h", "5-h", "five", "hour"])
+            is_long = any(x in wslug_lower or x in wname
+                          for x in ["7d", "7-d", "seven", "day", "week"])
+            if is_short:
+                window_config = provider_policy.get("five_hour_window", {})
+            elif is_long:
+                window_config = provider_policy.get("seven_day_window", {})
+            else:
+                # Unknown window — apply most conservative configured threshold
+                five_h = provider_policy.get("five_hour_window", {})
+                seven_d = provider_policy.get("seven_day_window", {})
+                window_config = (five_h if five_h.get("divert_above_pct", 100)
+                                 <= seven_d.get("divert_above_pct", 100) else seven_d)
+
+            if not window_config:
+                continue
+
+            divert_pct = window_config.get("divert_above_pct", 100)
+            reserve_tiers = window_config.get("reserve_for_tiers", [])
+            if used_pct > divert_pct and tier not in reserve_tiers:
+                divert_to = window_config.get("divert_to", [])
+                dest = divert_to[0] if divert_to else "other"
+                display = wdata.get("window", wslug)
+                return {
+                    "allow": False,
+                    "reason": f"headroom_divert: {runner} {display}@{used_pct:.0f}%\u2192{dest}",
+                    "headroom_state": provider_headroom,
+                }
+
+        # All windows within threshold — report first window's usage for context
+        first_pct = None
+        first_label = None
+        for wslug, wdata in rate_limits.items():
+            pct = wdata.get("used_percentage")
+            if pct is not None:
+                first_pct = pct
+                first_label = wdata.get("window", wslug)
+                break
+
+        reason = (f"headroom_ok: {runner} {first_label}@{first_pct:.0f}%"
+                  if first_pct is not None else f"headroom_ok: {runner}")
+        return {"allow": True, "reason": reason, "headroom_state": provider_headroom}
+
+    except Exception:
+        return {"allow": True, "reason": "headroom_check_error_passthrough",
+                "headroom_state": {"provenance": "error"}}
+
+
 def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
                   *, model_prefs: Optional[dict] = None,
                   task_text: str = "", task_meta: Optional[dict] = None,
+                  blocked_runners: Optional[set[str]] = None,
                   ) -> tuple[str, str, str, Optional[float]]:
     """Pick the best available runner for a task tier, budget-aware + rotation.
 
@@ -661,6 +809,8 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
     """
     if model_prefs is None:
         model_prefs = PREFERRED_MODELS
+    if blocked_runners is None:
+        blocked_runners = AUTONOMOUS_BLOCKED_RUNNERS
     budget_override = None
 
     # Step 0: Sensitive data → force ollama
@@ -678,7 +828,12 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
 
     if not ranked_runners:
         model = model_prefs.get(tier, "sonnet")
-        return ("claude", model, "fallback — registry unavailable", None)
+        return ("codex", model, "fallback — registry unavailable", None)
+
+    # Step 1b: Filter out autonomously-blocked runners (e.g. claude)
+    ranked_runners = [r for r in ranked_runners if r.name not in blocked_runners]
+    if not ranked_runners:
+        return ("codex", "default", "all candidates blocked by runner policy", None)
 
     # Step 2: Apply ratio-based rotation for standard tier
     ranked_runners = _apply_rotation(ranked_runners, tier, task_text)
@@ -695,6 +850,13 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
             else:
                 model = "default"
 
+            # --- headroom gate: check before spending a budget-allowance query ---
+            headroom_result = _check_headroom_policy(candidate.name, tier, task_meta or {})
+            if not headroom_result["allow"]:
+                # Headroom too low for this tier — skip and try next candidate
+                continue
+            # --- end headroom gate ---
+
             allowance = budget_tracker.get_runner_allowance(candidate.name, model, tier)
 
             if allowance["allowed"]:
@@ -704,7 +866,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
                 return (
                     candidate.name,
                     model,
-                    f"registry score={score:.0f}, budget={allowance['reason']}",
+                    f"registry score={score:.0f}, budget={allowance['reason']} | {headroom_result['reason']}",
                     budget_override,
                 )
 
@@ -720,7 +882,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
                     return (
                         alt_runner,
                         alt_model,
-                        f"budget downgrade from {candidate.name}/{model}: {alt.get('reason', 'budget')}",
+                        f"budget downgrade from {candidate.name}/{model}: {alt.get('reason', 'budget')} | {headroom_result['reason']}",
                         budget_override,
                     )
 
@@ -760,6 +922,12 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
     effort = profile.get("effort", "high")
     budget = profile.get("budget", 2.0)
 
+    if runner_name == "codex":
+        return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
+
+    if runner_name == "gemini":
+        return f'setsid timeout {timeout} gemini --prompt "$(cat {prompt_file})" --yolo --output-format text'
+
     # Try to get invoke_pattern from registry
     invoke_pattern = None
     try:
@@ -783,18 +951,14 @@ def _build_invoke_cmd(runner_name: str, profile: dict, prompt_file: str) -> str:
         )
         return cmd
 
-    # Hardcoded fallback patterns (only claude and codex)
+    # Hardcoded fallback patterns — codex is the default autonomous builder
     if runner_name == "codex":
-        return f'setsid timeout {timeout} codex exec "$(cat {prompt_file})"'
+        return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
+    elif runner_name == "gemini":
+        return f'setsid timeout {timeout} gemini --prompt "$(cat {prompt_file})" --yolo --output-format text'
     else:
-        fallback_model = "haiku" if model == "sonnet" else "sonnet"
-        return (
-            f"setsid timeout {timeout} claude"
-            f" --model {model} --effort {effort}"
-            f" --dangerously-skip-permissions --print"
-            f" --max-budget-usd {budget} --fallback-model {fallback_model}"
-            f" < {prompt_file}"
-        )
+        # Unexpected runner — use codex as safe default (claude blocked from autonomous use)
+        return f'setsid timeout {timeout} codex exec --sandbox workspace-write - < "{prompt_file}"'
 
 
 def main():
@@ -820,10 +984,9 @@ def main():
     # Get task text
     if args.task_stdin:
         task_text = sys.stdin.read()
-    elif TASK_FILE.exists():
-        task_text = TASK_FILE.read_text()
     else:
-        task_text = ""
+        task_file = _get_task_file()
+        task_text = task_file.read_text() if task_file.exists() else ""
 
     if not task_text.strip():
         # No task — return default with dynamic runner
@@ -834,14 +997,17 @@ def main():
         if planner_mode:
             result["budget"] = round(result["budget"] * PLANNER_BUDGET_SCALE, 2)
         model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
+        blocked_runners = AUTONOMOUS_BLOCKED_RUNNERS if planner_mode else AUTONOMOUS_BUILDER_BLOCKED_RUNNERS
         runner_name, model, runner_reason, budget_override = _pick_runner(
-            tier, model_prefs=model_prefs
+            tier, model_prefs=model_prefs, blocked_runners=blocked_runners
         )
-        # Planner runs on Mac — ollama is PC-only
-        if planner_mode and runner_name == "ollama":
-            runner_name = "claude"
-            model = model_prefs.get(tier, "sonnet")
-            runner_reason += " → planner override: ollama unavailable on Mac"
+        # Planner policy surface: Gemini is the planner runner on Mac.
+        # TODO: the real Mac-side launcher is outside this repo, so Gemini
+        # invocation remains unverified here; only the routing surface is enforced.
+        if planner_mode and runner_name != "gemini":
+            runner_name = "gemini"
+            model = "default"
+            runner_reason += " → planner policy override: gemini required on Mac planner surface"
             budget_override = None
         result["runner"] = runner_name
         result["model"] = model
