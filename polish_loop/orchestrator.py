@@ -426,19 +426,24 @@ def builder_running() -> bool:
 
 
 def _relaunch_builder() -> bool:
-    """Attempt to re-launch the Builder via run_polish_pass.sh. Returns True if process started."""
+    """Signal builder_watcher to re-launch by toggling status through idle and back.
+
+    builder_watcher detects pc_turn transitions (LAST_STATE != pc_turn → pc_turn)
+    and launches the next runner.  A brief idle→pc_turn toggle triggers this.
+    Returns True if the toggle was written successfully.
+    """
     if _TEST_RELAUNCH_OVERRIDE is not None:
         return _TEST_RELAUNCH_OVERRIDE
     try:
-        subprocess.Popen(
-            ["bash", str(LOOP_DIR / "run_polish_pass.sh")],
-            stdout=open(LOG_FILE.parent / "polish_relaunch.log", "a"),
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+        # Brief idle pulse so builder_watcher sees a fresh pc_turn transition
+        _write_status_raw({"status": "idle"})
+        import time
+        time.sleep(0.5)
+        _write_status_raw({"status": "pc_turn"})
+        log("ACTION", "toggled idle→pc_turn to signal builder_watcher relaunch")
         return True
     except Exception as e:
-        log("ERROR", f"Builder re-launch failed: {e}")
+        log("ERROR", f"Builder re-launch signal failed: {e}")
         return False
 
 
@@ -608,8 +613,12 @@ def handle_idle(status: dict, dry_run: bool = False) -> None:
                     log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
             write_status("pc_turn")
             _write_status_raw({"relaunch_attempted": False})
-            subprocess.Popen(["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"])
-            log("ACTION", "launched Builder via run_polish_pass.sh")
+            # Builder launch is delegated to builder_watcher.sh (running as a
+            # separate daemon).  It detects pc_turn transitions and handles
+            # runner selection, fallback cascade, cost tracking, and output
+            # validation.  Launching via run_polish_pass.sh here created a
+            # dual-launch race and bypassed the smart runner pipeline.
+            log("ACTION", "pc_turn set — builder_watcher will launch Builder")
 
 
 def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:

@@ -68,7 +68,7 @@ guard_pattern_for_runner() {
   elif [ "$runner" = "gemini" ]; then
     printf 'timeout [0-9]+ gemini .*--prompt'
   elif [ "$runner" = "ollama" ]; then
-    printf 'timeout [0-9]+ ollama run'
+    printf 'timeout [0-9]+ python3 .*/local_builder.py'
   else
     printf 'timeout [0-9]+ codex exec .*--sandbox workspace-write'
   fi
@@ -117,9 +117,9 @@ build_fallback_invoke_cmd() {
   elif [ "$runner" = "gemini" ]; then
     printf 'setsid timeout %s gemini --prompt "$(cat %s)" --yolo --output-format text' "$timeout" "$PROMPT_FILE"
   elif [ "$runner" = "ollama" ]; then
-    printf 'setsid timeout %s ollama run gemma4:e4b < "%s"' "$timeout" "$PROMPT_FILE"
+    printf 'setsid timeout %s python3 /home/openclaw/polish_loop/local_builder.py --model %s --timeout %s' "$timeout" "$model" "$timeout"
   else
-    printf 'setsid timeout %s ollama run gemma4:e4b < "%s"' "$timeout" "$PROMPT_FILE"
+    printf 'setsid timeout %s python3 /home/openclaw/polish_loop/local_builder.py --model gemma4:e4b --timeout %s' "$timeout" "$timeout"
   fi
 }
 
@@ -200,7 +200,7 @@ inject_runner_header() {
 any_builder_session_running() {
   # Prevent duplicate launches after watcher restart: detect active timed runner sessions.
   # Match any runner wrapped in setsid timeout (claude, codex, gemini, aider, ollama, etc.)
-  pgrep -f 'timeout [0-9]+ (codex|gemini|aider|ollama)' >/dev/null 2>&1
+  pgrep -f 'timeout [0-9]+ (codex|gemini|aider|local_builder)' >/dev/null 2>&1
 }
 
 launch_runner_once() {
@@ -321,7 +321,7 @@ launch_runner_once() {
       run_exit_code=$?
     else
       if [ "$p_runner" = "ollama" ]; then
-        cd /home/openclaw && eval "$p_invoke_cmd" > "$raw_output_file" 2>> "$LOG_FILE"
+        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
       else
         cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
       fi
@@ -337,7 +337,7 @@ launch_runner_once() {
       run_exit_code=$?
     else
       if [ "$p_runner" = "ollama" ]; then
-        cd /home/openclaw && eval "$p_invoke_cmd" > "$raw_output_file" 2>> "$LOG_FILE"
+        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
       else
         cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
       fi
@@ -349,13 +349,11 @@ launch_runner_once() {
   run_end_ts=$(date +%s%3N)
   local run_duration_ms=$(( run_end_ts - run_start_ts ))
 
-  # For ollama, stage raw stdout into pc_output only if it looks valid enough
-  # to hand to the normal validator. Otherwise leave pc_output absent.
+  # For ollama: local_builder.py writes pc_output.md directly via tool calls.
+  # The old raw-stdout staging path is no longer needed.  Clean up the temp
+  # file but do NOT overwrite pc_output.md (the wrapper already wrote it).
   if [ "$p_runner" = "ollama" ]; then
-    rm -f "$PC_OUTPUT_FILE"
-    if [ -f "$raw_output_file" ] && [ -s "$raw_output_file" ]; then
-      cp "$raw_output_file" "$PC_OUTPUT_FILE"
-    fi
+    rm -f "$raw_output_file" 2>/dev/null
   fi
 
   # Stamp RUNNER immediately after the builder exits so pc_output.md is

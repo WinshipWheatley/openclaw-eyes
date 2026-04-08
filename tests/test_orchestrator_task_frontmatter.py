@@ -98,7 +98,8 @@ def test_handle_idle_skips_invalid_queued_task_and_promotes_next_valid_one(isola
     assert isolated_orchestrator["task_file"].read_text() == valid_content
     assert invalid_task.exists()
     assert not valid_task.exists()
-    assert isolated_orchestrator["launches"] == [["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"]]
+    # Orchestrator delegates launch to builder_watcher — no direct subprocess.Popen
+    assert isolated_orchestrator["launches"] == []
     log_text = isolated_orchestrator["log_file"].read_text()
     assert "skipping queued task a-invalid.md: missing required frontmatter field(s): goal" in log_text
     assert "promoting queued task b-valid.md → task.md" in log_text
@@ -139,7 +140,8 @@ def test_handle_idle_skips_human_supervised_queued_task_and_promotes_next_valid_
     assert isolated_orchestrator["task_file"].read_text() == valid_content
     assert human_task.exists()
     assert not valid_task.exists()
-    assert isolated_orchestrator["launches"] == [["bash", "/home/openclaw/polish_loop/run_polish_pass.sh"]]
+    # Orchestrator delegates launch to builder_watcher — no direct subprocess.Popen
+    assert isolated_orchestrator["launches"] == []
     log_text = isolated_orchestrator["log_file"].read_text()
     assert "skipping queued task a-human.md: human-supervised execution mode" in log_text
     assert "promoting queued task b-valid.md → task.md" in log_text

@@ -294,10 +294,10 @@ def email_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in [
         "send email", "email to", "draft email", "follow up email",
-        "email ", "write an email", "send a follow up",
-        "invoice email", "follow-up email", "email log",
-        "sent emails", "email history", "outbox",
-    ])
+        "write an email", "send a follow up", "invoice email",
+        "follow-up email", "email log", "sent emails",
+        "email history", "outbox",
+    ]) or bool(re.search(r"\bemail\b\s+\S", t))
 
 
 def sms_intent(text: str) -> bool:

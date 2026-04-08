@@ -178,9 +178,9 @@ KNOWN_RUNNERS = {
         "runner_type": "local",
         "cost_tier": "free",
         "headless_flag": "run",
-        "invoke_pattern": "setsid timeout {timeout} ollama run {model} < {prompt_file}",
-        "strengths": ["free", "private", "fast-for-small-tasks", "no-internet-needed"],
-        "weaknesses": ["limited-reasoning", "small-context", "no-tool-use"],
+        "invoke_pattern": "setsid timeout {timeout} python3 /home/openclaw/polish_loop/local_builder.py --model {model} --timeout {timeout}",
+        "strengths": ["free", "private", "fast-for-small-tasks", "no-internet-needed", "tool-use-via-wrapper"],
+        "weaknesses": ["limited-reasoning", "small-context"],
         "flag_parser": "_parse_ollama_help",
     },
 }
