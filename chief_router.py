@@ -545,7 +545,7 @@ def integration_intent(text: str) -> bool:
 def brainstorm_capture_intent(text: str) -> bool:
     t = text.lower().strip()
     return any(k in t for k in (
-        "brainstorm", "capture idea", "new idea", "idea:",
+        "brainstorm", "capture idea", "capture", "new idea", "idea:",
     ))
 
 
@@ -881,7 +881,7 @@ def _route_message_inner(text: str) -> dict:
     # never swallowed by a stale billing FOLLOWUP or album workflow.
     _t = text.lower().strip()
     if any(_t.startswith(k) or _t == k for k in (
-        "brainstorm", "capture idea", "new idea", "idea:",
+        "brainstorm", "capture idea", "capture", "new idea", "idea:",
     )):
         reset_session()
         if brainstorm_watch_intent(text):
