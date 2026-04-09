@@ -104,10 +104,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sender_name and sender_chat_id:
         _RECENT_SENDERS[sender_name.lower()] = sender_chat_id
 
-    # Handle forwarded message metadata
-    if update.message and update.message.forward_from:
-        f_name = update.message.forward_from.full_name
-        f_id = update.message.forward_from.id
+    # Handle forwarded message metadata (forward_origin replaces forward_from in v20+)
+    fwd_origin = getattr(update.message, "forward_origin", None) if update.message else None
+    if fwd_origin and hasattr(fwd_origin, "sender_user") and fwd_origin.sender_user:
+        f_name = fwd_origin.sender_user.full_name
+        f_id = fwd_origin.sender_user.id
         if f_name:
             _RECENT_SENDERS[f_name.lower()] = f_id
             print(f"[chatid-pin] recorded forward: {f_name} -> {f_id}", flush=True)
