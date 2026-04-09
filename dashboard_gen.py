@@ -1710,7 +1710,18 @@ def _retire_legacy_winship_outputs() -> None:
         path.rename(target)
 
 
+def _refresh_builder_status():
+    """Run the builder status updater if available."""
+    script = Path("/home/openclaw/monitoring/update_builder_status.sh")
+    if script.exists():
+        try:
+            subprocess.run(["bash", str(script)], capture_output=True, timeout=10)
+        except Exception:
+            pass
+
+
 def _winship_outputs() -> list[tuple[Path, str]]:
+    _refresh_builder_status()
     return [
         (WINSHIP_DIR / "Big Picture.md", gen_big_picture()),
         (WINSHIP_DIR / "AI Big Picture.md", gen_ai_system()),
