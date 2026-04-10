@@ -27,6 +27,7 @@ This folder (`~/OpenClaw_Watch` on the Mac) contains **copies** of PC-generated 
 They are read-only snapshots pushed by `sync_to_mac.sh` running on the PC.
 
 Files mirrored:
+- **Mirror Freshness.md** — last successful repo-to-mirror sync marker
 - **Live Watch.md** — single-glance heartbeat (timestamp + loop state)
 - **Right now.md** — current loop status overview
 - **Builder Right now.md** — builder runner status
@@ -35,6 +36,8 @@ Files mirrored:
 - **What happened.md** — recent activity log
 
 **Do not edit these files on the Mac.** Changes will be overwritten on next sync.
+
+Check `Mirror Freshness.md` before trusting the reflection layer as current.
 
 ## Canonical writing flow
 
