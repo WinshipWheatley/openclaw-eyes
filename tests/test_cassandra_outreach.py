@@ -107,6 +107,30 @@ def test_run_outreach_draft_uses_configured_review_inbox(tmp_path, monkeypatch):
     assert all(call[2]["cc"] == "winshipwheatley@gmail.com" for call in broker_calls)
 
 
+def test_run_outreach_rejects_send_mode(tmp_path, monkeypatch):
+    import cassandra_outreach as outreach
+
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "dad": {"name": "Dad Placeholder", "email": "dad@example.com"},
+                "mom": {"name": "Mom Placeholder", "email": "mom@example.com"},
+                "draper": {"name": "Draper Placeholder", "email": "draper@example.com"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(outreach, "_NICKNAMES_PATH", nicknames_path, raising=False)
+
+    try:
+        outreach.run_outreach(dry_run=False, mode="send")
+    except RuntimeError as exc:
+        assert "draft-only" in str(exc)
+    else:
+        raise AssertionError("send mode should be rejected for the pilot")
+
+
 def test_cassandra_handle_routes_intro_email_request(monkeypatch):
     import cassandra_brain
 
@@ -223,6 +247,94 @@ def test_cassandra_followup_processor_replies_when_upgrade_is_archived(tmp_path,
 
     assert len(completed) == 1
     assert sent == [("That file is present now.", 42)]
+    updated = [json.loads(line) for line in followup_log.read_text(encoding="utf-8").splitlines()]
+    assert updated[0]["status"] == "completed"
+    assert updated[0]["followup_reply_sent"] == "That file is present now."
+
+
+def test_cassandra_followup_processor_creates_email_draft_for_email_origin(tmp_path, monkeypatch):
+    import cassandra_brain
+
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+
+    followup_log = tmp_path / "cassandra_pending_followups.jsonl"
+    archive_dir = tmp_path / "archive"
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    archive_dir.mkdir()
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "dad": {
+                    "name": "Dad",
+                    "tier": "inner_circle",
+                    "pinned_email": "dad@example.com",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    record = {
+        "timestamp": "2026-03-31T00:00:00",
+        "sender_name": "Dad",
+        "sender_chat_id": None,
+        "sender_channel": "email",
+        "sender_email": "dad@example.com",
+        "original_message": "Can you check whether that file exists?",
+        "partial_reply_sent": "Partial",
+        "gap_type": "file_verify",
+        "upgrade_task_name": "cas-upgrade-file_verify-20260331T000000",
+        "status": "pending",
+    }
+    followup_log.write_text(json.dumps(record) + "\n", encoding="utf-8")
+    (archive_dir / "closeout_cas-upgrade-file_verify-20260331T000000_20260331T010000.ok").write_text(
+        "done",
+        encoding="utf-8",
+    )
+
+    broker_calls = []
+    telegram_sent = []
+    monkeypatch.setattr(cassandra_brain, "_FOLLOWUP_LOG", followup_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_POLISH_ARCHIVE", archive_dir, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "handle",
+        lambda text, session=None: ["That file is present now."],
+        raising=False,
+    )
+    monkeypatch.setattr(cassandra_brain, "_capability_flag_value", lambda flag_name: True, raising=False)
+    monkeypatch.setattr(cassandra_brain, "get_review_inbox", lambda: "review@example.com", raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_review_grounded_email_draft",
+        lambda **kwargs: {
+            "status": "allowed",
+            "subject": kwargs["draft_subject"],
+            "body": kwargs["draft_body"],
+            "detail": "",
+            "queued_task_name": None,
+            "user_reply": "",
+        },
+        raising=False,
+    )
+
+    def fake_broker(agent, capability, payload):
+        broker_calls.append((agent, capability, payload))
+        return {"ok": True, "data": {"draft_id": "d1", "message_id": "m1", "thread_id": "t1"}, "error": ""}
+
+    monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+    monkeypatch.setattr("cassandra_sender.send_message", lambda text, chat_id=None: telegram_sent.append((text, chat_id)))
+
+    completed = cassandra_brain.process_pending_followups()
+
+    assert len(completed) == 1
+    assert telegram_sent == []
+    assert len(broker_calls) == 1
+    assert broker_calls[0][1] == "google.gmail.draft.create"
+    assert broker_calls[0][2]["to"] == "dad@example.com"
+    assert broker_calls[0][2]["cc"] == "review@example.com"
+    assert broker_calls[0][2]["subject"].startswith("Follow-up:")
+    assert broker_calls[0][2]["body"] == "That file is present now."
     updated = [json.loads(line) for line in followup_log.read_text(encoding="utf-8").splitlines()]
     assert updated[0]["status"] == "completed"
     assert updated[0]["followup_reply_sent"] == "That file is present now."

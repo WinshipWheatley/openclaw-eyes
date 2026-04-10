@@ -1,7 +1,7 @@
 """
 cassandra_outreach.py
 
-One-time outreach flow for Cassandra intro emails.
+Draft-first pilot outreach flow for Cassandra inner-circle intro emails.
 
 Usage:
     python3 /home/openclaw/cassandra_outreach.py --dry-run
@@ -19,6 +19,7 @@ from cassandra_email_config import get_review_inbox
 
 _NICKNAMES_PATH = Path("/home/openclaw/contact_nicknames.json")
 _OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
+_PILOT_INTRO_TEMPLATE = Path("/home/openclaw/cassandra_inner_circle_pilot_intro.md")
 
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
 
@@ -102,18 +103,8 @@ def _subject_for(display_name: str) -> str:
 
 def _body_for(nickname: str, display_name: str) -> str:
     blurb = _RECIPIENT_BLURBS[nickname]
-    return (
-        f"Hey {display_name},\n\n"
-        "I’m Cassandra — Winship’s AI assistant.\n\n"
-        "He’s using me in the real world now to help keep the system useful, grounded, and worth improving. "
-        "This note is a quick intro and a live test.\n\n"
-        f"{blurb}\n\n"
-        "If anything feels confusing, useful, off, or worth improving, just reply with your questions, comments, or concerns. "
-        "Even basic or edge-case questions are useful.\n\n"
-        "If there is something I cannot handle directly yet, that still helps — it gives us a clean way to turn the gap into the next improvement.\n\n"
-        "Thanks,\n"
-        "Cassandra"
-    )
+    template = _PILOT_INTRO_TEMPLATE.read_text(encoding="utf-8")
+    return template.format(display_name=display_name, blurb=blurb).strip()
 
 
 def _log_attempt(
@@ -179,14 +170,16 @@ def build_outreach_messages() -> list[dict]:
 
 def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
     """
-    Build and optionally draft or send the outreach email set.
+    Build and optionally draft the outreach email set.
 
     mode:
         "draft" — create brokered Gmail drafts for review (default)
-        "send"  — send immediately via the broker
 
     Returns a per-recipient result list for both dry runs and real execution.
     """
+    if mode != "draft":
+        raise RuntimeError("Cassandra outreach pilot is draft-only. No direct send path is enabled.")
+
     results: list[dict] = []
     from google_access_broker import call as broker_call
     review_inbox = get_review_inbox()
@@ -209,7 +202,7 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
                     message["subject"] = _subject_for(resolved_name)
                     message["body"] = _body_for(nickname, resolved_name)
                     subject = message["subject"]
-                capability = "google.gmail.draft.create" if mode == "draft" else "google.gmail.send"
+                capability = "google.gmail.draft.create"
                 params = {
                     "to": email,
                     "cc": review_inbox,
@@ -219,15 +212,11 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
                 result = broker_call("cassandra", capability, params)
                 if result.get("ok"):
                     result_data = result.get("data") or {}
-                    if mode == "draft":
-                        draft_id = result_data.get("draft_id", "")
-                        status = "draft"
-                        detail = f"drafted for {email}; cc {review_inbox}"
-                        if draft_id:
-                            detail += f"; draft_id={draft_id}"
-                    else:
-                        status = "sent_confirmed"
-                        detail = f"sent to {email}; cc {review_inbox}"
+                    draft_id = result_data.get("draft_id", "")
+                    status = "draft"
+                    detail = f"drafted for {email}; cc {review_inbox}"
+                    if draft_id:
+                        detail += f"; draft_id={draft_id}"
                     metadata = {
                         "recipient_email": email,
                         "mailbox_identity": "primary",
@@ -297,8 +286,8 @@ def render_results(results: list[dict]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Send Cassandra intro outreach emails.")
-    parser.add_argument("--dry-run", action="store_true", help="Show the outreach emails without sending them.")
+    parser = argparse.ArgumentParser(description="Prepare Cassandra pilot intro email drafts.")
+    parser.add_argument("--dry-run", action="store_true", help="Show the pilot intro email drafts without creating them.")
     args = parser.parse_args(argv)
 
     results = run_outreach(dry_run=args.dry_run)

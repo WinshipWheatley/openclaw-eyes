@@ -2805,6 +2805,8 @@ def _notify_client_urgency(
 def _record_gap_followups(
     sender_name: str,
     sender_chat_id: object | None,
+    sender_channel: str | None,
+    sender_email: str | None,
     original_message: str,
     partial_reply: str,
     capability_gaps: list[dict],
@@ -2828,6 +2830,8 @@ def _record_gap_followups(
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "sender_name": sender_name,
             "sender_chat_id": sender_chat_id,
+            "sender_channel": sender_channel,
+            "sender_email": sender_email.strip().lower() if isinstance(sender_email, str) and sender_email.strip() else None,
             "original_message": original_message,
             "partial_reply_sent": partial_reply,
             "gap_type": capability,
@@ -2847,6 +2851,133 @@ def _upgrade_task_completed(task_name: str | None) -> bool:
     if any(_POLISH_ARCHIVE.glob(f"closeout_{task_name}_*.ok")):
         return True
     return any(task_name in path.name for path in _POLISH_ARCHIVE.iterdir())
+
+
+def _resolve_followup_email_target(record: dict) -> tuple[str, str] | None:
+    sender_channel = str(record.get("sender_channel", "")).strip().lower()
+    sender_name = str(record.get("sender_name", "")).strip() or "Unknown recipient"
+    sender_email = str(record.get("sender_email", "")).strip().lower()
+
+    if sender_channel != "email":
+        return None
+
+    verified_contact = None
+    if sender_email:
+        verified_contact = verify_sender_on_channel(
+            sender_name=sender_name,
+            sender_id=sender_email,
+            channel="email",
+        )
+    if verified_contact is None:
+        contact_entry = _find_designated_contact(sender_name=sender_name, sender_chat_id=None)
+        if contact_entry is not None and contact_entry.get("pinned_email"):
+            verified_contact = verify_sender_on_channel(
+                sender_name=sender_name,
+                sender_id=contact_entry["pinned_email"],
+                channel="email",
+            )
+    if verified_contact is None:
+        return None
+    return verified_contact["pinned_email"], verified_contact["display_name"]
+
+
+def _build_followup_email_subject(original_message: str) -> str:
+    preview = _bridge_preview(original_message.strip().replace("\n", " "), limit=72)
+    return f"Follow-up: {preview or 'your question'}"
+
+
+def _create_followup_email_draft(record: dict, followup_reply: str) -> bool:
+    target = _resolve_followup_email_target(record)
+    if target is None:
+        return False
+
+    recipient_email, recipient_name = target
+    subject = _build_followup_email_subject(str(record.get("original_message", "")))
+    review = _review_grounded_email_draft(
+        recipient_name=recipient_name,
+        recipient_email=recipient_email,
+        original_message=str(record.get("original_message", "")),
+        draft_subject=subject,
+        draft_body=followup_reply,
+    )
+    if review["status"] == "blocked":
+        _log_correspondence_state(
+            recipient_name,
+            _SS_BLOCKED,
+            review["detail"],
+            route="followup_email_draft",
+            metadata={
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
+        return False
+
+    subject = review["subject"]
+    body = review["body"]
+    review_inbox = get_review_inbox()
+    try:
+        result = broker_call("cassandra", "google.gmail.draft.create", {
+            "to": recipient_email,
+            "cc": review_inbox,
+            "subject": subject,
+            "body": body,
+        })
+    except Exception as exc:
+        _log_correspondence_state(
+            recipient_name,
+            _SS_SEND_FAILED,
+            str(exc),
+            route="followup_email_draft",
+            metadata={
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "mailbox_identity": "primary",
+            },
+        )
+        print(f"[cassandra_followup] email draft broker error: {exc}", flush=True)
+        return False
+
+    if result.get("ok"):
+        result_data = result.get("data") or {}
+        detail = f"subject={subject}"
+        if review["status"] == "rewritten":
+            detail += f"; {review['detail']}"
+        draft_id = str(result_data.get("draft_id", "")).strip()
+        if draft_id:
+            detail += f"; draft_id={draft_id}"
+        _log_correspondence_state(
+            recipient_name,
+            _SS_DRAFT,
+            detail,
+            route="followup_email_draft",
+            metadata={
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "mailbox_identity": "primary",
+                "draft_id": draft_id,
+                "message_id": result_data.get("message_id", ""),
+                "thread_id": result_data.get("thread_id", ""),
+            },
+        )
+        return True
+
+    err = str(result.get("error", "unknown error"))
+    state = _SS_BLOCKED if "denied" in err.lower() else _SS_SEND_FAILED
+    detail = "denied at approval gate" if state == _SS_BLOCKED else err
+    _log_correspondence_state(
+        recipient_name,
+        state,
+        detail,
+        route="followup_email_draft",
+        metadata={
+            "recipient_email": recipient_email,
+            "subject": subject,
+            "mailbox_identity": "primary",
+        },
+    )
+    return False
 
 
 def process_pending_followups() -> list[dict]:
@@ -2879,9 +3010,11 @@ def process_pending_followups() -> list[dict]:
         if any(gap["capability"] == record.get("gap_type") for gap in remaining):
             continue
         try:
-            from cassandra_sender import send_message
+            sent_ok = _create_followup_email_draft(record, followup_reply)
+            if not sent_ok:
+                from cassandra_sender import send_message
 
-            send_message(followup_reply, chat_id=record.get("sender_chat_id"))
+                send_message(followup_reply, chat_id=record.get("sender_chat_id"))
         except Exception as exc:
             print(f"[cassandra_followup] send error: {exc}", flush=True)
             continue
@@ -3128,16 +3261,16 @@ def _handle_outreach_email_request(text: str) -> str | None:
         results = run_outreach(dry_run=False, mode="draft")
     except Exception as e:
         print(f"[cassandra] outreach flow error: {e}", flush=True)
-        _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, str(e), route="outreach_email_send")
+        _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, str(e), route="outreach_email_draft")
         return "The intro email draft flow hit a problem. No drafts were created — I'll need to try again."
 
     drafted = [row.get("display_name", row["nickname"]) for row in results if row.get("status") == "draft"]
     failed = [row.get("display_name", row["nickname"]) for row in results if row.get("status") != "draft"]
 
     for name in drafted:
-        _log_correspondence_state(name, _SS_DRAFT, route="outreach_email_send")
+        _log_correspondence_state(name, _SS_DRAFT, route="outreach_email_draft")
     for name in failed:
-        _log_correspondence_state(name, _SS_SEND_FAILED, route="outreach_email_send")
+        _log_correspondence_state(name, _SS_SEND_FAILED, route="outreach_email_draft")
 
     if drafted and not failed:
         return "Intro email drafts prepared for " + ", ".join(drafted) + "."
@@ -3149,7 +3282,7 @@ def _handle_outreach_email_request(text: str) -> str | None:
             + ", ".join(failed)
             + "."
         )
-    _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, "no successful sends", route="outreach_email_send")
+    _log_correspondence_state("outreach_batch", _SS_SEND_FAILED, "no successful drafts", route="outreach_email_draft")
     return "The intro email drafts didn't go through. No drafts were created."
 
 
@@ -4503,7 +4636,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         outreach_reply = _handle_outreach_email_request(query)
         if outreach_reply is not None:
             save_state(state)
-            _log_conversation(text, [outreach_reply], route="outreach_email_send")
+            _log_conversation(text, [outreach_reply], route="outreach_email_draft")
             return [outreach_reply]
 
     # Email routing — bypass LLM, creates brokered review drafts instead of sending
@@ -4644,6 +4777,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _record_gap_followups(
                 sender_name=contact_entry["display_name"],
                 sender_chat_id=session_meta.get("sender_chat_id"),
+                sender_channel=session_meta.get("sender_channel"),
+                sender_email=session_meta.get("sender_email"),
                 original_message=query,
                 partial_reply=reply,
                 capability_gaps=capability_gaps,

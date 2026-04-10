@@ -283,7 +283,7 @@ def test_c4_outreach_partial_send_is_honest(stub_side_effects, monkeypatch):
 
     session = {"sender_name": None, "sender_chat_id": None, "skip_followup_check": True}
     reply = cb.handle("send the intro emails", session=session)
-    _assert_last_route(stub_side_effects, "outreach_email_send")
+    _assert_last_route(stub_side_effects, "outreach_email_draft")
     assert any("drafted for dad" in r.lower() for r in reply)
     assert any("didn't go through" in r.lower() for r in reply)
 
@@ -382,6 +382,22 @@ def test_f1_correspondence_log_written_on_send_success(stub_side_effects):
     entries = _read_correspondence_entries(stub_side_effects["tmp_path"])
     assert entries[-1]["state"] == "draft"
     assert entries[-1]["route"] == "email_send"
+
+
+def test_f4_outreach_draft_log_uses_truthful_route(stub_side_effects, monkeypatch):
+    monkeypatch.setattr(
+        "cassandra_outreach.run_outreach",
+        lambda dry_run=False, mode="draft": [
+            {"nickname": "draper", "display_name": "Draper", "status": "draft"},
+        ],
+    )
+    session = {"sender_name": None, "sender_chat_id": None, "skip_followup_check": True}
+
+    cb.handle("send the intro emails", session=session)
+
+    entries = [json.loads(line) for line in stub_side_effects["tmp_path"].joinpath("correspondence.jsonl").read_text().splitlines()]
+    assert entries[-1]["state"] == "draft"
+    assert entries[-1]["route"] == "outreach_email_draft"
 
 def test_f2_correspondence_log_written_on_send_failure(stub_side_effects):
     stub_side_effects["broker_overrides"]["google.gmail.draft.create"] = {"ok": False, "error": "smtp outage"}
