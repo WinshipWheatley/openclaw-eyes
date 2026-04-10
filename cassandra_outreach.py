@@ -64,14 +64,18 @@ def _resolve_contact_email(nickname: str) -> tuple[str, str]:
     Resolve nickname -> (email, display_name).
 
     contact_nicknames.json is the source of nickname mapping.
-    If it stores an inline email, use it directly. Otherwise resolve through the
-    existing Google Contacts broker by the mapped contact label.
+    Resolution order for the pilot path:
+      1. inline email
+      2. live Google Contacts lookup
+      3. pinned_email fallback
     """
     nicknames = _load_nicknames()
     value = nicknames.get(nickname.lower(), nickname)
 
+    pinned_email = ""
     if isinstance(value, dict):
         email = str(value.get("email", "")).strip()
+        pinned_email = str(value.get("pinned_email", "")).strip()
         display_name = (
             str(value.get("display_name") or value.get("name") or value.get("contact_name") or nickname.title()).strip()
             or nickname.title()
@@ -80,19 +84,23 @@ def _resolve_contact_email(nickname: str) -> tuple[str, str]:
             return email, display_name
         contact_label = display_name
     else:
+        display_name = str(value).strip() or nickname.title()
         contact_label = str(value).strip() or nickname.title()
 
     from google_access_broker import call as broker_call
 
     result = broker_call("cassandra", "google.contacts.read", {"query": contact_label})
-    if not result.get("ok") or not result.get("data"):
+    if result.get("ok"):
+        for contact in result.get("data") or []:
+            email = str(contact.get("email", "")).strip()
+            if email:
+                display_name = str(contact.get("display_name", "")).strip() or contact_label
+                return email, display_name
+    else:
         raise RuntimeError(f"No contact email found for {nickname}.")
 
-    for contact in result["data"]:
-        email = str(contact.get("email", "")).strip()
-        if email:
-            display_name = str(contact.get("display_name", "")).strip() or contact_label
-            return email, display_name
+    if pinned_email:
+        return pinned_email, display_name
 
     raise RuntimeError(f"Contact found for {nickname} but no email address is available.")
 

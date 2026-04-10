@@ -107,6 +107,47 @@ def test_run_outreach_draft_uses_configured_review_inbox(tmp_path, monkeypatch):
     assert all(call[2]["cc"] == "winshipwheatley@gmail.com" for call in broker_calls)
 
 
+def test_run_outreach_uses_pinned_email_when_contacts_returns_no_match(tmp_path, monkeypatch):
+    import cassandra_outreach as outreach
+
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    log_path = tmp_path / "cassandra_outreach.jsonl"
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "dad": {"name": "Dad Placeholder", "pinned_email": "dad@example.com"},
+                "mom": {"name": "Mom Placeholder", "pinned_email": "mom@example.com"},
+                "draper": {"name": "Draper Placeholder", "pinned_email": "draper@example.com"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    broker_calls = []
+    monkeypatch.setattr(outreach, "_NICKNAMES_PATH", nicknames_path, raising=False)
+    monkeypatch.setattr(outreach, "_OUTREACH_LOG", log_path, raising=False)
+    monkeypatch.setattr(outreach, "_notify_winship", lambda text: None, raising=False)
+
+    def fake_broker(agent, capability, params):
+        broker_calls.append((agent, capability, params))
+        if capability == "google.contacts.read":
+            return {"ok": True, "data": [], "error": ""}
+        if capability == "google.gmail.draft.create":
+            return {"ok": True, "data": {"draft_id": "d1", "message_id": "m1"}, "error": ""}
+        raise AssertionError(f"unexpected capability {capability}")
+
+    monkeypatch.setattr("google_access_broker.call", fake_broker)
+
+    results = outreach.run_outreach(dry_run=False, mode="draft")
+
+    assert len(results) == 3
+    draft_calls = [call for call in broker_calls if call[1] == "google.gmail.draft.create"]
+    assert len(draft_calls) == 3
+    assert draft_calls[0][2]["to"] == "draper@example.com"
+    assert draft_calls[1][2]["to"] == "dad@example.com"
+    assert draft_calls[2][2]["to"] == "mom@example.com"
+
+
 def test_run_outreach_rejects_send_mode(tmp_path, monkeypatch):
     import cassandra_outreach as outreach
 
