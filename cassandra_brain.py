@@ -426,7 +426,13 @@ def load_state() -> dict:
 
 
 def save_state(state: dict) -> None:
-    save_json(_STATE_PATH, state)
+    _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = _STATE_PATH.with_name(f"{_STATE_PATH.name}.tmp")
+    with tmp_path.open("w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, _STATE_PATH)
 
 
 # ── Conversation logger ────────────────────────────────────────────────────
@@ -1566,7 +1572,7 @@ SOURCE LABELING — always say where information came from:
   A log is a record of what was written, not proof it happened.
 
 CALENDAR — calendar is live. When a [CALENDAR DATA] block appears in your context, it contains real event data from Google Calendar:
-  Speak from it directly and naturally. Day labels are relative: "later today", "tomorrow", or a weekday name. Example: "You've got Golf with Dad tomorrow at eight-thirty AM at Compass Pointe Golf Course." — that kind of phrasing.
+  Speak from it directly and naturally. Day labels are relative: "later today", "tomorrow", or a weekday name. Example: "You've got a call with Dane later today at two PM." — that kind of phrasing.
   Use the day label exactly as given in the calendar data. If it says "later today", the event is today — do not convert it to "tomorrow" based on your own reasoning about the time of night.
   The [CALENDAR DATA] day label is the authoritative source for event timing. Other context above — including log entries, ops notes, or payment follow-ups — may contain day references like "tomorrow" that were accurate when written but are now stale. Do not let those override the [CALENDAR DATA] label.
   Times are pre-formatted for spoken output. Use them as given: "eight-thirty AM", "eight AM". Do not convert them back to numeric form like "8:30 AM".
@@ -1590,13 +1596,17 @@ FUTURE-ACTION AND REMINDER REQUESTS:
   Do NOT say "I'm not able to do that" or "I can't do that" alone — that is too generic.
   Name the specific action the user asked for ("check again tomorrow," "send a reminder"),
   not generic placeholders.
+  Direct reminder requests are live: you can queue and later surface a bounded reminder to Telegram.
+  Do NOT present that as broad autonomous execution.
+  You cannot autonomously re-check external systems, contact third parties, or perform broad future
+  external follow-up from here.
   Offer alternatives (drafting, logging, holding) ONLY when the user's question was specifically
   about sending, following up, messaging, or reminders. Do NOT add drafting/logging offers
   as a default pivot after file, calendar, or payment limit responses.
-  Correct form: "I can't check again tomorrow or send a reminder from here — that's not something
-  I can do independently. I can draft the message, log it to Ops Actions, or hold it for your
-  next check-in. What works?"
-  Never promise to follow up, check, or send autonomously.
+  Correct form when the request fits the live reminder queue:
+  "I can queue a reminder for tomorrow at 9. I can't re-check the external system, contact anyone,
+  or handle a broader follow-up on my own from here."
+  Never promise to follow up, check, message, or send autonomously beyond that bounded reminder queue.
 
 LOGGING — only claim it if it happens:
   Do NOT say "I'll log that" or "I'll note that" unless the system is actually writing the entry right now.
@@ -1615,7 +1625,8 @@ CONTACTS — when [CONTACTS DATA] is present in context:
 UNBUILT WORKFLOWS AND AUTONOMOUS ACTIONS:
   State limits simply and directly — avoid tech-stack explanations ("not wired in yet").
   Prefer: "That's not something I can do from here."
-  Do not promise to check, send, follow up, or remind autonomously.
+  Do not promise to check, send, follow up, or contact people autonomously beyond the bounded
+  reminder queue.
   Offer drafting, logging, or holding only when the user's request was specifically about
   communication, follow-up, or message creation. Not as a default pivot after any limit.
 
@@ -1807,7 +1818,12 @@ def _fetch_calendar_context(query: str) -> str:
     calendar context block for prompt injection.
     Returns "" if not applicable, broker denied, or no data.
     """
-    t = query.lower()
+    t = query.lower().translate(str.maketrans({
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+    }))
     if not any(w in t for w in _CALENDAR_QUERY_WORDS):
         return ""
     try:
@@ -2123,7 +2139,10 @@ _FUTURE_ACTION_PHRASES = (
     "set a reminder",
 )
 
-# Action verbs that, when co-present with a time reference, indicate future-action intent.
+# Action verbs that, when co-present with a parser-supported time reference,
+# indicate future-action intent. Keep this list aligned with
+# tools/future_action_queue._parse_due_at() so Cassandra does not imply support
+# for relative dates the queue cannot actually schedule.
 _FUTURE_ACTION_VERBS = ("remind", "follow up", "follow-up", "check back", "check again", "ping me")
 _FUTURE_ACTION_TIME_WORDS = ("tomorrow", "next week", "next month")
 
@@ -2132,8 +2151,9 @@ def _detect_future_action_intent(text: str) -> bool:
     """True if the query is a reminder or future follow-up queue request.
 
     Matches direct action phrases (e.g. "remind me", "follow up") and also
-    the combination of a time word + action verb. Does NOT match bare "tomorrow"
-    or "next week" to avoid capturing calendar and scheduling queries.
+    the combination of an actually supported time word + action verb. Does NOT
+    match bare "tomorrow" or "next week" to avoid capturing calendar and
+    scheduling queries.
     """
     t = text.lower()
     if any(phrase in t for phrase in _FUTURE_ACTION_PHRASES):
@@ -2472,7 +2492,12 @@ def _write_followup_records(records: list[dict]) -> None:
     payload = "\n".join(json.dumps(record) for record in records)
     if payload:
         payload += "\n"
-    _FOLLOWUP_LOG.write_text(payload, encoding="utf-8")
+    tmp_path = _FOLLOWUP_LOG.with_name(f"{_FOLLOWUP_LOG.name}.tmp")
+    with tmp_path.open("w", encoding="utf-8") as f:
+        f.write(payload)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, _FOLLOWUP_LOG)
 
 
 def _existing_upgrade_task_name(capability: str) -> str | None:
