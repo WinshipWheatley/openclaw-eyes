@@ -43,6 +43,27 @@
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
+!docs/
+!docs/README.md
+!docs/_ai/
+!docs/_ai/*.md
+!docs/doctrine/
+!docs/doctrine/*.md
+!docs/specs/
+!docs/specs/*.md
+!docs/handoffs/
+!docs/handoffs/.gitkeep
+!docs/exports/
+!docs/exports/doctrine_export_2026-04-09/
+!docs/exports/doctrine_export_2026-04-09/*.md
+!mac_eyes/
+!mac_eyes/Winship/
+!mac_eyes/Winship/AGENTS.md
+!mac_eyes/Winship/Mac Local AI Watch — READ ME.md
+!mac_eyes/Winship/drafts/
+!mac_eyes/Winship/drafts/.gitkeep
+!mac_eyes/Winship/archive/
+!mac_eyes/Winship/archive/.gitkeep
 !chief_scout_brain.py
 !chief_integration_brain.py
 !chief_reflection_brain.py
