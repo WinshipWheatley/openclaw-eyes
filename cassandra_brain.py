@@ -1235,13 +1235,23 @@ def _sanitize_historical_log_line(line: str) -> str | None:
 def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) -> list[str]:
     """Last n non-header markdown log lines, optionally filtered by age and with
     stale relative-day words normalized so raw history does not masquerade as live timing.
+
+    Age filtering works at two levels:
+    1. Per-line: lines with an inline ``[YYYY-MM-DD HH:MM:SS]`` timestamp are
+       dropped when older than *max_age_days*.
+    2. File-level fallback: when **no** line carried an inline timestamp the
+       file's ``mtime`` is checked instead.  If the entire file is older than
+       *max_age_days* every line is dropped — this prevents undated bullet
+       lists (e.g. Ops Actions.md) from appearing stale in the context window.
     """
     raw_lines = _tail_md(path, n=500)
     kept: list[str] = []
     now = datetime.now()
+    any_ts_matched = False
     for line in raw_lines:
         ts_match = _HISTORICAL_LOG_TS_RE.match(line)
         if ts_match and max_age_days is not None:
+            any_ts_matched = True
             try:
                 stamp = datetime.strptime(ts_match.group(1), "%Y-%m-%d %H:%M:%S")
                 if (now - stamp).days > max_age_days:
@@ -1251,6 +1261,16 @@ def _tail_md_recent(path: Path, n: int = 6, *, max_age_days: int | None = None) 
         cleaned = _sanitize_historical_log_line(line)
         if cleaned:
             kept.append(cleaned)
+
+    # File-level fallback: if no line had an inline timestamp, gate on mtime.
+    if kept and not any_ts_matched and max_age_days is not None:
+        try:
+            mtime = datetime.fromtimestamp(path.stat().st_mtime)
+            if (now - mtime).days > max_age_days:
+                return []
+        except OSError:
+            pass
+
     return kept[-n:]
 
 
