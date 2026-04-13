@@ -502,3 +502,81 @@ def test_handle_mac_turn_accepts_review_header_matching_active_task_title(isolat
     status = json.loads(isolated_orchestrator["status_file"].read_text())
     assert status["status"] == "pc_turn"
     assert status["pass"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Chief acceptance gate integration (harness-backed retest tasks only)
+# ---------------------------------------------------------------------------
+
+def _setup_harness_mac_turn(isolated_orchestrator, monkeypatch, verdict_fn):
+    """Helper: set up a harness-backed retest in mac_turn with APPROVED review and a mocked gate."""
+    isolated_orchestrator["task_file"].write_text(
+        "title: Harness Task\n"
+        "execution_mode: harness-backed-retest\n"
+        "harness_mode: dry-run\n"
+        "harness_flow: morning_brief\n"
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text(
+        "PASS: 1\nCHANGES: edited foo.py\nREASONING: fix\n"
+        "ROLLBACK PLAN: revert\nCOST: $0\nTRUTH: ok\nHEADROOM: fine\n"
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    monkeypatch.setattr(
+        orchestrator, "_chief_acceptance_verdict", verdict_fn,
+    )
+
+
+def test_chief_gate_approve_reaches_approved(isolated_orchestrator, monkeypatch):
+    _setup_harness_mac_turn(isolated_orchestrator, monkeypatch, lambda status: "APPROVE")
+    orchestrator.handle_mac_turn(
+        {"status": "mac_turn", "task_name": "harness-task", "pass": 1, "approved": False},
+        elapsed=0,
+    )
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "approved"
+    assert status["approved"] is True
+
+
+def test_chief_gate_rework_loops_back(isolated_orchestrator, monkeypatch):
+    _setup_harness_mac_turn(isolated_orchestrator, monkeypatch, lambda status: "REWORK")
+    orchestrator.handle_mac_turn(
+        {"status": "mac_turn", "task_name": "harness-task", "pass": 1, "approved": False},
+        elapsed=0,
+    )
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "pc_turn"
+    assert status["pass"] == 2
+
+
+def test_chief_gate_insufficient_blocks(isolated_orchestrator, monkeypatch):
+    _setup_harness_mac_turn(isolated_orchestrator, monkeypatch, lambda status: "INSUFFICIENT_EVIDENCE")
+    orchestrator.handle_mac_turn(
+        {"status": "mac_turn", "task_name": "harness-task", "pass": 1, "approved": False},
+        elapsed=0,
+    )
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "blocked"
+    assert status["block_reason"] == "chief_insufficient_evidence"
+
+
+def test_non_harness_task_skips_chief_gate(isolated_orchestrator, monkeypatch):
+    """Non-harness-backed tasks should go straight to approved without calling the gate."""
+    isolated_orchestrator["task_file"].write_text(
+        "title: Normal Task\ngoal: Ship it\n"
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "pc_output.md").write_text(
+        "PASS: 1\nCHANGES: x\nREASONING: y\nROLLBACK PLAN: z\nCOST: $0\nTRUTH: ok\nHEADROOM: ok\n"
+    )
+    isolated_orchestrator["loop_dir"].joinpath("current", "mac_review.md").write_text("APPROVED\n")
+    gate_calls = []
+    monkeypatch.setattr(
+        orchestrator, "_chief_acceptance_verdict",
+        lambda status: gate_calls.append(1) or "REWORK",
+    )
+    orchestrator.handle_mac_turn(
+        {"status": "mac_turn", "task_name": "normal-task", "pass": 1, "approved": False},
+        elapsed=0,
+    )
+    status = json.loads(isolated_orchestrator["status_file"].read_text())
+    assert status["status"] == "approved"
+    assert gate_calls == [], "gate should not be called for non-harness tasks"

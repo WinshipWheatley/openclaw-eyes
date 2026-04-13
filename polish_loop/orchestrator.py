@@ -306,6 +306,92 @@ def active_task_identity(fallback: str = "?") -> str:
     return title or fallback
 
 
+def _active_task_frontmatter_value(key: str) -> str | None:
+    task_md = TASK_MD
+    if not task_md.exists():
+        return None
+    wanted = f"{key.lower()}:"
+    try:
+        for raw in task_md.read_text().splitlines():
+            stripped = raw.strip()
+            if stripped.lower().startswith(wanted):
+                return stripped.split(":", 1)[1].strip()
+    except Exception:
+        return None
+    return None
+
+
+def _active_task_is_harness_backed_retest() -> bool:
+    return (
+        _active_task_frontmatter_value("execution_mode") == "harness-backed-retest"
+        and _active_task_frontmatter_value("harness_mode") == "dry-run"
+    )
+
+
+def _chief_acceptance_verdict(status: dict) -> str:
+    """Ask Chief to evaluate harness/review evidence. Returns APPROVE|REWORK|INSUFFICIENT_EVIDENCE."""
+    try:
+        from chief_acceptance_gate import evaluate_evidence
+    except ImportError:
+        return "INSUFFICIENT_EVIDENCE"
+    pc_summary = ""
+    if PC_OUTPUT.exists():
+        try:
+            pc_summary = PC_OUTPUT.read_text(errors="replace")[:500]
+        except Exception:
+            pass
+    evidence = {
+        "task_name": status.get("task_name", "?"),
+        "pass_num": status.get("pass", 1),
+        "pc_output_summary": pc_summary,
+        "mac_review_verdict": "APPROVED",
+        "harness_manifest": _latest_harness_manifest(status),
+    }
+    return evaluate_evidence(evidence)
+
+
+def _latest_harness_manifest(status: dict) -> dict | None:
+    """Best-effort lookup of the most recent harness run manifest for the active task."""
+    flow = _active_task_frontmatter_value("harness_flow")
+    if not flow:
+        return None
+    staging_root = Path("/home/openclaw/staging")
+    flow_dirs = {
+        "morning_brief": "morning_brief_harness",
+        "chief_end_of_day_review": "chief_eod_harness",
+        "guardian_schema_retest": "guardian_schema_harness",
+    }
+    dir_name = flow_dirs.get(flow)
+    if not dir_name:
+        return None
+    runs_dir = staging_root / dir_name / "runs"
+    if not runs_dir.exists():
+        return None
+    try:
+        run_dirs = sorted(
+            (d for d in runs_dir.iterdir() if d.is_dir()),
+            key=lambda d: d.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return None
+    if not run_dirs:
+        return None
+    manifest_path = run_dirs[0] / "manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        m = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return {
+            "flow": m.get("flow", flow),
+            "passed": m.get("passed"),
+            "failed": m.get("failed"),
+            "total_cases": m.get("total_cases"),
+        }
+    except Exception:
+        return None
+
+
 def queued_task_frontmatter_error(task_path: Path) -> str | None:
     """Return a brief validation error if a queued task is missing required frontmatter."""
     try:
@@ -697,6 +783,12 @@ def handle_pc_turn(status: dict, elapsed: float, dry_run: bool = False) -> None:
         # If stale BLOCKED output remains and Builder is currently dead, attempt a
         # bounded immediate relaunch instead of waiting the full timeout window.
         if reason == "has_blocked" and not status.get("relaunch_attempted", False):
+            if not running_now and _active_task_is_harness_backed_retest():
+                log("EVIDENCE", "harness-backed retest failed closed — no live builder fallback allowed", dry_run)
+                log("TRANSITION", "pc_turn → blocked (reason: harness_retest_fail_closed)", dry_run)
+                if not dry_run:
+                    write_status("blocked", reason="harness_retest_fail_closed")
+                return
             if not running_now:
                 log("ACTION", "pc_output shows STATUS:BLOCKED and Builder is dead — immediate re-launch attempt", dry_run)
                 if not dry_run:
@@ -979,6 +1071,36 @@ def handle_mac_turn(status: dict, elapsed: float, dry_run: bool = False) -> None
 
     if approved and not rework:
         log("EVIDENCE", "mac_review: APPROVED", dry_run)
+
+        # Chief acceptance gate — harness-backed retest tasks only
+        if not dry_run and _active_task_is_harness_backed_retest():
+            verdict = _chief_acceptance_verdict(status)
+            if verdict == "REWORK":
+                log("EVIDENCE", "chief acceptance gate: REWORK", dry_run)
+                if pass_num >= MAX_PASSES:
+                    log("TRANSITION", "mac_turn → blocked (reason: chief_rework_max_passes)", dry_run)
+                    write_status("blocked", reason="chief_rework_max_passes")
+                else:
+                    log("TRANSITION", f"mac_turn → pc_turn (chief rework, pass {pass_num} → {pass_num + 1})", dry_run)
+                    ts = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
+                    task_name = status.get("task_name", "?")
+                    archive_dir = LOOP_DIR / "archive"
+                    archive_dir.mkdir(parents=True, exist_ok=True)
+                    for artifact in (PC_OUTPUT, MAC_REVIEW, CLOSEOUT):
+                        if artifact.exists():
+                            dst_name = f"{artifact.stem}_{task_name}_p{pass_num}_{ts}{artifact.suffix}"
+                            dst = archive_dir / dst_name
+                            artifact.rename(dst)
+                            log("ACTION", f"archived {artifact.name} → archive/{dst_name}")
+                    write_status("pc_turn", pass_num=pass_num + 1)
+                return
+            if verdict != "APPROVE":
+                log("EVIDENCE", f"chief acceptance gate: {verdict}", dry_run)
+                log("TRANSITION", "mac_turn → blocked (reason: chief_insufficient_evidence)", dry_run)
+                write_status("blocked", reason="chief_insufficient_evidence")
+                return
+            log("EVIDENCE", "chief acceptance gate: APPROVE", dry_run)
+
         log("TRANSITION", "mac_turn → approved", dry_run)
         if not dry_run:
             write_status("approved", approved=True)
