@@ -89,7 +89,14 @@ def _extract_verdict(raw: str) -> str:
     """Extract a valid verdict from model output. Fail safe to INSUFFICIENT_EVIDENCE."""
     if not raw:
         return "INSUFFICIENT_EVIDENCE"
-    first_line = raw.strip().splitlines()[0].strip().upper()
+    text = raw.strip()
+    # Strip reasoning blocks — models may emit <think>...</think> or bare text ending in </think>
+    import re
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"^.*?</think>", "", text, flags=re.DOTALL).strip()
+    if not text:
+        return "INSUFFICIENT_EVIDENCE"
+    first_line = text.splitlines()[0].strip().upper()
     # Strip any surrounding punctuation or markdown
     word = first_line.strip("*_`#. ")
     if word in VERDICTS:
