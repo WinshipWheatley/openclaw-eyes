@@ -49,19 +49,24 @@
 !docs/_ai/*.md
 !docs/doctrine/
 !docs/doctrine/*.md
+!docs/playbooks/
+!docs/playbooks/*.md
 !docs/specs/
 !docs/specs/*.md
 !docs/handoffs/
 !docs/handoffs/.gitkeep
+!docs/handoffs/cassandra/
+!docs/handoffs/cassandra/.gitkeep
 !docs/exports/
-!docs/exports/doctrine_export_2026-04-09/
-!docs/exports/doctrine_export_2026-04-09/*.md
+!docs/exports/doctrine_exports/
+!docs/exports/doctrine_exports/*.md
 !mac_eyes/
 !mac_eyes/Launchers/
 !mac_eyes/Launchers/sync_to_mac.sh
 !mac_eyes/Winship/
 !mac_eyes/Winship/AGENTS.md
 !mac_eyes/Winship/Mac Local AI Watch — READ ME.md
+!mac_eyes/Winship/Mac Local AI Watch.code-workspace
 !mac_eyes/Winship/drafts/
 !mac_eyes/Winship/drafts/.gitkeep
 !mac_eyes/Winship/archive/
@@ -196,11 +201,13 @@
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py
+!tests/test_agent_task_proposals.py
 
 # tools/ — standalone utility modules
 !tools/
 !tools/file_verify.py
 
+!agent_task_proposals.py
 !dashboard_gen.py
 !hitl_flowchart_gen.py
 !hitl_notification_service.py
@@ -210,3 +217,13 @@
 !loop_dashboard_watchdog.sh
 !loop_supervisor.sh
 !retry_send_demo_dashboard.sh
+
+# Harness and snapshot lane
+!chief_eod_harness.py
+!guardian_schema_harness.py
+!morning_brief_harness.py
+!generate_runtime_snapshot.py
+!staging/
+!staging/guardian_schema_harness/
+!staging/guardian_schema_harness/fixtures/
+!staging/guardian_schema_harness/fixtures/guardian_validation.json

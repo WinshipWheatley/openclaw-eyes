@@ -3,6 +3,14 @@ _Generated: 2026-03-17 | Based on actual repo audit — not aspirational archite
 
 ---
 
+## Quick Re-entry
+
+Runtime law: `OPENCLAW_RUNTIME.md`. Live session: `cat /home/openclaw/OpenClaw/state/chief_session.json`. Live processes: `pgrep -af python | grep chief`.  
+Freshness: `git log -1 --format="%cr" -- CURRENT_STATE.md`. Sections marked _(verify)_ below drift fastest.  
+Live facts (session, queue, processes, harness runs): `docs/_ai/runtime_snapshot.md` — run `python3 generate_runtime_snapshot.py` to refresh.
+
+---
+
 ## System Identity
 
 **Owner:** H. Winship Wheatley IV
@@ -56,7 +64,7 @@ Background:
 
 ---
 
-## LLM Layer (`chief_llm.py`)
+## LLM Layer (`chief_llm.py`) _(verify — model names change with config)_
 
 | Function | Model | Used for |
 |---|---|---|
@@ -71,8 +79,8 @@ Both return empty string on failure. No retry logic.
 
 ## Session State
 
-**File:** `/home/openclaw/OpenClaw/state/chief_session.json`
-**Current state:** `active_workflow=album, status=active, phase=follow_up, song=Blue Weather, turn=0`
+**File:** `/home/openclaw/OpenClaw/state/chief_session.json` (legacy location still in live use)
+**Current state:** `active_workflow=album, status=active, phase=follow_up, song=Blue Weather, turn=0` _(snapshot — verify against live file)_
 **Managed by:** `chief_session_manager.py` (file-locked JSON read/write)
 **Workflows with multi-turn sessions:** album, billing, invoice, fundo, brainstorm, scheduler (external JSON)
 
@@ -141,8 +149,10 @@ Both return empty string on failure. No retry logic.
       billing_records.csv        ← billing history
       billing_records.jsonl      ← billing history (append-only)
       invoice_counter.txt        ← next invoice number
-      inspection-*/              ← 9 codebase snapshots (Mar 14-15)
   chief_env/                     ← Python venv
+
+/mnt/c/OpenClaw/exports/
+  inspection-*/                  ← codebase snapshots from chief-inspect
 
 /mnt/c/OpenClaw/logs/
   chief_input.log                ← 323 lines, all incoming messages
@@ -194,3 +204,14 @@ Both return empty string on failure. No retry logic.
 | `TWILIO_FROM_NUMBER` | Optional | chief_sms_brain.py |
 
 Ollama must be running at `localhost:11434` with `qwen2.5-coder:7b` loaded.
+
+---
+
+## Harness Lanes
+
+| Flow | Harness file | Staging root | Status |
+|---|---|---|---|
+| `morning_brief` | `morning_brief_harness.py` | `staging/morning_brief_harness/` | Proven — repeated e2e runs with fixture replay |
+| `chief_end_of_day_review` | `chief_eod_harness.py` | `staging/chief_eod_harness/` | Working staging lane — fixture captured, repeated dry-run replays produce consistent staging-only artifacts; not yet in rotation |
+
+Both lanes: dry-run only, staging-only writes, fail-closed on missing harness metadata.
