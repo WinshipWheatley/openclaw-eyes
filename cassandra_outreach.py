@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 cassandra_outreach.py
 
@@ -8,7 +10,25 @@ Usage:
     python3 /home/openclaw/cassandra_outreach.py
 """
 
-from __future__ import annotations
+def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: str, review_status: str, review_detail: str) -> dict:
+    """Abstraction for Gmail draft creation for correspondence. Returns a dict with keys:
+    - ok: bool
+    - result: broker result dict (if ok)
+    - error: error string (if not ok)
+    - review_status: passed through
+    - review_detail: passed through
+    """
+    try:
+        from google_access_broker import call as broker_call
+        result = broker_call("cassandra", "google.gmail.draft.create", {
+            "to":      email_addr,
+            "cc":      review_inbox,
+            "subject": subject,
+            "body":    body,
+        })
+        return {"ok": True, "result": result, "review_status": review_status, "review_detail": review_detail}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "review_status": review_status, "review_detail": review_detail}
 
 import argparse
 import json
@@ -181,7 +201,7 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
     Build and optionally draft the outreach email set.
 
     mode:
-        "draft" — create brokered Gmail drafts for review (default)
+        "draft" -- create brokered Gmail drafts for review (default)
 
     Returns a per-recipient result list for both dry runs and real execution.
     """

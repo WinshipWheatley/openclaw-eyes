@@ -3160,17 +3160,11 @@ def _handle_send_email(text: str) -> str | None:
     body = review["body"]
     review_inbox = get_review_inbox()
 
-    # Create brokered Gmail draft — direct email sending is intentionally disabled.
-    try:
-        from google_access_broker import call as broker_call
-        result = broker_call("cassandra", "google.gmail.draft.create", {
-            "to":      email_addr,
-            "cc":      review_inbox,
-            "subject": subject,
-            "body":    body,
-        })
-    except Exception as e:
-        err_str = str(e)
+    # Use outreach-owned transport abstraction
+    from cassandra_outreach import create_gmail_draft
+    draft_result = create_gmail_draft(email_addr, subject, body, review_inbox, review["status"], review.get("detail", ""))
+    if not draft_result["ok"]:
+        err_str = draft_result["error"]
         print(f"[cassandra] email draft broker error: {err_str}", flush=True)
         _log_correspondence_state(
             display_name,
@@ -3185,6 +3179,7 @@ def _handle_send_email(text: str) -> str | None:
         )
         return "The email draft system isn't reachable right now. No draft was created — try again in a moment."
 
+    result = draft_result["result"]
     if result.get("ok"):
         result_data = result.get("data") or {}
         draft_id = result_data.get("draft_id", "")
