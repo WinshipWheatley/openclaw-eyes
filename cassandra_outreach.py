@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 """
@@ -9,6 +10,16 @@ Usage:
     python3 /home/openclaw/cassandra_outreach.py --dry-run
     python3 /home/openclaw/cassandra_outreach.py
 """
+
+def poll_gmail_unread_count() -> dict:
+    """Poll Gmail for unread inbox count via broker."""
+    from google_access_broker import call as broker_call
+    return broker_call("cassandra", "google.gmail.unread_count", {})
+
+def poll_gmail_recent_metadata(max_results: int = 10) -> dict:
+    """Poll Gmail for recent inbox metadata via broker."""
+    from google_access_broker import call as broker_call
+    return broker_call("cassandra", "google.gmail.read.metadata", {"max_results": max_results})
 
 def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: str, review_status: str, review_detail: str) -> dict:
     """Abstraction for Gmail draft creation for correspondence. Returns a dict with keys:

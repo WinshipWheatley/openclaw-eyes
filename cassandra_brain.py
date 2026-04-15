@@ -4437,7 +4437,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         t_query.startswith("list my ") and "unread inbox" in t_query and "sender" in t_query and "subject" in t_query
     ):
         try:
-            call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
+            from cassandra_outreach import poll_gmail_unread_count, poll_gmail_recent_metadata
             # Use direct unread count for count queries
             if (
                 "count" in t_query or
@@ -4446,13 +4446,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                 t_query.startswith("show unread") or
                 t_query.startswith("list unread")
             ):
-                count_result = call_fn("cassandra", "google.gmail.unread_count", {})
+                count_result = poll_gmail_unread_count()
                 if not count_result["ok"]:
                     reply = ["[GMAIL] Inbox is empty or unreachable."]
                 else:
                     reply = [f"You have {count_result['data']} unread inbox emails."]
             else:
-                result = call_fn("cassandra", "google.gmail.read.metadata", {"max_results": 10})
+                result = poll_gmail_recent_metadata(10)
                 if not result["ok"]:
                     reply = ["[GMAIL] Inbox is empty or unreachable."]
                 else:
