@@ -148,6 +148,34 @@ def test_run_outreach_uses_pinned_email_when_contacts_returns_no_match(tmp_path,
     assert draft_calls[2][2]["to"] == "mom@example.com"
 
 
+def test_resolver_brain_wrapper_matches_outreach(monkeypatch):
+    # Test that cassandra_brain._resolve_recipient_email delegates to outreach and preserves error shape
+    import cassandra_brain
+    import cassandra_outreach
+
+    # Success path
+    monkeypatch.setattr(cassandra_outreach, "_resolve_contact_email", lambda name: ("test@example.com", "Test User"))
+    email, display_name = cassandra_brain._resolve_recipient_email("Test")
+    assert email == "test@example.com"
+    assert display_name == "Test User"
+
+    # RuntimeError path (simulates not found)
+    def raise_runtime(name):
+        raise RuntimeError("Contact found for Test but no email address is available.")
+    monkeypatch.setattr(cassandra_outreach, "_resolve_contact_email", raise_runtime)
+    email, display_name = cassandra_brain._resolve_recipient_email("Test")
+    assert email == ""
+    assert "no email address" in display_name
+
+    # Generic Exception path (simulates broker unreachable)
+    def raise_other(name):
+        raise Exception("broker unreachable")
+    monkeypatch.setattr(cassandra_outreach, "_resolve_contact_email", raise_other)
+    email, display_name = cassandra_brain._resolve_recipient_email("Test")
+    assert email == ""
+    assert "Couldn't reach the contacts broker" in display_name
+
+
 def test_run_outreach_rejects_send_mode(tmp_path, monkeypatch):
     import cassandra_outreach as outreach
 

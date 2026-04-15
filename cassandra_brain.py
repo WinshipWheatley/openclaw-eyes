@@ -3055,29 +3055,16 @@ def _resolve_recipient_email(name: str) -> tuple[str, str]:
     Returns ("", error_message) if resolution fails.
     Checks contact_nicknames.json first, then Google Contacts.
     """
-    name_stripped = name.strip()
-    nicknames     = _load_nicknames()
-    raw_entry     = nicknames.get(name_stripped.lower(), name_stripped)
-    if isinstance(raw_entry, dict):
-        search_name = raw_entry.get("name") or raw_entry.get("display_name") or name_stripped
-    else:
-        search_name = raw_entry or name_stripped
-
+    # Compatibility wrapper: delegate to cassandra_outreach._resolve_contact_email
     try:
-        from google_access_broker import call as broker_call
-        result = broker_call("cassandra", "google.contacts.read", {"query": search_name})
+        from cassandra_outreach import _resolve_contact_email
+        email, display_name = _resolve_contact_email(name)
+        return email, display_name
+    except RuntimeError as e:
+        # Match legacy error message shape
+        return ("", str(e))
     except Exception as e:
         return ("", f"Couldn't reach the contacts broker: {e}")
-
-    if not result.get("ok") or not result.get("data"):
-        return ("", f"I don't have a contact for {name_stripped} in your Google Contacts.")
-
-    contacts = result["data"]
-    for c in contacts:
-        if c.get("email"):
-            return (c["email"], c.get("display_name", search_name))
-
-    return ("", f"I have a contact for {name_stripped} but no email address on file.")
 
 
 def _parse_email_request(text: str) -> dict | None:

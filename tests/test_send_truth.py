@@ -28,6 +28,27 @@ def _make_fake_result(ok: bool, error: str = "") -> dict:
 # ── _handle_send_email() wording tests ────────────────────────────────────────
 
 class TestHandleSendEmailWording:
+    def test_brain_wrapper_delegates_to_outreach(self, monkeypatch):
+        import cassandra_brain
+        import cassandra_outreach
+
+        # Patch outreach resolver to simulate a successful lookup
+        monkeypatch.setattr(cassandra_outreach, "_resolve_contact_email", lambda name: ("delegated@example.com", "Delegated User"))
+        monkeypatch.setattr(cassandra_brain, "_review_grounded_email_draft", lambda **kwargs: {"status": "allowed", "subject": kwargs["draft_subject"], "body": kwargs["draft_body"], "detail": "", "queued_task_name": None, "user_reply": ""}, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr("google_access_broker.call", lambda *a, **kw: {"ok": True}, raising=False)
+
+        reply = cassandra_brain._handle_send_email("send email to Test subject: Hi body: Test message")
+        assert "Drafted." in reply
+        assert "Delegated User" in reply
+
+        # Patch outreach resolver to simulate a failure (no email)
+        def raise_runtime(name):
+            raise RuntimeError("Contact found for Test but no email address is available.")
+        monkeypatch.setattr(cassandra_outreach, "_resolve_contact_email", raise_runtime)
+        reply = cassandra_brain._handle_send_email("send email to Test subject: Hi body: Test message")
+        assert "no email address" in reply
     """Verify reply strings from _handle_send_email() match draft-state truth policy."""
 
     def _call(self, monkeypatch, broker_result=None, broker_raises=None,
