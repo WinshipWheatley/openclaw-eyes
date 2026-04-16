@@ -66,7 +66,6 @@ _POLISH_STATUS    = Path("/home/openclaw/polish_loop/status.json")
 _POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 _CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
 _OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
-_EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
 _CASSANDRA_OLLAMA_FAST = "gemma3:12b"
 _CASSANDRA_OLLAMA_DEEP = "gemma3:27b-it-qat"
@@ -514,59 +513,6 @@ def _log_correspondence_state(
         print(f"[cassandra] correspondence log write failed: {exc}", flush=True)
 
 
-def _email_bridge_message_seen(message_id: str) -> bool:
-    if not message_id or not _EMAIL_BRIDGE_LOG.exists():
-        return False
-    try:
-        for line in _EMAIL_BRIDGE_LOG.read_text(encoding="utf-8", errors="ignore").splitlines():
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            if entry.get("message_id") == message_id:
-                return True
-    except Exception:
-        return False
-    return False
-
-
-def _log_email_bridge_event(
-    *,
-    message_id: str,
-    thread_id: str,
-    nickname: str,
-    contact_name: str,
-    sender_email: str,
-    subject: str,
-    preview: str,
-    lane: str,
-    status: str,
-    unread: bool,
-    dedupe: bool = True,
-) -> None:
-    if dedupe and _email_bridge_message_seen(message_id):
-        return
-    entry = {
-        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "message_id": message_id,
-        "thread_id": thread_id,
-        "nickname": nickname,
-        "contact_name": contact_name,
-        "sender_email": sender_email,
-        "subject": _bridge_preview(subject, limit=120),
-        "preview": _bridge_preview(preview, limit=160),
-        "lane": lane,
-        "status": status,
-        "unread": bool(unread),
-        "route": "inner_circle_email_reply",
-    }
-    try:
-        _EMAIL_BRIDGE_LOG.parent.mkdir(parents=True, exist_ok=True)
-        with _EMAIL_BRIDGE_LOG.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
-    except Exception as exc:
-        print(f"[cassandra] email bridge log write failed: {exc}", flush=True)
-
-
 def _detect_request_capability_gaps(user_text: str) -> list[dict]:
     query = user_text.lower()
     gaps: list[dict] = []
@@ -617,28 +563,7 @@ def _queue_inbound_email_gap_task(
     )
 
 
-def _predict_likely_next_questions(question_bundles: list[dict]) -> list[dict]:
-    predictions: list[dict] = []
-    for bundle in question_bundles:
-        lowered = bundle.get("question", "").lower()
-        if not any(keyword in lowered for keyword in ("payment", "deposit", "invoice")):
-            continue
-        finance_reply = get_finance_status_answer(bundle["question"])
-        if not finance_reply or "Next:" not in finance_reply:
-            continue
-        next_step = finance_reply.split("Next:", 1)[1].strip()
-        if not next_step:
-            continue
-        predictions.append({
-            "question": "What needs to happen next?",
-            "because": next_step,
-            "bundle_id": bundle.get("bundle_id", ""),
-        })
-        break
-    return predictions
-
-
-# ── Thin wrappers for functions moved to cassandra_outreach (Cut 4 + Cut 5) ──
+# ── Thin wrappers for functions moved to cassandra_outreach (Cut 4 + Cut 5 + Cut 6) ──
 
 def _load_jsonl_records(path: Path) -> list[dict]:
     from cassandra_outreach import _load_jsonl_records as _impl
@@ -721,6 +646,46 @@ def _is_reply_like_email_message(message: dict) -> bool:
 def _build_email_bridge_review_text(message: dict) -> str:
     from cassandra_outreach import _build_email_bridge_review_text as _impl
     return _impl(message)
+
+
+def _detect_inner_circle_email_reply_intent(text: str) -> bool:
+    from cassandra_outreach import _detect_inner_circle_email_reply_intent as _impl
+    return _impl(text)
+
+
+def _log_email_bridge_event(
+    *,
+    message_id: str,
+    thread_id: str,
+    nickname: str,
+    contact_name: str,
+    sender_email: str,
+    subject: str,
+    preview: str,
+    lane: str,
+    status: str,
+    unread: bool,
+    dedupe: bool = True,
+) -> None:
+    from cassandra_outreach import _log_email_bridge_event as _impl
+    _impl(
+        message_id=message_id,
+        thread_id=thread_id,
+        nickname=nickname,
+        contact_name=contact_name,
+        sender_email=sender_email,
+        subject=subject,
+        preview=preview,
+        lane=lane,
+        status=status,
+        unread=unread,
+        dedupe=dedupe,
+    )
+
+
+def _predict_likely_next_questions(question_bundles: list[dict]) -> list[dict]:
+    from cassandra_outreach import _predict_likely_next_questions as _impl
+    return _impl(question_bundles)
 
 
 def _queue_error_debug_task(user_text: str, replies: list[str]) -> None:
@@ -1660,30 +1625,6 @@ def _detect_send_email_intent(text: str) -> bool:
         return False
     t = text.lower()
     return any(k in t for k in _SEND_EMAIL_KEYWORDS)
-
-
-_EMAIL_REPLY_BRIDGE_PATTERNS = (
-    "check inner circle email replies",
-    "check inner-circle email replies",
-    "show inner circle email replies",
-    "show inner-circle email replies",
-    "list inner circle email replies",
-    "list inner-circle email replies",
-    "any inner circle email replies",
-    "any inner-circle email replies",
-    "check pinned email replies",
-    "show pinned email replies",
-    "list pinned email replies",
-    "check email replies from",
-    "show email replies from",
-    "list email replies from",
-    "any email replies from",
-)
-
-
-def _detect_inner_circle_email_reply_intent(text: str) -> bool:
-    t = text.lower()
-    return any(pattern in t for pattern in _EMAIL_REPLY_BRIDGE_PATTERNS)
 
 
 _OUTREACH_EMAIL_PATTERNS = (
