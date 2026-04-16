@@ -229,3 +229,4 @@
 !staging/guardian_schema_harness/fixtures/guardian_validation.json
 !chief_acceptance_gate.py
 !tests/test_chief_acceptance_gate.py
+!tests/test_cut4_outreach_helpers.py
