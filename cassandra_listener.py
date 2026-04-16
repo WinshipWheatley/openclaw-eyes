@@ -32,8 +32,10 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTyp
 
 from cassandra_brain import (
     handle as cassandra_handle,
-    is_designated_contact_sender,
     pin_telegram_chat_id,
+)
+from cassandra_identity import (
+    is_designated_contact_sender,
     find_contact_by_nickname,
 )
 from cassandra_sender import send_voice_note
