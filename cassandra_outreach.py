@@ -44,10 +44,17 @@ def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: s
 import argparse
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from cassandra_email_config import get_review_inbox
+from chief_file_io import load_json, save_json
+
+# ── Broker call import for test patching ──
+try:
+    from google_access_broker import call as broker_call
+except ImportError:
+    broker_call = None
 
 _NICKNAMES_PATH = Path("/home/openclaw/contact_nicknames.json")
 _OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
@@ -60,6 +67,11 @@ _SS_QUEUED            = "queued"
 _SS_AWAITING_APPROVAL = "awaiting_approval"
 _SS_SEND_ATTEMPTED    = "send_attempted"
 _SS_SENT_CONFIRMED    = "sent_confirmed"
+
+_EMAIL_THREAD_ANALYSIS_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_analysis.jsonl")
+_EMAIL_THREAD_STATE = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_state.json")
+_EMAIL_THREAD_FOLLOWUP_DAYS = 4
+
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
 
 _RECIPIENT_BLURBS = {
@@ -430,3 +442,364 @@ def _match_outbound_email_record(message: dict, sender_email: str) -> dict | Non
         if record.get("subject_norm") == subject_norm:
             return {**record, "matched_via": "subject+recipient"}
     return None
+
+
+# ── Email-thread evidence helpers (moved from cassandra_brain.py, Cut 5) ─────
+
+
+def _bridge_preview(text: str, limit: int = 140) -> str:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 1].rstrip() + "…"
+
+
+def _parse_event_datetime(raw: object, fallback: datetime | None = None) -> datetime:
+    if isinstance(raw, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(raw))
+        except Exception:
+            pass
+
+    raw_text = str(raw or "").strip()
+    if raw_text.isdigit():
+        try:
+            ts = int(raw_text)
+            if ts > 10_000_000_000:
+                return datetime.fromtimestamp(ts / 1000.0)
+            return datetime.fromtimestamp(ts)
+        except Exception:
+            pass
+
+    if raw_text:
+        try:
+            from email.utils import parsedate_to_datetime
+
+            dt = parsedate_to_datetime(raw_text)
+            if dt.tzinfo is not None:
+                return dt.astimezone().replace(tzinfo=None)
+            return dt.replace(tzinfo=None)
+        except Exception:
+            pass
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(raw_text[:19], fmt)
+            except Exception:
+                continue
+
+    return fallback or datetime.now()
+
+
+_EMAIL_THREAD_STOPWORDS = {
+    "a", "an", "and", "are", "be", "did", "do", "does", "for", "from", "get",
+    "had", "has", "have", "how", "i", "if", "in", "is", "it", "me", "my",
+    "of", "on", "or", "our", "that", "the", "their", "there", "this", "to",
+    "was", "we", "what", "when", "where", "who", "will", "with", "yet", "you",
+    "your",
+}
+
+_EMAIL_THREAD_REQUEST_PREFIXES = (
+    "can you",
+    "could you",
+    "would you",
+    "will you",
+    "did ",
+    "do ",
+    "does ",
+    "how ",
+    "what ",
+    "when ",
+    "where ",
+    "who ",
+    "why ",
+    "is ",
+    "are ",
+    "should ",
+    "let me know",
+    "tell me",
+    "check whether",
+    "check if",
+)
+
+
+def _significant_terms(text: str) -> set[str]:
+    tokens = re.findall(r"[a-z0-9']+", str(text or "").lower())
+    return {
+        token
+        for token in tokens
+        if len(token) > 2 and token not in _EMAIL_THREAD_STOPWORDS
+    }
+
+
+def _question_key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(text or "").lower()).strip()
+
+
+def _extract_question_candidates(text: str) -> list[str]:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not cleaned:
+        return []
+
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def _push(candidate: str) -> None:
+        value = candidate.strip(" -\t")
+        if not value or not any(ch.isalpha() for ch in value):
+            return
+        key = _question_key(value)
+        if not key or key in seen:
+            return
+        seen.add(key)
+        candidates.append(value)
+
+    for sentence in re.split(r"(?<=[?])\s+", cleaned):
+        sentence = sentence.strip()
+        if "?" not in sentence:
+            continue
+        for piece in re.findall(r"[^?]{3,240}\?", sentence):
+            _push(piece)
+
+    if candidates:
+        return candidates[:5]
+
+    for sentence in re.split(r"(?<=[.!])\s+|\n+", cleaned):
+        sentence = sentence.strip(" -\t")
+        lowered = sentence.lower()
+        if any(lowered.startswith(prefix) for prefix in _EMAIL_THREAD_REQUEST_PREFIXES):
+            _push(sentence.rstrip(".!"))
+
+    return candidates[:5]
+
+
+def _fetch_email_thread_messages(message: dict) -> tuple[list[dict], str]:
+    try:
+        call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
+        result = call_fn(
+            "cassandra",
+            "google.gmail.read.body",
+            {
+                "thread_id": str(message.get("thread_id", "")),
+                "message_id": str(message.get("message_id", "")),
+                "max_messages": 8,
+            },
+        )
+    except Exception as exc:
+        print(f"[cassandra] gmail thread body fetch failed: {exc}", flush=True)
+        result = {"ok": False, "data": None, "error": str(exc)}
+
+    if result.get("ok") and isinstance(result.get("data"), dict):
+        messages = list((result["data"] or {}).get("messages", []) or [])
+        if messages:
+            return messages, "gmail.read.body"
+
+    fallback = dict(message)
+    fallback.setdefault("body_text", "")
+    fallback.setdefault("internal_date", "")
+    return [fallback], "gmail.read.metadata"
+
+
+def _message_evidence_rows(thread_messages: list[dict], sender_email: str) -> list[dict]:
+    rows: list[dict] = []
+    target_email = str(sender_email or "").strip().lower()
+    for message in sorted(thread_messages, key=lambda row: _parse_event_datetime(row.get("internal_date") or row.get("date_raw"))):
+        rows.append({
+            "message_id": str(message.get("message_id", "")),
+            "from_name": str(message.get("from_name", "")),
+            "from_email": str(message.get("from_email", "")).strip().lower(),
+            "direction": "inbound" if str(message.get("from_email", "")).strip().lower() == target_email else "outbound_or_other",
+            "date_raw": str(message.get("date_raw", "")),
+            "body_preview": _bridge_preview(message.get("body_text") or message.get("snippet", ""), limit=220),
+        })
+    return rows
+
+
+def _bundle_answered_in_thread(bundle: dict, thread_messages: list[dict], sender_email: str) -> bool:
+    target_email = str(sender_email or "").strip().lower()
+    question_terms = _significant_terms(bundle.get("question", ""))
+    asked_after = _parse_event_datetime(bundle.get("last_asked_at"))
+    if not question_terms:
+        return False
+
+    for message in thread_messages:
+        from_email = str(message.get("from_email", "")).strip().lower()
+        if from_email == target_email:
+            continue
+        message_dt = _parse_event_datetime(message.get("internal_date") or message.get("date_raw"))
+        if message_dt <= asked_after:
+            continue
+        message_text = " ".join(
+            part for part in (
+                message.get("subject", ""),
+                message.get("body_text", ""),
+                message.get("snippet", ""),
+            )
+            if isinstance(part, str) and part.strip()
+        )
+        overlap = question_terms & _significant_terms(message_text)
+        if len(overlap) >= min(2, len(question_terms)):
+            return True
+    return False
+
+
+def _load_email_thread_states() -> dict:
+    try:
+        return load_json(_EMAIL_THREAD_STATE, {})
+    except Exception:
+        return {}
+
+
+def _save_email_thread_states(state: dict) -> None:
+    try:
+        save_json(_EMAIL_THREAD_STATE, state)
+    except Exception as exc:
+        print(f"[cassandra] email thread state save failed: {exc}", flush=True)
+
+
+def _build_thread_followup_suggestion(contact_name: str, unresolved_bundles: list[dict]) -> str:
+    if not unresolved_bundles:
+        return ""
+    first = unresolved_bundles[0]
+    if first.get("status") == "needs_winship_review":
+        return (
+            f"If you follow up with {contact_name}, keep it short: "
+            "\"I have the question and I\u2019m checking with Winship before I answer.\""
+        )
+    if first.get("status") == "needs_capability":
+        return (
+            f"If you follow up with {contact_name}, acknowledge the question and avoid bluffing "
+            "until the missing capability is built."
+        )
+    return (
+        f"If you follow up with {contact_name}, answer the open question directly and keep it to one clean reply."
+    )
+
+
+def _build_parked_thread_suggestions(unresolved_bundles: list[dict], predictions: list[dict]) -> list[str]:
+    suggestions: list[str] = []
+    lane_blocked = [bundle for bundle in unresolved_bundles if bundle.get("status") == "needs_winship_review"]
+    capability_blocked = [bundle for bundle in unresolved_bundles if bundle.get("status") == "needs_capability"]
+    if lane_blocked:
+        suggestions.append("Decide what Cassandra is cleared to say before reopening the thread.")
+    if capability_blocked:
+        capabilities = ", ".join(sorted({gap["capability"] for bundle in capability_blocked for gap in bundle.get("capability_gaps", [])}))
+        if capabilities:
+            suggestions.append(f"Use the queued capability work before answering again: {capabilities}.")
+    if predictions:
+        suggestions.append(f"If you reply manually, pre-empt the likely next ask: {predictions[0]['question']}")
+    if not suggestions:
+        suggestions.append("Reply manually only if the relationship context now warrants reopening the thread.")
+    return suggestions[:3]
+
+
+def _advance_email_thread_cadence(
+    *,
+    thread_id: str,
+    contact_name: str,
+    unresolved_bundles: list[dict],
+    predictions: list[dict],
+    now: datetime | None = None,
+) -> dict:
+    now_dt = now or datetime.now()
+    states = _load_email_thread_states()
+    current = dict(states.get(thread_id, {}))
+
+    if not unresolved_bundles:
+        states[thread_id] = {
+            "status": "resolved",
+            "last_evaluated_at": now_dt.isoformat(timespec="seconds"),
+        }
+        _save_email_thread_states(states)
+        return {
+            "status": "resolved",
+            "user_update": "This thread no longer has an open email question bundle.",
+            "suggested_followup": "",
+            "next_followup_at": "",
+            "parked_suggestions": [],
+        }
+
+    latest_asked_at = max(_parse_event_datetime(bundle.get("last_asked_at"), now_dt) for bundle in unresolved_bundles)
+    latest_asked_iso = latest_asked_at.isoformat(timespec="seconds")
+    previous_last_asked = str(current.get("last_asked_at", ""))
+    followup_attempts = int(current.get("followup_attempts", 0) or 0)
+
+    if previous_last_asked != latest_asked_iso:
+        followup_attempts = 0
+        current = {}
+
+    next_followup_at = _parse_event_datetime(
+        current.get("next_followup_at"),
+        latest_asked_at + timedelta(days=_EMAIL_THREAD_FOLLOWUP_DAYS),
+    )
+
+    status = "waiting"
+    suggested_followup = ""
+    parked_suggestions: list[str] = []
+    if followup_attempts >= 1 and now_dt >= next_followup_at:
+        status = "parked"
+        parked_suggestions = _build_parked_thread_suggestions(unresolved_bundles, predictions)
+        user_update = (
+            "I parked this thread after one bounded follow-up window. "
+            + " ".join(parked_suggestions)
+        )
+    elif now_dt >= next_followup_at:
+        status = "followup_due"
+        followup_attempts = 1
+        suggested_followup = _build_thread_followup_suggestion(contact_name, unresolved_bundles)
+        next_followup_at = now_dt + timedelta(days=_EMAIL_THREAD_FOLLOWUP_DAYS)
+        user_update = (
+            f"This has been unresolved since {latest_asked_at.strftime('%Y-%m-%d')}. "
+            f"One short follow-up is reasonable now. {suggested_followup}"
+        )
+    else:
+        user_update = (
+            f"I'll leave this thread alone for now and revisit after "
+            f"{next_followup_at.strftime('%Y-%m-%d')} if it still needs an answer."
+        )
+
+    states[thread_id] = {
+        "status": status,
+        "last_asked_at": latest_asked_iso,
+        "last_evaluated_at": now_dt.isoformat(timespec="seconds"),
+        "followup_attempts": followup_attempts,
+        "next_followup_at": next_followup_at.isoformat(timespec="seconds"),
+        "suggested_followup": suggested_followup,
+        "parked_suggestions": parked_suggestions,
+    }
+    _save_email_thread_states(states)
+    return {
+        "status": status,
+        "user_update": user_update,
+        "suggested_followup": suggested_followup,
+        "next_followup_at": next_followup_at.isoformat(timespec="seconds"),
+        "parked_suggestions": parked_suggestions,
+    }
+
+
+def _log_email_thread_analysis(entry: dict) -> None:
+    try:
+        _EMAIL_THREAD_ANALYSIS_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _EMAIL_THREAD_ANALYSIS_LOG.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] email thread analysis log write failed: {exc}", flush=True)
+
+
+def _is_reply_like_email_message(message: dict) -> bool:
+    subject = str(message.get("subject", "")).strip().lower()
+    return bool(
+        subject.startswith("re:")
+        or str(message.get("in_reply_to", "")).strip()
+        or str(message.get("references", "")).strip()
+    )
+
+
+def _build_email_bridge_review_text(message: dict) -> str:
+    parts = []
+    subject = str(message.get("subject", "")).strip()
+    preview = _bridge_preview(message.get("snippet", ""), limit=240)
+    if subject:
+        parts.append(subject)
+    if preview:
+        parts.append(preview)
+    return "\n".join(parts)
