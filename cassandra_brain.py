@@ -577,20 +577,6 @@ def _log_email_bridge_event(
         print(f"[cassandra] email bridge log write failed: {exc}", flush=True)
 
 
-def _load_jsonl_records(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
-    records: list[dict] = []
-    try:
-        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-            if not line.strip():
-                continue
-            records.append(json.loads(line))
-    except Exception as exc:
-        print(f"[cassandra] jsonl read failed for {path}: {exc}", flush=True)
-    return records
-
-
 def _parse_event_datetime(raw: object, fallback: datetime | None = None) -> datetime:
     if isinstance(raw, (int, float)):
         try:
@@ -625,16 +611,6 @@ def _parse_event_datetime(raw: object, fallback: datetime | None = None) -> date
                 continue
 
     return fallback or datetime.now()
-
-
-def _normalize_email_subject(subject: str) -> str:
-    value = str(subject or "").strip()
-    while True:
-        lowered = value.lower()
-        if lowered.startswith(("re:", "fw:", "fwd:")):
-            value = value.split(":", 1)[1].strip()
-            continue
-        return value
 
 
 _EMAIL_THREAD_STOPWORDS = {
@@ -719,65 +695,6 @@ def _extract_question_candidates(text: str) -> list[str]:
     return candidates[:5]
 
 
-def _extract_subject_from_detail(detail: str) -> str:
-    match = re.search(r"subject=([^;]+)", str(detail or ""))
-    return match.group(1).strip() if match else ""
-
-
-def _extract_email_from_detail(detail: str) -> str:
-    match = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", str(detail or ""))
-    return match.group(1).strip().lower() if match else ""
-
-
-def _load_outbound_email_records() -> list[dict]:
-    records: list[dict] = []
-    for path, source in ((_CORRESPONDENCE_LOG, "correspondence"), (_OUTREACH_LOG, "outreach")):
-        for entry in _load_jsonl_records(path):
-            state = str(entry.get("state", entry.get("status", ""))).strip().lower()
-            if state not in {
-                _SS_DRAFT,
-                _SS_QUEUED,
-                _SS_AWAITING_APPROVAL,
-                _SS_SEND_ATTEMPTED,
-                _SS_SENT_CONFIRMED,
-            }:
-                continue
-            subject = str(entry.get("subject") or _extract_subject_from_detail(entry.get("detail", ""))).strip()
-            recipient_email = str(entry.get("recipient_email") or _extract_email_from_detail(entry.get("detail", ""))).strip().lower()
-            records.append({
-                "source": source,
-                "ts": str(entry.get("ts", "")),
-                "state": state,
-                "recipient": str(entry.get("recipient", "")),
-                "recipient_email": recipient_email,
-                "subject": subject,
-                "subject_norm": _normalize_email_subject(subject).lower(),
-                "thread_id": str(entry.get("thread_id", "")),
-                "message_id": str(entry.get("message_id", "")),
-                "draft_id": str(entry.get("draft_id", "")),
-                "mailbox_identity": str(entry.get("mailbox_identity", "primary") or "primary"),
-                "route": str(entry.get("route", "")),
-            })
-    records.sort(key=lambda row: row.get("ts", ""), reverse=True)
-    return records
-
-
-def _match_outbound_email_record(message: dict, sender_email: str) -> dict | None:
-    subject_norm = _normalize_email_subject(message.get("subject", "")).lower()
-    thread_id = str(message.get("thread_id", "")).strip()
-    for record in _load_outbound_email_records():
-        if thread_id and record.get("thread_id") and record["thread_id"] == thread_id:
-            return {**record, "matched_via": "thread_id"}
-    for record in _load_outbound_email_records():
-        if not record.get("recipient_email"):
-            continue
-        if record["recipient_email"] != str(sender_email or "").strip().lower():
-            continue
-        if record.get("subject_norm") == subject_norm:
-            return {**record, "matched_via": "subject+recipient"}
-    return None
-
-
 def _fetch_email_thread_messages(message: dict) -> tuple[list[dict], str]:
     try:
         call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
@@ -803,6 +720,23 @@ def _fetch_email_thread_messages(message: dict) -> tuple[list[dict], str]:
     fallback.setdefault("body_text", "")
     fallback.setdefault("internal_date", "")
     return [fallback], "gmail.read.metadata"
+
+
+# ── Thin wrappers for functions moved to cassandra_outreach (Cut 4) ──────────
+
+def _load_jsonl_records(path: Path) -> list[dict]:
+    from cassandra_outreach import _load_jsonl_records as _impl
+    return _impl(path)
+
+
+def _load_outbound_email_records() -> list[dict]:
+    from cassandra_outreach import _load_outbound_email_records as _impl
+    return _impl()
+
+
+def _match_outbound_email_record(message: dict, sender_email: str) -> dict | None:
+    from cassandra_outreach import _match_outbound_email_record as _impl
+    return _impl(message, sender_email)
 
 
 def _message_evidence_rows(thread_messages: list[dict], sender_email: str) -> list[dict]:

@@ -43,6 +43,7 @@ def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: s
 
 import argparse
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -52,6 +53,13 @@ _NICKNAMES_PATH = Path("/home/openclaw/contact_nicknames.json")
 _OUTREACH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
 _PILOT_INTRO_TEMPLATE = Path("/home/openclaw/cassandra_inner_circle_pilot_intro.md")
 
+_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
+
+_SS_DRAFT             = "draft"
+_SS_QUEUED            = "queued"
+_SS_AWAITING_APPROVAL = "awaiting_approval"
+_SS_SEND_ATTEMPTED    = "send_attempted"
+_SS_SENT_CONFIRMED    = "sent_confirmed"
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
 
 _RECIPIENT_BLURBS = {
@@ -336,3 +344,89 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# ── Shared outbound-email helpers (moved from cassandra_brain.py, Cut 4) ─────
+
+
+def _load_jsonl_records(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    records: list[dict] = []
+    try:
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    except Exception as exc:
+        print(f"[cassandra] jsonl read failed for {path}: {exc}", flush=True)
+    return records
+
+
+def _normalize_email_subject(subject: str) -> str:
+    value = str(subject or "").strip()
+    while True:
+        lowered = value.lower()
+        if lowered.startswith(("re:", "fw:", "fwd:")):
+            value = value.split(":", 1)[1].strip()
+            continue
+        return value
+
+
+def _extract_subject_from_detail(detail: str) -> str:
+    match = re.search(r"subject=([^;]+)", str(detail or ""))
+    return match.group(1).strip() if match else ""
+
+
+def _extract_email_from_detail(detail: str) -> str:
+    match = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", str(detail or ""))
+    return match.group(1).strip().lower() if match else ""
+
+
+def _load_outbound_email_records() -> list[dict]:
+    records: list[dict] = []
+    for path, source in ((_CORRESPONDENCE_LOG, "correspondence"), (_OUTREACH_LOG, "outreach")):
+        for entry in _load_jsonl_records(path):
+            state = str(entry.get("state", entry.get("status", ""))).strip().lower()
+            if state not in {
+                _SS_DRAFT,
+                _SS_QUEUED,
+                _SS_AWAITING_APPROVAL,
+                _SS_SEND_ATTEMPTED,
+                _SS_SENT_CONFIRMED,
+            }:
+                continue
+            subject = str(entry.get("subject") or _extract_subject_from_detail(entry.get("detail", ""))).strip()
+            recipient_email = str(entry.get("recipient_email") or _extract_email_from_detail(entry.get("detail", ""))).strip().lower()
+            records.append({
+                "source": source,
+                "ts": str(entry.get("ts", "")),
+                "state": state,
+                "recipient": str(entry.get("recipient", "")),
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "subject_norm": _normalize_email_subject(subject).lower(),
+                "thread_id": str(entry.get("thread_id", "")),
+                "message_id": str(entry.get("message_id", "")),
+                "draft_id": str(entry.get("draft_id", "")),
+                "mailbox_identity": str(entry.get("mailbox_identity", "primary") or "primary"),
+                "route": str(entry.get("route", "")),
+            })
+    records.sort(key=lambda row: row.get("ts", ""), reverse=True)
+    return records
+
+
+def _match_outbound_email_record(message: dict, sender_email: str) -> dict | None:
+    subject_norm = _normalize_email_subject(message.get("subject", "")).lower()
+    thread_id = str(message.get("thread_id", "")).strip()
+    for record in _load_outbound_email_records():
+        if thread_id and record.get("thread_id") and record["thread_id"] == thread_id:
+            return {**record, "matched_via": "thread_id"}
+    for record in _load_outbound_email_records():
+        if not record.get("recipient_email"):
+            continue
+        if record["recipient_email"] != str(sender_email or "").strip().lower():
+            continue
+        if record.get("subject_norm") == subject_norm:
+            return {**record, "matched_via": "subject+recipient"}
+    return None
