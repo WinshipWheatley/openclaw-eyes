@@ -1647,10 +1647,11 @@ _SEND_EMAIL_RE = re.compile(
     r"(?:"
     r"send\s+(?:an?\s+)?(?:email|message|msg)\s+to\s+"
     r"|send\s+(?:an?\s+)?(?:email|message|msg)\s+(?:for\s+)?"
+    r"|send\s+"
     r"|email\s+to\s+"
     r"|compose\s+(?:an?\s+)?(?:email|message)\s+to\s+"
     r")"
-    r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z][A-Za-z0-9_' -]{0,40}?)"
+    r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z][A-Za-z0-9_.' -]{0,40}?)"
     r"(?:\s+(?:subject:|about|saying|re:|:)\s*|$)",
     re.IGNORECASE,
 )
@@ -1665,7 +1666,16 @@ def _detect_send_email_intent(text: str) -> bool:
     if not EMAIL_DRAFT_CONNECTED:
         return False
     t = text.lower()
-    return any(k in t for k in _SEND_EMAIL_KEYWORDS)
+    if any(k in t for k in _SEND_EMAIL_KEYWORDS):
+        return True
+    parsed = _parse_email_request(text)
+    if parsed is None:
+        return False
+    to_name = str(parsed.get("to_name") or "").strip()
+    if re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", to_name):
+        return True
+    resolved = resolve_outbound_contact(to_name)
+    return resolved["status"] in {"exact", "fuzzy", "ambiguous"}
 
 
 _OUTREACH_EMAIL_PATTERNS = (
@@ -1882,6 +1892,11 @@ def _find_designated_contact(sender_name: str | None = None, sender_chat_id: obj
 def find_contact_by_nickname(nickname: str) -> dict | None:
     _sync_identity_nicknames_path()
     return _cassandra_identity.find_contact_by_nickname(nickname)
+
+
+def resolve_outbound_contact(name: str) -> dict:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity.resolve_outbound_contact(name)
 
 
 def is_designated_contact_sender(
@@ -2570,6 +2585,13 @@ def _resolve_recipient_email(name: str) -> tuple[str, str]:
     if re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", direct_email):
         return (direct_email, direct_email)
 
+    resolved = resolve_outbound_contact(name)
+    if resolved["status"] in {"exact", "fuzzy"}:
+        return (resolved["email"], resolved["display_name"])
+    if resolved["status"] == "ambiguous":
+        choices = ", ".join(resolved["candidates"])
+        return ("", f"I found multiple plausible contacts for {name}: {choices}. Tell me which one you mean before I draft it.")
+
     # Compatibility wrapper: delegate to cassandra_outreach._resolve_contact_email
     try:
         from cassandra_outreach import _resolve_contact_email
@@ -2629,9 +2651,17 @@ def _handle_send_email(text: str) -> str | None:
     body    = parsed["body"]
 
     # Resolve recipient
-    email_addr, display_name = _resolve_recipient_email(to_name)
-    if not email_addr:
-        return display_name  # error message from resolution
+    resolution = resolve_outbound_contact(to_name)
+    if resolution["status"] in {"exact", "fuzzy"}:
+        email_addr = resolution["email"]
+        display_name = resolution["display_name"]
+    elif resolution["status"] == "ambiguous":
+        choices = ", ".join(resolution["candidates"])
+        return f"I found multiple plausible contacts for {to_name}: {choices}. Tell me which one you mean before I draft it."
+    else:
+        email_addr, display_name = _resolve_recipient_email(to_name)
+        if not email_addr:
+            return display_name  # error message from resolution
 
     # Require both subject and body — prompt if either is missing
     if not subject or not body:
@@ -2732,6 +2762,8 @@ def _handle_send_email(text: str) -> str | None:
             f"Drafted. Email to {display_name} with subject \"{subject}\" is ready in "
             f"{review_inbox} for review, with {review_inbox} on CC."
         )
+        if resolution["status"] == "fuzzy":
+            reply += f" I drafted this to {resolution['confirmation_name']}. If you meant someone else, tell me before approval."
         if review["status"] == "rewritten":
             reply += " I tightened the wording so it stays inside what I can confirm from the current record."
         return reply

@@ -184,6 +184,185 @@ class TestParseEmailRequest:
         }
 
 
+class TestOutboundContactResolutionHardening:
+    def _call(self, monkeypatch, tmp_path, *, text: str, nicknames: dict):
+        import cassandra_brain
+
+        nicknames_path = tmp_path / "contact_nicknames.json"
+        nicknames_path.write_text(json.dumps(nicknames), encoding="utf-8")
+
+        broker_calls = []
+        scheduled = {}
+
+        monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_review_grounded_email_draft",
+            lambda **kwargs: {
+                "status": "allowed",
+                "subject": kwargs["draft_subject"],
+                "body": kwargs["draft_body"],
+                "detail": "",
+                "queued_task_name": None,
+                "user_reply": "",
+            },
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            lambda **kwargs: scheduled.update(kwargs),
+            raising=False,
+        )
+
+        def fake_broker(*args, **kwargs):
+            params = args[2] if len(args) > 2 else kwargs.get("params")
+            broker_calls.append(params)
+            return {
+                "ok": True,
+                "data": {"draft_id": "draft-1", "message_id": "msg-1", "thread_id": "thr-1"},
+                "error": "",
+            }
+
+        monkeypatch.setattr("google_access_broker.call", fake_broker)
+        monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+
+        reply = cassandra_brain._handle_send_email(text)
+        return reply, broker_calls, scheduled
+
+    def test_exact_alias_match_drafts_immediately(self, monkeypatch, tmp_path):
+        reply, broker_calls, scheduled = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send Will subject: Hi body: Checking in.",
+            nicknames={
+                "winship": {
+                    "name": "Winship Wheatley",
+                    "aliases": ["Will"],
+                    "tier": "inner_circle",
+                    "pinned_email": "winship@example.com",
+                }
+            },
+        )
+
+        assert "Drafted." in reply
+        assert scheduled["recipient_name"] == "Winship Wheatley"
+        assert scheduled["recipient_email"] == "winship@example.com"
+        assert broker_calls[0]["to"] == "winship@example.com"
+
+    def test_my_mom_and_my_dad_resolve_locally(self, monkeypatch, tmp_path):
+        nicknames = {
+            "mom": {
+                "name": "Susan Wheatley",
+                "tier": "inner_circle",
+                "pinned_email": "mom@example.com",
+            },
+            "dad": {
+                "name": "Henry Wheatley",
+                "tier": "inner_circle",
+                "pinned_email": "dad@example.com",
+            },
+        }
+
+        mom_reply, mom_calls, _ = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send my mom subject: Hi body: Love you.",
+            nicknames=nicknames,
+        )
+        dad_reply, dad_calls, _ = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send my dad subject: Hi body: Love you.",
+            nicknames=nicknames,
+        )
+
+        assert "Susan Wheatley" in mom_reply
+        assert mom_calls[0]["to"] == "mom@example.com"
+        assert "Henry Wheatley" in dad_reply
+        assert dad_calls[0]["to"] == "dad@example.com"
+
+    def test_mr_and_mrs_wheatley_resolve_exactly(self, monkeypatch, tmp_path):
+        nicknames = {
+            "mom": {
+                "name": "Susan Elizabeth Wheatley",
+                "tier": "inner_circle",
+                "pinned_email": "mom@example.com",
+            },
+            "dad": {
+                "name": "Henry Winship Wheatley III",
+                "tier": "inner_circle",
+                "pinned_email": "dad@example.com",
+            },
+        }
+
+        mrs_reply, mrs_calls, _ = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send Mrs. Wheatley subject: Hi body: Checking in.",
+            nicknames=nicknames,
+        )
+        mr_reply, mr_calls, _ = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send Mr. Wheatley subject: Hi body: Checking in.",
+            nicknames=nicknames,
+        )
+
+        assert "Susan Elizabeth Wheatley" in mrs_reply
+        assert mrs_calls[0]["to"] == "mom@example.com"
+        assert "Henry Winship Wheatley III" in mr_reply
+        assert mr_calls[0]["to"] == "dad@example.com"
+
+    def test_likely_misspelling_resolves_with_confirmation_note(self, monkeypatch, tmp_path):
+        reply, broker_calls, scheduled = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send Mrs. Whealley subject: Hi body: Checking in.",
+            nicknames={
+                "mom": {
+                    "name": "Susan Elizabeth Wheatley",
+                    "tier": "inner_circle",
+                    "pinned_email": "mom@example.com",
+                }
+            },
+        )
+
+        assert "Drafted." in reply
+        assert "I drafted this to Mrs. Wheatley. If you meant someone else, tell me before approval." in reply
+        assert scheduled["recipient_name"] == "Susan Elizabeth Wheatley"
+        assert broker_calls[0]["to"] == "mom@example.com"
+
+    def test_ambiguous_match_requires_clarification(self, monkeypatch, tmp_path):
+        reply, broker_calls, scheduled = self._call(
+            monkeypatch,
+            tmp_path,
+            text="send Wheatley subject: Hi body: Checking in.",
+            nicknames={
+                "mom": {
+                    "name": "Susan Elizabeth Wheatley",
+                    "tier": "inner_circle",
+                    "pinned_email": "mom@example.com",
+                },
+                "dad": {
+                    "name": "Henry Winship Wheatley III",
+                    "tier": "inner_circle",
+                    "pinned_email": "dad@example.com",
+                },
+            },
+        )
+
+        assert "multiple plausible contacts" in reply
+        assert "Henry Winship Wheatley III" in reply
+        assert "Susan Elizabeth Wheatley" in reply
+        assert broker_calls == []
+        assert scheduled == {}
+
+
 class TestGroundedEmailReviewGate:
     """Verify the grounded review gate runs inside Cassandra's email draft flow."""
 
@@ -257,14 +436,27 @@ class TestGroundedEmailReviewGate:
         assert len(broker_calls) == 1
         assert broker_calls[0]["body"] == "I checked and the Hilton payment came through."
 
-    def test_draft_success_launches_background_send_flow(self, monkeypatch):
+    def test_draft_success_launches_background_send_flow(self, monkeypatch, tmp_path):
         import cassandra_brain
 
         monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
         monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
-        monkeypatch.setattr(cassandra_brain, "_resolve_recipient_email", lambda name: ("dad@example.com", "Dad"), raising=False)
+        tmp_nicknames = tmp_path / "contact_nicknames.json"
+        tmp_nicknames.write_text(
+            json.dumps(
+                {
+                    "dad": {
+                        "name": "Henry Winship Wheatley III",
+                        "tier": "inner_circle",
+                        "pinned_email": "dad@example.com",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", tmp_nicknames, raising=False)
         monkeypatch.setattr(
             cassandra_brain,
             "_review_grounded_email_draft",
@@ -293,7 +485,7 @@ class TestGroundedEmailReviewGate:
         reply = cassandra_brain._handle_send_email("send email to Dad subject: Hi body: Test message")
 
         assert "Drafted." in reply
-        assert scheduled["recipient_name"] == "Dad"
+        assert scheduled["recipient_name"] == "Henry Winship Wheatley III"
         assert scheduled["recipient_email"] == "dad@example.com"
         assert scheduled["subject"] == "Hi"
         assert scheduled["body"] == "Test message"

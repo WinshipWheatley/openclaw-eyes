@@ -16,7 +16,9 @@ verify_sender_on_channel(name, id, channel) — full channel verification
 
 from __future__ import annotations
 
+import difflib
 import json
+import re
 from pathlib import Path
 
 _NICKNAMES_PATH = Path("/home/openclaw/contact_nicknames.json")
@@ -89,6 +91,167 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
         "pinned_email": pinned_email,
         "pinned_phone": pinned_phone,
         "pinned_whatsapp": pinned_whatsapp,
+    }
+
+
+def _normalize_outbound_lookup_text(text: str) -> str:
+    normalized = str(text or "").strip().lower()
+    normalized = re.sub(r"^\s*my\s+", "", normalized)
+    normalized = normalized.replace("&", " and ")
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _surname_from_display_name(display_name: str) -> str:
+    suffixes = {"jr", "sr", "ii", "iii", "iv", "v"}
+    parts = [
+        re.sub(r"[^a-z]", "", part.lower())
+        for part in str(display_name or "").split()
+    ]
+    parts = [part for part in parts if part and part not in suffixes]
+    return parts[-1] if parts else ""
+
+
+def _outbound_contact_candidates(entry: dict) -> set[str]:
+    candidates = {
+        _normalize_outbound_lookup_text(entry["nickname"]),
+        _normalize_outbound_lookup_text(entry["display_name"]),
+    }
+    candidates.update(_normalize_outbound_lookup_text(name) for name in entry["sender_names"])
+
+    nickname = entry["nickname"].lower()
+    surname = _surname_from_display_name(entry["display_name"])
+    if nickname == "mom":
+        candidates.update({"mom", "mother"})
+        if surname:
+            candidates.update({f"mrs {surname}", f"ms {surname}"})
+    elif nickname == "dad":
+        candidates.update({"dad", "father"})
+        if surname:
+            candidates.add(f"mr {surname}")
+
+    return {candidate for candidate in candidates if candidate}
+
+
+def _format_outbound_confirmation_name(candidate: str, fallback: str) -> str:
+    words = []
+    title_map = {"mr": "Mr.", "mrs": "Mrs.", "ms": "Ms."}
+    for word in candidate.split():
+        words.append(title_map.get(word, word.capitalize()))
+    formatted = " ".join(words).strip()
+    return formatted or fallback
+
+
+def resolve_outbound_contact(name: str) -> dict:
+    """Resolve an outbound-recipient phrase against local pinned contacts.
+
+    Returns a dict with:
+    - status: exact | fuzzy | ambiguous | not_found
+    - email: resolved pinned email or ""
+    - display_name: canonical display name or ""
+    - nickname: canonical nickname or ""
+    - confirmation_name: user-facing resolved label for fuzzy confirmation
+    - candidates: list[str] of plausible display names for ambiguous matches
+    """
+    query = _normalize_outbound_lookup_text(name)
+    if not query:
+        return {
+            "status": "not_found",
+            "email": "",
+            "display_name": "",
+            "nickname": "",
+            "confirmation_name": "",
+            "candidates": [],
+        }
+
+    entries = []
+    for nickname, raw in _load_nicknames().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if not entry["pinned_email"]:
+            continue
+        entries.append(entry)
+
+    exact_matches = []
+    scored = []
+    for entry in entries:
+        candidates = _outbound_contact_candidates(entry)
+        if query in candidates:
+            exact_matches.append(entry)
+            continue
+        best_candidate = ""
+        best_score = 0.0
+        for candidate in candidates:
+            score = difflib.SequenceMatcher(None, query, candidate).ratio()
+            if score > best_score:
+                best_score = score
+                best_candidate = candidate
+        if best_candidate:
+            scored.append((best_score, best_candidate, entry))
+
+    if len(exact_matches) == 1:
+        match = exact_matches[0]
+        return {
+            "status": "exact",
+            "email": match["pinned_email"],
+            "display_name": match["display_name"],
+            "nickname": match["nickname"],
+            "confirmation_name": match["display_name"],
+            "candidates": [],
+        }
+    if len(exact_matches) > 1:
+        return {
+            "status": "ambiguous",
+            "email": "",
+            "display_name": "",
+            "nickname": "",
+            "confirmation_name": "",
+            "candidates": sorted(match["display_name"] for match in exact_matches),
+        }
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    if not scored:
+        return {
+            "status": "not_found",
+            "email": "",
+            "display_name": "",
+            "nickname": "",
+            "confirmation_name": "",
+            "candidates": [],
+        }
+
+    top_score, top_candidate, top_entry = scored[0]
+    second_score = scored[1][0] if len(scored) > 1 else 0.0
+    if top_score >= 0.88 and (top_score - second_score >= 0.08 or second_score < 0.78):
+        return {
+            "status": "fuzzy",
+            "email": top_entry["pinned_email"],
+            "display_name": top_entry["display_name"],
+            "nickname": top_entry["nickname"],
+            "confirmation_name": _format_outbound_confirmation_name(top_candidate, top_entry["display_name"]),
+            "candidates": [],
+        }
+
+    plausible = []
+    for score, _, entry in scored:
+        if score >= 0.72 and top_score - score <= 0.08:
+            plausible.append(entry["display_name"])
+    if len(set(plausible)) > 1:
+        return {
+            "status": "ambiguous",
+            "email": "",
+            "display_name": "",
+            "nickname": "",
+            "confirmation_name": "",
+            "candidates": sorted(set(plausible)),
+        }
+
+    return {
+        "status": "not_found",
+        "email": "",
+        "display_name": "",
+        "nickname": "",
+        "confirmation_name": "",
+        "candidates": [],
     }
 
 
