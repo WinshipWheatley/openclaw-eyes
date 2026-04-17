@@ -746,6 +746,104 @@ class TestGroundedEmailReviewGate:
         assert broker_calls[0][2]["in_reply_to"] == "<source-msg-0@example.com>"
         assert broker_calls[0][2]["references"] == "<source-msg-0@example.com>"
 
+    def test_post_draft_denied_send_notifies_draft_still_exists(self, monkeypatch):
+        import cassandra_brain
+        import cassandra_sender
+
+        events = []
+        notices = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_correspondence_state",
+            lambda recipient, state, detail="", route="", metadata=None: events.append(
+                {
+                    "recipient": recipient,
+                    "state": state,
+                    "detail": detail,
+                    "route": route,
+                    "metadata": metadata or {},
+                }
+            ),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "broker_call",
+            lambda agent, capability, params: {"ok": False, "error": "denied at L2 approval gate"},
+            raising=False,
+        )
+        monkeypatch.setattr(cassandra_sender, "send_message", lambda text, chat_id=None: notices.append(text))
+
+        cassandra_brain._run_email_send_after_draft(
+            recipient_name="Dad",
+            recipient_email="dad@example.com",
+            subject="Hi",
+            body="Test message",
+            review_inbox="winshiplive@gmail.com",
+            draft_id="draft-1",
+            draft_message_id="draft-msg-1",
+            draft_thread_id="draft-thread-1",
+        )
+
+        assert [event["state"] for event in events] == [
+            cassandra_brain._SS_AWAITING_APPROVAL,
+            cassandra_brain._SS_BLOCKED,
+        ]
+        assert notices
+        assert "draft still exists" in notices[0].lower()
+        assert "No draft was created" not in notices[0]
+        assert "denied at approval" in notices[0]
+
+    def test_post_draft_failed_send_notifies_draft_still_exists(self, monkeypatch):
+        import cassandra_brain
+        import cassandra_sender
+
+        events = []
+        notices = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_correspondence_state",
+            lambda recipient, state, detail="", route="", metadata=None: events.append(
+                {
+                    "recipient": recipient,
+                    "state": state,
+                    "detail": detail,
+                    "route": route,
+                    "metadata": metadata or {},
+                }
+            ),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "broker_call",
+            lambda agent, capability, params: {"ok": False, "error": "smtp error"},
+            raising=False,
+        )
+        monkeypatch.setattr(cassandra_sender, "send_message", lambda text, chat_id=None: notices.append(text))
+
+        cassandra_brain._run_email_send_after_draft(
+            recipient_name="Dad",
+            recipient_email="dad@example.com",
+            subject="Hi",
+            body="Test message",
+            review_inbox="winshiplive@gmail.com",
+            draft_id="draft-1",
+            draft_message_id="draft-msg-1",
+            draft_thread_id="draft-thread-1",
+        )
+
+        assert [event["state"] for event in events] == [
+            cassandra_brain._SS_AWAITING_APPROVAL,
+            cassandra_brain._SS_SEND_FAILED,
+        ]
+        assert notices
+        assert "draft still exists" in notices[0].lower()
+        assert "No draft was created" not in notices[0]
+        assert "smtp error" in notices[0]
+
     def test_lane_violation_blocked(self, monkeypatch, tmp_path):
         reply, broker_calls = self._call(
             monkeypatch,

@@ -199,6 +199,7 @@
 !tests/test_file_verify_brain_wire.py
 !tests/test_cassandra_payment_verify.py
 !tests/test_send_truth.py
+!tests/test_chief_approval_brain.py
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py

@@ -2871,6 +2871,36 @@ def _start_email_send_after_draft(
     thread.start()
 
 
+def _notify_post_draft_send_outcome(
+    *,
+    recipient_name: str,
+    subject: str,
+    review_inbox: str,
+    state: str,
+    detail: str,
+) -> None:
+    if state not in {_SS_BLOCKED, _SS_SEND_FAILED}:
+        return
+    if state == _SS_BLOCKED:
+        message = (
+            f"The draft to {recipient_name} with subject \"{subject}\" was created, "
+            f"but the send step was denied at approval. The draft still exists in "
+            f"{review_inbox} for review."
+        )
+    else:
+        message = (
+            f"The draft to {recipient_name} with subject \"{subject}\" was created, "
+            f"but the send step failed: {detail}. The draft still exists in "
+            f"{review_inbox} for review."
+        )
+    try:
+        from cassandra_sender import send_message
+
+        send_message(message)
+    except Exception as exc:
+        print(f"[cassandra] post-draft send notify failed: {exc}", flush=True)
+
+
 def _run_email_send_after_draft(
     *,
     recipient_name: str,
@@ -2979,6 +3009,13 @@ def _run_email_send_after_draft(
             "draft_thread_id": draft_thread_id,
             "reply_thread_id": reply_thread_id,
         },
+    )
+    _notify_post_draft_send_outcome(
+        recipient_name=recipient_name,
+        subject=subject,
+        review_inbox=review_inbox,
+        state=state,
+        detail=detail,
     )
 
 

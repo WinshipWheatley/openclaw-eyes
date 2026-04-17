@@ -186,6 +186,31 @@ def _clear_pending() -> None:
     _save_pending({})
 
 
+def _load_active_pending() -> dict:
+    """
+    Return the active pending approval record, or {} if there is no active
+    approval. Stale pending records older than TIMEOUT are cleared first.
+    """
+    data = _load_pending()
+    if not data or data.get("status") != "pending":
+        return {}
+    try:
+        requested_at = data.get("requested_at", "")
+        if requested_at:
+            age = (
+                datetime.now()
+                - datetime.strptime(requested_at, "%Y-%m-%d %H:%M:%S")
+            ).total_seconds()
+            if age > TIMEOUT:
+                _clear_pending()
+                return {}
+    except Exception:
+        # Deterministic fallback: if the record cannot be validated, treat it as
+        # active rather than silently discarding a potentially fresh approval.
+        pass
+    return data
+
+
 # ── Pending-slot advisory lock ─────────────────────────────────────────────────
 # Uses fcntl.LOCK_EX on a local ext4 file to make the check-then-write
 # critical section atomic across separate processes.  The lock is held only
@@ -676,22 +701,7 @@ def get_pending_album_snapshot() -> dict | None:
 
 def has_pending_approval() -> bool:
     """True if there is a fresh, unanswered approval request."""
-    data = _load_pending()
-    if not data or data.get("status") != "pending":
-        return False
-    # Auto-clear stale pending records older than TIMEOUT
-    try:
-        requested_at = data.get("requested_at", "")
-        if requested_at:
-            age = (datetime.now()
-                   - datetime.strptime(requested_at, "%Y-%m-%d %H:%M:%S")
-                   ).total_seconds()
-            if age > TIMEOUT:
-                _clear_pending()
-                return False
-    except Exception:
-        pass
-    return True
+    return bool(_load_active_pending())
 
 
 def get_pending_id() -> str:
@@ -699,8 +709,8 @@ def get_pending_id() -> str:
     Return the ID of the currently active (status=pending) approval, or
     empty string if no approval is pending or the record is stale.
     """
-    data = _load_pending()
-    return data.get("id", "") if data.get("status") == "pending" else ""
+    data = _load_active_pending()
+    return data.get("id", "")
 
 
 def get_pending_info() -> tuple[str, int]:
@@ -711,8 +721,8 @@ def get_pending_info() -> tuple[str, int]:
     Used by listeners that need both ID binding and option-aware hint text
     without two separate _load_pending() calls.
     """
-    data = _load_pending()
-    if data.get("status") == "pending":
+    data = _load_active_pending()
+    if data:
         return data.get("id", ""), data.get("options", 2)
     return "", 2
 
