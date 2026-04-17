@@ -1659,6 +1659,16 @@ _SEND_EMAIL_RE = re.compile(
 
 _SUBJECT_RE = re.compile(r"(?:subject:|re:)\s*(.+?)(?:\s+body:|\s*\n|$)", re.IGNORECASE)
 _BODY_RE    = re.compile(r"body:\s*(.+)$", re.IGNORECASE | re.DOTALL)
+_INFERRED_EMAIL_SUBJECT = "Quick note"
+
+_NATURAL_EMAIL_PATTERNS = (
+    re.compile(r"^\s*(?:can you|could you|please)?\s*email\s+(?P<to>.+?)\s+and\s+ask\s+if\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:please\s+)?send\s+(?P<to>.+?)\s+(?:a\s+)?note\s+about\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*tell\s+(?P<to>.+?)\s+by\s+email\s+that\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*i\s+need\s+(?P<to>.+?)\s+to\s+know\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:can you|could you|please)?\s*email\s+(?P<to>.+?)\s+and\s+say\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*send\s+(?P<to>.+?)\s+(?:a\s+)?quick\s+note\s+saying\s+(?P<body>.+?)\s*$", re.IGNORECASE),
+)
 
 
 def _detect_send_email_intent(text: str) -> bool:
@@ -2614,6 +2624,16 @@ def _parse_email_request(text: str) -> dict | None:
     Supported format:
         send email to [name] subject: [subject] body: [body]
     """
+    for pattern in _NATURAL_EMAIL_PATTERNS:
+        natural = pattern.search(text)
+        if not natural:
+            continue
+        to_name = str(natural.group("to") or "").strip(" ,.")
+        body = str(natural.group("body") or "").strip()
+        if not to_name or not body:
+            return None
+        return {"to_name": to_name, "subject": _INFERRED_EMAIL_SUBJECT, "body": body}
+
     m_to = _SEND_EMAIL_RE.search(text)
     if not m_to:
         return None
@@ -2625,6 +2645,9 @@ def _parse_email_request(text: str) -> dict | None:
 
     m_body = _BODY_RE.search(text)
     body    = m_body.group(1).strip() if m_body else ""
+
+    if m_subj or m_body:
+        return {"to_name": to_name, "subject": subject, "body": body}
 
     return {"to_name": to_name, "subject": subject, "body": body}
 

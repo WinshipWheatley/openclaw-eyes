@@ -171,6 +171,11 @@ def resolve_outbound_contact(name: str) -> dict:
             continue
         entries.append(entry)
 
+    if query.startswith("mrs ") or query.startswith("ms "):
+        entries = [entry for entry in entries if entry["nickname"].lower() == "mom"] or entries
+    elif query.startswith("mr "):
+        entries = [entry for entry in entries if entry["nickname"].lower() == "dad"] or entries
+
     exact_matches = []
     scored = []
     for entry in entries:
