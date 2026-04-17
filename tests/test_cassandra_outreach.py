@@ -876,14 +876,16 @@ def test_process_inbound_email_replies_preserves_email_relay_meaning_for_winship
 
     assert processed == [{"message_id": "m1", "status": "drafted", "drafted": True}]
     assert len(notifications) == 1
-    assert notifications[0].splitlines()[0] == "Winship says he's pumped about my progress."
+    lines = notifications[0].splitlines()
+    assert lines[0] == "Winship says he's pumped about my progress."
+    assert len(lines) == 3
     assert "replied by email" not in notifications[0]
     assert "Grounded meaning:" not in notifications[0]
     assert "Subject:" not in notifications[0]
     assert "Message:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
-    assert "Reply draft: Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress." in notifications[0]
-    assert "Guardian approval is on the way." in notifications[0]
+    assert lines[1] == "Reply draft: Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress."
+    assert lines[2] == "Guardian approval is on the way."
     assert scheduled["recipient_name"] == "Winship (Test)"
     assert scheduled["recipient_email"] == "winshipwheatley@gmail.com"
     assert scheduled["subject"] == "Re: Cassandra smoke test"
@@ -1031,7 +1033,9 @@ def test_process_inbound_email_replies_preserves_explicit_telegram_destination(t
 
     assert processed == [{"message_id": "m2", "status": "drafted", "drafted": True}]
     assert len(notifications) == 1
-    assert notifications[0].splitlines()[0] == "Winship says he's pumped about my progress."
+    lines = notifications[0].splitlines()
+    assert lines[0] == "Winship says he's pumped about my progress."
+    assert len(lines) == 3
     assert "Grounded meaning:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
     assert scheduled["body"] == "Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress."
