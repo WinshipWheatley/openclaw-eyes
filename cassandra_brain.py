@@ -419,6 +419,7 @@ _DEFAULT_STATE = {
     "chirp_log":               [],     # [{"type": str, "at": str}] — FIFO, max 30
     "pending_income_followup": None,   # {"entry_id": str, "amount": float} or None
     "session_fact_overrides":  {},     # {"entity_key": {"summary": str, "at": str, "source_text": str}}
+    "last_finance_entity":     None,   # {"key": str, "at": str}
 }
 
 
@@ -997,6 +998,38 @@ def _session_fact_overrides(state: dict | None) -> dict:
     return overrides if isinstance(overrides, dict) else {}
 
 
+def _remember_finance_entity(query: str, state: dict) -> None:
+    from finance_state import find_finance_account
+
+    found = find_finance_account(query)
+    if found is None:
+        return
+    account_key, _ = found
+    state["last_finance_entity"] = {
+        "key": account_key,
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+def _session_finance_entity(query: str, state: dict) -> tuple[str, dict] | None:
+    from finance_state import find_finance_account, load_finance_state
+
+    found = find_finance_account(query)
+    if found is not None:
+        return found
+
+    last_entity = state.get("last_finance_entity")
+    if not isinstance(last_entity, dict):
+        return None
+    account_key = str(last_entity.get("key") or "").strip()
+    if not account_key:
+        return None
+    account = load_finance_state().get("accounts", {}).get(account_key)
+    if not isinstance(account, dict):
+        return None
+    return account_key, account
+
+
 def _extract_fact_correction_summary(text: str) -> str:
     raw = str(text or "").strip()
     if not raw:
@@ -1024,9 +1057,7 @@ def _extract_fact_correction_summary(text: str) -> str:
 
 
 def _detect_session_fact_correction(query: str, state: dict) -> str | None:
-    from finance_state import find_finance_account
-
-    found = find_finance_account(query)
+    found = _session_finance_entity(query, state)
     if found is None:
         return None
     account_key, account = found
@@ -5016,6 +5047,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     query = _strip_prefix(text)
     _update_cues(state, query)
+    _remember_finance_entity(query, state)
 
     # ── Topic-sensitivity gate for inner-circle contacts ──────────────────────
     _sender_name = session_meta.get("sender_name")
