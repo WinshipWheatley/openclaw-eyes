@@ -3437,8 +3437,8 @@ def _compose_relay_email_reply_body(
         destination_channel = "telegram"
     channel_clause = " on Telegram" if destination_channel == "telegram" else ""
     return (
-        f"Thanks for the note — I received it. "
-        f"I'll let {target} know{channel_clause} that he said he's pumped about my progress."
+        "Thanks for the note. I'm really glad to hear that. "
+        f"I'll let {target} know{channel_clause} that he's pumped about my progress."
     )
 
 
@@ -3460,6 +3460,22 @@ def _build_inbound_reply_grounded_summary(
         destination_channel = "telegram"
     channel_clause = " on Telegram" if destination_channel == "telegram" else ""
     return f"Grounded meaning: {target} said by email that he's pumped about my progress, and I should let {target} know{channel_clause}."
+
+
+def _build_inbound_reply_operator_update(
+    *,
+    inbound_text: str,
+    sender_display_name: str,
+    sender_nickname: str,
+) -> str | None:
+    relay = _extract_relay_directive(inbound_text)
+    if relay is None:
+        return None
+    if relay.get("kind") != "progress_encouragement":
+        return None
+
+    target = relay["target"]
+    return f"{target} says he's pumped about my progress."
 
 
 def _try_acquire_inbound_email_reply_lock():
@@ -3679,18 +3695,26 @@ def process_inbound_email_replies() -> list[dict]:
             )
 
             inbound_text = _extract_inbound_reply_text(message, analysis)
-            lines = [
-                f"{verified['display_name']} replied by email.",
-                f"Subject: {str(message.get('subject', '')).strip() or '(no subject)'}",
-            ]
-            if preview:
-                lines.append(f"Message: {preview}")
+            operator_update = _build_inbound_reply_operator_update(
+                inbound_text=inbound_text,
+                sender_display_name=str(verified.get("display_name") or ""),
+                sender_nickname=str(verified.get("nickname") or ""),
+            )
+            if operator_update:
+                lines = [operator_update]
+            else:
+                lines = [
+                    f"{verified['display_name']} replied by email.",
+                    f"Subject: {str(message.get('subject', '')).strip() or '(no subject)'}",
+                ]
+                if preview:
+                    lines.append(f"Message: {preview}")
             grounded_summary = _build_inbound_reply_grounded_summary(
                 inbound_text=inbound_text,
                 sender_display_name=str(verified.get("display_name") or ""),
                 sender_nickname=str(verified.get("nickname") or ""),
             )
-            if grounded_summary:
+            if grounded_summary and not operator_update:
                 lines.append(grounded_summary)
 
             linked_outbound = analysis.get("linked_outbound") or {}
@@ -3720,8 +3744,12 @@ def process_inbound_email_replies() -> list[dict]:
                 draft_body=draft_body,
             )
             if draft_result.get("ok"):
-                lines.append(f"Drafted reply: {draft_result['body']}")
-                lines.append("Guardian approval is on the way for the send step.")
+                if operator_update:
+                    lines.append(f"Reply draft: {draft_result['body']}")
+                    lines.append("Guardian approval is on the way.")
+                else:
+                    lines.append(f"Drafted reply: {draft_result['body']}")
+                    lines.append("Guardian approval is on the way for the send step.")
                 send_telegram("\n".join(lines))
                 processed.append({"message_id": message_id, "status": "drafted", "drafted": True})
                 continue

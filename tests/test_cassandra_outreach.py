@@ -876,15 +876,18 @@ def test_process_inbound_email_replies_preserves_email_relay_meaning_for_winship
 
     assert processed == [{"message_id": "m1", "status": "drafted", "drafted": True}]
     assert len(notifications) == 1
-    assert "Winship (Test) replied by email." in notifications[0]
-    assert "Grounded meaning: Winship said by email that he's pumped about my progress, and I should let Winship know on Telegram." in notifications[0]
+    assert notifications[0].splitlines()[0] == "Winship says he's pumped about my progress."
+    assert "replied by email" not in notifications[0]
+    assert "Grounded meaning:" not in notifications[0]
+    assert "Subject:" not in notifications[0]
+    assert "Message:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
-    assert "Drafted reply: Thanks for the note — I received it. I'll let Winship know on Telegram that he said he's pumped about my progress." in notifications[0]
-    assert "Guardian approval is on the way" in notifications[0]
+    assert "Reply draft: Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress." in notifications[0]
+    assert "Guardian approval is on the way." in notifications[0]
     assert scheduled["recipient_name"] == "Winship (Test)"
     assert scheduled["recipient_email"] == "winshipwheatley@gmail.com"
     assert scheduled["subject"] == "Re: Cassandra smoke test"
-    assert scheduled["body"] == "Thanks for the note — I received it. I'll let Winship know on Telegram that he said he's pumped about my progress."
+    assert scheduled["body"] == "Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress."
     assert draft_calls[0]["kwargs"]["thread_id"] == "t1"
     assert draft_calls[0]["kwargs"]["in_reply_to"] == "<source-m0@example.com>"
     assert draft_calls[0]["kwargs"]["references"] == "<source-m0@example.com>"
@@ -1028,9 +1031,10 @@ def test_process_inbound_email_replies_preserves_explicit_telegram_destination(t
 
     assert processed == [{"message_id": "m2", "status": "drafted", "drafted": True}]
     assert len(notifications) == 1
-    assert "Grounded meaning: Winship said by email that he's pumped about my progress, and I should let Winship know on Telegram." in notifications[0]
+    assert notifications[0].splitlines()[0] == "Winship says he's pumped about my progress."
+    assert "Grounded meaning:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
-    assert scheduled["body"] == "Thanks for the note — I received it. I'll let Winship know on Telegram that he said he's pumped about my progress."
+    assert scheduled["body"] == "Thanks for the note. I'm really glad to hear that. I'll let Winship know on Telegram that he's pumped about my progress."
 
 
 def test_process_inbound_email_replies_uses_open_ended_model_path_for_simple_conversational_reply(tmp_path, monkeypatch):
