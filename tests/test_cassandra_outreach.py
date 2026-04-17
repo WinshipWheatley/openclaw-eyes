@@ -878,14 +878,15 @@ def test_process_inbound_email_replies_preserves_email_relay_meaning_for_winship
     assert len(notifications) == 1
     lines = notifications[0].splitlines()
     assert lines[0] == "Winship says he's pumped about my progress."
-    assert len(lines) == 3
+    assert len(lines) == 2
     assert "replied by email" not in notifications[0]
     assert "Grounded meaning:" not in notifications[0]
     assert "Subject:" not in notifications[0]
     assert "Message:" not in notifications[0]
+    assert "Drafted reply:" not in notifications[0]
+    assert "Reply draft:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
-    assert lines[1] == "Reply draft: Thanks for saying that — it means a lot. I'll let Winship know on Telegram that he's pumped about my progress."
-    assert lines[2] == "Guardian approval is on the way."
+    assert lines[1] == "Guardian approval is on the way for the send step."
     assert scheduled["recipient_name"] == "Winship (Test)"
     assert scheduled["recipient_email"] == "winshipwheatley@gmail.com"
     assert scheduled["subject"] == "Re: Cassandra smoke test"
@@ -1035,10 +1036,155 @@ def test_process_inbound_email_replies_preserves_explicit_telegram_destination(t
     assert len(notifications) == 1
     lines = notifications[0].splitlines()
     assert lines[0] == "Winship says he's pumped about my progress."
-    assert len(lines) == 3
+    assert len(lines) == 2
     assert "Grounded meaning:" not in notifications[0]
+    assert "Drafted reply:" not in notifications[0]
+    assert "Reply draft:" not in notifications[0]
     assert "sent that via Telegram" not in notifications[0]
     assert scheduled["body"] == "Thanks for saying that — it means a lot. I'll let Winship know on Telegram that he's pumped about my progress."
+
+
+def test_process_inbound_email_replies_preserves_explicit_tell_payload(tmp_path, monkeypatch):
+    import cassandra_brain
+    import cassandra_outreach
+
+    nicknames_path = tmp_path / "contact_nicknames.json"
+    bridge_log = tmp_path / "cassandra_email_bridge.jsonl"
+    analysis_log = tmp_path / "cassandra_email_thread_analysis.jsonl"
+    thread_state = tmp_path / "cassandra_email_thread_state.json"
+    correspondence_log = tmp_path / "cassandra_correspondence.jsonl"
+    nicknames_path.write_text(
+        json.dumps(
+            {
+                "winship": {
+                    "name": "Winship Wheatley",
+                    "aliases": ["Will"],
+                    "tier": "inner_circle",
+                    "pinned_email": "winshipwheatley@gmail.com",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    correspondence_log.write_text(
+        json.dumps(
+            {
+                "ts": "2026-04-16 22:47:35",
+                "recipient": "winshipwheatley@gmail.com",
+                "recipient_email": "winshipwheatley@gmail.com",
+                "state": "sent_confirmed",
+                "subject": "Cassandra smoke test",
+                "thread_id": "t1",
+                "route": "email_send",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_BRIDGE_LOG", bridge_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_ANALYSIS_LOG", analysis_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_STATE", thread_state, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_CORRESPONDENCE_LOG", correspondence_log, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_INBOUND_EMAIL_REPLY_LOCK", tmp_path / "reply.lock", raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("deterministic relay path should bypass generic LLM composition")),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_review_grounded_email_draft",
+        lambda **kwargs: {
+            "status": "allowed",
+            "subject": kwargs["draft_subject"],
+            "body": kwargs["draft_body"],
+            "detail": "",
+            "queued_task_name": None,
+            "user_reply": "",
+        },
+        raising=False,
+    )
+
+    notifications = []
+    scheduled = {}
+
+    monkeypatch.setattr("cassandra_sender.send_message", lambda text, chat_id=None: notifications.append(text), raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_start_email_send_after_draft",
+        lambda **kwargs: scheduled.update(kwargs),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_outreach,
+        "create_gmail_draft",
+        lambda *args, **kwargs: {
+            "ok": True,
+            "error": "",
+            "result": {
+                "ok": True,
+                "data": {"draft_id": "draft-1", "message_id": "msg-1", "thread_id": "t1"},
+                "error": "",
+            },
+        },
+        raising=False,
+    )
+
+    def fake_broker(agent, capability, params):
+        if capability == "google.gmail.read.metadata":
+            return {
+                "ok": True,
+                "data": [
+                    {
+                        "message_id": "m3",
+                        "thread_id": "t1",
+                        "from_name": "Winship Wheatley",
+                        "from_email": "winshipwheatley@gmail.com",
+                        "subject": "Re: Cassandra smoke test",
+                        "date_raw": "Thu, 16 Apr 2026 23:05:06 -0400",
+                        "internal_date": "1776395106000",
+                        "in_reply_to": "<draft-m1@example.com>",
+                        "references": "",
+                        "labels": ["INBOX", "UNREAD"],
+                        "snippet": "Please tell Winship how pumped I am for your progress.",
+                    }
+                ],
+                "error": "",
+            }
+        assert capability == "google.gmail.read.body"
+        return {
+            "ok": True,
+            "data": {
+                "thread_id": "t1",
+                "messages": [
+                    {
+                        "message_id": "m3",
+                        "thread_id": "t1",
+                        "from_name": "Winship Wheatley",
+                        "from_email": "winshipwheatley@gmail.com",
+                        "subject": "Re: Cassandra smoke test",
+                        "date_raw": "Thu, 16 Apr 2026 23:05:06 -0400",
+                        "internal_date": "1776395106000",
+                        "body_text": "Hey Clara — please tell Winship how pumped I am for your progress.",
+                        "snippet": "Hey Clara — please tell Winship how pumped I am for your progress.",
+                    }
+                ],
+            },
+            "error": "",
+        }
+
+    monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+
+    processed = cassandra_brain.process_inbound_email_replies()
+
+    assert processed == [{"message_id": "m3", "status": "drafted", "drafted": True}]
+    assert len(notifications) == 1
+    assert "Drafted reply:" not in notifications[0]
+    assert "Reply draft:" not in notifications[0]
+    assert scheduled["body"] == "Thanks for saying that — it means a lot. I'll tell Winship on Telegram that he's pumped about my progress."
 
 
 def test_process_inbound_email_replies_trims_signature_noise_from_relay_summary_and_reply(tmp_path, monkeypatch):

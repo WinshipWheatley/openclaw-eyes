@@ -3591,15 +3591,18 @@ def _extract_relay_directive(inbound_text: str) -> dict | None:
         return None
 
     relay_match = re.search(
-        r"\blet\s+(?P<target>[A-Za-z][A-Za-z .'-]{1,40}?)\s+know(?:\s+(?P<payload>.*?))?(?:[.!?]|$)",
+        r"\b(?:(?P<lemma>please\s+tell|tell|let)\s+(?P<target_a>[A-Za-z][A-Za-z .'-]{1,40}?)\s+(?:know\b)?|pass\s+along(?:\s+to\s+(?P<target_b>[A-Za-z][A-Za-z .'-]{1,40}?))?)\s*(?P<payload>.*?)(?:[.!?]|$)",
         cleaned,
         re.IGNORECASE,
     )
     if not relay_match:
         return None
 
-    target = relay_match.group("target").strip()
+    target = str(relay_match.group("target_a") or relay_match.group("target_b") or "").strip()
+    lemma = str(relay_match.group("lemma") or "pass along").strip().lower()
     payload = str(relay_match.group("payload") or "").strip(" ,")
+    if not target:
+        return None
     lowered = cleaned.lower()
     destination_channel = "telegram" if re.search(r"\bon\s+telegram\b|\bvia\s+telegram\b", lowered) else ""
 
@@ -3609,6 +3612,7 @@ def _extract_relay_directive(inbound_text: str) -> dict | None:
     )
     sender_claim = bool(
         re.search(r"\bi(?:'m| am)\b.*\b(pumped|glad|proud)\b", lowered)
+        or re.search(r"\bhow\s+(pumped|glad|proud)\s+i(?:'m| am)\b", lowered)
         or re.search(r"\bi(?:'m| am)\s+the\s+one\s+who\s+is\s+(pumped|glad|proud)\b", lowered)
         or re.search(rf"\b{re.escape(target.lower())}\b.*\bis\s+(pumped|glad|proud)\b", lowered)
         or re.search(r"\bhe\s+is\s+(pumped|glad|proud)\b", lowered)
@@ -3620,6 +3624,7 @@ def _extract_relay_directive(inbound_text: str) -> dict | None:
             "target": target,
             "destination_channel": destination_channel,
             "payload": payload,
+            "verb": lemma,
         }
 
     return None
@@ -3657,9 +3662,16 @@ def _compose_relay_email_reply_body(
         destination_channel = "telegram"
     channel_clause = " on Telegram" if destination_channel == "telegram" else ""
     meaning_phrase = _relay_meaning_phrase(inbound_text, relay)
+    verb = str(relay.get("verb") or "").lower()
+    if verb.startswith("pass along"):
+        action_phrase = f"I'll pass that along to {target}{channel_clause}"
+    elif "tell" in verb:
+        action_phrase = f"I'll tell {target}{channel_clause}"
+    else:
+        action_phrase = f"I'll let {target} know{channel_clause}"
     return (
         "Thanks for saying that — it means a lot. "
-        f"I'll let {target} know{channel_clause} that {meaning_phrase}."
+        f"{action_phrase} that {meaning_phrase}."
     )
 
 
@@ -3982,10 +3994,8 @@ def process_inbound_email_replies() -> list[dict]:
             )
             if draft_result.get("ok"):
                 if operator_update:
-                    lines.append(f"Reply draft: {draft_result['body']}")
-                    lines.append("Guardian approval is on the way.")
+                    lines.append("Guardian approval is on the way for the send step.")
                 else:
-                    lines.append(f"Drafted reply: {draft_result['body']}")
                     lines.append("Guardian approval is on the way for the send step.")
                 send_telegram("\n".join(lines))
                 processed.append({"message_id": message_id, "status": "drafted", "drafted": True})
