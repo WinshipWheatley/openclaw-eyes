@@ -283,7 +283,7 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
                         "draft_id": result_data.get("draft_id", ""),
                         "message_id": result_data.get("message_id", ""),
                         "thread_id": result_data.get("thread_id", ""),
-                        "route": "outreach_email",
+                        "route": "outreach_email_draft",
                     }
                     notify_error = _safe_notify_winship(
                         f"Cassandra outreach {status} for {message['display_name']} at {email}. "
@@ -297,7 +297,7 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
                     metadata = {
                         "recipient_email": email,
                         "mailbox_identity": "primary",
-                        "route": "outreach_email",
+                        "route": "outreach_email_draft",
                     }
                     _safe_notify_winship(
                         f"Cassandra outreach to {message['display_name']} was not sent. "
@@ -307,7 +307,7 @@ def run_outreach(*, dry_run: bool = False, mode: str = "draft") -> list[dict]:
                 status = "send_failed"
                 detail = str(exc)
                 email = ""
-                metadata = {"route": "outreach_email", "mailbox_identity": "primary"}
+                metadata = {"route": "outreach_email_draft", "mailbox_identity": "primary"}
                 _safe_notify_winship(
                     f"Cassandra outreach to {message['display_name']} was not sent. "
                     f"Reason: {detail}"
