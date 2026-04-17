@@ -24,6 +24,7 @@ import fcntl
 import hashlib as _hashlib
 import os
 import shutil
+import sys
 import tempfile
 import time as _time
 from pathlib import Path as _Path
@@ -43,6 +44,8 @@ from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
+_LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
+_LISTENER_LOCK_HANDLE = None
 
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
@@ -66,6 +69,20 @@ def _log_cassandra_route(text: str, intent: str) -> None:
                 fcntl.flock(f, fcntl.LOCK_UN)
     except Exception as e:
         print(f"[route_log] cassandra write error: {e}", flush=True)
+
+
+def _acquire_listener_lock() -> None:
+    global _LISTENER_LOCK_HANDLE
+    try:
+        handle = _LISTENER_LOCK.open("w")
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _LISTENER_LOCK_HANDLE = handle
+    except BlockingIOError:
+        print("[cassandra_listener] another listener instance already owns polling; exiting.", flush=True)
+        sys.exit(0)
+    except Exception as exc:
+        print(f"[cassandra_listener] failed to acquire listener lock: {exc}", flush=True)
+        raise
 
 BOT_TOKEN = os.environ["CASSANDRA_BOT_TOKEN"]
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
@@ -266,6 +283,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[cassandra_listener] voice reply error (suppressed): {e}", flush=True)
 
+
+_acquire_listener_lock()
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
