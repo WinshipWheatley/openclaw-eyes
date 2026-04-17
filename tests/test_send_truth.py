@@ -37,6 +37,7 @@ class TestHandleSendEmailWording:
         monkeypatch.setattr(cassandra_brain, "_review_grounded_email_draft", lambda **kwargs: {"status": "allowed", "subject": kwargs["draft_subject"], "body": kwargs["draft_body"], "detail": "", "queued_task_name": None, "user_reply": ""}, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_start_email_send_after_draft", lambda **kwargs: None, raising=False)
         monkeypatch.setattr("google_access_broker.call", lambda *a, **kw: {"ok": True}, raising=False)
 
         reply = cassandra_brain._handle_send_email("send email to Test subject: Hi body: Test message")
@@ -59,6 +60,7 @@ class TestHandleSendEmailWording:
         monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None)
         monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None)
+        monkeypatch.setattr(cassandra_brain, "_start_email_send_after_draft", lambda **kwargs: None, raising=False)
 
         # Patch _resolve_recipient_email to return a known address
         monkeypatch.setattr(cassandra_brain, "_resolve_recipient_email",
@@ -132,6 +134,7 @@ class TestHandleSendEmailWording:
         monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None)
         monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None)
+        monkeypatch.setattr(cassandra_brain, "_start_email_send_after_draft", lambda **kwargs: None, raising=False)
         monkeypatch.setattr(
             cassandra_brain,
             "_review_grounded_email_draft",
@@ -216,6 +219,7 @@ class TestGroundedEmailReviewGate:
         monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_start_email_send_after_draft", lambda **kwargs: None, raising=False)
         monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
         monkeypatch.setattr(
             cassandra_brain,
@@ -251,6 +255,96 @@ class TestGroundedEmailReviewGate:
         assert "Drafted." in reply
         assert len(broker_calls) == 1
         assert broker_calls[0]["body"] == "I checked and the Hilton payment came through."
+
+    def test_draft_success_launches_background_send_flow(self, monkeypatch):
+        import cassandra_brain
+
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_resolve_recipient_email", lambda name: ("dad@example.com", "Dad"), raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_review_grounded_email_draft",
+            lambda **kwargs: {
+                "status": "allowed",
+                "subject": kwargs["draft_subject"],
+                "body": kwargs["draft_body"],
+                "detail": "",
+                "queued_task_name": None,
+                "user_reply": "",
+            },
+            raising=False,
+        )
+
+        scheduled = {}
+
+        monkeypatch.setattr("google_access_broker.call", lambda *a, **kw: {"ok": True, "data": {"draft_id": "draft-1", "message_id": "msg-1", "thread_id": "thr-1"}, "error": ""})
+        monkeypatch.setattr(cassandra_brain, "broker_call", lambda *a, **kw: {"ok": True, "data": {"draft_id": "draft-1", "message_id": "msg-1", "thread_id": "thr-1"}, "error": ""}, raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            lambda **kwargs: scheduled.update(kwargs),
+            raising=False,
+        )
+
+        reply = cassandra_brain._handle_send_email("send email to Dad subject: Hi body: Test message")
+
+        assert "Drafted." in reply
+        assert scheduled["recipient_name"] == "Dad"
+        assert scheduled["recipient_email"] == "dad@example.com"
+        assert scheduled["subject"] == "Hi"
+        assert scheduled["body"] == "Test message"
+        assert scheduled["draft_id"] == "draft-1"
+
+    def test_background_send_flow_logs_approval_then_sent(self, monkeypatch, tmp_path):
+        import cassandra_brain
+
+        events = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_correspondence_state",
+            lambda recipient, state, detail="", route="", metadata=None: events.append(
+                {
+                    "recipient": recipient,
+                    "state": state,
+                    "detail": detail,
+                    "route": route,
+                    "metadata": metadata or {},
+                }
+            ),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "broker_call",
+            lambda agent, capability, params: {
+                "ok": True,
+                "data": {"message_id": "sent-1", "thread_id": "thread-1"},
+                "error": "",
+            },
+            raising=False,
+        )
+
+        cassandra_brain._run_email_send_after_draft(
+            recipient_name="Dad",
+            recipient_email="dad@example.com",
+            subject="Hi",
+            body="Test message",
+            review_inbox="winshiplive@gmail.com",
+            draft_id="draft-1",
+            draft_message_id="draft-msg-1",
+            draft_thread_id="draft-thread-1",
+        )
+
+        assert [event["state"] for event in events] == [
+            cassandra_brain._SS_AWAITING_APPROVAL,
+            cassandra_brain._SS_SENT_CONFIRMED,
+        ]
+        assert events[0]["metadata"]["draft_id"] == "draft-1"
+        assert events[1]["metadata"]["message_id"] == "sent-1"
 
     def test_lane_violation_blocked(self, monkeypatch, tmp_path):
         reply, broker_calls = self._call(

@@ -117,14 +117,14 @@ def find_billing_alerts(rows):
     alerts = []
 
     for row in rows:
-        invoice_number = row.get("invoice_number", "").strip()
+        invoice_number = str(row.get("invoice_number", "") or "").strip()
         if not invoice_number:
             continue
 
-        payment_status = row.get("payment_status", "").strip().lower()
+        payment_status = normalize_text(row.get("payment_status", ""))
         next_follow_up_date = parse_date(row.get("next_follow_up_date", ""))
         balance_amount = clean_money(row.get("balance_amount", "0"))
-        invoice_status = row.get("invoice_status", "").strip().lower()
+        invoice_status = normalize_text(row.get("invoice_status", ""))
 
         if invoice_status not in {"sent", "drafted"}:
             continue

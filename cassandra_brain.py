@@ -22,6 +22,7 @@ build_context_snapshot()    — system state block for watcher prompts
 import json
 import os
 import re
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -2607,8 +2608,9 @@ def _handle_send_email(text: str) -> str | None:
       2. Resolve to_name → email via nicknames + contacts.
       3. If resolution fails: return clarification request.
       4. If subject/body missing: return format instructions.
-      5. Create a brokered Gmail draft (L1 approval gate is inside broker for CLASS_B).
-      6. Return honest draft confirmation or error message.
+      5. Create a brokered Gmail draft.
+      6. Launch the approval-gated send in the background.
+      7. Return honest draft confirmation or error message.
     """
     parsed = _parse_email_request(text)
     if parsed is None:
@@ -2708,6 +2710,16 @@ def _handle_send_email(text: str) -> str | None:
                 "thread_id": result_data.get("thread_id", ""),
             },
         )
+        _start_email_send_after_draft(
+            recipient_name=display_name,
+            recipient_email=email_addr,
+            subject=subject,
+            body=body,
+            review_inbox=review_inbox,
+            draft_id=draft_id,
+            draft_message_id=str(result_data.get("message_id", "")),
+            draft_thread_id=str(result_data.get("thread_id", "")),
+        )
         reply = (
             f"Drafted. Email to {display_name} with subject \"{subject}\" is ready in "
             f"{review_inbox} for review, with {review_inbox} on CC."
@@ -2758,6 +2770,136 @@ def _handle_send_email(text: str) -> str | None:
             },
         )
         return f"That email draft didn't go through. {err}"
+
+
+def _start_email_send_after_draft(
+    *,
+    recipient_name: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    review_inbox: str,
+    draft_id: str = "",
+    draft_message_id: str = "",
+    draft_thread_id: str = "",
+) -> None:
+    thread = threading.Thread(
+        target=_run_email_send_after_draft,
+        kwargs={
+            "recipient_name": recipient_name,
+            "recipient_email": recipient_email,
+            "subject": subject,
+            "body": body,
+            "review_inbox": review_inbox,
+            "draft_id": draft_id,
+            "draft_message_id": draft_message_id,
+            "draft_thread_id": draft_thread_id,
+        },
+        daemon=True,
+        name="cassandra-email-send",
+    )
+    thread.start()
+
+
+def _run_email_send_after_draft(
+    *,
+    recipient_name: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    review_inbox: str,
+    draft_id: str = "",
+    draft_message_id: str = "",
+    draft_thread_id: str = "",
+) -> None:
+    _log_correspondence_state(
+        recipient_name,
+        _SS_AWAITING_APPROVAL,
+        "awaiting Guardian approval for send",
+        route="email_send",
+        metadata={
+            "recipient_email": recipient_email,
+            "subject": subject,
+            "mailbox_identity": "primary",
+            "draft_id": draft_id,
+            "draft_message_id": draft_message_id,
+            "draft_thread_id": draft_thread_id,
+        },
+    )
+
+    try:
+        result = broker_call(
+            "cassandra",
+            "google.gmail.send",
+            {
+                "to": recipient_email,
+                "cc": review_inbox,
+                "subject": subject,
+                "body": body,
+            },
+        )
+    except Exception as exc:
+        _log_correspondence_state(
+            recipient_name,
+            _SS_SEND_FAILED,
+            str(exc),
+            route="email_send",
+            metadata={
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "mailbox_identity": "primary",
+                "draft_id": draft_id,
+                "draft_message_id": draft_message_id,
+                "draft_thread_id": draft_thread_id,
+            },
+        )
+        print(f"[cassandra] email send broker error: {exc}", flush=True)
+        return
+
+    if result.get("ok"):
+        result_data = result.get("data") or {}
+        detail = f"subject={subject}"
+        message_id = str(result_data.get("message_id", ""))
+        thread_id = str(result_data.get("thread_id", ""))
+        if message_id:
+            detail += f"; message_id={message_id}"
+        if thread_id:
+            detail += f"; thread_id={thread_id}"
+        _log_correspondence_state(
+            recipient_name,
+            _SS_SENT_CONFIRMED,
+            detail,
+            route="email_send",
+            metadata={
+                "recipient_email": recipient_email,
+                "subject": subject,
+                "mailbox_identity": "primary",
+                "draft_id": draft_id,
+                "draft_message_id": draft_message_id,
+                "draft_thread_id": draft_thread_id,
+                "message_id": message_id,
+                "thread_id": thread_id,
+            },
+        )
+        return
+
+    err = str(result.get("error", "unknown error"))
+    state = _SS_BLOCKED if "denied" in err.lower() else _SS_SEND_FAILED
+    detail = "denied at approval gate" if state == _SS_BLOCKED else err
+    _log_correspondence_state(
+        recipient_name,
+        state,
+        detail,
+        route="email_send",
+        metadata={
+            "recipient_email": recipient_email,
+            "subject": subject,
+            "mailbox_identity": "primary",
+            "draft_id": draft_id,
+            "draft_message_id": draft_message_id,
+            "draft_thread_id": draft_thread_id,
+        },
+    )
 
 
 def _handle_outreach_email_request(text: str) -> str | None:

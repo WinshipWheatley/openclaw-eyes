@@ -7,7 +7,7 @@ Defines which agent may invoke which Google capability, and what
 approval class (A / B / C) each capability requires.
 
 Class A — safe reads. Auto-proceed (L0). Always audit-logged.
-Class B — reversible internal writes (e.g. draft creation). L1 terminal confirm.
+Class B — reversible internal writes that still require confirmation.
 Class C — externally consequential or irreversible. L2 phone approval.
            Not active in phase 1.
 
@@ -33,7 +33,7 @@ DENIED  = None  # Access explicitly denied
 #
 # Phase 1 active:    google.calendar.read for Cassandra only.
 # Active safe reads: contacts.read, gmail.read.metadata, gmail.read.body.
-# Active review-first write: gmail.draft.create (L1 confirm, structured input).
+# Active review-first write: gmail.draft.create (auto-proceed, structured input).
 # Chief denied for all until phase 2 deliberate decision.
 #
 # Do not change a DENIED entry to CLASS_A/B/C without reviewing the approval class.
@@ -67,9 +67,9 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "chief":     DENIED,
     },
 
-    # ── Active review-first write — reversible draft creation; L1 confirm ─────
+    # ── Active review-first write — reversible draft creation; no approval gate ─
     "google.gmail.draft.create": {
-        "cassandra": CLASS_B,
+        "cassandra": CLASS_A,
         "chief":     DENIED,
     },
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     import sys
     cases = [
         ("cassandra", "google.calendar.read",       True,  CLASS_A),
-        ("cassandra", "google.gmail.draft.create",  True,  CLASS_B),
+        ("cassandra", "google.gmail.draft.create",  True,  CLASS_A),
         ("cassandra", "google.calendar.write",      True,  CLASS_B),
         ("cassandra", "google.gmail.send",           True,  CLASS_C),
         ("chief",     "google.calendar.read",       False, DENIED),
