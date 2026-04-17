@@ -1639,7 +1639,7 @@ _SEND_EMAIL_RE = re.compile(
     r"|email\s+to\s+"
     r"|compose\s+(?:an?\s+)?(?:email|message)\s+to\s+"
     r")"
-    r"([A-Za-z][A-Za-z0-9_' -]{0,40}?)"
+    r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z][A-Za-z0-9_' -]{0,40}?)"
     r"(?:\s+(?:subject:|about|saying|re:|:)\s*|$)",
     re.IGNORECASE,
 )
@@ -2555,6 +2555,10 @@ def _resolve_recipient_email(name: str) -> tuple[str, str]:
     Returns ("", error_message) if resolution fails.
     Checks contact_nicknames.json first, then Google Contacts.
     """
+    direct_email = str(name or "").strip()
+    if re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", direct_email):
+        return (direct_email, direct_email)
+
     # Compatibility wrapper: delegate to cassandra_outreach._resolve_contact_email
     try:
         from cassandra_outreach import _resolve_contact_email

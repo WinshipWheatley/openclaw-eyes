@@ -125,6 +125,60 @@ class TestHandleSendEmailWording:
         assert "draft didn't go through" in reply
         assert "Drafted." not in reply
 
+    def test_multiline_direct_email_address_triggers_draft_flow(self, monkeypatch):
+        import cassandra_brain
+
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_review_grounded_email_draft",
+            lambda **kwargs: {
+                "status": "allowed",
+                "subject": kwargs["draft_subject"],
+                "body": kwargs["draft_body"],
+                "detail": "",
+                "queued_task_name": None,
+                "user_reply": "",
+            },
+            raising=False,
+        )
+        monkeypatch.setattr("google_access_broker.call", lambda *a, **kw: _make_fake_result(True))
+        monkeypatch.setattr(cassandra_brain, "broker_call", lambda *a, **kw: _make_fake_result(True))
+
+        msg = (
+            "Send an email to winshipwheatley@gmail.com\n\n"
+            "Subject: Cassandra smoke test\n\n"
+            "Body:\n"
+            "Hi Winship — this is a live reply-bridge smoke test. "
+            "Please reply with a short answer so I can verify the email thread handling path end to end."
+        )
+        reply = cassandra_brain._handle_send_email(msg)
+        assert reply is not None
+        assert "Drafted." in reply
+        assert "winshipwheatley@gmail.com" in reply
+
+
+class TestParseEmailRequest:
+    def test_accepts_multiline_direct_email_recipient(self):
+        import cassandra_brain
+
+        msg = (
+            "Send an email to winshipwheatley@gmail.com\n\n"
+            "Subject: Cassandra smoke test\n\n"
+            "Body:\n"
+            "Hi Winship"
+        )
+
+        parsed = cassandra_brain._parse_email_request(msg)
+        assert parsed == {
+            "to_name": "winshipwheatley@gmail.com",
+            "subject": "Cassandra smoke test",
+            "body": "Hi Winship",
+        }
+
 
 class TestGroundedEmailReviewGate:
     """Verify the grounded review gate runs inside Cassandra's email draft flow."""
