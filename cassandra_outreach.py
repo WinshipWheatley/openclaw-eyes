@@ -21,7 +21,18 @@ def poll_gmail_recent_metadata(max_results: int = 10) -> dict:
     from google_access_broker import call as broker_call
     return broker_call("cassandra", "google.gmail.read.metadata", {"max_results": max_results})
 
-def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: str, review_status: str, review_detail: str) -> dict:
+def create_gmail_draft(
+    email_addr: str,
+    subject: str,
+    body: str,
+    review_inbox: str,
+    review_status: str,
+    review_detail: str,
+    *,
+    thread_id: str = "",
+    in_reply_to: str = "",
+    references: str = "",
+) -> dict:
     """Abstraction for Gmail draft creation for correspondence. Returns a dict with keys:
     - ok: bool
     - result: broker result dict (if ok)
@@ -36,6 +47,9 @@ def create_gmail_draft(email_addr: str, subject: str, body: str, review_inbox: s
             "cc":      review_inbox,
             "subject": subject,
             "body":    body,
+            "thread_id": thread_id,
+            "in_reply_to": in_reply_to,
+            "references": references,
         })
         return {"ok": True, "result": result, "review_status": review_status, "review_detail": review_detail}
     except Exception as e:

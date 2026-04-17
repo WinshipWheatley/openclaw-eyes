@@ -10,6 +10,7 @@ Unit tests for send-state truth policy in cassandra_brain.py:
 import json
 import sys
 import os
+import base64
 
 import pytest
 
@@ -302,6 +303,7 @@ class TestGroundedEmailReviewGate:
         import cassandra_brain
 
         events = []
+        broker_calls = []
 
         monkeypatch.setattr(
             cassandra_brain,
@@ -320,7 +322,7 @@ class TestGroundedEmailReviewGate:
         monkeypatch.setattr(
             cassandra_brain,
             "broker_call",
-            lambda agent, capability, params: {
+            lambda agent, capability, params: broker_calls.append((agent, capability, params)) or {
                 "ok": True,
                 "data": {"message_id": "sent-1", "thread_id": "thread-1"},
                 "error": "",
@@ -337,6 +339,9 @@ class TestGroundedEmailReviewGate:
             draft_id="draft-1",
             draft_message_id="draft-msg-1",
             draft_thread_id="draft-thread-1",
+            reply_thread_id="source-thread-1",
+            reply_in_reply_to="<source-msg-0@example.com>",
+            reply_references="<source-msg-0@example.com>",
         )
 
         assert [event["state"] for event in events] == [
@@ -344,7 +349,12 @@ class TestGroundedEmailReviewGate:
             cassandra_brain._SS_SENT_CONFIRMED,
         ]
         assert events[0]["metadata"]["draft_id"] == "draft-1"
+        assert events[0]["metadata"]["reply_thread_id"] == "source-thread-1"
         assert events[1]["metadata"]["message_id"] == "sent-1"
+        assert broker_calls[0][1] == "google.gmail.send"
+        assert broker_calls[0][2]["thread_id"] == "source-thread-1"
+        assert broker_calls[0][2]["in_reply_to"] == "<source-msg-0@example.com>"
+        assert broker_calls[0][2]["references"] == "<source-msg-0@example.com>"
 
     def test_lane_violation_blocked(self, monkeypatch, tmp_path):
         reply, broker_calls = self._call(
@@ -535,6 +545,109 @@ class TestLogCorrespondenceState:
 
         entry = json.loads(log_path.read_text().strip())
         assert entry["state"] == "send_failed"
+
+
+def _decode_raw_message(raw: str) -> str:
+    padding = "=" * (-len(raw) % 4)
+    return base64.urlsafe_b64decode(raw + padding).decode("utf-8", errors="ignore")
+
+
+class TestGoogleBrokerReplyThreadBinding:
+    def test_gmail_draft_create_binds_thread_and_reply_headers(self, monkeypatch):
+        import google_access_broker as broker
+
+        captured = {}
+
+        class FakeDraftCreateCall:
+            def execute(self):
+                return {"id": "draft-1", "message": {"id": "msg-1", "threadId": "thread-123"}}
+
+        class FakeDrafts:
+            def create(self, userId, body):
+                captured["userId"] = userId
+                captured["body"] = body
+                return FakeDraftCreateCall()
+
+        class FakeUsers:
+            def drafts(self):
+                return FakeDrafts()
+
+        class FakeService:
+            def users(self):
+                return FakeUsers()
+
+        monkeypatch.setitem(
+            sys.modules,
+            "googleapiclient.discovery",
+            type("DiscoveryModule", (), {"build": lambda *args, **kwargs: FakeService()})(),
+        )
+
+        result = broker._exec_gmail_draft_create(
+            object(),
+            {
+                "to": "winshipwheatley@gmail.com",
+                "cc": "winshiplive@gmail.com",
+                "subject": "Re: Cassandra smoke test",
+                "body": "Thanks for the note.",
+                "thread_id": "thread-123",
+                "in_reply_to": "<source@example.com>",
+                "references": "<source@example.com>",
+            },
+        )
+
+        assert result["ok"] is True
+        assert captured["body"]["message"]["threadId"] == "thread-123"
+        raw = _decode_raw_message(captured["body"]["message"]["raw"])
+        assert "In-Reply-To: <source@example.com>" in raw
+        assert "References: <source@example.com>" in raw
+
+    def test_gmail_send_binds_thread_and_reply_headers(self, monkeypatch):
+        import google_access_broker as broker
+
+        captured = {}
+
+        class FakeSendCall:
+            def execute(self):
+                return {"id": "sent-1", "threadId": "thread-123"}
+
+        class FakeMessages:
+            def send(self, userId, body):
+                captured["userId"] = userId
+                captured["body"] = body
+                return FakeSendCall()
+
+        class FakeUsers:
+            def messages(self):
+                return FakeMessages()
+
+        class FakeService:
+            def users(self):
+                return FakeUsers()
+
+        monkeypatch.setitem(
+            sys.modules,
+            "googleapiclient.discovery",
+            type("DiscoveryModule", (), {"build": lambda *args, **kwargs: FakeService()})(),
+        )
+
+        result = broker._exec_gmail_send(
+            object(),
+            {
+                "to": "winshipwheatley@gmail.com",
+                "cc": "winshiplive@gmail.com",
+                "subject": "Re: Cassandra smoke test",
+                "body": "Thanks for the note.",
+                "thread_id": "thread-123",
+                "in_reply_to": "<source@example.com>",
+                "references": "<source@example.com>",
+            },
+        )
+
+        assert result["ok"] is True
+        assert captured["body"]["threadId"] == "thread-123"
+        raw = _decode_raw_message(captured["body"]["raw"])
+        assert "In-Reply-To: <source@example.com>" in raw
+        assert "References: <source@example.com>" in raw
 
     def test_after_successful_send_log_contains_draft(self, tmp_path, monkeypatch):
         import cassandra_brain

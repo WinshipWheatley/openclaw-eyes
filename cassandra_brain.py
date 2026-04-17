@@ -23,6 +23,7 @@ import json
 import os
 import re
 import threading
+import fcntl
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -67,6 +68,7 @@ _POLISH_TASK_FILE = Path("/home/openclaw/polish_loop/task.md")
 _CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
 _OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
+_INBOUND_EMAIL_REPLY_LOCK = Path.home() / ".cassandra_inbound_email_reply.lock"
 _CASSANDRA_OLLAMA_FAST = "gemma3:12b"
 _CASSANDRA_OLLAMA_DEEP = "gemma3:27b-it-qat"
 
@@ -2788,6 +2790,9 @@ def _start_email_send_after_draft(
     draft_id: str = "",
     draft_message_id: str = "",
     draft_thread_id: str = "",
+    reply_thread_id: str = "",
+    reply_in_reply_to: str = "",
+    reply_references: str = "",
 ) -> None:
     thread = threading.Thread(
         target=_run_email_send_after_draft,
@@ -2800,6 +2805,9 @@ def _start_email_send_after_draft(
             "draft_id": draft_id,
             "draft_message_id": draft_message_id,
             "draft_thread_id": draft_thread_id,
+            "reply_thread_id": reply_thread_id,
+            "reply_in_reply_to": reply_in_reply_to,
+            "reply_references": reply_references,
         },
         daemon=True,
         name="cassandra-email-send",
@@ -2817,6 +2825,9 @@ def _run_email_send_after_draft(
     draft_id: str = "",
     draft_message_id: str = "",
     draft_thread_id: str = "",
+    reply_thread_id: str = "",
+    reply_in_reply_to: str = "",
+    reply_references: str = "",
 ) -> None:
     _log_correspondence_state(
         recipient_name,
@@ -2830,6 +2841,7 @@ def _run_email_send_after_draft(
             "draft_id": draft_id,
             "draft_message_id": draft_message_id,
             "draft_thread_id": draft_thread_id,
+            "reply_thread_id": reply_thread_id,
         },
     )
 
@@ -2842,6 +2854,9 @@ def _run_email_send_after_draft(
                 "cc": review_inbox,
                 "subject": subject,
                 "body": body,
+                "thread_id": reply_thread_id,
+                "in_reply_to": reply_in_reply_to,
+                "references": reply_references,
             },
         )
     except Exception as exc:
@@ -2857,6 +2872,7 @@ def _run_email_send_after_draft(
                 "draft_id": draft_id,
                 "draft_message_id": draft_message_id,
                 "draft_thread_id": draft_thread_id,
+                "reply_thread_id": reply_thread_id,
             },
         )
         print(f"[cassandra] email send broker error: {exc}", flush=True)
@@ -2883,6 +2899,7 @@ def _run_email_send_after_draft(
                 "draft_id": draft_id,
                 "draft_message_id": draft_message_id,
                 "draft_thread_id": draft_thread_id,
+                "reply_thread_id": reply_thread_id,
                 "message_id": message_id,
                 "thread_id": thread_id,
             },
@@ -2904,6 +2921,7 @@ def _run_email_send_after_draft(
             "draft_id": draft_id,
             "draft_message_id": draft_message_id,
             "draft_thread_id": draft_thread_id,
+            "reply_thread_id": reply_thread_id,
         },
     )
 
@@ -3291,18 +3309,9 @@ def _compose_inner_circle_email_reply_body(
     if relay_reply:
         return relay_reply
 
-    prompt = (
-        "Draft a short plain-text email reply from Cassandra.\n"
-        "Rules:\n"
-        "- Use only the inbound email content below.\n"
-        "- Keep it to one or two sentences.\n"
-        "- Acknowledge the note briefly.\n"
-        "- If the sender asked Cassandra to tell Winship something, say she will.\n"
-        "- Do not invent facts, capabilities, or promises.\n"
-        "- No greeting, no sign-off, no subject line.\n\n"
-        f"Sender: {verified_contact['display_name']}\n"
-        f"Inbound email: {inbound_text}\n\n"
-        "Reply:"
+    prompt = _build_open_ended_inner_circle_reply_prompt(
+        inbound_text=inbound_text,
+        sender_display_name=str(verified_contact.get("display_name") or "").strip(),
     )
     draft_body = _call(prompt, deep=False, cloud_ok=False).strip()
     if not draft_body:
@@ -3311,6 +3320,26 @@ def _compose_inner_circle_email_reply_body(
     if not lines:
         return None
     return "\n".join(lines[:2])
+
+
+def _build_open_ended_inner_circle_reply_prompt(*, inbound_text: str, sender_display_name: str) -> str:
+    return (
+        "Draft a short plain-text email reply from Cassandra.\n"
+        "This is the open-ended reply path, not the deterministic relay path.\n"
+        "Rules:\n"
+        "- Use only the grounded inbound email content below.\n"
+        "- Keep it to one or two sentences.\n"
+        "- Sound natural, warm, and context-aware rather than canned.\n"
+        "- Acknowledge the actual content of the note.\n"
+        "- Preserve who is speaking, who any sentiment is about, and which channel is mentioned.\n"
+        "- Only mention Telegram if the sender explicitly asked for Telegram.\n"
+        "- Do not turn an email-originated note into a Telegram-originated note.\n"
+        "- Do not invent facts, capabilities, commitments, or extra context.\n"
+        "- No greeting, no sign-off, no subject line.\n\n"
+        f"Sender: {sender_display_name}\n"
+        f"Inbound email: {inbound_text}\n\n"
+        "Reply:"
+    )
 
 
 def _extract_inbound_reply_text(message: dict, analysis: dict | None = None) -> str:
@@ -3433,6 +3462,31 @@ def _build_inbound_reply_grounded_summary(
     return f"Grounded meaning: {target} said by email that he's pumped about my progress, and I should let {target} know{channel_clause}."
 
 
+def _try_acquire_inbound_email_reply_lock():
+    try:
+        handle = _INBOUND_EMAIL_REPLY_LOCK.open("w")
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return handle
+    except BlockingIOError:
+        return None
+    except Exception as exc:
+        print(f"[cassandra] inbound email reply lock failed: {exc}", flush=True)
+        return None
+
+
+def _release_inbound_email_reply_lock(handle) -> None:
+    if handle is None:
+        return
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except Exception:
+        pass
+    try:
+        handle.close()
+    except Exception:
+        pass
+
+
 def _create_inner_circle_email_reply_draft(
     *,
     message: dict,
@@ -3482,6 +3536,9 @@ def _create_inner_circle_email_reply_draft(
         review_inbox,
         review["status"],
         review.get("detail", ""),
+        thread_id=str(message.get("thread_id", "")).strip(),
+        in_reply_to=str(message.get("in_reply_to", "")).strip(),
+        references=str(message.get("references", "")).strip(),
     )
     if not draft_result["ok"]:
         err = str(draft_result["error"])
@@ -3550,6 +3607,9 @@ def _create_inner_circle_email_reply_draft(
         draft_id=draft_id,
         draft_message_id=str(result_data.get("message_id", "")),
         draft_thread_id=str(result_data.get("thread_id", "")),
+        reply_thread_id=str(message.get("thread_id", "")).strip(),
+        reply_in_reply_to=str(message.get("in_reply_to", "")).strip(),
+        reply_references=str(message.get("references", "")).strip(),
     )
     return {
         "ok": True,
@@ -3561,110 +3621,118 @@ def _create_inner_circle_email_reply_draft(
 
 
 def process_inbound_email_replies() -> list[dict]:
+    lock_handle = _try_acquire_inbound_email_reply_lock()
+    if lock_handle is None:
+        return []
     try:
         call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
         result = call_fn("cassandra", "google.gmail.read.metadata", {"max_results": 20})
     except Exception as exc:
         print(f"[cassandra] inbound email reply poll failed: {exc}", flush=True)
+        _release_inbound_email_reply_lock(lock_handle)
         return []
 
     if not result.get("ok"):
+        _release_inbound_email_reply_lock(lock_handle)
         return []
 
     from cassandra_contact_policy import classify_topic
     from cassandra_sender import send_message as send_telegram
 
-    processed: list[dict] = []
-    for message in result.get("data") or []:
-        message_id = str(message.get("message_id", "")).strip()
-        if not message_id or _email_bridge_message_seen(message_id):
-            continue
-        if not _is_reply_like_email_message(message):
-            continue
+    try:
+        processed: list[dict] = []
+        for message in result.get("data") or []:
+            message_id = str(message.get("message_id", "")).strip()
+            if not message_id or _email_bridge_message_seen(message_id):
+                continue
+            if not _is_reply_like_email_message(message):
+                continue
 
-        sender_email = str(message.get("from_email", "")).strip().lower()
-        verified = verify_sender_on_channel(
-            sender_name=message.get("from_name"),
-            sender_id=sender_email,
-            channel="email",
-        )
-        if verified is None or verified.get("tier") != "inner_circle":
-            continue
+            sender_email = str(message.get("from_email", "")).strip().lower()
+            verified = verify_sender_on_channel(
+                sender_name=message.get("from_name"),
+                sender_id=sender_email,
+                channel="email",
+            )
+            if verified is None or verified.get("tier") != "inner_circle":
+                continue
 
-        lane = classify_topic(_build_email_bridge_review_text(message), verified["nickname"])
-        status = {
-            "allowed": "admitted",
-            "caution": "held",
-            "escalate": "escalated",
-        }.get(lane, "held")
-        preview = _bridge_preview(message.get("snippet", ""), limit=220)
-        analysis = _analyze_inner_circle_email_thread(message, verified)
-        _log_email_bridge_event(
-            message_id=message_id,
-            thread_id=str(message.get("thread_id", "")),
-            nickname=verified["nickname"],
-            contact_name=verified["display_name"],
-            sender_email=sender_email,
-            subject=str(message.get("subject", "")),
-            preview=preview,
-            lane=lane,
-            status=status,
-            unread="UNREAD" in (message.get("labels") or []),
-        )
+            lane = classify_topic(_build_email_bridge_review_text(message), verified["nickname"])
+            status = {
+                "allowed": "admitted",
+                "caution": "held",
+                "escalate": "escalated",
+            }.get(lane, "held")
+            preview = _bridge_preview(message.get("snippet", ""), limit=220)
+            analysis = _analyze_inner_circle_email_thread(message, verified)
+            _log_email_bridge_event(
+                message_id=message_id,
+                thread_id=str(message.get("thread_id", "")),
+                nickname=verified["nickname"],
+                contact_name=verified["display_name"],
+                sender_email=sender_email,
+                subject=str(message.get("subject", "")),
+                preview=preview,
+                lane=lane,
+                status=status,
+                unread="UNREAD" in (message.get("labels") or []),
+            )
 
-        inbound_text = _extract_inbound_reply_text(message, analysis)
-        lines = [
-            f"{verified['display_name']} replied by email.",
-            f"Subject: {str(message.get('subject', '')).strip() or '(no subject)'}",
-        ]
-        if preview:
-            lines.append(f"Message: {preview}")
-        grounded_summary = _build_inbound_reply_grounded_summary(
-            inbound_text=inbound_text,
-            sender_display_name=str(verified.get("display_name") or ""),
-            sender_nickname=str(verified.get("nickname") or ""),
-        )
-        if grounded_summary:
-            lines.append(grounded_summary)
+            inbound_text = _extract_inbound_reply_text(message, analysis)
+            lines = [
+                f"{verified['display_name']} replied by email.",
+                f"Subject: {str(message.get('subject', '')).strip() or '(no subject)'}",
+            ]
+            if preview:
+                lines.append(f"Message: {preview}")
+            grounded_summary = _build_inbound_reply_grounded_summary(
+                inbound_text=inbound_text,
+                sender_display_name=str(verified.get("display_name") or ""),
+                sender_nickname=str(verified.get("nickname") or ""),
+            )
+            if grounded_summary:
+                lines.append(grounded_summary)
 
-        linked_outbound = analysis.get("linked_outbound") or {}
-        if lane != "allowed":
-            lines.append("I held the reply for review before drafting anything.")
+            linked_outbound = analysis.get("linked_outbound") or {}
+            if lane != "allowed":
+                lines.append("I held the reply for review before drafting anything.")
+                send_telegram("\n".join(lines))
+                processed.append({"message_id": message_id, "status": status, "drafted": False})
+                continue
+
+            if not linked_outbound:
+                lines.append("I saw it, but I didn't auto-reply because it isn't linked to a Cassandra-started thread yet.")
+                send_telegram("\n".join(lines))
+                processed.append({"message_id": message_id, "status": "unlinked", "drafted": False})
+                continue
+
+            draft_body = _compose_inner_circle_email_reply_body(message, verified, analysis)
+            if not draft_body:
+                lines.append("I saw it, but I didn't auto-reply because the grounded reply path wasn't clear enough.")
+                send_telegram("\n".join(lines))
+                processed.append({"message_id": message_id, "status": "no_draft_path", "drafted": False})
+                continue
+
+            draft_result = _create_inner_circle_email_reply_draft(
+                message=message,
+                verified_contact=verified,
+                analysis=analysis,
+                draft_body=draft_body,
+            )
+            if draft_result.get("ok"):
+                lines.append(f"Drafted reply: {draft_result['body']}")
+                lines.append("Guardian approval is on the way for the send step.")
+                send_telegram("\n".join(lines))
+                processed.append({"message_id": message_id, "status": "drafted", "drafted": True})
+                continue
+
+            lines.append(f"I saw it, but I couldn't draft the reply cleanly: {draft_result.get('error', 'unknown error')}")
             send_telegram("\n".join(lines))
-            processed.append({"message_id": message_id, "status": status, "drafted": False})
-            continue
+            processed.append({"message_id": message_id, "status": "draft_failed", "drafted": False})
 
-        if not linked_outbound:
-            lines.append("I saw it, but I didn't auto-reply because it isn't linked to a Cassandra-started thread yet.")
-            send_telegram("\n".join(lines))
-            processed.append({"message_id": message_id, "status": "unlinked", "drafted": False})
-            continue
-
-        draft_body = _compose_inner_circle_email_reply_body(message, verified, analysis)
-        if not draft_body:
-            lines.append("I saw it, but I didn't auto-reply because the grounded reply path wasn't clear enough.")
-            send_telegram("\n".join(lines))
-            processed.append({"message_id": message_id, "status": "no_draft_path", "drafted": False})
-            continue
-
-        draft_result = _create_inner_circle_email_reply_draft(
-            message=message,
-            verified_contact=verified,
-            analysis=analysis,
-            draft_body=draft_body,
-        )
-        if draft_result.get("ok"):
-            lines.append(f"Drafted reply: {draft_result['body']}")
-            lines.append("Guardian approval is on the way for the send step.")
-            send_telegram("\n".join(lines))
-            processed.append({"message_id": message_id, "status": "drafted", "drafted": True})
-            continue
-
-        lines.append(f"I saw it, but I couldn't draft the reply cleanly: {draft_result.get('error', 'unknown error')}")
-        send_telegram("\n".join(lines))
-        processed.append({"message_id": message_id, "status": "draft_failed", "drafted": False})
-
-    return processed
+        return processed
+    finally:
+        _release_inbound_email_reply_lock(lock_handle)
 
 
 # ── Gmail context injection ───────────────────────────────────────────────────

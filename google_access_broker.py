@@ -515,6 +515,9 @@ def _exec_gmail_send(creds, params: dict) -> dict:
     cc      = params.get("cc", "").strip()
     subject = params.get("subject", "").strip()
     body    = params.get("body", "").strip()
+    thread_id = str(params.get("thread_id", "")).strip()
+    in_reply_to = str(params.get("in_reply_to", "")).strip()
+    references = str(params.get("references", "")).strip()
 
     if not to or not subject or not body:
         return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
@@ -531,10 +534,17 @@ def _exec_gmail_send(creds, params: dict) -> dict:
         if cc:
             msg["cc"] = cc
         msg["subject"] = subject
+        if in_reply_to:
+            msg["In-Reply-To"] = in_reply_to
+        if references:
+            msg["References"] = references
 
         raw     = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        request_body = {"raw": raw}
+        if thread_id:
+            request_body["threadId"] = thread_id
         sent    = service.users().messages().send(
-            userId="me", body={"raw": raw}
+            userId="me", body=request_body
         ).execute()
 
         return {
@@ -565,6 +575,9 @@ def _exec_gmail_draft_create(creds, params: dict) -> dict:
     cc      = params.get("cc", "").strip()
     subject = params.get("subject", "").strip()
     body    = params.get("body", "").strip()
+    thread_id = str(params.get("thread_id", "")).strip()
+    in_reply_to = str(params.get("in_reply_to", "")).strip()
+    references = str(params.get("references", "")).strip()
 
     if not to or not subject or not body:
         return {"ok": False, "data": None, "error": "to, subject, and body are all required"}
@@ -581,11 +594,18 @@ def _exec_gmail_draft_create(creds, params: dict) -> dict:
         if cc:
             msg["cc"] = cc
         msg["subject"] = subject
+        if in_reply_to:
+            msg["In-Reply-To"] = in_reply_to
+        if references:
+            msg["References"] = references
 
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        message_body = {"raw": raw}
+        if thread_id:
+            message_body["threadId"] = thread_id
         created = service.users().drafts().create(
             userId="me",
-            body={"message": {"raw": raw}},
+            body={"message": message_body},
         ).execute()
 
         message = created.get("message", {}) or {}
