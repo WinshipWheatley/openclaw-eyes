@@ -1645,14 +1645,15 @@ _SEND_EMAIL_KEYWORDS = (
 
 _SEND_EMAIL_RE = re.compile(
     r"(?:"
-    r"send\s+(?:an?\s+)?(?:email|message|msg)\s+to\s+"
+    r"send\s+(?:an?\s+)?new\s+(?:email|message|msg)\s+to\s+"
+    r"|send\s+(?:an?\s+)?(?:email|message|msg)\s+to\s+"
     r"|send\s+(?:an?\s+)?(?:email|message|msg)\s+(?:for\s+)?"
     r"|send\s+"
     r"|email\s+to\s+"
     r"|compose\s+(?:an?\s+)?(?:email|message)\s+to\s+"
     r")"
     r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z][A-Za-z0-9_.' -]{0,40}?)"
-    r"(?:\s+(?:subject:|about|saying|re:|:)\s*|$)",
+    r"(?:\s+(?:a\s+new\s+)?(?:email|message|msg)\b|\s+(?:subject:|about|saying|re:|:)\s*|$)",
     re.IGNORECASE,
 )
 

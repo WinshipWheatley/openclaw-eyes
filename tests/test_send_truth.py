@@ -183,6 +183,94 @@ class TestParseEmailRequest:
             "body": "Hi Winship",
         }
 
+    @pytest.mark.parametrize(
+        ("text", "expected_name"),
+        [
+            ("Send Winship a new email", "Winship"),
+            ("Send Will a new email", "Will"),
+            ("Send my mom a new email", "my mom"),
+            ("Send Mr. Wheatley a new email", "Mr. Wheatley"),
+            ("Send Mrs. Whealley a new email", "Mrs. Whealley"),
+            ("Send an email to Winship", "Winship"),
+            ("Send a new email to winshipwheatley@gmail.com", "winshipwheatley@gmail.com"),
+        ],
+    )
+    def test_accepts_recipient_first_email_phrasing(self, text, expected_name):
+        import cassandra_brain
+
+        parsed = cassandra_brain._parse_email_request(text)
+        assert parsed is not None
+        assert parsed["to_name"] == expected_name
+
+
+class TestRecipientFirstEmailHandling:
+    def test_fully_specified_recipient_first_command_goes_to_draft_flow(self, monkeypatch, tmp_path):
+        import cassandra_brain
+
+        nicknames_path = tmp_path / "contact_nicknames.json"
+        nicknames_path.write_text(
+            json.dumps(
+                {
+                    "winship": {
+                        "name": "Winship Wheatley",
+                        "aliases": ["Will"],
+                        "tier": "inner_circle",
+                        "pinned_email": "winshipwheatley@gmail.com",
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        scheduled = {}
+        broker_calls = []
+
+        monkeypatch.setattr(cassandra_brain, "_NICKNAMES_PATH", nicknames_path, raising=False)
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *a, **kw: None, raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_review_grounded_email_draft",
+            lambda **kwargs: {
+                "status": "allowed",
+                "subject": kwargs["draft_subject"],
+                "body": kwargs["draft_body"],
+                "detail": "",
+                "queued_task_name": None,
+                "user_reply": "",
+            },
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            lambda **kwargs: scheduled.update(kwargs),
+            raising=False,
+        )
+
+        def fake_broker(*args, **kwargs):
+            params = args[2] if len(args) > 2 else kwargs.get("params")
+            broker_calls.append(params)
+            return {
+                "ok": True,
+                "data": {"draft_id": "draft-1", "message_id": "msg-1", "thread_id": "thr-1"},
+                "error": "",
+            }
+
+        monkeypatch.setattr("google_access_broker.call", fake_broker)
+        monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+
+        reply = cassandra_brain._handle_send_email(
+            "Send Winship a new email subject: Cassandra smoke test body: Hi Winship"
+        )
+
+        assert "Drafted." in reply
+        assert scheduled["recipient_name"] == "Winship Wheatley"
+        assert scheduled["recipient_email"] == "winshipwheatley@gmail.com"
+        assert broker_calls[0]["to"] == "winshipwheatley@gmail.com"
+
 
 class TestOutboundContactResolutionHardening:
     def _call(self, monkeypatch, tmp_path, *, text: str, nicknames: dict):
