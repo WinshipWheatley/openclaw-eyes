@@ -2781,6 +2781,13 @@ def _handle_send_email(text: str) -> str | None:
             draft_id=draft_id,
             draft_message_id=str(result_data.get("message_id", "")),
             draft_thread_id=str(result_data.get("thread_id", "")),
+            approval_context=_build_send_approval_context(
+                recipient_name=display_name,
+                recipient_email=email_addr,
+                subject=subject,
+                body=body,
+                review_inbox=review_inbox,
+            ),
         )
         reply = (
             f"Drafted. Email to {display_name} with subject \"{subject}\" is ready in "
@@ -2849,6 +2856,7 @@ def _start_email_send_after_draft(
     reply_thread_id: str = "",
     reply_in_reply_to: str = "",
     reply_references: str = "",
+    approval_context: dict | None = None,
 ) -> None:
     thread = threading.Thread(
         target=_run_email_send_after_draft,
@@ -2864,6 +2872,7 @@ def _start_email_send_after_draft(
             "reply_thread_id": reply_thread_id,
             "reply_in_reply_to": reply_in_reply_to,
             "reply_references": reply_references,
+            "approval_context": approval_context,
         },
         daemon=True,
         name="cassandra-email-send",
@@ -2901,6 +2910,66 @@ def _notify_post_draft_send_outcome(
         print(f"[cassandra] post-draft send notify failed: {exc}", flush=True)
 
 
+def _truncate_approval_preview(text: str, limit: int) -> str:
+    cleaned = " ".join(str(text or "").split()).strip()
+    if not cleaned:
+        return ""
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: max(0, limit - 1)].rstrip() + "…"
+
+
+def _deterministic_send_synopsis(*, mode: str, recipient_name: str, subject: str, body: str) -> str:
+    body_preview = _truncate_approval_preview(body, 110)
+    if mode == "reply in thread":
+        return (
+            f"Reply in-thread to {recipient_name}"
+            + (f' about "{subject}"' if subject else "")
+            + (f" saying {body_preview}" if body_preview else ".")
+        )
+    return (
+        f"New outbound email to {recipient_name}"
+        + (f' about "{subject}"' if subject else "")
+        + (f" saying {body_preview}" if body_preview else ".")
+    )
+
+
+def _build_send_approval_context(
+    *,
+    recipient_name: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    review_inbox: str,
+    reply_thread_id: str = "",
+    inbound_summary: str = "",
+) -> dict:
+    mode = "reply in thread" if reply_thread_id else "new email"
+    thread_synopsis = (
+        _truncate_approval_preview(inbound_summary, 160)
+        if inbound_summary
+        else f"New outbound email to {recipient_name}; no prior thread context required."
+    )
+    return {
+        "action_label": "send email",
+        "mode": mode,
+        "to": f"{recipient_name} <{recipient_email}>",
+        "cc": review_inbox,
+        "subject": subject,
+        "thread_synopsis": thread_synopsis,
+        "proposed_send": _truncate_approval_preview(
+            _deterministic_send_synopsis(
+                mode=mode,
+                recipient_name=recipient_name,
+                subject=subject,
+                body=body,
+            ),
+            160,
+        ),
+        "draft_preview": _truncate_approval_preview(body, 220),
+    }
+
+
 def _run_email_send_after_draft(
     *,
     recipient_name: str,
@@ -2914,6 +2983,7 @@ def _run_email_send_after_draft(
     reply_thread_id: str = "",
     reply_in_reply_to: str = "",
     reply_references: str = "",
+    approval_context: dict | None = None,
 ) -> None:
     _log_correspondence_state(
         recipient_name,
@@ -2943,6 +3013,14 @@ def _run_email_send_after_draft(
                 "thread_id": reply_thread_id,
                 "in_reply_to": reply_in_reply_to,
                 "references": reply_references,
+                "approval_context": approval_context or _build_send_approval_context(
+                    recipient_name=recipient_name,
+                    recipient_email=recipient_email,
+                    subject=subject,
+                    body=body,
+                    review_inbox=review_inbox,
+                    reply_thread_id=reply_thread_id,
+                ),
             },
         )
     except Exception as exc:
@@ -3664,10 +3742,12 @@ def _create_inner_circle_email_reply_draft(
     if not recipient_email:
         return {"ok": False, "error": "recipient email missing"}
 
+    inbound_reply_text = _extract_inbound_reply_text(message, analysis)
+
     review = _review_grounded_email_draft(
         recipient_name=recipient_name,
         recipient_email=recipient_email,
-        original_message=_extract_inbound_reply_text(message, analysis),
+        original_message=inbound_reply_text,
         draft_subject=subject,
         draft_body=draft_body,
     )
@@ -3771,6 +3851,18 @@ def _create_inner_circle_email_reply_draft(
         reply_thread_id=str(message.get("thread_id", "")).strip(),
         reply_in_reply_to=str(message.get("in_reply_to", "")).strip(),
         reply_references=str(message.get("references", "")).strip(),
+        approval_context=_build_send_approval_context(
+            recipient_name=recipient_name,
+            recipient_email=recipient_email,
+            subject=review["subject"],
+            body=review["body"],
+            review_inbox=review_inbox,
+            reply_thread_id=str(message.get("thread_id", "")).strip(),
+            inbound_summary=(
+                f"Latest inbound email from {recipient_name}: "
+                f"{_truncate_approval_preview(inbound_reply_text, 120)}"
+            ),
+        ),
     )
     return {
         "ok": True,

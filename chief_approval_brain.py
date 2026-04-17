@@ -154,6 +154,57 @@ def _build_l2_keyboard(approval_id: str, options: int, allow_delay: bool = True)
     }
 
 
+def _truncate_approval_text(text: str, limit: int) -> str:
+    cleaned = " ".join(str(text or "").split()).strip()
+    if not cleaned:
+        return ""
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: max(0, limit - 1)].rstrip() + "…"
+
+
+def _build_approval_context_block(approval_context: dict | None) -> str:
+    if not approval_context:
+        return ""
+
+    lines: list[str] = []
+    action_label = _truncate_approval_text(approval_context.get("action_label", ""), 80)
+    if action_label:
+        lines.append(f"Action: {action_label}")
+
+    mode = _truncate_approval_text(approval_context.get("mode", ""), 80)
+    if mode:
+        lines.append(f"Mode: {mode}")
+
+    to_value = _truncate_approval_text(approval_context.get("to", ""), 120)
+    if to_value:
+        lines.append(f"To: {to_value}")
+
+    cc_value = _truncate_approval_text(approval_context.get("cc", ""), 120)
+    if cc_value:
+        lines.append(f"CC: {cc_value}")
+
+    subject = _truncate_approval_text(approval_context.get("subject", ""), 120)
+    if subject:
+        lines.append(f"Subject: {subject}")
+
+    thread_synopsis = _truncate_approval_text(approval_context.get("thread_synopsis", ""), 160)
+    if thread_synopsis:
+        lines.extend(["", "Thread synopsis:", thread_synopsis])
+
+    send_synopsis = _truncate_approval_text(approval_context.get("proposed_send", ""), 160)
+    if send_synopsis:
+        lines.extend(["", "Proposed send:", send_synopsis])
+
+    draft_preview = _truncate_approval_text(approval_context.get("draft_preview", ""), 220)
+    if draft_preview:
+        lines.extend(["", "Draft preview:", draft_preview])
+
+    if not lines:
+        return ""
+    return "\n".join(lines)
+
+
 def _send_via_guardian(message: str, keyboard: dict | None = None) -> None:
     _load_env_file()
     try:
@@ -321,11 +372,12 @@ def resend_pending_request() -> bool:
     requested_at = str(data.get("requested_at", ""))
     options = int(data.get("options", 2) or 2)
     action_hash = str(data.get("hash", ""))
+    approval_context = data.get("approval_context")
     if not action_hash and approval_id and requested_at:
         action_hash = _compute_hash(action, approval_id, requested_at)
 
     _send_via_guardian(
-        _build_l2_message(action, approval_id, action_hash, options),
+        _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
         keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
     )
     return True
@@ -339,7 +391,7 @@ def send_no_pending_confirmation() -> None:
 # ── Approval message builder ───────────────────────────────────────────────────
 
 def _build_l2_message(action: str, approval_id: str, action_hash: str,
-                      options: int) -> str:
+                      options: int, approval_context: dict | None = None) -> str:
     """Build the structured L2 approval message sent to the Guardian bot."""
     hash_line = f"\nHash: {action_hash}" if action_hash else ""
     risk_line = "\nRisk: Irreversible" if _is_hard_t2(action) else "\nRisk: Recoverable"
@@ -358,10 +410,16 @@ def _build_l2_message(action: str, approval_id: str, action_hash: str,
             f"{rc} 2 — Deny"
         )
 
+    context_block = _build_approval_context_block(approval_context)
+    if context_block:
+        action_block = f"{context_block}{hash_line}{risk_line}"
+    else:
+        action_block = f"Action: {action}{hash_line}{risk_line}"
+
     return (
         f"APPROVAL REQUIRED\n\n"
         f"ID: {approval_id}\n"
-        f"Action: {action}{hash_line}{risk_line}\n"
+        f"{action_block}\n"
         f"Expires: {_human_timeout(TIMEOUT)}"
         f"{choice_line}"
     )
@@ -404,6 +462,7 @@ def request_approval(
     requester: str = "OpenClaw",
     allow_yes_for_all: bool = False,
     explicit_tier: int | None = None,
+    approval_context: dict | None = None,
 ) -> bool:
     """
     Request approval for an action, using the appropriate tier:
@@ -469,6 +528,7 @@ def request_approval(
         "options":      options,
         "tier":         tier,
         "hash":         action_hash,
+        "approval_context": approval_context or {},
     }
 
     # Snapshot active album session so listener can resume after gate closes.
@@ -517,7 +577,7 @@ def request_approval(
         return False
 
     _send_via_guardian(
-        _build_l2_message(action, approval_id, action_hash, options),
+        _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
         keyboard=_build_l2_keyboard(approval_id, options),
     )
 
@@ -559,7 +619,7 @@ def request_approval(
             data["status"] = "pending"
             _save_pending(data)
             _send_via_guardian(
-                _build_l2_message(action, approval_id, action_hash, options),
+                _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
                 keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
             )
 

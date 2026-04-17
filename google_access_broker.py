@@ -116,7 +116,7 @@ def _audit(agent: str, capability: str, params: dict,
         "ts":         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "agent":      agent,
         "capability": capability,
-        "params":     {k: v for k, v in params.items() if k != "body_text"},
+        "params":     {k: v for k, v in params.items() if k not in {"body_text", "approval_context"}},
         "ok":         result_ok,
         "error":      error,
     }
@@ -130,7 +130,7 @@ def _audit(agent: str, capability: str, params: dict,
 
 # ── Approval gate hook ────────────────────────────────────────────────────────
 
-def _request_approval(action: str, tier: int) -> bool:
+def _request_approval(action: str, tier: int, approval_context: dict | None = None) -> bool:
     """
     Hook into the OpenClaw approval gate for Class B and C capabilities.
     Class A reads do not go through this — they are auto-proceed.
@@ -138,7 +138,12 @@ def _request_approval(action: str, tier: int) -> bool:
     """
     try:
         from chief_approval_brain import request_approval
-        return request_approval(action, requester="google_broker", explicit_tier=tier)
+        return request_approval(
+            action,
+            requester="google_broker",
+            explicit_tier=tier,
+            approval_context=approval_context,
+        )
     except ImportError:
         print("[google_broker] approval gate unavailable — defaulting to deny", flush=True)
         return False
@@ -670,12 +675,12 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
     #    Class A reads auto-proceed — gating would make reads unusable.
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
-        if not _request_approval(action, tier=1):
+        if not _request_approval(action, tier=1, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L1")
             return {"ok": False, "data": None, "error": "denied at L1 approval gate"}
     elif approval_class == "C":
         action = f"Google broker: {agent} → {capability}"
-        if not _request_approval(action, tier=2):
+        if not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 

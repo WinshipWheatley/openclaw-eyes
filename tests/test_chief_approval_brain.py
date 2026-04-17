@@ -60,3 +60,52 @@ class TestPendingApprovalState:
         assert approval_brain.has_pending_approval() is True
         assert approval_brain.get_pending_id() == "LIVE"
         assert approval_brain.get_pending_info() == ("LIVE", 3)
+
+
+class TestGuardianApprovalCards:
+    def test_generic_non_email_approval_renders_as_before(self):
+        import chief_approval_brain as approval_brain
+
+        message = approval_brain._build_l2_message(
+            "Google broker: chief → google.calendar.write",
+            "ABCD1234",
+            "HASH1234",
+            2,
+        )
+
+        assert "Action: Google broker: chief → google.calendar.write" in message
+        assert "Mode:" not in message
+        assert "Thread synopsis:" not in message
+        assert "Draft preview:" not in message
+        assert "Reply code: ABCD" in message
+
+    def test_cassandra_email_send_approval_renders_enriched_card(self):
+        import chief_approval_brain as approval_brain
+
+        message = approval_brain._build_l2_message(
+            "Google broker: cassandra → google.gmail.send",
+            "ABCD1234",
+            "HASH1234",
+            2,
+            approval_context={
+                "action_label": "send email",
+                "mode": "reply in thread",
+                "to": "Winship <winshipwheatley@gmail.com>",
+                "cc": "winshiplive@gmail.com",
+                "subject": "Re: Cassandra smoke test",
+                "thread_synopsis": "Latest inbound email from Winship: he says he's proud of my progress.",
+                "proposed_send": "Reply in-thread to Winship about \"Re: Cassandra smoke test\" saying thanks and I'll let him know on Telegram.",
+                "draft_preview": "Thanks for saying that — it means a lot. I'll let Winship know on Telegram that he's proud of my progress.",
+            },
+        )
+
+        assert "Action: send email" in message
+        assert "Action: Google broker: cassandra → google.gmail.send" not in message
+        assert "Mode: reply in thread" in message
+        assert "To: Winship <winshipwheatley@gmail.com>" in message
+        assert "CC: winshiplive@gmail.com" in message
+        assert "Subject: Re: Cassandra smoke test" in message
+        assert "Thread synopsis:" in message
+        assert "Proposed send:" in message
+        assert "Draft preview:" in message
+        assert "Reply code: ABCD" in message

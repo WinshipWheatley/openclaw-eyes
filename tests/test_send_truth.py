@@ -732,6 +732,16 @@ class TestGroundedEmailReviewGate:
             reply_thread_id="source-thread-1",
             reply_in_reply_to="<source-msg-0@example.com>",
             reply_references="<source-msg-0@example.com>",
+            approval_context={
+                "action_label": "send email",
+                "mode": "reply in thread",
+                "to": "Dad <dad@example.com>",
+                "cc": "winshiplive@gmail.com",
+                "subject": "Hi",
+                "thread_synopsis": "Latest inbound email from Dad: Source thread note",
+                "proposed_send": "Reply in-thread to Dad about \"Hi\" saying Test message",
+                "draft_preview": "Thanks for the note.",
+            },
         )
 
         assert [event["state"] for event in events] == [
@@ -745,6 +755,11 @@ class TestGroundedEmailReviewGate:
         assert broker_calls[0][2]["thread_id"] == "source-thread-1"
         assert broker_calls[0][2]["in_reply_to"] == "<source-msg-0@example.com>"
         assert broker_calls[0][2]["references"] == "<source-msg-0@example.com>"
+        approval_context = broker_calls[0][2]["approval_context"]
+        assert approval_context["action_label"] == "send email"
+        assert approval_context["mode"] == "reply in thread"
+        assert approval_context["thread_synopsis"] == "Latest inbound email from Dad: Source thread note"
+        assert "Thanks for the note." in approval_context["draft_preview"]
 
     def test_post_draft_denied_send_notifies_draft_still_exists(self, monkeypatch):
         import cassandra_brain
@@ -843,6 +858,37 @@ class TestGroundedEmailReviewGate:
         assert "draft still exists" in notices[0].lower()
         assert "No draft was created" not in notices[0]
         assert "smtp error" in notices[0]
+
+    def test_new_outbound_send_builds_new_email_approval_context_without_llm(self, monkeypatch):
+        import cassandra_brain
+
+        broker_calls = []
+
+        monkeypatch.setattr(cassandra_brain, "ollama_call", lambda *a, **k: (_ for _ in ()).throw(AssertionError("ollama_call should not run")))
+        monkeypatch.setattr(cassandra_brain, "nemotron_call", lambda *a, **k: (_ for _ in ()).throw(AssertionError("nemotron_call should not run")))
+        monkeypatch.setattr(
+            cassandra_brain,
+            "broker_call",
+            lambda agent, capability, params: broker_calls.append((agent, capability, params)) or {"ok": True, "data": {}, "error": ""},
+            raising=False,
+        )
+        monkeypatch.setattr(cassandra_brain, "_log_correspondence_state", lambda *a, **kw: None, raising=False)
+
+        cassandra_brain._run_email_send_after_draft(
+            recipient_name="Winship Wheatley",
+            recipient_email="winshipwheatley@gmail.com",
+            subject="Quick note",
+            body="Thread test 3 is working.",
+            review_inbox="winshiplive@gmail.com",
+            draft_id="draft-1",
+        )
+
+        approval_context = broker_calls[0][2]["approval_context"]
+        assert approval_context["mode"] == "new email"
+        assert approval_context["thread_synopsis"] == "New outbound email to Winship Wheatley; no prior thread context required."
+        assert approval_context["to"] == "Winship Wheatley <winshipwheatley@gmail.com>"
+        assert approval_context["cc"] == "winshiplive@gmail.com"
+        assert approval_context["subject"] == "Quick note"
 
     def test_lane_violation_blocked(self, monkeypatch, tmp_path):
         reply, broker_calls = self._call(
