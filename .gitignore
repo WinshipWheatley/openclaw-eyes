@@ -145,6 +145,7 @@
 !start_chief_logged.sh
 !start_openclaw_brains.sh
 !start_album_brain.sh
+!start_cassandra_core.sh
 
 !DEEPPOCKET.md
 !CURRENT_STATE.md
