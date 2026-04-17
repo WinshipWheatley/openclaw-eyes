@@ -260,6 +260,84 @@ def test_hilton_status_question_routes_directly_from_finance_state(tmp_path, mon
     assert logged[-1]["route"] == "finance_status"
 
 
+def test_session_fact_correction_overrides_stale_finance_status_in_followup(tmp_path, monkeypatch):
+    import cassandra_brain
+    import finance_state
+
+    finance_path = tmp_path / "finance_state.json"
+    finance_path.write_text(
+        json.dumps(
+            {
+                "accounts": {
+                    "capital_hilton": {
+                        "label": "Capital Hilton",
+                        "aliases": ["capital hilton", "hilton", "smartspend"],
+                        "workflow_summary": "Will is talking to Chyna on Monday about Capital Hilton.",
+                        "payment_summary": "Capital Hilton status still depends on the Monday Chyna handoff.",
+                        "invoice_summary": "Old invoice path still references the Monday step.",
+                        "next_actions": [
+                            {
+                                "status": "open",
+                                "action": "Talk to Chyna on Monday."
+                            }
+                        ],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    shared_state = dict(cassandra_brain._DEFAULT_STATE)
+    logged = []
+
+    monkeypatch.setattr(finance_state, "FINANCE_STATE_PATH", finance_path, raising=False)
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: shared_state, raising=False)
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: shared_state.update(state), raising=False)
+    monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: [], raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state=None: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_cassandra_context_clean", lambda *args, **kwargs: False, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, None), raising=False)
+    monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply, raising=False)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("session fact correction should bypass LLM")),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "_log_conversation",
+        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        raising=False,
+    )
+
+    correction = cassandra_brain.handle(
+        "Capital Hilton update: Will is not talking to Chyna on Monday anymore. "
+        "That step has been consumed and is stale. Current truth is only: waiting for Coupa to verify me, then PO orders can come through."
+    )
+
+    assert correction == [
+        "Got it — for Capital Hilton, the current truth now is: Waiting for Coupa to verify me, then PO orders can come through."
+    ]
+    assert shared_state["session_fact_overrides"]["capital_hilton"]["summary"] == (
+        "Waiting for Coupa to verify me, then PO orders can come through"
+    )
+    assert logged[-1]["route"] == "session_fact_correction"
+
+    followup = cassandra_brain.handle("What is the current Capital Hilton status now?")
+
+    assert followup == ["Waiting for Coupa to verify me, then PO orders can come through."]
+    assert "Chyna" not in followup[0]
+    assert logged[-1]["route"] == "finance_status"
+
+
 def test_st_annes_january_23_status_stays_specific(tmp_path, monkeypatch):
     import cassandra_brain
     import finance_state

@@ -418,6 +418,7 @@ _DEFAULT_STATE = {
     "last_interaction_at":     None,
     "chirp_log":               [],     # [{"type": str, "at": str}] — FIFO, max 30
     "pending_income_followup": None,   # {"entry_id": str, "amount": float} or None
+    "session_fact_overrides":  {},     # {"entity_key": {"summary": str, "at": str, "source_text": str}}
 }
 
 
@@ -987,6 +988,107 @@ def _format_reality_context(query: str) -> str:
         lines.append(f"Status summary: {summary}")
     lines.extend(f"  {fact}" for fact in facts)
     return "\n".join(lines)
+
+
+def _session_fact_overrides(state: dict | None) -> dict:
+    if not isinstance(state, dict):
+        return {}
+    overrides = state.get("session_fact_overrides")
+    return overrides if isinstance(overrides, dict) else {}
+
+
+def _extract_fact_correction_summary(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+    normalized = " ".join(raw.split())
+    patterns = (
+        r"\bcurrent truth is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
+        r"\bcurrent status is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
+        r"\bthe truth is(?: only)?[:\s]+(.+?)(?:[.!?]|$)",
+        r"\bonly[:\s]+(.+?)(?:[.!?]|$)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, normalized, re.IGNORECASE)
+        if match:
+            summary = match.group(1).strip(" -,:;")
+            if summary:
+                return summary[0].upper() + summary[1:]
+
+    sentences = [segment.strip(" -,:;") for segment in re.split(r"[.!?]+", normalized) if segment.strip()]
+    for sentence in reversed(sentences):
+        lowered = sentence.lower()
+        if any(marker in lowered for marker in ("waiting for", "next step", "current truth", "only")):
+            return sentence[0].upper() + sentence[1:]
+    return ""
+
+
+def _detect_session_fact_correction(query: str, state: dict) -> str | None:
+    from finance_state import find_finance_account
+
+    found = find_finance_account(query)
+    if found is None:
+        return None
+    account_key, account = found
+    lowered = str(query or "").lower()
+    correction_markers = (
+        "stale",
+        "consumed",
+        "outdated",
+        "no longer true",
+        "isn't true anymore",
+        "is not true anymore",
+        "not true anymore",
+        "current truth",
+        "current status",
+        "superseded",
+    )
+    has_marker = any(marker in lowered for marker in correction_markers) or (
+        "anymore" in lowered and "not " in lowered
+    )
+    if not has_marker:
+        return None
+
+    summary = _extract_fact_correction_summary(query)
+    if not summary:
+        return None
+
+    overrides = _session_fact_overrides(state)
+    overrides[account_key] = {
+        "summary": summary,
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "source_text": str(query or "").strip(),
+    }
+    state["session_fact_overrides"] = overrides
+    label = str(account.get("label") or account_key).strip()
+    return f"Got it — for {label}, the current truth now is: {summary}."
+
+
+def _get_session_fact_override(query: str, state: dict | None) -> tuple[str, dict] | None:
+    from finance_state import find_finance_account
+
+    overrides = _session_fact_overrides(state)
+    if not overrides:
+        return None
+    found = find_finance_account(query)
+    if found is None:
+        return None
+    account_key, account = found
+    override = overrides.get(account_key)
+    if not isinstance(override, dict):
+        return None
+    return str(account.get("label") or account_key).strip(), override
+
+
+def _format_session_fact_override_context(query: str, state: dict | None) -> str:
+    found = _get_session_fact_override(query, state)
+    if found is None:
+        return ""
+    label, override = found
+    summary = str(override.get("summary") or "").strip()
+    if not summary:
+        return ""
+    return f"[SESSION CORRECTION — {label}]\nCurrent truth: {summary}"
 
 
 def _build_reality_snapshot() -> str:
@@ -1801,9 +1903,15 @@ def _handle_payment_verification_request(text: str) -> str | None:
     return None
 
 
-def _handle_finance_status_request(text: str) -> str | None:
+def _handle_finance_status_request(text: str, state: dict | None = None) -> str | None:
     if not detect_finance_status_intent(text):
         return None
+    found_override = _get_session_fact_override(text, state or {})
+    if found_override is not None:
+        _, override = found_override
+        summary = str(override.get("summary") or "").strip()
+        if summary:
+            return summary if summary.endswith((".", "!", "?")) else summary + "."
     return get_finance_status_answer(text)
 
 
@@ -4889,6 +4997,12 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         _log_conversation(text, [pay_cmd], route="payment_cmd")
         return [pay_cmd]
 
+    correction_reply = _detect_session_fact_correction(text, state)
+    if correction_reply is not None:
+        save_state(state)
+        _log_conversation(text, [correction_reply], route="session_fact_correction")
+        return [correction_reply]
+
     # Briefing recall — no LLM needed
     try:
         from cassandra_briefing_brain import is_recall_request, handle_recall
@@ -5049,6 +5163,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [file_reply], route="file_verify")
             return [file_reply]
 
+    if _get_session_fact_override(query, state) is not None:
+        finance_reply = _handle_finance_status_request(query, state)
+        if finance_reply is not None:
+            save_state(state)
+            _log_conversation(text, [finance_reply], route="finance_status")
+            return [finance_reply]
+
     # Payment verification — bypass LLM, direct Gmail/log check
     if _detect_payment_verify_intent(query):
         pay_reply = _handle_payment_verification_request(query)
@@ -5058,7 +5179,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [pay_reply]
 
     if not _looks_like_payment_verify_query(query) and detect_finance_status_intent(query):
-        finance_reply = _handle_finance_status_request(query)
+        finance_reply = _handle_finance_status_request(query, state)
         if finance_reply is not None:
             save_state(state)
             _log_conversation(text, [finance_reply], route="finance_status")
@@ -5098,6 +5219,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     payment_verify_block = f"{payment_verify_ctx}\n\n" if payment_verify_ctx else ""
     reality_ctx   = _format_reality_context(query)
     reality_block = f"{reality_ctx}\n\n" if reality_ctx else ""
+    session_override_ctx = _format_session_fact_override_context(query, state)
+    session_override_block = f"{session_override_ctx}\n\n" if session_override_ctx else ""
 
     # Cloud routing gate — evaluated after all context sources are known.
     # Passes context pieces (not the assembled prompt) so the check can inspect
@@ -5116,6 +5239,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         f"{finance_block}"
         f"{payment_verify_block}"
         f"{reality_block}"
+        f"{session_override_block}"
         f"{registry_block}"
         f"User: {query}\n"
         f"Cassandra:"
