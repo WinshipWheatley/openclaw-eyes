@@ -35,6 +35,18 @@ class TestClassifyTopicDad(unittest.TestCase):
         self.assertEqual(classify_topic("How's it going?", "dad"), "allowed")
 
 
+class TestClassifyTopicWinship(unittest.TestCase):
+
+    def test_winship_operational_allowed(self):
+        self.assertEqual(classify_topic("Let Winship know he is pumped for your progress!", "winship"), "allowed")
+
+    def test_winship_financial_personal_allowed(self):
+        self.assertEqual(classify_topic("What's Winship's tax situation?", "winship"), "allowed")
+
+    def test_winship_pii_still_escalates(self):
+        self.assertEqual(classify_topic("What's his SSN?", "winship"), "escalate")
+
+
 class TestClassifyTopicMom(unittest.TestCase):
 
     def test_mom_financial_caution(self):

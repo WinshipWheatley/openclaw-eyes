@@ -71,7 +71,6 @@ _AUDIT_LOG = Path("/mnt/c/OpenClaw/logs/google_access_audit.jsonl")
 _ACTIVE_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/contacts.readonly",
-    "https://www.googleapis.com/auth/gmail.metadata",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.compose",  # Pass 3: email send
 ]

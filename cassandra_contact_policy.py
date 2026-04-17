@@ -20,6 +20,11 @@ import re
 # Escalation topics always win regardless of contact.
 
 _CONTACT_LANES: dict[str, dict[str, list[str]]] = {
+    "winship": {
+        "allowed": ["financial", "financial_detail", "financial_personal", "scheduling", "family", "project_work", "operational", "general"],
+        "caution": [],
+        "escalate": ["action_on_behalf", "pii"],
+    },
     "dad": {
         "allowed": ["financial", "scheduling", "general"],
         "caution": ["financial_detail"],

@@ -31,6 +31,7 @@ from cassandra_brain import (
     is_focus_mode,
     is_social_mode,
     load_state,
+    process_inbound_email_replies,
     process_pending_followups,
     save_state,
     chirp_allowed,
@@ -45,7 +46,8 @@ _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
 _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"
 _OPS_LOG     = Path("/mnt/c/OpenClaw/logs/ops_intake_log.md")
 
-POLL_INTERVAL_S = 1800  # 30 minutes
+POLL_INTERVAL_S = 60
+AMBIENT_EVAL_INTERVAL_S = 1800
 _RELOAD_PATHS = (
     Path(__file__),
     Path("/home/openclaw/cassandra_brain.py"),
@@ -179,12 +181,19 @@ def _evaluate() -> tuple[str, str] | None:
 
 def run_loop() -> None:
     print("[cassandra_watcher] started.", flush=True)
+    last_ambient_eval_at = 0.0
     while True:
         try:
             _restart_if_sources_changed()
             process_pending_followups()
+            process_inbound_email_replies()
             _dispatch_future_actions()
-            if not is_focus_mode() and not is_social_mode():
+            now_ts = time.time()
+            if (
+                now_ts - last_ambient_eval_at >= AMBIENT_EVAL_INTERVAL_S
+                and not is_focus_mode()
+                and not is_social_mode()
+            ):
                 state = load_state()
                 if chirp_allowed("any", state):
                     candidate = _evaluate()
@@ -195,6 +204,7 @@ def run_loop() -> None:
                         _send(message)
                         log_chirp(chirp_type, state)
                         save_state(state)
+                last_ambient_eval_at = now_ts
         except Exception as e:
             print(f"[cassandra_watcher] error: {e}", flush=True)
 
