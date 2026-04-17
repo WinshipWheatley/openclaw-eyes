@@ -3398,15 +3398,50 @@ def _build_open_ended_inner_circle_reply_prompt(*, inbound_text: str, sender_dis
     )
 
 
+def _clean_inbound_email_text(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+
+    cleaned_lines = []
+    signature_markers = (
+        "--",
+        "sent from my iphone",
+        "sent from my ipad",
+        "get outlook for ios",
+        "unsubscribe",
+    )
+    for line in raw.splitlines():
+        stripped = line.strip()
+        lowered = stripped.lower()
+        if not stripped:
+            if cleaned_lines and cleaned_lines[-1] != "":
+                cleaned_lines.append("")
+            continue
+        if stripped.startswith(">"):
+            break
+        if re.match(r"^on .+wrote:$", lowered):
+            break
+        if lowered.startswith("from:"):
+            break
+        if lowered in signature_markers:
+            break
+        cleaned_lines.append(stripped)
+
+    cleaned = "\n".join(cleaned_lines).strip()
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 def _extract_inbound_reply_text(message: dict, analysis: dict | None = None) -> str:
     analysis = analysis or {}
-    text = str(analysis.get("trigger_message_text") or "").strip()
+    text = _clean_inbound_email_text(analysis.get("trigger_message_text") or "")
     if text:
         return text
-    text = str(message.get("body_text") or "").strip()
+    text = _clean_inbound_email_text(message.get("body_text") or "")
     if text:
         return text
-    text = str(message.get("snippet") or "").strip()
+    text = _clean_inbound_email_text(message.get("snippet") or "")
     if text:
         return text
     return str(message.get("subject") or "").strip()
@@ -3453,18 +3488,18 @@ def _extract_relay_directive(inbound_text: str) -> dict | None:
     lowered = cleaned.lower()
     destination_channel = "telegram" if re.search(r"\bon\s+telegram\b|\bvia\s+telegram\b", lowered) else ""
 
-    pumped_about_progress = bool(
-        re.search(r"\bpumped\b", lowered)
+    encouraging_about_progress = bool(
+        re.search(r"\b(pumped|glad|proud)\b", lowered)
         and re.search(r"\b(?:your|ur|the)\s+progress\b", lowered)
     )
     sender_claim = bool(
-        re.search(r"\bi(?:'m| am)\b.*\bpumped\b", lowered)
-        or re.search(r"\bi(?:'m| am)\s+the\s+one\s+who\s+is\s+pumped\b", lowered)
-        or re.search(rf"\b{re.escape(target.lower())}\b.*\bis\s+pumped\b", lowered)
-        or re.search(r"\bhe\s+is\s+pumped\b", lowered)
+        re.search(r"\bi(?:'m| am)\b.*\b(pumped|glad|proud)\b", lowered)
+        or re.search(r"\bi(?:'m| am)\s+the\s+one\s+who\s+is\s+(pumped|glad|proud)\b", lowered)
+        or re.search(rf"\b{re.escape(target.lower())}\b.*\bis\s+(pumped|glad|proud)\b", lowered)
+        or re.search(r"\bhe\s+is\s+(pumped|glad|proud)\b", lowered)
     )
 
-    if pumped_about_progress and sender_claim:
+    if encouraging_about_progress and sender_claim:
         return {
             "kind": "progress_encouragement",
             "target": target,
@@ -3473,6 +3508,20 @@ def _extract_relay_directive(inbound_text: str) -> dict | None:
         }
 
     return None
+
+
+def _relay_meaning_phrase(inbound_text: str, relay: dict) -> str:
+    lowered = re.sub(r"\s+", " ", str(inbound_text or "")).strip().lower()
+    payload = str(relay.get("payload") or "").strip().lower()
+    scope = f"{lowered} {payload}".strip()
+
+    if re.search(r"\bglad\b.*\b(?:your|the)\s+progress\s+is\s+real\b", scope):
+        return "he's glad my progress is real"
+    if re.search(r"\bproud\b.*\b(?:of\s+)?(?:your|the)\s+progress\b", scope):
+        return "he's proud of my progress"
+    if re.search(r"\bpumped\b", scope) and re.search(r"\b(?:your|the)\s+progress\b", scope):
+        return "he's pumped about my progress"
+    return "he's glad my progress is real"
 
 
 def _compose_relay_email_reply_body(
@@ -3492,9 +3541,10 @@ def _compose_relay_email_reply_body(
     if not destination_channel and _sender_matches_relay_target(sender_display_name, sender_nickname, target):
         destination_channel = "telegram"
     channel_clause = " on Telegram" if destination_channel == "telegram" else ""
+    meaning_phrase = _relay_meaning_phrase(inbound_text, relay)
     return (
-        "Thanks for the note. I'm really glad to hear that. "
-        f"I'll let {target} know{channel_clause} that he's pumped about my progress."
+        "Thanks for saying that — it means a lot. "
+        f"I'll let {target} know{channel_clause} that {meaning_phrase}."
     )
 
 
@@ -3515,7 +3565,8 @@ def _build_inbound_reply_grounded_summary(
     if not destination_channel and _sender_matches_relay_target(sender_display_name, sender_nickname, target):
         destination_channel = "telegram"
     channel_clause = " on Telegram" if destination_channel == "telegram" else ""
-    return f"Grounded meaning: {target} said by email that he's pumped about my progress, and I should let {target} know{channel_clause}."
+    meaning_phrase = _relay_meaning_phrase(inbound_text, relay)
+    return f"Grounded meaning: {target} said by email that {meaning_phrase}, and I should let {target} know{channel_clause}."
 
 
 def _build_inbound_reply_operator_update(
@@ -3531,7 +3582,8 @@ def _build_inbound_reply_operator_update(
         return None
 
     target = relay["target"]
-    return f"{target} says he's pumped about my progress."
+    meaning_phrase = _relay_meaning_phrase(inbound_text, relay)
+    return f"{target} says {meaning_phrase}."
 
 
 def _try_acquire_inbound_email_reply_lock():
