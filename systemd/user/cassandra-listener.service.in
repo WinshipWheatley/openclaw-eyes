@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenClaw Cassandra Listener
+PartOf=openclaw-stack.target
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO_ROOT@
+Restart=always
+RestartSec=5
+ExecStart=/bin/bash -lc 'mkdir -p /mnt/c/OpenClaw/logs && source @REPO_ROOT@/.chief.env && exec @REPO_ROOT@/chief_env/bin/python -u @REPO_ROOT@/cassandra_listener.py >> /mnt/c/OpenClaw/logs/cassandra_listener.out 2>&1'
+
+[Install]
+WantedBy=openclaw-stack.target

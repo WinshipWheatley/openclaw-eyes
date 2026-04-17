@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenClaw Core Stack
+Wants=chief-listener.service
+Wants=chief-worker.service
+Wants=chief-memory-worker.service
+Wants=chief-state-worker.service
+Wants=chief-watcher-brain.service
+Wants=cassandra-listener.service
+Wants=cassandra-watcher.service
+Wants=cassandra-briefing-scheduler.service
+Wants=chief-guardian-listener.service
+
+[Install]
+WantedBy=default.target

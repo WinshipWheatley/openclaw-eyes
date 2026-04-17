@@ -25,6 +25,16 @@ cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit a
 
 ## Stack Start / Stop / Restart
 
+### Install boot-persistent user services
+```bash
+bash /home/openclaw/scripts/install_openclaw_stack.sh
+```
+Installs repo-owned systemd user units into `~/.config/systemd/user/`, enables `openclaw-stack.target`, and starts it.
+If another machine does not already have lingering enabled, run once as root:
+```bash
+loginctl enable-linger <user>
+```
+
 ### Start the main stack
 ```bash
 source ~/chief_env/bin/activate

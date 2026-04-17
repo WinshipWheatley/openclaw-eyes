@@ -206,6 +206,11 @@
 # tools/ — standalone utility modules
 !tools/
 !tools/file_verify.py
+!scripts/
+!scripts/install_openclaw_stack.sh
+!systemd/
+!systemd/user/
+!systemd/user/*.in
 
 !agent_task_proposals.py
 !dashboard_gen.py
