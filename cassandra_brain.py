@@ -564,17 +564,42 @@ def _queue_inbound_email_gap_task(
 
 # ── Thin wrappers for functions moved to cassandra_outreach (Cut 4 + Cut 5 + Cut 6) ──
 
+def _sync_outreach_test_seams() -> None:
+    """Keep brain-level monkeypatches visible to outreach-owned helper wrappers."""
+    import cassandra_outreach as _cassandra_outreach
+
+    _cassandra_outreach.broker_call = broker_call
+    _cassandra_outreach._CORRESPONDENCE_LOG = globals().get(
+        "_CORRESPONDENCE_LOG",
+        _cassandra_outreach._CORRESPONDENCE_LOG,
+    )
+    _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG = globals().get(
+        "_EMAIL_THREAD_ANALYSIS_LOG",
+        _cassandra_outreach._EMAIL_THREAD_ANALYSIS_LOG,
+    )
+    _cassandra_outreach._EMAIL_THREAD_STATE = globals().get(
+        "_EMAIL_THREAD_STATE",
+        _cassandra_outreach._EMAIL_THREAD_STATE,
+    )
+    _cassandra_outreach._EMAIL_BRIDGE_LOG = globals().get(
+        "_EMAIL_BRIDGE_LOG",
+        _cassandra_outreach._EMAIL_BRIDGE_LOG,
+    )
+
 def _load_jsonl_records(path: Path) -> list[dict]:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _load_jsonl_records as _impl
     return _impl(path)
 
 
 def _load_outbound_email_records() -> list[dict]:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _load_outbound_email_records as _impl
     return _impl()
 
 
 def _match_outbound_email_record(message: dict, sender_email: str) -> dict | None:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _match_outbound_email_record as _impl
     return _impl(message, sender_email)
 
@@ -600,6 +625,7 @@ def _extract_question_candidates(text: str) -> list[str]:
 
 
 def _fetch_email_thread_messages(message: dict) -> tuple[list[dict], str]:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _fetch_email_thread_messages as _impl
     return _impl(message)
 
@@ -622,6 +648,7 @@ def _advance_email_thread_cadence(
     predictions: list[dict],
     now: datetime | None = None,
 ) -> dict:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _advance_email_thread_cadence as _impl
     return _impl(
         thread_id=thread_id,
@@ -633,6 +660,7 @@ def _advance_email_thread_cadence(
 
 
 def _log_email_thread_analysis(entry: dict) -> None:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _log_email_thread_analysis as _impl
     _impl(entry)
 
@@ -648,6 +676,7 @@ def _build_email_bridge_review_text(message: dict) -> str:
 
 
 def _detect_inner_circle_email_reply_intent(text: str) -> bool:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _detect_inner_circle_email_reply_intent as _impl
     return _impl(text)
 
@@ -666,6 +695,7 @@ def _log_email_bridge_event(
     unread: bool,
     dedupe: bool = True,
 ) -> None:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _log_email_bridge_event as _impl
     _impl(
         message_id=message_id,
@@ -683,6 +713,7 @@ def _log_email_bridge_event(
 
 
 def _predict_likely_next_questions(question_bundles: list[dict]) -> list[dict]:
+    _sync_outreach_test_seams()
     from cassandra_outreach import _predict_likely_next_questions as _impl
     return _impl(question_bundles)
 
@@ -1809,16 +1840,66 @@ def _handle_future_action_queue_request(text: str, sender_chat_id: object | None
         return "I tried to queue that but hit a problem. You may want to check back manually."
 
 
-from cassandra_identity import (
-    _NICKNAMES_PATH,
-    _load_nicknames,
-    _normalize_contact_entry,
-    _find_designated_contact,
-    find_contact_by_nickname,
-    is_designated_contact_sender,
-    is_pinned_on_channel,
-    verify_sender_on_channel,
-)
+import cassandra_identity as _cassandra_identity
+
+_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
+
+
+def _sync_identity_nicknames_path() -> None:
+    """Keep brain-level nickname-path monkeypatches visible to shared identity helpers."""
+    _cassandra_identity._NICKNAMES_PATH = _NICKNAMES_PATH
+
+
+def _load_nicknames() -> dict:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity._load_nicknames()
+
+
+def _normalize_contact_entry(nickname: str, raw: object) -> dict:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity._normalize_contact_entry(nickname, raw)
+
+
+def _find_designated_contact(sender_name: str | None = None, sender_chat_id: object | None = None) -> dict | None:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity._find_designated_contact(
+        sender_name=sender_name,
+        sender_chat_id=sender_chat_id,
+    )
+
+
+def find_contact_by_nickname(nickname: str) -> dict | None:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity.find_contact_by_nickname(nickname)
+
+
+def is_designated_contact_sender(
+    sender_name: str | None = None,
+    sender_chat_id: object | None = None,
+) -> bool:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity.is_designated_contact_sender(
+        sender_name=sender_name,
+        sender_chat_id=sender_chat_id,
+    )
+
+
+def is_pinned_on_channel(nickname: str, channel: str) -> bool:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity.is_pinned_on_channel(nickname, channel)
+
+
+def verify_sender_on_channel(
+    sender_name: str | None,
+    sender_id: str | None,
+    channel: str,
+) -> dict | None:
+    _sync_identity_nicknames_path()
+    return _cassandra_identity.verify_sender_on_channel(
+        sender_name=sender_name,
+        sender_id=sender_id,
+        channel=channel,
+    )
 
 
 def pin_telegram_chat_id(nickname: str, chat_id: str | int) -> bool:
