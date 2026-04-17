@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import subprocess
 import urllib.request
 import urllib.error
 import fcntl
@@ -36,6 +37,45 @@ def _log_external_call(model: str, prompt_words: int, response_words: int,
         pass
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
+_INSTALLED_MODEL_CACHE: tuple[float, set[str]] | None = None
+
+_LANE_CANDIDATES = {
+    "fast": (
+        "nemotron-3-nano:4b",
+        "gemma4:31b",
+        "nemotron-3-nano:30b",
+    ),
+    "strong": (
+        "gemma4:31b",
+        "nemotron-3-nano:30b",
+        "qwen2.5-coder:14b",
+    ),
+    "deep": (
+        "nemotron-3-nano:30b",
+        "gemma4:31b",
+        "qwen2.5-coder:14b",
+    ),
+    "code_challenger": (
+        "qwen2.5-coder:14b",
+    ),
+}
+
+_TASK_CLASS_PREFERRED_LANES = {
+    "cassandra_user_reply": "strong",
+    "cassandra_outbound_draft": "strong",
+    "cassandra_inbox_summary": "fast",
+    "cassandra_extract_classify": "fast",
+}
+
+_FAST_PROMPT_HINTS = frozenset({
+    "classify",
+    "return json only",
+    "extract",
+    "sender and subject only",
+    "subject only",
+    "bounded summary",
+    "micro-report",
+})
 
 # ── Nemotron cloud inference ───────────────────────────────────────────────────
 #
@@ -161,12 +201,107 @@ def should_escalate(prompt: str) -> bool:
     return False
 
 
+def _ollama_installed_models(force_refresh: bool = False) -> set[str]:
+    global _INSTALLED_MODEL_CACHE
+    if not force_refresh and _INSTALLED_MODEL_CACHE is not None:
+        cached_at, cached_models = _INSTALLED_MODEL_CACHE
+        if (_time.time() - cached_at) < 60:
+            return set(cached_models)
+
+    models: set[str] = set()
+    try:
+        result = subprocess.run(
+            ["ollama", "list"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                stripped = line.strip()
+                if not stripped or stripped.lower().startswith("name "):
+                    continue
+                models.add(stripped.split()[0])
+    except Exception:
+        models = set()
+
+    _INSTALLED_MODEL_CACHE = (_time.time(), set(models))
+    return models
+
+
+def local_model_candidates(lane: str) -> tuple[str, ...]:
+    return _LANE_CANDIDATES.get(lane, _LANE_CANDIDATES["strong"])
+
+
+def choose_local_model_lane(
+    prompt: str,
+    lane: str | None = None,
+    *,
+    task_class: str | None = None,
+) -> str:
+    if lane in _LANE_CANDIDATES:
+        return lane
+    if task_class in _TASK_CLASS_PREFERRED_LANES:
+        return _TASK_CLASS_PREFERRED_LANES[task_class]
+
+    lowered = prompt.lower()
+    if any(hint in lowered for hint in _FAST_PROMPT_HINTS):
+        return "fast"
+    if should_escalate(prompt):
+        return "deep"
+    return "strong"
+
+
+def local_model_route_reason(
+    prompt: str,
+    lane: str,
+    *,
+    task_class: str | None = None,
+) -> str:
+    if task_class == "cassandra_user_reply":
+        return "cassandra user-facing reply policy keeps this on the default strong lane"
+    if task_class == "cassandra_outbound_draft":
+        return "cassandra outbound draft policy keeps this on the default strong lane"
+    if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
+        return "cassandra bounded hidden task uses fast-lane policy"
+    if lane == "fast":
+        return "fast-lane policy for bounded extract/classify work"
+    if lane == "deep":
+        return "deep threshold triggered for broad synthesis work"
+    return "default strong lane for normal user-facing reasoning"
+
+
+def resolve_local_model(
+    prompt: str,
+    lane: str | None = None,
+    *,
+    task_class: str | None = None,
+) -> tuple[str, str]:
+    selected_lane = choose_local_model_lane(prompt, lane, task_class=task_class)
+    installed = _ollama_installed_models()
+    candidates = local_model_candidates(selected_lane)
+    if not installed:
+        return candidates[0], selected_lane
+    for candidate in candidates:
+        if candidate in installed:
+            return candidate, selected_lane
+    return candidates[0], selected_lane
+
+
 def _pick_model(prompt: str) -> str:
     """Return OLLAMA_MODEL_DEEP if escalation triggered, else OLLAMA_MODEL."""
     return OLLAMA_MODEL_DEEP if should_escalate(prompt) else OLLAMA_MODEL
 
 
-def ollama_call(prompt: str, timeout: int = 15, model: str = None) -> str:
+def ollama_call(
+    prompt: str,
+    timeout: int = 15,
+    model: str = None,
+    lane: str | None = None,
+    *,
+    task_class: str | None = None,
+) -> str:
     """Call Ollama and return raw text response. Returns '' on any error. Retries up to 3 times with backoff.
 
     model=None (default): auto-selects via should_escalate(), logs on escalation.
@@ -178,10 +313,10 @@ def ollama_call(prompt: str, timeout: int = 15, model: str = None) -> str:
         if model == OLLAMA_MODEL_DEEP:
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
     else:
-        model = _pick_model(prompt)
-        if model == OLLAMA_MODEL_DEEP:
+        model, resolved_lane = resolve_local_model(prompt, lane=lane, task_class=task_class)
+        if resolved_lane == "deep":
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
-            print(f"[llm] escalated → 14b ({len(prompt.split())} words, timeout={timeout}s)",
+            print(f"[llm] routed → deep ({len(prompt.split())} words, timeout={timeout}s)",
                   flush=True)
     payload = json.dumps({
         "model": model,

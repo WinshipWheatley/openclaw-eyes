@@ -970,6 +970,103 @@ class TestGroundedEmailReviewGate:
         assert len(broker_calls) == 1
 
 
+class TestCassandraRouterPolicy:
+    def test_user_reply_uses_strong_lane(self, monkeypatch):
+        import cassandra_brain
+
+        route_calls = []
+        model_calls = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "resolve_local_model",
+            lambda prompt, lane=None, task_class=None: route_calls.append(
+                {"lane": lane, "task_class": task_class}
+            ) or ("gemma4:31b", lane or "strong"),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "ollama_call",
+            lambda prompt, timeout=0, model=None, lane=None, task_class=None: model_calls.append(model) or "ok",
+            raising=False,
+        )
+
+        reply = cassandra_brain._call(
+            "Write a practical response to this short note.",
+            task_class="cassandra_user_reply",
+            cloud_ok=False,
+        )
+
+        assert reply == "ok"
+        assert route_calls == [{"lane": None, "task_class": "cassandra_user_reply"}]
+        assert model_calls == ["gemma4:31b"]
+
+    def test_outbound_draft_uses_strong_lane(self, monkeypatch):
+        import cassandra_brain
+
+        route_calls = []
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "resolve_local_model",
+            lambda prompt, lane=None, task_class=None: route_calls.append(
+                {"lane": lane, "task_class": task_class}
+            ) or ("gemma4:31b", lane or "strong"),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "ollama_call",
+            lambda prompt, timeout=0, model=None, lane=None, task_class=None: "draft body",
+            raising=False,
+        )
+
+        reply = cassandra_brain._call(
+            "Draft a short plain-text email reply from Cassandra.",
+            task_class="cassandra_outbound_draft",
+            cloud_ok=False,
+        )
+
+        assert reply == "draft body"
+        assert route_calls == [{"lane": None, "task_class": "cassandra_outbound_draft"}]
+
+    def test_explicit_deep_escalation_happens_only_after_failure(self, monkeypatch):
+        import cassandra_brain
+
+        route_calls = []
+        model_calls = []
+
+        def fake_resolve(prompt, lane=None, task_class=None):
+            route_calls.append({"lane": lane, "task_class": task_class})
+            if lane == "deep":
+                return ("nemotron-3-nano:30b", "deep")
+            return ("gemma4:31b", "strong")
+
+        def fake_ollama(prompt, timeout=0, model=None, lane=None, task_class=None):
+            model_calls.append(model)
+            if model == "gemma4:31b":
+                return ""
+            return "deep answer"
+
+        monkeypatch.setattr(cassandra_brain, "resolve_local_model", fake_resolve, raising=False)
+        monkeypatch.setattr(cassandra_brain, "ollama_call", fake_ollama, raising=False)
+
+        reply = cassandra_brain._call(
+            "What matters most across all of this right now?",
+            task_class="cassandra_user_reply",
+            cloud_ok=False,
+            allow_deep_escalation=True,
+        )
+
+        assert reply == "deep answer"
+        assert route_calls == [
+            {"lane": None, "task_class": "cassandra_user_reply"},
+            {"lane": "deep", "task_class": "cassandra_user_reply"},
+        ]
+        assert model_calls == ["gemma4:31b", "nemotron-3-nano:30b"]
+
+
 # ── _handle_outreach_email_request() wording tests ───────────────────────────
 
 class TestHandleOutreachEmailWording:

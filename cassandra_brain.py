@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call, nemotron_call, claude_json
+from chief_llm import ollama_call, nemotron_call, claude_json, resolve_local_model
 from chief_output_utils import tts_clean
 from cassandra_capability import capability_context, gate_reply
 from cassandra_email_config import get_review_inbox
@@ -69,6 +69,7 @@ _CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl"
 _OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
 _INBOUND_EMAIL_REPLY_LOCK = Path.home() / ".cassandra_inbound_email_reply.lock"
+_MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
 _CASSANDRA_OLLAMA_FAST = "gemma3:12b"
 _CASSANDRA_OLLAMA_DEEP = "gemma3:27b-it-qat"
 
@@ -1539,6 +1540,39 @@ def _should_use_deep(query: str) -> bool:
     if len(query.split()) < 8 and not any(k in t for k in _CASSANDRA_SYNTHESIS_KEYWORDS):
         return False
     return any(k in t for k in _CASSANDRA_SYNTHESIS_KEYWORDS)
+
+
+def _log_model_route(
+    *,
+    task_class: str,
+    preferred_lane: str,
+    chosen_lane: str,
+    reason: str,
+    escalation: bool,
+    validation_outcome: str | None,
+    model: str,
+) -> None:
+    entry = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "task_class": task_class,
+        "preferred_lane": preferred_lane,
+        "chosen_lane": chosen_lane,
+        "reason": reason,
+        "escalation": escalation,
+        "validation_outcome": validation_outcome,
+        "model": model,
+    }
+    try:
+        _MODEL_ROUTE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _MODEL_ROUTE_LOG.open("a", encoding="utf-8") as fh:
+            fcntl.flock(fh, fcntl.LOCK_EX)
+            try:
+                fh.write(json.dumps(entry, ensure_ascii=True) + "\n")
+                fh.flush()
+            finally:
+                fcntl.flock(fh, fcntl.LOCK_UN)
+    except Exception:
+        pass
 
 
 # ── Mode toggle commands ──────────────────────────────────────────────────────
@@ -3623,7 +3657,12 @@ def _compose_inner_circle_email_reply_body(
         inbound_text=inbound_text,
         sender_display_name=str(verified_contact.get("display_name") or "").strip(),
     )
-    draft_body = _call(prompt, deep=False, cloud_ok=False).strip()
+    draft_body = _call(
+        prompt,
+        task_class="cassandra_outbound_draft",
+        cloud_ok=False,
+        allow_deep_escalation=False,
+    ).strip()
     if not draft_body:
         return None
     lines = [line.strip() for line in draft_body.splitlines() if line.strip()]
@@ -4926,7 +4965,14 @@ def _cassandra_context_clean(
 
 # ── LLM call ─────────────────────────────────────────────────────────────────
 
-def _call(prompt: str, deep: bool, cloud_ok: bool = False) -> str:
+def _call(
+    prompt: str,
+    *,
+    task_class: str,
+    cloud_ok: bool = False,
+    allow_deep_escalation: bool = False,
+    validation_outcome: str | None = None,
+) -> str:
     # Cloud path: only when _cassandra_context_clean() confirmed clean context
     if cloud_ok:
         result = nemotron_call(prompt, timeout=30).strip()
@@ -4935,10 +4981,32 @@ def _call(prompt: str, deep: bool, cloud_ok: bool = False) -> str:
             return result
         print("[cassandra] cloud call failed or empty, falling back to local", flush=True)
 
-    model = _CASSANDRA_OLLAMA_DEEP if deep else _CASSANDRA_OLLAMA_FAST
-    if deep:
-        print(f"[cassandra] deep Gemma selected ({len(prompt.split())} words)", flush=True)
-    result = ollama_call(prompt, timeout=90 if deep else 60, model=model)
+    model, lane = resolve_local_model(prompt, task_class=task_class)
+    _log_model_route(
+        task_class=task_class,
+        preferred_lane=lane,
+        chosen_lane=lane,
+        reason=f"policy route via shared local router for {task_class}",
+        escalation=False,
+        validation_outcome=validation_outcome,
+        model=model,
+    )
+    result = ollama_call(prompt, timeout=90 if lane == "deep" else 60, model=model)
+    if result or not allow_deep_escalation or lane != "strong":
+        return result
+
+    deep_model, deep_lane = resolve_local_model(prompt, lane="deep", task_class=task_class)
+    _log_model_route(
+        task_class=task_class,
+        preferred_lane=lane,
+        chosen_lane=deep_lane,
+        reason="explicit escalation after strong-lane empty response",
+        escalation=True,
+        validation_outcome="empty_response",
+        model=deep_model,
+    )
+    print(f"[cassandra] escalating {task_class} from {lane} to {deep_lane}", flush=True)
+    result = ollama_call(prompt, timeout=90, model=deep_model)
     return result
 
 
@@ -5220,7 +5288,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     context  = build_context_snapshot(state)
     focus    = is_focus_mode()
     social   = is_social_mode()
-    deep     = _should_use_deep(query)
+    allow_deep_escalation = _should_use_deep(query)
 
     persona = _PERSONA
     if social:
@@ -5289,7 +5357,12 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         return blocked_reply
 
     try:
-        reply = _call(safe_prompt, deep, cloud_ok=cloud_ok)
+        reply = _call(
+            safe_prompt,
+            task_class="cassandra_user_reply",
+            cloud_ok=cloud_ok,
+            allow_deep_escalation=allow_deep_escalation,
+        )
     except Exception as e:
         print(f"[cassandra] _call error: {e}", flush=True)
         save_state(state)
