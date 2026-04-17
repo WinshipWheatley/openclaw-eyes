@@ -311,6 +311,26 @@ class TestGroundedEmailReviewGate:
         task_text = task_files[0].read_text(encoding="utf-8")
         assert "execution mode: human-supervised" in task_text
 
+    def test_smoke_test_body_does_not_false_positive_email_send_gap(self, monkeypatch, tmp_path):
+        reply, broker_calls = self._call(
+            monkeypatch,
+            tmp_path,
+            text=(
+                "Send an email to winshipwheatley@gmail.com\n\n"
+                "Subject: Cassandra smoke test\n\n"
+                "Body:\n"
+                "Hi Winship — this is a live reply-bridge smoke test. "
+                "Please reply with a short answer so I can verify the email thread handling path end to end."
+            ),
+            contact_nickname="dad",
+            contact_name="Dad",
+            contact_email="dad@example.com",
+        )
+
+        assert "capability" not in reply.lower()
+        assert "Drafted." in reply
+        assert len(broker_calls) == 1
+
 
 # ── _handle_outreach_email_request() wording tests ───────────────────────────
 

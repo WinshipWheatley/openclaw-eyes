@@ -107,7 +107,9 @@ _EMAIL_REVIEW_CALENDAR_ASSERTIONS = (
 _EMAIL_REVIEW_CAPABILITY_ASSERTIONS = {
     "email_send": (
         r"\b(send|sent|sending)\b.*\b(directly|from here|on my end)\b",
-        r"\bi\s+(can|will|sent|have sent|just sent)\b.*\b(email|message|contract|invoice|note)\b",
+        r"\bi\s+can\s+(send|email|message)\b",
+        r"\bi\s+will\s+(send|email|message)\b",
+        r"\bi\s+(sent|have sent|just sent)\b.*\b(email|message|contract|invoice|note)\b",
     ),
 }
 
