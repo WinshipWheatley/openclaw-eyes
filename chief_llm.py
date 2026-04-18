@@ -374,11 +374,12 @@ def ollama_call(
     return ""
 
 
-def claude_call(prompt: str, timeout: int = 30) -> str:
-    """Call Claude via CLI (Pro sub). Returns '' on any error. Retries up to 3 times with backoff."""
+def claude_call(prompt: str, timeout: int = 30, retries: int = 3) -> str:
+    """Call Claude via CLI (Pro sub). Returns '' on any error."""
     import subprocess as _subprocess
     _pw = len(prompt.split())
-    for attempt in range(3):
+    retries = max(1, int(retries))
+    for attempt in range(retries):
         _t0 = _time.monotonic()
         try:
             # Strip ANTHROPIC_API_KEY so CLI uses OAuth/Pro auth, not API billing
@@ -395,7 +396,7 @@ def claude_call(prompt: str, timeout: int = 30) -> str:
             if result.returncode != 0:
                 _log_external_call(CLAUDE_MODEL, _pw, 0,
                                    int((_time.monotonic() - _t0) * 1000), False)
-                if attempt < 2:
+                if attempt < retries - 1:
                     _time.sleep(2 ** attempt)
                     continue
                 return ""
@@ -407,16 +408,16 @@ def claude_call(prompt: str, timeout: int = 30) -> str:
         except Exception:
             _log_external_call(CLAUDE_MODEL, _pw, 0,
                                int((_time.monotonic() - _t0) * 1000), False)
-            if attempt < 2:
+            if attempt < retries - 1:
                 _time.sleep(2 ** attempt)
                 continue
             return ""
     return ""
 
 
-def claude_json(prompt: str, timeout: int = 20) -> dict | list:
+def claude_json(prompt: str, timeout: int = 20, retries: int = 3) -> dict | list:
     """Call Claude API and parse JSON from response. Returns {} on error or parse failure."""
-    raw = claude_call(prompt, timeout=timeout)
+    raw = claude_call(prompt, timeout=timeout, retries=retries)
     if not raw:
         return {}
     text = raw.strip()

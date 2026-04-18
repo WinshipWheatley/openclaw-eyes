@@ -17,6 +17,8 @@ _APPROVAL_PENDING = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 _CASSANDRA_CONVO_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl")
 _CASSANDRA_CORRESPONDENCE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl")
 _CASSANDRA_LISTENER_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_listener.out")
+_CASSANDRA_MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
+_EXTERNAL_LLM_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
 _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _APPROVAL_TIMEOUT_S = 86400
 
@@ -104,6 +106,56 @@ def _latest_listener_error_line() -> str:
     return ""
 
 
+def _latest_timestamped_runtime_evidence(summary: str, within_minutes: int = 10) -> str:
+    cutoff = datetime.now() - timedelta(minutes=within_minutes)
+    lowered = summary.lower()
+    is_calendarish = any(token in lowered for token in ("calendar", "appointment", "schedule"))
+
+    route_rows = _load_recent_jsonl(_CASSANDRA_MODEL_ROUTE_LOG, limit=80)
+    if is_calendarish:
+        for entry in reversed(route_rows):
+            ts = entry.get("timestamp", "")
+            try:
+                entry_dt = datetime.fromisoformat(ts)
+            except Exception:
+                continue
+            if entry_dt < cutoff:
+                break
+            if entry.get("task_class") != "cassandra_extract_classify":
+                continue
+            if entry.get("validation_outcome") == "parse_failed":
+                model = entry.get("model", "unknown model")
+                return (
+                    "Latest Cassandra evidence shows the calendar extract/classify substep "
+                    f"parse-failed on {model} before the create flow could complete."
+                )
+
+    try:
+        lines = _EXTERNAL_LLM_LOG.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        lines = []
+    for line in reversed(lines[1:]):
+        parts = line.split(",")
+        if len(parts) < 7:
+            continue
+        ts, caller, model, _pw, _rw, latency_ms, success = parts[:7]
+        try:
+            entry_dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            continue
+        if entry_dt < cutoff:
+            break
+        if caller != "cassandra_brain" or success != "False":
+            continue
+        if is_calendarish and model == "claude-sonnet-4-6":
+            return (
+                "Latest Cassandra evidence shows the calendar fallback extraction hit "
+                f"{model} and failed after about {latency_ms}ms, which can consume the "
+                "listener timeout budget."
+            )
+    return ""
+
+
 def _queue_failure_task(summary: str) -> str | None:
     try:
         _POLISH_TASKS_DIR.mkdir(parents=True, exist_ok=True)
@@ -164,6 +216,7 @@ def _build_report(summary: str) -> str:
             f"Exact next step: {next_step}"
         )
 
+    runtime_evidence = _latest_timestamped_runtime_evidence(summary)
     error_line = _latest_listener_error_line()
     task_name = _queue_failure_task(summary)
     next_step = (
@@ -172,7 +225,9 @@ def _build_report(summary: str) -> str:
         else "Inspect the latest Cassandra listener and conversation logs."
     )
     likely_cause = (
-        f"Latest listener evidence: {_truncate(error_line, 180)}"
+        runtime_evidence
+        if runtime_evidence
+        else f"Latest listener evidence: {_truncate(error_line, 180)}"
         if error_line
         else "No policy denial was active. Cassandra appears to have stalled inside her processing path or an upstream model/tool call."
     )

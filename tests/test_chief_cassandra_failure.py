@@ -81,3 +81,45 @@ def test_investigate_timeout_reports_runtime_timeout_and_queues_task(monkeypatch
     assert "Outcome: Chief can queue/autonomously fix it" in sent[1]
     assert "mock timeout downstream" in sent[1]
     assert "chief-cassandra-failure-" in sent[1]
+
+
+def test_investigate_timeout_prefers_fresh_timestamped_cassandra_evidence(monkeypatch, tmp_path):
+    import chief_cassandra_failure as failure
+
+    sent: list[str] = []
+    monkeypatch.setattr(failure, "_APPROVAL_PENDING", tmp_path / "approval_pending.json", raising=False)
+    monkeypatch.setattr(failure, "_CASSANDRA_CORRESPONDENCE_LOG", tmp_path / "cassandra_correspondence.jsonl", raising=False)
+    monkeypatch.setattr(failure, "_CASSANDRA_LISTENER_LOG", tmp_path / "cassandra_listener.out", raising=False)
+    monkeypatch.setattr(failure, "_CASSANDRA_MODEL_ROUTE_LOG", tmp_path / "cassandra_model_routes.jsonl", raising=False)
+    monkeypatch.setattr(failure, "_EXTERNAL_LLM_LOG", tmp_path / "external_llm_log.csv", raising=False)
+    monkeypatch.setattr(failure, "_POLISH_TASKS_DIR", tmp_path / "tasks", raising=False)
+    monkeypatch.setattr(failure, "notify_chief", lambda text: sent.append(text), raising=False)
+
+    (tmp_path / "cassandra_listener.out").write_text(
+        "[cassandra_listener] error: name 'deep' is not defined\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "cassandra_model_routes.jsonl").write_text(
+        json.dumps(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "task_class": "cassandra_extract_classify",
+                "validation_outcome": "parse_failed",
+                "model": "nemotron-3-nano:4b",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "external_llm_log.csv").write_text(
+        "timestamp,caller,model,prompt_words,response_words,latency_ms,success\n"
+        + f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},cassandra_brain,claude-sonnet-4-6,79,0,4828,False\n",
+        encoding="utf-8",
+    )
+
+    failure.investigate_cassandra_timeout(
+        "Cassandra, put Doctor Appointment on my calendar tomorrow at 2:30 PM for 45 minutes."
+    )
+
+    assert "parse-failed" in sent[1]
+    assert "name 'deep' is not defined" not in sent[1]

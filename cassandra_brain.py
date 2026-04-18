@@ -1772,7 +1772,11 @@ def _fetch_calendar_context(query: str) -> str:
 def _detect_calendar_create_intent(text: str) -> bool:
     """True if the query looks like a request to create a calendar event."""
     t = text.lower()
-    return any(w in t for w in _CALENDAR_CREATE_WORDS)
+    if any(w in t for w in _CALENDAR_CREATE_WORDS):
+        return True
+    # Cover natural phrasing like "put Doctor Appointment on my calendar",
+    # which the exact substring list misses because words appear in between.
+    return re.search(r"\bput\b.{0,120}\bon my calendar\b", t, re.DOTALL) is not None
 
 
 def _extract_event_details(text: str) -> dict | None:
@@ -1781,7 +1785,35 @@ def _extract_event_details(text: str) -> dict | None:
     Returns dict with keys: title, date (YYYY-MM-DD), start_time (HH:MM 24h),
     duration_minutes (int). Returns None on failure or missing required fields.
     """
-    from datetime import date
+    from datetime import date, datetime, timedelta
+
+    normalized = " ".join(text.strip().split())
+    direct_match = re.search(
+        r"^\s*(?:cassandra,\s*)?put\s+(?P<title>.+?)\s+on\s+my\s+calendar\s+"
+        r"(?P<day>tomorrow|today)\s+at\s+(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?\s*"
+        r"(?P<ampm>am|pm)\s+for\s+(?P<duration>\d{1,3})\s+minutes?\.?\s*$",
+        normalized,
+        re.IGNORECASE,
+    )
+    if direct_match:
+        title = direct_match.group("title").strip(" .")
+        hour = int(direct_match.group("hour"))
+        minute = int(direct_match.group("minute") or "0")
+        ampm = direct_match.group("ampm").lower()
+        if ampm == "pm" and hour != 12:
+            hour += 12
+        if ampm == "am" and hour == 12:
+            hour = 0
+        event_date = date.today()
+        if direct_match.group("day").lower() == "tomorrow":
+            event_date = event_date + timedelta(days=1)
+        return {
+            "title": title,
+            "date": event_date.strftime("%Y-%m-%d"),
+            "start_time": f"{hour:02d}:{minute:02d}",
+            "duration_minutes": int(direct_match.group("duration")),
+        }
+
     today_str = date.today().strftime("%Y-%m-%d")
     day_of_week = date.today().strftime("%A")
     prompt = (
@@ -1798,12 +1830,17 @@ def _extract_event_details(text: str) -> dict | None:
         f"- 'tomorrow' means {(date.today().__class__.fromordinal(date.today().toordinal()+1)).strftime('%Y-%m-%d')}\n"
         f"- Return JSON only, no other text"
     )
+    # Keep calendar extraction bounded so Cassandra's 60s listener timeout can
+    # still deliver a useful result or escalation instead of burning the whole
+    # budget inside multi-retry fallback extraction.
+    _calendar_fallback_timeout = 6
+    _calendar_fallback_retries = 1
     try:
         data = _call_hidden_extract_classify_json(prompt, validation_label="calendar_event_details")
         if not data or not isinstance(data, dict):
-            data = claude_json(prompt)
+            data = claude_json(prompt, timeout=_calendar_fallback_timeout, retries=_calendar_fallback_retries)
         elif not data.get("title") or not data.get("date") or not data.get("start_time"):
-            data = claude_json(prompt)
+            data = claude_json(prompt, timeout=_calendar_fallback_timeout, retries=_calendar_fallback_retries)
         if not data or not isinstance(data, dict):
             return None
         # Require title, date, start_time — duration_minutes has a default
