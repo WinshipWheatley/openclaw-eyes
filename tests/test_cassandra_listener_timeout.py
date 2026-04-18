@@ -159,3 +159,46 @@ def test_timeout_contract_skips_quick_ping(monkeypatch):
     asyncio.run(_case())
 
     assert sent == ["I am online."]
+
+
+def test_timeout_contract_suppresses_stale_request_after_newer_one(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    escalations: list[tuple[str, dict]] = []
+    monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+
+    delivery_state = {"current": "old"}
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def slow_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.05)
+            return ["Old late reply."]
+
+        async def fake_escalate(text: str, session_meta: dict):
+            escalations.append((text, session_meta))
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Please remove the wrong Doctor Appointment events from my calendar tomorrow at 2:30 PM.",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=slow_run,
+            escalate_failure=fake_escalate,
+            should_deliver=lambda: delivery_state["current"] == "old",
+        )
+        assert result is None
+
+    async def _runner():
+        task = asyncio.create_task(_case())
+        await asyncio.sleep(0.005)
+        delivery_state["current"] = "new"
+        await task
+        await asyncio.sleep(0.05)
+
+    asyncio.run(_runner())
+
+    assert sent == [listener._WORKING_ON_IT]
+    assert escalations == []

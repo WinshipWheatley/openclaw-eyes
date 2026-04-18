@@ -50,6 +50,7 @@ _LISTENER_LOCK_HANDLE = None
 _REQUEST_TIMEOUT_S = 60
 _WORKING_ON_IT = "Cassandra is working on it."
 _ESCALATION_NOTICE = "Something isn't working. Chief is investigating and will send you what went wrong."
+_CHAT_REQUEST_TOKENS: dict[int, int] = {}
 
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
@@ -158,10 +159,25 @@ async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> N
     await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
 
 
+def _claim_chat_request(chat_id: int | None) -> int:
+    if chat_id is None:
+        return 0
+    token = _CHAT_REQUEST_TOKENS.get(chat_id, 0) + 1
+    _CHAT_REQUEST_TOKENS[chat_id] = token
+    return token
+
+
+def _is_current_chat_request(chat_id: int | None, token: int) -> bool:
+    if chat_id is None:
+        return True
+    return _CHAT_REQUEST_TOKENS.get(chat_id) == token
+
+
 async def _deliver_late_result(
     task: asyncio.Task,
     *,
     send_reply,
+    should_deliver,
 ) -> None:
     try:
         replies = await task
@@ -170,7 +186,8 @@ async def _deliver_late_result(
         return
 
     for reply in replies or []:
-        await send_reply(reply)
+        if should_deliver():
+            await send_reply(reply)
 
 
 async def _run_request_with_timeout_contract(
@@ -181,25 +198,30 @@ async def _run_request_with_timeout_contract(
     is_authorized_user: bool,
     run_cassandra=_run_cassandra_handle_async,
     escalate_failure=_trigger_chief_investigation_async,
+    should_deliver=lambda: True,
 ) -> list[str] | None:
     if not _should_use_timeout_contract(text, is_authorized_user=is_authorized_user):
         replies = await run_cassandra(text, session_meta)
         for reply in replies:
-            await send_reply(reply)
+            if should_deliver():
+                await send_reply(reply)
         return replies
 
-    await send_reply(_WORKING_ON_IT)
+    if should_deliver():
+        await send_reply(_WORKING_ON_IT)
     task = asyncio.create_task(run_cassandra(text, session_meta))
     try:
         replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
     except asyncio.TimeoutError:
-        await send_reply(_ESCALATION_NOTICE)
-        asyncio.create_task(escalate_failure(text, session_meta))
-        asyncio.create_task(_deliver_late_result(task, send_reply=send_reply))
+        if should_deliver():
+            await send_reply(_ESCALATION_NOTICE)
+            asyncio.create_task(escalate_failure(text, session_meta))
+        asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
         return None
 
     for reply in replies:
-        await send_reply(reply)
+        if should_deliver():
+            await send_reply(reply)
     return replies
 
 
@@ -234,6 +256,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    request_token = _claim_chat_request(sender_chat_id)
+
+    async def _send_if_current(reply_text: str):
+        if _is_current_chat_request(sender_chat_id, request_token):
+            await update.message.reply_text(reply_text)
 
     # Admin: Pin chat_id to nickname
     if is_authorized_user and text.lower().startswith("pin chatid "):
@@ -267,8 +294,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "sender_name": sender_name,
                 "sender_chat_id": sender_chat_id,
             },
-            send_reply=update.message.reply_text,
+            send_reply=_send_if_current,
             is_authorized_user=is_authorized_user,
+            should_deliver=lambda: _is_current_chat_request(sender_chat_id, request_token),
         )
         _log_cassandra_route(text, "cassandra")
     except Exception as e:
