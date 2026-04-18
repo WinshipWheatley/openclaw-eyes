@@ -50,6 +50,7 @@ _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
 _LISTENER_LOCK_HANDLE = None
 _REQUEST_TIMEOUT_S = 60
+_WORKING_ACK_DELAY_S = 1.0
 _WORKING_ON_IT = "Cassandra is working on it."
 _ESCALATION_NOTICE = "Something isn't working. Chief is investigating and will send you what went wrong."
 _APPROVAL_PENDING_PATH = _Path("/mnt/c/OpenClaw/logs/approval_pending.json")
@@ -218,6 +219,18 @@ async def _deliver_late_result(
             await send_reply(reply)
 
 
+async def _send_delayed_status(
+    *,
+    message: str,
+    delay_s: float,
+    send_reply,
+    should_deliver,
+) -> None:
+    await asyncio.sleep(max(0.0, delay_s))
+    if should_deliver():
+        await send_reply(message)
+
+
 async def _run_request_with_timeout_contract(
     *,
     text: str,
@@ -235,12 +248,19 @@ async def _run_request_with_timeout_contract(
                 await send_reply(reply)
         return replies
 
-    if should_deliver():
-        await send_reply(_WORKING_ON_IT)
+    working_ack_task = asyncio.create_task(
+        _send_delayed_status(
+            message=_WORKING_ON_IT,
+            delay_s=_WORKING_ACK_DELAY_S,
+            send_reply=send_reply,
+            should_deliver=should_deliver,
+        )
+    )
     task = asyncio.create_task(run_cassandra(text, session_meta))
     try:
         replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
     except asyncio.TimeoutError:
+        working_ack_task.cancel()
         if should_deliver():
             approval_state, _approval_data = _pending_cassandra_approval_state()
             if approval_state == "waiting":
@@ -254,6 +274,7 @@ async def _run_request_with_timeout_contract(
         asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
         return None
 
+    working_ack_task.cancel()
     for reply in replies:
         if should_deliver():
             await send_reply(reply)

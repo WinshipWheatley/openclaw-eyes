@@ -36,6 +36,7 @@ def test_timeout_contract_success_sends_ack_then_result(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
     escalations: list[tuple[str, dict]] = []
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
 
     async def _case():
         async def fake_send(text: str):
@@ -69,6 +70,7 @@ def test_timeout_contract_escalates_after_timeout(monkeypatch):
     sent: list[str] = []
     escalations: list[tuple[str, dict]] = []
     monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
 
     async def _case():
         async def fake_send(text: str):
@@ -104,6 +106,7 @@ def test_timeout_contract_delivers_late_success_once(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
     monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
 
     async def _case():
         async def fake_send(text: str):
@@ -141,6 +144,7 @@ def test_timeout_contract_reports_waiting_on_guardian_without_escalation(monkeyp
     sent: list[str] = []
     escalations: list[tuple[str, dict]] = []
     monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
     monkeypatch.setattr(listener, "_pending_cassandra_approval_state", lambda: ("waiting", {"action": "Google broker: cassandra → google.calendar.write"}), raising=False)
 
     async def _case():
@@ -180,6 +184,7 @@ def test_timeout_contract_escalates_stalled_guardian_approval(monkeypatch):
     sent: list[str] = []
     escalations: list[tuple[str, dict]] = []
     monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.0, raising=False)
     monkeypatch.setattr(listener, "_pending_cassandra_approval_state", lambda: ("stalled", {"action": "Google broker: cassandra → google.calendar.delete"}), raising=False)
 
     async def _case():
@@ -235,11 +240,40 @@ def test_timeout_contract_skips_quick_ping(monkeypatch):
     assert sent == ["I am online."]
 
 
+def test_timeout_contract_skips_working_ack_for_fast_result(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.05, raising=False)
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def fast_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.005)
+            return ["Done quickly."]
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Can you summarize tomorrow's calendar?",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=fast_run,
+        )
+        assert result == ["Done quickly."]
+        await asyncio.sleep(0.06)
+
+    asyncio.run(_case())
+
+    assert sent == ["Done quickly."]
+
+
 def test_timeout_contract_suppresses_stale_request_after_newer_one(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []
     escalations: list[tuple[str, dict]] = []
     monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_WORKING_ACK_DELAY_S", 0.05, raising=False)
 
     delivery_state = {"current": "old"}
 
@@ -274,5 +308,5 @@ def test_timeout_contract_suppresses_stale_request_after_newer_one(monkeypatch):
 
     asyncio.run(_runner())
 
-    assert sent == [listener._WORKING_ON_IT]
+    assert sent == []
     assert escalations == []
