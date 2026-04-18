@@ -35,6 +35,7 @@ from cassandra_brain import (
     handle as cassandra_handle,
     pin_telegram_chat_id,
 )
+from chief_cassandra_failure import investigate_cassandra_timeout
 from cassandra_identity import (
     is_designated_contact_sender,
     find_contact_by_nickname,
@@ -46,6 +47,9 @@ from cassandra_whisper_relay import relay_transcript, transcribe_audio
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
 _LISTENER_LOCK_HANDLE = None
+_REQUEST_TIMEOUT_S = 60
+_WORKING_ON_IT = "Cassandra is working on it."
+_ESCALATION_NOTICE = "Something isn't working. Chief is investigating and will send you what went wrong."
 
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
@@ -112,6 +116,79 @@ def _suppress_voice(user_text: str) -> bool:
     return any(p in t for p in _CONTENT_PATTERNS)
 
 
+def _normalize_message_text(text: str) -> str:
+    return " ".join((text or "").strip().lower().split())
+
+
+def _should_use_timeout_contract(text: str, *, is_authorized_user: bool) -> bool:
+    """
+    Apply the timeout/escalation contract only to operator requests that are
+    plausibly non-trivial. Keep quick pings and short acknowledgements quiet.
+    """
+    if not is_authorized_user:
+        return False
+    normalized = _normalize_message_text(text)
+    if not normalized or normalized.startswith("pin chatid "):
+        return False
+    if normalized in {
+        "hi", "hello", "hey", "thanks", "thank you", "ok", "okay",
+        "are you online?", "are you online",
+    }:
+        return False
+    if "\n" in text:
+        return True
+    if len(normalized) >= 48:
+        return True
+    return any(
+        token in normalized
+        for token in (
+            " email ", " draft ", " send ", " status", "current ",
+            "what is", "summarize", "summary", "verify", "check ",
+            "look up", "find ", "calendar", "reply", "investigate",
+            "capital hilton", "coupa", "invoice", "payment",
+        )
+    )
+
+
+async def _run_cassandra_handle_async(text: str, session_meta: dict) -> list[str]:
+    return await asyncio.to_thread(cassandra_handle, text, session_meta)
+
+
+async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> None:
+    await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
+
+
+async def _run_request_with_timeout_contract(
+    *,
+    text: str,
+    session_meta: dict,
+    send_reply,
+    is_authorized_user: bool,
+    run_cassandra=_run_cassandra_handle_async,
+    escalate_failure=_trigger_chief_investigation_async,
+) -> list[str] | None:
+    if not _should_use_timeout_contract(text, is_authorized_user=is_authorized_user):
+        replies = await run_cassandra(text, session_meta)
+        for reply in replies:
+            await send_reply(reply)
+        return replies
+
+    await send_reply(_WORKING_ON_IT)
+    try:
+        replies = await asyncio.wait_for(
+            run_cassandra(text, session_meta),
+            timeout=_REQUEST_TIMEOUT_S,
+        )
+    except asyncio.TimeoutError:
+        await send_reply(_ESCALATION_NOTICE)
+        asyncio.create_task(escalate_failure(text, session_meta))
+        return None
+
+    for reply in replies:
+        await send_reply(reply)
+    return replies
+
+
 # ── Message handler ───────────────────────────────────────────────────────────
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,16 +247,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        replies = await asyncio.to_thread(
-            cassandra_handle,
-            text,
-            {
+        replies = await _run_request_with_timeout_contract(
+            text=text,
+            session_meta={
                 "sender_name": sender_name,
                 "sender_chat_id": sender_chat_id,
             },
+            send_reply=update.message.reply_text,
+            is_authorized_user=is_authorized_user,
         )
-        for r in replies:
-            await update.message.reply_text(r)
         _log_cassandra_route(text, "cassandra")
     except Exception as e:
         print(f"[cassandra_listener] error: {e}", flush=True)
@@ -189,6 +265,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # don't send the fallback message to Telegram
     try:
         if not is_authorized_user:
+            return
+        if not replies:
             return
         suppress = _suppress_voice(text)
         speak(" ".join(replies), suppress=suppress)
@@ -284,11 +362,14 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[cassandra_listener] voice reply error (suppressed): {e}", flush=True)
 
 
-_acquire_listener_lock()
+def main() -> None:
+    _acquire_listener_lock()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    print("Cassandra online.", flush=True)
+    app.run_polling()
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
-print("Cassandra online.", flush=True)
-app.run_polling()
+if __name__ == "__main__":
+    main()
