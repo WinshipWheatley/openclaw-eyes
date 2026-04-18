@@ -23,7 +23,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from chief_llm import claude_call
+from chief_llm import ollama_call
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -222,7 +222,7 @@ Be direct. No bullet points. No headers."""
 
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
-    result = claude_call(prompt, timeout=30).strip()
+    result = ollama_call(prompt, timeout=30, lane="strong").strip()
     return result if result else ""
 
 

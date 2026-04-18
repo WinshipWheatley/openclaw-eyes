@@ -20,7 +20,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call
+from chief_llm import ollama_call
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -167,7 +167,7 @@ def _build_goals_text(goals: list[dict]) -> str:
 def _get_checkin(goals: list[dict]) -> str:
     goals_text = _build_goals_text(goals)
     prompt = _CHECKIN_PROMPT.format(goals_text=goals_text)
-    result = claude_call(prompt, timeout=30).strip()
+    result = ollama_call(prompt, timeout=30, lane="strong").strip()
     return result if result else ""
 
 
