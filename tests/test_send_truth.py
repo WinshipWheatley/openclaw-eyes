@@ -1105,6 +1105,60 @@ class TestCassandraRouterPolicy:
         assert route_calls == [{"lane": None, "task_class": "cassandra_user_reply"}]
         assert model_calls == ["gemma4:31b"]
 
+    def test_handle_calendar_fallback_logs_llm_deep_without_name_error(self, monkeypatch):
+        import cassandra_brain
+
+        logged = []
+
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_toggle", lambda text: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_payments_command", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_session_fact_correction", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_update_cues", lambda state, text: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_remember_finance_entity", lambda query, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_find_designated_contact", lambda **kwargs: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_handle_income_followup", lambda query, pending, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_lookup_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_financial_event", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_future_action_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_calendar_create_intent", lambda query: True, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_handle_calendar_create", lambda query: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_outreach_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_send_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_invoice_create_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_looks_like_payment_verify_query", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_finance_status_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state: "context", raising=False)
+        monkeypatch.setattr(cassandra_brain, "capability_context", lambda: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "format_finance_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_reality_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_session_fact_override_context", lambda query, state: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_cassandra_context_clean", lambda *args, **kwargs: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, {}), raising=False)
+        monkeypatch.setattr(cassandra_brain, "_call", lambda *args, **kwargs: "calendar fallback reply", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_rescue_payment_verify_reply", lambda query, reply: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "gate_reply", lambda reply, query, has_registry_context=False: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "tts_clean", lambda reply: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_capability_gaps", lambda query, reply: [], raising=False)
+        monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: True, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_use_small_cassandra_reply_model", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}), raising=False)
+
+        replies = cassandra_brain.handle("Put lunch on my calendar sometime tomorrow afternoon")
+
+        assert replies == ["calendar fallback reply"]
+        assert logged[-1]["route"] == "llm_deep"
+
 
 # ── _handle_outreach_email_request() wording tests ───────────────────────────
 

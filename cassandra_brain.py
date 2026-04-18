@@ -5531,5 +5531,9 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     save_state(state)
 
     result = [reply] if reply else ["I'm here — something went quiet on my end. Try again."]
-    _log_conversation(text, result, route=route_override or ("llm_deep" if deep else "llm"))
+    _log_conversation(
+        text,
+        result,
+        route=route_override or ("llm_deep" if allow_deep_escalation else "llm"),
+    )
     return result
