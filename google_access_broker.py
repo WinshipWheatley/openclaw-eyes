@@ -48,6 +48,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 # ── Secrets paths ─────────────────────────────────────────────────────────────
@@ -65,6 +66,8 @@ _CALENDAR_ALLOWLIST = [
     "primary",
     "4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com",
 ]
+
+_CALENDAR_TIMEZONE = ZoneInfo("America/New_York")
 
 
 # ── Active OAuth scope bundle ─────────────────────────────────────────────────
@@ -282,8 +285,15 @@ def _exec_calendar_delete(creds, params: dict) -> dict:
         from googleapiclient.discovery import build
 
         service = build("calendar", "v3", credentials=creds)
-        time_min = target_dt.replace(hour=0, minute=0, second=0).isoformat()
-        time_max = (target_dt.replace(hour=0, minute=0, second=0) + timedelta(days=1)).isoformat()
+        start_of_day = target_dt.replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=_CALENDAR_TIMEZONE,
+        )
+        time_min = start_of_day.isoformat()
+        time_max = (start_of_day + timedelta(days=1)).isoformat()
 
         matches: list[dict] = []
         for cal_id in _CALENDAR_ALLOWLIST:

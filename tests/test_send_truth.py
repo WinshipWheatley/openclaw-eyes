@@ -497,6 +497,7 @@ class TestCalendarDeleteRouting:
         import google_access_broker as broker
 
         deleted = []
+        list_calls = []
 
         class _FakeDeleteCall:
             def __init__(self, calendar_id, event_id):
@@ -534,6 +535,7 @@ class TestCalendarDeleteRouting:
 
         class _FakeEvents:
             def list(self, **kwargs):
+                list_calls.append(kwargs)
                 return _FakeListCall(kwargs["calendarId"])
 
             def delete(self, **kwargs):
@@ -558,6 +560,9 @@ class TestCalendarDeleteRouting:
         assert result["ok"] is True
         assert result["data"]["deleted_count"] == 2
         assert len(deleted) == 2
+        assert list_calls
+        assert list_calls[0]["timeMin"].endswith("-04:00")
+        assert list_calls[0]["timeMax"].endswith("-04:00")
 
 
 class TestOutboundContactResolutionHardening:
