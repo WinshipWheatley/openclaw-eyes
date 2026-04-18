@@ -136,6 +136,80 @@ def test_timeout_contract_delivers_late_success_once(monkeypatch):
     ]
 
 
+def test_timeout_contract_reports_waiting_on_guardian_without_escalation(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    escalations: list[tuple[str, dict]] = []
+    monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_pending_cassandra_approval_state", lambda: ("waiting", {"action": "Google broker: cassandra → google.calendar.write"}), raising=False)
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def slow_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.02)
+            return ['Done. Added "Doctor Appointment" on Sunday April 19 at 2:30 PM.']
+
+        async def fake_escalate(text: str, session_meta: dict):
+            escalations.append((text, session_meta))
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Cassandra, put Doctor Appointment on my calendar tomorrow at 2:30 PM for 45 minutes.",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=slow_run,
+            escalate_failure=fake_escalate,
+        )
+        assert result is None
+        await asyncio.sleep(0.05)
+
+    asyncio.run(_case())
+
+    assert sent == [
+        listener._WORKING_ON_IT,
+        listener._APPROVAL_WAIT_NOTICE,
+        'Done. Added "Doctor Appointment" on Sunday April 19 at 2:30 PM.',
+    ]
+    assert escalations == []
+
+
+def test_timeout_contract_escalates_stalled_guardian_approval(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    escalations: list[tuple[str, dict]] = []
+    monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+    monkeypatch.setattr(listener, "_pending_cassandra_approval_state", lambda: ("stalled", {"action": "Google broker: cassandra → google.calendar.delete"}), raising=False)
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def slow_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.05)
+            return ["Calendar delete was denied at the approval gate."]
+
+        async def fake_escalate(text: str, session_meta: dict):
+            escalations.append((text, session_meta))
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Cassandra, remove the two Doctor Appointment events tomorrow at 2:30 PM from my calendar.",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=slow_run,
+            escalate_failure=fake_escalate,
+        )
+        assert result is None
+        await asyncio.sleep(0.06)
+
+    asyncio.run(_case())
+
+    assert sent[:2] == [listener._WORKING_ON_IT, listener._APPROVAL_STALLED_NOTICE]
+    assert len(escalations) == 1
+
+
 def test_timeout_contract_skips_quick_ping(monkeypatch):
     listener = _load_listener(monkeypatch)
     sent: list[str] = []

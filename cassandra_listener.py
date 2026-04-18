@@ -22,11 +22,13 @@ to send the request as text instead.
 import asyncio
 import fcntl
 import hashlib as _hashlib
+import json
 import os
 import shutil
 import sys
 import tempfile
 import time as _time
+from datetime import datetime
 from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
@@ -50,6 +52,10 @@ _LISTENER_LOCK_HANDLE = None
 _REQUEST_TIMEOUT_S = 60
 _WORKING_ON_IT = "Cassandra is working on it."
 _ESCALATION_NOTICE = "Something isn't working. Chief is investigating and will send you what went wrong."
+_APPROVAL_PENDING_PATH = _Path("/mnt/c/OpenClaw/logs/approval_pending.json")
+_APPROVAL_WAIT_STALL_S = 300
+_APPROVAL_WAIT_NOTICE = "Guardian approval is still pending. Once you approve or deny it, I'll continue."
+_APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expected. Chief is investigating while I keep waiting for the result."
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 
 # ── Tracking for identity pins ───────────────────────────────────────────────
@@ -159,6 +165,28 @@ async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> N
     await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
 
 
+def _pending_cassandra_approval_state() -> tuple[str, dict]:
+    try:
+        data = json.loads(_APPROVAL_PENDING_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return "", {}
+    if not data or data.get("status") != "pending":
+        return "", {}
+    action = str(data.get("action", ""))
+    if not action.startswith("Google broker: cassandra →"):
+        return "", {}
+    requested_at = str(data.get("requested_at", "")).strip()
+    if not requested_at:
+        return "waiting", data
+    try:
+        age_s = (datetime.now() - datetime.strptime(requested_at, "%Y-%m-%d %H:%M:%S")).total_seconds()
+    except Exception:
+        return "waiting", data
+    if age_s >= _APPROVAL_WAIT_STALL_S:
+        return "stalled", data
+    return "waiting", data
+
+
 def _claim_chat_request(chat_id: int | None) -> int:
     if chat_id is None:
         return 0
@@ -214,8 +242,15 @@ async def _run_request_with_timeout_contract(
         replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
     except asyncio.TimeoutError:
         if should_deliver():
-            await send_reply(_ESCALATION_NOTICE)
-            asyncio.create_task(escalate_failure(text, session_meta))
+            approval_state, _approval_data = _pending_cassandra_approval_state()
+            if approval_state == "waiting":
+                await send_reply(_APPROVAL_WAIT_NOTICE)
+            else:
+                if approval_state == "stalled":
+                    await send_reply(_APPROVAL_STALLED_NOTICE)
+                else:
+                    await send_reply(_ESCALATION_NOTICE)
+                asyncio.create_task(escalate_failure(text, session_meta))
         asyncio.create_task(_deliver_late_result(task, send_reply=send_reply, should_deliver=should_deliver))
         return None
 
