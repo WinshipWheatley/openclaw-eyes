@@ -60,9 +60,31 @@ _LANE_CANDIDATES = {
     ),
 }
 
+_TASK_CLASS_MODEL_CANDIDATES = {
+    "cassandra_user_reply": (
+        "gemma4:31b",
+        "gemma4:26b-a4b",
+        "gemma4:26b",
+        "nemotron-3-nano:30b",
+    ),
+    "cassandra_outbound_draft": (
+        "gemma4:31b",
+        "gemma4:26b-a4b",
+        "gemma4:26b",
+        "nemotron-3-nano:30b",
+    ),
+    "cassandra_morning_brief": (
+        "gemma4:31b",
+        "gemma4:26b-a4b",
+        "gemma4:26b",
+        "nemotron-3-nano:30b",
+    ),
+}
+
 _TASK_CLASS_PREFERRED_LANES = {
     "cassandra_user_reply": "strong",
     "cassandra_outbound_draft": "strong",
+    "cassandra_morning_brief": "strong",
     "cassandra_inbox_summary": "fast",
     "cassandra_extract_classify": "fast",
 }
@@ -230,7 +252,9 @@ def _ollama_installed_models(force_refresh: bool = False) -> set[str]:
     return models
 
 
-def local_model_candidates(lane: str) -> tuple[str, ...]:
+def local_model_candidates(lane: str, *, task_class: str | None = None) -> tuple[str, ...]:
+    if task_class in _TASK_CLASS_MODEL_CANDIDATES:
+        return _TASK_CLASS_MODEL_CANDIDATES[task_class]
     return _LANE_CANDIDATES.get(lane, _LANE_CANDIDATES["strong"])
 
 
@@ -263,6 +287,8 @@ def local_model_route_reason(
         return "cassandra user-facing reply policy keeps this on the default strong lane"
     if task_class == "cassandra_outbound_draft":
         return "cassandra outbound draft policy keeps this on the default strong lane"
+    if task_class == "cassandra_morning_brief":
+        return "cassandra morning briefing policy keeps this on gemma strong with gemma 26b fallback"
     if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
         return "cassandra bounded hidden task uses fast-lane policy"
     if lane == "fast":
@@ -280,7 +306,7 @@ def resolve_local_model(
 ) -> tuple[str, str]:
     selected_lane = choose_local_model_lane(prompt, lane, task_class=task_class)
     installed = _ollama_installed_models()
-    candidates = local_model_candidates(selected_lane)
+    candidates = local_model_candidates(selected_lane, task_class=task_class)
     if not installed:
         return candidates[0], selected_lane
     for candidate in candidates:

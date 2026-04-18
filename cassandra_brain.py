@@ -70,8 +70,6 @@ _OUTREACH_LOG    = Path("/mnt/c/OpenClaw/logs/cassandra_outreach.jsonl")
 _REALITY_NOTES    = Path("/home/openclaw/cassandra_reality_notes.json")
 _INBOUND_EMAIL_REPLY_LOCK = Path.home() / ".cassandra_inbound_email_reply.lock"
 _MODEL_ROUTE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl")
-_CASSANDRA_OLLAMA_FAST = "gemma3:12b"
-_CASSANDRA_OLLAMA_DEEP = "gemma3:27b-it-qat"
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_ACTIONS = _VAULT_SYS / "Ops Actions.md"

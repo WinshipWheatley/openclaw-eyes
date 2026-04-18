@@ -41,7 +41,7 @@ from pathlib import Path
 
 from cassandra_brain import build_context_snapshot, is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
-from chief_llm import ollama_call, OLLAMA_MODEL
+from chief_llm import ollama_call, resolve_local_model
 from chief_file_io import save_json, load_json, append_md_tagged
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -391,7 +391,9 @@ def generate_briefing(slot: str) -> str:
         f"Cassandra:"
     )
 
-    result = ollama_call(prompt, timeout=45, model=OLLAMA_MODEL)
+    task_class = "cassandra_morning_brief" if slot == "morning" else "cassandra_user_reply"
+    model, _lane = resolve_local_model(prompt, task_class=task_class)
+    result = ollama_call(prompt, timeout=45, model=model)
     if result:
         return tts_clean(result.strip())
 
