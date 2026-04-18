@@ -90,13 +90,50 @@ def test_timeout_contract_escalates_after_timeout(monkeypatch):
             escalate_failure=fake_escalate,
         )
         assert result is None
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.02)
 
     asyncio.run(_case())
 
-    assert sent == [listener._WORKING_ON_IT, listener._ESCALATION_NOTICE]
+    assert sent[:2] == [listener._WORKING_ON_IT, listener._ESCALATION_NOTICE]
+    assert "Late reply." not in sent
     assert len(escalations) == 1
     assert escalations[0][0] == "Please send Winship a note about tomorrow"
+
+
+def test_timeout_contract_delivers_late_success_once(monkeypatch):
+    listener = _load_listener(monkeypatch)
+    sent: list[str] = []
+    monkeypatch.setattr(listener, "_REQUEST_TIMEOUT_S", 0.01, raising=False)
+
+    async def _case():
+        async def fake_send(text: str):
+            sent.append(text)
+
+        async def slow_run(text: str, session_meta: dict):
+            await asyncio.sleep(0.02)
+            return ["Done. Added \"Doctor Appointment\" on Sunday April 19 at 2:30 PM."]
+
+        async def fake_escalate(text: str, session_meta: dict):
+            return None
+
+        result = await listener._run_request_with_timeout_contract(
+            text="Cassandra, put Doctor Appointment on my calendar tomorrow at 2:30 PM for 45 minutes.",
+            session_meta={"sender_name": "Winship", "sender_chat_id": 123},
+            send_reply=fake_send,
+            is_authorized_user=True,
+            run_cassandra=slow_run,
+            escalate_failure=fake_escalate,
+        )
+        assert result is None
+        await asyncio.sleep(0.05)
+
+    asyncio.run(_case())
+
+    assert sent == [
+        listener._WORKING_ON_IT,
+        listener._ESCALATION_NOTICE,
+        'Done. Added "Doctor Appointment" on Sunday April 19 at 2:30 PM.',
+    ]
 
 
 def test_timeout_contract_skips_quick_ping(monkeypatch):

@@ -158,6 +158,21 @@ async def _trigger_chief_investigation_async(text: str, session_meta: dict) -> N
     await asyncio.to_thread(investigate_cassandra_timeout, text, session_meta)
 
 
+async def _deliver_late_result(
+    task: asyncio.Task,
+    *,
+    send_reply,
+) -> None:
+    try:
+        replies = await task
+    except Exception as exc:
+        print(f"[cassandra_listener] late result error: {exc}", flush=True)
+        return
+
+    for reply in replies or []:
+        await send_reply(reply)
+
+
 async def _run_request_with_timeout_contract(
     *,
     text: str,
@@ -174,14 +189,13 @@ async def _run_request_with_timeout_contract(
         return replies
 
     await send_reply(_WORKING_ON_IT)
+    task = asyncio.create_task(run_cassandra(text, session_meta))
     try:
-        replies = await asyncio.wait_for(
-            run_cassandra(text, session_meta),
-            timeout=_REQUEST_TIMEOUT_S,
-        )
+        replies = await asyncio.wait_for(asyncio.shield(task), timeout=_REQUEST_TIMEOUT_S)
     except asyncio.TimeoutError:
         await send_reply(_ESCALATION_NOTICE)
         asyncio.create_task(escalate_failure(text, session_meta))
+        asyncio.create_task(_deliver_late_result(task, send_reply=send_reply))
         return None
 
     for reply in replies:
