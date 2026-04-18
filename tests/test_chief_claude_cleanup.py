@@ -2,11 +2,13 @@ from pathlib import Path
 import re
 
 import chief_analytics_brain
+import chief_cpa_brain
 import chief_email_brain
 import chief_goals_brain
 import chief_momentum_brain
 import chief_sms_brain
 import chief_trinity_brain
+import chief_website_coordinator
 
 
 def test_analytics_narrative_uses_local_ollama(monkeypatch):
@@ -154,12 +156,64 @@ def test_sms_draft_uses_local_strong_ollama(monkeypatch):
     }]
 
 
+def test_cpa_tax_reply_uses_local_ollama(monkeypatch):
+    calls = []
+    estimate = {
+        "ytd_income": 10000.0,
+        "ytd_expenses": 3000.0,
+        "net_income": 7000.0,
+        "se_tax": 989.0,
+        "income_tax": 1540.0,
+        "total_annual": 2529.0,
+        "per_quarter": 632.25,
+        "next_deadline_label": "Q2 2026",
+        "next_deadline_date": "2026-06-16",
+    }
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout})
+        return "Estimated quarterly tax is about $632.25. Confirm with a CPA."
+
+    monkeypatch.setattr(chief_cpa_brain, "ollama_call", fake_ollama)
+    result = chief_cpa_brain._format_tax_reply(estimate)
+    assert result == "Estimated quarterly tax is about $632.25. Confirm with a CPA."
+    assert calls == [{"prompt": chief_cpa_brain._TAX_PROMPT.format(**estimate), "timeout": 30}]
+
+
+def test_website_update_parse_uses_local_ollama_json(monkeypatch):
+    calls = []
+    state = {
+        "sections": {"homepage": {"status": "not_started", "updated": ""}},
+        "updates": [],
+    }
+
+    def fake_ollama_json(prompt, timeout=0):
+        calls.append({"prompt": prompt, "timeout": timeout})
+        return {"section_id": "homepage", "status": "done", "note": "hero is live"}
+
+    monkeypatch.setattr(chief_website_coordinator, "ollama_json", fake_ollama_json)
+    monkeypatch.setattr(chief_website_coordinator, "_save_state", lambda data: None)
+    monkeypatch.setattr(chief_website_coordinator, "_write_coordinator_md", lambda data: None)
+
+    replies = chief_website_coordinator._handle_update("website update homepage done", state)
+
+    assert state["sections"]["homepage"]["status"] == "done"
+    assert state["updates"][-1]["section"] == "homepage"
+    assert "Updated: Homepage Hero -> DONE" in replies[0].replace("→", "->")
+    section_ids = ", ".join(s["id"] for s in chief_website_coordinator.SITE_SECTIONS)
+    assert calls == [{
+        "prompt": chief_website_coordinator._UPDATE_PARSE_PROMPT.format(
+            section_ids=section_ids,
+            text="website update homepage done",
+        ),
+        "timeout": 20,
+    }]
+
+
 def test_no_new_direct_chief_claude_calls_outside_allowlist():
     root = Path("/home/openclaw")
     allowed = {
         "chief_llm.py",
-        "chief_cpa_brain.py",
-        "chief_website_coordinator.py",
     }
     offenders = []
     pattern = re.compile(r"\bclaude_(?:call|json)\s*\(")

@@ -23,7 +23,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call
+from chief_llm import ollama_call, ollama_json
 
 # ── Paths ───────────────────────────────────────────────────────────────────────
 
@@ -248,8 +248,7 @@ def _handle_update(text: str, state: dict) -> list[str]:
     section_ids = ", ".join(s["id"] for s in SITE_SECTIONS)
     prompt      = _UPDATE_PARSE_PROMPT.format(section_ids=section_ids, text=text)
 
-    from chief_llm import claude_json
-    parsed = claude_json(prompt, timeout=20)
+    parsed = ollama_json(prompt, timeout=20)
     if not isinstance(parsed, dict):
         parsed = {"section_id": "general", "status": "in_progress", "note": text[:80]}
 

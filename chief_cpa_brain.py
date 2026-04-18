@@ -23,7 +23,7 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import claude_call, ollama_call, ollama_json, nemotron_call
+from chief_llm import ollama_call, ollama_json, nemotron_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -410,7 +410,7 @@ def _format_income_reply(summary: dict) -> str:
 def _format_tax_reply(est: dict) -> str:
     prompt = _TAX_PROMPT.format(**est)
     try:
-        result = claude_call(prompt, timeout=30).strip()
+        result = ollama_call(prompt, timeout=30).strip()
     except Exception as e:
         print(f"[chief_cpa] tax reply LLM error: {e}", flush=True)
         result = ""
