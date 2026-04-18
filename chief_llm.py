@@ -61,27 +61,31 @@ _LANE_CANDIDATES = {
 }
 
 _TASK_CLASS_MODEL_CANDIDATES = {
+    "cassandra_user_reply_fast": (
+        "gemma4:26b-a4b",
+        "gemma4:26b",
+        "qwen2.5-coder:7b",
+        "gemma4:31b",
+    ),
     "cassandra_user_reply": (
         "gemma4:31b",
         "gemma4:26b-a4b",
         "gemma4:26b",
-        "nemotron-3-nano:30b",
     ),
     "cassandra_outbound_draft": (
         "gemma4:31b",
         "gemma4:26b-a4b",
         "gemma4:26b",
-        "nemotron-3-nano:30b",
     ),
     "cassandra_morning_brief": (
         "gemma4:31b",
         "gemma4:26b-a4b",
         "gemma4:26b",
-        "nemotron-3-nano:30b",
     ),
 }
 
 _TASK_CLASS_PREFERRED_LANES = {
+    "cassandra_user_reply_fast": "fast",
     "cassandra_user_reply": "strong",
     "cassandra_outbound_draft": "strong",
     "cassandra_morning_brief": "strong",
@@ -283,8 +287,10 @@ def local_model_route_reason(
     *,
     task_class: str | None = None,
 ) -> str:
+    if task_class == "cassandra_user_reply_fast":
+        return "cassandra easy conversational reply starts on the smaller gemma lane"
     if task_class == "cassandra_user_reply":
-        return "cassandra user-facing reply policy keeps this on the default strong lane"
+        return "cassandra user-facing reply policy keeps this on the top gemma strong lane"
     if task_class == "cassandra_outbound_draft":
         return "cassandra outbound draft policy keeps this on the default strong lane"
     if task_class == "cassandra_morning_brief":

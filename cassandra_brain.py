@@ -1540,6 +1540,24 @@ def _should_use_deep(query: str) -> bool:
     return any(k in t for k in _CASSANDRA_SYNTHESIS_KEYWORDS)
 
 
+def _use_small_cassandra_reply_model(query: str) -> bool:
+    t = query.lower()
+    if any(k in t for k in _CASSANDRA_SYNTHESIS_KEYWORDS):
+        return False
+    if len(query.split()) > 18:
+        return False
+    complexity_markers = (
+        "compare",
+        "walk me through",
+        "step by step",
+        "why is",
+        "how do",
+        "what am i missing",
+        "help me prioritize",
+    )
+    return not any(marker in t for marker in complexity_markers)
+
+
 def _log_model_route(
     *,
     task_class: str,
@@ -4990,7 +5008,27 @@ def _call(
         model=model,
     )
     result = ollama_call(prompt, timeout=90 if lane == "deep" else 60, model=model)
-    if result or not allow_deep_escalation or lane != "strong":
+    if result or not allow_deep_escalation:
+        return result
+
+    if task_class == "cassandra_user_reply_fast":
+        strong_model, strong_lane = resolve_local_model(prompt, task_class="cassandra_user_reply")
+        _log_model_route(
+            task_class=task_class,
+            preferred_lane=lane,
+            chosen_lane=strong_lane,
+            reason="explicit escalation from small conversational lane to gemma strong after empty response",
+            escalation=True,
+            validation_outcome="empty_response",
+            model=strong_model,
+        )
+        print(f"[cassandra] escalating {task_class} from {lane} to {strong_lane}", flush=True)
+        return ollama_call(prompt, timeout=60, model=strong_model)
+
+    if task_class == "cassandra_user_reply":
+        return result
+
+    if lane != "strong":
         return result
 
     deep_model, deep_lane = resolve_local_model(prompt, lane="deep", task_class=task_class)
@@ -5287,6 +5325,11 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     focus    = is_focus_mode()
     social   = is_social_mode()
     allow_deep_escalation = _should_use_deep(query)
+    reply_task_class = (
+        "cassandra_user_reply_fast"
+        if _use_small_cassandra_reply_model(query)
+        else "cassandra_user_reply"
+    )
 
     persona = _PERSONA
     if social:
@@ -5357,7 +5400,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     try:
         reply = _call(
             safe_prompt,
-            task_class="cassandra_user_reply",
+            task_class=reply_task_class,
             cloud_ok=cloud_ok,
             allow_deep_escalation=allow_deep_escalation,
         )
