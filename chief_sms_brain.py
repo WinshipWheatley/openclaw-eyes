@@ -27,7 +27,7 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import claude_call, claude_json
+from chief_llm import ollama_call, ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@ Draft the SMS message only, nothing else."""
 def _parse_sms_request(text: str) -> dict:
     # Try LLM first
     prompt = _PARSE_PROMPT.format(text=text)
-    parsed = claude_json(prompt, timeout=20)
+    parsed = ollama_json(prompt, timeout=20)
     if isinstance(parsed, dict) and parsed.get("topic"):
         return {
             "to_name":   (parsed.get("to_name") or "").strip() or None,
@@ -204,7 +204,7 @@ def _draft_sms(to_name: str, topic: str, context: str) -> str:
         topic=topic,
         context=context or "none",
     )
-    result = claude_call(prompt, timeout=20).strip()
+    result = ollama_call(prompt, timeout=20, lane="strong").strip()
     if not result:
         return f"Hi, this is Winship from Deep Pocket Records. {topic}. Please reply or call me back. Thanks."
     # Hard cap at 160 chars

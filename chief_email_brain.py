@@ -33,7 +33,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
-from chief_llm import claude_call, claude_json
+from chief_llm import ollama_call, ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -211,7 +211,7 @@ Plain text only. No markdown. Keep it concise."""
 def _parse_email_request(text: str) -> dict:
     # Try LLM first
     prompt = _PARSE_PROMPT.format(text=text)
-    parsed = claude_json(prompt, timeout=20)
+    parsed = ollama_json(prompt, timeout=20)
     if isinstance(parsed, dict) and parsed.get("topic"):
         return {
             "to_name":    (parsed.get("to_name") or "").strip() or None,
@@ -292,7 +292,7 @@ def _draft_email(to_name: str, topic: str, context: str, email_type: str) -> tup
         context=context or "none",
         email_type=email_type,
     )
-    raw = claude_call(prompt, timeout=30).strip()
+    raw = ollama_call(prompt, timeout=30, lane="strong").strip()
 
     if not raw:
         # Fallback draft
