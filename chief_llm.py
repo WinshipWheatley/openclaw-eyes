@@ -62,25 +62,54 @@ _LANE_CANDIDATES = {
 
 _TASK_CLASS_MODEL_CANDIDATES = {
     "cassandra_user_reply_fast": (
-        "gemma4:26b-a4b",
+        "gemma4:e4b",
         "gemma4:26b",
-        "qwen2.5-coder:7b",
         "gemma4:31b",
     ),
     "cassandra_user_reply": (
-        "gemma4:31b",
-        "gemma4:26b-a4b",
         "gemma4:26b",
+        "gemma4:31b",
     ),
     "cassandra_outbound_draft": (
         "gemma4:31b",
-        "gemma4:26b-a4b",
         "gemma4:26b",
     ),
     "cassandra_morning_brief": (
         "gemma4:31b",
-        "gemma4:26b-a4b",
         "gemma4:26b",
+    ),
+    "cassandra_inbox_summary": (
+        "gemma4:e4b",
+        "gemma4:26b",
+        "gemma4:31b",
+    ),
+    "cassandra_extract_classify": (
+        "gemma4:e4b",
+        "gemma4:26b",
+        "gemma4:31b",
+    ),
+    "chief_evidence_scan": (
+        "nemotron-3-nano:4b",
+        "nemotron-3-nano:30b",
+    ),
+    "chief_evidence_synthesis": (
+        "nemotron-3-nano:30b",
+        "mistral-small:latest",
+        "magistral:latest",
+    ),
+    "chief_structured_plan": (
+        "mistral-small:latest",
+        "magistral:latest",
+        "nemotron-3-nano:30b",
+    ),
+    "chief_ambiguous_debug": (
+        "magistral:latest",
+        "nemotron-3-nano:30b",
+        "mistral-small:latest",
+    ),
+    "chief_agentic_code": (
+        "qwen3.6:latest",
+        "mistral-small:latest",
     ),
 }
 
@@ -91,6 +120,11 @@ _TASK_CLASS_PREFERRED_LANES = {
     "cassandra_morning_brief": "strong",
     "cassandra_inbox_summary": "fast",
     "cassandra_extract_classify": "fast",
+    "chief_evidence_scan": "fast",
+    "chief_evidence_synthesis": "deep",
+    "chief_structured_plan": "strong",
+    "chief_ambiguous_debug": "deep",
+    "chief_agentic_code": "code_challenger",
 }
 
 _FAST_PROMPT_HINTS = frozenset({
@@ -288,15 +322,25 @@ def local_model_route_reason(
     task_class: str | None = None,
 ) -> str:
     if task_class == "cassandra_user_reply_fast":
-        return "cassandra easy conversational reply starts on the smaller gemma lane"
+        return "cassandra easy conversational reply stays in the smallest installed gemma 4 lane"
     if task_class == "cassandra_user_reply":
-        return "cassandra user-facing reply policy keeps this on the top gemma strong lane"
+        return "cassandra normal conversational reply policy uses gemma 4 26b before the top lane"
     if task_class == "cassandra_outbound_draft":
-        return "cassandra outbound draft policy keeps this on the default strong lane"
+        return "cassandra outbound draft policy uses the top gemma 4 lane"
     if task_class == "cassandra_morning_brief":
-        return "cassandra morning briefing policy keeps this on gemma strong with gemma 26b fallback"
+        return "cassandra morning briefing policy uses the top gemma 4 lane with gemma 26b fallback"
     if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
-        return "cassandra bounded hidden task uses fast-lane policy"
+        return "cassandra bounded hidden task uses the smallest installed gemma 4 lane"
+    if task_class == "chief_evidence_scan":
+        return "chief bounded evidence scan uses the small nemotron lane"
+    if task_class == "chief_evidence_synthesis":
+        return "chief heavy evidence synthesis uses nemotron 30b"
+    if task_class == "chief_structured_plan":
+        return "chief structured planning uses mistral small"
+    if task_class == "chief_ambiguous_debug":
+        return "chief ambiguous debugging uses magistral"
+    if task_class == "chief_agentic_code":
+        return "chief agentic code work uses qwen 3.6"
     if lane == "fast":
         return "fast-lane policy for bounded extract/classify work"
     if lane == "deep":
@@ -375,7 +419,15 @@ def ollama_call(
 
 
 def claude_call(prompt: str, timeout: int = 30, retries: int = 3) -> str:
-    """Call Claude via CLI (Pro sub). Returns '' on any error."""
+    """Call Claude via CLI (Pro sub). Returns '' on any error.
+
+    Policy: blocked by default. Only allowed when the explicit manual override
+    environment variable OPENCLAW_ALLOW_CLAUDE_MANUAL is truthy.
+    """
+    manual_ok = os.environ.get("OPENCLAW_ALLOW_CLAUDE_MANUAL", "").strip().lower() in {"1", "true", "yes"}
+    if not manual_ok:
+        print("[chief_llm] claude_call blocked by policy", flush=True)
+        return ""
     import subprocess as _subprocess
     _pw = len(prompt.split())
     retries = max(1, int(retries))
