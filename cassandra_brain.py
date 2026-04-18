@@ -1799,7 +1799,11 @@ def _extract_event_details(text: str) -> dict | None:
         f"- Return JSON only, no other text"
     )
     try:
-        data = claude_json(prompt)
+        data = _call_hidden_extract_classify_json(prompt, validation_label="calendar_event_details")
+        if not data or not isinstance(data, dict):
+            data = claude_json(prompt)
+        elif not data.get("title") or not data.get("date") or not data.get("start_time"):
+            data = claude_json(prompt)
         if not data or not isinstance(data, dict):
             return None
         # Require title, date, start_time — duration_minutes has a default
@@ -5044,6 +5048,89 @@ def _call(
     print(f"[cassandra] escalating {task_class} from {lane} to {deep_lane}", flush=True)
     result = ollama_call(prompt, timeout=90, model=deep_model)
     return result
+
+
+def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) -> dict | None:
+    model, lane = resolve_local_model(prompt, task_class="cassandra_extract_classify")
+    _log_model_route(
+        task_class="cassandra_extract_classify",
+        preferred_lane=lane,
+        chosen_lane=lane,
+        reason=f"policy route via shared local router for {validation_label}",
+        escalation=False,
+        validation_outcome=None,
+        model=model,
+    )
+    raw = ollama_call(prompt, timeout=20, model=model)
+    if not raw:
+        _log_model_route(
+            task_class="cassandra_extract_classify",
+            preferred_lane=lane,
+            chosen_lane=lane,
+            reason=f"local extract/classify empty for {validation_label}",
+            escalation=False,
+            validation_outcome="empty_response",
+            model=model,
+        )
+        return None
+
+    text = raw.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        inner = lines[1:-1] if lines and lines[-1].strip() == "```" else lines[1:]
+        text = "\n".join(inner)
+
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+        if not match:
+            _log_model_route(
+                task_class="cassandra_extract_classify",
+                preferred_lane=lane,
+                chosen_lane=lane,
+                reason=f"local extract/classify parse failed for {validation_label}",
+                escalation=False,
+                validation_outcome="parse_failed",
+                model=model,
+            )
+            return None
+        try:
+            parsed = json.loads(match.group(1))
+        except Exception:
+            _log_model_route(
+                task_class="cassandra_extract_classify",
+                preferred_lane=lane,
+                chosen_lane=lane,
+                reason=f"local extract/classify parse failed for {validation_label}",
+                escalation=False,
+                validation_outcome="parse_failed",
+                model=model,
+            )
+            return None
+
+    if not isinstance(parsed, dict):
+        _log_model_route(
+            task_class="cassandra_extract_classify",
+            preferred_lane=lane,
+            chosen_lane=lane,
+            reason=f"local extract/classify returned non-dict for {validation_label}",
+            escalation=False,
+            validation_outcome="shape_invalid",
+            model=model,
+        )
+        return None
+
+    _log_model_route(
+        task_class="cassandra_extract_classify",
+        preferred_lane=lane,
+        chosen_lane=lane,
+        reason=f"local extract/classify succeeded for {validation_label}",
+        escalation=False,
+        validation_outcome="ok",
+        model=model,
+    )
+    return parsed
 
 
 # ── Main handler ──────────────────────────────────────────────────────────────
