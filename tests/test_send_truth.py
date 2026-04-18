@@ -382,6 +382,184 @@ class TestRecipientFirstEmailHandling:
         assert broker_calls[0]["to"] == expected_email
 
 
+class TestCalendarDeleteRouting:
+    def test_extract_calendar_delete_details_for_exact_request_shape(self):
+        import cassandra_brain
+
+        parsed = cassandra_brain._extract_calendar_delete_details(
+            "Cassandra, remove the two Doctor Appointment events tomorrow at 2:30 PM from my calendar."
+        )
+
+        assert parsed is not None
+        assert parsed["title"] == "Doctor Appointment"
+        assert parsed["start_time"] == "14:30"
+        assert parsed["max_matches"] == 2
+
+    def test_handle_calendar_delete_calls_brokered_delete(self, monkeypatch):
+        import cassandra_brain
+
+        captured = {}
+
+        def fake_broker(agent, capability, params):
+            captured["agent"] = agent
+            captured["capability"] = capability
+            captured["params"] = params
+            return {
+                "ok": True,
+                "data": {
+                    "deleted_count": 2,
+                    "events": [{"event_id": "evt-1"}, {"event_id": "evt-2"}],
+                },
+                "error": "",
+            }
+
+        monkeypatch.setattr(cassandra_brain, "broker_call", fake_broker, raising=False)
+
+        reply = cassandra_brain._handle_calendar_delete(
+            "Cassandra, remove the two Doctor Appointment events tomorrow at 2:30 PM from my calendar."
+        )
+
+        assert captured["agent"] == "cassandra"
+        assert captured["capability"] == "google.calendar.delete"
+        assert captured["params"]["title"] == "Doctor Appointment"
+        assert captured["params"]["max_matches"] == 2
+        assert 'Removed 2 "Doctor Appointment" events' in reply
+
+    def test_handle_routes_exact_delete_request_to_calendar_delete(self, monkeypatch):
+        import cassandra_brain
+
+        logged = []
+
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda s: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_toggle", lambda text: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_payments_command", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_session_fact_correction", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_strip_prefix", lambda text: text.replace("Cassandra, ", ""), raising=False)
+        monkeypatch.setattr(cassandra_brain, "_update_cues", lambda state, query: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_remember_finance_entity", lambda query, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_find_designated_contact", lambda **kwargs: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_handle_income_followup", lambda query, pending, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_lookup_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_financial_intent", lambda query: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_future_action_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_outreach_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_send_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_invoice_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_get_session_fact_override", lambda query, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_finance_status_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state: "context", raising=False)
+        monkeypatch.setattr(cassandra_brain, "capability_context", lambda: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "format_finance_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_reality_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_session_fact_override_context", lambda query, state: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_cassandra_context_clean", lambda *args, **kwargs: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, {}), raising=False)
+        monkeypatch.setattr(cassandra_brain, "_call", lambda *args, **kwargs: "unexpected llm reply", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_rescue_payment_verify_reply", lambda query, reply: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "gate_reply", lambda reply, query, has_registry_context=False: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "tts_clean", lambda reply: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_capability_gaps", lambda query, reply: [], raising=False)
+        monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_use_small_cassandra_reply_model", lambda query: False, raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_handle_calendar_delete",
+            lambda query: 'Done. Removed 2 "Doctor Appointment" events on Sunday April 19 at 2:30 PM.',
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_conversation",
+            lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}),
+            raising=False,
+        )
+
+        replies = cassandra_brain.handle(
+            "Cassandra, remove the two Doctor Appointment events tomorrow at 2:30 PM from my calendar."
+        )
+
+        assert replies == ['Done. Removed 2 "Doctor Appointment" events on Sunday April 19 at 2:30 PM.']
+        assert logged[-1]["route"] == "calendar_delete"
+
+    def test_calendar_delete_broker_executor_removes_matching_events(self, monkeypatch):
+        import sys
+        import types
+        import google_access_broker as broker
+
+        deleted = []
+
+        class _FakeDeleteCall:
+            def __init__(self, calendar_id, event_id):
+                self.calendar_id = calendar_id
+                self.event_id = event_id
+
+            def execute(self):
+                deleted.append((self.calendar_id, self.event_id))
+                return {}
+
+        class _FakeListCall:
+            def __init__(self, calendar_id):
+                self.calendar_id = calendar_id
+
+            def execute(self):
+                return {
+                    "items": [
+                        {
+                            "id": f"{self.calendar_id}-match-1",
+                            "summary": "Doctor Appointment",
+                            "start": {"dateTime": "2026-04-19T14:30:00-04:00"},
+                        },
+                        {
+                            "id": f"{self.calendar_id}-miss",
+                            "summary": "Other Event",
+                            "start": {"dateTime": "2026-04-19T14:30:00-04:00"},
+                        },
+                        {
+                            "id": f"{self.calendar_id}-match-2",
+                            "summary": "Doctor Appointment",
+                            "start": {"dateTime": "2026-04-19T14:30:00-04:00"},
+                        },
+                    ]
+                }
+
+        class _FakeEvents:
+            def list(self, **kwargs):
+                return _FakeListCall(kwargs["calendarId"])
+
+            def delete(self, **kwargs):
+                return _FakeDeleteCall(kwargs["calendarId"], kwargs["eventId"])
+
+        class _FakeService:
+            def events(self):
+                return _FakeEvents()
+
+        fake_discovery = types.SimpleNamespace(build=lambda *args, **kwargs: _FakeService())
+        monkeypatch.setitem(sys.modules, "googleapiclient.discovery", fake_discovery)
+
+        result = broker._exec_calendar_delete(
+            creds=object(),
+            params={
+                "title": "Doctor Appointment",
+                "start_iso": "2026-04-19T14:30:00",
+                "max_matches": 2,
+            },
+        )
+
+        assert result["ok"] is True
+        assert result["data"]["deleted_count"] == 2
+        assert len(deleted) == 2
+
+
 class TestOutboundContactResolutionHardening:
     def _call(self, monkeypatch, tmp_path, *, text: str, nicknames: dict):
         import cassandra_brain

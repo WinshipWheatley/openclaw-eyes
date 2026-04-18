@@ -46,7 +46,7 @@ Public API:
 
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -60,6 +60,11 @@ _TOKEN_FILE  = _SECRETS_DIR / "token.json"
 # ── Audit log ─────────────────────────────────────────────────────────────────
 
 _AUDIT_LOG = Path("/mnt/c/OpenClaw/logs/google_access_audit.jsonl")
+
+_CALENDAR_ALLOWLIST = [
+    "primary",
+    "4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com",
+]
 
 
 # ── Active OAuth scope bundle ─────────────────────────────────────────────────
@@ -165,10 +170,6 @@ def _exec_calendar_read(creds, params: dict) -> dict:
       - "primary"       → Schedule (winshiplive@gmail.com)
       - Winship Availability → 4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com
     """
-    _CALENDAR_ALLOWLIST = [
-        "primary",
-        "4hra0c8ektf0l3jqirb7aim018@group.calendar.google.com",
-    ]
     days_ahead = params.get("days_ahead", 7)
     try:
         from googleapiclient.discovery import build
@@ -247,6 +248,107 @@ def _exec_calendar_write(creds, params: dict) -> dict:
                 "event_id": created.get("id", ""),
                 "link":     created.get("htmlLink", ""),
                 "title":    created.get("summary", title),
+            },
+            "error": "",
+        }
+    except Exception as e:
+        return {"ok": False, "data": None, "error": str(e)}
+
+
+def _exec_calendar_delete(creds, params: dict) -> dict:
+    """
+    Delete matching calendar events via Google Calendar API.
+
+    Required params:
+        title       : str  — exact event summary/title
+        start_iso   : str  — local event start in YYYY-MM-DDTHH:MM:SS
+
+    Optional params:
+        max_matches : int  — maximum number of matching events to delete
+    """
+    title = str(params.get("title", "")).strip()
+    start_iso = str(params.get("start_iso", "")).strip()
+    max_matches = max(1, int(params.get("max_matches", 1)))
+
+    if not title or not start_iso:
+        return {"ok": False, "data": None, "error": "title and start_iso are required"}
+
+    try:
+        target_dt = datetime.strptime(start_iso, "%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        return {"ok": False, "data": None, "error": "start_iso must be YYYY-MM-DDTHH:MM:SS"}
+
+    try:
+        from googleapiclient.discovery import build
+
+        service = build("calendar", "v3", credentials=creds)
+        time_min = target_dt.replace(hour=0, minute=0, second=0).isoformat()
+        time_max = (target_dt.replace(hour=0, minute=0, second=0) + timedelta(days=1)).isoformat()
+
+        matches: list[dict] = []
+        for cal_id in _CALENDAR_ALLOWLIST:
+            try:
+                result = service.events().list(
+                    calendarId=cal_id,
+                    timeMin=time_min,
+                    timeMax=time_max,
+                    singleEvents=True,
+                    orderBy="startTime",
+                    maxResults=100,
+                ).execute()
+            except Exception as cal_err:
+                print(f"[google_broker] calendar {cal_id} skipped during delete lookup: {cal_err}", flush=True)
+                continue
+
+            for item in result.get("items", []):
+                start = item.get("start", {})
+                event_start = start.get("dateTime") or ""
+                if not event_start:
+                    continue
+                try:
+                    event_dt = datetime.fromisoformat(event_start)
+                except Exception:
+                    continue
+                if item.get("summary", "").strip() != title:
+                    continue
+                if (
+                    event_dt.year,
+                    event_dt.month,
+                    event_dt.day,
+                    event_dt.hour,
+                    event_dt.minute,
+                ) != (
+                    target_dt.year,
+                    target_dt.month,
+                    target_dt.day,
+                    target_dt.hour,
+                    target_dt.minute,
+                ):
+                    continue
+                matches.append(
+                    {
+                        "calendar_id": cal_id,
+                        "event_id": item.get("id", ""),
+                        "title": item.get("summary", title),
+                        "start": event_start,
+                    }
+                )
+
+        if not matches:
+            return {"ok": False, "data": None, "error": "no matching events found"}
+
+        matches = matches[:max_matches]
+        for match in matches:
+            service.events().delete(
+                calendarId=match["calendar_id"],
+                eventId=match["event_id"],
+            ).execute()
+
+        return {
+            "ok": True,
+            "data": {
+                "deleted_count": len(matches),
+                "events": matches,
             },
             "error": "",
         }
@@ -709,6 +811,8 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         result = _exec_calendar_read(creds, params)
     elif capability == "google.calendar.write":
         result = _exec_calendar_write(creds, params)
+    elif capability == "google.calendar.delete":
+        result = _exec_calendar_delete(creds, params)
     elif capability == "google.gmail.read.metadata":
         result = _exec_gmail_read_metadata(creds, params)
     elif capability == "google.gmail.read.body":

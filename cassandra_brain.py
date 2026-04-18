@@ -1779,6 +1779,59 @@ def _detect_calendar_create_intent(text: str) -> bool:
     return re.search(r"\bput\b.{0,120}\bon my calendar\b", t, re.DOTALL) is not None
 
 
+def _detect_calendar_delete_intent(text: str) -> bool:
+    """True if the query looks like a request to delete calendar events."""
+    t = " ".join(text.lower().split())
+    if "calendar" not in t:
+        return False
+    if "remove" not in t and "delete" not in t:
+        return False
+    return re.search(r"\b(remove|delete)\b.{0,140}\bfrom my calendar\b", t, re.DOTALL) is not None
+
+
+def _extract_calendar_delete_details(text: str) -> dict | None:
+    from datetime import date, timedelta
+
+    normalized = " ".join(text.strip().split())
+    direct_match = re.search(
+        r"^\s*(?:cassandra,\s*)?(?:remove|delete)\s+(?:the\s+)?(?:(?P<count_word>one|two|\d+)\s+)?"
+        r"(?P<title>.+?)\s+events?\s+(?P<day>tomorrow|today)\s+at\s+"
+        r"(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?\s*(?P<ampm>am|pm)\s+from\s+my\s+calendar\.?\s*$",
+        normalized,
+        re.IGNORECASE,
+    )
+    if not direct_match:
+        return None
+
+    count_raw = (direct_match.group("count_word") or "1").lower()
+    count_map = {"one": 1, "two": 2}
+    max_matches = count_map.get(count_raw, None)
+    if max_matches is None:
+        try:
+            max_matches = max(1, int(count_raw))
+        except Exception:
+            max_matches = 1
+
+    hour = int(direct_match.group("hour"))
+    minute = int(direct_match.group("minute") or "0")
+    ampm = direct_match.group("ampm").lower()
+    if ampm == "pm" and hour != 12:
+        hour += 12
+    if ampm == "am" and hour == 12:
+        hour = 0
+
+    event_date = date.today()
+    if direct_match.group("day").lower() == "tomorrow":
+        event_date = event_date + timedelta(days=1)
+
+    return {
+        "title": direct_match.group("title").strip(" ."),
+        "date": event_date.strftime("%Y-%m-%d"),
+        "start_time": f"{hour:02d}:{minute:02d}",
+        "max_matches": max_matches,
+    }
+
+
 def _extract_event_details(text: str) -> dict | None:
     """
     Use an LLM to extract structured event details from natural language.
@@ -3410,6 +3463,49 @@ def _handle_calendar_create(text: str) -> str | None:
         if "denied" in err.lower():
             return "Calendar write was denied at the approval gate."
         return f"Couldn't create the event: {err}"
+
+
+def _handle_calendar_delete(text: str) -> str | None:
+    """
+    Extract delete details from text and delete matching Google Calendar events via broker.
+    Returns a reply string on success or clear failure, None if extraction failed.
+    """
+    details = _extract_calendar_delete_details(text)
+    if details is None:
+        return None
+
+    title = details["title"]
+    start_iso = f"{details['date']}T{details['start_time']}:00"
+    max_matches = int(details.get("max_matches", 1))
+
+    try:
+        result = broker_call(
+            "cassandra",
+            "google.calendar.delete",
+            {
+                "title": title,
+                "start_iso": start_iso,
+                "max_matches": max_matches,
+            },
+        )
+    except Exception as e:
+        print(f"[cassandra] broker call error: {e}", flush=True)
+        return "Couldn't reach the calendar broker. Try again in a moment."
+
+    if result.get("ok"):
+        from datetime import datetime
+        start_dt_obj = datetime.strptime(start_iso, "%Y-%m-%dT%H:%M:%S")
+        display_time = start_dt_obj.strftime("%A %B %-d at %-I:%M %p")
+        deleted_count = int(result.get("data", {}).get("deleted_count", 0))
+        event_word = "event" if deleted_count == 1 else "events"
+        return f'Done. Removed {deleted_count} "{title}" {event_word} on {display_time}.'
+
+    err = result.get("error", "unknown error")
+    if "denied" in err.lower():
+        return "Calendar delete was denied at the approval gate."
+    if "no matching events found" in err.lower():
+        return f'I could not find any "{title}" events on the calendar at that time.'
+    return f"Couldn't delete the event: {err}"
 
 
 # ── Inner-circle email reply bridge ──────────────────────────────────────────
@@ -5380,6 +5476,15 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, [future_reply], route="future_action")
             return [future_reply]
     # fall through to LLM if enqueue returned None
+
+    # Calendar delete routing — bypass LLM for event deletion
+    if _detect_calendar_delete_intent(query):
+        cal_delete_reply = _handle_calendar_delete(query)
+        if cal_delete_reply is not None:
+            save_state(state)
+            _log_conversation(text, [cal_delete_reply], route="calendar_delete")
+            return [cal_delete_reply]
+    # fall through to LLM if extraction failed or unclear
 
     # Calendar create routing — bypass LLM for event creation
     if _detect_calendar_create_intent(query):
