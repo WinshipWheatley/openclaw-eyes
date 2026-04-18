@@ -106,6 +106,25 @@ def _latest_listener_error_line() -> str:
     return ""
 
 
+def _latest_calendar_delete_gap(summary: str) -> str:
+    lowered = summary.lower()
+    if "calendar" not in lowered:
+        return ""
+    if not any(token in lowered for token in ("remove", "delete")):
+        return ""
+
+    for entry in reversed(_load_recent_jsonl(_CASSANDRA_CONVO_LOG, limit=400)):
+        if _request_summary(entry.get("user", "")) != summary:
+            continue
+        if entry.get("route") == "llm":
+            return (
+                "Latest Cassandra evidence shows this calendar-delete request fell through "
+                "to the generic LLM path. Cassandra has brokered calendar read and create "
+                "lanes, but no wired calendar-delete capability for this request shape."
+            )
+    return ""
+
+
 def _latest_timestamped_runtime_evidence(summary: str, within_minutes: int = 10) -> str:
     cutoff = datetime.now() - timedelta(minutes=within_minutes)
     lowered = summary.lower()
@@ -216,6 +235,17 @@ def _build_report(summary: str) -> str:
             f"Exact next step: {next_step}"
         )
 
+    delete_gap = _latest_calendar_delete_gap(summary)
+    if delete_gap:
+        return (
+            f"Chief investigated Cassandra's failure for: {summary}\n\n"
+            f"Outcome: Cassandra cannot do this because it is outside her lane / permission / scope\n"
+            f"What failed: Cassandra did not execute the requested calendar deletion.\n"
+            f"Where it failed: The request never entered a brokered calendar-delete path.\n"
+            f"Likely cause: {delete_gap}\n"
+            f"Exact next step: Winship must delete the events manually or add a real calendar-delete capability before Cassandra can do this."
+        )
+
     runtime_evidence = _latest_timestamped_runtime_evidence(summary)
     error_line = _latest_listener_error_line()
     task_name = _queue_failure_task(summary)
@@ -244,5 +274,5 @@ def _build_report(summary: str) -> str:
 def investigate_cassandra_timeout(user_text: str, session_meta: dict | None = None) -> None:
     del session_meta  # reserved for future narrowing without changing the call surface
     summary = _request_summary(user_text)
-    notify_chief(f"Chief is working on Cassandra's failure for: {summary}")
-    notify_chief(_build_report(summary))
+    notify_chief(f"Chief is working on Cassandra's failure for: {summary}", parse_mode=None)
+    notify_chief(_build_report(summary), parse_mode=None)

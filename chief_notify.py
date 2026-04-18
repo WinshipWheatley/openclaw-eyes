@@ -11,7 +11,7 @@ import os
 import urllib.request
 
 
-def send(text: str, reply_markup: dict | None = None) -> None:
+def send(text: str, reply_markup: dict | None = None, parse_mode: str | None = "Markdown") -> None:
     """Send a Telegram message to the authorized user. Silent on failure."""
     token   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     user_id = os.environ.get("TELEGRAM_AUTHORIZED_USER_ID", "")
@@ -21,8 +21,9 @@ def send(text: str, reply_markup: dict | None = None) -> None:
     payload: dict = {
         "chat_id":    int(user_id),
         "text":       text,
-        "parse_mode": "Markdown",
     }
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     if reply_markup is not None:
         payload["reply_markup"] = reply_markup
     encoded = json.dumps(payload).encode()
