@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-from chief_llm import claude_call as ollama_call
+from chief_llm import ollama_call
 
 try:
     import requests
@@ -231,7 +231,11 @@ def _brand_analysis(results: list[PageResult]) -> str:
             summaries.append(f"  {icon} {name}: {detail}")
     summaries_text = "\n".join(summaries)
 
-    result = ollama_call(_BRAND_PROMPT.format(page_summaries=summaries_text), timeout=30)
+    result = ollama_call(
+        _BRAND_PROMPT.format(page_summaries=summaries_text),
+        timeout=30,
+        task_class="chief_evidence_synthesis",
+    )
     return result or "Brand analysis unavailable — check Claude API."
 
 

@@ -176,7 +176,7 @@ def _build_brief(title: str, row: dict) -> str:
         vocal=_vocal_context(row) or "not specified",
         batch_days=row.get("batch_days", "").strip() or "not planned",
     )
-    result = ollama_call(prompt, timeout=30).strip()
+    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     return result if result else ""
 
 

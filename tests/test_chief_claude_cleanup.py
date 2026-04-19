@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 
 import chief_analytics_brain
+import chief_album_mixer
 import chief_brand_brain
 import chief_content_brain
 import chief_cpa_brain
@@ -9,9 +10,12 @@ import chief_email_brain
 import chief_goals_brain
 import chief_momentum_brain
 import chief_queue_brain
+import chief_reporter_brain
+import chief_scout_brain
 import chief_sms_brain
 import chief_trinity_brain
 import chief_website_coordinator
+import chief_website_qa
 
 
 def test_analytics_narrative_uses_local_ollama(monkeypatch):
@@ -142,6 +146,140 @@ def test_momentum_narrative_uses_local_ollama(monkeypatch):
     result = chief_momentum_brain._build_narrative("momentum body")
     assert result == "momentum summary"
     assert calls == [{"prompt": chief_momentum_brain._NARRATIVE_PROMPT.format(report="momentum body"), "timeout": 30, "lane": "strong"}]
+
+
+def test_reporter_format_uses_chief_evidence_synthesis(monkeypatch):
+    calls = []
+    stats = {
+        "date": "2026-04-18",
+        "messages_today": 3,
+        "queued_today": 1,
+        "queued_total": 4,
+        "logged_today": 2,
+        "state_updates": 5,
+        "listener_errors": False,
+        "billing_completions": 0,
+        "watcher_alert_count": 1,
+        "watcher_alert_samples": ["calendar wait"],
+    }
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Daily report."
+
+    monkeypatch.setattr(chief_reporter_brain, "ollama_call", fake_ollama)
+    result = chief_reporter_brain.format_report(stats)
+    assert result == "Daily report."
+    assert calls == [{
+        "prompt": chief_reporter_brain._FORMAT_PROMPT.format(
+            date="2026-04-18",
+            messages_today=3,
+            queued_today=1,
+            queued_total=4,
+            logged_today=2,
+            state_updates=5,
+            listener_errors="None",
+            billing_completions=0,
+            watcher_alert_count=1,
+            watcher_alert_samples="calendar wait",
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_evidence_synthesis",
+    }]
+
+
+def test_scout_synthesis_uses_chief_structured_plan_json(monkeypatch):
+    calls = []
+    findings = [{
+        "name": "Local Music Tool",
+        "category": "ai-music",
+        "summary": "A local music workflow helper.",
+        "why_it_matters": "It could help the studio workflow.",
+        "status": "ready_now",
+        "url": "",
+    }]
+
+    def fake_ollama_json(prompt, timeout=0, task_class=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "task_class": task_class})
+        return findings
+
+    monkeypatch.setattr(chief_scout_brain, "ollama_json", fake_ollama_json)
+    result = chief_scout_brain._synthesize([], live_search=False)
+    assert result == findings
+    assert calls == [{
+        "prompt": chief_scout_brain._SYNTHESIS_PROMPT.format(
+            stack=chief_scout_brain._STACK_FLAT,
+            results="(no live results — use training knowledge)",
+            rejected=chief_scout_brain._REJECTED_CONTEXT,
+        ),
+        "timeout": 60,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_website_qa_brand_analysis_uses_chief_evidence_synthesis(monkeypatch):
+    calls = []
+    page = chief_website_qa.PageResult("https://deeppocketrecords.com")
+    page.add("HTTP status", True, "HTTP 200")
+    page.add("Meta description", False, "MISSING")
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "BRAND CHECK: good.\nNEXT ACTIONS: fix metadata."
+
+    monkeypatch.setattr(chief_website_qa, "ollama_call", fake_ollama)
+    result = chief_website_qa._brand_analysis([page])
+    assert "BRAND CHECK" in result
+    assert calls == [{
+        "prompt": chief_website_qa._BRAND_PROMPT.format(
+            page_summaries=(
+                "URL: https://deeppocketrecords.com — 1 passed / 1 failed\n"
+                "  ✓ HTTP status: HTTP 200\n"
+                "  ✗ Meta description: MISSING"
+            ),
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_evidence_synthesis",
+    }]
+
+
+def test_album_mixer_brief_uses_chief_structured_plan(monkeypatch):
+    calls = []
+    row = {
+        "completion_pct": "80",
+        "status": "in-progress",
+        "vocals_pass": "done",
+        "drums_pass": "needs polish",
+        "completion_blocker": "drums are crowded",
+        "vocal_archetype_primary": "warm lead",
+        "vocal_archetype_influences": "classic soul",
+        "batch_days": "Saturday",
+    }
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Start with the drums."
+
+    monkeypatch.setattr(chief_album_mixer, "ollama_call", fake_ollama)
+    result = chief_album_mixer._build_brief("Blue Weather", row)
+    assert result == "Start with the drums."
+    assert calls == [{
+        "prompt": chief_album_mixer._MIX_PROMPT.format(
+            title="Blue Weather",
+            pct="80",
+            status="in-progress",
+            passes="Vocals",
+            gaps="Drums",
+            blocker="drums are crowded",
+            vocal="Vocal archetype: warm lead | Influences: classic soul",
+            batch_days="Saturday",
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
 
 
 def test_email_parse_uses_local_ollama_json(monkeypatch):
