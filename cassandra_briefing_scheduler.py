@@ -124,7 +124,7 @@ def _tick() -> None:
         print(f"[briefing_scheduler] generating {slot} briefing …", flush=True)
         try:
             text   = generate_briefing(slot)
-            reason = protected_reason()
+            reason = protected_reason(slot=slot)
             entry  = save_briefing(slot, text, pending_reason=reason)
 
             if reason:
@@ -139,8 +139,9 @@ def _tick() -> None:
             print(f"[briefing_scheduler] error generating {slot}: {e}", flush=True)
 
     # 2. Deliver any stale pending briefings now that the window may be clear
-    if not is_protected_window():
-        for entry in pending_briefings():
+    for entry in pending_briefings():
+        slot = entry.get("slot")
+        if not is_protected_window(slot=slot):
             # A pending briefing was written under a protected reason.
             # Regenerate now so stale "paused/waiting" language is not delivered late.
             if entry.get("pending_reason"):

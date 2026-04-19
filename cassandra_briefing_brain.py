@@ -83,8 +83,9 @@ SLOTS = {
         "Generate the morning delivery from CHIEF MORNING SYNTHESIS only.\n"
         "Return EXACTLY a JSON array of objects, with NO markdown formatting or fences.\n"
         "Each object must have 'header' (short label) and 'body' (short human-readable text).\n"
-        "Required headers in order: 'Priorities', 'Watchlist', 'Directive'.\n"
-        "Optional headers (include only if relevant data exists): 'Money / follow-ups', 'Schedule / conditions'.\n"
+        "Required headers: 'Priorities', 'Watchlist', 'Directive'.\n"
+        "Optional headers: 'Money / follow-ups', 'Schedule / conditions'.\n"
+        "Return the headers in this exact order: Priorities, Watchlist, Money / follow-ups, Schedule / conditions, Directive.\n"
         "Keep each body very concise and conversational."
     ),
     "afternoon": (
@@ -145,7 +146,7 @@ def _approval_pending_active() -> bool:
     return True
 
 
-def protected_reason() -> str | None:
+def protected_reason(slot: str | None = None) -> str | None:
     """
     Return a short reason string if a protected window is active, else None.
     Reads state files directly — no imports from session/approval/router.
@@ -173,11 +174,16 @@ def protected_reason() -> str | None:
     if _approval_pending_active():
         return "approval_pending"
 
+    if slot == "morning":
+        from cassandra_briefing_morning_policy import is_too_early_for_morning_delivery
+        if is_too_early_for_morning_delivery():
+            return "morning_too_early"
+
     return None
 
 
-def is_protected_window() -> bool:
-    return protected_reason() is not None
+def is_protected_window(slot: str | None = None) -> bool:
+    return protected_reason(slot=slot) is not None
 
 
 # ── Archive helpers ───────────────────────────────────────────────────────────
@@ -301,7 +307,7 @@ def _morning_task_config() -> tuple[str, str]:
     return resolve_morning_model_lane()
 
 
-def _file_freshness_note(path: Path, stale_after_seconds: int = 24 * 60 * 60) -> str:
+def _file_freshness_note(path: Path, stale_after_seconds: int = 12 * 60 * 60) -> str:
     if not path.exists():
         return "missing: source file not found"
     try:
@@ -890,6 +896,7 @@ def generate_briefing(slot: str) -> str:
         morning_reference = _build_morning_context_from_synthesis()
         
         # Staleness/availability check
+        # Synthesis should be fresh within 12 hours for a morning run.
         if not morning_reference.get("available") or "stale" in morning_reference.get("freshness", "").lower():
             text = (
                 "Chief Morning Synthesis is missing or stale, so I do not have a "
@@ -918,6 +925,9 @@ def generate_briefing(slot: str) -> str:
         import json
         data = ollama_json(prompt, timeout=180, task_class=task_class)
         if data and isinstance(data, list):
+            # Sort the chunks here according to policy order
+            from cassandra_briefing_morning_policy import sort_morning_chunks
+            data = sort_morning_chunks(data)
             text = json.dumps(data)
             if morning_reference is not None:
                 _write_morning_reference_cache(morning_reference, text)

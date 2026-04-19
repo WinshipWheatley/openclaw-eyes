@@ -25,7 +25,7 @@ SOURCE_MODULE = "chief_morning_synthesis.py"
 
 MAX_SOURCE_CHARS = 6_000
 MAX_LINE_CHARS = 220
-FRESH_AFTER_HOURS = 24
+FRESH_AFTER_HOURS = 12
 
 
 @dataclass(frozen=True)

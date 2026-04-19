@@ -14,6 +14,16 @@ ADAPTIVE_DOWNGRADE_TIME = time(7, 45)
 DETERMINISTIC_FALLBACK_TIME = time(8, 15)
 EMERGENCY_OVERFLOW_TIME = time(8, 30)
 
+# ── Chunk Ordering ────────────────────────────────────────────────────────────
+
+MORNING_CHUNK_ORDER = [
+    "Priorities",
+    "Watchlist",
+    "Money / follow-ups",
+    "Schedule / conditions",
+    "Directive"
+]
+
 # ── Model Selection ────────────────────────────────────────────────────────────
 
 def resolve_morning_model_lane(current_dt: datetime | None = None) -> tuple[str, str]:
@@ -44,3 +54,25 @@ def is_within_morning_window(current_dt: datetime | None = None) -> bool:
     current_time = now.time()
     # 5:00 AM to 8:30 AM
     return time(5, 0) <= current_time <= EMERGENCY_OVERFLOW_TIME
+
+def is_too_early_for_morning_delivery(current_dt: datetime | None = None) -> bool:
+    """
+    Returns True if it is currently before the TARGET_DELIVERY_TIME (08:00).
+    Used to keep the morning brief in 'pending' state even if generated at 05:00.
+    """
+    now = current_dt or datetime.now()
+    # If it's before 5 AM, it's also "early" but technically outside the morning window.
+    # We only care about the gap between 5 AM and 8 AM.
+    current_time = now.time()
+    if current_time < TARGET_DELIVERY_TIME:
+        return True
+    return False
+
+def sort_morning_chunks(chunks: list[dict]) -> list[dict]:
+    """
+    Sort a list of chunk dicts [{"header": "...", "body": "..."}] 
+    according to MORNING_CHUNK_ORDER.
+    """
+    order_map = {header: i for i, header in enumerate(MORNING_CHUNK_ORDER)}
+    # Use float('inf') for unknown headers so they go to the end
+    return sorted(chunks, key=lambda c: order_map.get(c.get("header"), 99))
