@@ -125,10 +125,9 @@ DOMAIN_MAP = {
         "members": [
             "chief_focus_shield.py",
             "chief_approval_bridge.py",
-            None,
+            "chief_focus_reporter.py",
         ],
-        "description": "Work block interruption gating, multi-choice Telegram approval bridge",
-        "proposed_third": "chief_focus_reporter.py — end-of-day digest of held/approved items",
+        "description": "Work block interruption gating, multi-choice Telegram approval bridge, end-of-day focus/approval digest",
     },
 }
 
@@ -246,8 +245,31 @@ Be concise and direct. No bullet points. No markdown headers."""
 
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
-    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
-    return result if result else "(narrative unavailable)"
+    try:
+        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+    except Exception:
+        result = ""
+    return result if result else _fallback_narrative(report)
+
+
+def _fallback_narrative(report: str) -> str:
+    """Deterministic summary for audit runs when local narrative generation is unavailable."""
+    complete_line = "Domains complete: unknown"
+    gaps = []
+    for line in report.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Domains complete:"):
+            complete_line = stripped
+        elif stripped.startswith(("⚠ ", "✗ ")):
+            gaps.append(stripped.split(" (", 1)[0].lstrip("⚠✗ ").strip())
+
+    if gaps:
+        gap_text = ", ".join(gaps)
+        return (
+            f"{complete_line}. Remaining Trinity gaps: {gap_text}. "
+            "Prioritize the incomplete domains that affect operator visibility or approval flow first."
+        )
+    return f"{complete_line}. All tracked Trinity domains are complete; keep monitoring for drift."
 
 
 # ── Integration brain bridge ───────────────────────────────────────────────────

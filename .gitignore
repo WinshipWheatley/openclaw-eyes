@@ -106,6 +106,7 @@
 !chief_brainstorm_router.py
 !chief_brainstorm_watcher.py
 !chief_focus_shield.py
+!chief_focus_reporter.py
 !chief_approval_bridge.py
 !chief_nli.py
 !chief_album_batch.py

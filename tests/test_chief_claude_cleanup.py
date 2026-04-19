@@ -7,6 +7,7 @@ import chief_brand_brain
 import chief_content_brain
 import chief_cpa_brain
 import chief_email_brain
+import chief_focus_reporter
 import chief_fundo_identity
 import chief_fundo_session
 import chief_goals_brain
@@ -51,6 +52,56 @@ def test_trinity_narrative_uses_local_ollama(monkeypatch):
         "lane": None,
         "task_class": "chief_structured_plan",
     }]
+
+
+def test_trinity_narrative_has_deterministic_fallback(monkeypatch):
+    monkeypatch.setattr(chief_trinity_brain, "ollama_call", lambda *args, **kwargs: "")
+    report = (
+        "**Trinity Audit — 2026-04-19 09:00**\n"
+        "Domains complete: 12/13\n\n"
+        "**Incomplete Domains** ⚠\n\n"
+        "  ⚠ Focus & Approvals (2/3)\n"
+        "    Missing: chief_focus_reporter.py — end-of-day digest"
+    )
+
+    result = chief_trinity_brain._build_narrative(report)
+
+    assert result != "(narrative unavailable)"
+    assert "Domains complete: 12/13" in result
+    assert "Focus & Approvals" in result
+
+
+def test_trinity_focus_approvals_domain_is_complete():
+    scan = chief_trinity_brain._scan()
+
+    assert scan["Focus & Approvals"]["complete"] is True
+    assert scan["Focus & Approvals"]["present_count"] == 3
+    assert "chief_focus_reporter.py" in scan["Focus & Approvals"]["present"]
+
+
+def test_focus_reporter_builds_read_only_digest(tmp_path, monkeypatch):
+    held_path = tmp_path / "focus_held.json"
+    choice_path = tmp_path / "choice_pending.json"
+    approval_path = tmp_path / "approval_pending.json"
+
+    held_path.write_text(
+        '[{"id": "idea-1", "title": "Quiet idea", "shield_timing": "end_of_day", "surfaced": false}]',
+        encoding="utf-8",
+    )
+    choice_path.write_text('{"status": "pending", "prompt": "Choose one"}', encoding="utf-8")
+    approval_path.write_text('{"status": "pending", "action": "calendar delete"}', encoding="utf-8")
+
+    monkeypatch.setattr(chief_focus_reporter, "HELD_JSON", held_path)
+    monkeypatch.setattr(chief_focus_reporter, "CHOICE_PENDING_JSON", choice_path)
+    monkeypatch.setattr(chief_focus_reporter, "APPROVAL_PENDING_JSON", approval_path)
+
+    digest = chief_focus_reporter.build_digest()
+
+    assert "Held items: 1 unsurfaced" in digest
+    assert "end_of_day=1" in digest
+    assert "Choice bridge: pending" in digest
+    assert "Guardian approval: pending — calendar delete" in digest
+    assert "idea-1: Quiet idea" in digest
 
 
 def test_queue_clean_item_uses_chief_agentic_code(monkeypatch):
