@@ -215,9 +215,11 @@ def _write_vault_report(report_text: str, stats: dict) -> None:
         f"generated: {generated}\n"
         "---\n\n"
         f"# Daily Report — {today}\n\n"
-        f"_Generated at {generated} by `chief_reporter_brain.py`_\n\n"
+        f"_Generated at {generated} by `chief_reporter_brain.py`_\n"
+        "_Freshness: Stale after 12 hours. Consult logs directly if more recent data is needed._\n\n"
         + report_text
     )
+    VAULT_REPORT.parent.mkdir(parents=True, exist_ok=True)
     VAULT_REPORT.write_text(content, encoding="utf-8")
 
 

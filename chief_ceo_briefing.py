@@ -24,6 +24,7 @@ PENDING_APPROVAL = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 BUDGET_STATE = Path("/home/openclaw/.budget_state.json")
 REPORT_LOG = Path("/mnt/c/OpenClaw/logs/ceo_briefing.log")
 LIFE_SYNC_FILE = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Life Sync.md")
+NIGHTLY_POLISH_LOG = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Nightly Polish Log.md")
 
 TO_EMAIL = os.environ.get("CEO_BRIEF_EMAIL", "WinshipLive@gmail.com")
 SUBJECT = "Morning Executive Summary"
@@ -161,8 +162,29 @@ def _smtp_config() -> dict | None:
     return None
 
 
+def _write_vault_artifact(summary: str) -> None:
+    NIGHTLY_POLISH_LOG.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    content = (
+        "---\n"
+        "type: nightly-polish-log\n"
+        f"last_updated: {now}\n"
+        "---\n\n"
+        "# Nightly Polish Progress\n\n"
+        f"_Generated at {now} by `chief_ceo_briefing.py`_\n"
+        "_Freshness: Stale after 12 hours. Watch the polish queue directly during active hours._\n\n"
+        "```\n"
+        f"{summary}\n"
+        "```\n"
+    )
+    try:
+        NIGHTLY_POLISH_LOG.write_text(content, encoding="utf-8")
+    except Exception as e:
+        _log(f"Failed to write vault artifact: {e}")
+
 def send_summary() -> tuple[bool, str]:
     body = build_summary()
+    _write_vault_artifact(body)
     cfg = _smtp_config()
 
     msg = MIMEMultipart("alternative")
