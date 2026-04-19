@@ -9,6 +9,7 @@ from datetime import datetime, time
 
 # ── Policy Windows ────────────────────────────────────────────────────────────
 
+ORCHESTRATION_START_TIME = time(5, 0)
 TARGET_DELIVERY_TIME = time(8, 0)
 ADAPTIVE_DOWNGRADE_TIME = time(7, 45)
 DETERMINISTIC_FALLBACK_TIME = time(8, 15)

@@ -233,6 +233,11 @@ def handle(text: str = "") -> list[str]:
     return [report]
 
 
+def refresh_report_artifact() -> None:
+    """Silent refresh for the morning orchestrator."""
+    handle()
+
+
 # ── CLI / smoke test ───────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

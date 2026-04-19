@@ -182,6 +182,13 @@ def _write_vault_artifact(summary: str) -> None:
     except Exception as e:
         _log(f"Failed to write vault artifact: {e}")
 
+
+def refresh_nightly_polish_artifact() -> None:
+    """Silent refresh for the morning orchestrator (no email)."""
+    summary = build_summary()
+    _write_vault_artifact(summary)
+
+
 def send_summary() -> tuple[bool, str]:
     body = build_summary()
     _write_vault_artifact(body)

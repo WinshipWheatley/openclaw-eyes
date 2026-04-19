@@ -462,12 +462,20 @@ def _compact_morning_test_context(reference: dict) -> str:
 
 def _build_morning_context_from_synthesis() -> dict:
     freshness = _file_freshness_note(_CHIEF_MORNING_SYNTHESIS)
+    modified_at = None
+    if _CHIEF_MORNING_SYNTHESIS.exists():
+        try:
+            modified_at = datetime.fromtimestamp(_CHIEF_MORNING_SYNTHESIS.stat().st_mtime)
+        except Exception:
+            pass
+
     markdown = _read_text_safe(_CHIEF_MORNING_SYNTHESIS, _MORNING_SYNTHESIS_MAX_CHARS)
     if not markdown:
         return {
             "available": False,
             "source_path": str(_CHIEF_MORNING_SYNTHESIS),
             "freshness": freshness,
+            "modified_at": modified_at,
             "markdown": "",
             "sections": {},
             "prompt_context": (
@@ -489,6 +497,7 @@ def _build_morning_context_from_synthesis() -> dict:
         "available": True,
         "source_path": str(_CHIEF_MORNING_SYNTHESIS),
         "freshness": freshness,
+        "modified_at": modified_at,
         "markdown": markdown,
         "sections": sections,
         "prompt_context": "\n".join(prompt_parts),
@@ -895,8 +904,31 @@ def generate_briefing(slot: str) -> str:
     if slot == "morning":
         morning_reference = _build_morning_context_from_synthesis()
         
-        # Staleness/availability check
-        # Synthesis should be fresh within 12 hours for a morning run.
+        # Check if we need to orchestrate a refresh of Guardian artifacts and Synthesis.
+        # We refresh if:
+        # 1. Synthesis is missing or stale (> 12h)
+        # 2. We are in the morning window (>= 5:00 AM) and synthesis was last generated BEFORE 5:00 AM today
+        #    (Ensures we get a truly fresh "today's" synthesis at least once in the morning window).
+        should_refresh = not morning_reference.get("available") or "stale" in morning_reference.get("freshness", "").lower()
+        
+        if not should_refresh:
+            mtime = morning_reference.get("modified_at")
+            if mtime:
+                from cassandra_briefing_morning_policy import is_within_morning_window, ORCHESTRATION_START_TIME
+                from datetime import time
+                if is_within_morning_window():
+                    today_start = datetime.combine(datetime.now().date(), ORCHESTRATION_START_TIME)
+                    if mtime < today_start:
+                        should_refresh = True
+        
+        if should_refresh:
+            print(f"[briefing_brain] Triggering morning artifact orchestration (reason: {'stale' if not morning_reference.get('available') or 'stale' in morning_reference.get('freshness', '').lower() else 'first run of window'})", flush=True)
+            from chief_morning_orchestrator import refresh_morning_artifacts
+            if refresh_morning_artifacts():
+                # Re-build context after refresh
+                morning_reference = _build_morning_context_from_synthesis()
+
+        # Final staleness/availability check after attempted refresh
         if not morning_reference.get("available") or "stale" in morning_reference.get("freshness", "").lower():
             text = (
                 "Chief Morning Synthesis is missing or stale, so I do not have a "
