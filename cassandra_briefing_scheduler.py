@@ -75,6 +75,30 @@ def _deliver(entry: dict) -> None:
     date  = entry["date"]
     text  = entry["text"]
 
+    if slot == "morning":
+        import json
+        try:
+            chunks = json.loads(text)
+            if isinstance(chunks, list):
+                from cassandra_briefing_brain import normalize_speech_text
+                for chunk in chunks:
+                    header = chunk.get("header", "").strip()
+                    body = chunk.get("body", "").strip()
+                    if not header or not body:
+                        continue
+                    message = f"[{header}]\n\n{body}"
+                    try:
+                        send_message(message)
+                        voice_text = normalize_speech_text(body)
+                        speak_and_send_voice_note(voice_text)
+                    except Exception as e:
+                        print(f"[briefing_scheduler] chunk delivery error: {e}", flush=True)
+                mark_delivered(date, slot)
+                print(f"[briefing_scheduler] delivered {date}_{slot} in {len(chunks)} chunks", flush=True)
+                return
+        except Exception as e:
+            print(f"[briefing_scheduler] JSON parse error for morning chunks: {e}. Falling back to standard.", flush=True)
+
     try:
         for message in split_briefing_messages(entry):
             send_message(message)

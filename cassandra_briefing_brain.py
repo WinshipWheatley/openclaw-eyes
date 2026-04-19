@@ -79,10 +79,11 @@ SLOTS = {
     "morning": (
         8, 10,
         "Generate the morning delivery from CHIEF MORNING SYNTHESIS only.\n"
-        "Keep it short and operator-facing: 3-5 compact sentences or bullets.\n"
-        "Lead with the top priority, then blockers/watchlist, then system/ops state.\n"
-        "Mention stale upstream sources only if they materially affect confidence.\n"
-        "Do not dump raw artifact text. No markdown tables.",
+        "Return EXACTLY a JSON array of objects, with NO markdown formatting or fences.\n"
+        "Each object must have 'header' (short label) and 'body' (short human-readable text).\n"
+        "Required headers in order: 'Priorities', 'Watchlist', 'Directive'.\n"
+        "Optional headers (include only if relevant data exists): 'Money / follow-ups', 'Schedule / conditions'.\n"
+        "Keep each body very concise and conversational."
     ),
     "afternoon": (
         13, 15,
@@ -486,6 +487,38 @@ def _build_morning_context_from_synthesis() -> dict:
     }
 
 
+def normalize_speech_text(text: str) -> str:
+    """Normalize text for natural TTS output."""
+    import re
+    from datetime import datetime
+    
+    # Base TTS cleanup
+    text = tts_clean(text)
+    
+    # Strip paths/urls like `/mnt/c/OpenClaw...` or `https://...`
+    text = re.sub(r'(?:/mnt|/home|https?://)[/\w\.-]+', 'the file', text)
+    
+    # Strip basic markdown artifacts that might remain
+    text = re.sub(r'[*`_]', '', text)
+    
+    # Normalize $500 -> 500 dollars
+    text = re.sub(r'\$([\d,]+(?:\.\d{2})?)', r'\1 dollars', text)
+    
+    # Replace & with 'and'
+    text = text.replace('&', 'and')
+    
+    # Date normalizer 2026-04-19 -> April 19th, 2026
+    def _date_replace(m):
+        try:
+            d = datetime.strptime(m.group(0), "%Y-%m-%d")
+            suffix = 'th' if 11 <= d.day <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d.day % 10, 'th')
+            return d.strftime(f"%B {d.day}{suffix}, %Y")
+        except:
+            return m.group(0)
+    text = re.sub(r'\b20\d{2}-\d{2}-\d{2}\b', _date_replace, text)
+    
+    return re.sub(r'\s+', ' ', text).strip()
+
 def _compact_spoken_summary(text: str, max_chars: int = _MORNING_SPOKEN_SUMMARY_LIMIT) -> str:
     cleaned = tts_clean(re.sub(r"\s+", " ", text).strip())
     if len(cleaned) <= max_chars:
@@ -555,6 +588,16 @@ def _fallback_morning_delivery(reference: dict) -> str:
 
 
 def _write_morning_reference_cache(reference: dict, delivery_text: str) -> None:
+    import json
+    try:
+        chunks = json.loads(delivery_text)
+        if isinstance(chunks, list):
+            summary_source = " ".join(c.get("body", "") for c in chunks)
+        else:
+            summary_source = delivery_text
+    except Exception:
+        summary_source = delivery_text
+        
     cache = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "source_module": "cassandra_briefing_brain.py",
@@ -563,7 +606,7 @@ def _write_morning_reference_cache(reference: dict, delivery_text: str) -> None:
         "available": bool(reference.get("available")),
         "sections": reference.get("sections") or {},
         "delivery_text": delivery_text,
-        "spoken_summary": _compact_spoken_summary(delivery_text),
+        "spoken_summary": _compact_spoken_summary(summary_source),
     }
     BRIEFING_DIR.mkdir(parents=True, exist_ok=True)
     save_json(_MORNING_REFERENCE_CACHE, cache)
@@ -822,8 +865,20 @@ def generate_briefing(slot: str) -> str:
 
     prompt = _build_briefing_prompt(slot, context, directive, task_class)
 
-    model, _lane = resolve_local_model(prompt, task_class=task_class)
-    result = ollama_call(prompt, timeout=45, model=model, task_class=task_class)
+    if slot == "morning":
+        from chief_llm import ollama_json
+        import json
+        data = ollama_json(prompt, timeout=60, task_class=task_class)
+        if data and isinstance(data, list):
+            text = json.dumps(data)
+            if morning_reference is not None:
+                _write_morning_reference_cache(morning_reference, text)
+            return text
+        result = ""
+    else:
+        model, _lane = resolve_local_model(prompt, task_class=task_class)
+        result = ollama_call(prompt, timeout=45, model=model, task_class=task_class)
+
     if result:
         text = tts_clean(result.strip())
         if slot == "morning" and morning_reference is not None:
@@ -880,6 +935,17 @@ def handle_recall(text: str) -> str:
         entry = load_briefing(today, slot)
         if entry and entry.get("text"):
             delivered = "delivered" if entry.get("delivered") else "pending delivery"
+            
+            if slot == "morning":
+                import json
+                try:
+                    chunks = json.loads(entry["text"])
+                    if isinstance(chunks, list):
+                        body = "\n\n".join(f"[{c.get('header', '')}]\n{c.get('body', '')}" for c in chunks)
+                        return f"[{slot.title()} · {today} · {delivered}]\n\n{body}"
+                except:
+                    pass
+
             return (
                 f"[{slot.title()} · {today} · {delivered}]\n\n"
                 + entry["text"]
