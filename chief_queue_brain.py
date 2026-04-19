@@ -26,7 +26,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call
+from chief_llm import ollama_call
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ def _clean_item(text: str) -> str:
         return text[:120]
 
     prompt = _CLEAN_PROMPT.format(text=cleaned)
-    result = ollama_call(prompt, timeout=15).strip()
+    result = ollama_call(prompt, timeout=15, task_class="chief_agentic_code").strip()
     # Fallback: use stripped text if LLM unavailable or too short
     if result and len(result) > 10:
         return result[:120]

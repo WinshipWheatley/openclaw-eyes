@@ -246,7 +246,7 @@ Be concise and direct. No bullet points. No markdown headers."""
 
 def _build_narrative(report: str) -> str:
     prompt = _NARRATIVE_PROMPT.format(report=report)
-    result = ollama_call(prompt, timeout=30, lane="strong").strip()
+    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     return result if result else "(narrative unavailable)"
 
 

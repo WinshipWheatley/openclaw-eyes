@@ -491,9 +491,9 @@ def claude_json(prompt: str, timeout: int = 20, retries: int = 3) -> dict | list
     return {}
 
 
-def ollama_json(prompt: str, timeout: int = 15) -> dict:
+def ollama_json(prompt: str, timeout: int = 15, task_class: str | None = None) -> dict:
     """Call Ollama and parse JSON from response. Returns {} on error or parse failure."""
-    raw = ollama_call(prompt, timeout=timeout)
+    raw = ollama_call(prompt, timeout=timeout, task_class=task_class)
     if not raw:
         return {}
     text = raw.strip()

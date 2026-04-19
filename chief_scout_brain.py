@@ -190,7 +190,7 @@ def _synthesize(results: list[dict], live_search: bool) -> list[dict]:
         results=results_text,
         rejected=_REJECTED_CONTEXT,
     )
-    findings = ollama_json(prompt, timeout=60)
+    findings = ollama_json(prompt, timeout=60, task_class="chief_structured_plan")
     if not isinstance(findings, list):
         return []
 

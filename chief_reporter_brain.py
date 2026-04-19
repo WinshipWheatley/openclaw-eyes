@@ -168,7 +168,7 @@ def format_report(stats: dict) -> str:
         watcher_alert_count=stats["watcher_alert_count"],
         watcher_alert_samples=", ".join(stats["watcher_alert_samples"]) or "none",
     )
-    result = ollama_call(prompt, timeout=30).strip()
+    result = ollama_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
     if result:
         return result
 
