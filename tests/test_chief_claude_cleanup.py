@@ -7,6 +7,7 @@ import chief_brand_brain
 import chief_content_brain
 import chief_cpa_brain
 import chief_email_brain
+import chief_fundo_identity
 import chief_goals_brain
 import chief_momentum_brain
 import chief_queue_brain
@@ -425,6 +426,50 @@ def test_website_update_parse_uses_local_ollama_json(monkeypatch):
             text="website update homepage done",
         ),
         "timeout": 20,
+    }]
+
+
+def test_fundo_identity_default_brief_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Fundo is a hidden signal in rhythm."
+
+    monkeypatch.setattr(chief_fundo_identity, "_write_identity_md", lambda: None)
+    monkeypatch.setattr(chief_fundo_identity, "ollama_call", fake_ollama)
+
+    replies = chief_fundo_identity.handle("fundo brief")
+
+    assert "Fundo is a hidden signal in rhythm." in replies[0]
+    assert calls == [{
+        "prompt": chief_fundo_identity._BRIEF_PROMPT.format(
+            brief=chief_fundo_identity.FUNDO_FULL_BRIEF,
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_fundo_identity_who_is_fundo_stays_deferred_on_claude(monkeypatch):
+    calls = []
+
+    def fake_claude(prompt, timeout=0):
+        calls.append({"prompt": prompt, "timeout": timeout})
+        return "fundo does not clarify itself."
+
+    monkeypatch.setattr(chief_fundo_identity, "_write_identity_md", lambda: None)
+    monkeypatch.setattr(chief_fundo_identity, "deferred_fundo_identity_call", fake_claude)
+
+    replies = chief_fundo_identity.handle("who is fundo")
+
+    assert replies == ["fundo does not clarify itself."]
+    assert calls == [{
+        "prompt": chief_fundo_identity._WHO_PROMPT.format(
+            brief=chief_fundo_identity.FUNDO_FULL_BRIEF,
+        ),
+        "timeout": 25,
     }]
 
 
