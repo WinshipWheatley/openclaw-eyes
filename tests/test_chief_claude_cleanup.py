@@ -452,6 +452,30 @@ def test_fundo_identity_default_brief_uses_chief_structured_plan(monkeypatch):
     }]
 
 
+def test_fundo_identity_arc_brief_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Track 7 is the peak: all rhythmic systems converge."
+
+    monkeypatch.setattr(chief_fundo_identity, "_write_identity_md", lambda: None)
+    monkeypatch.setattr(chief_fundo_identity, "ollama_call", fake_ollama)
+
+    replies = chief_fundo_identity.handle("fundo song 7")
+
+    assert replies == ["Track #7 Arc Brief:\n\nTrack 7 is the peak: all rhythmic systems converge."]
+    assert calls == [{
+        "prompt": chief_fundo_identity._ARC_PROMPT.format(
+            brief=chief_fundo_identity.FUNDO_FULL_BRIEF,
+            number=7,
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
 def test_fundo_identity_who_is_fundo_stays_deferred_on_claude(monkeypatch):
     calls = []
 

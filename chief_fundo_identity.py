@@ -227,7 +227,7 @@ def handle(text: str = "") -> list[str]:
         num = int(m.group()) if m else 1
         num = max(1, min(num, 15))
         prompt = _ARC_PROMPT.format(brief=FUNDO_FULL_BRIEF, number=num)
-        result = deferred_fundo_identity_call(prompt, timeout=30)
+        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
         return [f"Track #{num} Arc Brief:\n\n{result}" if result else f"Arc brief for track {num} failed."]
 
     # ── Full brief (default) ─────────────────────────────────────────────────────
