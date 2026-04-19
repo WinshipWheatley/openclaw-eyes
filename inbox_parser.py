@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from chief_llm import claude_json
+from chief_llm import ollama_json
 
 HANDOFF_DIR = Path("/mnt/c/OpenClawShared/OpenClaw-Handoff")
 
@@ -241,6 +241,61 @@ def remove_entry_from_active(inbox: str, full_match: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", result)
 
 
+def append_classified_queue_row(
+    queues: str,
+    classification: str,
+    queue_id: str | None,
+    suggested_title: str,
+    suggested_type: str,
+    suggested_priority: str,
+    bot_confidence: int,
+    router_note: str,
+) -> str:
+    """Append the queue row for a classified entry to in-memory queue content."""
+    if not queue_id:
+        return queues
+
+    if classification == "dhp":
+        row = (f"| {queue_id} | {suggested_title} | {suggested_type} "
+               f"| {suggested_priority} | — | {bot_confidence} "
+               f"| {router_note} | inbox-parser | unassigned |")
+        return append_row_to_section(queues, r"^### Candidates", row)
+
+    if classification in ("feature", "architecture"):
+        row = (f"| {queue_id} | {suggested_title} | {suggested_type} "
+               f"| {suggested_priority} | — | {bot_confidence} "
+               f"| {router_note} | inbox-parser |")
+        sec = _QUEUE_SECTIONS["feature"]
+        return append_row_to_section(
+            queues, sec["pattern"], row,
+            create_header=sec["header"],
+            create_table_header=sec["table_header"],
+            create_separator=sec["separator"],
+        )
+
+    if classification == "not_possible_now":
+        row = f"| {queue_id} | {suggested_title} | {router_note} | [prerequisites TBD] |"
+        sec = _QUEUE_SECTIONS["not_possible_now"]
+        return append_row_to_section(
+            queues, sec["pattern"], row,
+            create_header=sec["header"],
+            create_table_header=sec["table_header"],
+            create_separator=sec["separator"],
+        )
+
+    if classification == "complex_multi_step":
+        row = f"| {queue_id} | {suggested_title} | {router_note} | [steps TBD] |"
+        sec = _QUEUE_SECTIONS["complex_multi_step"]
+        return append_row_to_section(
+            queues, sec["pattern"], row,
+            create_header=sec["header"],
+            create_table_header=sec["table_header"],
+            create_separator=sec["separator"],
+        )
+
+    return queues
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -294,7 +349,11 @@ def main() -> None:
 
         print(f"\nEntry: {entry['heading']} → {entry_id}")
 
-        result = claude_json(build_classify_prompt(fields), timeout=30)
+        result = ollama_json(
+            build_classify_prompt(fields),
+            timeout=30,
+            task_class="chief_structured_plan",
+        )
         if not result:
             print("  [SKIP] LLM classification failed")
             log_lines.append(f"[{ts()}] SKIP: {entry_id} — LLM classification failed")
@@ -326,6 +385,17 @@ def main() -> None:
 
         print(f"  classification: {classification} | queue_id: {queue_id} | status: {new_status}")
         print(f"  router_note: {router_note}")
+
+        updated_queues = append_classified_queue_row(
+            updated_queues,
+            classification,
+            queue_id,
+            suggested_title,
+            suggested_type,
+            suggested_priority,
+            bot_confidence,
+            router_note,
+        )
 
         if args.dry_run:
             print("  [DRY-RUN] No files modified.")
@@ -360,44 +430,6 @@ def main() -> None:
         else:  # hold — update fields in place, keep in Active Inbox
             new_full = entry["full_match"].replace(entry["block"], updated_block, 1)
             updated_inbox = updated_inbox.replace(entry["full_match"], new_full, 1)
-
-        # ── Update 04_Queues.md ───────────────────────────────────────────────
-        if classification == "dhp":
-            row = (f"| {queue_id} | {suggested_title} | {suggested_type} "
-                   f"| {suggested_priority} | — | {bot_confidence} "
-                   f"| {router_note} | inbox-parser | unassigned |")
-            updated_queues = append_row_to_section(
-                updated_queues, r"^### Candidates", row
-            )
-        elif classification in ("feature", "architecture"):
-            row = (f"| {queue_id} | {suggested_title} | {suggested_type} "
-                   f"| {suggested_priority} | — | {bot_confidence} "
-                   f"| {router_note} | inbox-parser |")
-            sec = _QUEUE_SECTIONS["feature"]
-            updated_queues = append_row_to_section(
-                updated_queues, sec["pattern"], row,
-                create_header=sec["header"],
-                create_table_header=sec["table_header"],
-                create_separator=sec["separator"],
-            )
-        elif classification == "not_possible_now":
-            row = f"| {queue_id} | {suggested_title} | {router_note} | [prerequisites TBD] |"
-            sec = _QUEUE_SECTIONS["not_possible_now"]
-            updated_queues = append_row_to_section(
-                updated_queues, sec["pattern"], row,
-                create_header=sec["header"],
-                create_table_header=sec["table_header"],
-                create_separator=sec["separator"],
-            )
-        elif classification == "complex_multi_step":
-            row = f"| {queue_id} | {suggested_title} | {router_note} | [steps TBD] |"
-            sec = _QUEUE_SECTIONS["complex_multi_step"]
-            updated_queues = append_row_to_section(
-                updated_queues, sec["pattern"], row,
-                create_header=sec["header"],
-                create_table_header=sec["table_header"],
-                create_separator=sec["separator"],
-            )
 
         log_lines.append(
             f"[{ts()}] PARSED: {entry_id} → {classification}/{queue_id} ({router_note})"

@@ -78,6 +78,9 @@
 !chief_sms_brain.py
 !chief_email_brain.py
 !chief_cpa_brain.py
+!inbox_parser.py
+!tests/
+!tests/test_inbox_parser.py
 !chief_musiclaw_brain.py
 !chief_publishing_brain.py
 !chief_website_creative.py
