@@ -42,7 +42,7 @@ from pathlib import Path
 
 from cassandra_brain import build_context_snapshot, is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
-from chief_llm import ollama_call, resolve_local_model
+from chief_llm import ollama_call, resolve_local_model, ollama_json
 from chief_file_io import save_json, load_json, append_md_tagged
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -64,6 +64,8 @@ _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
 _SCHEDULER_STATE  = Path("/mnt/c/OpenClawShared/album/scheduler_state.json")
 _APPROVAL_PENDING = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 
+from cassandra_briefing_morning_policy import resolve_morning_model_lane
+
 # Treat very old pending approvals as stale so delayed/abandoned records
 # do not keep Cassandra in a permanent protected window.
 _APPROVAL_PENDING_MAX_AGE_SECONDS = 900
@@ -77,7 +79,7 @@ _APPROVAL_IGNORED_REQUESTERS = {
 # {slot: (start_hour, end_hour_exclusive, briefing_directive)}
 SLOTS = {
     "morning": (
-        8, 10,
+        5, 9,
         "Generate the morning delivery from CHIEF MORNING SYNTHESIS only.\n"
         "Return EXACTLY a JSON array of objects, with NO markdown formatting or fences.\n"
         "Each object must have 'header' (short label) and 'body' (short human-readable text).\n"
@@ -293,10 +295,10 @@ def morning_brief_test_mode_enabled() -> bool:
     return _env_truthy(_MORNING_TEST_MODE_ENV)
 
 
-def _morning_task_class() -> str:
+def _morning_task_config() -> tuple[str, str]:
     if morning_brief_test_mode_enabled():
-        return "cassandra_morning_brief_test"
-    return "cassandra_morning_brief"
+        return "cassandra_morning_brief_test", "llm"
+    return resolve_morning_model_lane()
 
 
 def _file_freshness_note(path: Path, stale_after_seconds: int = 24 * 60 * 60) -> str:
@@ -882,28 +884,37 @@ def generate_briefing(slot: str) -> str:
     """
     _, _, directive = SLOTS[slot]
     morning_reference: dict | None = None
-    task_class = _morning_task_class() if slot == "morning" else "cassandra_user_reply"
+    task_class, mode = _morning_task_config() if slot == "morning" else ("cassandra_user_reply", "llm")
+    
     if slot == "morning":
         morning_reference = _build_morning_context_from_synthesis()
-        if task_class == "cassandra_morning_brief_test":
-            context = _compact_morning_test_context(morning_reference)
-        else:
-            context = morning_reference["prompt_context"]
-        if not morning_reference.get("available"):
+        
+        # Staleness/availability check
+        if not morning_reference.get("available") or "stale" in morning_reference.get("freshness", "").lower():
             text = (
-                "Chief Morning Synthesis is not available yet, so I do not have a "
+                "Chief Morning Synthesis is missing or stale, so I do not have a "
                 "safe morning brief to deliver. Run the Chief morning synthesis "
                 "artifact first, then retry."
             )
             _write_morning_reference_cache(morning_reference, text)
             return tts_clean(text)
+
+        # Deterministic fallback mode (e.g. after 08:15 deadline)
+        if mode == "deterministic":
+            text = _fallback_morning_delivery(morning_reference)
+            _write_morning_reference_cache(morning_reference, text)
+            return text
+
+        if task_class == "cassandra_morning_brief_test":
+            context = _compact_morning_test_context(morning_reference)
+        else:
+            context = morning_reference["prompt_context"]
     else:
         context = build_context_snapshot()
 
     prompt = _build_briefing_prompt(slot, context, directive, task_class)
 
     if slot == "morning":
-        from chief_llm import ollama_json
         import json
         data = ollama_json(prompt, timeout=180, task_class=task_class)
         if data and isinstance(data, list):

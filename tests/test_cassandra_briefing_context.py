@@ -192,13 +192,13 @@ def test_morning_synthesis_missing_artifact_returns_safe_fallback(tmp_path, monk
     monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
     monkeypatch.setattr(
         bb,
-        "ollama_call",
+        "ollama_json",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("missing synthesis should not call LLM")),
     )
 
     text = bb.generate_briefing("morning")
 
-    assert "Chief Morning Synthesis is not available yet" in text
+    assert "Chief Morning Synthesis is missing or stale" in text
     assert cache.exists()
 
 
@@ -246,8 +246,8 @@ def test_morning_reference_cache_preserves_sections(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(bb, "_CHIEF_MORNING_SYNTHESIS", synthesis)
     monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
-    monkeypatch.setattr(bb, "resolve_local_model", lambda *args, **kwargs: ("gemma4:31b", "strong"))
-    monkeypatch.setattr(bb, "ollama_call", lambda *args, **kwargs: "Brief morning delivery.")
+    monkeypatch.setattr(bb, "_morning_task_config", lambda: ("cassandra_morning_brief", "llm"))
+    monkeypatch.setattr(bb, "ollama_json", lambda *args, **kwargs: [{"header": "TEST", "body": "Brief morning delivery."}])
 
     bb.generate_briefing("morning")
     saved = bb.load_morning_reference_cache()
@@ -255,7 +255,7 @@ def test_morning_reference_cache_preserves_sections(tmp_path, monkeypatch):
     assert saved["available"] is True
     assert saved["source_artifact"] == str(synthesis)
     assert "Top Priorities" in saved["sections"]
-    assert saved["spoken_summary"] == "Brief morning delivery."
+    assert "Brief morning delivery." in saved["spoken_summary"]
 
 
 def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
