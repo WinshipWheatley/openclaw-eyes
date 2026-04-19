@@ -205,6 +205,7 @@
 !tests/test_chief_approval_brain.py
 !tests/test_chief_claude_cleanup.py
 !tests/test_chief_llm_router.py
+!tests/test_chief_musiclaw_safety.py
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py

@@ -180,16 +180,34 @@ End with: "⚠️ Recommendation: Consult an entertainment lawyer before taking 
 Plain text only, no markdown."""
 
 
+def _ensure_musiclaw_safety(answer: str) -> str:
+    """Preserve model wording while enforcing minimum legal-safety boundaries."""
+    text = (answer or "").strip()
+    if not text:
+        return ""
+
+    lower = text.lower()
+    safety_lines = []
+    if not any(marker in lower for marker in ("not legal advice", "not specific legal advice", "general information")):
+        safety_lines.append("This is general information, not legal advice.")
+    if not any(marker in lower for marker in ("lawyer", "attorney")):
+        safety_lines.append("Consult an entertainment lawyer before taking action.")
+    if safety_lines:
+        return text + "\n\n" + " ".join(safety_lines)
+    return text
+
+
 def _ask_llm(question: str) -> str:
     prompt = _ADVICE_PROMPT.format(
         knowledge=MUSIC_LAW_KNOWLEDGE,
         case=TEN_FINGERS_CASE,
         question=question,
     )
-    result = ollama_call(prompt, timeout=45).strip()
+    result = _ensure_musiclaw_safety(ollama_call(prompt, timeout=45))
     if not result:
         return (
             "Unable to generate advice right now. "
+            "This is general information, not legal advice. "
             "For urgent music law questions, contact an entertainment attorney. "
             "musiclawyer.com and NOLO.com have useful general resources."
         )
@@ -201,10 +219,11 @@ def _options_summary() -> str:
         knowledge=MUSIC_LAW_KNOWLEDGE,
         case=TEN_FINGERS_CASE,
     )
-    result = ollama_call(prompt, timeout=45).strip()
+    result = _ensure_musiclaw_safety(ollama_call(prompt, timeout=45))
     if not result:
         return (
             "Options for Ten Fingers dispute:\n"
+            "General information only, not legal advice.\n"
             "1. Register your composition share with ASCAP/BMI now.\n"
             "2. Document all evidence of co-ownership claim (texts, emails, the internal document).\n"
             "3. Send a cease and desist via an entertainment lawyer.\n"
