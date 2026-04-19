@@ -36,7 +36,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call
+from chief_llm import claude_call as deferred_fundo_session_call
+from chief_llm import ollama_call
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -158,8 +159,8 @@ def _generate_suno_prompt(session: dict) -> str:
         position=session["position"],
         name=session["name"],
     )
-    result = ollama_call(prompt, timeout=40)
-    return result or f"Suno prompt generation failed for '{session['name']}'. Check Claude API."
+    result = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
+    return result or f"Suno prompt generation failed for '{session['name']}'. Check local model routing."
 
 
 # ── Phase 2: Element coaching ─────────────────────────────────────────────────────
@@ -233,7 +234,7 @@ def _coach_next_element(session: dict) -> str:
         coached_list=coached_list,
         element_label=label,
     )
-    result = ollama_call(prompt, timeout=45)
+    result = deferred_fundo_session_call(prompt, timeout=45)
     return result or f"Coaching unavailable for {label} — check Claude API."
 
 
@@ -339,7 +340,7 @@ def handle(text: str = "") -> list[str]:
             position=session["position"],
             name=session["name"],
         )
-        new_prompt = ollama_call(prompt, timeout=40)
+        new_prompt = deferred_fundo_session_call(prompt, timeout=40)
         if new_prompt:
             session["suno_prompt"] = new_prompt
             _save_sessions(data)

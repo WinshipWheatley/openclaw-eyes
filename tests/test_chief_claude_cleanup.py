@@ -8,6 +8,7 @@ import chief_content_brain
 import chief_cpa_brain
 import chief_email_brain
 import chief_fundo_identity
+import chief_fundo_session
 import chief_goals_brain
 import chief_marketing_brain
 import chief_momentum_brain
@@ -522,6 +523,62 @@ def test_fundo_identity_visual_direction_uses_chief_structured_plan(monkeypatch)
         "timeout": 30,
         "lane": None,
         "task_class": "chief_structured_plan",
+    }]
+
+
+def test_fundo_session_suno_prompt_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Suno prompt"
+
+    monkeypatch.setattr(chief_fundo_session, "ollama_call", fake_ollama)
+
+    session = {"position": 1, "name": "Arrival"}
+    result = chief_fundo_session._generate_suno_prompt(session)
+
+    assert result == "Suno prompt"
+    assert calls == [{
+        "prompt": chief_fundo_session._SUNO_PROMPT_TEMPLATE.format(
+            dna=chief_fundo_session.FUNDO_DNA,
+            position=1,
+            name="Arrival",
+        ),
+        "timeout": 40,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_fundo_session_coaching_remains_deferred(monkeypatch):
+    calls = []
+
+    def fake_deferred(prompt, timeout=0):
+        calls.append({"prompt": prompt, "timeout": timeout})
+        return "Coaching instructions"
+
+    monkeypatch.setattr(chief_fundo_session, "deferred_fundo_session_call", fake_deferred)
+
+    session = {
+        "name": "Arrival",
+        "position": 1,
+        "suno_prompt": "approved vision",
+        "elements": [],
+    }
+    result = chief_fundo_session._coach_next_element(session)
+
+    assert result == "Coaching instructions"
+    assert calls == [{
+        "prompt": chief_fundo_session._COACHING_PROMPT.format(
+            dna=chief_fundo_session.FUNDO_DNA,
+            name="Arrival",
+            position=1,
+            suno_prompt="approved vision",
+            coached_list="none yet",
+            element_label=chief_fundo_session._ELEMENT_LABELS["kick"],
+        ),
+        "timeout": 45,
     }]
 
 
