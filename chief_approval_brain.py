@@ -581,6 +581,20 @@ def request_approval(
         keyboard=_build_l2_keyboard(approval_id, options),
     )
 
+    # Operator assist escalation for blocked terminals or agents (e.g. Claude Code)
+    try:
+        from chief_assist import escalate_to_operator
+        rc = approval_id[:4]
+        assist_msg = escalate_to_operator(
+            diagnosis=f"Approval Gate Locked: Pending authorization for '{_truncate_approval_text(action, 60)}'",
+            reason="Irreversible action requires human judgment. TTY unavailable; escalated to phone/Telegram.",
+            primary_cmd=f"python3 /home/openclaw/chief_router.py \"{rc} 1\"",
+            context_cmd=f"cat {PENDING_FILE}"
+        )
+        print(f"\n{assist_msg}\n", flush=True)
+    except Exception:
+        pass
+
     # Poll for decision
     while time.time() - start < TIMEOUT:
         time.sleep(POLL_INTERVAL)
