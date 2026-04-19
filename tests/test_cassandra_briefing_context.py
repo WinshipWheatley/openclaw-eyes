@@ -183,3 +183,96 @@ def test_ops_actions_artifact_missing_source_records_staleness_note(tmp_path, mo
     assert "missing: source file not found" in content
     assert "Pending (0)" in content
     assert "Completed (0)" in content
+
+
+def test_morning_synthesis_missing_artifact_returns_safe_fallback(tmp_path, monkeypatch):
+    synthesis = tmp_path / "Chief Morning Synthesis.md"
+    cache = tmp_path / "morning_reference_cache.json"
+    monkeypatch.setattr(bb, "_CHIEF_MORNING_SYNTHESIS", synthesis)
+    monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
+    monkeypatch.setattr(
+        bb,
+        "ollama_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("missing synthesis should not call LLM")),
+    )
+
+    text = bb.generate_briefing("morning")
+
+    assert "Chief Morning Synthesis is not available yet" in text
+    assert cache.exists()
+
+
+def test_split_briefing_messages_chunks_dense_morning_text():
+    entry = {
+        "slot": "morning",
+        "date": "2026-04-19",
+        "text": "Para one " * 80 + "\n\n" + "Para two " * 80,
+    }
+
+    messages = bb.split_briefing_messages(entry, max_chars=320)
+
+    assert len(messages) > 1
+    assert messages[0].startswith("[Morning")
+    assert "Part 1/" in messages[0]
+    assert all(len(message) <= 420 for message in messages)
+
+
+def test_morning_voice_text_uses_compressed_cache_summary(tmp_path, monkeypatch):
+    cache = tmp_path / "morning_reference_cache.json"
+    monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
+    bb.save_json(
+        cache,
+        {
+            "spoken_summary": "Short spoken version.",
+            "delivery_text": "Long text that should not be spoken.",
+        },
+    )
+
+    voice = bb.briefing_voice_text({"slot": "morning", "text": "Full raw delivery " * 100})
+
+    assert voice == "Short spoken version."
+
+
+def test_morning_reference_cache_preserves_sections(tmp_path, monkeypatch):
+    synthesis = tmp_path / "Chief Morning Synthesis.md"
+    cache = tmp_path / "morning_reference_cache.json"
+    synthesis.write_text(
+        "# Chief Morning Synthesis\n\n"
+        "## Top Priorities\n\n"
+        "- First priority\n\n"
+        "## Blockers / Watchlist\n\n"
+        "- One blocker\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bb, "_CHIEF_MORNING_SYNTHESIS", synthesis)
+    monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
+    monkeypatch.setattr(bb, "resolve_local_model", lambda *args, **kwargs: ("gemma4:31b", "strong"))
+    monkeypatch.setattr(bb, "ollama_call", lambda *args, **kwargs: "Brief morning delivery.")
+
+    bb.generate_briefing("morning")
+    saved = bb.load_morning_reference_cache()
+
+    assert saved["available"] is True
+    assert saved["source_artifact"] == str(synthesis)
+    assert "Top Priorities" in saved["sections"]
+    assert saved["spoken_summary"] == "Brief morning delivery."
+
+
+def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
+    import cassandra_briefing_scheduler as scheduler
+
+    sent: list[str] = []
+    spoken: list[str] = []
+    marked: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(scheduler, "split_briefing_messages", lambda entry: ["chunk one", "chunk two"])
+    monkeypatch.setattr(scheduler, "briefing_voice_text", lambda entry: "compressed spoken summary")
+    monkeypatch.setattr(scheduler, "send_message", lambda text: sent.append(text))
+    monkeypatch.setattr(scheduler, "speak_batch", lambda text: spoken.append(text))
+    monkeypatch.setattr(scheduler, "mark_delivered", lambda date, slot: marked.append((date, slot)))
+
+    scheduler._deliver({"slot": "morning", "date": "2026-04-19", "text": "full text"})
+
+    assert sent == ["chunk one", "chunk two"]
+    assert spoken == ["compressed spoken summary"]
+    assert marked == [("2026-04-19", "morning")]

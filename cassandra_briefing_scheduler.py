@@ -33,6 +33,8 @@ from cassandra_briefing_brain import (
     pending_briefings,
     is_protected_window,
     protected_reason,
+    split_briefing_messages,
+    briefing_voice_text,
 )
 from cassandra_sender import send_message
 from cassandra_voice import speak_batch
@@ -72,10 +74,10 @@ def _deliver(entry: dict) -> None:
     slot  = entry["slot"]
     date  = entry["date"]
     text  = entry["text"]
-    label = f"[{slot.title()} · {date}]\n\n"
 
     try:
-        send_message(label + text)
+        for message in split_briefing_messages(entry):
+            send_message(message)
         mark_delivered(date, slot)
         print(
             f"[briefing_scheduler] delivered {date}_{slot} ({len(text)} chars)",
@@ -86,7 +88,7 @@ def _deliver(entry: dict) -> None:
         return
 
     # Batch voice — non-blocking, optional; failures are swallowed inside speak_batch
-    speak_batch(text)
+    speak_batch(briefing_voice_text(entry))
 
 
 # ── Main tick ─────────────────────────────────────────────────────────────────

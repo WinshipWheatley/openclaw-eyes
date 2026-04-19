@@ -50,6 +50,12 @@ BRIEFING_DIR  = Path("/mnt/c/OpenClaw/logs/cassandra_briefings")
 BRIEFING_LOG  = BRIEFING_DIR / "briefing_log.md"
 _OPS_ACTIONS  = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions.md")
 _OPS_ACTIONS_CONTEXT = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions Context.md")
+_CHIEF_MORNING_SYNTHESIS = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Chief Morning Synthesis.md")
+_MORNING_REFERENCE_CACHE = BRIEFING_DIR / "morning_reference_cache.json"
+_MORNING_SYNTHESIS_MAX_CHARS = 9000
+_MORNING_TEXT_CHUNK_LIMIT = 1200
+_MORNING_SPOKEN_SUMMARY_LIMIT = 650
+_MORNING_REFERENCE_LINE_LIMIT = 80
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -70,15 +76,11 @@ _APPROVAL_IGNORED_REQUESTERS = {
 SLOTS = {
     "morning": (
         8, 10,
-        "Generate the morning briefing. Use the MORNING BRIEFING CONTEXT above.\n"
-        "Structure the output in this order — no section headers, flowing prose:\n"
-        "1. Task milestone — call out the 400+ completed-task milestone if it is present in context.\n"
-        "2. Financial status — what income is logged, what follow-ups are open.\n"
-        "3. Music / album — where the album stands right now.\n"
-        "4. Ocean City conditions — call the surf/golf/work directive by name.\n"
-        "Close with a single decisive directive line: SURF MODE, GOLF WINDOW, or WORK MODE.\n"
-        "If a data source shows unavailable, say so plainly in one clause and move on.\n"
-        "3–5 sentences total. No filler. No motivational language. No markdown.",
+        "Generate the morning delivery from CHIEF MORNING SYNTHESIS only.\n"
+        "Keep it short and operator-facing: 3-5 compact sentences or bullets.\n"
+        "Lead with the top priority, then blockers/watchlist, then system/ops state.\n"
+        "Mention stale upstream sources only if they materially affect confidence.\n"
+        "Do not dump raw artifact text. No markdown tables.",
     ),
     "afternoon": (
         13, 15,
@@ -268,6 +270,197 @@ def pending_briefings() -> list[dict]:
     return result
 
 
+# ── Morning synthesis artifact helpers ────────────────────────────────────────
+
+def _read_text_safe(path: Path, max_chars: int | None = None) -> str:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+    if max_chars is not None:
+        return text[:max_chars]
+    return text
+
+
+def _file_freshness_note(path: Path, stale_after_seconds: int = 24 * 60 * 60) -> str:
+    if not path.exists():
+        return "missing: source file not found"
+    try:
+        changed = datetime.fromtimestamp(path.stat().st_mtime)
+        age = (datetime.now() - changed).total_seconds()
+        label = "stale" if age > stale_after_seconds else "fresh"
+        return f"{label}: source last changed {changed.isoformat(timespec='seconds')}"
+    except Exception:
+        return "unknown: source timestamp unreadable"
+
+
+def _extract_markdown_sections(markdown: str) -> dict[str, list[str]]:
+    sections: dict[str, list[str]] = {}
+    current = "Overview"
+    sections[current] = []
+    for raw in markdown.splitlines():
+        line = raw.strip()
+        if not line or line == "---":
+            continue
+        if line.startswith("## "):
+            current = line[3:].strip()
+            sections.setdefault(current, [])
+            continue
+        if line.startswith("#") or line.startswith("type:") or line.startswith("generated_at:"):
+            continue
+        if line.startswith("source_module:") or line.startswith("bounded:"):
+            continue
+        if len(sections.setdefault(current, [])) >= _MORNING_REFERENCE_LINE_LIMIT:
+            continue
+        sections[current].append(line)
+    return {key: value for key, value in sections.items() if value}
+
+
+def _section_excerpt(sections: dict[str, list[str]], name: str, limit: int = 5) -> list[str]:
+    lines = sections.get(name, [])
+    return lines[:limit]
+
+
+def _build_morning_context_from_synthesis() -> dict:
+    freshness = _file_freshness_note(_CHIEF_MORNING_SYNTHESIS)
+    markdown = _read_text_safe(_CHIEF_MORNING_SYNTHESIS, _MORNING_SYNTHESIS_MAX_CHARS)
+    if not markdown:
+        return {
+            "available": False,
+            "source_path": str(_CHIEF_MORNING_SYNTHESIS),
+            "freshness": freshness,
+            "markdown": "",
+            "sections": {},
+            "prompt_context": (
+                "CHIEF MORNING SYNTHESIS unavailable.\n"
+                f"Source: {_CHIEF_MORNING_SYNTHESIS}\n"
+                f"Freshness: {freshness}\n"
+            ),
+        }
+
+    sections = _extract_markdown_sections(markdown)
+    prompt_parts = [
+        "CHIEF MORNING SYNTHESIS",
+        f"Source: {_CHIEF_MORNING_SYNTHESIS}",
+        f"Freshness: {freshness}",
+        "",
+        markdown,
+    ]
+    return {
+        "available": True,
+        "source_path": str(_CHIEF_MORNING_SYNTHESIS),
+        "freshness": freshness,
+        "markdown": markdown,
+        "sections": sections,
+        "prompt_context": "\n".join(prompt_parts),
+    }
+
+
+def _compact_spoken_summary(text: str, max_chars: int = _MORNING_SPOKEN_SUMMARY_LIMIT) -> str:
+    cleaned = tts_clean(re.sub(r"\s+", " ", text).strip())
+    if len(cleaned) <= max_chars:
+        return cleaned
+
+    clipped = cleaned[:max_chars].rstrip()
+    sentence_end = max(clipped.rfind("."), clipped.rfind("?"), clipped.rfind("!"))
+    if sentence_end >= 120:
+        return clipped[: sentence_end + 1]
+    word_end = clipped.rfind(" ")
+    if word_end >= 120:
+        return clipped[:word_end].rstrip() + "."
+    return clipped.rstrip(".") + "."
+
+
+def _fallback_morning_delivery(reference: dict) -> str:
+    sections = reference.get("sections") or {}
+    priorities = _section_excerpt(sections, "Top Priorities", 3)
+    blockers = _section_excerpt(sections, "Blockers / Watchlist", 2)
+    system_ops = _section_excerpt(sections, "System / Ops State", 2)
+
+    parts: list[str] = []
+    if priorities:
+        parts.append("Top priority: " + " ".join(priorities))
+    if blockers:
+        parts.append("Watchlist: " + " ".join(blockers))
+    if system_ops:
+        parts.append("System state: " + " ".join(system_ops))
+    if not parts:
+        parts.append(
+            "Chief Morning Synthesis is available, but it did not expose enough structured lines for a clean summary."
+        )
+    parts.append(f"Confidence note: {reference.get('freshness', 'freshness unknown')}.")
+    return tts_clean(" ".join(parts))
+
+
+def _write_morning_reference_cache(reference: dict, delivery_text: str) -> None:
+    cache = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "source_module": "cassandra_briefing_brain.py",
+        "source_artifact": reference.get("source_path"),
+        "source_freshness": reference.get("freshness"),
+        "available": bool(reference.get("available")),
+        "sections": reference.get("sections") or {},
+        "delivery_text": delivery_text,
+        "spoken_summary": _compact_spoken_summary(delivery_text),
+    }
+    BRIEFING_DIR.mkdir(parents=True, exist_ok=True)
+    save_json(_MORNING_REFERENCE_CACHE, cache)
+
+
+def load_morning_reference_cache() -> dict:
+    return load_json(_MORNING_REFERENCE_CACHE, {})
+
+
+def split_briefing_messages(entry: dict, max_chars: int = _MORNING_TEXT_CHUNK_LIMIT) -> list[str]:
+    slot = entry.get("slot", "briefing")
+    date = entry.get("date", datetime.now().date().isoformat())
+    text = str(entry.get("text") or "").strip()
+    label = f"[{slot.title()} · {date}]\n\n"
+    if len(label + text) <= max_chars:
+        return [label + text]
+
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    if not paragraphs:
+        paragraphs = [text]
+
+    chunks: list[str] = []
+    current = ""
+    for paragraph in paragraphs:
+        candidate = f"{current}\n\n{paragraph}".strip() if current else paragraph
+        if len(candidate) <= max_chars:
+            current = candidate
+            continue
+        if current:
+            chunks.append(current)
+        while len(paragraph) > max_chars:
+            cut = paragraph.rfind(" ", 0, max_chars)
+            if cut < 200:
+                cut = max_chars
+            chunks.append(paragraph[:cut].strip())
+            paragraph = paragraph[cut:].strip()
+        current = paragraph
+    if current:
+        chunks.append(current)
+
+    total = len(chunks)
+    return [
+        f"{label}Part {index}/{total}\n\n{chunk}"
+        for index, chunk in enumerate(chunks, start=1)
+    ]
+
+
+def briefing_voice_text(entry: dict) -> str:
+    text = str(entry.get("text") or "")
+    if entry.get("slot") != "morning":
+        return text
+
+    cache = load_morning_reference_cache()
+    spoken = str(cache.get("spoken_summary") or "").strip()
+    if spoken:
+        return spoken
+    return _compact_spoken_summary(text)
+
+
 # ── Action classification ─────────────────────────────────────────────────────
 
 _DONE_RE = re.compile(
@@ -421,33 +614,23 @@ def generate_briefing(slot: str) -> str:
     """
     Call the fast local LLM to generate a briefing for the given slot.
     Returns the briefing text (may be a fallback if LLM fails).
-    Morning slot prepends the morning briefing context block (task/financial/music/surf).
+    Morning slot reads Chief Morning Synthesis as the primary source artifact.
     """
     _, _, directive = SLOTS[slot]
-    context = build_context_snapshot()
-
+    morning_reference: dict | None = None
     if slot == "morning":
-        # Morning briefing context: task milestone, financial, music, surf/weather cue.
-        try:
-            from cassandra_briefing_morning_context import build_morning_briefing_context
-            morning_context = build_morning_briefing_context()
-        except Exception as _e:
-            morning_context = f"[morning briefing context unavailable: {_e}]"
-
-        # Formalized Ops Actions artifact alongside the morning context block.
-        try:
-            action_artifact = write_ops_actions_artifact()
-            action_summary = action_artifact["summary"]
-            action_artifact_path = action_artifact["path"]
-        except Exception as _e:
-            action_summary = build_action_summary()
-            action_artifact_path = f"[ops actions artifact unavailable: {_e}]"
-        context = (
-            f"{morning_context}\n\n"
-            f"Ops Actions artifact: {action_artifact_path}\n"
-            f"Action summary:\n{action_summary}\n\n"
-            f"{context}"
-        )
+        morning_reference = _build_morning_context_from_synthesis()
+        context = morning_reference["prompt_context"]
+        if not morning_reference.get("available"):
+            text = (
+                "Chief Morning Synthesis is not available yet, so I do not have a "
+                "safe morning brief to deliver. Run the Chief morning synthesis "
+                "artifact first, then retry."
+            )
+            _write_morning_reference_cache(morning_reference, text)
+            return tts_clean(text)
+    else:
+        context = build_context_snapshot()
 
     prompt = (
         f"{_PERSONA_BRIEF}\n\n"
@@ -460,27 +643,18 @@ def generate_briefing(slot: str) -> str:
     model, _lane = resolve_local_model(prompt, task_class=task_class)
     result = ollama_call(prompt, timeout=45, model=model)
     if result:
-        return tts_clean(result.strip())
+        text = tts_clean(result.strip())
+        if slot == "morning" and morning_reference is not None:
+            _write_morning_reference_cache(morning_reference, text)
+        return text
 
-    # Minimal fallback if LLM is unreachable — for morning, include the morning context summary.
+    # Minimal fallback if LLM is unreachable.
     ts = datetime.now().strftime("%H:%M")
     if slot == "morning":
-        try:
-            from cassandra_briefing_morning_context import (
-                _task_milestone_snapshot,
-                _financial_snapshot,
-                _music_snapshot,
-                _surf_cue_text,
-            )
-            fallback_body = " ".join([
-                _task_milestone_snapshot(),
-                _financial_snapshot().replace("\n", " "),
-                _music_snapshot(),
-                _surf_cue_text(),
-            ])
-            return tts_clean(f"[{ts} — morning briefing, LLM offline] {fallback_body}")
-        except Exception:
-            pass
+        text = f"[{ts} - morning briefing, LLM offline] {_fallback_morning_delivery(morning_reference or {})}"
+        if morning_reference is not None:
+            _write_morning_reference_cache(morning_reference, text)
+        return tts_clean(text)
 
     return (
         f"[{ts} — {slot} log unavailable. LLM did not respond. "
