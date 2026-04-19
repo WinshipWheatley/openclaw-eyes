@@ -144,7 +144,7 @@ def _get_recommendation(queue: list[dict], overdue: list[str]) -> str:
     queue_str = "\n".join(f"- [{e.get('platform','')}] {e.get('title','')} ({e.get('size','')})" for e in queue[:5]) or "none"
     overdue_str = "\n".join(f"- {o}" for o in overdue) or "none"
     prompt = _RECOMMENDATION_PROMPT.format(queue_items=queue_str, overdue=overdue_str)
-    result = ollama_call(prompt, timeout=20).strip()
+    result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
     return result if result else ""
 
 

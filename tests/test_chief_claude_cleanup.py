@@ -2,10 +2,13 @@ from pathlib import Path
 import re
 
 import chief_analytics_brain
+import chief_brand_brain
+import chief_content_brain
 import chief_cpa_brain
 import chief_email_brain
 import chief_goals_brain
 import chief_momentum_brain
+import chief_queue_brain
 import chief_sms_brain
 import chief_trinity_brain
 import chief_website_coordinator
@@ -28,13 +31,36 @@ def test_trinity_narrative_uses_local_ollama(monkeypatch):
     calls = []
 
     def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
-        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane})
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
         return "trinity summary"
 
     monkeypatch.setattr(chief_trinity_brain, "ollama_call", fake_ollama)
     result = chief_trinity_brain._build_narrative("audit body")
     assert result == "trinity summary"
-    assert calls == [{"prompt": chief_trinity_brain._NARRATIVE_PROMPT.format(report="audit body"), "timeout": 30, "lane": "strong"}]
+    assert calls == [{
+        "prompt": chief_trinity_brain._NARRATIVE_PROMPT.format(report="audit body"),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_queue_clean_item_uses_chief_agentic_code(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Fix calendar delete routing"
+
+    monkeypatch.setattr(chief_queue_brain, "ollama_call", fake_ollama)
+    result = chief_queue_brain._clean_item("queue request: fix calendar delete routing")
+    assert result == "Fix calendar delete routing"
+    assert calls == [{
+        "prompt": chief_queue_brain._CLEAN_PROMPT.format(text="fix calendar delete routing"),
+        "timeout": 15,
+        "lane": None,
+        "task_class": "chief_agentic_code",
+    }]
 
 
 def test_goals_checkin_uses_local_ollama(monkeypatch):
@@ -42,13 +68,67 @@ def test_goals_checkin_uses_local_ollama(monkeypatch):
     goals = [{"id": 1, "title": "Release the album", "completion": 40, "target_date": "2026-12-31"}]
 
     def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
-        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane})
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
         return "goals checkin"
 
     monkeypatch.setattr(chief_goals_brain, "ollama_call", fake_ollama)
     result = chief_goals_brain._get_checkin(goals)
     assert result == "goals checkin"
-    assert calls == [{"prompt": chief_goals_brain._CHECKIN_PROMPT.format(goals_text=chief_goals_brain._build_goals_text(goals)), "timeout": 30, "lane": "strong"}]
+    assert calls == [{
+        "prompt": chief_goals_brain._CHECKIN_PROMPT.format(
+            goals_text=chief_goals_brain._build_goals_text(goals)
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_content_recommendation_uses_chief_structured_plan(monkeypatch):
+    calls = []
+    queue = [{"platform": "Instagram", "title": "studio clip", "size": "short"}]
+    overdue = ["TikTok (0/3 this week)"]
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "Post the studio clip first."
+
+    monkeypatch.setattr(chief_content_brain, "ollama_call", fake_ollama)
+    result = chief_content_brain._get_recommendation(queue, overdue)
+    assert result == "Post the studio clip first."
+    assert calls == [{
+        "prompt": chief_content_brain._RECOMMENDATION_PROMPT.format(
+            queue_items="- [Instagram] studio clip (short)",
+            overdue="- TikTok (0/3 this week)",
+        ),
+        "timeout": 20,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_brand_check_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "On-brand: warm and specific."
+
+    monkeypatch.setattr(chief_brand_brain, "ollama_call", fake_ollama)
+    result = chief_brand_brain._check_on_brand("A warm studio story.", chief_brand_brain.DPR_BRAND)
+    assert result == "On-brand: warm and specific."
+    assert calls == [{
+        "prompt": chief_brand_brain._BRAND_CHECK_PROMPT.format(
+            brand_name=chief_brand_brain.DPR_BRAND["name"],
+            tone="; ".join(chief_brand_brain.DPR_BRAND["tone"][:3]),
+            on_brand="; ".join(chief_brand_brain.DPR_BRAND["on_brand"][:4]),
+            off_brand="; ".join(chief_brand_brain.DPR_BRAND["off_brand"][:4]),
+            content="A warm studio story.",
+        ),
+        "timeout": 20,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
 
 
 def test_momentum_narrative_uses_local_ollama(monkeypatch):

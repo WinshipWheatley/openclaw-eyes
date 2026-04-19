@@ -167,7 +167,7 @@ def _build_goals_text(goals: list[dict]) -> str:
 def _get_checkin(goals: list[dict]) -> str:
     goals_text = _build_goals_text(goals)
     prompt = _CHECKIN_PROMPT.format(goals_text=goals_text)
-    result = ollama_call(prompt, timeout=30, lane="strong").strip()
+    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
     return result if result else ""
 
 
