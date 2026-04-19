@@ -119,7 +119,7 @@ from chief_approval_bridge import (
 from chief_nli import detect_nli_query, handle as nli_handle
 from chief_ops_brain import is_ops_intake, handle as ops_handle, save_deferred as ops_save_deferred
 from cassandra_brain import cassandra_intent, handle as cassandra_handle, get_cassandra_summary
-from chief_morning_inspector import handle_morning_inspection
+from chief_morning_inspector import handle_morning_inspection, handle_morning_followup
 from chief_album_batch import handle as batch_handle, batch_intent
 from chief_album_brain import (
     handle as album_handle,
@@ -136,6 +136,16 @@ def morning_inspection_intent(text: str) -> bool:
         "morning raw", "morning cache", "morning stale", 
         "morning blockers", "morning actions", "morning sources"
     ))
+
+def morning_followup_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "morning brief", "what were the blockers", "what are the top priorities",
+        "what did the morning brief", "what did chief use", "what was stale",
+        "what was the directive", "remind me what cassandra said this morning",
+        "morning report", "about the morning", "what was in the morning",
+        "this morning's brief", "this mornings brief"
+    ])
 
 def scheduler_intent(text: str) -> bool:
     t = text.lower().strip()
@@ -887,6 +897,10 @@ def _route_message_inner(text: str) -> dict:
     if morning_inspection_intent(text):
         replies = handle_morning_inspection(text)
         return {"intent": "morning_inspection", "replies": replies}
+
+    if morning_followup_intent(text):
+        replies = handle_morning_followup(text)
+        return {"intent": "morning_followup", "replies": replies}
 
     # ── Explicit brainstorm commands escape any lingering active session ─────────
     # Must run before billing/album active session checks so "brainstorm" is

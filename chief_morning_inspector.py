@@ -60,3 +60,14 @@ def handle_morning_inspection(text: str) -> list[str]:
             return [f"Failed to extract sources: {e}"]
             
     return ["Unknown morning inspection command."]
+
+def handle_morning_followup(text: str) -> list[str]:
+    """
+    Placeholder for Pass 3: Cache-first LLM follow-up answering.
+    Currently returns a deterministic bridge message to verify routing.
+    """
+    return [
+        "(Morning follow-up intent triggered — cache answering coming in Pass 3)\n\n"
+        "I've routed your question about the morning brief. Soon I will check the "
+        "morning reference cache first before doing a deep system lookup."
+    ]
