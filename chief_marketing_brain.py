@@ -423,7 +423,7 @@ def _generate_ideas(text: str) -> list[str]:
         request=text,
         constraint=constraint,
     )
-    ideas = ollama_json(prompt, timeout=60)
+    ideas = ollama_json(prompt, timeout=60, task_class="chief_structured_plan")
     if not isinstance(ideas, list):
         return ["Couldn't generate ideas right now. Try again in a moment."]
 
@@ -469,7 +469,7 @@ def _draft_content(text: str) -> list[str]:
         genre=ARTIST_PROFILE["genre"],
         request=text,
     )
-    result = ollama_call(prompt, timeout=60).strip()
+    result = ollama_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
     if not result:
         return ["Draft failed — try again."]
     return [result]
@@ -477,7 +477,7 @@ def _draft_content(text: str) -> list[str]:
 
 def _update_log(text: str) -> list[str]:
     prompt = _LOG_UPDATE_PROMPT.format(text=text)
-    parsed = ollama_json(prompt, timeout=15)
+    parsed = ollama_json(prompt, timeout=15, task_class="chief_structured_plan")
     if not parsed:
         return ["Couldn't parse that log update. Try: 'log that I posted [title]' or 'mark [title] as in progress'."]
 
@@ -614,7 +614,7 @@ def _write_fundo_content_md(data: dict) -> None:
 def _fundo_ideas(text: str) -> list[str]:
     ctx    = _get_fundo_ctx()
     prompt = _FUNDO_IDEAS_PROMPT.format(fundo_context=ctx, request=text)
-    ideas  = ollama_json(prompt, timeout=45)
+    ideas  = ollama_json(prompt, timeout=45, task_class="chief_structured_plan")
     if not isinstance(ideas, list):
         return ["Couldn't generate Fundo content ideas — check Claude API."]
 
@@ -643,7 +643,7 @@ def _fundo_draft(text: str) -> list[str]:
     ctx      = _get_fundo_ctx()
     platform = "TikTok" if "tiktok" in text.lower() else "Instagram"
     prompt   = _FUNDO_DRAFT_PROMPT.format(fundo_context=ctx, request=text, platform=platform)
-    result   = ollama_call(prompt, timeout=40)
+    result   = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
     return [result or "Draft failed — check Claude API."]
 
 

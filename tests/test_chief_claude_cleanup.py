@@ -9,6 +9,7 @@ import chief_cpa_brain
 import chief_email_brain
 import chief_fundo_identity
 import chief_goals_brain
+import chief_marketing_brain
 import chief_momentum_brain
 import chief_queue_brain
 import chief_reporter_brain
@@ -16,6 +17,7 @@ import chief_scout_brain
 import chief_sms_brain
 import chief_trinity_brain
 import chief_website_coordinator
+import chief_website_creative
 import chief_website_qa
 
 
@@ -521,6 +523,153 @@ def test_fundo_identity_visual_direction_uses_chief_structured_plan(monkeypatch)
         "lane": None,
         "task_class": "chief_structured_plan",
     }]
+
+
+def test_marketing_ideas_use_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama_json(prompt, timeout=0, task_class=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "task_class": task_class})
+        return [{
+            "title": "Studio Light",
+            "platform": "Instagram",
+            "size": "quick_win",
+            "song": None,
+            "hook": "A quick behind-the-scenes angle.",
+            "what_to_make": "Film the studio desk.",
+            "tool_note": "Footage needed: studio desk",
+        }]
+
+    monkeypatch.setattr(chief_marketing_brain, "_ideas_context", lambda: "context")
+    monkeypatch.setattr(chief_marketing_brain, "_add_to_log", lambda entry: None)
+    monkeypatch.setattr(chief_marketing_brain, "ollama_json", fake_ollama_json)
+
+    replies = chief_marketing_brain._generate_ideas("marketing ideas")
+
+    assert "Studio Light" in replies[0]
+    assert calls == [{
+        "prompt": chief_marketing_brain._IDEAS_PROMPT.format(
+            context="context",
+            request="marketing ideas",
+            constraint="",
+        ),
+        "timeout": 60,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_marketing_draft_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "task_class": task_class})
+        return "caption draft"
+
+    monkeypatch.setattr(chief_marketing_brain, "ollama_call", fake_ollama)
+
+    replies = chief_marketing_brain._draft_content("draft an Instagram caption")
+
+    assert replies == ["caption draft"]
+    assert calls == [{
+        "prompt": chief_marketing_brain._DRAFT_PROMPT.format(
+            name=chief_marketing_brain.ARTIST_PROFILE["name"],
+            artist=chief_marketing_brain.ARTIST_PROFILE["artist"],
+            label=chief_marketing_brain.ARTIST_PROFILE["label"],
+            genre=chief_marketing_brain.ARTIST_PROFILE["genre"],
+            request="draft an Instagram caption",
+        ),
+        "timeout": 60,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_marketing_log_update_parse_uses_chief_structured_plan(monkeypatch):
+    calls = []
+    saved = {}
+
+    def fake_ollama_json(prompt, timeout=0, task_class=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "task_class": task_class})
+        return {"action": "status_update", "title": "Studio Light", "status": "posted"}
+
+    monkeypatch.setattr(chief_marketing_brain, "ollama_json", fake_ollama_json)
+    monkeypatch.setattr(chief_marketing_brain, "_load_content_log", lambda: {
+        "entries": [{"title": "Studio Light", "status": "suggested"}],
+    })
+    monkeypatch.setattr(chief_marketing_brain, "_save_content_log", lambda data: saved.setdefault("data", data))
+    monkeypatch.setattr(chief_marketing_brain, "_write_content_log_md", lambda data: None)
+
+    replies = chief_marketing_brain._update_log("mark Studio Light as posted")
+
+    assert "Updated" in replies[0]
+    assert saved["data"]["entries"][0]["status"] == "posted"
+    assert calls == [{
+        "prompt": chief_marketing_brain._LOG_UPDATE_PROMPT.format(text="mark Studio Light as posted"),
+        "timeout": 15,
+        "task_class": "chief_structured_plan",
+    }]
+
+
+def test_fundo_marketing_paths_use_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama_json(prompt, timeout=0, task_class=None):
+        calls.append({"kind": "json", "timeout": timeout, "task_class": task_class})
+        return [{
+            "title": "black label",
+            "platform": "TikTok",
+            "size": "quick_win",
+            "hook": "something moves in the grooves",
+            "what_to_make": "macro shot of vinyl texture",
+            "tool_note": "phone macro",
+        }]
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"kind": "text", "timeout": timeout, "task_class": task_class})
+        return "fundo caption"
+
+    monkeypatch.setattr(chief_marketing_brain, "_get_fundo_ctx", lambda: "fundo context")
+    monkeypatch.setattr(chief_marketing_brain, "_load_fundo_content_log", lambda: {"entries": []})
+    monkeypatch.setattr(chief_marketing_brain, "_save_fundo_content_log", lambda data: None)
+    monkeypatch.setattr(chief_marketing_brain, "ollama_json", fake_ollama_json)
+    monkeypatch.setattr(chief_marketing_brain, "ollama_call", fake_ollama)
+
+    ideas = chief_marketing_brain._fundo_ideas("fundo content idea")
+    draft = chief_marketing_brain._fundo_draft("fundo caption for TikTok")
+
+    assert "black label" in ideas[0]
+    assert draft == ["fundo caption"]
+    assert calls == [
+        {"kind": "json", "timeout": 45, "task_class": "chief_structured_plan"},
+        {"kind": "text", "timeout": 40, "task_class": "chief_structured_plan"},
+    ]
+
+
+def test_website_creative_paths_use_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"timeout": timeout, "task_class": task_class})
+        return "creative output"
+
+    monkeypatch.setattr(chief_website_creative, "_log_entry", lambda *args, **kwargs: None)
+    monkeypatch.setattr(chief_website_creative, "ollama_call", fake_ollama)
+
+    assert chief_website_creative._generate_headlines("headline hero")[0].endswith("creative output")
+    assert chief_website_creative._generate_bio("bio short fundo")[0].endswith("creative output")
+    assert chief_website_creative._generate_song_description("song description Blue Weather")[0].endswith("creative output")
+    assert chief_website_creative._generate_fundo_mystery("fundo mystery text")[0].endswith("creative output")
+    assert chief_website_creative._generate_svg_logo("logo minimal")[0].startswith("Logo concept")
+    assert chief_website_creative._generate_canva_brief("canva brief hero")[0].endswith("creative output")
+    assert chief_website_creative._generate_general_copy("website copy about")[0].endswith("creative output")
+    assert calls == [
+        {"timeout": 30, "task_class": "chief_structured_plan"},
+        {"timeout": 40, "task_class": "chief_structured_plan"},
+        {"timeout": 30, "task_class": "chief_structured_plan"},
+        {"timeout": 30, "task_class": "chief_structured_plan"},
+        {"timeout": 40, "task_class": "chief_structured_plan"},
+        {"timeout": 30, "task_class": "chief_structured_plan"},
+        {"timeout": 40, "task_class": "chief_structured_plan"},
+    ]
 
 
 def test_no_new_direct_chief_claude_calls_outside_allowlist():

@@ -28,7 +28,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as ollama_call
+from chief_llm import ollama_call
 
 # ── Paths ───────────────────────────────────────────────────────────────────────
 
@@ -203,7 +203,7 @@ def _generate_headlines(text: str) -> list[str]:
     mode    = _detect_mode(text)
     context = re.sub(r"headline\s*", "", text, flags=re.IGNORECASE).strip() or "homepage hero section"
     prompt  = _HEADLINE_PROMPT.format(identity=_identity(mode), context=context)
-    result  = ollama_call(prompt, timeout=30)
+    result  = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
     if not result:
         return ["Couldn't generate headlines — try again or check Claude API connection."]
     _log_entry("headline", context, result, mode)
@@ -226,7 +226,7 @@ def _generate_bio(text: str) -> list[str]:
         length=length,
         length_note=length_note,
     )
-    result = ollama_call(prompt, timeout=40)
+    result = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
     if not result:
         return ["Bio generation failed — check Claude API."]
     _log_entry("bio", f"{length} {mode}", result, mode)
@@ -256,7 +256,7 @@ def _generate_song_description(text: str) -> list[str]:
         song=matched,
         mood=mood,
     )
-    result = ollama_call(prompt, timeout=30)
+    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
     if not result:
         return [f"Song description for '{matched}' failed — check Claude API."]
     _log_entry("song_description", matched, result, "dpr")
@@ -265,7 +265,7 @@ def _generate_song_description(text: str) -> list[str]:
 
 def _generate_fundo_mystery(text: str) -> list[str]:
     prompt = _FUNDO_MYSTERY_PROMPT.format(identity=_identity("fundo"))
-    result = ollama_call(prompt, timeout=30)
+    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
     if not result:
         return ["Mystery text generation failed — check Claude API."]
     _log_entry("fundo_mystery", "teaser page", result, "fundo")
@@ -276,7 +276,7 @@ def _generate_svg_logo(text: str) -> list[str]:
     style  = re.sub(r"logo\s*", "", text, flags=re.IGNORECASE).strip() or "minimal wordmark"
     mode   = _detect_mode(text)
     prompt = _SVG_LOGO_PROMPT.format(identity=_identity(mode), style=style)
-    result = ollama_call(prompt, timeout=40)
+    result = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
     if not result:
         return ["SVG logo generation failed — check Claude API."]
     _log_entry("logo_svg", style, result, mode)
@@ -289,7 +289,7 @@ def _generate_canva_brief(text: str) -> list[str]:
     element = re.sub(r"canva\s*brief\s*", "", text, flags=re.IGNORECASE).strip() or "homepage hero image"
     mode    = _detect_mode(text)
     prompt  = _CANVA_BRIEF_PROMPT.format(identity=_identity(mode), element=element)
-    result  = ollama_call(prompt, timeout=30)
+    result  = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
     if not result:
         return ["Canva brief generation failed — check Claude API."]
     _log_entry("canva_brief", element, result, mode)
@@ -300,7 +300,7 @@ def _generate_general_copy(text: str) -> list[str]:
     topic  = re.sub(r"website\s*copy\s*", "", text, flags=re.IGNORECASE).strip() or text[:80]
     mode   = _detect_mode(text)
     prompt = _GENERAL_COPY_PROMPT.format(identity=_identity(mode), topic=topic)
-    result = ollama_call(prompt, timeout=40)
+    result = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
     if not result:
         return ["Copy generation failed — check Claude API."]
     _log_entry("general_copy", topic, result, mode)
