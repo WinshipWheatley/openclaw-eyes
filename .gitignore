@@ -102,6 +102,7 @@
 !chief_financial_brain.py
 !chief_scheduler_brain.py
 !chief_notify.py
+!chief_morning_synthesis.py
 !chief_brainstorm_brain.py
 !chief_brainstorm_router.py
 !chief_brainstorm_watcher.py
@@ -208,6 +209,7 @@
 !tests/test_chief_claude_cleanup.py
 !tests/test_chief_llm_router.py
 !tests/test_chief_musiclaw_safety.py
+!tests/test_chief_morning_synthesis.py
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py
