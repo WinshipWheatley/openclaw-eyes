@@ -208,7 +208,7 @@ def handle(text: str = "") -> list[str]:
     # ── Who is Fundo ─────────────────────────────────────────────────────────────
     if "who is fundo" in t or "what is fundo" in t:
         prompt = _WHO_PROMPT.format(brief=FUNDO_FULL_BRIEF)
-        result = deferred_fundo_identity_call(prompt, timeout=25)
+        result = ollama_call(prompt, timeout=25, task_class="chief_structured_plan")
         return [result or "fundo does not answer directly."]
 
     # ── Visual direction ─────────────────────────────────────────────────────────

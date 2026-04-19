@@ -476,15 +476,15 @@ def test_fundo_identity_arc_brief_uses_chief_structured_plan(monkeypatch):
     }]
 
 
-def test_fundo_identity_who_is_fundo_stays_deferred_on_claude(monkeypatch):
+def test_fundo_identity_who_is_fundo_uses_chief_structured_plan(monkeypatch):
     calls = []
 
-    def fake_claude(prompt, timeout=0):
-        calls.append({"prompt": prompt, "timeout": timeout})
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
         return "fundo does not clarify itself."
 
     monkeypatch.setattr(chief_fundo_identity, "_write_identity_md", lambda: None)
-    monkeypatch.setattr(chief_fundo_identity, "deferred_fundo_identity_call", fake_claude)
+    monkeypatch.setattr(chief_fundo_identity, "ollama_call", fake_ollama)
 
     replies = chief_fundo_identity.handle("who is fundo")
 
@@ -494,6 +494,8 @@ def test_fundo_identity_who_is_fundo_stays_deferred_on_claude(monkeypatch):
             brief=chief_fundo_identity.FUNDO_FULL_BRIEF,
         ),
         "timeout": 25,
+        "lane": None,
+        "task_class": "chief_structured_plan",
     }]
 
 
