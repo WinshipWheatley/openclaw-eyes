@@ -103,6 +103,37 @@ def test_ollama_call_lane_uses_resolved_model(monkeypatch):
     assert calls == [("nemotron-3-nano:4b", 12)]
 
 
+def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkeypatch):
+    calls: list[tuple[str, int]] = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "ok"}).encode("utf-8")
+
+    def _fake_urlopen(req, timeout=0):
+        payload = json.loads(req.data.decode("utf-8"))
+        calls.append((payload["model"], timeout))
+        return _Resp()
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _fake_urlopen)
+
+    out = chief_llm.ollama_call(
+        "Compact morning test prompt.",
+        timeout=45,
+        model="gemma4:e4b",
+        task_class="cassandra_morning_brief_test",
+    )
+
+    assert out == "ok"
+    assert calls == [("gemma4:e4b", 90)]
+
+
 def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
@@ -247,12 +278,45 @@ def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
     assert model == "gemma4:26b"
 
 
+def test_cassandra_morning_brief_test_mode_prefers_gemma_e4b(monkeypatch):
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_installed_models",
+        lambda force_refresh=False: {"gemma4:e4b", "gemma4:26b", "gemma4:31b"},
+    )
+
+    model, lane = chief_llm.resolve_local_model(
+        "Generate the morning briefing in test mode.",
+        task_class="cassandra_morning_brief_test",
+    )
+
+    assert lane == "fast"
+    assert model == "gemma4:e4b"
+
+
+def test_cassandra_morning_brief_test_mode_falls_back_to_26b(monkeypatch):
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_installed_models",
+        lambda force_refresh=False: {"gemma4:26b", "gemma4:31b"},
+    )
+
+    model, lane = chief_llm.resolve_local_model(
+        "Generate the morning briefing in test mode.",
+        task_class="cassandra_morning_brief_test",
+    )
+
+    assert lane == "fast"
+    assert model == "gemma4:26b"
+
+
 def test_cassandra_task_candidates_stay_in_gemma4_family():
     for task_class in (
         "cassandra_user_reply_fast",
         "cassandra_user_reply",
         "cassandra_outbound_draft",
         "cassandra_morning_brief",
+        "cassandra_morning_brief_test",
         "cassandra_inbox_summary",
         "cassandra_extract_classify",
     ):

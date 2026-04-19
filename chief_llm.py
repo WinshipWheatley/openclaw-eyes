@@ -11,6 +11,30 @@ import inspect as _inspect
 
 # -- External call logger --------------------------------------------------
 _EXTERNAL_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
+_OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
+_CASSANDRA_MORNING_TEST_TIMEOUT = 90
+_CASSANDRA_MORNING_TEST_ATTEMPTS = 1
+
+
+def _diagnostics_enabled() -> bool:
+    return os.environ.get("OPENCLAW_LLM_DIAGNOSTICS", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _log_ollama_diagnostic(event: dict) -> None:
+    if not _diagnostics_enabled():
+        return
+    try:
+        _OLLAMA_DIAGNOSTICS_LOG.parent.mkdir(parents=True, exist_ok=True)
+        event.setdefault("timestamp", _time.strftime("%Y-%m-%d %H:%M:%S"))
+        with open(_OLLAMA_DIAGNOSTICS_LOG, "a", encoding="utf-8") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                f.write(json.dumps(event, sort_keys=True) + "\n")
+                f.flush()
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except Exception:
+        pass
 
 def _log_external_call(model: str, prompt_words: int, response_words: int,
                        latency_ms: int, success: bool) -> None:
@@ -78,6 +102,11 @@ _TASK_CLASS_MODEL_CANDIDATES = {
         "gemma4:26b",
         "gemma4:31b",
     ),
+    "cassandra_morning_brief_test": (
+        "gemma4:e4b",
+        "gemma4:26b",
+        "gemma4:31b",
+    ),
     "cassandra_inbox_summary": (
         "gemma4:e4b",
         "gemma4:26b",
@@ -118,6 +147,7 @@ _TASK_CLASS_PREFERRED_LANES = {
     "cassandra_user_reply": "strong",
     "cassandra_outbound_draft": "strong",
     "cassandra_morning_brief": "strong",
+    "cassandra_morning_brief_test": "fast",
     "cassandra_inbox_summary": "fast",
     "cassandra_extract_classify": "fast",
     "chief_evidence_scan": "fast",
@@ -328,7 +358,9 @@ def local_model_route_reason(
     if task_class == "cassandra_outbound_draft":
         return "cassandra outbound draft policy uses the top gemma 4 lane"
     if task_class == "cassandra_morning_brief":
-        return "cassandra morning briefing policy uses the top gemma 4 lane with gemma 26b fallback"
+        return "cassandra production morning briefing uses gemma 4 26b before the top lane"
+    if task_class == "cassandra_morning_brief_test":
+        return "cassandra morning briefing test mode uses the smallest installed gemma 4 lane"
     if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
         return "cassandra bounded hidden task uses the smallest installed gemma 4 lane"
     if task_class == "chief_evidence_scan":
@@ -394,6 +426,10 @@ def ollama_call(
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
             print(f"[llm] routed → deep ({len(prompt.split())} words, timeout={timeout}s)",
                   flush=True)
+    attempts = 3
+    if task_class == "cassandra_morning_brief_test":
+        timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
+        attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
     payload = json.dumps({
         "model": model,
         "prompt": prompt,
@@ -405,13 +441,40 @@ def ollama_call(
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    for attempt in range(3):
+    prompt_words = len(prompt.split())
+    for attempt in range(attempts):
+        started = _time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                return data.get("response", "").strip()
-        except Exception:
-            if attempt < 2:
+                result = data.get("response", "").strip()
+                _log_ollama_diagnostic({
+                    "event": "ollama_call_result",
+                    "attempt": attempt + 1,
+                    "model": model,
+                    "task_class": task_class,
+                    "lane": lane,
+                    "timeout": timeout,
+                    "elapsed_ms": int((_time.monotonic() - started) * 1000),
+                    "prompt_words": prompt_words,
+                    "response_chars": len(result),
+                    "empty_response": not bool(result),
+                })
+                return result
+        except Exception as e:
+            _log_ollama_diagnostic({
+                "event": "ollama_call_exception",
+                "attempt": attempt + 1,
+                "model": model,
+                "task_class": task_class,
+                "lane": lane,
+                "timeout": timeout,
+                "elapsed_ms": int((_time.monotonic() - started) * 1000),
+                "prompt_words": prompt_words,
+                "exception_type": type(e).__name__,
+                "exception": str(e),
+            })
+            if attempt < attempts - 1:
                 _time.sleep(2 ** attempt)
                 continue
             return ""
