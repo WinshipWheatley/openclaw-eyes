@@ -499,6 +499,30 @@ def test_fundo_identity_who_is_fundo_uses_chief_structured_plan(monkeypatch):
     }]
 
 
+def test_fundo_identity_visual_direction_uses_chief_structured_plan(monkeypatch):
+    calls = []
+
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
+        return "CONCEPT: a dark record label half-submerged in water."
+
+    monkeypatch.setattr(chief_fundo_identity, "_write_identity_md", lambda: None)
+    monkeypatch.setattr(chief_fundo_identity, "ollama_call", fake_ollama)
+
+    replies = chief_fundo_identity.handle("fundo visual first release teaser")
+
+    assert replies == ["CONCEPT: a dark record label half-submerged in water."]
+    assert calls == [{
+        "prompt": chief_fundo_identity._VISUAL_PROMPT.format(
+            brief=chief_fundo_identity.FUNDO_FULL_BRIEF,
+            context="first release teaser",
+        ),
+        "timeout": 30,
+        "lane": None,
+        "task_class": "chief_structured_plan",
+    }]
+
+
 def test_no_new_direct_chief_claude_calls_outside_allowlist():
     root = Path("/home/openclaw")
     allowed = {

@@ -23,7 +23,7 @@ Saves to:
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as deferred_fundo_identity_call, ollama_call
+from chief_llm import ollama_call
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
 
@@ -217,7 +217,7 @@ def handle(text: str = "") -> list[str]:
         context = re.sub(r"fundo visual|visual direction", "", text, flags=re.IGNORECASE).strip()
         context = context or "an Instagram post announcing the first release"
         prompt  = _VISUAL_PROMPT.format(brief=FUNDO_FULL_BRIEF, context=context)
-        result  = deferred_fundo_identity_call(prompt, timeout=30)
+        result  = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
         return [result or "Visual direction generation failed — check Claude API."]
 
     # ── Arc brief for specific track number ──────────────────────────────────────
