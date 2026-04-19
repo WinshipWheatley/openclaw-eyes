@@ -49,6 +49,7 @@ from chief_file_io import save_json, load_json, append_md_tagged
 BRIEFING_DIR  = Path("/mnt/c/OpenClaw/logs/cassandra_briefings")
 BRIEFING_LOG  = BRIEFING_DIR / "briefing_log.md"
 _OPS_ACTIONS  = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions.md")
+_OPS_ACTIONS_CONTEXT = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions Context.md")
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -277,6 +278,7 @@ _PRIORITY_RE = re.compile(
     r"\burgent\b|\basap\b|\bcritical\b|\bhigh.?priority\b|\btoday\b|\boverdue\b",
     re.IGNORECASE,
 )
+_OPS_ACTIONS_FRESH_SECONDS = 24 * 60 * 60
 
 
 def classify_ops_actions(lines: list[str]) -> tuple[list[str], list[str]]:
@@ -299,20 +301,35 @@ def classify_ops_actions(lines: list[str]) -> tuple[list[str], list[str]]:
     return pending, completed
 
 
+def _read_ops_action_lines(n_actions: int = 12) -> tuple[list[str], str]:
+    if not _OPS_ACTIONS.exists():
+        return [], "missing: source file not found"
+
+    raw = _OPS_ACTIONS.read_text(encoding="utf-8").splitlines()
+    lines = [
+        l.strip() for l in raw
+        if l.strip() and not l.startswith("#") and not l.startswith("---")
+    ][-n_actions:]
+
+    try:
+        source_mtime = datetime.fromtimestamp(_OPS_ACTIONS.stat().st_mtime)
+        age_seconds = (datetime.now() - source_mtime).total_seconds()
+        if age_seconds > _OPS_ACTIONS_FRESH_SECONDS:
+            note = f"stale: source last changed {source_mtime.isoformat(timespec='seconds')}"
+        else:
+            note = f"fresh: source last changed {source_mtime.isoformat(timespec='seconds')}"
+    except Exception:
+        note = "unknown: source timestamp unreadable"
+    return lines, note
+
+
 def build_action_summary(n_actions: int = 12) -> str:
     """
     Read Ops Actions.md, classify into pending/completed, and return a
     structured summary string with counts and priority items first in Pending.
     Used to enrich the morning briefing context.
     """
-    lines: list[str] = []
-    if _OPS_ACTIONS.exists():
-        raw = _OPS_ACTIONS.read_text(encoding="utf-8").splitlines()
-        lines = [
-            l.strip() for l in raw
-            if l.strip() and not l.startswith("#") and not l.startswith("---")
-        ][-n_actions:]
-
+    lines, _freshness_note = _read_ops_action_lines(n_actions)
     pending, completed = classify_ops_actions(lines)
 
     parts: list[str] = []
@@ -332,6 +349,47 @@ def build_action_summary(n_actions: int = 12) -> str:
         parts.append("  (none)")
 
     return "\n".join(parts)
+
+
+def build_ops_actions_artifact_markdown(n_actions: int = 12) -> str:
+    generated_at = datetime.now().isoformat(timespec="seconds")
+    lines, freshness_note = _read_ops_action_lines(n_actions)
+    summary = build_action_summary(n_actions)
+    source_path = str(_OPS_ACTIONS)
+    module = "cassandra_briefing_brain.py"
+
+    content = (
+        "---\n"
+        "type: ops-actions-context\n"
+        f"generated_at: {generated_at}\n"
+        f"source_module: {module}\n"
+        f"source_path: {source_path}\n"
+        f"freshness: {freshness_note}\n"
+        f"bounded_to_last_actions: {n_actions}\n"
+        "---\n\n"
+        "# Ops Actions Context\n\n"
+        f"- Generated: {generated_at}\n"
+        f"- Source module: `{module}`\n"
+        f"- Source: `{source_path}`\n"
+        f"- Freshness: {freshness_note}\n"
+        f"- Bound: last {n_actions} non-heading action lines; {len(lines)} source line(s) included.\n\n"
+        "## Summary\n\n"
+        "```text\n"
+        f"{summary}\n"
+        "```\n"
+    )
+    return content[:4000]
+
+
+def write_ops_actions_artifact(n_actions: int = 12) -> dict:
+    content = build_ops_actions_artifact_markdown(n_actions)
+    _OPS_ACTIONS_CONTEXT.parent.mkdir(parents=True, exist_ok=True)
+    _OPS_ACTIONS_CONTEXT.write_text(content, encoding="utf-8")
+    return {
+        "path": str(_OPS_ACTIONS_CONTEXT),
+        "summary": build_action_summary(n_actions),
+        "markdown": content,
+    }
 
 
 # ── LLM generation ────────────────────────────────────────────────────────────
@@ -376,10 +434,17 @@ def generate_briefing(slot: str) -> str:
         except Exception as _e:
             morning_context = f"[morning briefing context unavailable: {_e}]"
 
-        # Classified action summary alongside the morning context block.
-        action_summary = build_action_summary()
+        # Formalized Ops Actions artifact alongside the morning context block.
+        try:
+            action_artifact = write_ops_actions_artifact()
+            action_summary = action_artifact["summary"]
+            action_artifact_path = action_artifact["path"]
+        except Exception as _e:
+            action_summary = build_action_summary()
+            action_artifact_path = f"[ops actions artifact unavailable: {_e}]"
         context = (
             f"{morning_context}\n\n"
+            f"Ops Actions artifact: {action_artifact_path}\n"
             f"Action summary:\n{action_summary}\n\n"
             f"{context}"
         )

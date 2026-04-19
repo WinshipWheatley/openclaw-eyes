@@ -202,6 +202,7 @@
 !tests/test_orchestrator_task_frontmatter.py
 !tests/test_file_verify_brain_wire.py
 !tests/test_cassandra_payment_verify.py
+!tests/test_cassandra_briefing_context.py
 !tests/test_send_truth.py
 !tests/test_chief_approval_brain.py
 !tests/test_chief_claude_cleanup.py
