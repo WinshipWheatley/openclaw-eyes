@@ -150,7 +150,7 @@ def _synthesize(raw_text: str) -> dict:
         # Local Ollama fallback — used when privacy check blocks cloud routing,
         # or when Nemotron call fails. Does NOT send blocked content to any cloud.
         # ollama_call() auto-escalates to 14b for synthesis-length prompts.
-        result = ollama_call(prompt, timeout=60).strip()
+        result = ollama_call(prompt, timeout=60, task_class="chief_structured_plan").strip()
     result = re.sub(r"^```[a-z]*\n?", "", result)
     result = re.sub(r"\n?```$", "", result.strip())
     try:
