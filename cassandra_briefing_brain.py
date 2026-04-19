@@ -35,6 +35,7 @@ Protected-window checks (read-only, no imports from approval/session logic):
 """
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -56,6 +57,7 @@ _MORNING_SYNTHESIS_MAX_CHARS = 9000
 _MORNING_TEXT_CHUNK_LIMIT = 1200
 _MORNING_SPOKEN_SUMMARY_LIMIT = 420
 _MORNING_REFERENCE_LINE_LIMIT = 80
+_MORNING_TEST_MODE_ENV = "CASSANDRA_MORNING_BRIEF_TEST_MODE"
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -282,6 +284,20 @@ def _read_text_safe(path: Path, max_chars: int | None = None) -> str:
     return text
 
 
+def _env_truthy(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def morning_brief_test_mode_enabled() -> bool:
+    return _env_truthy(_MORNING_TEST_MODE_ENV)
+
+
+def _morning_task_class() -> str:
+    if morning_brief_test_mode_enabled():
+        return "cassandra_morning_brief_test"
+    return "cassandra_morning_brief"
+
+
 def _file_freshness_note(path: Path, stale_after_seconds: int = 24 * 60 * 60) -> str:
     if not path.exists():
         return "missing: source file not found"
@@ -392,6 +408,47 @@ def _friendly_stale_notes(sections: dict[str, list[str]]) -> list[str]:
         if len(notes) >= 2:
             break
     return notes
+
+
+def _compact_morning_test_context(reference: dict) -> str:
+    sections = reference.get("sections") or {}
+    priorities = _clean_section_lines(sections, "Top Priorities", 4)
+    blockers = _clean_section_lines(sections, "Blockers / Watchlist", 4)
+    system_ops = _clean_section_lines(sections, "System / Ops State", 2)
+    stale = _friendly_stale_notes(sections)
+
+    priority = _friendly_gate_line(priorities) or (priorities[0] if priorities else "No top priority found.")
+    open_items = [
+        item for item in priorities
+        if "[open]" in item.lower() or "follow up" in item.lower() or "reconcile" in item.lower()
+    ]
+    if open_items:
+        priority = f"{priority} Top open item: {open_items[0]}"
+
+    watch_items: list[str] = []
+    for item in blockers:
+        low = item.lower()
+        if "no actions currently waiting for approval" in low:
+            continue
+        if "errors detected" in low:
+            watch_items.append("listener errors are logged")
+        elif "site offline" in low or "status: offline" in low:
+            watch_items.append("website QA reports offline")
+        elif "freshness: stale" in low or "stale:" in low:
+            watch_items.append("one source artifact is stale")
+        else:
+            watch_items.append(item)
+        if len(watch_items) >= 2:
+            break
+
+    return "\n".join([
+        "CHIEF MORNING SYNTHESIS - COMPACT TEST CONTEXT",
+        f"Freshness: {reference.get('freshness', 'freshness unknown')}",
+        f"Priority: {priority}",
+        f"Watchlist: {', '.join(watch_items) if watch_items else 'No blocker found.'}",
+        f"System: {system_ops[0] if system_ops else 'No system state found.'}",
+        f"Confidence: {', '.join(stale[:2]) if stale else 'No stale source flagged.'}",
+    ])
 
 
 def _build_morning_context_from_synthesis() -> dict:
@@ -715,6 +772,28 @@ Capability honesty (always):
 """
 
 
+_MORNING_TEST_PROMPT = """\
+You are Cassandra. Write a concise morning brief from the compact context only.
+Use 3 short sentences max. Plain language. Mention stale confidence only if it affects the operator's next step.
+"""
+
+
+def _build_briefing_prompt(slot: str, context: str, directive: str, task_class: str) -> str:
+    if slot == "morning" and task_class == "cassandra_morning_brief_test":
+        return (
+            f"{_MORNING_TEST_PROMPT}\n\n"
+            f"Compact context:\n{context}\n\n"
+            "Cassandra:"
+        )
+
+    return (
+        f"{_PERSONA_BRIEF}\n\n"
+        f"Current context:\n{context}\n\n"
+        f"Task — {slot} briefing:\n{directive}\n\n"
+        f"Cassandra:"
+    )
+
+
 def generate_briefing(slot: str) -> str:
     """
     Call the fast local LLM to generate a briefing for the given slot.
@@ -723,9 +802,13 @@ def generate_briefing(slot: str) -> str:
     """
     _, _, directive = SLOTS[slot]
     morning_reference: dict | None = None
+    task_class = _morning_task_class() if slot == "morning" else "cassandra_user_reply"
     if slot == "morning":
         morning_reference = _build_morning_context_from_synthesis()
-        context = morning_reference["prompt_context"]
+        if task_class == "cassandra_morning_brief_test":
+            context = _compact_morning_test_context(morning_reference)
+        else:
+            context = morning_reference["prompt_context"]
         if not morning_reference.get("available"):
             text = (
                 "Chief Morning Synthesis is not available yet, so I do not have a "
@@ -737,16 +820,10 @@ def generate_briefing(slot: str) -> str:
     else:
         context = build_context_snapshot()
 
-    prompt = (
-        f"{_PERSONA_BRIEF}\n\n"
-        f"Current context:\n{context}\n\n"
-        f"Task — {slot} briefing:\n{directive}\n\n"
-        f"Cassandra:"
-    )
+    prompt = _build_briefing_prompt(slot, context, directive, task_class)
 
-    task_class = "cassandra_morning_brief" if slot == "morning" else "cassandra_user_reply"
     model, _lane = resolve_local_model(prompt, task_class=task_class)
-    result = ollama_call(prompt, timeout=45, model=model)
+    result = ollama_call(prompt, timeout=45, model=model, task_class=task_class)
     if result:
         text = tts_clean(result.strip())
         if slot == "morning" and morning_reference is not None:

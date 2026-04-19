@@ -306,3 +306,37 @@ def test_fallback_morning_delivery_is_clean_not_artifact_shaped():
     assert "Ops Actions Context:" not in text
     assert "Source:" not in text
     assert "/mnt/c/" not in text
+
+
+def test_compact_morning_test_context_uses_parsed_sections_only():
+    reference = {
+        "freshness": "fresh: source last changed 2026-04-19T10:38:51",
+        "sections": {
+            "Top Priorities": [
+                "- Nightly Polish Log: The Gate: no actions currently waiting for approval click.",
+                "- Nightly Polish Log: Queue: 1 tasks ready for execution.",
+                "- Ops Actions Context: - Source: `/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions.md`",
+                "- Ops Actions Context: - [OPEN] St. Anne's / misc tech: reconcile payer and billing path.",
+            ],
+            "Blockers / Watchlist": [
+                "- System Health Report: Errors detected - check listener.out",
+                "- Website QA Log: STATUS: OFFLINE",
+            ],
+            "System / Ops State": [
+                "- System Health Report: Workers",
+                "- System Health Report: 0 messages queued today",
+            ],
+            "Confidence / What May Be Stale": [
+                "- Ops Calendar Notes: stale: source last changed 2026-04-05T13:40:39",
+            ],
+        },
+    }
+
+    context = bb._compact_morning_test_context(reference)
+
+    assert "COMPACT TEST CONTEXT" in context
+    assert "The approval gate is clear" in context
+    assert "listener errors are logged" in context
+    assert "calendar notes may be stale" in context
+    assert "/mnt/c/" not in context
+    assert len(context.split()) < 120
