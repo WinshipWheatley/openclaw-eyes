@@ -215,7 +215,7 @@ def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatc
     assert model == "gemma4:26b"
 
 
-def test_cassandra_morning_brief_prefers_gemma_family(monkeypatch):
+def test_cassandra_morning_brief_prefers_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -228,7 +228,7 @@ def test_cassandra_morning_brief_prefers_gemma_family(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "gemma4:31b"
+    assert model == "gemma4:26b"
 
 
 def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):

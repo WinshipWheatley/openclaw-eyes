@@ -75,8 +75,8 @@ _TASK_CLASS_MODEL_CANDIDATES = {
         "gemma4:26b",
     ),
     "cassandra_morning_brief": (
-        "gemma4:31b",
         "gemma4:26b",
+        "gemma4:31b",
     ),
     "cassandra_inbox_summary": (
         "gemma4:e4b",

@@ -268,7 +268,7 @@ def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
     monkeypatch.setattr(scheduler, "split_briefing_messages", lambda entry: ["chunk one", "chunk two"])
     monkeypatch.setattr(scheduler, "briefing_voice_text", lambda entry: "compressed spoken summary")
     monkeypatch.setattr(scheduler, "send_message", lambda text: sent.append(text))
-    monkeypatch.setattr(scheduler, "speak_batch", lambda text: spoken.append(text))
+    monkeypatch.setattr(scheduler, "speak_and_send_voice_note", lambda text: spoken.append(text))
     monkeypatch.setattr(scheduler, "mark_delivered", lambda date, slot: marked.append((date, slot)))
 
     scheduler._deliver({"slot": "morning", "date": "2026-04-19", "text": "full text"})
@@ -276,3 +276,33 @@ def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
     assert sent == ["chunk one", "chunk two"]
     assert spoken == ["compressed spoken summary"]
     assert marked == [("2026-04-19", "morning")]
+
+
+def test_fallback_morning_delivery_is_clean_not_artifact_shaped():
+    reference = {
+        "freshness": "fresh: source last changed 2026-04-19T10:38:51",
+        "sections": {
+            "Top Priorities": [
+                "- Nightly Polish Log: The Gate: no actions currently waiting for approval click.",
+                "- Nightly Polish Log: Queue: 1 tasks ready for execution.",
+                "- Ops Actions Context: - Source: `/mnt/c/OpenClawShared/openclaw-vault/System/Ops Actions.md`",
+                "- Ops Actions Context: - [OPEN] St. Anne's / misc tech: reconcile payer and billing path.",
+            ],
+            "Blockers / Watchlist": [
+                "- System Health Report: Errors detected - check listener.out",
+                "- Website QA Log: STATUS: OFFLINE",
+            ],
+            "Confidence / What May Be Stale": [
+                "- Ops Calendar Notes: stale: source last changed 2026-04-05T13:40:39",
+            ],
+        },
+    }
+
+    text = bb._fallback_morning_delivery(reference)
+
+    assert "The approval gate is clear" in text
+    assert "Top open item:" in text
+    assert "listener errors are logged" in text
+    assert "Ops Actions Context:" not in text
+    assert "Source:" not in text
+    assert "/mnt/c/" not in text

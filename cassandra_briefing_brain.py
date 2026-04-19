@@ -54,7 +54,7 @@ _CHIEF_MORNING_SYNTHESIS = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Chi
 _MORNING_REFERENCE_CACHE = BRIEFING_DIR / "morning_reference_cache.json"
 _MORNING_SYNTHESIS_MAX_CHARS = 9000
 _MORNING_TEXT_CHUNK_LIMIT = 1200
-_MORNING_SPOKEN_SUMMARY_LIMIT = 650
+_MORNING_SPOKEN_SUMMARY_LIMIT = 420
 _MORNING_REFERENCE_LINE_LIMIT = 80
 
 # Read-only peeks at external state (no circular imports)
@@ -321,6 +321,79 @@ def _section_excerpt(sections: dict[str, list[str]], name: str, limit: int = 5) 
     return lines[:limit]
 
 
+def _clean_artifact_line(line: str) -> str:
+    line = re.sub(r"^\s*(?:[-*]|\u2022)\s*", "", str(line or "").strip())
+    line = re.sub(r"^[A-Za-z /]+:\s+-\s*", "", line)
+    line = re.sub(r"^[A-Za-z /]+:\s+", "", line)
+    line = re.sub(r"^\s*(?:[-*]|\u2022)\s*", "", line)
+    line = line.replace("`", "")
+    line = re.sub(r"\s+", " ", line).strip()
+    return line
+
+
+def _is_metadata_line(line: str) -> bool:
+    low = _clean_artifact_line(line).lower()
+    return (
+        not low
+        or low in {"workers", "watcher", "system health"}
+        or low.startswith("|")
+        or low.startswith("source:")
+        or low.startswith("generated:")
+        or low.startswith("output artifact:")
+        or low.startswith("bound:")
+        or low.startswith("pending (")
+        or low.startswith("completed (")
+        or "openclawshared" in low
+        or "source_module" in low
+    )
+
+
+def _clean_section_lines(sections: dict[str, list[str]], name: str, limit: int = 4) -> list[str]:
+    cleaned: list[str] = []
+    for line in sections.get(name, []):
+        if _is_metadata_line(line):
+            continue
+        item = _clean_artifact_line(line)
+        if item and item not in cleaned:
+            cleaned.append(item)
+        if len(cleaned) >= limit:
+            break
+    return cleaned
+
+
+def _sentence(text: str) -> str:
+    text = str(text or "").strip()
+    if not text:
+        return ""
+    if text.endswith((".", "!", "?")):
+        return text
+    return text + "."
+
+
+def _friendly_gate_line(lines: list[str]) -> str | None:
+    combined = " ".join(lines).lower()
+    if "no actions currently waiting for approval" in combined:
+        if re.search(r"\b1 tasks?\b|\b1 task\b", combined):
+            return "The approval gate is clear, and one task is ready in the queue."
+        return "The approval gate is clear."
+    return None
+
+
+def _friendly_stale_notes(sections: dict[str, list[str]]) -> list[str]:
+    notes: list[str] = []
+    for raw in sections.get("Confidence / What May Be Stale", []):
+        low = raw.lower()
+        if "ops calendar notes" in low:
+            notes.append("calendar notes may be stale")
+        elif "website qa log" in low:
+            notes.append("website QA may be stale")
+        elif "stale:" in low:
+            notes.append(_clean_artifact_line(raw).rstrip("."))
+        if len(notes) >= 2:
+            break
+    return notes
+
+
 def _build_morning_context_from_synthesis() -> dict:
     freshness = _file_freshness_note(_CHIEF_MORNING_SYNTHESIS)
     markdown = _read_text_safe(_CHIEF_MORNING_SYNTHESIS, _MORNING_SYNTHESIS_MAX_CHARS)
@@ -373,22 +446,54 @@ def _compact_spoken_summary(text: str, max_chars: int = _MORNING_SPOKEN_SUMMARY_
 
 def _fallback_morning_delivery(reference: dict) -> str:
     sections = reference.get("sections") or {}
-    priorities = _section_excerpt(sections, "Top Priorities", 3)
-    blockers = _section_excerpt(sections, "Blockers / Watchlist", 2)
-    system_ops = _section_excerpt(sections, "System / Ops State", 2)
+    priorities = _clean_section_lines(sections, "Top Priorities", 4)
+    blockers = _clean_section_lines(sections, "Blockers / Watchlist", 4)
+    system_ops = _clean_section_lines(sections, "System / Ops State", 3)
+    stale = _friendly_stale_notes(sections)
 
     parts: list[str] = []
-    if priorities:
-        parts.append("Top priority: " + " ".join(priorities))
+    gate_line = _friendly_gate_line(priorities + blockers)
+    if gate_line:
+        parts.append(gate_line)
+    elif priorities:
+        parts.append("Top priority: " + _sentence(priorities[0]))
+
+    open_items = [
+        item for item in priorities
+        if "[open]" in item.lower() or "follow up" in item.lower() or "reconcile" in item.lower()
+    ]
+    if open_items:
+        parts.append("Top open item: " + _sentence(open_items[0]))
+
     if blockers:
-        parts.append("Watchlist: " + " ".join(blockers))
-    if system_ops:
-        parts.append("System state: " + " ".join(system_ops))
+        watch_items: list[str] = []
+        for item in blockers:
+            low = item.lower()
+            if "no actions currently waiting for approval" in low:
+                continue
+            if "errors detected" in low:
+                watch_items.append("listener errors are logged")
+            elif "site offline" in low or "status: offline" in low:
+                watch_items.append("website QA still reports offline")
+            elif "freshness: stale" in low or "stale:" in low:
+                watch_items.append("one source artifact is stale")
+            else:
+                watch_items.append(item.rstrip("."))
+            if len(watch_items) >= 3:
+                break
+        if watch_items:
+            parts.append("Watchlist: " + ", ".join(watch_items) + ".")
+
+    if system_ops and not any("worker" in part.lower() for part in parts):
+        parts.append("System state: " + _sentence(system_ops[0]))
+
+    if stale:
+        parts.append("Confidence: " + ", ".join(stale[:2]) + ".")
+
     if not parts:
         parts.append(
-            "Chief Morning Synthesis is available, but it did not expose enough structured lines for a clean summary."
+            "Chief Morning Synthesis is available, but it did not expose enough clean priority lines for a full morning brief."
         )
-    parts.append(f"Confidence note: {reference.get('freshness', 'freshness unknown')}.")
     return tts_clean(" ".join(parts))
 
 

@@ -14,8 +14,8 @@ Protected windows (from cassandra_briefing_brain.protected_reason()):
 
 Voice on delivery
 -----------------
-  Uses speak_batch() — Qwen3-TTS if installed (slow but high-quality),
-  Kokoro fallback, then Piper, then silent.
+  Uses Cassandra's dual voice path so scheduled briefings can produce a
+  Telegram voice note as well as local playback when voice is enabled.
   Text is always sent to Telegram first; voice is secondary and non-blocking.
 """
 
@@ -37,7 +37,7 @@ from cassandra_briefing_brain import (
     briefing_voice_text,
 )
 from cassandra_sender import send_message
-from cassandra_voice import speak_batch
+from cassandra_voice import speak_and_send_voice_note
 
 POLL_INTERVAL = 300  # 5 minutes
 _RELOAD_PATHS = (
@@ -87,8 +87,8 @@ def _deliver(entry: dict) -> None:
         print(f"[briefing_scheduler] delivery error ({slot}): {e}", flush=True)
         return
 
-    # Batch voice — non-blocking, optional; failures are swallowed inside speak_batch
-    speak_batch(briefing_voice_text(entry))
+    # Voice note/local playback — non-blocking, optional; failures are swallowed inside voice path.
+    speak_and_send_voice_note(briefing_voice_text(entry))
 
 
 # ── Main tick ─────────────────────────────────────────────────────────────────
