@@ -217,7 +217,7 @@ def send_summary() -> tuple[bool, str]:
         from googleapiclient.discovery import build  # type: ignore[import-not-found]
         token = Path("/home/openclaw/.google-secrets/token.json")
         if not token.exists():
-            return False, f"{smtp_error}; gmail token missing"
+            raise FileNotFoundError("gmail token missing")
         creds = Credentials.from_authorized_user_file(
             str(token),
             scopes=["https://www.googleapis.com/auth/gmail.compose"],
@@ -227,7 +227,19 @@ def send_summary() -> tuple[bool, str]:
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
         return True, "gmail_api"
     except Exception as exc:
-        return False, f"{smtp_error}; gmail api fallback failed: {exc}"
+        reason = f"{smtp_error}; gmail api fallback failed: {exc}"
+        try:
+            from chief_assist import escalate_to_operator
+            assist_msg = escalate_to_operator(
+                diagnosis="API Blocked: Morning Briefing delivery failed.",
+                reason="Both SMTP and Gmail API failed. Check Gmail App Password or OAuth token.",
+                primary_cmd="nano /home/openclaw/.chief.env",
+                context_cmd=f"tail -n 20 {REPORT_LOG}"
+            )
+            print(f"\n{assist_msg}\n", flush=True)
+        except Exception:
+            pass
+        return False, reason
 
 
 if __name__ == "__main__":

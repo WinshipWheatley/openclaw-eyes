@@ -324,7 +324,24 @@ def confirm_send(approved: bool) -> list[str]:
         return [f"✅ SMS sent to {draft['to_name']} ({draft['to_number']})\nSID: {sid_or_err}"]
     else:
         _log_message(draft["to_name"], draft["to_number"], draft["body"], "failed")
-        return [f"❌ SMS failed: {sid_or_err}"]
+        try:
+            from chief_assist import escalate_to_operator
+            diagnosis = "API Blocked: SMS delivery failed."
+            # Check if it looks like an auth error
+            if "authenticate" in sid_or_err.lower() or "permission" in sid_or_err.lower():
+                reason = "Twilio API returned an authentication error. Check SID/Token."
+            else:
+                reason = f"Twilio API returned an error: {sid_or_err}"
+            
+            assist_msg = escalate_to_operator(
+                diagnosis=diagnosis,
+                reason=reason,
+                primary_cmd="nano /home/openclaw/.chief.env",
+                context_cmd=f"tail -n 20 {SMS_JSON}"
+            )
+            return [f"❌ SMS failed: {sid_or_err}", f"\n{assist_msg}"]
+        except Exception:
+            return [f"❌ SMS failed: {sid_or_err}"]
 
 
 # ── Public entry point ─────────────────────────────────────────────────────────

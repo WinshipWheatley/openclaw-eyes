@@ -905,7 +905,7 @@ def generate_briefing(slot: str) -> str:
     if slot == "morning":
         from chief_llm import ollama_json
         import json
-        data = ollama_json(prompt, timeout=60, task_class=task_class)
+        data = ollama_json(prompt, timeout=180, task_class=task_class)
         if data and isinstance(data, list):
             text = json.dumps(data)
             if morning_reference is not None:
