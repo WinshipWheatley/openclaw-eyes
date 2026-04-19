@@ -506,8 +506,45 @@ def normalize_speech_text(text: str) -> str:
     
     # Replace & with 'and'
     text = text.replace('&', 'and')
+
+    # 1. Parenthetical number groups: (300, 450, 750) -> 300, 450, and 750
+    def _paren_num_replace(m):
+        content = m.group(1).strip()
+        if ',' in content:
+            nums = [n.strip() for n in content.split(',') if n.strip()]
+            if len(nums) > 1:
+                return ", ".join(nums[:-1]) + ", and " + nums[-1]
+        return content
+    text = re.sub(r'\(([\d, ]+)\)', _paren_num_replace, text)
+
+    # 2. Shorthand dates like 3/11 or 5/9/2026
+    def _shorthand_date_replace(m):
+        try:
+            month_idx = int(m.group(1))
+            day = int(m.group(2))
+            year = m.group(3)
+            months = ["", "January", "February", "March", "April", "May", "June", 
+                      "July", "August", "September", "October", "November", "December"]
+            if 1 <= month_idx <= 12:
+                month = months[month_idx]
+                suffix = 'th' if 11 <= day <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+                if year:
+                    y_val = year if len(year) == 4 else f"20{year}"
+                    return f"{month} {day}{suffix}, {y_val}"
+                return f"{month} {day}{suffix}"
+        except:
+            pass
+        return m.group(0)
+    text = re.sub(r'(?<!\d/)\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b', _shorthand_date_replace, text)
+
+    # 3. Numbered list markers: 1) -> Number 1
+    def _list_marker_replace(m):
+        prefix = m.group(1) or ""
+        num = m.group(2)
+        return f"{prefix}Number {num}."
+    text = re.sub(r'(^|\s)(\d+)\)', _list_marker_replace, text)
     
-    # Date normalizer 2026-04-19 -> April 19th, 2026
+    # 4. Date normalizer 2026-04-19 -> April 19th, 2026
     def _date_replace(m):
         try:
             d = datetime.strptime(m.group(0), "%Y-%m-%d")
