@@ -340,7 +340,7 @@ def handle(text: str = "") -> list[str]:
             position=session["position"],
             name=session["name"],
         )
-        new_prompt = deferred_fundo_session_call(prompt, timeout=40)
+        new_prompt = ollama_call(prompt, timeout=40, task_class="chief_structured_plan")
         if new_prompt:
             session["suno_prompt"] = new_prompt
             _save_sessions(data)
