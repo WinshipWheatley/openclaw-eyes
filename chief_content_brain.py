@@ -144,8 +144,25 @@ def _get_recommendation(queue: list[dict], overdue: list[str]) -> str:
     queue_str = "\n".join(f"- [{e.get('platform','')}] {e.get('title','')} ({e.get('size','')})" for e in queue[:5]) or "none"
     overdue_str = "\n".join(f"- {o}" for o in overdue) or "none"
     prompt = _RECOMMENDATION_PROMPT.format(queue_items=queue_str, overdue=overdue_str)
-    result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
-    return result if result else ""
+    try:
+        result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
+    except Exception:
+        result = ""
+    return result if _usable_recommendation(result) else _fallback_recommendation(queue, overdue)
+
+
+def _usable_recommendation(text: str) -> bool:
+    stripped = (text or "").strip()
+    return len(stripped.split()) >= 2 and stripped.lower() not in {"ok", "n/a", "none", "unknown"}
+
+
+def _fallback_recommendation(queue: list[dict], overdue: list[str]) -> str:
+    first = queue[0] if queue else {}
+    if first:
+        platform = first.get("platform") or (overdue[0].split(" (", 1)[0] if overdue else "the most behind platform")
+        title = first.get("title") or "the first queued item"
+        return f"Post or schedule '{title}' next on {platform}. Then cover {overdue[0] if overdue else 'the next behind platform'} with a quick process clip."
+    return f"Prioritize the most behind platform first: {overdue[0]}. Make one quick, low-lift post today."
 
 
 # ── Vault write ───────────────────────────────────────────────────────────────

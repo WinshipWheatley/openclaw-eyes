@@ -147,8 +147,20 @@ def _check_on_brand(content: str, brand: dict) -> str:
         off_brand="; ".join(brand["off_brand"][:4]),
         content=content[:500],
     )
-    result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
-    return result if result else "Unable to evaluate — check manually against brand guide."
+    try:
+        result = ollama_call(prompt, timeout=20, task_class="chief_structured_plan").strip()
+    except Exception:
+        result = ""
+    return result if _usable_brand_check(result) else _fallback_brand_check(content, brand)
+
+
+def _usable_brand_check(text: str) -> bool:
+    stripped = (text or "").strip()
+    return len(stripped.split()) >= 2 and stripped.lower() not in {"ok", "n/a", "none", "unknown"}
+
+
+def _fallback_brand_check(content: str, brand: dict) -> str:
+    return f"Manual brand check needed for {brand['name']}. Compare it against the guide; strongest on-brand anchor: {brand['on_brand'][0]}."
 
 
 # ── Report builder ────────────────────────────────────────────────────────────

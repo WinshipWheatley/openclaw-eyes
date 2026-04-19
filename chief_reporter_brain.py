@@ -168,11 +168,23 @@ def format_report(stats: dict) -> str:
         watcher_alert_count=stats["watcher_alert_count"],
         watcher_alert_samples=", ".join(stats["watcher_alert_samples"]) or "none",
     )
-    result = ollama_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
-    if result:
+    try:
+        result = ollama_call(prompt, timeout=30, task_class="chief_evidence_synthesis").strip()
+    except Exception:
+        result = ""
+    if _usable_report(result):
         return result
 
     # Plain-text fallback if LLM unavailable
+    return _fallback_report(stats)
+
+
+def _usable_report(text: str) -> bool:
+    stripped = (text or "").strip()
+    return len(stripped.split()) >= 2 and stripped.lower() not in {"ok", "n/a", "none", "unknown"}
+
+
+def _fallback_report(stats: dict) -> str:
     alerts = stats["watcher_alert_count"]
     errors = "⚠️ Errors detected — check listener.out" if stats["listener_errors"] else "✓ No errors"
     return (

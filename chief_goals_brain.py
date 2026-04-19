@@ -164,11 +164,31 @@ def _build_goals_text(goals: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _weak_checkin(text: str) -> bool:
+    stripped = (text or "").strip()
+    return len(stripped.split()) < 2 or stripped.lower() in {"ok", "n/a", "none", "unknown"}
+
+
+def _fallback_checkin(goals: list[dict]) -> str:
+    if not goals:
+        return "No goals are loaded yet. Add or update a goal so Chief can track momentum."
+    incomplete = [g for g in goals if int(g.get("completion", 0) or 0) < 100]
+    target = sorted(incomplete or goals, key=lambda g: str(g.get("target_date", "9999-99-99")))[0]
+    return (
+        f"Goal status is still trackable from stored data. Focus next on {target['title']} "
+        f"({target.get('completion', 0)}% complete, target {target.get('target_date', 'open')}). "
+        "Log one concrete milestone or percent update next."
+    )
+
+
 def _get_checkin(goals: list[dict]) -> str:
     goals_text = _build_goals_text(goals)
     prompt = _CHECKIN_PROMPT.format(goals_text=goals_text)
-    result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
-    return result if result else ""
+    try:
+        result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
+    except Exception:
+        result = ""
+    return result if not _weak_checkin(result) else _fallback_checkin(goals)
 
 
 # ── Handlers ──────────────────────────────────────────────────────────────────

@@ -143,6 +143,17 @@ def test_goals_checkin_uses_local_ollama(monkeypatch):
     }]
 
 
+def test_goals_checkin_uses_deterministic_fallback_on_empty_model(monkeypatch):
+    goals = [{"id": 1, "title": "Release the album", "completion": 40, "target_date": "2026-12-31"}]
+    monkeypatch.setattr(chief_goals_brain, "ollama_call", lambda *args, **kwargs: "")
+
+    result = chief_goals_brain._get_checkin(goals)
+
+    assert "Release the album" in result
+    assert "40% complete" in result
+    assert "Log one concrete milestone" in result
+
+
 def test_content_recommendation_uses_chief_structured_plan(monkeypatch):
     calls = []
     queue = [{"platform": "Instagram", "title": "studio clip", "size": "short"}]
@@ -164,6 +175,18 @@ def test_content_recommendation_uses_chief_structured_plan(monkeypatch):
         "lane": None,
         "task_class": "chief_structured_plan",
     }]
+
+
+def test_content_recommendation_falls_back_on_weak_model_output(monkeypatch):
+    queue = [{"platform": "Instagram", "title": "studio clip", "size": "short"}]
+    overdue = ["TikTok (0/3 this week)"]
+    monkeypatch.setattr(chief_content_brain, "ollama_call", lambda *args, **kwargs: "ok")
+
+    result = chief_content_brain._get_recommendation(queue, overdue)
+
+    assert "studio clip" in result
+    assert "Instagram" in result
+    assert "TikTok (0/3 this week)" in result
 
 
 def test_brand_check_uses_chief_structured_plan(monkeypatch):
@@ -188,6 +211,19 @@ def test_brand_check_uses_chief_structured_plan(monkeypatch):
         "lane": None,
         "task_class": "chief_structured_plan",
     }]
+
+
+def test_brand_check_falls_back_on_model_exception(monkeypatch):
+    def raise_error(*args, **kwargs):
+        raise RuntimeError("model unavailable")
+
+    monkeypatch.setattr(chief_brand_brain, "ollama_call", raise_error)
+
+    result = chief_brand_brain._check_on_brand("A warm studio story.", chief_brand_brain.DPR_BRAND)
+
+    assert "Manual brand check needed" in result
+    assert chief_brand_brain.DPR_BRAND["name"] in result
+    assert chief_brand_brain.DPR_BRAND["on_brand"][0] in result
 
 
 def test_momentum_narrative_uses_local_ollama(monkeypatch):
@@ -242,6 +278,52 @@ def test_reporter_format_uses_chief_evidence_synthesis(monkeypatch):
         "lane": None,
         "task_class": "chief_evidence_synthesis",
     }]
+
+
+def test_reporter_format_uses_plain_fallback_on_empty_model(monkeypatch):
+    monkeypatch.setattr(chief_reporter_brain, "ollama_call", lambda *args, **kwargs: "")
+    stats = {
+        "date": "2026-04-19",
+        "messages_today": 3,
+        "queued_today": 1,
+        "queued_total": 4,
+        "logged_today": 2,
+        "state_updates": 5,
+        "listener_errors": False,
+        "billing_completions": 0,
+        "watcher_alert_count": 1,
+        "watcher_alert_samples": ["calendar wait"],
+    }
+
+    result = chief_reporter_brain.format_report(stats)
+
+    assert "OpenClaw — 2026-04-19" in result
+    assert "1 messages queued today" in result
+    assert "✓ No errors" in result
+
+
+def test_reporter_format_uses_plain_fallback_on_model_exception(monkeypatch):
+    def raise_error(*args, **kwargs):
+        raise RuntimeError("model unavailable")
+
+    monkeypatch.setattr(chief_reporter_brain, "ollama_call", raise_error)
+    stats = {
+        "date": "2026-04-19",
+        "messages_today": 0,
+        "queued_today": 0,
+        "queued_total": 0,
+        "logged_today": 0,
+        "state_updates": 0,
+        "listener_errors": True,
+        "billing_completions": 0,
+        "watcher_alert_count": 0,
+        "watcher_alert_samples": [],
+    }
+
+    result = chief_reporter_brain.format_report(stats)
+
+    assert "OpenClaw — 2026-04-19" in result
+    assert "Errors detected" in result
 
 
 def test_scout_synthesis_uses_chief_structured_plan_json(monkeypatch):
