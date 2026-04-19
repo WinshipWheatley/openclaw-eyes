@@ -177,7 +177,12 @@ def _build_brief(title: str, row: dict) -> str:
         batch_days=row.get("batch_days", "").strip() or "not planned",
     )
     result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan").strip()
-    return result if result else ""
+    if not result:
+        passes_str = ", ".join(passes) or "none"
+        gaps_str = ", ".join(gaps) or "none"
+        blocker_str = row.get("completion_blocker", row.get("blocker", "")).strip() or "none"
+        return f"Mix Brief for {title} (Auto-fallback):\n- Passes done: {passes_str}\n- Needs attention: {gaps_str}\n- Blocker: {blocker_str}"
+    return result
 
 
 # ── Mix-ready list ────────────────────────────────────────────────────────────

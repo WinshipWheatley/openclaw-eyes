@@ -355,9 +355,16 @@ def main() -> None:
             task_class="chief_structured_plan",
         )
         if not result:
-            print("  [SKIP] LLM classification failed")
-            log_lines.append(f"[{ts()}] SKIP: {entry_id} — LLM classification failed")
-            continue
+            print("  [FALLBACK] LLM classification failed, defaulting to hold")
+            log_lines.append(f"[{ts()}] FALLBACK: {entry_id} — classification failed, routing to hold")
+            result = {
+                "classification": "hold",
+                "bot_confidence": 0,
+                "router_note": "LLM classification failed (auto-fallback)",
+                "suggested_title": entry["heading"],
+                "suggested_priority": "medium",
+                "suggested_type": "hold"
+            }
 
         classification = result.get("classification", "hold")
         bot_confidence = result.get("bot_confidence", 0)

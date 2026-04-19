@@ -236,7 +236,10 @@ def _brand_analysis(results: list[PageResult]) -> str:
         timeout=30,
         task_class="chief_evidence_synthesis",
     )
-    return result or "Brand analysis unavailable — check Claude API."
+    if not result:
+        total_failed = sum(r.failed_count() for r in results)
+        return f"BRAND CHECK: LLM Unavailable.\nNEXT ACTIONS: Manually review the {total_failed} failed QA checks."
+    return result
 
 
 # ── Report formatter ─────────────────────────────────────────────────────────────

@@ -218,7 +218,8 @@ def handle(text: str = "") -> list[str]:
         context = context or "an Instagram post announcing the first release"
         prompt  = _VISUAL_PROMPT.format(brief=FUNDO_FULL_BRIEF, context=context)
         result  = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
-        return [result or "Visual direction generation failed — check Claude API."]
+        fallback = "VISUAL CONCEPT (Fallback): Thrift store anonymous. Near-black palette. Found objects and textures. No face visible."
+        return [result or fallback]
 
     # ── Arc brief for specific track number ──────────────────────────────────────
     if "fundo song" in t or "track brief" in t or "arc brief" in t:
@@ -228,7 +229,8 @@ def handle(text: str = "") -> list[str]:
         num = max(1, min(num, 15))
         prompt = _ARC_PROMPT.format(brief=FUNDO_FULL_BRIEF, number=num)
         result = ollama_call(prompt, timeout=30, task_class="chief_structured_plan")
-        return [f"Track #{num} Arc Brief:\n\n{result}" if result else f"Arc brief for track {num} failed."]
+        fallback = f"Track #{num} (Fallback): Refer to the 15-song arc in Fundo Identity.md for position details."
+        return [f"Track #{num} Arc Brief:\n\n{result}" if result else fallback]
 
     # ── Full brief (default) ─────────────────────────────────────────────────────
     prompt = _BRIEF_PROMPT.format(brief=FUNDO_FULL_BRIEF)
