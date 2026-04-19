@@ -119,6 +119,7 @@ from chief_approval_bridge import (
 from chief_nli import detect_nli_query, handle as nli_handle
 from chief_ops_brain import is_ops_intake, handle as ops_handle, save_deferred as ops_save_deferred
 from cassandra_brain import cassandra_intent, handle as cassandra_handle, get_cassandra_summary
+from chief_morning_inspector import handle_morning_inspection
 from chief_album_batch import handle as batch_handle, batch_intent
 from chief_album_brain import (
     handle as album_handle,
@@ -128,6 +129,13 @@ from chief_album_brain import (
     _ALBUM_SONGS,
 )
 
+
+def morning_inspection_intent(text: str) -> bool:
+    t = text.lower().strip()
+    return any(t.startswith(cmd) for cmd in (
+        "morning raw", "morning cache", "morning stale", 
+        "morning blockers", "morning actions", "morning sources"
+    ))
 
 def scheduler_intent(text: str) -> bool:
     t = text.lower().strip()
@@ -875,6 +883,10 @@ def _route_message_inner(text: str) -> dict:
             "intent": "inspection",
             "reply": None,
         }
+
+    if morning_inspection_intent(text):
+        replies = handle_morning_inspection(text)
+        return {"intent": "morning_inspection", "replies": replies}
 
     # ── Explicit brainstorm commands escape any lingering active session ─────────
     # Must run before billing/album active session checks so "brainstorm" is
