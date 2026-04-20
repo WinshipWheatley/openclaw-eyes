@@ -21,6 +21,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 ### 1. Operations & Governance
 - [Doc Governance](./operations/DOC_GOVERNANCE.md) — Lifecycle and authority for this `docs/` folder.
+- [Dependency Hygiene](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
 - [Known Gaps](../KNOWN_GAPS.md) — Systemic issues and un-implemented features.
 
 ### 2. Testing & Verification
