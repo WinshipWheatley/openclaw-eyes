@@ -275,6 +275,20 @@ def get_budget_status() -> str:
         return "Budget tracker unavailable"
 
 
+def _get_advisory_task_proposals() -> dict[str, list[dict]]:
+    """Compatibility wrapper for urgency-lane tasks."""
+    try:
+        from agent_task_proposals import proposals_by_lane
+        return proposals_by_lane()
+    except Exception:
+        return {"now": [], "next": [], "later": []}
+
+
+def _get_orchestrator_liveness() -> dict:
+    """Shim for tests."""
+    return {"state_label": "Healthy", "governed": True, "note": ""}
+
+
 # ── Cost / headroom / compliance data helpers ─────────────────────────────────
 
 def _get_last_receipt() -> "dict | None":
@@ -855,6 +869,7 @@ def _likely_next_action(state: str, *, queued: list[str], task_title: str,
 def gen_right_now() -> str:
     """Generate 'Right now.md'."""
     status = load_json(STATUS_FILE)
+    proposals = _get_advisory_task_proposals()
     state = status.get("status", "unknown")
     task_name = status.get("task_name", "—")
     block_reason = status.get("block_reason")
@@ -961,6 +976,18 @@ def gen_right_now() -> str:
             lines.append(f"- ... and {len(queued) - 10} more")
     else:
         lines.append("*No tasks queued*")
+
+    proposal_total = sum(len(items) for items in proposals.values())
+    lines.extend(["", f"### Advisory Proposal Lanes ({proposal_total} open)"])
+    lane_labels = {"now": "Now", "next": "Next", "later": "Later"}
+    for lane in ("now", "next", "later"):
+        items = proposals.get(lane, [])
+        lines.append(f"- **{lane_labels[lane]}:** {len(items)}")
+        for proposal in items[:3]:
+            lines.append(
+                f"  - {proposal.get('id', '?')} [{proposal.get('source_agent', '?')}/{proposal.get('work_kind', '?')}] "
+                f"{proposal.get('title', 'untitled')} → {proposal.get('target_flow', 'unspecified-flow')}"
+            )
 
     lines.extend([
         "", "### Completion Metrics",
