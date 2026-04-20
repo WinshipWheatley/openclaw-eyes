@@ -402,22 +402,6 @@ def _pick_model(prompt: str) -> str:
     return OLLAMA_MODEL_DEEP if should_escalate(prompt) else OLLAMA_MODEL
 
 
-# ── Agent-level default lane policy ──────────────────────────────────────────
-
-AGENT_DEFAULT_LANES: dict[str, str] = {
-    "cassandra":       "strong",
-    "cassandra_brief": "strong",
-    "chief_morning":   "deep",
-    "chief_end_of_day":"deep",
-    "guardian":        "fast",
-}
-
-
-def agent_default_lane(agent: str, slot: str | None = None) -> str:
-    """Return the policy-default lane for an agent."""
-    return AGENT_DEFAULT_LANES.get(agent, "strong")
-
-
 def ollama_call(
     prompt: str,
     timeout: int = 15,

@@ -275,14 +275,6 @@ def get_budget_status() -> str:
         return "Budget tracker unavailable"
 
 
-def _get_advisory_task_proposals() -> dict[str, list[dict]]:
-    try:
-        from agent_task_proposals import proposals_by_lane
-        return proposals_by_lane()
-    except Exception:
-        return {"now": [], "next": [], "later": []}
-
-
 # ── Cost / headroom / compliance data helpers ─────────────────────────────────
 
 def _get_last_receipt() -> "dict | None":
@@ -871,7 +863,6 @@ def gen_right_now() -> str:
     updated = status.get("last_updated", "")
 
     icon = STATUS_ICON.get(state, "❓")
-    proposals = _get_advisory_task_proposals()
     explain = STATUS_EXPLAIN.get(state, "Unknown state")
     next_step = STATUS_NEXT.get(state, "Check status.json")
     task_title, task_goal = get_task_info()
@@ -970,18 +961,6 @@ def gen_right_now() -> str:
             lines.append(f"- ... and {len(queued) - 10} more")
     else:
         lines.append("*No tasks queued*")
-
-    proposal_total = sum(len(items) for items in proposals.values())
-    lines.extend(["", f"### Advisory Proposal Lanes ({proposal_total} open)"])
-    lane_labels = {"now": "Now", "next": "Next", "later": "Later"}
-    for lane in ("now", "next", "later"):
-        items = proposals.get(lane, [])
-        lines.append(f"- **{lane_labels[lane]}:** {len(items)}")
-        for proposal in items[:3]:
-            lines.append(
-                f"  - {proposal.get('id', '?')} [{proposal.get('source_agent', '?')}/{proposal.get('work_kind', '?')}] "
-                f"{proposal.get('title', 'untitled')} → {proposal.get('target_flow', 'unspecified-flow')}"
-            )
 
     lines.extend([
         "", "### Completion Metrics",
@@ -1775,43 +1754,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# ── Compatibility stubs for tests ─────────────────────────────────────────────
-
-def _get_orchestrator_liveness() -> dict:
-    return {"state_label": "actively governed", "governed": True, "note": ""}
-
-def _get_last_attempted_task() -> tuple[str, str] | None:
-    return None
-
-def _get_last_meaningful_successful_task() -> tuple[str, str] | None:
-    return None
-
-def get_task_info() -> tuple[str, str]:
-    return ("", "")
-
-def get_runner_settings() -> dict:
-    return {}
-
-def _get_last_receipt() -> "dict | None":
-    return None
-
-def _get_last_verdict() -> "dict | None":
-    return None
-
-def _get_builder_scorecard(limit: int = 200) -> list[dict]:
-    return []
-
-def _get_headroom_summary() -> dict:
-    return {}
-
-def get_successful_loop_cycles() -> int:
-    return 0
-
-def _human_state_reason(state: str, *, block_reason: str | None, parked_reason: str | None,
-                       pass_num: int, updated: str) -> str:
-    return ""
-
-def _likely_next_action(state: str, *, queued: list[str], task_title: str,
-                       liveness: dict, block_reason: str | None = None) -> str:
-    return "Wait."
