@@ -37,14 +37,18 @@ Protected-window checks (read-only, no imports from approval/session logic):
 import json
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
+
+import harness_context
 
 from cassandra_brain import build_context_snapshot
 from cassandra_mode import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 from chief_llm import ollama_call, resolve_local_model, ollama_json
 from chief_file_io import save_json, load_json, append_md_tagged
+import chief_ops_reporter as ops
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -728,6 +732,385 @@ def briefing_voice_text(entry: dict) -> str:
         return spoken
     return _compact_spoken_summary(text)
 
+
+# ── Compatibility re-exports ──────────────────────────────────────────────────
+
+def build_action_summary(n_actions: int = 12) -> str:
+    return ops.build_action_summary(n_actions)
+
+
+def classify_ops_actions(lines: list[str]) -> tuple[list[str], list[str]]:
+    return ops.classify_ops_actions(lines)
+
+
+def write_ops_actions_artifact(n_actions: int = 12) -> dict:
+    return ops.write_ops_actions_artifact(n_actions)
+
+
+# ── Harness / Stage Runners ───────────────────────────────────────────────────
+
+def save_briefing_with_generation(
+    slot: str,
+    text: str,
+    pending_reason: str | None,
+    generation: dict | None = None,
+) -> dict:
+    """Write the generated briefing to the archive with optional stage metadata."""
+    entry = save_briefing(slot, text, pending_reason)
+    if generation:
+        entry["generation"] = generation
+        save_json(_briefing_path(entry["date"], slot), entry)
+    return entry
+
+
+def _clean_briefing_stage_text(name: str, text: str) -> str:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return ""
+
+    if "</think>" in cleaned:
+        cleaned = cleaned.rsplit("</think>", 1)[-1]
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    cleaned = cleaned.replace("<think>", "").replace("</think>", "")
+    cleaned = tts_clean(cleaned).strip()
+    if not cleaned:
+        return ""
+
+    lines: list[str] = []
+    for raw_line in cleaned.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        lower = line.lower()
+        if lower.startswith("that's ") and "bullet" in lower:
+            continue
+        if name == "guardian":
+            if lower.startswith("we need a compact morning gate read"):
+                continue
+            if lower.startswith("identify immediate blockers"):
+                continue
+            if lower.startswith("approval/safety flags"):
+                continue
+            if lower.startswith("should not be overstated"):
+                continue
+            line = re.sub(r"^bullet\s+\d+\s*:\s*", "", line, flags=re.IGNORECASE)
+        lines.append(line)
+
+    return "\n".join(lines).strip()
+
+
+def _truncate_words(text: str, limit: int) -> str:
+    words = str(text or "").split()
+    if len(words) <= limit:
+        return text
+    return " ".join(words[:limit]) + " ..."
+
+
+def _build_bounded_stage_context(
+    inputs: dict[str, str],
+    *,
+    morning_words: int,
+    action_words: int,
+    canonical_words: int,
+) -> str:
+    return (
+        f"MORNING BRIEFING CONTEXT\n{_truncate_words(inputs.get('morning_context', ''), morning_words)}\n\n"
+        f"ACTION SUMMARY\n{_truncate_words(inputs.get('action_summary', ''), action_words)}\n\n"
+        f"CANONICAL CONTEXT\n{_truncate_words(inputs.get('context', ''), canonical_words)}"
+    )
+
+
+def _run_briefing_stage(
+    name: str,
+    role: str,
+    prompt: str,
+    lane: str,
+    timeout: int,
+    fallback_prompt: str | None = None,
+) -> dict:
+    started = harness_context.now()
+    t0 = time.monotonic()
+    model, resolved_lane = resolve_local_model(prompt, lane=lane)
+    print(
+        f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} started",
+        flush=True,
+    )
+    result = ollama_call(prompt, timeout=timeout, model=model)
+    cleaned = _clean_briefing_stage_text(name, result)
+    attempt_count = 1
+    retry_used = False
+    if not cleaned and fallback_prompt:
+        retry_used = True
+        attempt_count = 2
+        print(
+            f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} "
+            f"retry=compact-fallback",
+            flush=True,
+        )
+        result = ollama_call(fallback_prompt, timeout=timeout, model=model)
+        cleaned = _clean_briefing_stage_text(name, result)
+    finished = harness_context.now()
+    duration_ms = int((time.monotonic() - t0) * 1000)
+    print(
+        f"[cassandra_briefing] stage={name} role={role} lane={resolved_lane} model={model} "
+        f"finished duration_ms={duration_ms}",
+        flush=True,
+    )
+    return {
+        "name": name,
+        "role": role,
+        "lane": resolved_lane,
+        "model": model,
+        "inference_mode": "live",
+        "timing_basis": "per_stage_wall_clock_including_internal_ollama_retries",
+        "prompt_words": len(prompt.split()),
+        "prompt_preview": prompt[:240],
+        "result_raw": result,
+        "result_cleaned": cleaned,
+        "text": cleaned,  # Compatibility alias for tests
+        "started_at": started.isoformat(timespec="seconds"),
+        "finished_at": finished.isoformat(timespec="seconds"),
+        "duration_ms": duration_ms,
+        "attempt_count": attempt_count,
+        "retry_used": retry_used,
+    }
+
+
+def _build_morning_stack_inputs() -> dict[str, str]:
+    fixture_inputs = harness_context.get_fixture("inputs")
+    if fixture_inputs:
+        return fixture_inputs
+
+    context = build_context_snapshot()
+    try:
+        from cassandra_briefing_morning_context import build_morning_briefing_context
+        morning_context = build_morning_briefing_context()
+    except Exception as e:
+        morning_context = f"[morning briefing context unavailable: {e}]"
+
+    return {
+        "context": context,
+        "morning_context": morning_context,
+        "action_summary": build_action_summary(),
+    }
+
+
+def _generate_morning_stack() -> dict:
+    from chief_llm import agent_default_lane
+    inputs = _build_morning_stack_inputs()
+    shared_context = (
+        f"MORNING BRIEFING CONTEXT\n{inputs['morning_context']}\n\n"
+        f"ACTION SUMMARY\n{inputs['action_summary']}\n\n"
+        f"CANONICAL CONTEXT\n{inputs['context']}"
+    )
+    downstream_context = (
+        f"MORNING BRIEFING CONTEXT\n{_truncate_words(inputs['morning_context'], 600)}\n\n"
+        f"ACTION SUMMARY\n{_truncate_words(inputs['action_summary'], 250)}\n\n"
+        f"CANONICAL CONTEXT\n{_truncate_words(inputs['context'], 350)}"
+    )
+    compact_context = _build_bounded_stage_context(
+        inputs,
+        morning_words=260,
+        action_words=90,
+        canonical_words=140,
+    )
+
+    guardian_stage = _run_briefing_stage(
+        name="guardian",
+        role="guardian",
+        lane=agent_default_lane("guardian"),
+        timeout=30,
+        prompt=(
+            "You are Guardian. Produce a compact morning gate read.\n"
+            "Return 3-5 short bullets only covering: immediate blockers, approval or safety flags, "
+            "and anything that should not be overstated.\n"
+            "Output only the final bullets. No reasoning, no self-talk, no tags, no commentary about bullet counts.\n\n"
+            f"{shared_context}\n\nGuardian:"
+        ),
+    )
+
+    chief_stage = _run_briefing_stage(
+        name="chief",
+        role="chief_morning",
+        lane=agent_default_lane("chief_morning"),
+        timeout=60,
+        prompt=(
+            "You are Chief. Build the morning operating synthesis.\n"
+            "Read Guardian first, then combine it with the available subsystem reports.\n"
+            "Write 4-6 short lines of operator-facing synthesis only.\n"
+            "No hidden reasoning, no XML tags, no preamble, no prompt restatement.\n\n"
+            f"GUARDIAN OUTPUT\n{guardian_stage['text'] or '[Guardian output unavailable]'}\n\n"
+            f"{downstream_context}\n\nChief:"
+        ),
+        fallback_prompt=(
+            "You are Chief. Produce a compact morning synthesis for the operator.\n"
+            "Use the Guardian bullets and the compact context below.\n"
+            "Return 4 short lines only. No preamble. No reasoning tags.\n\n"
+            f"GUARDIAN OUTPUT\n{guardian_stage['text'] or '[Guardian output unavailable]'}\n\n"
+            f"{compact_context}\n\nChief:"
+        ),
+    )
+    if not chief_stage["text"] and guardian_stage["text"]:
+        chief_stage["text"] = guardian_stage["text"]
+        chief_stage["fallback_source"] = "guardian_stage_passthrough"
+
+    cassandra_stage = _run_briefing_stage(
+        name="cassandra",
+        role="cassandra_brief",
+        lane=agent_default_lane("cassandra_brief", slot="morning"),
+        timeout=45,
+        prompt=(
+            f"{_PERSONA_BRIEF}\n\n"
+            "Condense the staged morning stack into the final operator briefing.\n"
+            "Use Guardian first for caution framing, Chief second for synthesis, and keep it concise.\n"
+            "Return operator-facing text only. No hidden reasoning, no tags, no prompt echo.\n\n"
+            f"GUARDIAN OUTPUT\n{guardian_stage['text'] or '[Guardian output unavailable]'}\n\n"
+            f"CHIEF OUTPUT\n{chief_stage['text'] or '[Chief output unavailable]'}\n\n"
+            f"{downstream_context}\n\nCassandra:"
+        ),
+        fallback_prompt=(
+            f"{_PERSONA_BRIEF}\n\n"
+            "Produce the final morning briefing.\n"
+            "Use the staged outputs first and the compact context second.\n"
+            "3-5 sentences. No markdown. No tags. No prompt echo.\n\n"
+            f"GUARDIAN OUTPUT\n{guardian_stage['text'] or '[Guardian output unavailable]'}\n\n"
+            f"CHIEF OUTPUT\n{chief_stage['text'] or '[Chief output unavailable]'}\n\n"
+            f"{compact_context}\n\nCassandra:"
+        ),
+    )
+    if not cassandra_stage["text"] and chief_stage["text"]:
+        cassandra_stage["text"] = chief_stage["text"]
+        cassandra_stage["fallback_source"] = "chief_stage_passthrough"
+    elif not cassandra_stage["text"] and guardian_stage["text"]:
+        cassandra_stage["text"] = guardian_stage["text"]
+        cassandra_stage["fallback_source"] = "guardian_stage_passthrough"
+
+    return {
+        "text": cassandra_stage["text"] or chief_stage["text"] or guardian_stage["text"],
+        "generation": {
+            "path": "guardian->chief->cassandra",
+            "stages": [guardian_stage, chief_stage, cassandra_stage],
+        },
+    }
+
+
+def generate_briefing_bundle(slot: str) -> dict:
+    """Return generated text plus generation metadata for archival."""
+    if slot == "morning":
+        return _generate_morning_stack()
+
+    from chief_llm import agent_default_lane
+    _, _, directive = SLOTS[slot]
+    context = build_context_snapshot()
+    prompt = (
+        f"{_PERSONA_BRIEF}\n\n"
+        f"Current context:\n{context}\n\n"
+        f"Task — {slot} briefing:\n{directive}\n\n"
+        f"Cassandra:"
+    )
+    lane = agent_default_lane("cassandra_brief", slot=slot)
+    stage = _run_briefing_stage(
+        name=slot,
+        role="cassandra_brief",
+        prompt=prompt,
+        lane=lane,
+        timeout=60 if lane == "deep" else 45,
+    )
+    return {
+        "text": stage["text"],
+        "generation": {
+            "path": "cassandra",
+            "stages": [stage],
+        },
+    }
+
+
+def _bounded_ops_slot_fallback(slot: str) -> str:
+    ts = datetime.now().strftime("%H:%M")
+    action_summary = build_action_summary()
+    pending: list[str] = []
+    completed: list[str] = []
+    section = None
+    skip_prefixes = (
+        "type:",
+        "updated:",
+        "generated_at:",
+        "owner:",
+        "status:",
+        "slot:",
+    )
+    for raw in action_summary.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("Pending ("):
+            section = "pending"
+            continue
+        if line.startswith("Completed ("):
+            section = "completed"
+            continue
+        if line == "(none)":
+            continue
+        if any(line.lower().startswith(prefix) for prefix in skip_prefixes):
+            continue
+        if section == "pending":
+            pending.append(line.replace("[PRIORITY] ", "").strip())
+        elif section == "completed":
+            completed.append(line.strip())
+
+    if slot == "evening":
+        lead = pending[0] if pending else "No unresolved Ops Actions are on the current board."
+        second = pending[1] if len(pending) > 1 else ""
+        completed_note = completed[0] if completed else "No completed item is highlighted in the recent Ops Actions slice."
+        parts = [
+            f"[{ts} — evening fallback] Tonight's top open item: {lead}",
+            second if second else "",
+            f"Most recent completion note: {completed_note}",
+            "Anything beyond those items can wait until tomorrow unless it becomes urgent tonight.",
+        ]
+        return tts_clean(" ".join(part for part in parts if part))
+
+    if slot == "afternoon":
+        lead = pending[0] if pending else "No pending Ops Actions are on the current board."
+        completed_note = completed[0] if completed else "No recent completion is highlighted in the current Ops Actions slice."
+        parts = [
+            f"[{ts} — afternoon fallback] Midday priority: {lead}",
+            f"Most recent completion note: {completed_note}",
+            "Keep the afternoon bounded to the active open lane only.",
+        ]
+        return tts_clean(" ".join(parts))
+
+    return ""
+
+
+def _fallback_briefing_text(slot: str) -> str:
+    """Return the existing minimal fallback when the LLM path is empty/unavailable."""
+
+    # Minimal fallback if LLM is unreachable — for morning, include the morning context summary.
+    ts = harness_context.now().strftime("%H:%M")
+    if slot == "morning":
+        try:
+            from cassandra_briefing_morning_context import (
+                _task_milestone_snapshot,
+                _financial_snapshot,
+                _music_snapshot,
+                _surf_cue_text,
+            )
+            fallback_body = " ".join([
+                _task_milestone_snapshot(),
+                _financial_snapshot().replace("\n", " "),
+                _music_snapshot(),
+                _surf_cue_text(),
+            ])
+            return tts_clean(f"[{ts} — morning briefing, LLM offline] {fallback_body}")
+        except Exception:
+            pass
+
+    # For afternoon/evening, use the bounded ops fallback.
+    return _bounded_ops_slot_fallback(slot)
+
+
+# ── LLM generation ────────────────────────────────────────────────────────────
 
 _PERSONA_BRIEF = """\
 You are Cassandra, Executive Assistant to the Founder.
