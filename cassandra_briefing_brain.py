@@ -203,6 +203,16 @@ def save_briefing(slot: str, text: str, pending_reason: str | None) -> dict:
     """Write the generated briefing to the archive. Returns the entry dict."""
     now   = datetime.now()
     date  = now.date().isoformat()
+    path  = _briefing_path(date, slot)
+    
+    # DEDUPE: If already delivered today, do not overwrite with fresh generation
+    # (prevents redundant deliveries if scheduler is reloading or racing)
+    if path.exists():
+        existing = load_json(path, {})
+        if existing.get("delivered"):
+            print(f"[briefing_brain] skipping save: {date}_{slot} already delivered", flush=True)
+            return existing
+
     entry = {
         "slot":           slot,
         "date":           date,
@@ -213,7 +223,7 @@ def save_briefing(slot: str, text: str, pending_reason: str | None) -> dict:
         "pending_reason": pending_reason,
     }
     BRIEFING_DIR.mkdir(parents=True, exist_ok=True)
-    save_json(_briefing_path(date, slot), entry)
+    save_json(path, entry)
 
     # Append to markdown log
     tag  = f"{slot}/{'PENDING' if pending_reason else 'queued'}"

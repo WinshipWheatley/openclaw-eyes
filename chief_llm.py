@@ -12,7 +12,7 @@ import inspect as _inspect
 # -- External call logger --------------------------------------------------
 _EXTERNAL_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
 _OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
-_CASSANDRA_MORNING_TEST_TIMEOUT = 90
+_CASSANDRA_MORNING_TEST_TIMEOUT = 180
 _CASSANDRA_MORNING_TEST_ATTEMPTS = 1
 
 
@@ -255,7 +255,7 @@ CLAUDE_CLI   = "/home/openclaw/.local/bin/claude"
 
 _WORD_THRESHOLD_HARD  = 400   # escalate unconditionally above this word count
 _WORD_THRESHOLD_SOFT  = 100   # escalate above this count if keyword also matches
-_DEEP_TIMEOUT_FLOOR   = 60    # minimum timeout (s) when using 14b
+_DEEP_TIMEOUT_FLOOR   = 300    # minimum timeout (s) when using 14b
 
 _ESCALATION_KEYWORDS = frozenset({
     # explicit synthesis tasks
@@ -427,9 +427,10 @@ def ollama_call(
             print(f"[llm] routed → deep ({len(prompt.split())} words, timeout={timeout}s)",
                   flush=True)
     attempts = 3
-    if task_class == "cassandra_morning_brief_test":
+    if task_class in {"cassandra_morning_brief_test", "cassandra_morning_brief"}:
         timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
-        attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
+        if task_class == "cassandra_morning_brief_test":
+            attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
     payload = json.dumps({
         "model": model,
         "prompt": prompt,

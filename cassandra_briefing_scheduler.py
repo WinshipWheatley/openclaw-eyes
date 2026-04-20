@@ -112,7 +112,9 @@ def _deliver(entry: dict) -> None:
         return
 
     # Voice note/local playback — non-blocking, optional; failures are swallowed inside voice path.
-    speak_and_send_voice_note(briefing_voice_text(entry))
+    # Morning slot handled voice note per-chunk above.
+    if slot != "morning":
+        speak_and_send_voice_note(briefing_voice_text(entry))
 
 
 # ── Main tick ─────────────────────────────────────────────────────────────────
