@@ -140,6 +140,10 @@ _TASK_CLASS_MODEL_CANDIDATES = {
         "qwen3.6:latest",
         "mistral-small:latest",
     ),
+    "chief_user_reply": (
+        "gemma4:26b",
+        "gemma4:31b",
+    ),
 }
 
 _TASK_CLASS_PREFERRED_LANES = {
@@ -149,13 +153,15 @@ _TASK_CLASS_PREFERRED_LANES = {
     "cassandra_morning_brief": "strong",
     "cassandra_morning_brief_test": "fast",
     "cassandra_inbox_summary": "fast",
-    "cassandra_extract_classify": "fast",
+    "cassandra_morning_brief_fallback": "fast",
     "chief_evidence_scan": "fast",
     "chief_evidence_synthesis": "deep",
     "chief_structured_plan": "strong",
+    "chief_user_reply": "strong",
     "chief_ambiguous_debug": "deep",
     "chief_agentic_code": "code_challenger",
-}
+    }
+
 
 _FAST_PROMPT_HINTS = frozenset({
     "classify",

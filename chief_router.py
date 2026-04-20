@@ -1266,8 +1266,48 @@ def _route_message_inner(text: str) -> dict:
 
     return {
         "intent": "generic",
-        "reply": "Routed to Chief.",
+        "replies": _chief_fallback_reply(text),
     }
+
+
+_CHIEF_SYSTEM_PROMPT = """\
+You are Chief, the lead AI operations coordinator for OpenClaw Studios.
+OpenClaw is an independent music label and production house owned by H. Winship Wheatley IV.
+
+Your character: direct, operational, efficient, and slightly technical.
+You handle the heavy lifting: billing, album session management, approvals, and complex analysis.
+You are the primary link between the operator and the system's execution layers.
+
+Response discipline:
+- Lead with the answer or action.
+- Be concise. No flowery language or preamble.
+- If the user asks for something outside your operational domains (billing, album, execution),
+  acknowledge it briefly but don't over-promise.
+- Maintain a professional, results-oriented partnership with Winship.
+"""
+
+def _chief_fallback_reply(text: str) -> list[str]:
+    """Last-resort conversational fallback for Chief."""
+    from chief_llm import ollama_call
+    from chief_output_utils import tts_clean
+    from cassandra_brain import build_context_snapshot
+
+    context = build_context_snapshot()
+    prompt = (
+        f"{_CHIEF_SYSTEM_PROMPT}\n\n"
+        f"Current system context:\n{context}\n\n"
+        f"User: {text}\n"
+        f"Chief:"
+    )
+
+    try:
+        reply = ollama_call(prompt, timeout=45, task_class="chief_user_reply")
+        if not reply:
+            return ["Routed to Chief."]
+        return [tts_clean(reply)]
+    except Exception as e:
+        print(f"[chief_router] fallback reply error: {e}", flush=True)
+        return ["Routed to Chief."]
 
 
 def route_message(text: str) -> dict:

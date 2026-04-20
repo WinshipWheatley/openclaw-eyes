@@ -392,6 +392,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await _send_reply(update, r)
             return
 
+        if intent == "generic":
+            replies = routed.get("replies", [])
+            if replies:
+                for r in replies:
+                    await _send_reply(update, r)
+                return
+
         formatted = f"[PHONE][{timestamp}] {text}"
 
         try:
