@@ -47,7 +47,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import chief_env
 import hitl_action_service as _svc
 from hitl_pending_store import WAITING_FOR_APPROVAL
 
@@ -67,6 +66,29 @@ _MEDIUM_RISK_TYPES: frozenset[str] = frozenset({
 })
 
 
+# ── Env loader ────────────────────────────────────────────────────────────────
+
+def _load_env_file() -> None:
+    env_path = "/home/openclaw/.chief.env"
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8", errors="ignore") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export "):].strip()
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        pass
+
+
 def _notify_secret() -> bytes:
     """Return HMAC secret for notification tokens.
 
@@ -75,7 +97,7 @@ def _notify_secret() -> bytes:
     fallback is intentionally weak — set HITL_NOTIFY_SECRET in .chief.env for
     production use.
     """
-    chief_env.load_env()
+    _load_env_file()
     secret = os.environ.get("HITL_NOTIFY_SECRET", "")
     if not secret:
         secret = os.environ.get("TELEGRAM_BOT_TOKEN", "hitl-default-secret")

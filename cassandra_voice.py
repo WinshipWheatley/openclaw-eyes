@@ -53,7 +53,30 @@ from pathlib import Path
 
 from cassandra_brain import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
-import chief_env
+
+# ── Env ───────────────────────────────────────────────────────────────────────
+
+def _load_env_file() -> None:
+    env_path = "/home/openclaw/.chief.env"
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8", errors="ignore") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export "):].strip()
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        pass
+
+_load_env_file()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
