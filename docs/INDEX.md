@@ -9,6 +9,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 ## Operational Surfaces
 - [**Runbook**](../RUNBOOK.md) — Exact bash commands for stack management and smoke tests.
+- [**Unified Start**](../scripts/start_all.sh) — authoritative one-liner to restart all core and legacy services.
 - [**Current State**](../CURRENT_STATE.md) — Latest technical snapshot and active constraints.
 - [**Next Actions**](../NEXT_ACTIONS.md) — High-level roadmap and pending tasks.
 

@@ -25,6 +25,12 @@ cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit a
 
 ## Stack Start / Stop / Restart
 
+### Unified Start (Preferred)
+Starts or restarts the entire core stack (via systemd) and all legacy polling brains.
+```bash
+bash /home/openclaw/scripts/start_all.sh
+```
+
 ### Install boot-persistent user services
 ```bash
 bash /home/openclaw/scripts/install_openclaw_stack.sh

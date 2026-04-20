@@ -23,6 +23,10 @@ for template in "${TEMPLATE_DIR}"/*.in; do
 done
 
 systemctl --user daemon-reload
+
+echo "Enabling core services..."
+find "${USER_UNIT_DIR}" -maxdepth 1 -name "*.service" -exec systemctl --user enable {} +
+
 systemctl --user enable --now "${TARGET_NAME}"
 
 if command -v loginctl >/dev/null 2>&1; then
