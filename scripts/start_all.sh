@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
-# scripts/start_all.sh — Unified entry point to start/restart the core stack.
-# Resilient to machine reboots and environment changes.
+# scripts/start_all.sh — Authoritative command to start the Full OpenClaw Environment.
+# Restores the entire operating environment: core services + expected legacy polling.
 
 set -euo pipefail
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 echo "--- 1. Refreshing Core Stack (systemd) ---"
+# Includes: chief-listener, chief-worker, chief-memory-worker, chief-state-worker,
+#           chief-watcher-brain, chief-guardian-listener,
+#           cassandra-listener, cassandra-watcher, cassandra-briefing-scheduler.
 systemctl --user restart openclaw-stack.target
-echo "Core stack services (listeners, workers, scheduler) have been restarted."
+echo "Core stack services are online."
 
 echo ""
-echo "--- 2. Verifying Core Processes ---"
-ps aux | grep -E "chief_|cassandra_" | grep -vE "grep|album_brain|billing_brain" || echo "No core processes found."
+echo "--- 2. Starting Expected Legacy Polling Brains ---"
+# Includes: chief_album_brain (polling), chief_billing_brain (polling).
+# These are included in the full restart to ensure background reminders/state checks
+# are active, as expected in the live operating environment.
+bash "${REPO_ROOT}/start_openclaw_brains.sh"
+echo "Legacy polling loops are active."
 
 echo ""
-echo "NOTE: Legacy polling brains (album/billing) are NOT started by default."
-echo "Use 'bash start_openclaw_brains.sh' if manual polling is required."
+echo "--- 3. Verifying Full Environment ---"
+ps aux | grep -E "chief_|cassandra_" | grep -v grep || echo "No processes found."
+
 echo ""
-echo "Stack initialization complete."
+echo "Full OpenClaw Operating Environment restored."

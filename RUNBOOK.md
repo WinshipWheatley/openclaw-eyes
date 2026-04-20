@@ -25,16 +25,17 @@ cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit a
 
 ## Stack Start / Stop / Restart
 
-### Unified Start (Preferred)
-Starts or restarts the entire **core required stack** (via systemd). Does not include optional legacy polling.
+### Unified Restart (Authoritative)
+Starts or restarts the **Full OpenClaw Operating Environment**. This is the primary command to bring all systems online.
+- **Includes**: Core systemd stack + Expected legacy polling brains.
 ```bash
 bash /home/openclaw/scripts/start_all.sh
 ```
 
-### Start optional legacy polling brains
-These are not required for the main stack or briefings.
+### Core Stack Only (systemd)
+Restarts only the modern, systemd-managed services.
 ```bash
-bash /home/openclaw/start_openclaw_brains.sh
+systemctl --user restart openclaw-stack.target
 ```
 
 ### Install boot-persistent user services
