@@ -5,7 +5,7 @@ Orchestrates the refresh of Guardian-layer artifacts and the Chief Morning Synth
 This ensures Cassandra always has fresh inputs for the morning briefing.
 
 Guardian order:
-1. Ops Actions Context (via Brain)
+1. Ops Actions Context (via Ops Reporter)
 2. Nightly Polish Log (via CEO Briefing)
 3. System Health Report (via Reporter)
 4. Chief Morning Synthesis
@@ -23,10 +23,9 @@ def refresh_morning_artifacts() -> bool:
     
     try:
         # 1. Ops Actions Context
-        # Using local import to avoid circular dependency with Brain
-        import cassandra_briefing_brain as bb
+        import chief_ops_reporter as ops
         print("[morning_orchestrator] Refreshing Ops Actions Context...", flush=True)
-        bb.write_ops_actions_artifact()
+        ops.write_ops_actions_artifact()
         
         # 2. Nightly Polish Log
         import chief_ceo_briefing as ceo
