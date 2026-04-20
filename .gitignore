@@ -45,15 +45,10 @@
 !USER.md
 !docs/
 !docs/README.md
-!docs/INDEX.md
 !docs/_ai/
 !docs/_ai/*.md
 !docs/doctrine/
 !docs/doctrine/*.md
-!docs/testing/
-!docs/testing/*.md
-!docs/operations/
-!docs/operations/*.md
 !docs/playbooks/
 !docs/playbooks/*.md
 !docs/specs/
