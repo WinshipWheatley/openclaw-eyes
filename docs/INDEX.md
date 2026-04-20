@@ -14,6 +14,11 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 ## Knowledge Lanes
 
+### 0. Core Doctrine
+- [Truth and Reality](./doctrine/TRUTH_AND_REALITY.md) — Evidence hierarchy and sourcing rules.
+- [Operator Communication](./doctrine/OPERATOR_COMMUNICATION.md) — Standardized escalation and 4-line assist blocks.
+- [Surface Authority](./doctrine/SURFACE_AUTHORITY.md) — Canonical paths vs. mirrors.
+
 ### 1. Operations & Governance
 - [Doc Governance](./operations/DOC_GOVERNANCE.md) — Lifecycle and authority for this `docs/` folder.
 - [Known Gaps](../KNOWN_GAPS.md) — Systemic issues and un-implemented features.
