@@ -38,6 +38,8 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+import chief_env
+
 PENDING_FILE    = Path("/mnt/c/OpenClaw/logs/approval_pending.json")
 VAULT_LOG       = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md")
 _SLOT_LOCK_FILE = Path.home() / ".chief_approval.lock"  # local ext4 — reliable flock
@@ -60,26 +62,6 @@ def _human_timeout(seconds: int) -> str:
         mins = seconds // 60
         return f"{mins} minute" + ("s" if mins != 1 else "")
     return f"{seconds} seconds"
-
-
-def _load_env_file() -> None:
-    """Best-effort .chief.env loader so approval delivery works from bare shells."""
-    if not _CHIEF_ENV_FILE.exists():
-        return
-    try:
-        for raw in _CHIEF_ENV_FILE.read_text(encoding="utf-8", errors="ignore").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            if line.startswith("export "):
-                line = line[len("export "):].strip()
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
-                os.environ[key] = value
-    except Exception:
-        pass
 
 
 # ── Lazy imports with fallback ─────────────────────────────────────────────────
@@ -206,7 +188,7 @@ def _build_approval_context_block(approval_context: dict | None) -> str:
 
 
 def _send_via_guardian(message: str, keyboard: dict | None = None) -> None:
-    _load_env_file()
+    chief_env.load_env()
     try:
         from chief_guardian_sender import send_approval
         send_approval(message, reply_markup=keyboard)
@@ -351,7 +333,7 @@ def _append_log(action: str, requester: str, decision: str,
 
 def _send_chief(message: str) -> None:
     """Send via Chief bot (used for timeout/error notifications)."""
-    _load_env_file()
+    chief_env.load_env()
     subprocess.run(
         ["python3", str(Path.home() / "chief_sender.py"), message],
         check=False,
