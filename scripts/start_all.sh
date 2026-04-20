@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
-# scripts/start_all.sh — Unified entry point to start/restart the entire stack.
+# scripts/start_all.sh — Unified entry point to start/restart the core stack.
 # Resilient to machine reboots and environment changes.
 
 set -euo pipefail
-
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "--- 1. Refreshing Core Stack (systemd) ---"
 systemctl --user restart openclaw-stack.target
 echo "Core stack services (listeners, workers, scheduler) have been restarted."
 
 echo ""
-echo "--- 2. Starting Legacy Polling Brains ---"
-bash "${REPO_ROOT}/start_openclaw_brains.sh"
+echo "--- 2. Verifying Core Processes ---"
+ps aux | grep -E "chief_|cassandra_" | grep -vE "grep|album_brain|billing_brain" || echo "No core processes found."
 
 echo ""
-echo "--- 3. Verifying Processes ---"
-ps aux | grep -E "chief_|cassandra_" | grep -v grep || echo "No processes found."
-
+echo "NOTE: Legacy polling brains (album/billing) are NOT started by default."
+echo "Use 'bash start_openclaw_brains.sh' if manual polling is required."
 echo ""
 echo "Stack initialization complete."
