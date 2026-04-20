@@ -30,5 +30,5 @@ Drafts are not source of truth. Promotion into `docs/` is an explicit operationa
 
 ## Cross-Linking
 
-- Prefer relative links: `[Context](../_ai/AI_WORKING_CONTEXT.md)`.
+- Prefer relative links: `[Context](_ai/AI_WORKING_CONTEXT.md)`.
 - Root-level indices should point to specialized sub-indices in `testing/` or `operations/`.

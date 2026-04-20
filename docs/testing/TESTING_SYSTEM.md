@@ -6,7 +6,7 @@ This document outlines the testing strategy and hierarchy for the OpenClaw repos
 
 1. **Smoke Tests**
    - Lightweight checks to ensure syntax and basic module loading.
-   - Referenced in [RUNBOOK.md](../../RUNBOOK.md).
+   - Referenced in [RUNBOOK.md](../RUNBOOK.md).
    - Typically run manually before stack restarts.
 
 2. **Integration Tests**
@@ -29,7 +29,7 @@ PYTHONPATH=. pytest tests/
 ```
 
 ### Smoke Checks
-Refer to the "Smoke Tests" section of [RUNBOOK.md](../../RUNBOOK.md) for module-specific one-liners.
+Refer to the "Smoke Tests" section of [RUNBOOK.md](../RUNBOOK.md) for module-specific one-liners.
 
 ## Test Data & Staging
 - **Fixtures**: `tests/fixtures/` contains JSON/MD files for integration test cases.
