@@ -9,7 +9,7 @@ Drafts are not source of truth. Promotion into `docs/` is an explicit operationa
 1. **Review**: The candidate draft (e.g., from `mac_eyes/Winship/drafts/`) must be reviewed for technical accuracy and alignment with repo law.
 2. **Assign Lane**: Decide the canonical lane (`doctrine`, `specs`, `handoffs`, `testing`, or `operations`).
 3. **Canonicalize**: Move or rewrite the draft into the selected lane within `docs/`.
-4. **Archive**: Leave the original draft in `archive/` or delete it once promoted.
+4. **Archive**: Move stale or superseded versions to `docs/archives/` according to [Doc Lifecycle](./DOC_LIFECYCLE.md).
 
 ## Documentation Lanes
 
