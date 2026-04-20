@@ -60,6 +60,10 @@
 !docs/specs/*.md
 !docs/handoffs/
 !docs/handoffs/.gitkeep
+!docs/archives/
+!docs/archives/**/
+!docs/archives/**/*.md
+!docs/archives/**/README.md
 !docs/handoffs/cassandra/
 !docs/handoffs/cassandra/.gitkeep
 !docs/exports/
