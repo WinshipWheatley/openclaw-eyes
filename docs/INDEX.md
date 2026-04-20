@@ -25,6 +25,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 ### 2. Testing & Verification
 - [Testing System](./testing/TESTING_SYSTEM.md) — Strategy and hierarchy overview.
+- [Validation Map](./testing/VALIDATION_MAP.md) — Mandatory test lookup table for modified files.
 - [Harness Index](./testing/HARNESS_INDEX.md) — Guide to specialized Python harnesses.
 
 ### 3. Engineering & Specs
