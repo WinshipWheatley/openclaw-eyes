@@ -40,8 +40,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from cassandra_brain import build_context_snapshot
-from cassandra_mode import is_focus_mode, is_social_mode
+from cassandra_brain import build_context_snapshot, is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 from chief_llm import ollama_call, resolve_local_model, ollama_json
 from chief_file_io import save_json, load_json, append_md_tagged

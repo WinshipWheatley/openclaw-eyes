@@ -51,7 +51,7 @@ import time
 import wave
 from pathlib import Path
 
-from cassandra_mode import is_focus_mode, is_social_mode
+from cassandra_brain import is_focus_mode, is_social_mode
 from chief_output_utils import tts_clean
 import chief_env
 

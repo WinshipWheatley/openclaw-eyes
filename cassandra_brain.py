@@ -30,12 +30,6 @@ from pathlib import Path
 from chief_file_io import load_json, save_json
 from chief_llm import ollama_call, nemotron_call, claude_json, resolve_local_model
 from chief_output_utils import tts_clean
-from cassandra_mode import (
-    is_focus_mode,
-    is_social_mode,
-    FOCUS_LOCK_PATH,
-    SOCIAL_LOCK_PATH,
-)
 from cassandra_capability import capability_context, gate_reply
 from cassandra_email_config import get_review_inbox
 from finance_state import (
@@ -64,6 +58,8 @@ except ImportError:
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 _STATE_PATH       = Path("/mnt/c/OpenClaw/logs/cassandra_state.json")
+_FOCUS_LOCK       = Path("/mnt/c/OpenClaw/logs/cassandra_focus.lock")
+_SOCIAL_LOCK      = Path("/mnt/c/OpenClaw/logs/cassandra_social.lock")
 _FOLLOWUP_LOG     = Path("/mnt/c/OpenClaw/logs/cassandra_pending_followups.jsonl")
 _POLISH_TASKS_DIR = Path("/home/openclaw/polish_loop/tasks")
 _POLISH_ARCHIVE   = Path("/home/openclaw/polish_loop/archive")
@@ -386,22 +382,30 @@ def _strip_prefix(text: str) -> str:
 
 # ── Mode checks / toggles ─────────────────────────────────────────────────────
 
+def is_focus_mode() -> bool:
+    return _FOCUS_LOCK.exists()
+
+
+def is_social_mode() -> bool:
+    return _SOCIAL_LOCK.exists()
+
+
 def set_focus_mode(active: bool) -> None:
-    FOCUS_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _FOCUS_LOCK.parent.mkdir(parents=True, exist_ok=True)
     if active:
-        FOCUS_LOCK_PATH.write_text(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        _FOCUS_LOCK.write_text(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                encoding="utf-8")
-    elif FOCUS_LOCK_PATH.exists():
-        FOCUS_LOCK_PATH.unlink()
+    elif _FOCUS_LOCK.exists():
+        _FOCUS_LOCK.unlink()
 
 
 def set_social_mode(active: bool) -> None:
-    SOCIAL_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _SOCIAL_LOCK.parent.mkdir(parents=True, exist_ok=True)
     if active:
-        SOCIAL_LOCK_PATH.write_text(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        _SOCIAL_LOCK.write_text(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 encoding="utf-8")
-    elif SOCIAL_LOCK_PATH.exists():
-        SOCIAL_LOCK_PATH.unlink()
+    elif _SOCIAL_LOCK.exists():
+        _SOCIAL_LOCK.unlink()
 
 
 # ── State management ──────────────────────────────────────────────────────────

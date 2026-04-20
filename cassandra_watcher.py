@@ -27,8 +27,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / "tools"))
 from future_action_queue import dispatch_due_actions
 
-from cassandra_mode import is_focus_mode, is_social_mode
 from cassandra_brain import (
+    is_focus_mode,
+    is_social_mode,
     load_state,
     process_inbound_email_replies,
     process_pending_followups,
