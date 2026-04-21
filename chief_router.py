@@ -591,6 +591,17 @@ def album_arc_intent(text: str) -> bool:
     ])
 
 
+def artifact_transform_intent(text: str) -> bool:
+    """True for meta-level document transformation or inventory requests."""
+    t = text.lower().strip()
+    return any(k in t for k in [
+        "rewrite this", "transform this", "turn this into",
+        "summarize this artifact", "make this readable",
+        "use the snapshot", "clean inventory",
+        "normalized inventory", "inventory from"
+    ])
+
+
 _CLASSIFY_PROMPT = """\
 You are a music producer's assistant routing messages to the correct workflow.
 Classify the message below into exactly one of these intent labels:
@@ -832,6 +843,12 @@ def _route_message_inner(text: str) -> dict:
     if scheduler_intent(text):
         replies = scheduler_handle(text)
         return {"intent": "scheduler", "replies": replies}
+
+    if artifact_transform_intent(text):
+        return {
+            "intent": "artifact_transform",
+            "replies": _chief_fallback_reply(text),
+        }
 
     # ── Batch planner — before NLI so "what should I do next on the album" hits here ─
     if batch_intent(text):
@@ -1301,13 +1318,14 @@ def _chief_fallback_reply(text: str) -> list[str]:
     )
 
     try:
-        reply = ollama_call(prompt, timeout=45, task_class="chief_user_reply")
+        # Use deep model with long timeout for generic conversational replies.
+        reply = ollama_call(prompt, timeout=600, model="qwen3.6:latest", task_class="chief_user_reply")
         if not reply:
-            return ["Routed to Chief."]
+            return ["I processed that, but I have no specific operational response. Anything else?"]
         return [tts_clean(reply)]
     except Exception as e:
         print(f"[chief_router] fallback reply error: {e}", flush=True)
-        return ["Routed to Chief."]
+        return ["Routed to Chief (Error)."]
 
 
 def route_message(text: str) -> dict:
