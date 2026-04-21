@@ -597,7 +597,8 @@ def artifact_transform_intent(text: str) -> bool:
     return any(k in t for k in [
         "rewrite this", "transform this", "turn this into",
         "summarize this artifact", "make this readable",
-        "use the snapshot", "clean inventory",
+        "use the snapshot", "use the latest snapshot",
+        "inspection snapshot", "clean inventory",
         "normalized inventory", "inventory from"
     ])
 
