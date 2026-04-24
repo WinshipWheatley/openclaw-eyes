@@ -16,8 +16,9 @@ from typing import Any
 AUDIT_FILENAME = "audit.jsonl"
 EXTRACTED_DIRECTORY = "extracted"
 MANIFEST_FILENAME = "manifest.json"
-SUPPORTED_SUFFIXES = {".md", ".txt"}
+SUPPORTED_SUFFIXES = {".md", ".pdf", ".txt"}
 EXTRACTOR = "local_text_v0"
+PDF_EXTRACTOR = "pdftotext_v0"
 
 
 class ExtractionError(Exception):
@@ -50,6 +51,9 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
         )
         return result
 
+    if suffix == ".pdf":
+        return _extract_pdf_source(root, source, stored_path)
+
     try:
         text = stored_path.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
@@ -69,6 +73,7 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
         "source_id": source_id,
         "original_filename": source["original_filename"],
         "sha256": source["sha256"],
+        "file_type": source.get("file_type", "application/octet-stream"),
         "stored_path": source["stored_path"],
         "extracted_path": str(extracted_path),
         "metadata_path": str(metadata_path),
@@ -83,6 +88,7 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
             "source_id": source_id,
             "original_filename": source["original_filename"],
             "sha256": source["sha256"],
+            "extractor": EXTRACTOR,
             "extracted_path": str(extracted_path),
             "metadata_path": str(metadata_path),
             "extracted_at": extracted_at,
@@ -111,10 +117,132 @@ def _unsupported_result(source: dict[str, Any], stored_path: Path) -> dict[str, 
         "original_filename": source["original_filename"],
         "sha256": source["sha256"],
         "stored_path": source["stored_path"],
+        "file_type": source.get("file_type", "application/octet-stream"),
         "file_suffix": stored_path.suffix.lower(),
         "reason": "unsupported file type for local text extraction v0",
         "attempted_at": attempted_at,
     }
+
+
+def _extract_pdf_source(
+    matter_root: Path,
+    source: dict[str, Any],
+    stored_path: Path,
+) -> dict[str, Any]:
+    attempted_at = _utc_now()
+    result = _pdf_to_text(stored_path)
+    if not result.get("ok"):
+        failure = _pdf_status_result(
+            "failed",
+            source,
+            stored_path,
+            result.get("error", "PDF text extraction failed"),
+            attempted_at,
+        )
+        _append_audit(
+            matter_root / AUDIT_FILENAME,
+            {
+                "event": "source_extraction_failed",
+                "source_id": source["source_id"],
+                "original_filename": source["original_filename"],
+                "sha256": source["sha256"],
+                "extractor": PDF_EXTRACTOR,
+                "reason": failure["reason"],
+                "attempted_at": attempted_at,
+            },
+        )
+        return failure
+
+    text = result.get("text", "")
+    if not text.strip():
+        no_text = _pdf_status_result(
+            "no_text",
+            source,
+            stored_path,
+            "PDF has no extractable text layer",
+            attempted_at,
+        )
+        _append_audit(
+            matter_root / AUDIT_FILENAME,
+            {
+                "event": "source_extraction_no_text",
+                "source_id": source["source_id"],
+                "original_filename": source["original_filename"],
+                "sha256": source["sha256"],
+                "extractor": PDF_EXTRACTOR,
+                "reason": no_text["reason"],
+                "attempted_at": attempted_at,
+            },
+        )
+        return no_text
+
+    extracted_dir = matter_root / EXTRACTED_DIRECTORY
+    extracted_dir.mkdir(exist_ok=True)
+    extracted_path = extracted_dir / f"{source['source_id']}.txt"
+    metadata_path = extracted_dir / f"{source['source_id']}.json"
+    extracted_at = _utc_now()
+    metadata = {
+        "status": "extracted",
+        "extractor": PDF_EXTRACTOR,
+        "source_id": source["source_id"],
+        "original_filename": source["original_filename"],
+        "sha256": source["sha256"],
+        "file_type": source.get("file_type", "application/pdf"),
+        "stored_path": source["stored_path"],
+        "extracted_path": str(extracted_path),
+        "metadata_path": str(metadata_path),
+        "pages": result.get("pages"),
+        "chars": result.get("chars", len(text)),
+        "extracted_at": extracted_at,
+    }
+    extracted_path.write_text(text, encoding="utf-8")
+    _write_json(metadata_path, metadata)
+    _append_audit(
+        matter_root / AUDIT_FILENAME,
+        {
+            "event": "source_text_extracted",
+            "source_id": source["source_id"],
+            "original_filename": source["original_filename"],
+            "sha256": source["sha256"],
+            "extractor": PDF_EXTRACTOR,
+            "extracted_path": str(extracted_path),
+            "metadata_path": str(metadata_path),
+            "extracted_at": extracted_at,
+        },
+    )
+    return metadata
+
+
+def _pdf_status_result(
+    status: str,
+    source: dict[str, Any],
+    stored_path: Path,
+    reason: str,
+    attempted_at: str,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "extractor": PDF_EXTRACTOR,
+        "source_id": source["source_id"],
+        "original_filename": source["original_filename"],
+        "sha256": source["sha256"],
+        "stored_path": source["stored_path"],
+        "file_type": source.get("file_type", "application/pdf"),
+        "file_suffix": stored_path.suffix.lower(),
+        "reason": reason,
+        "attempted_at": attempted_at,
+    }
+
+
+def _pdf_to_text(path: Path) -> dict[str, Any]:
+    try:
+        from oclaw_doctools import pdf_to_text
+    except Exception as exc:
+        return {
+            "ok": False,
+            "error": f"PDF text extraction helper unavailable: {exc}",
+        }
+    return pdf_to_text(path)
 
 
 def _find_source(
@@ -146,4 +274,3 @@ def _append_audit(path: Path, entry: dict[str, Any]) -> None:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-

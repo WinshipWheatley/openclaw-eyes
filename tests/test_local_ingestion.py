@@ -115,8 +115,8 @@ def test_audit_entries_are_appended_for_success(tmp_path: Path) -> None:
 
 def test_unsupported_file_appends_audit_without_artifacts(tmp_path: Path) -> None:
     root = tmp_path / "matter"
-    source = tmp_path / "scan.pdf"
-    source.write_bytes(b"%PDF-unsupported")
+    source = tmp_path / "scan.bin"
+    source.write_bytes(b"unsupported")
     create_matter_workspace(root, "matter", "Matter")
     registered = register_source(root, source)
 
@@ -153,21 +153,21 @@ def test_extract_all_supported_sources_returns_each_result(tmp_path: Path) -> No
     root = tmp_path / "matter"
     txt = tmp_path / "one.txt"
     md = tmp_path / "two.md"
-    pdf = tmp_path / "three.pdf"
+    unsupported = tmp_path / "three.bin"
     txt.write_text("one", encoding="utf-8")
     md.write_text("two", encoding="utf-8")
-    pdf.write_bytes(b"pdf")
+    unsupported.write_bytes(b"unsupported")
     create_matter_workspace(root, "matter", "Matter")
     txt_entry = register_source(root, txt)
     md_entry = register_source(root, md)
-    pdf_entry = register_source(root, pdf)
+    unsupported_entry = register_source(root, unsupported)
 
     results = extract_all_supported_sources(root)
 
     assert [result["source_id"] for result in results] == [
         txt_entry["source_id"],
         md_entry["source_id"],
-        pdf_entry["source_id"],
+        unsupported_entry["source_id"],
     ]
     assert [result["status"] for result in results] == [
         "extracted",
