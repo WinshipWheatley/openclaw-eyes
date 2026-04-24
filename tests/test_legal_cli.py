@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from legal.cli import main
 from legal.local_ingestion import extract_source_text
 from legal.matter_workspace import create_matter_workspace, register_source
+from legal.search_report import export_search_report
 
 
 def _run_cli(args: list[str], capsys: pytest.CaptureFixture[str]) -> tuple[int, dict]:
@@ -151,6 +152,63 @@ def test_default_profile_command(
     profile = json.loads(output.read_text(encoding="utf-8"))
     assert profile["firm_name"] == "Example Law"
     assert profile["mode"] == "local_first"
+
+
+def test_review_packet_command_creates_packet_with_counts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "source.txt"
+    source.write_text("Settlement packet", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    extract_source_text(root, registered["source_id"])
+    export_search_report(root, "settlement", report_name="settlement-report")
+
+    code, payload = _run_cli(
+        [
+            "review-packet",
+            "--root",
+            str(root),
+            "--packet-name",
+            "first-review",
+        ],
+        capsys,
+    )
+
+    packet_path = Path(payload["packet_path"])
+    assert code == 0
+    assert packet_path == root / "exports" / "review-packet-first-review"
+    assert packet_path.is_dir()
+    assert payload["matter_id"] == "matter"
+    assert payload["source_count"] == 1
+    assert payload["extracted_count"] == 2
+    assert payload["report_count"] == 1
+    assert payload["included_file_count"] >= 5
+
+
+def test_review_packet_no_reports_excludes_reports(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "source.txt"
+    source.write_text("Settlement packet", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    extract_source_text(root, registered["source_id"])
+    export_search_report(root, "settlement", report_name="settlement-report")
+
+    code, payload = _run_cli(
+        ["review-packet", "--root", str(root), "--no-reports"],
+        capsys,
+    )
+
+    packet_path = Path(payload["packet_path"])
+    assert code == 0
+    assert payload["report_count"] == 0
+    assert not (packet_path / "reports").exists()
 
 
 def test_user_error_returns_one_and_stderr(

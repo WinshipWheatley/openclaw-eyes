@@ -15,6 +15,7 @@ from legal.deployment_profile import (
 from legal.local_ingestion import extract_source_text
 from legal.local_search import search_extracted_text
 from legal.matter_workspace import create_matter_workspace, register_source
+from legal.review_packet import export_review_packet
 from legal.search_report import export_search_report
 
 
@@ -64,6 +65,16 @@ def _build_parser() -> argparse.ArgumentParser:
     report.add_argument("--max-results", type=int, default=20)
     report.add_argument("--snippet-chars", type=int, default=80)
     report.set_defaults(handler=_report)
+
+    review_packet = subcommands.add_parser("review-packet")
+    review_packet.add_argument("--root", required=True)
+    review_packet.add_argument("--packet-name")
+    review_packet.add_argument(
+        "--no-reports",
+        action="store_true",
+        help="Exclude Markdown reports from the review packet.",
+    )
+    review_packet.set_defaults(handler=_review_packet)
 
     default_profile = subcommands.add_parser("default-profile")
     default_profile.add_argument("--firm-name", required=True)
@@ -119,6 +130,14 @@ def _report(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
+def _review_packet(args: argparse.Namespace) -> dict[str, Any]:
+    return export_review_packet(
+        args.root,
+        packet_name=args.packet_name,
+        include_reports=not args.no_reports,
+    )
+
+
 def _default_profile(args: argparse.Namespace) -> dict[str, Any]:
     profile = default_legal_local_profile(
         args.firm_name,
@@ -139,4 +158,3 @@ def _print_json(payload: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
