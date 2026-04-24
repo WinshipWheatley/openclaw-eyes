@@ -12,7 +12,11 @@ from legal.deployment_profile import (
     default_legal_local_profile,
     save_deployment_profile,
 )
-from legal.local_ingestion import extract_source_text
+from legal.local_ingestion import (
+    ExtractionError,
+    extract_all_supported_sources,
+    extract_source_text,
+)
 from legal.local_search import search_extracted_text
 from legal.matter_workspace import create_matter_workspace, register_source
 from legal.review_packet import export_review_packet
@@ -24,7 +28,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         result = args.handler(args)
-    except (FileExistsError, FileNotFoundError, KeyError, ValueError, OSError) as exc:
+    except (
+        ExtractionError,
+        FileExistsError,
+        FileNotFoundError,
+        KeyError,
+        ValueError,
+        OSError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     _print_json(result)
@@ -50,6 +61,10 @@ def _build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--root", required=True)
     extract.add_argument("--source-id", required=True)
     extract.set_defaults(handler=_extract)
+
+    extract_all = subcommands.add_parser("extract-all")
+    extract_all.add_argument("--root", required=True)
+    extract_all.set_defaults(handler=_extract_all)
 
     search = subcommands.add_parser("search")
     search.add_argument("--root", required=True)
@@ -104,6 +119,20 @@ def _add_source(args: argparse.Namespace) -> dict[str, Any]:
 
 def _extract(args: argparse.Namespace) -> dict[str, Any]:
     return extract_source_text(args.root, args.source_id)
+
+
+def _extract_all(args: argparse.Namespace) -> dict[str, Any]:
+    results = extract_all_supported_sources(args.root)
+    status_counts: dict[str, int] = {}
+    for result in results:
+        status = str(result.get("status", "unknown"))
+        status_counts[status] = status_counts.get(status, 0) + 1
+    return {
+        "root": args.root,
+        "result_count": len(results),
+        "status_counts": status_counts,
+        "results": results,
+    }
 
 
 def _search(args: argparse.Namespace) -> dict[str, Any]:

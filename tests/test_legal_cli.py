@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -76,6 +77,59 @@ def test_extract_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     assert code == 0
     assert payload["status"] == "extracted"
     assert Path(payload["extracted_path"]).read_text(encoding="utf-8") == "# Settlement\n"
+
+
+def test_extract_all_command_extracts_registered_supported_sources(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    txt = tmp_path / "source.txt"
+    md = tmp_path / "notes.md"
+    pdf = tmp_path / "record.pdf"
+    unsupported = tmp_path / "scan.bin"
+    txt.write_text("plain evidence", encoding="utf-8")
+    md.write_text("# Notes\n", encoding="utf-8")
+    pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    unsupported.write_bytes(b"unsupported")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = [
+        register_source(root, txt),
+        register_source(root, md),
+        register_source(root, pdf),
+        register_source(root, unsupported),
+    ]
+
+    with patch(
+        "legal.local_ingestion._pdf_to_text",
+        return_value={
+            "ok": True,
+            "text": "PDF text layer",
+            "pages": 1,
+            "chars": len("PDF text layer"),
+        },
+    ):
+        code = main(["extract-all", "--root", str(root)])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert code == 0
+    assert captured.err == ""
+    assert payload["root"] == str(root)
+    assert payload["result_count"] == 4
+    assert payload["status_counts"] == {
+        "extracted": 3,
+        "unsupported": 1,
+    }
+    assert [result["source_id"] for result in payload["results"]] == [
+        source["source_id"] for source in registered
+    ]
+    assert [result["status"] for result in payload["results"]] == [
+        "extracted",
+        "extracted",
+        "extracted",
+        "unsupported",
+    ]
 
 
 def test_search_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
