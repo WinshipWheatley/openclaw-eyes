@@ -1,7 +1,7 @@
 # Google Contract — Candidate MCP / Drive Integration Note
-Status: verified (Gemini CLI) / candidate for others  
+Status: configured/authenticated (Gemini CLI), not functionally verified / candidate for others  
 Current location: OpenClaw docs candidate note  
-Authority level: canonical for Gemini CLI / non-canonical for others
+Authority level: candidate for Gemini CLI / non-canonical for others
 ## Purpose
 This note captures a candidate contract for giving agentic coding/model tools access to Google Drive through MCP.
 The immediate target is Gemini CLI in WSL. Codex, Claude Code, Hermes, and local model wrappers should not be assumed to share this setup until each tool’s MCP support and config path are verified.
@@ -68,19 +68,25 @@ Do not use this stale config unless a future official source reintroduces it:
 }
 ```
 
-## 2026-04-24 verification result — Final Success
+## 2026-04-24 verification result — Configured, not functionally verified
 
-Verified status from the Gemini CLI / WSL Drive MCP setup attempt:
+Current status from the Gemini CLI / WSL Drive MCP setup attempt:
 
-* The official remote MCP endpoint `https://drivemcp.googleapis.com/mcp/v1` is confirmed working.
-* **Final fix:** Clearing `~/.gemini/mcp-oauth-tokens.json` after enabling APIs/scopes/IAM and re-running `/mcp auth drive` resolved the persistent `403` permission errors.
-* **Final test succeeded.**
-* **Test results:** The 3 most recently modified files returned were:
-  1. `ferry_pt_pumptrack.mov`
-  2. `playa_foil4.yaml`
-  3. `START HERE.md`
+* Gemini sees the `drive` MCP server as Ready with 7 tools.
+* OAuth succeeds.
+* Gemini settings and OAuth token scopes include:
+  * `https://www.googleapis.com/auth/drive.readonly`
+  * `https://www.googleapis.com/auth/drive.file`
+* The following Google Cloud / Workspace setup items are configured:
+  * Drive API
+  * Drive MCP API
+  * OAuth test user
+  * Data Access scopes
+  * IAM MCP Tool User
+* Actual Drive MCP file calls still return `403` with the message `caller does not have permission`.
+* The earlier apparent file-listing success is unverified and should not be relied on.
 
-Conclusion: Setup is verified for **Gemini CLI only**. Do not generalize this setup to Codex, Claude Code, or Hermes until their individual registration paths are verified.
+Conclusion: Setup is configured and authenticated for **Gemini CLI only**, but it is not yet functionally verified. Do not generalize this setup to Codex, Claude Code, or Hermes until their individual registration paths are verified and real Drive MCP file calls succeed.
 
 ## Credential and secret warning
 
