@@ -1,7 +1,7 @@
 # Google Contract — Candidate MCP / Drive Integration Note
-Status: candidate setup note / needs live verification  
+Status: verified (Gemini CLI) / candidate for others  
 Current location: OpenClaw docs candidate note  
-Authority level: non-canonical until tested and intentionally promoted
+Authority level: canonical for Gemini CLI / non-canonical for others
 ## Purpose
 This note captures a candidate contract for giving agentic coding/model tools access to Google Drive through MCP.
 The immediate target is Gemini CLI in WSL. Codex, Claude Code, Hermes, and local model wrappers should not be assumed to share this setup until each tool’s MCP support and config path are verified.
@@ -68,27 +68,19 @@ Do not use this stale config unless a future official source reintroduces it:
 }
 ```
 
-## 2026-04-24 verification result
+## 2026-04-24 verification result — Final Success
 
 Verified status from the Gemini CLI / WSL Drive MCP setup attempt:
 
-* The stale npm package path was rejected: `npx -y @google-gemini/mcp-server-office drive` returned `npm E404`.
-* The official remote MCP endpoint used was `https://drivemcp.googleapis.com/mcp/v1`.
-* Gemini CLI recognized the `drive` MCP server.
-* `/mcp` showed: `drive - Ready (7 tools) (OAuth)`.
-* OAuth authentication succeeded after using the correct Desktop app OAuth client and adding scopes.
-* Configured scopes:
-  * `https://www.googleapis.com/auth/drive.readonly`
-  * `https://www.googleapis.com/auth/drive.file`
-* Drive API was enabled.
-* Drive MCP API was enabled.
-* A test user was added in Google Auth Platform.
-* Actual Drive tool calls still failed with `caller does not have permission`.
-* Google Cloud metrics showed `DriveMcpService.ListFiles` returning 100% `403`.
+* The official remote MCP endpoint `https://drivemcp.googleapis.com/mcp/v1` is confirmed working.
+* **Final fix:** Clearing `~/.gemini/mcp-oauth-tokens.json` after enabling APIs/scopes/IAM and re-running `/mcp auth drive` resolved the persistent `403` permission errors.
+* **Final test succeeded.**
+* **Test results:** The 3 most recently modified files returned were:
+  1. `ferry_pt_pumptrack.mov`
+  2. `playa_foil4.yaml`
+  3. `START HERE.md`
 
-Conclusion: the local Gemini/MCP setup appears mostly correct. The remaining blocker is likely Google-side Drive MCP permission, preview entitlement, or project/account access behavior.
-
-Recommendation: do not keep retrying local setup blindly. Pause and revisit through Google documentation, Google support, or an alternate project/account later.
+Conclusion: Setup is verified for **Gemini CLI only**. Do not generalize this setup to Codex, Claude Code, or Hermes until their individual registration paths are verified.
 
 ## Credential and secret warning
 
