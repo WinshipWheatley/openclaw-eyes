@@ -36,3 +36,6 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Inner-Circle Specs](./specs/spec-inner-circle-correspondence.md) — Detailed workflow for identity-gated replies.
 - [Google Drive MCP Contract](./specs/google_drive_mcp_contract.md) — Candidate, non-canonical Drive MCP setup note pending live verification.
 - [AI Working Context](./_ai/AI_WORKING_CONTEXT.md) — High-density context for agentic loading.
+
+### Planning Packages
+- [OpenClaw Legal Planning Package](./planning/openclaw_legal/law_program/LEGAL_V1_CONTRACT_INDEX.md) — Imported planning-only material; not canonical implementation doctrine.

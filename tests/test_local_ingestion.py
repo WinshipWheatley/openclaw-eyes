@@ -16,6 +16,7 @@ from legal.local_ingestion import (
     extract_source_text,
 )
 from legal.matter_workspace import create_matter_workspace, register_source
+from legal.path_guard import LegalPathError
 
 
 def _read_json(path: Path) -> dict:
@@ -128,6 +129,25 @@ def test_unsupported_file_appends_audit_without_artifacts(tmp_path: Path) -> Non
     events = _read_audit(root / "audit.jsonl")
     assert events[-1]["event"] == "source_extraction_unsupported"
     assert events[-1]["source_id"] == registered["source_id"]
+
+
+def test_tampered_manifest_stored_path_outside_matter_root_is_rejected(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "source.txt"
+    outside = tmp_path / "outside.txt"
+    source.write_text("inside matter source", encoding="utf-8")
+    outside.write_text("outside matter source", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    manifest_path = root / "manifest.json"
+    manifest = _read_json(manifest_path)
+    manifest["sources"][0]["stored_path"] = str(outside)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(LegalPathError, match="stored_path.*escapes"):
+        extract_source_text(root, registered["source_id"])
 
 
 def test_missing_source_id_raises_clear_key_error(tmp_path: Path) -> None:

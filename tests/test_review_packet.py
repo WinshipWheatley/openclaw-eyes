@@ -6,10 +6,13 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from legal.local_ingestion import extract_source_text
 from legal.matter_workspace import create_matter_workspace, register_source
+from legal.path_guard import LegalPathError
 from legal.review_packet import export_review_packet
 from legal.search_report import export_search_report
 
@@ -159,6 +162,22 @@ def test_review_packet_export_does_not_mutate_manifest(tmp_path: Path) -> None:
     export_review_packet(root)
 
     assert _read_json(root / "manifest.json") == manifest_before
+
+
+def test_tampered_manifest_stored_path_outside_root_blocks_review_packet(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    _matter_with_extracted_source(root, tmp_path)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+    manifest_path = root / "manifest.json"
+    manifest = _read_json(manifest_path)
+    manifest["sources"][0]["stored_path"] = str(outside)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(LegalPathError, match="stored_path.*escapes"):
+        export_review_packet(root)
 
 
 def test_no_network_calls_during_review_packet_export(tmp_path: Path) -> None:

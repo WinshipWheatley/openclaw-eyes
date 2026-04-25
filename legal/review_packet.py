@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from legal.path_guard import (
+    canonicalize_matter_root,
+    resolve_matter_child,
+    validate_manifest_source_paths,
+)
+
 
 AUDIT_FILENAME = "audit.jsonl"
 EXPORTS_DIRECTORY = "exports"
@@ -24,11 +30,16 @@ def export_review_packet(
 ) -> dict[str, Any]:
     """Export a buyer-legible review packet folder under matter exports."""
 
-    root = Path(matter_root)
+    root = canonicalize_matter_root(matter_root)
     manifest = _read_json(root / MANIFEST_FILENAME)
-    exports_dir = root / EXPORTS_DIRECTORY
+    validate_manifest_source_paths(root, manifest)
+    exports_dir = resolve_matter_child(root, root / EXPORTS_DIRECTORY, label="exports directory")
     exports_dir.mkdir(exist_ok=True)
-    packet_path = exports_dir / _packet_dir_name(manifest["matter_id"], packet_name)
+    packet_path = resolve_matter_child(
+        root,
+        exports_dir / _packet_dir_name(manifest["matter_id"], packet_name),
+        label="review packet path",
+    )
 
     if packet_path.exists():
         shutil.rmtree(packet_path)
@@ -75,14 +86,23 @@ def _copy_extracted(
     packet_path: Path,
     included_files: list[str],
 ) -> int:
-    extracted_dir = matter_root / "extracted"
+    extracted_dir = resolve_matter_child(matter_root, matter_root / "extracted", label="extracted directory")
     if not extracted_dir.exists():
         return 0
     count = 0
     for source_path in sorted(extracted_dir.iterdir()):
         if source_path.is_file():
-            destination = packet_path / "extracted" / source_path.name
-            _copy_file(source_path, destination, included_files, packet_path)
+            safe_source_path = resolve_matter_child(
+                matter_root,
+                source_path,
+                label="extracted packet source",
+            )
+            destination = resolve_matter_child(
+                matter_root,
+                packet_path / "extracted" / source_path.name,
+                label="review packet extracted destination",
+            )
+            _copy_file(safe_source_path, destination, included_files, packet_path)
             count += 1
     return count
 
@@ -92,12 +112,21 @@ def _copy_reports(
     packet_path: Path,
     included_files: list[str],
 ) -> int:
-    exports_dir = matter_root / EXPORTS_DIRECTORY
+    exports_dir = resolve_matter_child(matter_root, matter_root / EXPORTS_DIRECTORY, label="exports directory")
     count = 0
     for source_path in sorted(exports_dir.glob("*.md")):
         if source_path.is_file():
-            destination = packet_path / "reports" / source_path.name
-            _copy_file(source_path, destination, included_files, packet_path)
+            safe_source_path = resolve_matter_child(
+                matter_root,
+                source_path,
+                label="report packet source",
+            )
+            destination = resolve_matter_child(
+                matter_root,
+                packet_path / "reports" / source_path.name,
+                label="review packet report destination",
+            )
+            _copy_file(safe_source_path, destination, included_files, packet_path)
             count += 1
     return count
 
@@ -147,4 +176,3 @@ def _append_audit(path: Path, entry: dict[str, Any]) -> None:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-

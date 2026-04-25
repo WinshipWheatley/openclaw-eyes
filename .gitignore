@@ -60,6 +60,10 @@
 !docs/specs/*.md
 !docs/handoffs/
 !docs/handoffs/.gitkeep
+!docs/planning/
+!docs/planning/openclaw_legal/
+!docs/planning/openclaw_legal/law_program/
+!docs/planning/openclaw_legal/law_program/**/*.md
 !docs/archives/
 !docs/archives/**/
 !docs/archives/**/*.md
@@ -72,6 +76,8 @@
 !mac_eyes/
 !mac_eyes/Launchers/
 !mac_eyes/Launchers/sync_to_mac.sh
+!mac_eyes/Launchers/sync_legal_planning_to_mac.sh
+!mac_eyes/Launchers/watch_legal_planning_to_mac.sh
 !mac_eyes/Winship/
 !mac_eyes/Winship/AGENTS.md
 !mac_eyes/Winship/Mac Local AI Watch — READ ME.md
@@ -229,6 +235,8 @@
 !tools/file_verify.py
 !scripts/
 !scripts/install_openclaw_stack.sh
+!legal/
+!legal/path_guard.py
 !systemd/
 !systemd/user/
 !systemd/user/*.in

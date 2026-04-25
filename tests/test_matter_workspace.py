@@ -16,6 +16,7 @@ from legal.matter_workspace import (
     load_matter_workspace,
     register_source,
 )
+from legal.path_guard import PRODUCT_REPO_ROOT, LegalPathError
 
 
 def _read_json(path: Path) -> dict:
@@ -52,6 +53,35 @@ def test_matter_creation_writes_valid_manifest(tmp_path: Path) -> None:
         "sources": [],
     }
     assert load_matter_workspace(root) == workspace
+
+
+def test_create_rejects_matter_workspace_under_product_repo() -> None:
+    root = PRODUCT_REPO_ROOT / "legal-forbidden-matter"
+
+    with pytest.raises(LegalPathError, match="outside product repo"):
+        create_matter_workspace(root, "matter", "Matter")
+
+    assert not root.exists()
+
+
+def test_create_allows_synthetic_temp_matter_workspace(tmp_path: Path) -> None:
+    root = tmp_path / "synthetic-matter"
+
+    workspace = create_matter_workspace(root, "matter", "Matter")
+
+    assert workspace.root_path == str(root)
+    assert (root / "manifest.json").is_file()
+
+
+def test_create_rejects_symlink_traversal_into_product_repo(tmp_path: Path) -> None:
+    repo_link = tmp_path / "repo-link"
+    repo_link.symlink_to(PRODUCT_REPO_ROOT, target_is_directory=True)
+    root = repo_link / "legal-forbidden-matter"
+
+    with pytest.raises(LegalPathError, match="outside product repo"):
+        create_matter_workspace(root, "matter", "Matter")
+
+    assert not (PRODUCT_REPO_ROOT / "legal-forbidden-matter").exists()
 
 
 def test_required_folders_and_audit_file_exist(tmp_path: Path) -> None:

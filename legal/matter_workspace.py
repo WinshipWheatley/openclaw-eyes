@@ -16,6 +16,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from legal.path_guard import (
+    canonicalize_matter_root,
+    resolve_matter_child,
+    validate_manifest_source_paths,
+)
+
 
 REQUIRED_DIRECTORIES = ("sources", "transcripts", "notes", "exports")
 MANIFEST_FILENAME = "manifest.json"
@@ -62,7 +68,7 @@ def create_matter_workspace(
     if not display_name or not display_name.strip():
         raise ValueError("display_name is required")
 
-    root = Path(root_path)
+    root = canonicalize_matter_root(root_path)
     root.mkdir(parents=True, exist_ok=True)
     for directory in REQUIRED_DIRECTORIES:
         (root / directory).mkdir(exist_ok=True)
@@ -96,22 +102,29 @@ def create_matter_workspace(
 def load_matter_workspace(root_path: str | Path) -> MatterWorkspace:
     """Load an existing local matter workspace."""
 
-    manifest = _read_manifest(Path(root_path))
-    return _workspace_from_manifest(manifest)
+    root = canonicalize_matter_root(root_path)
+    manifest = _read_manifest(root)
+    validate_manifest_source_paths(root, manifest)
+    return _workspace_from_manifest(manifest, expected_root=root)
 
 
 def register_source(matter_root: str | Path, source_path: str | Path) -> dict[str, Any]:
     """Copy a source file into the matter and append a source audit entry."""
 
-    root = Path(matter_root)
+    root = canonicalize_matter_root(matter_root)
     source = Path(source_path)
     if not source.is_file():
         raise FileNotFoundError(f"source file not found: {source}")
 
     manifest = _read_manifest(root)
+    validate_manifest_source_paths(root, manifest)
     digest = _sha256_file(source)
     source_id = _source_id_for_digest(digest, manifest.get("sources", []))
-    destination = root / "sources" / f"{source_id}{source.suffix}"
+    destination = resolve_matter_child(
+        root,
+        root / "sources" / f"{source_id}{source.suffix}",
+        label="registered source destination",
+    )
 
     existing_entry = _find_source_by_id(manifest.get("sources", []), source_id)
     if existing_entry:
@@ -192,15 +205,23 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _workspace_from_manifest(manifest: dict[str, Any]) -> MatterWorkspace:
+def _workspace_from_manifest(
+    manifest: dict[str, Any],
+    *,
+    expected_root: Path | None = None,
+) -> MatterWorkspace:
+    root = canonicalize_matter_root(manifest["root_path"])
+    if expected_root is not None and root != expected_root:
+        raise ValueError(
+            f"manifest root_path does not match matter root: {root} != {expected_root}"
+        )
     return MatterWorkspace(
         matter_id=manifest["matter_id"],
         display_name=manifest["display_name"],
         created_at=manifest["created_at"],
-        root_path=manifest["root_path"],
+        root_path=str(root),
     )
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-

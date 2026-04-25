@@ -1,0 +1,225 @@
+# OpenClaw Legal — Governing Principles
+
+## Purpose
+
+This is the anti-drift constitution for OpenClaw Legal.
+
+It exists to stop the project from becoming slop, liability, custom-service chaos, or life-ruining support work.
+
+Future agents should treat this file as governing planning law for the OpenClaw Legal package. It does not prove implementation status. It defines how future work must behave.
+
+## Governance-change warning
+
+Changes to this file should be deliberate and treated as governance changes, not routine prose cleanup.
+
+## 1. Handoffs expire
+
+Handoff files are current-state artifacts.
+
+They tell the next chat where the project is right now. They are not permanent doctrine.
+
+When a handoff becomes stale, archive it, replace it, or clearly mark it obsolete. Do not let old handoffs compete with current truth.
+
+## 2. PC/WSL is implementation authority
+
+The canonical implementation authority is the PC/WSL repo at:
+
+```text
+/home/openclaw
+```
+
+This Mac workspace is planning and reflection.
+
+Mac docs may inform future work. They must not be treated as proof that code exists, tests pass, or implementation choices have already been made.
+
+## 3. Go/no-go beats optimism
+
+`business_plan/OPENCLAW_LEGAL_GO_NO_GO_LAUNCH_CRITERIA.md` sits above business optimism.
+
+If the go/no-go gate says stop, the pitch, buyer enthusiasm, model excitement, hardware dreams, and revenue ideas do not overrule it.
+
+No-go beats momentum.
+
+## 4. No real legal data leakage
+
+Real legal data must not enter:
+
+- the product repo
+- prompts
+- support packets
+- update packages
+- public fixtures
+- non-local LLM contexts
+- casual debug logs
+- planning documents
+
+If sensitive matter data is needed to diagnose something, the workflow is wrong until a safe, scoped, approved, and sanitized path exists.
+
+## 5. Firm isolation is mandatory
+
+Firm #2 must never affect Firm #1 by default.
+
+No surprise menu changes.
+
+No surprise workflow changes.
+
+No silent module changes.
+
+No shared firm state.
+
+No cross-firm data reuse.
+
+Every firm must be isolated by profile, matter vault, permissions, enabled modules, update lane, and support boundary.
+
+## 6. Product boundaries must stay separated
+
+These are separate things and must remain separate:
+
+- OpenClaw Legal Core
+- Firm Profile
+- Matter Vault
+- optional modules
+- support packets
+- update packages
+- demo fixtures
+- buyer-facing materials
+
+Do not blur them for convenience.
+
+Matter data is not product code. Firm config is not core architecture. Support packets are not a back door into private files.
+
+## 7. Build slices must be small and proven
+
+Every future implementation slice must be:
+
+- small
+- tested
+- reversible
+- proof-backed
+- tied to existing repo inspection
+- narrow enough to understand
+
+No sprawling multi-feature build pass.
+
+No "while we are here" expansion.
+
+No broad refactor without a direct safety or product-boundary reason.
+
+## 8. Planning docs do not trigger implementation
+
+Do not implement broadly from these Mac planning docs.
+
+Before implementation, Codex must inspect the canonical `/home/openclaw` repo, read the existing Legal v0 code/tests/checkpoints, and map what already exists against these contracts.
+
+The first output after returning to PC/WSL should be a build plan, not a code spree.
+
+## 9. No legal advice or attorney replacement
+
+OpenClaw Legal must not present itself as:
+
+- a lawyer
+- legal advice
+- attorney replacement
+- final privilege authority
+- final fact finder
+- final legal conclusion engine
+- guaranteed discovery completeness engine
+
+The system may organize, process, surface, label, queue, search, summarize, and support review workflows.
+
+Final legal judgment belongs to attorneys.
+
+## 10. Unsupported files are local-first
+
+Unsupported files do not automatically mean external escalation.
+
+The system should try local-first handling before escalation:
+
+- identify the file
+- classify the failure
+- check installed local handlers
+- attempt safe local extraction/repair when allowed
+- mark unsupported clearly
+- produce sanitized support/request artifacts only when needed
+
+Escalation must be bounded, sanitized, and explicit.
+
+## 11. Updates must be lane-based and non-surprising
+
+Updates must be organized by lane:
+
+- security
+- stability
+- installed module
+- optional new module
+- firm-requested custom work
+
+Updates must disclose impact before activation.
+
+No silent workflow changes.
+
+No surprise feature injection.
+
+No Firm #2 update path modifying Firm #1 by default.
+
+## 12. The business must stay bounded
+
+OpenClaw Legal is viable only if the business stays:
+
+- bounded
+- remote-manageable
+- support-limited
+- contractually scoped
+- paid enough to justify burden
+- reusable beyond one firm
+- protected from emergency litigation support expectations
+
+If it becomes a custom legal-ops support job, it is failing.
+
+## 13. Personal burden is a launch blocker
+
+If personal stress, liability exposure, support burden, or emergency responsibility rises too high, no-go wins.
+
+Do not rationalize a bad support model because the product is interesting.
+
+Do not accept life-ruining support obligations for a vague future payoff.
+
+Do not let sunk cost override the gate.
+
+## 14. Bigger models are not the foundation
+
+Bigger models and bigger hardware are not the foundation of OpenClaw Legal.
+
+The foundation is:
+
+- clear matter boundaries
+- local-first workflow
+- reliable audit/status output
+- firm isolation
+- safe support packets
+- controlled updates
+- narrow tested slices
+- truthful buyer promises
+
+Model size is secondary.
+
+Hardware ambition is secondary.
+
+Boundaries and workflow proof come first.
+
+## Final rule
+
+When in doubt, choose the path that keeps OpenClaw Legal:
+
+```text
+bounded
+local-first
+firm-isolated
+attorney-reviewed
+support-limited
+test-proven
+reversible
+and honest about what exists
+```
+
+Anything else is drift.

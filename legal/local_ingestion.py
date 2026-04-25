@@ -12,6 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from legal.path_guard import (
+    canonicalize_matter_root,
+    resolve_matter_child,
+    validate_manifest_source_paths,
+)
+
 
 AUDIT_FILENAME = "audit.jsonl"
 EXTRACTED_DIRECTORY = "extracted"
@@ -28,13 +34,18 @@ class ExtractionError(Exception):
 def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, Any]:
     """Extract UTF-8 text for one registered source in a matter workspace."""
 
-    root = Path(matter_root)
+    root = canonicalize_matter_root(matter_root)
     manifest = _read_manifest(root)
+    validate_manifest_source_paths(root, manifest)
     source = _find_source(manifest.get("sources", []), source_id)
     if source is None:
         raise KeyError(f"source_id not found: {source_id}")
 
-    stored_path = Path(source["stored_path"])
+    stored_path = resolve_matter_child(
+        root,
+        source["stored_path"],
+        label=f"manifest stored_path for source_id {source_id}",
+    )
     suffix = stored_path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
         result = _unsupported_result(source, stored_path)
@@ -61,7 +72,7 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
             f"source is not valid UTF-8 and cannot be extracted: {source_id}"
         ) from exc
 
-    extracted_dir = root / EXTRACTED_DIRECTORY
+    extracted_dir = resolve_matter_child(root, root / EXTRACTED_DIRECTORY, label="extracted directory")
     extracted_dir.mkdir(exist_ok=True)
     extracted_path = extracted_dir / f"{source_id}.txt"
     metadata_path = extracted_dir / f"{source_id}.json"
@@ -74,7 +85,7 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
         "original_filename": source["original_filename"],
         "sha256": source["sha256"],
         "file_type": source.get("file_type", "application/octet-stream"),
-        "stored_path": source["stored_path"],
+        "stored_path": str(stored_path),
         "extracted_path": str(extracted_path),
         "metadata_path": str(metadata_path),
         "extracted_at": extracted_at,
@@ -100,8 +111,9 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
 def extract_all_supported_sources(matter_root: str | Path) -> list[dict[str, Any]]:
     """Attempt local text extraction for every registered source."""
 
-    root = Path(matter_root)
+    root = canonicalize_matter_root(matter_root)
     manifest = _read_manifest(root)
+    validate_manifest_source_paths(root, manifest)
     results = []
     for source in manifest.get("sources", []):
         results.append(extract_source_text(root, source["source_id"]))
@@ -176,7 +188,11 @@ def _extract_pdf_source(
         )
         return no_text
 
-    extracted_dir = matter_root / EXTRACTED_DIRECTORY
+    extracted_dir = resolve_matter_child(
+        matter_root,
+        matter_root / EXTRACTED_DIRECTORY,
+        label="extracted directory",
+    )
     extracted_dir.mkdir(exist_ok=True)
     extracted_path = extracted_dir / f"{source['source_id']}.txt"
     metadata_path = extracted_dir / f"{source['source_id']}.json"
@@ -188,7 +204,7 @@ def _extract_pdf_source(
         "original_filename": source["original_filename"],
         "sha256": source["sha256"],
         "file_type": source.get("file_type", "application/pdf"),
-        "stored_path": source["stored_path"],
+        "stored_path": str(stored_path),
         "extracted_path": str(extracted_path),
         "metadata_path": str(metadata_path),
         "pages": result.get("pages"),

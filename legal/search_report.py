@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from legal.local_search import search_extracted_text
+from legal.path_guard import canonicalize_matter_root, resolve_matter_child
 
 
 AUDIT_FILENAME = "audit.jsonl"
@@ -25,14 +26,14 @@ def export_search_report(
 ) -> dict[str, Any]:
     """Export a deterministic Markdown report for local search results."""
 
-    root = Path(matter_root)
+    root = canonicalize_matter_root(matter_root)
     results = search_extracted_text(
         root,
         query,
         max_results=max_results,
         snippet_chars=snippet_chars,
     )
-    exports_dir = root / EXPORTS_DIRECTORY
+    exports_dir = resolve_matter_child(root, root / EXPORTS_DIRECTORY, label="exports directory")
     exports_dir.mkdir(exist_ok=True)
     report_path = exports_dir / _report_filename(query, report_name)
     created_at = _utc_now()
@@ -119,4 +120,3 @@ def _append_audit(path: Path, entry: dict[str, Any]) -> None:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
