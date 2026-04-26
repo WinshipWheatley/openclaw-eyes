@@ -529,6 +529,63 @@ Remaining gaps:
 - public analog fixture search is not implemented
 - malformed/corrupt PDFs correctly remain `failed`
 
+## Completed local capability policy/stub
+
+Commit:
+
+```text
+92e16e5 feat(legal): add local capability policy states
+```
+
+New file:
+
+- `legal/local_capability_policy.py`
+
+Updated files:
+
+- `legal/alternative_methods.py`
+- `tests/test_alternative_methods.py`
+
+Implemented behavior:
+
+- Alternative Methods items now include deterministic local capability policy metadata:
+  - `local_capability_state`
+  - `local_capability_kind`
+  - `local_capability_reason_category`
+  - `request_feature_state`
+- unsupported unknown extension maps to `local_capability_not_attempted` / `unknown_local_handler`
+- no-text PDF maps to `local_capability_not_installed` / `ocr`
+- failed PDF maps to `local_capability_failed_safely` / `pdf_text_extraction`
+- `request_feature` remains locked by default
+- no manifest mutation
+- no new CLI command
+- no OCR
+- no local repair/build
+
+Demo rerun summary:
+
+- source_count: `5`
+- extracted: `3`
+- unsupported: `1`
+- no_text: `1`
+- failed: `0`
+- pending: `0`
+- alternative_methods_count: `2`
+- product_repo_data_written: `false`
+
+Proof:
+
+- `py_compile` passed for `legal/local_capability_policy.py`, `legal/alternative_methods.py`, and `tests/test_alternative_methods.py`
+- focused Alternative Methods/support/demo tests: `13 passed`
+- full focused Legal suite: `117 passed in 1.27s`
+
+Remaining gaps:
+
+- OCR is still not implemented
+- local repair/build and sandbox execution are still not implemented
+- public analog search and request-feature export are still not implemented
+- support packet diagnostics were not enriched in this slice
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -652,9 +709,11 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next likely slice should be local capability attempt policy/stub for Alternative Methods.
+The next practical slice should be local staging/drop-folder intake for mock discovery.
 
-Do not jump to full OCR, UI, connectors, distributed workers, model distribution, or cloud connectors.
+The goal is to let fake/public-safe discovery files be dropped into a local staging folder and imported into a matter.
+
+Do not jump to email import, cloud import, real discovery, OCR, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
