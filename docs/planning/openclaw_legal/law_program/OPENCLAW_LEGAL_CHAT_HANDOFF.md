@@ -360,11 +360,11 @@ Implemented behavior:
 
 - creates a synthetic mock discovery batch under a temp/demo-safe vault root outside `/home/openclaw`
 - uses strict `--vault-root` mode
-- registers TXT, MD, text-layer PDF where supported, scanned-style/placeholder PDF behavior, and unsupported fake extension
+- registers TXT, MD, text-layer PDF, valid synthetic no-text PDF behavior, and unsupported fake extension
 - runs `extract-all`, search, report, review packet, and sanitized support packet
 - verifies product repo data written: `false`
 
-Demo output summary from implementation pass:
+Demo output summary from the initial implementation pass:
 
 - source count: `5`
 - extracted: `3`
@@ -377,7 +377,7 @@ Demo output summary from implementation pass:
 - support packet generated
 - product repo data written: `false`
 
-Note: the scanned-style placeholder PDF reported `failed` in this environment rather than `no_text`; that is acceptable for current extractor behavior and is captured in the summary.
+Note: this initial placeholder behavior was superseded by the later no-OCR PDF status hardening slice.
 
 Proof:
 
@@ -420,7 +420,7 @@ Proof:
 Remaining gaps:
 
 - `pending` still means extraction was never attempted
-- placeholder scanned-style PDF still reports `failed` in this environment, not `no_text`
+- the initial placeholder scanned-style PDF behavior was superseded by the later no-OCR PDF status hardening slice
 - unsupported-file Alternative Methods is still not implemented
 
 ## Completed Alternative Methods next-action model
@@ -479,6 +479,55 @@ Remaining gaps:
 - `request_feature` stays locked unless a future policy enables escalation
 - OCR is not implemented
 - public analog fixture search is not implemented
+
+## Completed no-OCR PDF status hardening
+
+Commit:
+
+```text
+20312df fix(legal): harden no-text PDF status
+```
+
+Updated files:
+
+- `scripts/demo_legal_mock_discovery.py`
+- `tests/test_pdf_ingestion.py`
+- `tests/test_alternative_methods.py`
+- `tests/test_support_packet.py`
+- `tests/test_legal_mock_discovery_demo.py`
+
+Implemented behavior:
+
+- mock discovery demo now uses a valid synthetic no-text PDF instead of a malformed placeholder PDF
+- valid no-text PDF reports `no_text`, not `failed`
+- malformed/minimal PDF remains `failed`, not `no_text`
+- Alternative Methods surfaces `ocr_module_needed` for valid no-text PDF
+- support packet diagnostics preserve `no_text`
+- OCR is still not implemented
+
+Demo rerun summary:
+
+- source_count: `5`
+- extracted: `3`
+- unsupported: `1`
+- no_text: `1`
+- failed: `0`
+- pending: `0`
+- alternative_methods_count: `2`
+- product_repo_data_written: `false`
+
+Proof:
+
+- `py_compile` passed
+- focused PDF/Alternative Methods/support/demo tests: `22 passed`
+- full focused Legal suite: `117 passed in 1.46s`
+
+Remaining gaps:
+
+- OCR is still not implemented
+- local repair/build is not implemented
+- public analog fixture search is not implemented
+- malformed/corrupt PDFs correctly remain `failed`
 
 ## What was planned in the Mac workspace
 
@@ -603,10 +652,7 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next likely slice should be either:
-
-1. local capability attempt policy/stub for Alternative Methods
-2. OCR-needed/no-text detection hardening before real OCR
+The next likely slice should be local capability attempt policy/stub for Alternative Methods.
 
 Do not jump to full OCR, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
