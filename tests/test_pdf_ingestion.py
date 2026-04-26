@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from legal.local_ingestion import extract_source_text
 from legal.local_search import search_extracted_text
 from legal.matter_workspace import create_matter_workspace, register_source
+from scripts.demo_legal_mock_discovery import _write_no_text_pdf
 
 
 def _read_json(path: Path) -> dict:
@@ -117,22 +118,35 @@ def test_pdf_extraction_appends_audit_entry(tmp_path: Path) -> None:
 def test_no_text_pdf_returns_status_without_artifacts(tmp_path: Path) -> None:
     root = tmp_path / "matter"
     pdf = tmp_path / "blank.pdf"
-    pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    _write_no_text_pdf(pdf)
     create_matter_workspace(root, "matter", "Matter")
     registered = register_source(root, pdf)
 
-    with patch(
-        "legal.local_ingestion._pdf_to_text",
-        return_value={"ok": True, "text": "", "pages": 0, "chars": 0},
-    ):
-        result = extract_source_text(root, registered["source_id"])
+    result = extract_source_text(root, registered["source_id"])
 
     assert result["status"] == "no_text"
     assert result["reason"] == "PDF has no extractable text layer"
     assert not (root / "extracted").exists()
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "no_text"
     events = _read_audit(root / "audit.jsonl")
     assert events[-1]["event"] == "source_extraction_no_text"
     assert events[-1]["source_id"] == registered["source_id"]
+
+
+def test_malformed_minimal_pdf_remains_failed_not_no_text(tmp_path: Path) -> None:
+    root = tmp_path / "matter"
+    pdf = tmp_path / "placeholder.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, pdf)
+
+    result = extract_source_text(root, registered["source_id"])
+
+    assert result["status"] == "failed"
+    assert result["status"] != "no_text"
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "failed"
 
 
 def test_corrupt_pdf_returns_failed_status_without_artifacts(tmp_path: Path) -> None:

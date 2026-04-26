@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from legal.alternative_methods import alternative_methods_for_matter
 from legal.local_ingestion import extract_source_text
 from legal.matter_workspace import create_matter_workspace, register_source
+from scripts.demo_legal_mock_discovery import _write_no_text_pdf
 
 
 def _item_by_status(packet: dict, status: str) -> dict:
@@ -64,14 +65,10 @@ def test_failed_pdf_gets_alternative_methods(tmp_path: Path) -> None:
 def test_no_text_pdf_gets_ocr_needed_action(tmp_path: Path) -> None:
     root = tmp_path / "matter"
     source = tmp_path / "image-only.pdf"
-    source.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    _write_no_text_pdf(source)
     create_matter_workspace(root, "matter", "Matter")
     registered = register_source(root, source)
-    with patch(
-        "legal.local_ingestion._pdf_to_text",
-        return_value={"ok": True, "text": "", "pages": 0, "chars": 0},
-    ):
-        extract_source_text(root, registered["source_id"])
+    extract_source_text(root, registered["source_id"])
 
     packet = alternative_methods_for_matter(root)
 

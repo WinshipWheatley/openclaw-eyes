@@ -44,9 +44,10 @@ def test_mock_discovery_demo_runs_end_to_end_outside_repo(tmp_path: Path) -> Non
 
     assert result["source_count"] == 5
     assert len(manifest["sources"]) == 5
-    assert result["extracted_count"] >= 3
+    assert result["extracted_count"] == 3
     assert result["unsupported_count"] == 1
-    assert result["no_text_count"] + result["failed_count"] >= 1
+    assert result["no_text_count"] == 1
+    assert result["failed_count"] == 0
     assert result["source_status_counts"] == support_packet["diagnostics"]["source_status_counts"]
     assert result["alternative_methods_count"] == (
         result["unsupported_count"] + result["no_text_count"] + result["failed_count"]

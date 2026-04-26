@@ -11,6 +11,7 @@ from legal.local_ingestion import extract_source_text
 from legal.matter_workspace import create_matter_workspace, register_source
 from legal.review_packet import export_review_packet
 from legal.support_packet import export_support_packet
+from scripts.demo_legal_mock_discovery import _write_no_text_pdf
 
 
 def _read_json(path: Path) -> dict:
@@ -116,6 +117,26 @@ def test_support_packet_reports_failed_extraction_from_manifest_status(
     assert packet["diagnostics"]["source_status_counts"]["pending"] == 0
     assert packet["diagnostics"]["extractors"] == ["pdftotext_v0"]
     assert packet["diagnostics"]["redacted_status_summaries"][0]["status"] == "failed"
+
+
+def test_support_packet_reports_no_text_pdf_from_manifest_status(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    pdf = tmp_path / "image-only.pdf"
+    _write_no_text_pdf(pdf)
+    create_matter_workspace(root, "matter-001", "Matter")
+    registered = register_source(root, pdf)
+
+    result = extract_source_text(root, registered["source_id"])
+    packet = export_support_packet(root)
+
+    assert result["status"] == "no_text"
+    assert packet["diagnostics"]["source_status_counts"]["no_text"] == 1
+    assert packet["diagnostics"]["source_status_counts"]["failed"] == 0
+    summary = packet["diagnostics"]["redacted_status_summaries"][0]
+    assert summary["status"] == "no_text"
+    assert summary["reason_category"] == "no_extractable_text"
 
 
 def test_support_packet_distinguishes_itself_from_review_packets(tmp_path: Path) -> None:

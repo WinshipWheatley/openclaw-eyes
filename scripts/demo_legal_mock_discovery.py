@@ -164,11 +164,11 @@ def _write_synthetic_sources(source_dir: Path) -> list[Path]:
     )
     text_pdf = source_dir / "mock_contract_excerpt.pdf"
     _write_text_layer_pdf(text_pdf, "Synthetic allocation clause for mock discovery")
-    scanned_placeholder = source_dir / "mock_scanned_placeholder.pdf"
-    scanned_placeholder.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    no_text_pdf = source_dir / "mock_image_only_scan.pdf"
+    _write_no_text_pdf(no_text_pdf)
     unsupported = source_dir / "mock_export.abcxyz"
     unsupported.write_bytes(b"synthetic unsupported payload")
-    return [witness, case_note, text_pdf, scanned_placeholder, unsupported]
+    return [witness, case_note, text_pdf, no_text_pdf, unsupported]
 
 
 def _normalized_status_counts(status_counts: dict[str, int]) -> dict[str, int]:
@@ -208,6 +208,35 @@ def _write_text_layer_pdf(path: Path, text: str) -> None:
         pdf += f"{offset:010d} 00000 n \n"
     pdf += (
         "trailer\n<< /Size 6 /Root 1 0 R >>\n"
+        f"startxref\n{xref_offset}\n%%EOF\n"
+    )
+    path.write_bytes(pdf.encode("latin-1"))
+
+
+def _write_no_text_pdf(path: Path) -> None:
+    content = ""
+    objects = [
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+        "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+        (
+            "3 0 obj\n"
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            "/Resources << >> /Contents 4 0 R >>\n"
+            "endobj\n"
+        ),
+        f"4 0 obj\n<< /Length {len(content)} >>\nstream\n{content}\nendstream\nendobj\n",
+    ]
+    pdf = "%PDF-1.4\n"
+    offsets = [0]
+    for obj in objects:
+        offsets.append(len(pdf.encode("latin-1")))
+        pdf += obj
+    xref_offset = len(pdf.encode("latin-1"))
+    pdf += "xref\n0 5\n0000000000 65535 f \n"
+    for offset in offsets[1:]:
+        pdf += f"{offset:010d} 00000 n \n"
+    pdf += (
+        "trailer\n<< /Size 5 /Root 1 0 R >>\n"
         f"startxref\n{xref_offset}\n%%EOF\n"
     )
     path.write_bytes(pdf.encode("latin-1"))
