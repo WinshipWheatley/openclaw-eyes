@@ -17,7 +17,7 @@ _CASSANDRA_MORNING_TEST_ATTEMPTS = 1
 
 
 def _diagnostics_enabled() -> bool:
-    return os.environ.get("OPENCLAW_LLM_DIAGNOSTICS", "").strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("OPENCLAW_LLM_DIAGNOSTICS", "").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _log_ollama_diagnostic(event: dict) -> None:
@@ -26,6 +26,7 @@ def _log_ollama_diagnostic(event: dict) -> None:
     try:
         _OLLAMA_DIAGNOSTICS_LOG.parent.mkdir(parents=True, exist_ok=True)
         event.setdefault("timestamp", _time.strftime("%Y-%m-%d %H:%M:%S"))
+        event.setdefault("diagnostic_type", "local_model_usage")
         with open(_OLLAMA_DIAGNOSTICS_LOG, "a", encoding="utf-8") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
             try:
@@ -439,11 +440,13 @@ def ollama_call(
                           that have already made the routing decision.
     When using 14b (either path), timeout is raised to _DEEP_TIMEOUT_FLOOR.
     """
+    selected_lane = lane
     if model is not None:
         if model == OLLAMA_MODEL_DEEP:
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
     else:
         model, resolved_lane = resolve_local_model(prompt, lane=lane, task_class=task_class)
+        selected_lane = resolved_lane
         if resolved_lane == "deep":
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
             print(f"[llm] routed → deep ({len(prompt.split())} words, timeout={timeout}s)",
@@ -471,28 +474,34 @@ def ollama_call(
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 result = data.get("response", "").strip()
+                duration_ms = int((_time.monotonic() - started) * 1000)
                 _log_ollama_diagnostic({
-                    "event": "ollama_call_result",
+                    "event": "ollama_call",
+                    "status": "success" if result else "failure",
                     "attempt": attempt + 1,
                     "model": model,
                     "task_class": task_class,
-                    "lane": lane,
+                    "lane": selected_lane,
                     "timeout": timeout,
-                    "elapsed_ms": int((_time.monotonic() - started) * 1000),
+                    "duration_ms": duration_ms,
+                    "elapsed_ms": duration_ms,
                     "prompt_words": prompt_words,
                     "response_chars": len(result),
                     "empty_response": not bool(result),
                 })
                 return result
         except Exception as e:
+            duration_ms = int((_time.monotonic() - started) * 1000)
             _log_ollama_diagnostic({
-                "event": "ollama_call_exception",
+                "event": "ollama_call",
+                "status": "exception",
                 "attempt": attempt + 1,
                 "model": model,
                 "task_class": task_class,
-                "lane": lane,
+                "lane": selected_lane,
                 "timeout": timeout,
-                "elapsed_ms": int((_time.monotonic() - started) * 1000),
+                "duration_ms": duration_ms,
+                "elapsed_ms": duration_ms,
                 "prompt_words": prompt_words,
                 "exception_type": type(e).__name__,
                 "exception": str(e),
