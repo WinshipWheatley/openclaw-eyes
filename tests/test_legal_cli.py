@@ -352,6 +352,26 @@ def test_support_packet_command_creates_sanitized_packet(
     assert "privileged settlement content" not in packet_text
 
 
+def test_alternative_methods_command_reports_next_actions(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "unsupported.secret"
+    source.write_bytes(b"synthetic unsupported content")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    extract_source_text(root, registered["source_id"])
+
+    code, payload = _run_cli(["alternative-methods", "--root", str(root)], capsys)
+
+    assert code == 0
+    assert payload["artifact_type"] == "alternative_methods_v0"
+    assert payload["needs_alternative_methods"] == 1
+    assert payload["items"][0]["status"] == "unsupported"
+    assert "request_feature" in payload["items"][0]["locked_actions"]
+
+
 def test_user_error_returns_one_and_stderr(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

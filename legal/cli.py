@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from legal.alternative_methods import alternative_methods_for_matter
 from legal.deployment_profile import (
     default_legal_local_profile,
     save_deployment_profile,
@@ -105,6 +106,11 @@ def _build_parser() -> argparse.ArgumentParser:
     support_packet.add_argument("--packet-name")
     support_packet.set_defaults(handler=_support_packet)
 
+    alternative_methods = subcommands.add_parser("alternative-methods")
+    alternative_methods.add_argument("--root", required=True)
+    alternative_methods.add_argument("--vault-root")
+    alternative_methods.set_defaults(handler=_alternative_methods)
+
     default_profile = subcommands.add_parser("default-profile")
     default_profile.add_argument("--firm-name", required=True)
     default_profile.add_argument("--output", required=True)
@@ -200,6 +206,13 @@ def _support_packet(args: argparse.Namespace) -> dict[str, Any]:
     return export_support_packet(
         args.root,
         packet_name=args.packet_name,
+        allowed_vault_roots=_allowed_vault_roots(args),
+    )
+
+
+def _alternative_methods(args: argparse.Namespace) -> dict[str, Any]:
+    return alternative_methods_for_matter(
+        args.root,
         allowed_vault_roots=_allowed_vault_roots(args),
     )
 

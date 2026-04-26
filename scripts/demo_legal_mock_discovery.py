@@ -118,6 +118,15 @@ def run_mock_discovery_demo(output_root: str | Path = DEFAULT_OUTPUT_ROOT) -> di
             "mock-discovery-diagnostics",
         ]
     )
+    alternative_methods = _run_cli(
+        [
+            "alternative-methods",
+            "--vault-root",
+            str(vault_root),
+            "--root",
+            str(matter_root),
+        ]
+    )
 
     _require_outside_repo(matter_root)
     status_counts = _normalized_status_counts(extraction["status_counts"])
@@ -135,6 +144,7 @@ def run_mock_discovery_demo(output_root: str | Path = DEFAULT_OUTPUT_ROOT) -> di
         "report_path": report["report_path"],
         "review_packet_path": review_packet["packet_path"],
         "support_packet_path": support_packet["packet_path"],
+        "alternative_methods_count": alternative_methods["needs_alternative_methods"],
         "product_repo_data_written": False,
         "source_status_counts": status_counts,
     }

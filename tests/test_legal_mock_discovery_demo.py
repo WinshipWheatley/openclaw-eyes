@@ -48,6 +48,9 @@ def test_mock_discovery_demo_runs_end_to_end_outside_repo(tmp_path: Path) -> Non
     assert result["unsupported_count"] == 1
     assert result["no_text_count"] + result["failed_count"] >= 1
     assert result["source_status_counts"] == support_packet["diagnostics"]["source_status_counts"]
+    assert result["alternative_methods_count"] == (
+        result["unsupported_count"] + result["no_text_count"] + result["failed_count"]
+    )
     assert result["search_result_count"] >= 3
     assert f"- Query: `{QUERY}`" in report
     assert "allocation" in report.casefold()
