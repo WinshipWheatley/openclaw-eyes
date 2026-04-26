@@ -6,7 +6,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from legal.local_search import search_extracted_text
 from legal.path_guard import canonicalize_matter_root, resolve_matter_child
@@ -23,17 +23,27 @@ def export_search_report(
     report_name: str | None = None,
     max_results: int = 20,
     snippet_chars: int = 80,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
 ) -> dict[str, Any]:
     """Export a deterministic Markdown report for local search results."""
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     results = search_extracted_text(
         root,
         query,
         max_results=max_results,
         snippet_chars=snippet_chars,
+        allowed_vault_roots=allowed_vault_roots,
     )
-    exports_dir = resolve_matter_child(root, root / EXPORTS_DIRECTORY, label="exports directory")
+    exports_dir = resolve_matter_child(
+        root,
+        root / EXPORTS_DIRECTORY,
+        label="exports directory",
+        allowed_vault_roots=allowed_vault_roots,
+    )
     exports_dir.mkdir(exist_ok=True)
     report_path = exports_dir / _report_filename(query, report_name)
     created_at = _utc_now()

@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from legal.path_guard import (
     canonicalize_matter_root,
@@ -31,12 +31,24 @@ class ExtractionError(Exception):
     """Raised when a supported source cannot be extracted safely."""
 
 
-def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, Any]:
+def extract_source_text(
+    matter_root: str | Path,
+    source_id: str,
+    *,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
+) -> dict[str, Any]:
     """Extract UTF-8 text for one registered source in a matter workspace."""
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     manifest = _read_manifest(root)
-    validate_manifest_source_paths(root, manifest)
+    validate_manifest_source_paths(
+        root,
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     source = _find_source(manifest.get("sources", []), source_id)
     if source is None:
         raise KeyError(f"source_id not found: {source_id}")
@@ -45,6 +57,7 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
         root,
         source["stored_path"],
         label=f"manifest stored_path for source_id {source_id}",
+        allowed_vault_roots=allowed_vault_roots,
     )
     suffix = stored_path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
@@ -72,7 +85,12 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
             f"source is not valid UTF-8 and cannot be extracted: {source_id}"
         ) from exc
 
-    extracted_dir = resolve_matter_child(root, root / EXTRACTED_DIRECTORY, label="extracted directory")
+    extracted_dir = resolve_matter_child(
+        root,
+        root / EXTRACTED_DIRECTORY,
+        label="extracted directory",
+        allowed_vault_roots=allowed_vault_roots,
+    )
     extracted_dir.mkdir(exist_ok=True)
     extracted_path = extracted_dir / f"{source_id}.txt"
     metadata_path = extracted_dir / f"{source_id}.json"
@@ -108,15 +126,32 @@ def extract_source_text(matter_root: str | Path, source_id: str) -> dict[str, An
     return metadata
 
 
-def extract_all_supported_sources(matter_root: str | Path) -> list[dict[str, Any]]:
+def extract_all_supported_sources(
+    matter_root: str | Path,
+    *,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
+) -> list[dict[str, Any]]:
     """Attempt local text extraction for every registered source."""
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     manifest = _read_manifest(root)
-    validate_manifest_source_paths(root, manifest)
+    validate_manifest_source_paths(
+        root,
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     results = []
     for source in manifest.get("sources", []):
-        results.append(extract_source_text(root, source["source_id"]))
+        results.append(
+            extract_source_text(
+                root,
+                source["source_id"],
+                allowed_vault_roots=allowed_vault_roots,
+            )
+        )
     return results
 
 

@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from legal.path_guard import LegalPathError, canonicalize_vault_roots
+
 
 REQUIRED_MODULES = (
     "matter_workspace",
@@ -187,6 +189,29 @@ def _validate_storage(profile: dict[str, Any], errors: list[str]) -> None:
     exports_root = storage.get("exports_root")
     if exports_root is not None and not isinstance(exports_root, str):
         errors.append("storage.exports_root must be a string or null")
+    if "vault_roots" in storage:
+        _validate_vault_roots(storage["vault_roots"], errors)
+
+
+def _validate_vault_roots(vault_roots: Any, errors: list[str]) -> None:
+    if not isinstance(vault_roots, list):
+        errors.append("storage.vault_roots must be a list")
+        return
+    if not vault_roots:
+        errors.append("storage.vault_roots must not be empty when present")
+        return
+    invalid = [
+        index
+        for index, vault_root in enumerate(vault_roots)
+        if not isinstance(vault_root, str) or not vault_root.strip()
+    ]
+    if invalid:
+        errors.append("storage.vault_roots entries must be non-empty strings")
+        return
+    try:
+        canonicalize_vault_roots(vault_roots)
+    except LegalPathError as exc:
+        errors.append(f"storage.vault_roots invalid: {exc}")
 
 
 def _require_non_empty_string(
@@ -202,4 +227,3 @@ def _require_non_empty_string(
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-

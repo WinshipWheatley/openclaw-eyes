@@ -73,6 +73,68 @@ def test_create_allows_synthetic_temp_matter_workspace(tmp_path: Path) -> None:
     assert (root / "manifest.json").is_file()
 
 
+def test_create_allows_matter_workspace_under_approved_vault_root(
+    tmp_path: Path,
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+
+    workspace = create_matter_workspace(
+        root,
+        "matter",
+        "Matter",
+        allowed_vault_roots=[vault],
+    )
+
+    assert workspace.root_path == str(root)
+    assert workspace.allowed_vault_roots == (str(vault),)
+    assert (root / "manifest.json").is_file()
+
+
+def test_create_rejects_vault_root_under_product_repo(tmp_path: Path) -> None:
+    vault = PRODUCT_REPO_ROOT / "legal-forbidden-vault"
+    root = tmp_path / "matter"
+
+    with pytest.raises(LegalPathError, match="vault root must be outside product repo"):
+        create_matter_workspace(
+            root,
+            "matter",
+            "Matter",
+            allowed_vault_roots=[vault],
+        )
+
+
+def test_create_rejects_matter_root_outside_approved_vault_root(
+    tmp_path: Path,
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = tmp_path / "outside" / "matter"
+
+    with pytest.raises(LegalPathError, match="approved legal vault root"):
+        create_matter_workspace(
+            root,
+            "matter",
+            "Matter",
+            allowed_vault_roots=[vault],
+        )
+
+
+def test_create_rejects_symlink_vault_root_into_product_repo(tmp_path: Path) -> None:
+    vault = tmp_path / "vault-link"
+    vault.symlink_to(PRODUCT_REPO_ROOT, target_is_directory=True)
+    root = vault / "legal-forbidden-matter"
+
+    with pytest.raises(LegalPathError, match="vault root must be outside product repo"):
+        create_matter_workspace(
+            root,
+            "matter",
+            "Matter",
+            allowed_vault_roots=[vault],
+        )
+
+    assert not (PRODUCT_REPO_ROOT / "legal-forbidden-matter").exists()
+
+
 def test_create_rejects_symlink_traversal_into_product_repo(tmp_path: Path) -> None:
     repo_link = tmp_path / "repo-link"
     repo_link.symlink_to(PRODUCT_REPO_ROOT, target_is_directory=True)

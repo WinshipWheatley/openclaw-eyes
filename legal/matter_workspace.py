@@ -14,7 +14,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from legal.path_guard import (
     canonicalize_matter_root,
@@ -37,6 +37,7 @@ class MatterWorkspace:
     display_name: str
     created_at: str
     root_path: str
+    allowed_vault_roots: tuple[str, ...] = ()
 
     @property
     def root(self) -> Path:
@@ -51,7 +52,11 @@ class MatterWorkspace:
         return self.root / AUDIT_FILENAME
 
     def register_source(self, source_path: str | Path) -> dict[str, Any]:
-        return register_source(self.root, source_path)
+        return register_source(
+            self.root,
+            source_path,
+            allowed_vault_roots=self.allowed_vault_roots or None,
+        )
 
 
 def create_matter_workspace(
@@ -60,6 +65,7 @@ def create_matter_workspace(
     display_name: str,
     *,
     created_at: str | None = None,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
 ) -> MatterWorkspace:
     """Create a local matter workspace with manifest, audit log, and folders."""
 
@@ -68,7 +74,10 @@ def create_matter_workspace(
     if not display_name or not display_name.strip():
         raise ValueError("display_name is required")
 
-    root = canonicalize_matter_root(root_path)
+    root = canonicalize_matter_root(
+        root_path,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     root.mkdir(parents=True, exist_ok=True)
     for directory in REQUIRED_DIRECTORIES:
         (root / directory).mkdir(exist_ok=True)
@@ -96,34 +105,65 @@ def create_matter_workspace(
             "created_at": timestamp,
         },
     )
-    return _workspace_from_manifest(manifest)
+    return _workspace_from_manifest(
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
 
 
-def load_matter_workspace(root_path: str | Path) -> MatterWorkspace:
+def load_matter_workspace(
+    root_path: str | Path,
+    *,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
+) -> MatterWorkspace:
     """Load an existing local matter workspace."""
 
-    root = canonicalize_matter_root(root_path)
+    root = canonicalize_matter_root(
+        root_path,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     manifest = _read_manifest(root)
-    validate_manifest_source_paths(root, manifest)
-    return _workspace_from_manifest(manifest, expected_root=root)
+    validate_manifest_source_paths(
+        root,
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
+    return _workspace_from_manifest(
+        manifest,
+        expected_root=root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
 
 
-def register_source(matter_root: str | Path, source_path: str | Path) -> dict[str, Any]:
+def register_source(
+    matter_root: str | Path,
+    source_path: str | Path,
+    *,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
+) -> dict[str, Any]:
     """Copy a source file into the matter and append a source audit entry."""
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     source = Path(source_path)
     if not source.is_file():
         raise FileNotFoundError(f"source file not found: {source}")
 
     manifest = _read_manifest(root)
-    validate_manifest_source_paths(root, manifest)
+    validate_manifest_source_paths(
+        root,
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     digest = _sha256_file(source)
     source_id = _source_id_for_digest(digest, manifest.get("sources", []))
     destination = resolve_matter_child(
         root,
         root / "sources" / f"{source_id}{source.suffix}",
         label="registered source destination",
+        allowed_vault_roots=allowed_vault_roots,
     )
 
     existing_entry = _find_source_by_id(manifest.get("sources", []), source_id)
@@ -209,8 +249,12 @@ def _workspace_from_manifest(
     manifest: dict[str, Any],
     *,
     expected_root: Path | None = None,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
 ) -> MatterWorkspace:
-    root = canonicalize_matter_root(manifest["root_path"])
+    root = canonicalize_matter_root(
+        manifest["root_path"],
+        allowed_vault_roots=allowed_vault_roots,
+    )
     if expected_root is not None and root != expected_root:
         raise ValueError(
             f"manifest root_path does not match matter root: {root} != {expected_root}"
@@ -220,8 +264,19 @@ def _workspace_from_manifest(
         display_name=manifest["display_name"],
         created_at=manifest["created_at"],
         root_path=str(root),
+        allowed_vault_roots=_vault_root_strings(allowed_vault_roots),
     )
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _vault_root_strings(
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None,
+) -> tuple[str, ...]:
+    if allowed_vault_roots is None:
+        return ()
+    if isinstance(allowed_vault_roots, (str, Path)):
+        return (str(allowed_vault_roots),)
+    return tuple(str(root) for root in allowed_vault_roots)

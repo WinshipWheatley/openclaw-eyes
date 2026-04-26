@@ -45,6 +45,61 @@ def test_create_matter_command(tmp_path: Path, capsys: pytest.CaptureFixture[str
     assert (root / "manifest.json").is_file()
 
 
+def test_create_matter_command_accepts_approved_vault_root(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+
+    code, payload = _run_cli(
+        [
+            "create-matter",
+            "--vault-root",
+            str(vault),
+            "--root",
+            str(root),
+            "--matter-id",
+            "matter-001",
+            "--display-name",
+            "Example Matter",
+        ],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["root_path"] == str(root)
+    assert (root / "manifest.json").is_file()
+
+
+def test_create_matter_command_rejects_root_outside_vault(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = tmp_path / "outside" / "matter"
+
+    code = main(
+        [
+            "create-matter",
+            "--vault-root",
+            str(vault),
+            "--root",
+            str(root),
+            "--matter-id",
+            "matter-001",
+            "--display-name",
+            "Example Matter",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert "approved legal vault root" in captured.err
+    assert not root.exists()
+
+
 def test_add_source_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = tmp_path / "matter"
     source = tmp_path / "source.txt"

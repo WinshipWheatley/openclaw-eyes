@@ -7,7 +7,7 @@ import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from legal.path_guard import (
     canonicalize_matter_root,
@@ -27,18 +27,32 @@ def export_review_packet(
     *,
     packet_name: str | None = None,
     include_reports: bool = True,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
 ) -> dict[str, Any]:
     """Export a buyer-legible review packet folder under matter exports."""
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     manifest = _read_json(root / MANIFEST_FILENAME)
-    validate_manifest_source_paths(root, manifest)
-    exports_dir = resolve_matter_child(root, root / EXPORTS_DIRECTORY, label="exports directory")
+    validate_manifest_source_paths(
+        root,
+        manifest,
+        allowed_vault_roots=allowed_vault_roots,
+    )
+    exports_dir = resolve_matter_child(
+        root,
+        root / EXPORTS_DIRECTORY,
+        label="exports directory",
+        allowed_vault_roots=allowed_vault_roots,
+    )
     exports_dir.mkdir(exist_ok=True)
     packet_path = resolve_matter_child(
         root,
         exports_dir / _packet_dir_name(manifest["matter_id"], packet_name),
         label="review packet path",
+        allowed_vault_roots=allowed_vault_roots,
     )
 
     if packet_path.exists():

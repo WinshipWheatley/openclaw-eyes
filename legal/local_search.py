@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from legal.path_guard import (
     canonicalize_matter_root,
@@ -30,6 +30,7 @@ def search_extracted_text(
     *,
     max_results: int = 20,
     snippet_chars: int = 80,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
 ) -> list[dict[str, Any]]:
     """Search extracted text artifacts with deterministic literal matching."""
 
@@ -40,11 +41,23 @@ def search_extracted_text(
     if snippet_chars < 1:
         raise ValueError("snippet_chars must be at least 1")
 
-    root = canonicalize_matter_root(matter_root)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=allowed_vault_roots,
+    )
     manifest_path = root / MANIFEST_FILENAME
     if manifest_path.exists():
-        validate_manifest_source_paths(root, _read_json(manifest_path))
-    extracted_dir = resolve_matter_child(root, root / EXTRACTED_DIRECTORY, label="extracted directory")
+        validate_manifest_source_paths(
+            root,
+            _read_json(manifest_path),
+            allowed_vault_roots=allowed_vault_roots,
+        )
+    extracted_dir = resolve_matter_child(
+        root,
+        root / EXTRACTED_DIRECTORY,
+        label="extracted directory",
+        allowed_vault_roots=allowed_vault_roots,
+    )
     results: list[dict[str, Any]] = []
 
     if extracted_dir.exists():
@@ -54,6 +67,7 @@ def search_extracted_text(
                 root,
                 extracted_path,
                 label="extracted text path",
+                allowed_vault_roots=allowed_vault_roots,
             )
             text = safe_extracted_path.read_text(encoding="utf-8")
             match_positions = _match_positions(text.casefold(), lowered_query)
@@ -61,7 +75,12 @@ def search_extracted_text(
                 continue
 
             metadata_path = safe_extracted_path.with_suffix(".json")
-            resolve_matter_child(root, metadata_path, label="extracted metadata path")
+            resolve_matter_child(
+                root,
+                metadata_path,
+                label="extracted metadata path",
+                allowed_vault_roots=allowed_vault_roots,
+            )
             metadata = _read_metadata(metadata_path)
             results.append(
                 {

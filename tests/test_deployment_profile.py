@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from legal.deployment_profile import (
@@ -13,6 +15,7 @@ from legal.deployment_profile import (
     save_deployment_profile,
     validate_deployment_profile,
 )
+from legal.path_guard import PRODUCT_REPO_ROOT
 
 
 def test_default_profile_contains_required_fields() -> None:
@@ -115,6 +118,32 @@ def test_validation_allows_unknown_extra_keys_for_forward_compatibility() -> Non
     profile["enabled_modules"]["future_module"] = True
 
     assert validate_deployment_profile(profile) == []
+
+
+def test_validation_accepts_optional_safe_vault_roots(tmp_path: Path) -> None:
+    profile = default_legal_local_profile("Example Law")
+    profile["storage"]["vault_roots"] = [str(tmp_path / "legal-vault")]
+
+    assert validate_deployment_profile(profile) == []
+
+
+def test_validation_rejects_optional_repo_vault_roots() -> None:
+    profile = default_legal_local_profile("Example Law")
+    profile["storage"]["vault_roots"] = [str(PRODUCT_REPO_ROOT / "legal-vault")]
+
+    errors = validate_deployment_profile(profile)
+
+    assert len(errors) == 1
+    assert "storage.vault_roots invalid" in errors[0]
+    assert "vault root must be outside product repo" in errors[0]
+
+
+@pytest.mark.parametrize("vault_roots", [[], [""], "not-a-list"])
+def test_validation_rejects_malformed_optional_vault_roots(vault_roots: object) -> None:
+    profile = default_legal_local_profile("Example Law")
+    profile["storage"]["vault_roots"] = vault_roots
+
+    assert validate_deployment_profile(profile)
 
 
 def test_save_load_round_trip(tmp_path: Path) -> None:

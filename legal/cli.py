@@ -48,26 +48,31 @@ def _build_parser() -> argparse.ArgumentParser:
 
     create = subcommands.add_parser("create-matter")
     create.add_argument("--root", required=True)
+    create.add_argument("--vault-root")
     create.add_argument("--matter-id", required=True)
     create.add_argument("--display-name", required=True)
     create.set_defaults(handler=_create_matter)
 
     add_source = subcommands.add_parser("add-source")
     add_source.add_argument("--root", required=True)
+    add_source.add_argument("--vault-root")
     add_source.add_argument("--source", required=True)
     add_source.set_defaults(handler=_add_source)
 
     extract = subcommands.add_parser("extract")
     extract.add_argument("--root", required=True)
+    extract.add_argument("--vault-root")
     extract.add_argument("--source-id", required=True)
     extract.set_defaults(handler=_extract)
 
     extract_all = subcommands.add_parser("extract-all")
     extract_all.add_argument("--root", required=True)
+    extract_all.add_argument("--vault-root")
     extract_all.set_defaults(handler=_extract_all)
 
     search = subcommands.add_parser("search")
     search.add_argument("--root", required=True)
+    search.add_argument("--vault-root")
     search.add_argument("--query", required=True)
     search.add_argument("--max-results", type=int, default=20)
     search.add_argument("--snippet-chars", type=int, default=80)
@@ -75,6 +80,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     report = subcommands.add_parser("report")
     report.add_argument("--root", required=True)
+    report.add_argument("--vault-root")
     report.add_argument("--query", required=True)
     report.add_argument("--report-name")
     report.add_argument("--max-results", type=int, default=20)
@@ -83,6 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     review_packet = subcommands.add_parser("review-packet")
     review_packet.add_argument("--root", required=True)
+    review_packet.add_argument("--vault-root")
     review_packet.add_argument("--packet-name")
     review_packet.add_argument(
         "--no-reports",
@@ -104,6 +111,7 @@ def _create_matter(args: argparse.Namespace) -> dict[str, Any]:
         args.root,
         matter_id=args.matter_id,
         display_name=args.display_name,
+        allowed_vault_roots=_allowed_vault_roots(args),
     )
     return {
         "matter_id": workspace.matter_id,
@@ -114,15 +122,26 @@ def _create_matter(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _add_source(args: argparse.Namespace) -> dict[str, Any]:
-    return register_source(args.root, args.source)
+    return register_source(
+        args.root,
+        args.source,
+        allowed_vault_roots=_allowed_vault_roots(args),
+    )
 
 
 def _extract(args: argparse.Namespace) -> dict[str, Any]:
-    return extract_source_text(args.root, args.source_id)
+    return extract_source_text(
+        args.root,
+        args.source_id,
+        allowed_vault_roots=_allowed_vault_roots(args),
+    )
 
 
 def _extract_all(args: argparse.Namespace) -> dict[str, Any]:
-    results = extract_all_supported_sources(args.root)
+    results = extract_all_supported_sources(
+        args.root,
+        allowed_vault_roots=_allowed_vault_roots(args),
+    )
     status_counts: dict[str, int] = {}
     for result in results:
         status = str(result.get("status", "unknown"))
@@ -141,6 +160,7 @@ def _search(args: argparse.Namespace) -> dict[str, Any]:
         args.query,
         max_results=args.max_results,
         snippet_chars=args.snippet_chars,
+        allowed_vault_roots=_allowed_vault_roots(args),
     )
     return {
         "query": args.query,
@@ -156,6 +176,7 @@ def _report(args: argparse.Namespace) -> dict[str, Any]:
         report_name=args.report_name,
         max_results=args.max_results,
         snippet_chars=args.snippet_chars,
+        allowed_vault_roots=_allowed_vault_roots(args),
     )
 
 
@@ -164,6 +185,7 @@ def _review_packet(args: argparse.Namespace) -> dict[str, Any]:
         args.root,
         packet_name=args.packet_name,
         include_reports=not args.no_reports,
+        allowed_vault_roots=_allowed_vault_roots(args),
     )
 
 
@@ -183,6 +205,13 @@ def _default_profile(args: argparse.Namespace) -> dict[str, Any]:
 
 def _print_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def _allowed_vault_roots(args: argparse.Namespace) -> list[str] | None:
+    vault_root = getattr(args, "vault_root", None)
+    if vault_root is None:
+        return None
+    return [vault_root]
 
 
 if __name__ == "__main__":
