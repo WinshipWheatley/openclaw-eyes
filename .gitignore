@@ -234,11 +234,13 @@
 !tools/
 !tools/file_verify.py
 !scripts/
+!scripts/demo_legal_mock_discovery.py
 !scripts/install_openclaw_stack.sh
 !legal/
 !legal/path_guard.py
 !legal/support_packet.py
 !tests/test_support_packet.py
+!tests/test_legal_mock_discovery_demo.py
 !systemd/
 !systemd/user/
 !systemd/user/*.in
