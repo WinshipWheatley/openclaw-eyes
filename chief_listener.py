@@ -20,6 +20,17 @@ BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 AUTHORIZED_USER_ID = int(os.environ["TELEGRAM_AUTHORIZED_USER_ID"])
 
 
+async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
+    if chat_id is None:
+        return
+    while True:
+        try:
+            await bot.send_chat_action(chat_id=chat_id, action="typing")
+        except Exception as exc:
+            print(f"[chief_listener] typing indicator error: {exc}", flush=True)
+        await asyncio.sleep(4.0)
+
+
 async def _send_reply(update: Update, text: str) -> None:
     """Send a tts_clean-normalized plain-text reply."""
     await update.message.reply_text(tts_clean(text))
@@ -98,12 +109,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    chat_id = update.effective_chat.id if update.effective_chat else AUTHORIZED_USER_ID
+    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
-        routed = await asyncio.to_thread(route_message, text)
-    except Exception as e:
-        print(f"[chief_listener] route_message error: {e}", flush=True)
-        await update.message.reply_text("Chief hit a snag routing that. Try again.")
-        return
+        try:
+            routed = await asyncio.to_thread(route_message, text)
+        except Exception as e:
+            print(f"[chief_listener] route_message error: {e}", flush=True)
+            await update.message.reply_text("Chief hit a snag routing that. Try again.")
+            return
+    finally:
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
 
     intent = routed.get("intent")
     reply = routed.get("reply")

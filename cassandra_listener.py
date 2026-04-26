@@ -64,6 +64,17 @@ _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 _RECENT_SENDERS = {}  # sender_name.lower() -> chat_id (int)
 
 
+async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
+    if chat_id is None:
+        return
+    while True:
+        try:
+            await bot.send_chat_action(chat_id=chat_id, action="typing")
+        except Exception as exc:
+            print(f"[cassandra_listener] typing indicator error: {exc}", flush=True)
+        await asyncio.sleep(4.0)
+
+
 def _log_cassandra_route(text: str, intent: str) -> None:
     """Log Cassandra routing decisions to shared route_log.csv."""
     try:
@@ -343,22 +354,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return
 
+    typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, sender_chat_id))
     try:
-        replies = await _run_request_with_timeout_contract(
-            text=text,
-            session_meta={
-                "sender_name": sender_name,
-                "sender_chat_id": sender_chat_id,
-            },
-            send_reply=_send_if_current,
-            is_authorized_user=is_authorized_user,
-            should_deliver=lambda: _is_current_chat_request(sender_chat_id, request_token),
-        )
-        _log_cassandra_route(text, "cassandra")
-    except Exception as e:
-        print(f"[cassandra_listener] error: {e}", flush=True)
-        await update.message.reply_text("Something went quiet on my end. Try again.")
-        return
+        try:
+            replies = await _run_request_with_timeout_contract(
+                text=text,
+                session_meta={
+                    "sender_name": sender_name,
+                    "sender_chat_id": sender_chat_id,
+                },
+                send_reply=_send_if_current,
+                is_authorized_user=is_authorized_user,
+                should_deliver=lambda: _is_current_chat_request(sender_chat_id, request_token),
+            )
+            _log_cassandra_route(text, "cassandra")
+        except Exception as e:
+            print(f"[cassandra_listener] error: {e}", flush=True)
+            await update.message.reply_text("Something went quiet on my end. Try again.")
+            return
+    finally:
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
+
     # Speak after all text replies — in a separate try so voice failures
     # don't send the fallback message to Telegram
     try:
