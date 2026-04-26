@@ -115,6 +115,7 @@ Verified Legal v0 pieces include:
 - `legal/deployment_profile.py`
   - local-first deployment profile helper
   - default profile
+  - legal-facing `role_labels` in new default profiles
   - validation
   - save/load stable JSON
 
@@ -133,6 +134,10 @@ Verified Legal v0 pieces include:
 
 - `scripts/demo_legal_matter_workflow.py`
   - deterministic demo workflow
+
+- `scripts/demo_legal_mock_discovery.py`
+  - synthetic mock discovery CLI run-through
+  - strict `--vault-root` demo outside `/home/openclaw`
 
 - Legal docs/checkpoints
   - `legal/README.md`
@@ -299,6 +304,86 @@ Remaining risks:
 - it does not make escalation/support policy decisions
 - unrelated Cassandra/Chief/Hermes dirty files remain outside Legal
 
+## Completed role-label cleanup
+
+Commit:
+
+```text
+efc9c70 fix(legal): use legal-facing role labels
+```
+
+Implemented behavior:
+
+- default deployment profiles now emit `role_labels`, not `agent_labels`
+- default role IDs/labels are legal-facing:
+  - `intake_clerk`: Intake Clerk
+  - `evidence_clerk`: Evidence Clerk
+  - `records_custodian`: Records Custodian
+  - `review_coordinator`: Review Coordinator
+  - `compliance_gate`: Compliance Gate
+  - `systems_clerk`: Systems Clerk
+- `validate_deployment_profile()` still accepts legacy saved profiles with `agent_labels`
+- Legal README no longer directly lists internal OpenClaw agent names
+
+Proof:
+
+- `py_compile` passed for `legal/deployment_profile.py`
+- focused deployment profile / CLI tests: `31 passed`
+- full focused Legal suite after the slice: `107 passed in 1.05s`
+
+Remaining risks:
+
+- legacy saved profiles with `agent_labels` still validate by design
+- no on-disk profile migration exists yet
+- planning docs may still mention forbidden names as “do not expose” examples
+
+## Completed synthetic mock discovery demo harness
+
+Commit:
+
+```text
+7e238de test(legal): add mock discovery demo harness
+```
+
+New files:
+
+- `scripts/demo_legal_mock_discovery.py`
+- `tests/test_legal_mock_discovery_demo.py`
+
+Usable command:
+
+```bash
+python3 scripts/demo_legal_mock_discovery.py /tmp/openclaw_legal_mock_discovery_run
+```
+
+Implemented behavior:
+
+- creates a synthetic mock discovery batch under a temp/demo-safe vault root outside `/home/openclaw`
+- uses strict `--vault-root` mode
+- registers TXT, MD, text-layer PDF where supported, scanned-style/placeholder PDF behavior, and unsupported fake extension
+- runs `extract-all`, search, report, review packet, and sanitized support packet
+- verifies product repo data written: `false`
+
+Demo output summary from implementation pass:
+
+- source count: `5`
+- extracted: `3`
+- unsupported: `1`
+- no_text: `0`
+- failed: `1`
+- search results: `3`
+- report generated
+- review packet generated
+- support packet generated
+- product repo data written: `false`
+
+Note: the scanned-style placeholder PDF reported `failed` in this environment rather than `no_text`; that is acceptable for current extractor behavior and is captured in the summary.
+
+Proof:
+
+- `pytest -q tests/test_legal_mock_discovery_demo.py`: `1 passed`
+- full focused Legal suite including demo test: `108 passed in 1.22s`
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -422,15 +507,20 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next likely implementation slice should be role-key/legal-facing naming cleanup.
+The next practical step is to run the synthetic mock discovery command manually and inspect the generated report, review packet, and support packet.
 
-Reason: Legal product UX/docs/tests should not expose internal OpenClaw names such as Cassandra, Chief, Guardian, Hermes, or PI.
+Command:
+
+```bash
+python3 scripts/demo_legal_mock_discovery.py /tmp/openclaw_legal_mock_discovery_run
+```
+
+After that, the likely next implementation slice is unsupported-file Alternative Methods next-action model.
 
 Likely candidates:
 
-1. role-key/legal-facing naming cleanup
-2. unsupported-file Alternative Methods next-action model
-3. update lane metadata skeleton
+1. unsupported-file Alternative Methods next-action model
+2. update lane metadata skeleton
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
