@@ -320,6 +320,38 @@ def test_review_packet_no_reports_excludes_reports(
     assert not (packet_path / "reports").exists()
 
 
+def test_support_packet_command_creates_sanitized_packet(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "client-secret-facts.txt"
+    source.write_text("privileged settlement content", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Private Client Matter")
+    registered = register_source(root, source)
+    extract_source_text(root, registered["source_id"])
+
+    code, payload = _run_cli(
+        [
+            "support-packet",
+            "--root",
+            str(root),
+            "--packet-name",
+            "diagnostics",
+        ],
+        capsys,
+    )
+
+    packet_path = Path(payload["packet_path"])
+    packet_text = packet_path.read_text(encoding="utf-8")
+    assert code == 0
+    assert payload["artifact_type"] == "sanitized_support_packet"
+    assert packet_path == root / "support" / "support-packet-diagnostics" / "support_packet.json"
+    assert str(root) not in packet_text
+    assert "client-secret-facts" not in packet_text
+    assert "privileged settlement content" not in packet_text
+
+
 def test_user_error_returns_one_and_stderr(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

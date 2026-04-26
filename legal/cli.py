@@ -21,6 +21,7 @@ from legal.local_search import search_extracted_text
 from legal.matter_workspace import create_matter_workspace, register_source
 from legal.review_packet import export_review_packet
 from legal.search_report import export_search_report
+from legal.support_packet import export_support_packet
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -97,6 +98,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Exclude Markdown reports from the review packet.",
     )
     review_packet.set_defaults(handler=_review_packet)
+
+    support_packet = subcommands.add_parser("support-packet")
+    support_packet.add_argument("--root", required=True)
+    support_packet.add_argument("--vault-root")
+    support_packet.add_argument("--packet-name")
+    support_packet.set_defaults(handler=_support_packet)
 
     default_profile = subcommands.add_parser("default-profile")
     default_profile.add_argument("--firm-name", required=True)
@@ -185,6 +192,14 @@ def _review_packet(args: argparse.Namespace) -> dict[str, Any]:
         args.root,
         packet_name=args.packet_name,
         include_reports=not args.no_reports,
+        allowed_vault_roots=_allowed_vault_roots(args),
+    )
+
+
+def _support_packet(args: argparse.Namespace) -> dict[str, Any]:
+    return export_support_packet(
+        args.root,
+        packet_name=args.packet_name,
         allowed_vault_roots=_allowed_vault_roots(args),
     )
 
