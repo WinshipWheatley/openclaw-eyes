@@ -145,6 +145,12 @@ Verified Legal v0 pieces include:
 
 The first Legal safety slice is implemented in `/home/openclaw`.
 
+Commit:
+
+```text
+f086b3c feat(legal): enforce matter vault path boundaries
+```
+
 New file:
 
 - `legal/path_guard.py`
@@ -173,7 +179,65 @@ Proof:
 
 Remaining risks:
 
-- the repo-boundary guard is not yet a full configured Legal Vault allowlist
+- review packets remain content-bearing and are not sanitized support packets
+- firm/update/profile policy boundaries remain future slices
+
+## Completed second safety slice
+
+The second Legal safety slice is implemented in `/home/openclaw`.
+
+Commit:
+
+```text
+9474b7c feat(legal): add optional vault root allowlist
+```
+
+The slice added optional strict Legal Vault allowlist behavior.
+
+Strict mode is opt-in through:
+
+- `allowed_vault_roots` in Legal APIs
+- `--vault-root` in CLI matter-root workflows
+- optional `storage.vault_roots` validation in deployment profiles
+
+Calls without a vault root preserve the existing repo-boundary guard behavior from the first safety slice.
+
+Updated implementation files:
+
+- `legal/path_guard.py`
+- `legal/matter_workspace.py`
+- `legal/local_ingestion.py`
+- `legal/local_search.py`
+- `legal/search_report.py`
+- `legal/review_packet.py`
+- `legal/cli.py`
+- `legal/deployment_profile.py`
+
+Updated tests:
+
+- `tests/test_matter_workspace.py`
+- `tests/test_legal_cli.py`
+- `tests/test_deployment_profile.py`
+
+Implemented behavior:
+
+- configured vault roots are canonicalized/resolved
+- vault roots under `/home/openclaw` are rejected
+- matter roots outside configured vault roots are rejected when strict mode is provided
+- symlinked/traversal vault roots into the product repo are rejected
+- temp/synthetic workflows remain allowed when strict vault mode is not provided
+
+Proof:
+
+- `py_compile` passed for changed legal modules
+- focused vault/profile/CLI tests: `43 passed`
+- vault/approved focused test subset: `11 passed, 32 deselected`
+- full focused Legal suite after the slice: `98 passed in 0.89s`
+
+Remaining risks:
+
+- strict vault roots are still opt-in, not mandatory for all real deployments
+- profile support validates `storage.vault_roots` when present but does not yet make profiles the source of truth for CLI workflows
 - review packets remain content-bearing and are not sanitized support packets
 - firm/update/profile policy boundaries remain future slices
 
@@ -300,15 +364,16 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next ChatGPT/Codex session should choose the next small safety/product-boundary slice after the completed path guard work.
+The next likely implementation slice should be sanitized support packet v0.
+
+Reason: review packets are intentionally content-bearing, and the system needs a separate support/debug artifact path that excludes legal matter content before unsupported-file escalation or support workflows expand.
 
 Likely candidates:
 
-1. configured Legal Vault allowlist / vault profile boundary
-2. sanitized support packet v0
-3. role-key/legal-facing naming cleanup
-4. unsupported-file Alternative Methods next-action model
-5. update lane metadata skeleton
+1. sanitized support packet v0
+2. role-key/legal-facing naming cleanup
+3. unsupported-file Alternative Methods next-action model
+4. update lane metadata skeleton
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
