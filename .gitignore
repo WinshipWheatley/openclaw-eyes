@@ -234,6 +234,7 @@
 !tools/
 !tools/file_verify.py
 !scripts/
+!scripts/check_cassandra_capability_drift.py
 !scripts/demo_legal_mock_discovery.py
 !scripts/install_openclaw_stack.sh
 !legal/
