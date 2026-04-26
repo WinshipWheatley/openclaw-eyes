@@ -33,6 +33,7 @@ import re
 
 CALENDAR_CONNECTED         = True   # google.calendar.read via google_access_broker.py
 PAYMENT_EXTERNAL_CONNECTED = False  # no live bank or payment processor connection
+PAYMENT_METADATA_CONNECTED = True   # Gmail payment metadata + income-log check
 FILE_VERIFY_CONNECTED      = True   # tools/file_verify.py wired via cassandra_brain._handle_file_verification_request
 EMAIL_DRAFT_CONNECTED      = True   # google.gmail.draft.create via google_access_broker.py (L1 approval)
 EMAIL_SEND_CONNECTED       = False  # direct outbound send intentionally disabled for Cassandra
@@ -313,7 +314,9 @@ def capability_context() -> str:
         cap_line("calendar_access",   CALENDAR_CONNECTED,
                  "Never say 'your calendar shows' or imply a schedule was checked. Use log data only."),
         cap_line("payment_external",  PAYMENT_EXTERNAL_CONNECTED,
-                 "Never state deposit or payment status as an external fact. Log entries only."),
+                 "Never state deposit or payment clearance as an external bank fact."),
+        cap_line("payment_metadata",  PAYMENT_METADATA_CONNECTED,
+                 "You can check recent Gmail notifications for payment receipts, but you cannot check bank clearance."),
         cap_line("file_verification", FILE_VERIFY_CONNECTED,
                  "Never confirm or deny that a file or path exists."),
         cap_line("email_draft",       EMAIL_DRAFT_CONNECTED,
@@ -383,7 +386,7 @@ def _sentence_correct(reply: str, patterns: list[str], inline: str) -> str | Non
 # This prevents a file-check reply from also tripping the future_action gate.
 _FULL_GATES = [
     ("calendar", lambda: CALENDAR_CONNECTED,         _CAL_PATTERNS,  _CAL_RESPONSES),
-    ("payment",  lambda: PAYMENT_EXTERNAL_CONNECTED, _PAY_PATTERNS,  _PAY_RESPONSES),
+    ("payment",  lambda: PAYMENT_METADATA_CONNECTED, _PAY_PATTERNS,  _PAY_RESPONSES),
     ("file",     lambda: FILE_VERIFY_CONNECTED,      _FILE_PATTERNS, _FILE_RESPONSES),
     ("email",    lambda: EMAIL_SEND_CONNECTED,        _EMAIL_PATTERNS, _EMAIL_RESPONSES),
 ]

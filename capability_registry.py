@@ -189,9 +189,12 @@ REGISTRY: dict = {
             ),
             Capability(
                 "payment_verify", "payment",
-                "Verify external deposit or payment clearance status",
-                connected=False, scope=[],
-                caveats="No bank or payment processor connection",
+                "Verify payment receipts via Gmail metadata and income logs",
+                connected=True, scope=["read"],
+                caveats=(
+                    "Grounded against recent Gmail payment notifications and income logs only; "
+                    "not a direct bank, Stripe, or payment processor connection"
+                ),
             ),
         ],
         notes=(

@@ -136,7 +136,7 @@ _HEDGING_PATTERNS = (
 
 _CAPABILITY_GAP_SPECS = {
     "payment_verify": {
-        "flag": "PAYMENT_EXTERNAL_CONNECTED",
+        "flag": "PAYMENT_METADATA_CONNECTED",
         "keywords": (
             "payment", "deposit", "invoice", "cleared", "posted",
             "arrived", "came in", "paid", "payment status",
@@ -1406,6 +1406,12 @@ FILE/PATH EXISTENCE — applies only to direct file or path questions:
   This rule is for file/path questions only — do NOT apply it to calendar or scheduling questions.
   Correct form: "I can't verify file or path existence from here. That's a direct check on your end."
 
+PAYMENT VERIFICATION:
+  You have access to recent Gmail notifications and local income logs only.
+  You do NOT have live bank or payment processor access.
+  Never say a payment has "cleared the bank" or "arrived in the account."
+  Always clarify that you are checking email receipts or logs.
+
 FUTURE-ACTION AND REMINDER REQUESTS:
   If asked to "check again," "follow up," "send a reminder," or any future autonomous action:
   Do NOT say "I'm not able to do that" or "I can't do that" alone — that is too generic.
@@ -2012,8 +2018,8 @@ def _handle_file_verification_request(text: str) -> str | None:
 
 def _detect_payment_verify_intent(text: str) -> bool:
     """Return True if the message is asking to verify an external payment status."""
-    from cassandra_capability import PAYMENT_EXTERNAL_CONNECTED
-    if not PAYMENT_EXTERNAL_CONNECTED:
+    from cassandra_capability import PAYMENT_METADATA_CONNECTED
+    if not PAYMENT_METADATA_CONNECTED:
         return False
     return _looks_like_payment_verify_query(text)
 
