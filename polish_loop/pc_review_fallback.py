@@ -234,7 +234,7 @@ def _llm_code_review(pc_output_content: str, changed_files: list[str],
     Gracefully degrades if Ollama unavailable.
     """
     if not _LLM_AVAILABLE:
-        return True, "LLM review skipped — chief_llm not available"
+        return False, "REVIEW_UNAVAILABLE: chief_llm not available"
 
     diff_text = _get_file_diffs(changed_files)
     if not diff_text:
@@ -270,10 +270,10 @@ Your verdict (PASS or FAIL with one-line reason):"""
     try:
         response = ollama_call(prompt, timeout=60, model=OLLAMA_MODEL_DEEP)
     except Exception as e:
-        return True, f"LLM review skipped — Ollama error: {e}"
+        return False, f"REVIEW_UNAVAILABLE: Ollama error: {e}"
 
     if not response:
-        return True, "LLM review skipped — Ollama returned empty response"
+        return False, "REVIEW_UNAVAILABLE: Ollama returned empty response"
 
     # Parse verdict
     response_upper = response.strip().upper()
@@ -284,8 +284,7 @@ Your verdict (PASS or FAIL with one-line reason):"""
         reason = response.strip().split("\n")[0][:200]
         return True, f"LLM review: {reason}"
     else:
-        # Ambiguous — treat as pass but note it
-        return True, f"LLM review (ambiguous): {response.strip()[:150]}"
+        return False, f"INSUFFICIENT_EVIDENCE: LLM review ambiguous: {response.strip()[:150]}"
 
 
 # ---------------------------------------------------------------------------
@@ -474,7 +473,7 @@ def structural_review() -> tuple[str, list[str], list[str]]:
     if llm_ok:
         passes.append(llm_detail)
     else:
-        passes.append(f"(advisory) {llm_detail}")
+        fails.append(llm_detail)
 
     # ---- Test execution verification ----
     test_ok, test_detail = _verify_test_claims(content)
