@@ -37,7 +37,7 @@ pytest -q tests/test_legal_cli.py tests/test_review_packet.py tests/test_pdf_ing
 - No LLM calls in the legal v0 spine.
 - No cloud, API, or network calls in the legal v0 spine.
 - No autonomous sending.
-- No Cassandra, Chief, Guardian, Gmail, Calendar, Drive, dashboard, launcher, or runtime wiring yet.
+- No personal OpenClaw runtime, external service, dashboard, launcher, or production wiring yet.
 - No legal advice.
 - Source-grounded local artifacts only.
 

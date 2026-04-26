@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 import socket
 import sys
 from pathlib import Path
@@ -18,6 +20,27 @@ from legal.deployment_profile import (
 from legal.path_guard import PRODUCT_REPO_ROOT
 
 
+FORBIDDEN_INTERNAL_NAMES = (
+    "Cassandra",
+    "Chief",
+    "Guardian",
+    "Hermes",
+    "PI",
+    "cassandra",
+    "chief",
+    "guardian",
+    "hermes",
+)
+
+
+def _assert_forbidden_names_absent(text: str) -> None:
+    for forbidden in FORBIDDEN_INTERNAL_NAMES:
+        if forbidden == "PI":
+            assert re.search(r"\bPI\b", text) is None
+        else:
+            assert forbidden not in text
+
+
 def test_default_profile_contains_required_fields() -> None:
     profile = default_legal_local_profile("Example Law")
 
@@ -32,16 +55,25 @@ def test_default_profile_contains_required_fields() -> None:
         "search_report",
         "demo_workflow",
     }
-    assert set(profile["agent_labels"]) == {
-        "cassandra",
-        "chief",
-        "guardian",
-        "hermes",
+    assert "agent_labels" not in profile
+    assert profile["role_labels"] == {
+        "intake_clerk": "Intake Clerk",
+        "evidence_clerk": "Evidence Clerk",
+        "records_custodian": "Records Custodian",
+        "review_coordinator": "Review Coordinator",
+        "compliance_gate": "Compliance Gate",
+        "systems_clerk": "Systems Clerk",
     }
     assert profile["storage"] == {
         "matters_root": "matters",
         "exports_root": None,
     }
+
+
+def test_default_profile_does_not_expose_internal_openclaw_role_names() -> None:
+    profile_text = json.dumps(default_legal_local_profile("Example Law"), sort_keys=True)
+
+    _assert_forbidden_names_absent(profile_text)
 
 
 def test_default_profile_is_local_first_and_cloud_disabled() -> None:
@@ -75,6 +107,19 @@ def test_custom_firm_name_and_profile_name() -> None:
 
 def test_validation_passes_for_default_profile() -> None:
     profile = default_legal_local_profile("Example Law")
+
+    assert validate_deployment_profile(profile) == []
+
+
+def test_validation_accepts_legacy_agent_labels_for_compatibility() -> None:
+    profile = default_legal_local_profile("Example Law")
+    profile.pop("role_labels")
+    profile["agent_labels"] = {
+        "cassandra": "Legal Intake Assistant",
+        "chief": "Legal Operations Coordinator",
+        "guardian": "Review and Safety Gate",
+        "hermes": "Client Communications Relay",
+    }
 
     assert validate_deployment_profile(profile) == []
 
@@ -155,7 +200,16 @@ def test_save_load_round_trip(tmp_path: Path) -> None:
     assert load_deployment_profile(path) == profile
     text = path.read_text(encoding="utf-8")
     assert text.endswith("\n")
-    assert '\n  "agent_labels": {' in text
+    assert '\n  "role_labels": {' in text
+    assert "agent_labels" not in text
+
+
+def test_readme_does_not_expose_internal_openclaw_role_names() -> None:
+    readme = (Path(__file__).resolve().parents[1] / "legal" / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    _assert_forbidden_names_absent(readme)
 
 
 def test_no_network_calls_for_profile_helpers(tmp_path: Path) -> None:

@@ -17,7 +17,15 @@ REQUIRED_MODULES = (
     "search_report",
     "demo_workflow",
 )
-REQUIRED_AGENT_LABELS = ("cassandra", "chief", "guardian", "hermes")
+REQUIRED_ROLE_LABELS = (
+    "intake_clerk",
+    "evidence_clerk",
+    "records_custodian",
+    "review_coordinator",
+    "compliance_gate",
+    "systems_clerk",
+)
+LEGACY_AGENT_LABELS = ("cassandra", "chief", "guardian", "hermes")
 REQUIRED_SAFETY_DEFAULTS = (
     "no_autonomous_send",
     "require_attorney_review",
@@ -32,7 +40,6 @@ REQUIRED_TOP_LEVEL = (
     "created_at",
     "mode",
     "enabled_modules",
-    "agent_labels",
     "safety_defaults",
     "storage",
     "connectors",
@@ -58,11 +65,13 @@ def default_legal_local_profile(
             "search_report": True,
             "demo_workflow": False,
         },
-        "agent_labels": {
-            "cassandra": "Legal Intake Assistant",
-            "chief": "Legal Operations Coordinator",
-            "guardian": "Review and Safety Gate",
-            "hermes": "Client Communications Relay",
+        "role_labels": {
+            "intake_clerk": "Intake Clerk",
+            "evidence_clerk": "Evidence Clerk",
+            "records_custodian": "Records Custodian",
+            "review_coordinator": "Review Coordinator",
+            "compliance_gate": "Compliance Gate",
+            "systems_clerk": "Systems Clerk",
         },
         "safety_defaults": {
             "no_autonomous_send": True,
@@ -107,12 +116,7 @@ def validate_deployment_profile(profile: dict[str, Any]) -> list[str]:
         REQUIRED_MODULES,
         errors,
     )
-    _validate_string_section(
-        profile,
-        "agent_labels",
-        REQUIRED_AGENT_LABELS,
-        errors,
-    )
+    _validate_role_labels(profile, errors)
     _validate_bool_section(
         profile,
         "safety_defaults",
@@ -176,6 +180,17 @@ def _validate_string_section(
             errors.append(f"{section_name}.{key} is required")
         elif not isinstance(section[key], str) or not section[key].strip():
             errors.append(f"{section_name}.{key} must be a non-empty string")
+
+
+def _validate_role_labels(profile: dict[str, Any], errors: list[str]) -> None:
+    if "role_labels" in profile:
+        _validate_string_section(profile, "role_labels", REQUIRED_ROLE_LABELS, errors)
+        return
+    if "agent_labels" in profile:
+        _validate_string_section(profile, "agent_labels", LEGACY_AGENT_LABELS, errors)
+        return
+    errors.append("missing required field: role_labels")
+    errors.append("role_labels must be a dict")
 
 
 def _validate_storage(profile: dict[str, Any], errors: list[str]) -> None:
