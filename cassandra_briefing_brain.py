@@ -61,6 +61,9 @@ _MORNING_TEXT_CHUNK_LIMIT = 1200
 _MORNING_SPOKEN_SUMMARY_LIMIT = 420
 _MORNING_REFERENCE_LINE_LIMIT = 80
 _MORNING_TEST_MODE_ENV = "CASSANDRA_MORNING_BRIEF_TEST_MODE"
+_NON_MORNING_BRIEF_TOTAL_TIMEOUT_SECONDS = 300
+_NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS = 180
+_NON_MORNING_BRIEF_FALLBACK_MODEL = "qwen3:8b-q4_K_M"
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -1155,6 +1158,11 @@ def _fallback_briefing_text(slot: str) -> str:
     return _bounded_ops_slot_fallback(slot)
 
 
+def _remaining_non_morning_brief_timeout(started: float) -> int:
+    elapsed = time.monotonic() - started
+    return max(1, int(_NON_MORNING_BRIEF_TOTAL_TIMEOUT_SECONDS - elapsed))
+
+
 def generate_briefing(slot: str) -> str:
     """
     Call the fast local LLM to generate a briefing for the given slot.
@@ -1179,7 +1187,6 @@ def generate_briefing(slot: str) -> str:
             mtime = morning_reference.get("modified_at")
             if mtime:
                 from cassandra_briefing_morning_policy import is_within_morning_window, ORCHESTRATION_START_TIME
-                from datetime import time
                 if is_within_morning_window():
                     today_start = datetime.combine(datetime.now().date(), ORCHESTRATION_START_TIME)
                     if mtime < today_start:
@@ -1230,8 +1237,25 @@ def generate_briefing(slot: str) -> str:
             return text
         result = ""
     else:
+        started = time.monotonic()
         model, _lane = resolve_local_model(prompt, task_class=task_class)
-        result = ollama_call(prompt, timeout=45, model=model, task_class=task_class)
+        primary_timeout = min(
+            _NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS,
+            _remaining_non_morning_brief_timeout(started),
+        )
+        result = ollama_call(
+            prompt,
+            timeout=primary_timeout,
+            model=model,
+            task_class=task_class,
+        )
+        if not result:
+            result = ollama_call(
+                prompt,
+                timeout=_remaining_non_morning_brief_timeout(started),
+                model=_NON_MORNING_BRIEF_FALLBACK_MODEL,
+                task_class=task_class,
+            )
 
     if result:
         text = tts_clean(result.strip())
@@ -1247,10 +1271,7 @@ def generate_briefing(slot: str) -> str:
             _write_morning_reference_cache(morning_reference, text)
         return tts_clean(text)
 
-    return (
-        f"[{ts} — {slot} log unavailable. LLM did not respond. "
-        "Check Ollama and retry.]"
-    )
+    return _fallback_briefing_text(slot)
 
 
 # ── Recall ────────────────────────────────────────────────────────────────────

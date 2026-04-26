@@ -259,6 +259,70 @@ def test_morning_reference_cache_preserves_sections(tmp_path, monkeypatch):
     assert "Brief morning delivery." in saved["spoken_summary"]
 
 
+def test_non_morning_brief_uses_qwen_fallback_before_deterministic(monkeypatch):
+    calls: list[dict] = []
+
+    monkeypatch.setattr(bb, "build_context_snapshot", lambda: "Bounded current context.")
+    monkeypatch.setattr(
+        bb,
+        "resolve_local_model",
+        lambda prompt, task_class=None: ("gemma4:e4b", "strong"),
+    )
+
+    def fake_ollama_call(prompt, timeout=0, model=None, task_class=None, attempts=None, **kwargs):
+        calls.append({
+            "model": model,
+            "timeout": timeout,
+            "task_class": task_class,
+        })
+        if model == bb._NON_MORNING_BRIEF_FALLBACK_MODEL:
+            return "Safe qwen fallback briefing."
+        return ""
+
+    monkeypatch.setattr(bb, "ollama_call", fake_ollama_call)
+
+    text = bb.generate_briefing("afternoon")
+
+    assert text == "Safe qwen fallback briefing."
+    assert calls[0] == {
+        "model": "gemma4:e4b",
+        "timeout": 180,
+        "task_class": "cassandra_user_reply",
+    }
+    assert calls[1]["model"] == "qwen3:8b-q4_K_M"
+    assert 1 <= calls[1]["timeout"] <= 300
+    assert calls[1]["task_class"] == "cassandra_user_reply"
+
+
+def test_non_morning_brief_uses_deterministic_fallback_after_llm_failures(monkeypatch):
+    calls: list[str] = []
+
+    monkeypatch.setattr(bb, "build_context_snapshot", lambda: "Bounded current context.")
+    monkeypatch.setattr(
+        bb,
+        "resolve_local_model",
+        lambda prompt, task_class=None: ("gemma4:e4b", "strong"),
+    )
+    monkeypatch.setattr(
+        bb,
+        "build_action_summary",
+        lambda: "Pending (1):\n  [PRIORITY] finish the active lane\nCompleted (0):\n  (none)",
+    )
+
+    def fake_ollama_call(prompt, timeout=0, model=None, task_class=None, **kwargs):
+        calls.append(model)
+        return ""
+
+    monkeypatch.setattr(bb, "ollama_call", fake_ollama_call)
+
+    text = bb.generate_briefing("evening")
+
+    assert calls == ["gemma4:e4b", "qwen3:8b-q4_K_M"]
+    assert "evening fallback" in text
+    assert "finish the active lane" in text
+    assert "LLM did not respond" not in text
+
+
 def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):
     import cassandra_briefing_scheduler as scheduler
 
