@@ -128,6 +128,7 @@ Verified Legal v0 pieces include:
     - `search`
     - `report`
     - `review-packet`
+    - `support-packet`
     - `default-profile`
 
 - `scripts/demo_legal_matter_workflow.py`
@@ -240,6 +241,63 @@ Remaining risks:
 - profile support validates `storage.vault_roots` when present but does not yet make profiles the source of truth for CLI workflows
 - review packets remain content-bearing and are not sanitized support packets
 - firm/update/profile policy boundaries remain future slices
+
+## Completed handoff refresh after vault allowlist
+
+Commit:
+
+```text
+132830a docs(legal): update handoff after vault allowlist
+```
+
+## Completed third safety slice
+
+The sanitized support packet v0 slice is implemented in `/home/openclaw`.
+
+Commit:
+
+```text
+202d7f0 feat(legal): add sanitized support packet
+```
+
+New file:
+
+- `legal/support_packet.py`
+
+Updated files:
+
+- `legal/cli.py`
+- `tests/test_support_packet.py`
+- `tests/test_legal_cli.py`
+- `.gitignore` narrow allowlist for `legal/support_packet.py` and `tests/test_support_packet.py`
+
+CLI command added:
+
+```text
+support-packet --root ... [--vault-root ...] [--packet-name ...]
+```
+
+Implemented behavior:
+
+- `export_support_packet()` creates a separate sanitized support artifact path
+- support packets are distinct from review packets
+- packets write under `support/support-packet-*/support_packet.json` inside the matter root
+- packets include counts, file extensions, size ranges, source status diagnostics, module info, and explicit exclusion proof
+- packets exclude source files, extracted text, review packet contents, attorney notes, matter/client names, sensitive filenames, private absolute paths, and raw audit logs
+
+Proof:
+
+- `py_compile` passed for `legal/support_packet.py` and `legal/cli.py`
+- support-packet focused tests: `6 passed, 12 deselected`
+- full focused Legal suite after the slice: `104 passed in 1.07s`
+
+Remaining risks:
+
+- support packet v0 is minimal
+- it does not yet include unsupported-file Alternative Methods
+- it does not include public analog fixture search
+- it does not make escalation/support policy decisions
+- unrelated Cassandra/Chief/Hermes dirty files remain outside Legal
 
 ## What was planned in the Mac workspace
 
@@ -364,16 +422,15 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next likely implementation slice should be sanitized support packet v0.
+The next likely implementation slice should be role-key/legal-facing naming cleanup.
 
-Reason: review packets are intentionally content-bearing, and the system needs a separate support/debug artifact path that excludes legal matter content before unsupported-file escalation or support workflows expand.
+Reason: Legal product UX/docs/tests should not expose internal OpenClaw names such as Cassandra, Chief, Guardian, Hermes, or PI.
 
 Likely candidates:
 
-1. sanitized support packet v0
-2. role-key/legal-facing naming cleanup
-3. unsupported-file Alternative Methods next-action model
-4. update lane metadata skeleton
+1. role-key/legal-facing naming cleanup
+2. unsupported-file Alternative Methods next-action model
+3. update lane metadata skeleton
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
