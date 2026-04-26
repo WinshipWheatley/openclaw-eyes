@@ -18,7 +18,7 @@ def _stub_llm_path(monkeypatch, cassandra_brain, llm_reply: str):
     monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
-    monkeypatch.setattr(cassandra_brain, "_call", lambda prompt, deep, cloud_ok=False: llm_reply, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_call", lambda prompt, *args, **kwargs: llm_reply, raising=False)
     monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, None), raising=False)
     monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply, raising=False)
     monkeypatch.setattr(cassandra_brain, "_cassandra_context_clean", lambda *args, **kwargs: False, raising=False)
