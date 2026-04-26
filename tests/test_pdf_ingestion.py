@@ -77,7 +77,6 @@ def test_pdf_extracted_artifact_and_metadata(tmp_path: Path) -> None:
     _write_text_layer_pdf(pdf, "PDF citation source")
     create_matter_workspace(root, "matter", "Matter")
     registered = register_source(root, pdf)
-    manifest_before = _read_json(root / "manifest.json")
 
     result = extract_source_text(root, registered["source_id"])
 
@@ -91,7 +90,9 @@ def test_pdf_extracted_artifact_and_metadata(tmp_path: Path) -> None:
     assert result["metadata_path"] == str(metadata_path)
     assert result["chars"] > 0
     assert _read_json(metadata_path) == result
-    assert _read_json(root / "manifest.json") == manifest_before
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "extracted"
+    assert manifest["sources"][0]["extraction_extractor"] == "pdftotext_v0"
 
 
 def test_pdf_extraction_appends_audit_entry(tmp_path: Path) -> None:

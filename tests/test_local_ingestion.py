@@ -67,7 +67,6 @@ def test_writes_extracted_artifact_and_metadata(tmp_path: Path) -> None:
     source.write_text("citation source", encoding="utf-8")
     create_matter_workspace(root, "matter", "Matter")
     registered = register_source(root, source)
-    manifest_before = _read_json(root / "manifest.json")
 
     result = extract_source_text(root, registered["source_id"])
 
@@ -77,7 +76,9 @@ def test_writes_extracted_artifact_and_metadata(tmp_path: Path) -> None:
     assert result["metadata_path"] == str(metadata_path)
     assert extracted_path.read_text(encoding="utf-8") == "citation source"
     assert _read_json(metadata_path) == result
-    assert _read_json(root / "manifest.json") == manifest_before
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "extracted"
+    assert manifest["sources"][0]["extraction_extractor"] == "local_text_v0"
 
 
 def test_metadata_links_back_to_registered_source(tmp_path: Path) -> None:

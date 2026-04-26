@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -92,6 +93,29 @@ def test_support_packet_includes_status_counts_and_diagnostics(tmp_path: Path) -
     assert packet["diagnostics"]["file_size_ranges"]["0-10KB"] == 2
     assert packet["diagnostics"]["extractors"] == ["local_text_v0"]
     assert len(packet["diagnostics"]["redacted_status_summaries"]) == 2
+
+
+def test_support_packet_reports_failed_extraction_from_manifest_status(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    pdf = tmp_path / "scan.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    create_matter_workspace(root, "matter-001", "Matter")
+    registered = register_source(root, pdf)
+
+    with patch(
+        "legal.local_ingestion._pdf_to_text",
+        return_value={"ok": False, "error": "synthetic pdf failure"},
+    ):
+        result = extract_source_text(root, registered["source_id"])
+    packet = export_support_packet(root)
+
+    assert result["status"] == "failed"
+    assert packet["diagnostics"]["source_status_counts"]["failed"] == 1
+    assert packet["diagnostics"]["source_status_counts"]["pending"] == 0
+    assert packet["diagnostics"]["extractors"] == ["pdftotext_v0"]
+    assert packet["diagnostics"]["redacted_status_summaries"][0]["status"] == "failed"
 
 
 def test_support_packet_distinguishes_itself_from_review_packets(tmp_path: Path) -> None:

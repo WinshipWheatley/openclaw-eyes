@@ -120,7 +120,7 @@ def run_mock_discovery_demo(output_root: str | Path = DEFAULT_OUTPUT_ROOT) -> di
     )
 
     _require_outside_repo(matter_root)
-    status_counts = extraction["status_counts"]
+    status_counts = _normalized_status_counts(extraction["status_counts"])
     summary = {
         "vault_root": str(vault_root),
         "matter_root": str(matter_root),
@@ -159,6 +159,18 @@ def _write_synthetic_sources(source_dir: Path) -> list[Path]:
     unsupported = source_dir / "mock_export.abcxyz"
     unsupported.write_bytes(b"synthetic unsupported payload")
     return [witness, case_note, text_pdf, scanned_placeholder, unsupported]
+
+
+def _normalized_status_counts(status_counts: dict[str, int]) -> dict[str, int]:
+    normalized = {
+        "extracted": 0,
+        "unsupported": 0,
+        "no_text": 0,
+        "failed": 0,
+        "pending": 0,
+    }
+    normalized.update(status_counts)
+    return normalized
 
 
 def _write_text_layer_pdf(path: Path, text: str) -> None:

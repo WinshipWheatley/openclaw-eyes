@@ -90,7 +90,7 @@ def export_support_packet(
             "source_status_counts": _status_counts(sources, metadata_entries),
             "file_extensions": _file_extensions(sources),
             "file_size_ranges": _file_size_ranges(sources),
-            "extractors": _extractors(metadata_entries),
+            "extractors": _extractors(sources, metadata_entries),
             "redacted_status_summaries": _redacted_status_summaries(
                 sources,
                 metadata_entries,
@@ -210,12 +210,19 @@ def _file_size_ranges(sources: list[dict[str, Any]]) -> dict[str, int]:
     return ranges
 
 
-def _extractors(metadata_entries: dict[str, dict[str, Any]]) -> list[str]:
+def _extractors(
+    sources: list[dict[str, Any]],
+    metadata_entries: dict[str, dict[str, Any]],
+) -> list[str]:
     extractors = {
         metadata["extractor"]
         for metadata in metadata_entries.values()
         if isinstance(metadata.get("extractor"), str) and metadata["extractor"].strip()
     }
+    for source in sources:
+        extractor = source.get("extraction_extractor")
+        if isinstance(extractor, str) and extractor.strip():
+            extractors.add(extractor)
     return sorted(extractors)
 
 
@@ -235,8 +242,8 @@ def _redacted_status_summaries(
                 "status": status,
                 "file_extension": _source_extension(source),
                 "file_size_range": _source_size_range(source),
-                "extractor": _safe_metadata_value(metadata, "extractor"),
-                "reason_category": _reason_category(metadata),
+                "extractor": _source_extractor(source, metadata),
+                "reason_category": _reason_category(source, metadata),
             }
         )
     return summaries
@@ -253,6 +260,9 @@ def _source_status(
     source: dict[str, Any],
     metadata: dict[str, Any] | None,
 ) -> str:
+    manifest_status = source.get("extraction_status")
+    if isinstance(manifest_status, str) and manifest_status.strip():
+        return manifest_status
     if metadata:
         status = metadata.get("status")
         if isinstance(status, str) and status.strip():
@@ -294,8 +304,23 @@ def _safe_metadata_value(
     return None
 
 
-def _reason_category(metadata: dict[str, Any] | None) -> str | None:
-    reason = _safe_metadata_value(metadata, "reason")
+def _source_extractor(
+    source: dict[str, Any],
+    metadata: dict[str, Any] | None,
+) -> str | None:
+    manifest_extractor = source.get("extraction_extractor")
+    if isinstance(manifest_extractor, str) and manifest_extractor.strip():
+        return manifest_extractor
+    return _safe_metadata_value(metadata, "extractor")
+
+
+def _reason_category(
+    source: dict[str, Any],
+    metadata: dict[str, Any] | None,
+) -> str | None:
+    reason = source.get("extraction_reason")
+    if not isinstance(reason, str) or not reason.strip():
+        reason = _safe_metadata_value(metadata, "reason")
     if reason is None:
         return None
     lowered = reason.casefold()

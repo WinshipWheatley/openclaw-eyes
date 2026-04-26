@@ -38,6 +38,7 @@ def test_mock_discovery_demo_runs_end_to_end_outside_repo(tmp_path: Path) -> Non
     assert result["product_repo_data_written"] is False
 
     manifest = _read_json(manifest_path)
+    support_packet = _read_json(support_packet_path)
     report = report_path.read_text(encoding="utf-8")
     support_packet_text = support_packet_path.read_text(encoding="utf-8")
 
@@ -46,6 +47,7 @@ def test_mock_discovery_demo_runs_end_to_end_outside_repo(tmp_path: Path) -> Non
     assert result["extracted_count"] >= 3
     assert result["unsupported_count"] == 1
     assert result["no_text_count"] + result["failed_count"] >= 1
+    assert result["source_status_counts"] == support_packet["diagnostics"]["source_status_counts"]
     assert result["search_result_count"] >= 3
     assert f"- Query: `{QUERY}`" in report
     assert "allocation" in report.casefold()

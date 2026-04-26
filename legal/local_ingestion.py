@@ -62,6 +62,7 @@ def extract_source_text(
     suffix = stored_path.suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
         result = _unsupported_result(source, stored_path)
+        _record_source_extraction_status(root, source_id, result)
         _append_audit(
             root / AUDIT_FILENAME,
             {
@@ -108,6 +109,7 @@ def extract_source_text(
         "metadata_path": str(metadata_path),
         "extracted_at": extracted_at,
     }
+    _record_source_extraction_status(root, source_id, metadata)
     extracted_path.write_text(text, encoding="utf-8")
     _write_json(metadata_path, metadata)
     _append_audit(
@@ -186,6 +188,7 @@ def _extract_pdf_source(
             result.get("error", "PDF text extraction failed"),
             attempted_at,
         )
+        _record_source_extraction_status(matter_root, source["source_id"], failure)
         _append_audit(
             matter_root / AUDIT_FILENAME,
             {
@@ -209,6 +212,7 @@ def _extract_pdf_source(
             "PDF has no extractable text layer",
             attempted_at,
         )
+        _record_source_extraction_status(matter_root, source["source_id"], no_text)
         _append_audit(
             matter_root / AUDIT_FILENAME,
             {
@@ -246,6 +250,7 @@ def _extract_pdf_source(
         "chars": result.get("chars", len(text)),
         "extracted_at": extracted_at,
     }
+    _record_source_extraction_status(matter_root, source["source_id"], metadata)
     extracted_path.write_text(text, encoding="utf-8")
     _write_json(metadata_path, metadata)
     _append_audit(
@@ -309,6 +314,28 @@ def _find_source(
 def _read_manifest(root: Path) -> dict[str, Any]:
     with (root / MANIFEST_FILENAME).open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _record_source_extraction_status(
+    matter_root: Path,
+    source_id: str,
+    result: dict[str, Any],
+) -> None:
+    manifest_path = matter_root / MANIFEST_FILENAME
+    manifest = _read_manifest(matter_root)
+    for source in manifest.get("sources", []):
+        if source.get("source_id") != source_id:
+            continue
+        source["extraction_status"] = result.get("status", "unknown")
+        source["extraction_extractor"] = result.get("extractor")
+        attempted_at = result.get("attempted_at") or result.get("extracted_at")
+        if attempted_at:
+            source["extraction_attempted_at"] = attempted_at
+        reason = result.get("reason")
+        if reason:
+            source["extraction_reason"] = reason
+        _write_json(manifest_path, manifest)
+        return
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
