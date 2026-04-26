@@ -49,6 +49,7 @@ DEFAULT_UPSTREAM_ARTIFACTS = (
     UpstreamArtifact("System Health Report", SYSTEM_DIR / "Daily Report.md"),
     UpstreamArtifact("Nightly Polish Log", SYSTEM_DIR / "Nightly Polish Log.md"),
     UpstreamArtifact("Ops Actions Context", SYSTEM_DIR / "Ops Actions Context.md"),
+    UpstreamArtifact("Chief Continuity", SYSTEM_DIR / "Chief Continuity.md"),
     UpstreamArtifact("Ops Calendar Notes", SYSTEM_DIR / "Ops Calendar Notes.md", required=False),
     UpstreamArtifact("Website QA Log", WEBSITE_DIR / "QA Log.md", required=False),
 )

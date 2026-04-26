@@ -1737,6 +1737,98 @@ def _retire_legacy_winship_outputs() -> None:
         path.rename(target)
 
 
+def gen_morning_brief() -> str:
+    """Generate 'Morning Brief.md' — combined downstream Cassandra and Chief brief."""
+    lines = [
+        "> ⚠️ **DERIVED MIRROR ONLY**: This file is auto-generated for easy copy-pasting. Do not edit. It is not the source of truth.",
+        "",
+        "# Morning Brief",
+        f"*Updated: {now_str()}*",
+        "",
+    ]
+
+    # 1. Cassandra's Brief
+    briefing_dir = Path("/mnt/c/OpenClaw/logs/cassandra_briefings")
+    cass_briefs = []
+    if briefing_dir.exists():
+        cass_briefs = sorted(briefing_dir.glob("????-??-??_morning.json"))
+
+    if cass_briefs:
+        latest_cass = cass_briefs[-1]
+        try:
+            data = load_json(latest_cass)
+            raw_text = data.get("text", "[]")
+            try:
+                parsed = json.loads(raw_text)
+                if isinstance(parsed, list):
+                    for chunk in parsed:
+                        if "header" in chunk:
+                            lines.append(f"### {chunk['header']}")
+                        if "body" in chunk:
+                            lines.append(chunk['body'])
+                            lines.append("")
+                else:
+                    lines.append(raw_text)
+            except Exception:
+                lines.append(raw_text)
+        except Exception:
+            lines.append("(Failed to parse Cassandra brief)")
+    else:
+        lines.append("- (No Cassandra morning brief found)")
+
+    lines.append("---")
+    lines.append("")
+
+    # 2. Chief's Brief
+    chief_synthesis = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Chief Morning Synthesis.md")
+    if chief_synthesis.exists():
+        try:
+            content = chief_synthesis.read_text(encoding="utf-8")
+            chief_lines = content.splitlines()
+            if len(chief_lines) > 150:
+                chief_lines = chief_lines[:150] + ["", "*(Truncated for conciseness)*"]
+            lines.extend(chief_lines)
+        except Exception:
+            lines.append("(Failed to read Chief Morning Synthesis)")
+    else:
+        lines.append("- (No Chief Morning Synthesis found)")
+
+    return "\n".join(lines) + "\n"
+
+
+def gen_chief_working_state() -> str:
+    """Generate 'Chief Working State.md' — deep continuity and working state."""
+    lines = [
+        "> ⚠️ **DERIVED MIRROR ONLY**: This file is auto-generated for visibility. Do not edit. It is not the source of truth.",
+        "",
+        "# Chief Working State",
+        f"*Updated: {now_str()}*",
+        "",
+    ]
+
+    continuity = Path("/mnt/c/OpenClawShared/openclaw-vault/System/Chief Continuity.md")
+    if continuity.exists():
+        try:
+            lines.extend(continuity.read_text(encoding="utf-8", errors="replace").splitlines())
+        except Exception:
+            lines.append("(Failed to read Chief Continuity)")
+    else:
+        lines.append("- (No Chief Continuity found)")
+
+    lines.extend(["", "---", "", "## Recent Decision Log"])
+    decision_log = Path("/mnt/c/OpenClaw/memory/decision_log.md")
+    if decision_log.exists():
+        try:
+            recent_decisions = decision_log.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]
+            lines.extend(recent_decisions)
+        except Exception:
+            lines.append("(Failed to read decision log)")
+    else:
+        lines.append("- (No decision log found)")
+
+    return "\n".join(lines) + "\n"
+
+
 def _refresh_builder_status():
     """Run the builder status updater if available."""
     script = Path("/home/openclaw/monitoring/update_builder_status.sh")
@@ -1756,6 +1848,8 @@ def _winship_outputs() -> list[tuple[Path, str]]:
         (WINSHIP_DIR / "AI Right now.md", gen_for_ai_1()),
         (WINSHIP_DIR / "What happened.md", gen_what_happened()),
         (WINSHIP_DIR / "AI What happened.md", gen_for_ai_2()),
+        (WINSHIP_DIR / "Morning Brief.md", gen_morning_brief()),
+        (WINSHIP_DIR / "Chief Working State.md", gen_chief_working_state()),
     ]
 
 
