@@ -9,6 +9,7 @@ Wants=cassandra-listener.service
 Wants=cassandra-watcher.service
 Wants=cassandra-briefing-scheduler.service
 Wants=chief-guardian-listener.service
+Wants=hermes-gateway.service
 
 [Install]
 WantedBy=default.target
