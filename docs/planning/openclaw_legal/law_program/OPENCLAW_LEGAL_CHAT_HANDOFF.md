@@ -423,6 +423,63 @@ Remaining gaps:
 - placeholder scanned-style PDF still reports `failed` in this environment, not `no_text`
 - unsupported-file Alternative Methods is still not implemented
 
+## Completed Alternative Methods next-action model
+
+Commit:
+
+```text
+328eaf1 feat(legal): add alternative methods actions
+```
+
+New files:
+
+- `legal/alternative_methods.py`
+- `tests/test_alternative_methods.py`
+
+Updated files:
+
+- `legal/cli.py`
+- `scripts/demo_legal_mock_discovery.py`
+- `tests/test_legal_cli.py`
+- `tests/test_legal_mock_discovery_demo.py`
+
+CLI command added:
+
+```bash
+python3 -m legal.cli alternative-methods --root ... [--vault-root ...]
+```
+
+Implemented behavior:
+
+- `alternative_methods_for_matter()` returns deterministic JSON-ready records for unsupported, failed, or no_text sources
+- output excludes source text, extracted text, filenames, private paths, and raw audit logs
+- `request_feature` remains locked by default
+- no OCR, UI, local repair/build, request-feature export, or public analog search was implemented
+- mock discovery demo now reports `alternative_methods_count`
+
+Demo rerun summary:
+
+- alternative_methods_count: `2`
+- extracted: `3`
+- failed: `1`
+- no_text: `0`
+- pending: `0`
+- unsupported: `1`
+- product_repo_data_written: `false`
+
+Proof:
+
+- `py_compile` passed for `legal/alternative_methods.py`, `legal/cli.py`, and `scripts/demo_legal_mock_discovery.py`
+- focused Alternative Methods/CLI/demo tests: `20 passed`
+- full focused Legal suite: `115 passed in 1.27s`
+
+Remaining gaps:
+
+- `try_local_capability` is only an action label
+- `request_feature` stays locked unless a future policy enables escalation
+- OCR is not implemented
+- public analog fixture search is not implemented
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -546,12 +603,12 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next implementation slice should be unsupported-file Alternative Methods next-action model.
+The next likely slice should be either:
 
-Likely candidates:
+1. local capability attempt policy/stub for Alternative Methods
+2. OCR-needed/no-text detection hardening before real OCR
 
-1. unsupported-file Alternative Methods next-action model
-2. update lane metadata skeleton
+Do not jump to full OCR, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
