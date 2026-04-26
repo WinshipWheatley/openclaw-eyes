@@ -384,6 +384,45 @@ Proof:
 - `pytest -q tests/test_legal_mock_discovery_demo.py`: `1 passed`
 - full focused Legal suite including demo test: `108 passed in 1.22s`
 
+## Completed status consistency fix
+
+Commit:
+
+```text
+068212e fix(legal): align extraction status diagnostics
+```
+
+Implemented behavior:
+
+- extraction now records private per-source `extraction_status`, `extraction_extractor`, timestamp, and reason in the matter manifest for every attempted source
+- tracked statuses include `extracted`, `unsupported`, `no_text`, and `failed`
+- support packets prefer manifest extraction status over inferred status
+- failed attempted PDF extraction no longer appears as `pending`
+- mock discovery demo status counts now match support packet diagnostics
+- sanitized support packet boundaries remain preserved: no source content, extracted text, private paths, or sensitive filenames
+
+Demo rerun status counts:
+
+- extracted: `3`
+- failed: `1`
+- no_text: `0`
+- pending: `0`
+- unsupported: `1`
+- product_repo_data_written: `false`
+
+Proof:
+
+- `py_compile` passed for changed Legal modules/scripts
+- support/demo focused tests: `7 passed`
+- ingestion/pdf focused tests: `19 passed`
+- full focused Legal suite: `109 passed in 1.18s`
+
+Remaining gaps:
+
+- `pending` still means extraction was never attempted
+- placeholder scanned-style PDF still reports `failed` in this environment, not `no_text`
+- unsupported-file Alternative Methods is still not implemented
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -507,15 +546,7 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next practical step is to run the synthetic mock discovery command manually and inspect the generated report, review packet, and support packet.
-
-Command:
-
-```bash
-python3 scripts/demo_legal_mock_discovery.py /tmp/openclaw_legal_mock_discovery_run
-```
-
-After that, the likely next implementation slice is unsupported-file Alternative Methods next-action model.
+The next implementation slice should be unsupported-file Alternative Methods next-action model.
 
 Likely candidates:
 
@@ -534,6 +565,7 @@ Do not immediately build:
 - model distribution
 - full desktop app
 - OCR pipeline
+- email/video/audio ingestion
 - cloud connectors
 - email/portal ingest
 - privilege screening
