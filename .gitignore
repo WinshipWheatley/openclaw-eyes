@@ -238,6 +238,7 @@
 !scripts/install_openclaw_stack.sh
 !legal/
 !legal/alternative_methods.py
+!legal/local_capability_policy.py
 !legal/path_guard.py
 !legal/support_packet.py
 !tests/test_alternative_methods.py

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from legal.local_capability_policy import local_capability_policy_for_source
 from legal.path_guard import (
     canonicalize_matter_root,
     validate_manifest_source_paths,
@@ -74,7 +75,7 @@ def _item_for_source(
         locked_actions = []
         available_actions.append("request_feature")
 
-    return {
+    item = {
         "source_index": source_index,
         "source_id_present": bool(source.get("source_id")),
         "status": status,
@@ -83,6 +84,10 @@ def _item_for_source(
         "available_actions": available_actions,
         "locked_actions": locked_actions,
     }
+    item.update(local_capability_policy_for_source(source))
+    if escalation_allowed:
+        item["request_feature_state"] = "available"
+    return item
 
 
 def _source_status(source: dict[str, Any]) -> str:

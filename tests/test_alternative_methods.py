@@ -33,6 +33,9 @@ def test_unsupported_fake_extension_gets_alternative_methods(tmp_path: Path) -> 
     item = _item_by_status(packet, "unsupported")
     assert item["file_extension"] == ".weird"
     assert item["reason_category"] == "unsupported_file_type"
+    assert item["local_capability_state"] == "local_capability_not_attempted"
+    assert item["local_capability_kind"] == "unknown_local_handler"
+    assert item["request_feature_state"] == "locked"
     assert "try_local_capability" in item["available_actions"]
     assert item["locked_actions"] == ["request_feature"]
 
@@ -54,6 +57,9 @@ def test_failed_pdf_gets_alternative_methods(tmp_path: Path) -> None:
     item = _item_by_status(packet, "failed")
     assert item["file_extension"] == ".pdf"
     assert item["reason_category"] == "local_extraction_failed"
+    assert item["local_capability_state"] == "local_capability_failed_safely"
+    assert item["local_capability_kind"] == "pdf_text_extraction"
+    assert item["request_feature_state"] == "locked"
     assert item["available_actions"] == [
         "view_technical_details",
         "support_packet_available",
@@ -75,6 +81,9 @@ def test_no_text_pdf_gets_ocr_needed_action(tmp_path: Path) -> None:
     item = _item_by_status(packet, "no_text")
     assert item["file_extension"] == ".pdf"
     assert item["reason_category"] == "ocr_module_needed"
+    assert item["local_capability_state"] == "local_capability_not_installed"
+    assert item["local_capability_kind"] == "ocr"
+    assert item["request_feature_state"] == "locked"
     assert item["available_actions"][0] == "ocr_module_needed"
     assert item["locked_actions"] == ["request_feature"]
 
