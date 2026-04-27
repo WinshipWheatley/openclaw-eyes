@@ -79,6 +79,7 @@
 !mac_eyes/Launchers/
 !mac_eyes/Launchers/sync_to_mac.sh
 !mac_eyes/Launchers/sync_legal_planning_to_mac.sh
+!mac_eyes/Launchers/start_legal_planning_sync_window.sh
 !mac_eyes/Launchers/watch_legal_planning_to_mac.sh
 !mac_eyes/Winship/
 !mac_eyes/Winship/AGENTS.md

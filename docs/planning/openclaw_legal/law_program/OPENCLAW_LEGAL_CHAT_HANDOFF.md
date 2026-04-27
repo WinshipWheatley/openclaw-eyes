@@ -75,6 +75,10 @@ The Mac workspace is:
 
 The Mac workspace is a planning/reflection surface. It is not canonical implementation truth.
 
+When editing Legal planning docs, agents may start the short-lived sync window:
+`/home/openclaw/mac_eyes/Launchers/start_legal_planning_sync_window.sh`
+It self-expires and must not be treated as a permanent watcher.
+
 Do not implement blindly from the Mac planning docs. First verify the current PC/WSL repo state.
 
 ## Known Legal v0 work already built on PC/WSL
