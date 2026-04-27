@@ -941,6 +941,7 @@ Next possible planning/build target should be chosen from:
 1. scanned PDF OCR planning/prototype
 2. timestamp/timeline metadata model planning
 3. personal-matter local workflow dry run using supported local-only file types
+   *(Note: The `create-matter` CLI command requires `--matter-id` and `--display-name`. The `search` and `report` commands require `--query`.)*
 4. first checker/QA planning over known-answer outputs
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
