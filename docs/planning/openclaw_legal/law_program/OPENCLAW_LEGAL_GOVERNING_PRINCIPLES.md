@@ -207,6 +207,24 @@ Hardware ambition is secondary.
 
 Boundaries and workflow proof come first.
 
+## 15. Dual-Lane Development Model
+
+OpenClaw Legal operates in two distinct lanes to balance R&D speed with strict data safety:
+
+- **Lane A: Synthetic Product R&D Lane**
+  - Uses synthetic, public-safe, or fake data only.
+  - External LLMs and tools (ChatGPT, Gemini, Claude, etc.) may be used for fixture generation, prototype validation, drafting expected outputs, benchmark comparison, and module R&D.
+  - This is where future capabilities (screenshots, PDFs, audio/video, timelines) are explored.
+  - **Rule:** No real matter data, client names, firm confidential information, personal case data, or sensitive personal data may ever enter this lane.
+
+- **Lane B: Real Matter Local-Only Lane**
+  - Uses real personal matter data or firm evidence.
+  - External LLMs/tools are prohibited by default.
+  - Only local deterministic tools are allowed until local models are explicitly approved.
+  - **Rule:** Real matter outputs are attorney-review aids only, never legal advice or conclusions.
+
+**Shared Core, Separate Data:** Both lanes use the same reusable OpenClaw Legal product core (source registration, hashing, vault boundaries, search, reports, etc.). Data rules must never mix. Fake data is where we experiment; real data is where we prove trust.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:

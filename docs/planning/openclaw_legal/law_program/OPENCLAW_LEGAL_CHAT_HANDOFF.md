@@ -586,6 +586,22 @@ Remaining gaps:
 - public analog search and request-feature export are still not implemented
 - support packet diagnostics were not enriched in this slice
 
+## Dual-Lane Development Model
+
+OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
+
+- **Lane A: Synthetic Product R&D Lane**
+  - For experimenting with synthetic/public-safe data.
+  - External LLMs/tools are permitted for R&D and fixture generation.
+  - No real matter data allowed.
+
+- **Lane B: Real Matter Local-Only Lane**
+  - For processing real evidence/matter data.
+  - External LLMs/tools are prohibited by default.
+  - Only local deterministic tools allowed until local models are approved.
+
+Both lanes share the OpenClaw Legal product core but maintain strict data separation. Fake data is for experimentation; real data is for proving trust.
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -634,6 +650,7 @@ The following points are binding planning doctrine for the next chat:
 
 - Mac `OpenClaw_Watch` docs are planning/reflection only.
 - PC/WSL `/home/openclaw` is canonical implementation authority.
+- **Dual-Lane Development Model** is mandatory: Lane A uses only synthetic/public-safe data and may use external tools; Lane B uses real matter data and is local-only by default.
 - Do not implement blindly from Mac docs.
 - First inspect existing Legal v0 code, tests, docs, and commits.
 - No real legal data should enter the repo, prompts, support packets, update packages, or non-local LLM context.

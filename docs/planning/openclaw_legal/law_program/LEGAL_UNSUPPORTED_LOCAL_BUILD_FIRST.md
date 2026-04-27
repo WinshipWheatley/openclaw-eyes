@@ -26,6 +26,10 @@ The system must treat unsupported files as a controlled workflow:
 5. Generate sanitized diagnostics.
 6. Unlock Request Feature only after local attempts fail or are policy-blocked.
 
+This workflow is supported by the **Dual-Lane Development Model** (see `OPENCLAW_LEGAL_GOVERNING_PRINCIPLES.md` Principle 15):
+- **Lane A (Synthetic R&D)** is where new handlers are prototyped and validated using synthetic data/public analogs and external tools.
+- **Lane B (Real Matter Local-Only)** is where these handlers are executed against real matter data using only local, deterministic tools.
+
 ## Required behavior
 
 - Unsupported files must appear in the confidence/status area.
