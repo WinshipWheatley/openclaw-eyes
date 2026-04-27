@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -130,6 +131,131 @@ def test_unsupported_file_appends_audit_without_artifacts(tmp_path: Path) -> Non
     events = _read_audit(root / "audit.jsonl")
     assert events[-1]["event"] == "source_extraction_unsupported"
     assert events[-1]["source_id"] == registered["source_id"]
+
+
+def test_extracts_image_source_with_mocked_tesseract(tmp_path: Path) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "scan.png"
+    source.write_bytes(b"synthetic image bytes")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    completed = subprocess.CompletedProcess(
+        ["tesseract"],
+        0,
+        stdout="Detected OCR text\n",
+        stderr="",
+    )
+
+    with patch("legal.local_ingestion.shutil.which", return_value="/usr/bin/tesseract"), patch(
+        "legal.local_ingestion.subprocess.run",
+        return_value=completed,
+    ) as run_tesseract:
+        result = extract_source_text(root, registered["source_id"])
+
+    run_tesseract.assert_called_once_with(
+        ["tesseract", registered["stored_path"], "stdout"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+    assert result["status"] == "extracted"
+    assert result["extractor"] == "tesseract_ocr_v0"
+    extracted_text = Path(result["extracted_path"]).read_text(encoding="utf-8")
+    assert extracted_text.startswith("[Extracted via local OCR]\n\n")
+    assert "Detected OCR text" in extracted_text
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "extracted"
+    assert manifest["sources"][0]["extraction_extractor"] == "tesseract_ocr_v0"
+
+
+def test_image_source_missing_tesseract_is_safe_ocr_needed_status(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "scan.jpg"
+    source.write_bytes(b"synthetic image bytes")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+
+    with patch("legal.local_ingestion.shutil.which", return_value=None), patch(
+        "legal.local_ingestion.subprocess.run",
+    ) as run_tesseract:
+        result = extract_source_text(root, registered["source_id"])
+
+    run_tesseract.assert_not_called()
+    assert result["status"] == "unsupported"
+    assert result["extractor"] == "tesseract_ocr_v0"
+    assert result["reason"] == "ocr_module_not_installed"
+    assert not (root / "extracted").exists()
+    manifest = _read_json(root / "manifest.json")
+    assert manifest["sources"][0]["extraction_status"] == "unsupported"
+    assert manifest["sources"][0]["extraction_reason"] == "ocr_module_not_installed"
+
+
+def test_image_source_tesseract_failure_uses_redacted_reason(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "scan.jpeg"
+    source.write_bytes(b"synthetic image bytes")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    completed = subprocess.CompletedProcess(
+        ["tesseract"],
+        1,
+        stdout="",
+        stderr=f"raw private failure for {source}",
+    )
+
+    with patch("legal.local_ingestion.shutil.which", return_value="/usr/bin/tesseract"), patch(
+        "legal.local_ingestion.subprocess.run",
+        return_value=completed,
+    ):
+        result = extract_source_text(root, registered["source_id"])
+
+    assert result["status"] == "failed"
+    assert result["extractor"] == "tesseract_ocr_v0"
+    assert result["reason"] == "ocr_process_failed"
+    assert "raw private failure" not in json.dumps(result, sort_keys=True)
+    events = _read_audit(root / "audit.jsonl")
+    assert events[-1]["event"] == "source_extraction_failed"
+    assert events[-1]["reason"] == "ocr_process_failed"
+
+
+def test_image_source_tesseract_timeout_uses_redacted_reason(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "scan-timeout.png"
+    source.write_bytes(b"synthetic image bytes")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    private_exception_detail = f"raw timeout detail for {source}"
+    timeout_error = subprocess.TimeoutExpired(
+        cmd=["tesseract", registered["stored_path"], "stdout"],
+        timeout=60,
+        output=private_exception_detail,
+        stderr=private_exception_detail,
+    )
+
+    with patch("legal.local_ingestion.shutil.which", return_value="/usr/bin/tesseract"), patch(
+        "legal.local_ingestion.subprocess.run",
+        side_effect=timeout_error,
+    ):
+        result = extract_source_text(root, registered["source_id"])
+
+    result_text = json.dumps(result, sort_keys=True)
+    events = _read_audit(root / "audit.jsonl")
+    audit_text = json.dumps(events[-1], sort_keys=True)
+    assert result["status"] == "failed"
+    assert result["extractor"] == "tesseract_ocr_v0"
+    assert result["reason"] == "ocr_process_failed"
+    assert private_exception_detail not in result_text
+    assert private_exception_detail not in audit_text
+    assert str(source) not in audit_text
+    assert events[-1]["event"] == "source_extraction_failed"
+    assert events[-1]["reason"] == "ocr_process_failed"
 
 
 def test_tampered_manifest_stored_path_outside_matter_root_is_rejected(

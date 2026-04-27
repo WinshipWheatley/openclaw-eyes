@@ -21,7 +21,8 @@ MANIFEST_FILENAME = "manifest.json"
 SUPPORT_DIRECTORY = "support"
 SUPPORT_PACKET_FILENAME = "support_packet.json"
 SUPPORT_PACKET_SCHEMA_VERSION = 1
-SUPPORTED_EXTRACTION_SUFFIXES = {".md", ".pdf", ".txt"}
+IMAGE_OCR_SUFFIXES = {".jpeg", ".jpg", ".png"}
+SUPPORTED_EXTRACTION_SUFFIXES = {".md", ".pdf", ".txt"} | IMAGE_OCR_SUFFIXES
 LEGAL_MODULES = (
     "matter_workspace",
     "local_ingestion",
@@ -324,6 +325,12 @@ def _reason_category(
     if reason is None:
         return None
     lowered = reason.casefold()
+    if lowered == "ocr_module_not_installed":
+        return "ocr_module_not_installed"
+    if lowered == "ocr_process_failed":
+        return "ocr_process_failed"
+    if lowered == "ocr_no_text":
+        return "no_extractable_text"
     if "unsupported" in lowered:
         return "unsupported_file_type"
     if "no extractable text" in lowered:

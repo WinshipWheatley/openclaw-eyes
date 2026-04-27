@@ -88,6 +88,27 @@ def test_no_text_pdf_gets_ocr_needed_action(tmp_path: Path) -> None:
     assert item["locked_actions"] == ["request_feature"]
 
 
+def test_image_missing_tesseract_gets_ocr_needed_action(tmp_path: Path) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "scan.jpg"
+    source.write_bytes(b"synthetic image bytes")
+    create_matter_workspace(root, "matter", "Matter")
+    registered = register_source(root, source)
+    with patch("legal.local_ingestion.shutil.which", return_value=None):
+        extract_source_text(root, registered["source_id"])
+
+    packet = alternative_methods_for_matter(root)
+
+    item = _item_by_status(packet, "unsupported")
+    assert item["file_extension"] == ".jpg"
+    assert item["reason_category"] == "ocr_module_needed"
+    assert item["local_capability_state"] == "local_capability_not_installed"
+    assert item["local_capability_kind"] == "ocr"
+    assert item["local_capability_reason_category"] == "ocr_module_not_installed"
+    assert item["available_actions"][0] == "ocr_module_needed"
+    assert item["locked_actions"] == ["request_feature"]
+
+
 def test_extracted_files_do_not_need_alternative_methods(tmp_path: Path) -> None:
     root = tmp_path / "matter"
     source = tmp_path / "statement.txt"

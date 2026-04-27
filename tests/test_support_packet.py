@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -71,6 +72,40 @@ def test_support_packet_excludes_sensitive_filename_and_private_paths(
     assert str(root) not in packet_text
     assert str(source) not in packet_text
     assert packet["private_paths_excluded"] is True
+
+
+def test_support_packet_excludes_image_ocr_text_and_private_paths(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "matter"
+    source = tmp_path / "Jane_Client_Scanned_Note.png"
+    source.write_bytes(b"synthetic image bytes")
+    ocr_text = "Jane Client OCR settlement strategy"
+    create_matter_workspace(root, "matter-001", "Sensitive Matter")
+    registered = register_source(root, source)
+    completed = subprocess.CompletedProcess(
+        ["tesseract"],
+        0,
+        stdout=f"{ocr_text}\n",
+        stderr="",
+    )
+    with patch("legal.local_ingestion.shutil.which", return_value="/usr/bin/tesseract"), patch(
+        "legal.local_ingestion.subprocess.run",
+        return_value=completed,
+    ):
+        extract_source_text(root, registered["source_id"])
+
+    packet = export_support_packet(root)
+    packet_text = Path(packet["packet_path"]).read_text(encoding="utf-8")
+    summary = packet["diagnostics"]["redacted_status_summaries"][0]
+
+    assert ocr_text not in packet_text
+    assert "Jane_Client_Scanned_Note" not in packet_text
+    assert str(root) not in packet_text
+    assert str(source) not in packet_text
+    assert summary["status"] == "extracted"
+    assert summary["file_extension"] == ".png"
+    assert summary["extractor"] == "tesseract_ocr_v0"
 
 
 def test_support_packet_includes_status_counts_and_diagnostics(tmp_path: Path) -> None:

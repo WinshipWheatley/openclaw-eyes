@@ -6,7 +6,11 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
-from legal.local_capability_policy import local_capability_policy_for_source
+from legal.local_capability_policy import (
+    IMAGE_OCR_SUFFIXES,
+    local_capability_policy_for_source,
+    local_ocr_available,
+)
 from legal.path_guard import (
     canonicalize_matter_root,
     validate_manifest_source_paths,
@@ -67,7 +71,9 @@ def _item_for_source(
     ]
     locked_actions = ["request_feature"]
 
-    if status == "unsupported":
+    if status == "unsupported" and extension in IMAGE_OCR_SUFFIXES:
+        available_actions.insert(0, "ocr_module_needed")
+    elif status == "unsupported":
         available_actions.insert(0, "try_local_capability")
     if status == "no_text" and extension == ".pdf":
         available_actions.insert(0, "ocr_module_needed")
@@ -95,6 +101,8 @@ def _source_status(source: dict[str, Any]) -> str:
     if isinstance(status, str) and status.strip():
         return status
     extension = _source_extension(source)
+    if extension in IMAGE_OCR_SUFFIXES:
+        return "pending" if local_ocr_available() else "unsupported"
     if extension and extension not in {".md", ".pdf", ".txt"}:
         return "unsupported"
     return "pending"
@@ -112,10 +120,16 @@ def _reason_category(source: dict[str, Any]) -> str | None:
     extension = _source_extension(source)
     reason = source.get("extraction_reason")
     reason_text = reason.casefold() if isinstance(reason, str) else ""
+    if status == "unsupported" and extension in IMAGE_OCR_SUFFIXES:
+        return "ocr_module_needed"
     if status == "unsupported":
         return "unsupported_file_type"
     if status == "no_text" and extension == ".pdf":
         return "ocr_module_needed"
+    if reason_text == "ocr_process_failed":
+        return "ocr_process_failed"
+    if reason_text == "ocr_no_text":
+        return "no_extractable_text"
     if status == "no_text":
         return "no_extractable_text"
     if "unavailable" in reason_text:

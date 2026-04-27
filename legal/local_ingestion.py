@@ -8,6 +8,8 @@ artifacts without network, cloud, LLM, or OpenClaw agent dependencies.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -22,9 +24,16 @@ from legal.path_guard import (
 AUDIT_FILENAME = "audit.jsonl"
 EXTRACTED_DIRECTORY = "extracted"
 MANIFEST_FILENAME = "manifest.json"
-SUPPORTED_SUFFIXES = {".md", ".pdf", ".txt"}
+IMAGE_OCR_SUFFIXES = {".jpeg", ".jpg", ".png"}
+SUPPORTED_SUFFIXES = {".md", ".pdf", ".txt"} | IMAGE_OCR_SUFFIXES
 EXTRACTOR = "local_text_v0"
 PDF_EXTRACTOR = "pdftotext_v0"
+IMAGE_OCR_EXTRACTOR = "tesseract_ocr_v0"
+IMAGE_OCR_TIMEOUT_SECONDS = 60
+LOCAL_OCR_NOTICE = "[Extracted via local OCR]"
+OCR_MODULE_NOT_INSTALLED = "ocr_module_not_installed"
+OCR_NO_TEXT = "ocr_no_text"
+OCR_PROCESS_FAILED = "ocr_process_failed"
 
 
 class ExtractionError(Exception):
@@ -78,6 +87,13 @@ def extract_source_text(
 
     if suffix == ".pdf":
         return _extract_pdf_source(root, source, stored_path)
+    if suffix in IMAGE_OCR_SUFFIXES:
+        return _extract_image_source(
+            root,
+            source,
+            stored_path,
+            allowed_vault_roots=allowed_vault_roots,
+        )
 
     try:
         text = stored_path.read_text(encoding="utf-8")
@@ -267,6 +283,168 @@ def _extract_pdf_source(
         },
     )
     return metadata
+
+
+def _extract_image_source(
+    matter_root: Path,
+    source: dict[str, Any],
+    stored_path: Path,
+    *,
+    allowed_vault_roots: Iterable[str | Path] | str | Path | None = None,
+) -> dict[str, Any]:
+    attempted_at = _utc_now()
+    if shutil.which("tesseract") is None:
+        unavailable = _image_ocr_status_result(
+            "unsupported",
+            source,
+            stored_path,
+            OCR_MODULE_NOT_INSTALLED,
+            attempted_at,
+        )
+        _record_source_extraction_status(matter_root, source["source_id"], unavailable)
+        _append_audit(
+            matter_root / AUDIT_FILENAME,
+            {
+                "event": "source_extraction_unsupported",
+                "source_id": source["source_id"],
+                "original_filename": source["original_filename"],
+                "sha256": source["sha256"],
+                "extractor": IMAGE_OCR_EXTRACTOR,
+                "reason": OCR_MODULE_NOT_INSTALLED,
+                "attempted_at": attempted_at,
+            },
+        )
+        return unavailable
+
+    try:
+        completed = subprocess.run(
+            ["tesseract", str(stored_path), "stdout"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=IMAGE_OCR_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.TimeoutExpired, subprocess.SubprocessError, ValueError):
+        return _record_image_ocr_failure(matter_root, source, stored_path, attempted_at)
+
+    if completed.returncode != 0:
+        return _record_image_ocr_failure(matter_root, source, stored_path, attempted_at)
+
+    ocr_text = completed.stdout or ""
+    if not ocr_text.strip():
+        no_text = _image_ocr_status_result(
+            "no_text",
+            source,
+            stored_path,
+            OCR_NO_TEXT,
+            attempted_at,
+        )
+        _record_source_extraction_status(matter_root, source["source_id"], no_text)
+        _append_audit(
+            matter_root / AUDIT_FILENAME,
+            {
+                "event": "source_extraction_no_text",
+                "source_id": source["source_id"],
+                "original_filename": source["original_filename"],
+                "sha256": source["sha256"],
+                "extractor": IMAGE_OCR_EXTRACTOR,
+                "reason": OCR_NO_TEXT,
+                "attempted_at": attempted_at,
+            },
+        )
+        return no_text
+
+    text = f"{LOCAL_OCR_NOTICE}\n\n{ocr_text}"
+    extracted_dir = resolve_matter_child(
+        matter_root,
+        matter_root / EXTRACTED_DIRECTORY,
+        label="extracted directory",
+        allowed_vault_roots=allowed_vault_roots,
+    )
+    extracted_dir.mkdir(exist_ok=True)
+    extracted_path = extracted_dir / f"{source['source_id']}.txt"
+    metadata_path = extracted_dir / f"{source['source_id']}.json"
+    extracted_at = _utc_now()
+    metadata = {
+        "status": "extracted",
+        "extractor": IMAGE_OCR_EXTRACTOR,
+        "source_id": source["source_id"],
+        "original_filename": source["original_filename"],
+        "sha256": source["sha256"],
+        "file_type": source.get("file_type", "application/octet-stream"),
+        "stored_path": str(stored_path),
+        "extracted_path": str(extracted_path),
+        "metadata_path": str(metadata_path),
+        "chars": len(text),
+        "extracted_at": extracted_at,
+    }
+    _record_source_extraction_status(matter_root, source["source_id"], metadata)
+    extracted_path.write_text(text, encoding="utf-8")
+    _write_json(metadata_path, metadata)
+    _append_audit(
+        matter_root / AUDIT_FILENAME,
+        {
+            "event": "source_text_extracted",
+            "source_id": source["source_id"],
+            "original_filename": source["original_filename"],
+            "sha256": source["sha256"],
+            "extractor": IMAGE_OCR_EXTRACTOR,
+            "extracted_path": str(extracted_path),
+            "metadata_path": str(metadata_path),
+            "extracted_at": extracted_at,
+        },
+    )
+    return metadata
+
+
+def _record_image_ocr_failure(
+    matter_root: Path,
+    source: dict[str, Any],
+    stored_path: Path,
+    attempted_at: str,
+) -> dict[str, Any]:
+    failure = _image_ocr_status_result(
+        "failed",
+        source,
+        stored_path,
+        OCR_PROCESS_FAILED,
+        attempted_at,
+    )
+    _record_source_extraction_status(matter_root, source["source_id"], failure)
+    _append_audit(
+        matter_root / AUDIT_FILENAME,
+        {
+            "event": "source_extraction_failed",
+            "source_id": source["source_id"],
+            "original_filename": source["original_filename"],
+            "sha256": source["sha256"],
+            "extractor": IMAGE_OCR_EXTRACTOR,
+            "reason": OCR_PROCESS_FAILED,
+            "attempted_at": attempted_at,
+        },
+    )
+    return failure
+
+
+def _image_ocr_status_result(
+    status: str,
+    source: dict[str, Any],
+    stored_path: Path,
+    reason: str,
+    attempted_at: str,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "extractor": IMAGE_OCR_EXTRACTOR,
+        "source_id": source["source_id"],
+        "original_filename": source["original_filename"],
+        "sha256": source["sha256"],
+        "stored_path": source["stored_path"],
+        "file_type": source.get("file_type", "application/octet-stream"),
+        "file_suffix": stored_path.suffix.lower(),
+        "reason": reason,
+        "attempted_at": attempted_at,
+    }
 
 
 def _pdf_status_result(
