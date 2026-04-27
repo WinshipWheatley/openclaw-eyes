@@ -64,6 +64,8 @@
 !docs/planning/openclaw_legal/
 !docs/planning/openclaw_legal/law_program/
 !docs/planning/openclaw_legal/law_program/**/*.md
+!docs/planning/openclaw_legal/law_program/business_plan/
+!docs/planning/openclaw_legal/law_program/business_plan/**/*.md
 !docs/archives/
 !docs/archives/**/
 !docs/archives/**/*.md
