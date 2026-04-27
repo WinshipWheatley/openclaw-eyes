@@ -225,6 +225,19 @@ OpenClaw Legal operates in two distinct lanes to balance R&D speed with strict d
 
 **Shared Core, Separate Data:** Both lanes use the same reusable OpenClaw Legal product core (source registration, hashing, vault boundaries, search, reports, etc.). Data rules must never mix. Fake data is where we experiment; real data is where we prove trust.
 
+## 16. IP / Pilot / Ownership Doctrine
+
+OpenClaw Legal operates under a clear ownership boundary to protect both the firm's data and the developer's product:
+
+- **Developer-owned product:** OpenClaw Legal code, architecture, reusable modules, generalized workflows, docs, prompts, test fixtures, update mechanisms, and non-confidential improvements remain developer-owned unless a separate written agreement says otherwise.
+- **Firm-owned matter data:** The firm owns its source files, matter data, confidential information, firm-specific configuration, generated matter outputs, review packets, reports, and work product created from its matter data.
+- **License/deployment, not transfer:** A firm pays for a scoped pilot, deployment, support, or license. It does not receive ownership of the reusable OpenClaw Legal product core.
+- **Reusable improvements:** Generalized fixes, reusable modules, and product features developed during a pilot may be reused in future OpenClaw Legal deployments, provided no firm confidential information or matter content is included.
+- **Custom work boundaries:** Firm-specific customizations stay in the firm profile, configuration, or matter vault where possible. Exclusive custom development must be separately priced and explicitly agreed in writing.
+- **Hardware ownership:** Firm matter data should run on firm-owned production hardware. Developer hardware, accounts, tools, subscriptions, and internal build systems remain developer-owned.
+- **Matched Reference Bench:** For higher-tier deployments, a developer-owned reference bench may be used to match the firm’s hardware tier for issue reproduction and update validation. This bench uses only synthetic data or sanitized diagnostics; real firm data is prohibited unless explicitly agreed in writing.
+- **Validated Update Pipeline:** We do not experiment on the firm’s live system. The reference bench should be used to test new models, modules, and fixes before they are offered to the firm. Firm production systems should receive only packaged, tested updates with clear release notes, risk labels, and explicit approval for workflow-changing updates. New tools must not be silently deployed to firm production.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:

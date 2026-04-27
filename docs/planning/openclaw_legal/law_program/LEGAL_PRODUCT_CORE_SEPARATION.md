@@ -25,7 +25,9 @@ Reusable product code must never contain real legal data.
 
 A firm deployment must be built from portable code plus firm-local configuration plus private runtime data. These must not collapse into one tangled system.
 
-This separation is reinforced by the **Dual-Lane Development Model** (see `OPENCLAW_LEGAL_GOVERNING_PRINCIPLES.md` Principle 15), which strictly separates Synthetic R&D (Lane A) from Real Matter Local-Only execution (Lane B).
+This separation is reinforced by:
+- The **Dual-Lane Development Model** (see `OPENCLAW_LEGAL_GOVERNING_PRINCIPLES.md` Principle 15), which strictly separates Synthetic R&D (Lane A) from Real Matter Local-Only execution (Lane B).
+- The **IP / Pilot / Ownership Doctrine** (see `OPENCLAW_LEGAL_GOVERNING_PRINCIPLES.md` Principle 16), which defines developer ownership of product architecture and firm ownership of matter data.
 
 ## Product layers
 

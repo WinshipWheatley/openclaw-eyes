@@ -651,6 +651,7 @@ The following points are binding planning doctrine for the next chat:
 - Mac `OpenClaw_Watch` docs are planning/reflection only.
 - PC/WSL `/home/openclaw` is canonical implementation authority.
 - **Dual-Lane Development Model** is mandatory: Lane A uses only synthetic/public-safe data and may use external tools; Lane B uses real matter data and is local-only by default.
+- **IP / Pilot / Ownership Doctrine** is mandatory: Developer owns reusable product core and reference bench; Firm owns private matter data, work product, and production hardware; Validated Update Pipeline (test on bench first, then offer packaged updates) is required.
 - Do not implement blindly from Mac docs.
 - First inspect existing Legal v0 code, tests, docs, and commits.
 - No real legal data should enter the repo, prompts, support packets, update packages, or non-local LLM context.
