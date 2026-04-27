@@ -602,6 +602,23 @@ OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovatio
 
 Both lanes share the OpenClaw Legal product core but maintain strict data separation. Fake data is for experimentation; real data is for proving trust.
 
+## Strong Product Roadmap
+
+The "Strong Product" vision for OpenClaw Legal is **Private local discovery intelligence for law firms.** The current foundation is the safe local spine that makes the strong product trustworthy.
+
+Phased capability ladder:
+1. **Current local discovery spine:** Vault, registration, extraction (text/PDF), search, packets.
+2. **Local drop-folder intake:** Streamlined staging and import.
+3. **OCR for screenshots/scanned PDFs:** Processing text messages and image-only discovery.
+4. **Audio/video extraction:** Transcription and frame-based OCR.
+5. **Timestamp/text metadata:** Extracting visible time references and metadata.
+6. **Timeline candidates:** Automated draft chronology from multi-source evidence.
+7. **Contradiction candidates:** Identifying factual inconsistencies across sources.
+8. **Attorney-gated QA/rework loop:** Human-in-the-loop review and refinement of candidates.
+9. **Later local LM synthesis:** Advanced analysis under strict Lane B rules.
+
+The roadmap ensures that high-value outputs (timelines, contradictions) remain source-linked attorney-review aids, never substitute legal advice.
+
 ## What was planned in the Mac workspace
 
 The Mac planning session created and organized a planning package under:
@@ -652,6 +669,7 @@ The following points are binding planning doctrine for the next chat:
 - PC/WSL `/home/openclaw` is canonical implementation authority.
 - **Dual-Lane Development Model** is mandatory: Lane A uses only synthetic/public-safe data and may use external tools; Lane B uses real matter data and is local-only by default.
 - **IP / Pilot / Ownership Doctrine** is mandatory: Developer owns reusable product core and reference bench; Firm owns private matter data, work product, and production hardware; Validated Update Pipeline (test on bench first, then offer packaged updates) is required.
+- **Strong Product Roadmap:** Current work is the safe local spine; future phases include OCR (screenshots/scanned), A/V extraction, timeline candidates, and contradiction detection.
 - Do not implement blindly from Mac docs.
 - First inspect existing Legal v0 code, tests, docs, and commits.
 - No real legal data should enter the repo, prompts, support packets, update packages, or non-local LLM context.

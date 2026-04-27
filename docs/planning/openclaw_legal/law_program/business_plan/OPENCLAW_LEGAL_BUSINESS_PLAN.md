@@ -156,6 +156,21 @@ Do not promise:
 - fully autonomous legal work
 - cloud-scale processing without local constraints
 - zero human review
+## Strong Product Roadmap
+
+The "Strong Product" vision for OpenClaw Legal is **Private local discovery intelligence for law firms.** The current foundation is the safe local spine that makes the strong product trustworthy. High-value discovery intelligence remains source-linked and attorney-reviewed.
+
+### Phased capability ladder
+
+- **Phase 1: Local Discovery Spine (Current Foundation)**: Vault, registration, hashing, text/PDF extraction, search, review packets, audit trails.
+- **Phase 2: Local Staging Intake**: Streamlined local drop-folder staging and automated import.
+- **Phase 3: OCR for Screenshots and Scanned PDFs**: Extraction of text messages, scanned documents, and image-based discovery.
+- **Phase 4: Audio/Video Extraction**: Transcription and frame-based OCR for media evidence.
+- **Phase 5: Timestamp/Text Metadata Model**: Automated extraction of visible time references and source-linked metadata.
+- **Phase 6: Timeline Candidate Builder**: Automated drafting of chronological event lists across multi-source evidence.
+- **Phase 7: Contradiction Candidate Detector**: Identifying potential factual inconsistencies between sources for attorney review.
+- **Phase 8: Attorney-Gated QA / Rework Loop**: Integrated human-in-the-loop validation of automated findings.
+- **Phase 9: Local LM-Assisted Synthesis**: Advanced local analysis and drafting under strict Lane B rules.
 
 ## Product components
 
