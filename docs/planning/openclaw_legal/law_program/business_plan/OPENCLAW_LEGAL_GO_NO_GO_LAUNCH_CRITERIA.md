@@ -273,6 +273,7 @@ Before calling this a launchable v1, the system should prove:
 - run proof commands on synthetic/public data
 - show clear status for processed/failed/unsupported items
 - **Attorney-Gated QA / Review-and-Rework:** Required before deployment of system-generated timelines, contradiction candidates, summaries, or other substantive review outputs. Product proof must show that these outputs are flagged, source-linked, attorney-review framed, and require attorney approval before rework or finalization.
+- **Known-Answer Fixtures / Validation Sentinels:** Required before deployment of OCR, substantive review modules, or firm updates. Prove that the system can catch seeded failure cases (OCR misses, timestamp mismatches, citation errors, etc.) in Lane A benchmarks before trusting Lane B workflows.
 - document exact limitations
 
 ## Required security/privacy proof before launch

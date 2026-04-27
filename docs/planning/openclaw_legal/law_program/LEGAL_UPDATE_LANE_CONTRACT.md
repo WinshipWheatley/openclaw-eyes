@@ -50,6 +50,7 @@ Required behavior:
 - no unrelated feature expansion
 - no new optional modules bundled in
 - explicit warning if workflow impact is unavoidable
+- **Validation:** Updates that affect extraction, OCR, review/support packets, Alternative Methods, checker behavior, timelines, contradiction candidates, model behavior, or substantive workflow outputs must be validated against relevant **Known-Answer Fixtures** and regression sentinels on the Developer Reference Bench before release. Pure security/config/documentation changes still require appropriate proof, but do not automatically require full fixture validation.
 
 Security updates may be the only lane eligible for highly streamlined installation, but they must still disclose what changes.
 

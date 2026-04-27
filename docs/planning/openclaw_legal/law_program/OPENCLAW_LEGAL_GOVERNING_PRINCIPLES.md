@@ -254,6 +254,18 @@ OpenClaw Legal is designed for high-stakes accuracy, not just creative generatio
 - **Verification Strategy:** Future checker validation should utilize **Known-Answer Fixtures / Validation Sentinels** to ensure the verification pass itself is reliable.
 - **Lane Compliance:** In Lane B (Real Matter), the checker must be local-only by default. External checker prototypes may only be used in Lane A with synthetic data.
 
+## 18. Known-Answer Fixtures / Validation Sentinels Doctrine
+
+Known-answer fixtures are the primary mechanism for calibrating and proving the system’s reliability before it is trusted with real matter data. This doctrine establishes the use of seeded, synthetic, and public-safe evidence packs for truth-testing:
+
+- **Seeded Validation:** Known-answer fixtures are deliberately seeded with known expected answers, known contradictions, known OCR challenges, timestamp mismatches, source-citation errors, or review packet issues. 
+- **Proof Before Trust:** Known-answer fixtures are how the system proves it can catch known problems before it is allowed near real matter data.
+- **Strict Lane Isolation:** Known-answer fixtures are **Lane A (Synthetic R&D)** only. They may be generated or evaluated using external LLMs/tools only in Lane A.
+- **No Matter Contamination:** Do not mix fake validation traps into real matter data. Do not place fake evidence into a real matter vault. Real matter data or firm matter data must never be used as known-answer fixtures.
+- **Functional Scope:** Fixtures are used to benchmark and validate OCR accuracy, checker/flag reliability, timeline/contradiction detection, support packet sanitization, and regression testing after updates.
+- **System Integration:** Known-answer fixtures support the **Attorney-Gated QA** doctrine, the **Validated Update Pipeline**, and the **Developer Reference Bench**. Hardware capability claims must be benchmarked against these fixtures where relevant.
+- **Calibration, Not Substitution:** These fixtures calibrate the system’s "trust meters" and the attorney's trust in the checker. They do not replace the need for final attorney review of real matter outputs.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:
