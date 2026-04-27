@@ -671,6 +671,7 @@ The following points are binding planning doctrine for the next chat:
 - **IP / Pilot / Ownership Doctrine** is mandatory: Developer owns reusable product core and reference bench; Firm owns private matter data, work product, and production hardware; Validated Update Pipeline (test on bench first, then offer packaged updates) is required.
 - **Attorney-Gated QA / Review-and-Rework Doctrine** is mandatory: System creates first pass; separate checker performs evidence-verification (claims verification against source records); flag model (Green/Yellow/Red); attorney-controlled rework loop; no silent fixes; no legal conclusions without review.
 - **Known-Answer Fixtures / Validation Sentinels Doctrine** is mandatory: Use seeded synthetic/public-safe evidence packs to benchmark and validate OCR, checker reliability, and update safety; Lane A only; no matter contamination.
+- **Hardware Ladder / Capability Tiers Doctrine** is mandatory: Firm buys private local discovery infrastructure, not a chatbot; hardware tiers affect speed and capacity; developer reference bench is separate from firm production hardware; capability claims must be benchmarked; no unvalidated hype.
 - **Strong Product Roadmap:** Current work is the safe local spine; future phases include OCR (screenshots/scanned), A/V extraction, timeline candidates, and contradiction detection.
 - Do not implement blindly from Mac docs.
 - First inspect existing Legal v0 code, tests, docs, and commits.

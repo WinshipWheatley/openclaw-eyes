@@ -266,6 +266,25 @@ Known-answer fixtures are the primary mechanism for calibrating and proving the 
 - **System Integration:** Known-answer fixtures support the **Attorney-Gated QA** doctrine, the **Validated Update Pipeline**, and the **Developer Reference Bench**. Hardware capability claims must be benchmarked against these fixtures where relevant.
 - **Calibration, Not Substitution:** These fixtures calibrate the system’s "trust meters" and the attorney's trust in the checker. They do not replace the need for final attorney review of real matter outputs.
 
+## 19. Hardware Ladder / Capability Tiers Doctrine
+
+OpenClaw Legal operates on the principle that the firm is buying private local discovery infrastructure, not a chatbot. Hardware is a local discovery asset that keeps matter data local and determines which workflows are practical.
+
+- **Modest Hardware Proves Workflow:** Modest hardware establishes the private local discovery spine (vault, source registration, hashing, text extraction, search, reports, review packets, Alternative Methods).
+- **Stronger Hardware Expands Capability:** Stronger hardware makes heavier local discovery intelligence practical (faster OCR, audio/video extraction, timeline candidates, larger local models). It determines speed and capacity. Stronger hardware does not remove the need for attorney review.
+- **Hardware Tiers:**
+  - *Foundation tier:* Proves local spine; limited OCR/media workflows.
+  - *Professional tier:* Faster batching; practical OCR; comfortable small/medium local models.
+  - *Media Intelligence tier:* Stronger OCR throughput; audio/video extraction; richer timeline/contradiction workflows.
+  - *Private AI Appliance tier:* Larger local models; heavy media workloads; strict benchmark validation required.
+- **Sober Capability Claims:** Use sober language (candidate hardware paths, validated baseline, production tier). No hype language ("singularity", "best lawyer ever"). Do not claim exact machines support future workloads unless benchmarked. All capability claims require benchmark validation.
+- **Reference Bench vs. Production:**
+  - *Firm Production Hardware:* Firm matter data runs on firm-owned production hardware meeting the validated baseline for the desired tier.
+  - *Matched Reference Bench:* A developer-owned matched reference bench acts as support infrastructure for higher-tier deployments. It is used to reproduce issues, benchmark modules, and validate updates safely.
+  - *No Real Data on Bench:* No real firm data is allowed on the developer reference bench by default. Use synthetic/sanitized diagnostics.
+- **Validated Update Pipeline:** We do not experiment on the firm's live system. Updates must be tested on the reference bench first, and only packaged, tested updates are offered to firm production.
+- **Budget Framing:** Pricing should be scoped as pilot/buildout pricing. Development/tooling budgets can include developer-owned reference hardware/environment, but the firm is not "buying the developer a laptop." Production hardware remains firm-owned and separate.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:

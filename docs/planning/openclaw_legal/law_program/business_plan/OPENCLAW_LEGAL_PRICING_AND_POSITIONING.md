@@ -252,13 +252,19 @@ Possible support categories:
 
 ## Hardware positioning
 
-Hardware should be positioned as an asset, not a burden.
+Hardware should be positioned as an asset, not a burden. The firm is buying private local discovery infrastructure, not a chatbot.
 
 Message:
 
 ```text
 Instead of renting every discovery workflow from a cloud meter, the firm can own a powerful local discovery workstation/appliance that processes sensitive matter data under firm control.
 ```
+
+**Hardware Ladder / Capability Tiers Doctrine** (see `OPENCLAW_LEGAL_GOVERNING_PRINCIPLES.md`):
+- Modest hardware proves the workflow; stronger hardware makes heavier local discovery intelligence practical. Hardware tiers affect pricing, support expectations, and capability claims.
+- Production hardware is firm-owned and separate from developer-owned reference bench hardware. Avoid "buying the developer a laptop" framing.
+- Development/tooling budgets may include developer-owned reference environment costs.
+- Capability claims require benchmark validation. Avoid hype or unproven hardware guarantees.
 
 Recommended framing:
 
