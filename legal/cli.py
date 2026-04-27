@@ -19,7 +19,11 @@ from legal.local_ingestion import (
     extract_source_text,
 )
 from legal.local_search import search_extracted_text
-from legal.matter_workspace import create_matter_workspace, register_source
+from legal.matter_workspace import (
+    create_matter_workspace,
+    import_staging_sources,
+    register_source,
+)
 from legal.review_packet import export_review_packet
 from legal.search_report import export_search_report
 from legal.support_packet import export_support_packet
@@ -60,6 +64,13 @@ def _build_parser() -> argparse.ArgumentParser:
     add_source.add_argument("--vault-root")
     add_source.add_argument("--source", required=True)
     add_source.set_defaults(handler=_add_source)
+
+    import_staging = subcommands.add_parser("import-staging")
+    import_staging.add_argument("--vault-root", required=True)
+    import_staging.add_argument("--root", required=True)
+    import_staging.add_argument("--staging-dir", required=True)
+    import_staging.add_argument("--lane", required=True, choices=("synthetic", "real-matter"))
+    import_staging.set_defaults(handler=_import_staging)
 
     extract = subcommands.add_parser("extract")
     extract.add_argument("--root", required=True)
@@ -139,6 +150,15 @@ def _add_source(args: argparse.Namespace) -> dict[str, Any]:
         args.root,
         args.source,
         allowed_vault_roots=_allowed_vault_roots(args),
+    )
+
+
+def _import_staging(args: argparse.Namespace) -> dict[str, Any]:
+    return import_staging_sources(
+        args.root,
+        args.staging_dir,
+        lane=args.lane,
+        allowed_vault_roots=[args.vault_root],
     )
 
 

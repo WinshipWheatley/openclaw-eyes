@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from legal.matter_workspace import (
     REQUIRED_DIRECTORIES,
     create_matter_workspace,
+    import_staging_sources,
     load_matter_workspace,
     register_source,
 )
@@ -174,6 +175,94 @@ def test_source_registration_copies_file_and_preserves_original(tmp_path: Path) 
     assert stored != source
     manifest = _read_json(root / "manifest.json")
     assert manifest["sources"] == [entry]
+
+
+def test_import_staging_rejects_staging_dir_inside_product_repo(
+    tmp_path: Path,
+) -> None:
+    product_root = tmp_path / "repo"
+    product_root.mkdir()
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = product_root / "staging"
+    staging.mkdir()
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    with patch("legal.matter_workspace.PRODUCT_REPO_ROOT", product_root):
+        with pytest.raises(LegalPathError, match="staging dir must be outside"):
+            import_staging_sources(
+                root,
+                staging,
+                lane="synthetic",
+                allowed_vault_roots=[vault],
+            )
+
+
+def test_import_staging_rejects_symlink_escape(tmp_path: Path) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    outside = tmp_path / "outside.txt"
+    staging.mkdir()
+    outside.write_text("outside", encoding="utf-8")
+    (staging / "outside-link.txt").symlink_to(outside)
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    with pytest.raises(LegalPathError, match="escapes"):
+        import_staging_sources(
+            root,
+            staging,
+            lane="synthetic",
+            allowed_vault_roots=[vault],
+        )
+
+
+def test_import_staging_skips_directories(tmp_path: Path) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    (staging / "nested").mkdir()
+    (staging / "source.txt").write_text("source", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    result = import_staging_sources(
+        root,
+        staging,
+        lane="synthetic",
+        allowed_vault_roots=[vault],
+    )
+
+    assert result["source_count_imported"] == 1
+    assert result["skipped_directory_count"] == 1
+    assert result["staging_dir_present"] is True
+    assert "staging_dir" not in result
+    manifest = _read_json(root / "manifest.json")
+    assert [source["original_filename"] for source in manifest["sources"]] == [
+        "source.txt"
+    ]
+
+
+def test_real_matter_import_rejects_marked_synthetic_fixture_pack(
+    tmp_path: Path,
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    (staging / ".openclaw-synthetic-fixture-pack").write_text("", encoding="utf-8")
+    (staging / "source.txt").write_text("source", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    with pytest.raises(ValueError, match="synthetic fixture pack"):
+        import_staging_sources(
+            root,
+            staging,
+            lane="real-matter",
+            allowed_vault_roots=[vault],
+        )
+
+    assert _read_json(root / "manifest.json")["sources"] == []
 
 
 def test_stable_sha256_and_source_id_for_same_content(tmp_path: Path) -> None:

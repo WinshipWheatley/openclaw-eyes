@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from legal.path_guard import (
+    PRODUCT_REPO_ROOT,
+    LegalPathError,
     canonicalize_matter_root,
+    canonicalize_vault_roots,
     resolve_matter_child,
     validate_manifest_source_paths,
 )
@@ -27,6 +30,15 @@ REQUIRED_DIRECTORIES = ("sources", "transcripts", "notes", "exports")
 MANIFEST_FILENAME = "manifest.json"
 AUDIT_FILENAME = "audit.jsonl"
 SOURCE_ID_PREFIX_LENGTH = 12
+STAGING_LANE_CONTEXTS = {
+    "synthetic": "synthetic",
+    "real-matter": "real_matter_local_only",
+}
+SYNTHETIC_FIXTURE_MARKERS = {
+    ".openclaw-synthetic-fixture-pack",
+    "synthetic-fixture-pack.json",
+    "synthetic_fixture_pack.json",
+}
 
 
 @dataclass(frozen=True)
@@ -198,6 +210,73 @@ def register_source(
     return entry
 
 
+def import_staging_sources(
+    matter_root: str | Path,
+    staging_dir: str | Path,
+    *,
+    lane: str,
+    allowed_vault_roots: Iterable[str | Path] | str | Path,
+) -> dict[str, Any]:
+    """Register regular files from a local staging directory under a lane."""
+
+    if lane not in STAGING_LANE_CONTEXTS:
+        allowed = ", ".join(sorted(STAGING_LANE_CONTEXTS))
+        raise ValueError(f"lane must be one of: {allowed}")
+
+    vault_roots = canonicalize_vault_roots(allowed_vault_roots)
+    root = canonicalize_matter_root(
+        matter_root,
+        allowed_vault_roots=vault_roots,
+    )
+    staging = _canonicalize_staging_dir(staging_dir)
+    if lane == "real-matter":
+        _reject_synthetic_fixture_markers(staging)
+
+    imported: list[dict[str, Any]] = []
+    skipped_directories = 0
+    for candidate in sorted(staging.iterdir(), key=lambda path: path.name):
+        if candidate.is_dir() and not candidate.is_symlink():
+            skipped_directories += 1
+            continue
+        source = _resolve_staging_regular_file(staging, candidate)
+        registered = register_source(
+            root,
+            source,
+            allowed_vault_roots=vault_roots,
+        )
+        imported.append(registered)
+
+    context = STAGING_LANE_CONTEXTS[lane]
+    imported_at = _utc_now()
+    source_ids = [source["source_id"] for source in imported]
+    _tag_staging_import_sources(root, source_ids, lane, context, imported_at)
+    _append_audit(
+        root / AUDIT_FILENAME,
+        {
+            "event": "staging_import",
+            "lane": lane,
+            "import_context": context,
+            "source_count_imported": len(imported),
+            "source_ids": source_ids,
+            "staging_path_validated": True,
+            "staging_dir_present": True,
+            "skipped_directory_count": skipped_directories,
+            "imported_at": imported_at,
+        },
+    )
+    return {
+        "event": "staging_import",
+        "lane": lane,
+        "import_context": context,
+        "source_count_imported": len(imported),
+        "sources": imported,
+        "staging_path_validated": True,
+        "staging_dir_present": True,
+        "skipped_directory_count": skipped_directories,
+        "matter_root": str(root),
+    }
+
+
 def _source_id_for_digest(digest: str, sources: list[dict[str, Any]]) -> str:
     prefix_length = SOURCE_ID_PREFIX_LENGTH
     while prefix_length <= len(digest):
@@ -217,6 +296,68 @@ def _find_source_by_id(
         if source.get("source_id") == source_id:
             return source
     return None
+
+
+def _canonicalize_staging_dir(staging_dir: str | Path) -> Path:
+    staging = Path(staging_dir).expanduser().resolve(strict=True)
+    repo_root = PRODUCT_REPO_ROOT.resolve(strict=False)
+    if _is_relative_to(staging, repo_root):
+        raise LegalPathError(
+            f"staging dir must be outside product repo: {staging} is under {repo_root}"
+        )
+    if not staging.is_dir():
+        raise NotADirectoryError(f"staging dir not found: {staging}")
+    return staging
+
+
+def _resolve_staging_regular_file(staging: Path, candidate: Path) -> Path:
+    resolved = candidate.resolve(strict=True)
+    if not _is_relative_to(resolved, staging):
+        raise LegalPathError(
+            f"staging entry must stay inside staging dir: {resolved} escapes {staging}"
+        )
+    if candidate.is_symlink():
+        raise LegalPathError(f"staging entry must not be a symlink: {candidate.name}")
+    if not candidate.is_file():
+        raise FileNotFoundError(f"staging entry is not a regular file: {candidate}")
+    return resolved
+
+
+def _reject_synthetic_fixture_markers(staging: Path) -> None:
+    for child in staging.iterdir():
+        if child.name in SYNTHETIC_FIXTURE_MARKERS:
+            raise ValueError(
+                "real-matter staging import cannot use an explicitly marked "
+                "synthetic fixture pack"
+            )
+
+
+def _tag_staging_import_sources(
+    matter_root: Path,
+    source_ids: list[str],
+    lane: str,
+    context: str,
+    imported_at: str,
+) -> None:
+    if not source_ids:
+        return
+    manifest_path = matter_root / MANIFEST_FILENAME
+    manifest = _read_manifest(matter_root)
+    source_id_set = set(source_ids)
+    for source in manifest.get("sources", []):
+        if source.get("source_id") in source_id_set:
+            source["staging_import_lane"] = lane
+            source["staging_import_context"] = context
+            source["staging_imported_at"] = imported_at
+    _write_json(manifest_path, manifest)
+
+
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
 
 
 def _read_manifest(root: Path) -> dict[str, Any]:

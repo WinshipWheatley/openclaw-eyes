@@ -117,6 +117,227 @@ def test_add_source_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
     assert Path(payload["stored_path"]).is_file()
 
 
+def test_import_staging_requires_lane(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "import-staging",
+                "--vault-root",
+                str(vault),
+                "--root",
+                str(root),
+                "--staging-dir",
+                str(staging),
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert exc.value.code == 2
+    assert "--lane" in captured.err
+
+
+def test_import_staging_rejects_invalid_lane(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "import-staging",
+                "--vault-root",
+                str(vault),
+                "--root",
+                str(root),
+                "--staging-dir",
+                str(staging),
+                "--lane",
+                "unknown",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert exc.value.code == 2
+    assert "invalid choice" in captured.err
+
+
+def test_import_staging_requires_vault_root(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    create_matter_workspace(root, "matter", "Matter")
+
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "import-staging",
+                "--root",
+                str(root),
+                "--staging-dir",
+                str(staging),
+                "--lane",
+                "synthetic",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert exc.value.code == 2
+    assert "--vault-root" in captured.err
+
+
+def test_import_staging_rejects_matter_root_outside_vault(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = tmp_path / "outside" / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+
+    code = main(
+        [
+            "import-staging",
+            "--vault-root",
+            str(vault),
+            "--root",
+            str(root),
+            "--staging-dir",
+            str(staging),
+            "--lane",
+            "synthetic",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert "approved legal vault root" in captured.err
+
+
+def test_import_staging_synthetic_imports_and_records_context(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    first = staging / "alpha.txt"
+    second = staging / "beta.md"
+    first.write_text("alpha evidence", encoding="utf-8")
+    second.write_text("# beta", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    code, payload = _run_cli(
+        [
+            "import-staging",
+            "--vault-root",
+            str(vault),
+            "--root",
+            str(root),
+            "--staging-dir",
+            str(staging),
+            "--lane",
+            "synthetic",
+        ],
+        capsys,
+    )
+
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    audit = [
+        json.loads(line)
+        for line in (root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert code == 0
+    assert payload["lane"] == "synthetic"
+    assert payload["import_context"] == "synthetic"
+    assert payload["source_count_imported"] == 2
+    assert payload["staging_path_validated"] is True
+    assert payload["staging_dir_present"] is True
+    assert "staging_dir" not in payload
+    assert first.read_text(encoding="utf-8") == "alpha evidence"
+    assert second.read_text(encoding="utf-8") == "# beta"
+    assert {source["original_filename"] for source in manifest["sources"]} == {
+        "alpha.txt",
+        "beta.md",
+    }
+    assert {source["staging_import_context"] for source in manifest["sources"]} == {
+        "synthetic"
+    }
+    assert all(source["source_id"].startswith("src_") for source in manifest["sources"])
+    assert all(len(source["sha256"]) == 64 for source in manifest["sources"])
+    assert audit[-1]["event"] == "staging_import"
+    assert audit[-1]["lane"] == "synthetic"
+    assert audit[-1]["source_count_imported"] == 2
+    assert audit[-1]["staging_path_validated"] is True
+    assert audit[-1]["staging_dir_present"] is True
+    assert "staging_dir" not in audit[-1]
+
+
+def test_import_staging_real_matter_records_local_only_context(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vault = tmp_path / "legal-vault"
+    root = vault / "matter"
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    staged = staging / "client-note.txt"
+    staged.write_text("local matter note", encoding="utf-8")
+    create_matter_workspace(root, "matter", "Matter", allowed_vault_roots=[vault])
+
+    code, payload = _run_cli(
+        [
+            "import-staging",
+            "--vault-root",
+            str(vault),
+            "--root",
+            str(root),
+            "--staging-dir",
+            str(staging),
+            "--lane",
+            "real-matter",
+        ],
+        capsys,
+    )
+
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    audit = [
+        json.loads(line)
+        for line in (root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert code == 0
+    assert payload["lane"] == "real-matter"
+    assert payload["import_context"] == "real_matter_local_only"
+    assert payload["source_count_imported"] == 1
+    assert payload["staging_dir_present"] is True
+    assert "staging_dir" not in payload
+    assert manifest["sources"][0]["staging_import_context"] == "real_matter_local_only"
+    assert audit[-1]["import_context"] == "real_matter_local_only"
+    assert audit[-1]["staging_dir_present"] is True
+    assert "staging_dir" not in audit[-1]
+    assert str(staging) not in json.dumps(payload, sort_keys=True)
+    assert str(staging) not in json.dumps(audit[-1], sort_keys=True)
+    assert staged.read_text(encoding="utf-8") == "local matter note"
+
+
 def test_extract_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = tmp_path / "matter"
     source = tmp_path / "source.md"
