@@ -771,6 +771,64 @@ Proof:
 - full focused Legal suite including known-answer fixtures passed: `139 passed in 1.79s`
 - script smoke run completed with `known_answer_passed: true`
 
+## Completed Phase 1 workstation bridge scripts
+
+Commit:
+
+```text
+4c77421 feat(legal): add workstation bridge scripts
+```
+
+Changed files:
+
+- `.gitignore`
+- `mac_eyes/Launchers/scaffold_mac_legal_vault.sh`
+- `scripts/run_legal_pipeline_v0.sh`
+
+Implemented behavior:
+
+- Added Mac Obsidian control vault scaffold script.
+- Default Mac vault target: `~/OpenClawLegalPrivate/Matter_Alpha_Workspace`.
+- Creates:
+  - `00_START_HERE.md`
+  - `01_DROP_FILES_HERE/`
+  - `03_STATUS.md`
+  - `04_OUTPUTS/`
+  - `05_SUPPORT_PACKET_REVIEW.md`
+  - `.openclaw_config/matter_config.env`
+  - `Run_OpenClaw_Dry_Run.command`
+  - Desktop symlink: `~/Desktop/OpenClaw Legal Matter Alpha`
+- Config includes editable `PC_SSH_TARGET` plus PC repo/vault/staging/export paths.
+- Added PC-side runner: `scripts/run_legal_pipeline_v0.sh`.
+- PC private paths (outside `/home/openclaw`):
+  - `/mnt/c/OpenClawLegalPrivate/vault`
+  - `/mnt/c/OpenClawLegalPrivate/staging/<matter_id>`
+  - `/mnt/c/OpenClawLegalPrivate/exports/<matter_id>`
+- Runner uses existing Legal CLI: `create-matter`, `import-staging --lane real-matter`, `extract-all`, `search`, `report`, `review-packet`, `support-packet`, `alternative-methods`.
+- Keeps real matter data outside `/home/openclaw`.
+- Mac button/launcher flow: Open vault → drop copied files → double-click `Run_OpenClaw_Dry_Run.command` → read `03_STATUS.md` and `04_OUTPUTS/`.
+- No Legal Python implementation code changed.
+- No scanned PDF OCR, video/audio, timeline, contradiction, checker AI, cloud tool, or external LLM behavior added.
+
+Proof:
+
+- `bash -n` passed for both scripts.
+- Scaffold proof generated expected files/directories with safe temp override.
+- Generated launcher mode: `700`.
+- Desktop symlink proof passed in temp proof desktop.
+- Default WSL/openclaw vault creation was refused without creating private vault data.
+- PC runner proof with one synthetic dummy file succeeded.
+- Export proof: `reports=1`, `review_packets=1`, `support_files=1`.
+- Verified no `/home/openclaw/OpenClawLegalPrivate` was created.
+- Final git status after commit was clean.
+
+Remaining gaps:
+
+- Mac double-click + SSH end-to-end not yet tested because `PC_SSH_TARGET` must be configured from the Mac.
+- Desktop shortcut is a symlink, not a native macOS alias.
+- Real personal matter has not been run through this bridge yet.
+- First bridge use should be dummy/synthetic files only, then tiny copied real sample only after bridge proof.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -934,16 +992,21 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-Current Legal now has a synthetic known-answer fixture pack to validate extraction/status/support-packet behavior and OCR-adjacent behavior.
-Current Legal also has local PNG/JPG/JPEG OCR prototype and dual-mode staging intake.
+Current Legal now has Phase 1 workstation bridge scripts in addition to dual-mode staging, local image OCR, known-answer fixtures, and sync helper.
+
+Next steps:
+
+1. configure/test `PC_SSH_TARGET` from the Mac with dummy files.
+2. run the Mac Obsidian bridge end-to-end with dummy files.
+3. only then run a tiny copied real-matter sample.
 
 Next possible planning/build target should be chosen from:
+
 1. scanned PDF OCR planning/prototype
 2. timestamp/timeline metadata model planning
 3. personal-matter local workflow dry run using supported local-only file types
    *(Note: The `create-matter` CLI command requires `--matter-id` and `--display-name`. The `search` and `report` commands require `--query`.)*
 4. first checker/QA planning over known-answer outputs
-5. Phase 1 Lawyer Workstation → Primary Node Local Processing Bridge v0 (Mac Obsidian control vault → PC/WSL processing engine)
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
 
