@@ -943,6 +943,7 @@ Next possible planning/build target should be chosen from:
 3. personal-matter local workflow dry run using supported local-only file types
    *(Note: The `create-matter` CLI command requires `--matter-id` and `--display-name`. The `search` and `report` commands require `--query`.)*
 4. first checker/QA planning over known-answer outputs
+5. Phase 1 Lawyer Workstation → Primary Node Local Processing Bridge v0 (Mac Obsidian control vault → PC/WSL processing engine)
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
 
