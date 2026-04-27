@@ -238,6 +238,7 @@
 !scripts/
 !scripts/check_cassandra_capability_drift.py
 !scripts/demo_legal_mock_discovery.py
+!scripts/demo_legal_known_answer_fixtures.py
 !scripts/install_openclaw_stack.sh
 !legal/
 !legal/alternative_methods.py
@@ -247,6 +248,7 @@
 !tests/test_alternative_methods.py
 !tests/test_support_packet.py
 !tests/test_legal_mock_discovery_demo.py
+!tests/test_known_answer_fixtures.py
 !systemd/
 !systemd/user/
 !systemd/user/*.in
