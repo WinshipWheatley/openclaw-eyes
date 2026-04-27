@@ -272,6 +272,7 @@ Before calling this a launchable v1, the system should prove:
 - keep matter data outside repo
 - run proof commands on synthetic/public data
 - show clear status for processed/failed/unsupported items
+- **Attorney-Gated QA / Review-and-Rework:** Required before deployment of system-generated timelines, contradiction candidates, summaries, or other substantive review outputs. Product proof must show that these outputs are flagged, source-linked, attorney-review framed, and require attorney approval before rework or finalization.
 - document exact limitations
 
 ## Required security/privacy proof before launch

@@ -302,6 +302,43 @@ Key UI elements:
 
 Request Feature should not be visible until the local pathway has been attempted or policy-blocked.
 
+### 10. Attorney-Gated QA / Review-and-Rework
+
+Purpose:
+
+- review system-generated candidates (timelines, contradictions, summaries)
+- verify claims against source records
+- manage evidence-verification flags
+- authorize rework for rejected or cautionary items
+- ensure no silent fixes or unreviewed legal conclusions
+
+Key UI elements:
+
+- Candidate List (e.g., Draft Timelines, Factual Claims)
+- Checker View: Verified claims, caution flags, possible errors
+- Flag Indicators:
+  - **Green:** High-confidence source-supported insight
+  - **Yellow:** Caution/ambiguity/low confidence
+  - **Red:** Possible system error/unsupported claim
+- Source Deep-Dive: Links to source ID, page, frame, or timestamp
+- Lawyer Action Menu:
+  - Approve Rework
+  - Reject Flag
+  - Defer
+  - Mark Needs Manual Review
+  - Mark Attorney-Reviewed
+- Rework Status: Pending lawyer approval, In progress, Verified
+- Verification Sentinel status (for system reliability check)
+
+Example:
+
+```text
+Claim: Speaker A at 14:02:05 mentioned X.
+Status: [Yellow Flag]
+Reason: Timestamp in source is 14:02:15.
+Lawyer Action: [Approve Rework]
+```
+
 ## Confidence/status bar
 
 The console should have a persistent confidence/status bar.

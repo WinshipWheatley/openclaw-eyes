@@ -238,6 +238,22 @@ OpenClaw Legal operates under a clear ownership boundary to protect both the fir
 - **Matched Reference Bench:** For higher-tier deployments, a developer-owned reference bench may be used to match the firm’s hardware tier for issue reproduction and update validation. This bench uses only synthetic data or sanitized diagnostics; real firm data is prohibited unless explicitly agreed in writing.
 - **Validated Update Pipeline:** We do not experiment on the firm’s live system. The reference bench should be used to test new models, modules, and fixes before they are offered to the firm. Firm production systems should receive only packaged, tested updates with clear release notes, risk labels, and explicit approval for workflow-changing updates. New tools must not be silently deployed to firm production.
 
+## 17. Attorney-Gated QA / Review-and-Rework Doctrine
+
+OpenClaw Legal is designed for high-stakes accuracy, not just creative generation. The system operates on a controlled "first pass, verification, and attorney-authorized rework" cycle:
+
+- **Separation of Pass and Proof:** The system creates a first-pass output (e.g., timeline, summary). A separate evidence-verification checker then performs a second pass to decompose the output into claims and verify them against source records.
+- **Evidence-Verification Pass, Not Opinion Pass:** The checker asks specific, factual questions: Can the claim be proven from source? Is the source ID/page/frame correct? Is the quote accurate? Did the system skip relevant evidence or overstate confidence?
+- **Flag-Based Trust Calibration:**
+  - **Green flag:** High-confidence, source-supported insight. Green does not mean legally true; it means the system found supporting evidence.
+  - **Yellow flag:** Caution, ambiguity, or lower confidence. Requires attorney expertise or deeper review.
+  - **Red flag:** Possible system error, unsupported claim, bad extraction, or citation failure.
+- **Attorney-Controlled Rework Loop:** The lawyer reviews flags and decides on an action: approve rework, reject flag, defer, mark for manual review, or mark attorney-reviewed.
+- **No Silent Fixes:** The system reworks only lawyer-approved items. It must never silently change legal outputs without an attorney-authorized review step.
+- **No Legal Conclusions Without Review:** The system may surface candidates and evidence, but final legal judgment and conclusions remain strictly under attorney control.
+- **Verification Strategy:** Future checker validation should utilize **Known-Answer Fixtures / Validation Sentinels** to ensure the verification pass itself is reliable.
+- **Lane Compliance:** In Lane B (Real Matter), the checker must be local-only by default. External checker prototypes may only be used in Lane A with synthetic data.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:

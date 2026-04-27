@@ -45,6 +45,8 @@ The processing queue may eventually handle:
 - local repair/build attempts
 - public analog fixture search
 - model comparison/recheck tasks
+- **attorney-approved rework batches**
+- **claims-verification rechecks**
 - distributed worker-node tasks
 
 The first implementation should start narrower and deterministic.
@@ -99,6 +101,7 @@ Task groups should represent larger units such as:
 - review packet generation
 - model recheck batch
 - unsupported-file repair attempt
+- **attorney-authorized rework batch**
 
 ## Queue statuses
 
