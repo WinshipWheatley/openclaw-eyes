@@ -79,6 +79,7 @@
 !mac_eyes/Launchers/
 !mac_eyes/Launchers/sync_to_mac.sh
 !mac_eyes/Launchers/sync_legal_planning_to_mac.sh
+!mac_eyes/Launchers/scaffold_mac_legal_vault.sh
 !mac_eyes/Launchers/start_legal_planning_sync_window.sh
 !mac_eyes/Launchers/watch_legal_planning_to_mac.sh
 !mac_eyes/Winship/
@@ -241,6 +242,7 @@
 !scripts/demo_legal_mock_discovery.py
 !scripts/demo_legal_known_answer_fixtures.py
 !scripts/install_openclaw_stack.sh
+!scripts/run_legal_pipeline_v0.sh
 !legal/
 !legal/alternative_methods.py
 !legal/local_capability_policy.py
