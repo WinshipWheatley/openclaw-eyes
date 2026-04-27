@@ -700,6 +700,77 @@ Proof:
 - focused OCR/support tests passed: `29 passed`
 - full focused Legal suite passed: `133 passed in 1.59s`
 
+## Completed short-lived planning sync helper
+
+Commit:
+
+```text
+f0f4707 docs(legal): add short-lived planning sync helper
+```
+
+Helper path:
+
+- `/home/openclaw/mac_eyes/Launchers/start_legal_planning_sync_window.sh`
+
+Implemented behavior:
+
+- short-lived PC→Mac Legal planning sync window
+- self-expires after 20 minutes (1200 seconds max)
+- checks every 60 seconds
+- not a permanent watcher; no cron or background daemon installed
+
+## Completed Known-Answer Fixture Pack v0
+
+Commit:
+
+```text
+96eb365 test(legal): add known-answer fixture pack
+```
+
+Changed files:
+
+- `.gitignore`
+- `scripts/demo_legal_known_answer_fixtures.py`
+- `tests/test_known_answer_fixtures.py`
+
+Command added:
+
+```bash
+python3 scripts/demo_legal_known_answer_fixtures.py [OUTPUT_ROOT]
+```
+
+Optional generation-only mode:
+
+```bash
+python3 scripts/demo_legal_known_answer_fixtures.py --generate-only [OUTPUT_ROOT]
+```
+
+Implemented behavior:
+
+- creates a synthetic Lane A known-answer fixture pack outside `/home/openclaw`
+- default output root: `/tmp/openclaw_legal_known_answer_fixtures`
+- creates `fixture_staging/`
+- creates explicit synthetic fixture marker: `.openclaw-synthetic-fixture-pack/manifest.json`
+- creates known searchable text fixture: `known_answer_note.txt` with term `fixture-omega-42`
+- creates synthetic image fixture: `synthetic_scan.png`
+- creates unsupported fake extension: `unsupported_payload.openclawfake`
+- imports through existing `import-staging --lane synthetic` flow
+- runs existing extraction/search/support/Alternative Methods paths
+- returns/writes expected-vs-actual summary including source counts, extraction/status behavior, searchable term found, support packet redaction, and `product_repo_data_written` false
+- existing real-matter marker rejection blocks explicitly marked fixture packs from real-matter intake
+- no real matter data
+- no external LLMs/cloud tools
+- no scanned PDF OCR
+- no video/audio
+- no timeline/contradiction candidates
+- no checker AI
+
+Proof:
+
+- focused fixture/Legal tests passed: `75 passed`
+- full focused Legal suite including known-answer fixtures passed: `139 passed in 1.79s`
+- script smoke run completed with `known_answer_passed: true`
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -863,17 +934,16 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-Current Legal now supports local image OCR prototype for PNG/JPG/JPEG when Tesseract is installed.
-OCR-needed Alternative Methods remain available when Tesseract is absent.
-Scanned PDF OCR remains future work.
+Current Legal now has a synthetic known-answer fixture pack to validate extraction/status/support-packet behavior and OCR-adjacent behavior.
+Current Legal also has local PNG/JPG/JPEG OCR prototype and dual-mode staging intake.
 
 Next possible planning/build target should be chosen from:
 1. scanned PDF OCR planning/prototype
 2. timestamp/timeline metadata model planning
-3. known-answer fixture pack implementation
-4. personal-matter local workflow dry run using supported local-only file types
+3. personal-matter local workflow dry run using supported local-only file types
+4. first checker/QA planning over known-answer outputs
 
-Do not imply scanned PDFs/video/audio/timeline/contradiction are implemented.
+Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
 
 Do not jump to email import, cloud import, real discovery, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
