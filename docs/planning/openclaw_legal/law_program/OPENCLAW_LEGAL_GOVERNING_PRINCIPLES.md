@@ -285,6 +285,56 @@ OpenClaw Legal operates on the principle that the firm is buying private local d
 - **Validated Update Pipeline:** We do not experiment on the firm's live system. Updates must be tested on the reference bench first, and only packaged, tested updates are offered to firm production.
 - **Budget Framing:** Pricing should be scoped as pilot/buildout pricing. Development/tooling budgets can include developer-owned reference hardware/environment, but the firm is not "buying the developer a laptop." Production hardware remains firm-owned and separate.
 
+## 20. Personal Matter Local-Only Usage Doctrine
+
+The user's real personal legal matter is strictly **Lane B**.
+
+Personal case data must stay local-only. The development/tooling budget is for engineering and synthetic R&D, not for processing real matter data through external AI. Fake data is where we experiment. Real data is where we prove trust.
+
+No external LLMs or external tools may process the user’s personal matter contents. This explicitly prohibits:
+- ChatGPT
+- Gemini
+- Claude
+- Codex
+- Anthropic, OpenAI, or Google processing
+- Any non-local tool reading raw case files, texts, notes, screenshots, transcripts, exports, or extracted text
+
+**Currently Safe Local Capabilities:**
+The current system may be used locally on personal matter data only for capabilities that already exist and are safe:
+- source registration and hashing
+- TXT, MD, and text-layer PDF extraction
+- local search
+- Markdown reports
+- review packets
+- sanitized support packets
+- Alternative Methods
+- local capability policy states
+
+**Currently Unsupported Capabilities:**
+The system does not yet fully support (and personal matter data must not be used to experiment with):
+- screenshots or scanned PDFs without OCR
+- audio/video transcription
+- video frame OCR
+- source-linked timeline candidates
+- contradiction candidates
+- broad local LM synthesis
+
+**Outputs:**
+Outputs from the user’s personal matter must be source-linked, attorney-review framed, and local-only. They are not legal advice and not legal conclusions.
+
+The user may generate local-only outputs from their personal matter to help their lawyers save time and to demonstrate that the system is trusted enough for sensitive local work.
+
+**Strict Prohibitions:**
+Personal matter content must not leak into Lane A. Do not use personal matter content in:
+- synthetic fixtures
+- public demos
+- external LLM prompts
+- benchmark packs
+- product docs
+- non-local debugging
+
+Personal matter outputs can demonstrate trust/value only through local artifacts or sanitized descriptions.
+
 ## Final rule
 
 When in doubt, choose the path that keeps OpenClaw Legal:

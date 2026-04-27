@@ -668,6 +668,7 @@ The following points are binding planning doctrine for the next chat:
 - Mac `OpenClaw_Watch` docs are planning/reflection only.
 - PC/WSL `/home/openclaw` is canonical implementation authority.
 - **Dual-Lane Development Model** is mandatory: Lane A uses only synthetic/public-safe data and may use external tools; Lane B uses real matter data and is local-only by default.
+- **Personal Matter Local-Only Usage Doctrine** is mandatory: The user's personal matter is strictly Lane B. No external LLM or tool may process personal case contents. Local-only capabilities may be used to generate attorney-review aids, not legal advice. Personal matter content must not leak into Lane A (no fixtures, prompts, or demos).
 - **IP / Pilot / Ownership Doctrine** is mandatory: Developer owns reusable product core and reference bench; Firm owns private matter data, work product, and production hardware; Validated Update Pipeline (test on bench first, then offer packaged updates) is required.
 - **Attorney-Gated QA / Review-and-Rework Doctrine** is mandatory: System creates first pass; separate checker performs evidence-verification (claims verification against source records); flag model (Green/Yellow/Red); attorney-controlled rework loop; no silent fixes; no legal conclusions without review.
 - **Known-Answer Fixtures / Validation Sentinels Doctrine** is mandatory: Use seeded synthetic/public-safe evidence packs to benchmark and validate OCR, checker reliability, and update safety; Lane A only; no matter contamination.
