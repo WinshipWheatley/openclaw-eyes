@@ -586,6 +586,58 @@ Remaining gaps:
 - public analog search and request-feature export are still not implemented
 - support packet diagnostics were not enriched in this slice
 
+## Completed dual-mode staging intake
+
+Commit:
+
+```text
+b45ff57 feat(legal): add dual-mode staging intake
+```
+
+Changed files:
+
+- `legal/cli.py`
+- `legal/matter_workspace.py`
+- `tests/test_legal_cli.py`
+- `tests/test_matter_workspace.py`
+
+CLI command added:
+
+```bash
+python3 -m legal.cli import-staging \
+  --vault-root <vault_root> \
+  --root <matter_root> \
+  --staging-dir <staging_dir> \
+  --lane <synthetic|real-matter>
+```
+
+Implemented behavior:
+
+- `--lane` is mandatory, no default
+- `--staging-dir` is mandatory
+- `--vault-root` is mandatory
+- invalid lane rejected by `argparse`
+- staging/matter/vault paths must resolve outside `/home/openclaw`/product repo boundaries
+- matter root must resolve inside approved vault root
+- symlink/traversal staging escapes rejected
+- imports regular files only; skips directories
+- original staging files are preserved
+- files are copied/registered through existing source registration path
+- hashes/source IDs preserved through existing source registration
+- audit entry written for `staging_import` including lane, context, counts, path validation, and timestamp
+- manifest sources tagged with `staging_import_lane`, `staging_import_context`, and `staging_imported_at`
+- `synthetic` lane maps to `synthetic`
+- `real-matter` lane maps to `real_matter_local_only`
+- explicitly marked synthetic fixture packs are rejected for real-matter intake
+- raw staging absolute path was removed from audit and CLI JSON output for privacy
+- no OCR, video/audio, timeline, contradiction, LLM, email/cloud, or external tool scope was added
+
+Proof:
+
+- `py_compile` passed for `legal/cli.py` and `legal/matter_workspace.py`
+- focused tests passed: `52 passed`
+- full focused Legal suite passed: `127 passed in 1.74s`
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -749,15 +801,18 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-The next practical slice should be local staging/drop-folder intake for mock discovery.
+Current Legal now supports dual-mode staging intake in addition to prior mock CLI foundation. The system now has an easier file-drop import path for both synthetic demos and real-matter local-only intake.
 
-The goal is to let fake/public-safe discovery files be dropped into a local staging folder and imported into a matter.
+Next possible planning/build target should be chosen from:
+1. OCR prototype planning for screenshots/scanned PDFs
+2. timestamp/timeline metadata model planning
+3. known-answer fixture pack implementation planning
 
-Do not jump to email import, cloud import, real discovery, OCR, UI, connectors, distributed workers, model distribution, or cloud connectors.
+Do not imply OCR/video/timeline/contradiction are implemented.
+
+Do not jump to email import, cloud import, real discovery, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
-
-The likely best next engineering move is still not distributed compute or huge local models. It is continuing boundary hardening around the Legal v0 spine.
 
 ## What not to do next
 
