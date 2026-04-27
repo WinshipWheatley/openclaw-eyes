@@ -638,6 +638,64 @@ Proof:
 - focused tests passed: `52 passed`
 - full focused Legal suite passed: `127 passed in 1.74s`
 
+## Completed local image OCR prototype
+
+Commit:
+
+```text
+88177ac feat(legal): add local image OCR prototype
+```
+
+Changed files:
+
+- `legal/local_ingestion.py`
+- `legal/alternative_methods.py`
+- `legal/local_capability_policy.py`
+- `legal/support_packet.py`
+- `tests/test_local_ingestion.py`
+- `tests/test_alternative_methods.py`
+- `tests/test_support_packet.py`
+
+Implemented behavior:
+
+- local-only OCR prototype for image files:
+  - `.png`
+  - `.jpg`
+  - `.jpeg`
+- uses local Tesseract CLI only
+- dynamically checks for Tesseract
+- if Tesseract is present:
+  - runs `tesseract <input_path> stdout`
+  - uses bounded timeout
+  - writes OCR text through existing extracted artifact path
+  - marks status `extracted`
+  - uses extractor `tesseract_ocr_v0`
+  - prepends `[Extracted via local OCR]`
+- if Tesseract is missing:
+  - no crash
+  - no subprocess call
+  - image files record safe OCR-needed/unsupported behavior
+  - reason `ocr_module_not_installed`
+  - Alternative Methods surfaces `ocr_module_needed`
+- if Tesseract fails or times out:
+  - status `failed`
+  - reason `ocr_process_failed`
+  - raw stderr/exceptions/private paths are not stored in sanitized outputs
+- support packet reports sanitized extension/status/extractor/reason metadata only
+- no OCR text/private paths in support packets
+- no scanned PDF OCR
+- no video/audio OCR
+- no cloud OCR
+- no external OCR services
+- no LLM OCR cleanup
+- no timeline/contradiction candidates
+
+Proof:
+
+- `py_compile` passed for OCR-touched Legal modules
+- focused OCR/support tests passed: `29 passed`
+- full focused Legal suite passed: `133 passed in 1.59s`
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -801,14 +859,17 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-Current Legal now supports dual-mode staging intake in addition to prior mock CLI foundation. The system now has an easier file-drop import path for both synthetic demos and real-matter local-only intake.
+Current Legal now supports local image OCR prototype for PNG/JPG/JPEG when Tesseract is installed.
+OCR-needed Alternative Methods remain available when Tesseract is absent.
+Scanned PDF OCR remains future work.
 
 Next possible planning/build target should be chosen from:
-1. OCR prototype planning for screenshots/scanned PDFs
+1. scanned PDF OCR planning/prototype
 2. timestamp/timeline metadata model planning
-3. known-answer fixture pack implementation planning
+3. known-answer fixture pack implementation
+4. personal-matter local workflow dry run using supported local-only file types
 
-Do not imply OCR/video/timeline/contradiction are implemented.
+Do not imply scanned PDFs/video/audio/timeline/contradiction are implemented.
 
 Do not jump to email import, cloud import, real discovery, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
