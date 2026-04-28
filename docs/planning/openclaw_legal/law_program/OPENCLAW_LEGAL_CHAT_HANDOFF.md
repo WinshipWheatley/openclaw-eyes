@@ -846,6 +846,41 @@ Key proven facts:
 - **Safety Warning:** Real matter should not be used until the dummy/scaffold pattern is packaged and reviewed. First bridge use should remain dummy/synthetic files only.
 - **macOS Native Alias:** The desktop shortcut is currently a symlink, not a native macOS alias.
 
+## Completed static Legal Console spike scaffold
+
+Commit: `c35c58a feat(legal): add static console spike scaffold`
+
+App path:
+`apps/legal-console-spike/`
+
+What was built (Phase 0 + Phase 1 only):
+- A static/disposable Tauri-shaped GUI scaffold was created.
+- Scaffolding includes `package.json`, `index.html`, `tsconfig.json`, `src` TypeScript files (`main.ts`, `legalConsole.ts`, etc.), and `src-tauri` Rust files (`Cargo.toml`, `main.rs`, etc.).
+- Narrow `.gitignore` allowlist for `apps/legal-console-spike/`.
+
+What was intentionally not built:
+- No command execution is wired.
+- No bridge invocation.
+- No file picker.
+- No private vault reading.
+- No Legal Python engine edits.
+- No dependency install.
+- No GUI launch.
+
+Proof summary:
+- `git diff --check` passed.
+- `bash -n` checks on related shell scripts passed.
+- Verified no `/home/openclaw/OpenClawLegalPrivate` exists.
+- Forbidden UX string scan passed (no "Cassandra", "AI lawyer", "lawyer replacement", etc.).
+- JSON parsing and Cargo metadata checks passed without installing dependencies.
+- Expected app files are visible to git and VS Code diagnostics showed no errors.
+
+Why this is a rollback/checkpoint boundary:
+- This confirms the static GUI shell exists, but does not prove runtime Tauri launch, command execution, file selection, bridge invocation, status refresh, or real legal use.
+- It acts as a clean checkpoint before any Phase 2 command wiring.
+
+Next step: Phase 2 command wiring (e.g. file picker, status refresh) is separate and should remain gated by audit findings.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
