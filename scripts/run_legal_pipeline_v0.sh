@@ -100,7 +100,7 @@ VAULT_ROOT=/mnt/c/OpenClawLegalPrivate/vault
 MATTER_ROOT="$VAULT_ROOT/$MATTER_ID"
 STAGING_DIR=/mnt/c/OpenClawLegalPrivate/staging/$MATTER_ID
 EXPORTS_DIR=/mnt/c/OpenClawLegalPrivate/exports/$MATTER_ID
-STATUS_PATH="$EXPORTS_DIR/03_STATUS.md"
+STATUS_PATH="$EXPORTS_DIR/PRIMARY_NODE_STATUS.md"
 ALTERNATIVE_METHODS_PATH="$EXPORTS_DIR/alternative_methods.json"
 
 assert_not_openclaw_repo_path "VAULT_ROOT" "$VAULT_ROOT"
@@ -109,6 +109,7 @@ assert_not_openclaw_repo_path "STAGING_DIR" "$STAGING_DIR"
 assert_not_openclaw_repo_path "EXPORTS_DIR" "$EXPORTS_DIR"
 
 mkdir -p "$VAULT_ROOT" "$STAGING_DIR" "$EXPORTS_DIR"
+rm -f "$EXPORTS_DIR/03_STATUS.md"
 write_status "Processing" "Primary node processing started. Source filenames and source text are not listed here."
 
 if [[ -f "$MATTER_ROOT/manifest.json" ]]; then
