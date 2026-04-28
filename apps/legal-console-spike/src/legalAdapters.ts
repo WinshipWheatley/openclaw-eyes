@@ -11,7 +11,7 @@ export interface OsAdapterStatus {
 
 export interface PrimaryNodeTransportStatus {
   label: string;
-  transport: TransportType | "firm-local API";
+  transport: TransportType | "firm-local service";
   state: AdapterState;
   detail: string;
 }
@@ -65,8 +65,8 @@ export const primaryNodeTransports: PrimaryNodeTransportStatus[] = [
     detail: "For the Mac workstation to PC/WSL Primary Node proof target."
   },
   {
-    label: "firm-local API",
-    transport: "firm-local API",
+    label: "firm-local service",
+    transport: "firm-local service",
     state: "future target",
     detail: "For a later firm-controlled service endpoint without changing the console model."
   }

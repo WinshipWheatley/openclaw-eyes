@@ -240,6 +240,124 @@ code {
   width: 100%;
 }
 
+.status-refresh-button {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  border: 1px solid #8eb8d2;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: var(--blue-soft);
+  color: #194764;
+  cursor: pointer;
+  text-align: left;
+}
+
+.status-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.status-refresh-button span {
+  font-weight: 750;
+}
+
+.status-refresh-button small {
+  color: #315c78;
+  font-size: 0.78rem;
+}
+
+.live-status {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 14px;
+  padding: 14px;
+  background: #fafbfc;
+}
+
+.live-status--safe {
+  border-color: #a9d3bf;
+  background: var(--green-soft);
+}
+
+.live-status--warning {
+  border-color: #e7c175;
+  background: var(--amber-soft);
+}
+
+.live-status--error {
+  border-color: #f0c3bd;
+  background: var(--red-soft);
+}
+
+.live-status__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.live-status__heading span {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.live-status__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.live-status__grid div {
+  border: 1px solid rgba(32, 38, 45, 0.14);
+  border-radius: 8px;
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.live-status__grid span,
+.live-status__grid strong {
+  display: block;
+}
+
+.live-status__grid span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.live-status__grid strong {
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+}
+
+.status-message-list {
+  margin-top: 10px;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.status-message-list--warning {
+  background: rgba(145, 100, 14, 0.1);
+  color: #5f410a;
+}
+
+.status-message-list--error {
+  background: rgba(166, 64, 57, 0.12);
+  color: #6e2925;
+}
+
+.status-message-list ul {
+  margin-top: 6px;
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -368,7 +486,8 @@ li + li {
 
   .path-row,
   .control-grid,
-  .status-grid {
+  .status-grid,
+  .live-status__grid {
     grid-template-columns: 1fr;
   }
 }

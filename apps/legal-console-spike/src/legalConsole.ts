@@ -1,5 +1,6 @@
 import { osAdapters, primaryNodeTransports, sharedUiResponsibilities } from "./legalAdapters";
 import { proofTargetConfig, safetyStatements } from "./legalPaths";
+import { initialStatusSnapshot, renderStatusSnapshot } from "./legalStatus";
 
 const disabledControls = [
   "Open Intake Folder",
@@ -46,8 +47,8 @@ export function renderLegalConsole(): string {
           <p class="summary">A disposable desktop-console scaffold for the Mac workstation to PC/WSL Primary Node proof path.</p>
         </div>
         <div class="phase-badge" aria-label="Phase status">
-          <strong>Phase 0 + 1</strong>
-          <span>Static display only</span>
+          <strong>Phase 2A</strong>
+          <span>Status refresh only</span>
         </div>
       </header>
 
@@ -65,11 +66,12 @@ export function renderLegalConsole(): string {
             <span class="os-pill">macOS</span>
           </div>
           <div class="warning-box">
-            Local-only dummy proof surface. No file picker, command execution, bridge run, or private vault read is wired in this phase.
+            Local-only dummy proof surface. Only fixed status-file reads are wired in this phase; no file picker, command execution, bridge run, or private content display is wired.
           </div>
           <div class="path-list">
             ${renderPathRow("Configured workstation vault", proofTargetConfig.workstationVaultPath)}
             ${renderPathRow("Exact intake folder", proofTargetConfig.intakeFolderPath)}
+            ${renderPathRow("Workstation status", proofTargetConfig.workstationStatusPath)}
           </div>
           <div class="control-grid" aria-label="Disabled workstation controls">
             ${disabledControls.map(renderDisabledButton).join("")}
@@ -90,6 +92,8 @@ export function renderLegalConsole(): string {
             ${renderPathRow("Vault root", proofTargetConfig.primaryNodeVaultRoot)}
             ${renderPathRow("Staging path", proofTargetConfig.stagingPath)}
             ${renderPathRow("Exports path", proofTargetConfig.exportsPath)}
+            ${renderPathRow("Returned status", proofTargetConfig.primaryStatusPath)}
+            ${renderPathRow("Output guide check", proofTargetConfig.outputGuidePath)}
             ${renderPathRow("Transport", proofTargetConfig.transport)}
             ${renderPathRow("OS target", proofTargetConfig.primaryNodeOs)}
           </div>
@@ -97,12 +101,15 @@ export function renderLegalConsole(): string {
             ${renderStatusCard("Matter data in /home/openclaw", "Blocked", "stop")}
             ${renderStatusCard("Private root", "Configured outside repo", "ok")}
             ${renderStatusCard("Bridge commands", "Not wired", "hold")}
-            ${renderStatusCard("Live status refresh", "Disabled", "hold")}
+            ${renderStatusCard("Live status refresh", "Read-only", "ok")}
           </div>
-          <button class="disabled-control disabled-control--wide" type="button" disabled aria-disabled="true">
+          <button class="status-refresh-button" type="button" data-refresh-status>
             <span>Refresh Status</span>
-            <small>Not wired in this phase</small>
+            <small>Reads fixed status files only</small>
           </button>
+          <div data-status-snapshot>
+            ${renderStatusSnapshot(initialStatusSnapshot)}
+          </div>
         </article>
 
         <article class="panel panel--architecture">

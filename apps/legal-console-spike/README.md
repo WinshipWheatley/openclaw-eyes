@@ -26,14 +26,19 @@ Matter data must not enter `/home/openclaw`.
 
 ## Current Phase
 
-Phase 0 and Phase 1 are static display only:
+Phase 2A adds read-only status refresh only:
 
 - the Tauri-shaped scaffold exists
+- `get_status_snapshot` may read the fixed workstation status file
+- `get_status_snapshot` may read the fixed returned Primary Node status file
+- `get_status_snapshot` may check whether the fixed output guide exists
 - no command execution is wired
 - no file picker is wired
 - no bridge script is run
-- no private vault contents are read
-- all controls are disabled placeholders
+- no intake files, source files, reports, review packets, support packet bodies, audit logs, or arbitrary directories are read
+- Open Intake Folder, Add Dummy File, Run Dry Run, Reset Local Test, and Reset All Test State remain disabled placeholders
+
+The status refresh returns sanitized fields only: presence booleans, known status names, optional `Last updated` values, boundary state, warnings, and errors. It does not return raw Markdown contents or file names from private matter folders.
 
 The first proof target represented by the UI is Mac workstation to PC/WSL Primary Node over `ssh`, using dummy or synthetic files only.
 
@@ -43,7 +48,7 @@ The spike is organized around three layers:
 
 - Shared UI: status panels, intake workflow, disabled run/reset controls, output placeholders, and safety language.
 - OS adapters: macOS is the current proof path; Windows and Linux are explicit stubs; WSL is represented as the current Primary Node target.
-- Primary Node abstraction: `ssh` is the current proof transport; `local` and `firm-local API` are future targets.
+- Primary Node abstraction: `ssh` is the current proof transport; `local` and `firm-local service` are future targets.
 
 Future phases should keep these layers explicit instead of hardcoding one user, one folder layout, or one workstation/Primary Node pairing.
 

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Disposable static Tauri v2 GUI spike for OpenClaw Legal.",
+  "description": "Disposable Tauri v2 GUI spike for OpenClaw Legal.",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
     "build": "tsc --noEmit && vite build",

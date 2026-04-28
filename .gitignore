@@ -88,7 +88,7 @@
 !apps/legal-console-spike/src-tauri/capabilities/
 !apps/legal-console-spike/src-tauri/capabilities/default.json
 !apps/legal-console-spike/src-tauri/src/
-!apps/legal-console-spike/src-tauri/src/main.rs
+!apps/legal-console-spike/src-tauri/src/*.rs
 
 !docs/handoffs/cassandra/
 !docs/handoffs/cassandra/.gitkeep
