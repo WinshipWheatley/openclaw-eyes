@@ -822,7 +822,23 @@ Proof:
 - Verified no `/home/openclaw/OpenClawLegalPrivate` was created.
 - Final git status after commit was clean.
 
-Remaining gaps:
+## Completed Mac Obsidian control-surface proof
+
+A Mac-side local Obsidian prototype now exists in the private vault, providing a real control-surface proof of concept for operator comfort.
+
+Key proven facts:
+
+- **Prototype Status:** Proven as a prototype operator comfort layer. It is NOT the final sellable Legal Console UX.
+- **Path Boundary Proof:** Mac vault at `~/OpenClawLegalPrivate/Matter_Alpha_Workspace`. PC private paths remain outside `/home/openclaw` at `/mnt/c/OpenClawLegalPrivate/`.
+- **Action Buttons:** Real Obsidian buttons (via `openclaw-legal-actions` local plugin) for Open Drop Folder, Create Dummy Test File, Run OpenClaw Dry Run, Reset Local Test, and Reset All Test State.
+- **Intake Safety Discovery:**
+  - **Direct Drag/Drop is UNSAFE:** Proven ambiguous because attachments can land outside `01_DROP_FILES_HERE/`.
+  - **Safe Path:** Click "Open Drop Folder" → use Finder → put files in exact intake folder.
+- **Evidence-Only Intake:** `01_DROP_FILES_HERE/` must contain only evidence intended for processing. Instruction notes were moved to `02_ACTIONS/ADD_FILES.md`.
+- **Clean Dummy Proof Result:** After full reset, processing a single dummy file resulted in `Status: Done`, Search Report result count 1, and no stale/instruction files in the output.
+- **Reset Logic:** Functional, test-only, and confirmation-gated state reset.
+
+## Dual-Lane Development Model
 
 - Mac double-click + SSH end-to-end not yet tested because `PC_SSH_TARGET` must be configured from the Mac.
 - Desktop shortcut is a symlink, not a native macOS alias.
@@ -992,15 +1008,15 @@ No real firm deployment should happen without:
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts in addition to dual-mode staging, local image OCR, known-answer fixtures, and sync helper.
+Current Legal now has Phase 1 workstation bridge scripts and a proven Obsidian prototype control surface, in addition to dual-mode staging, local image OCR, known-answer fixtures, and sync helper.
 
-Next steps:
+Immediate next work:
 
-1. configure/test `PC_SSH_TARGET` from the Mac with dummy files.
-2. run the Mac Obsidian bridge end-to-end with dummy files.
-3. only then run a tiny copied real-matter sample.
+1. **Package proven pattern:** Update `mac_eyes/Launchers/scaffold_mac_legal_vault.sh` to include the Obsidian action-note/plugin structure.
+2. **Improve Obsidian summaries:** Generate cleaner `04_CASE_NOTES` summaries from `04_OUTPUTS` in an Obsidian-native format.
+3. **Local Agent area:** Add/preserve a PC-side local-agent-readable area under `/mnt/c/OpenClawLegalPrivate/agent_readable/<matter_id>/` (must stay outside `/home/openclaw` and be invisible to non-local tools).
 
-Next possible planning/build target should be chosen from:
+Future possible targets:
 
 1. scanned PDF OCR planning/prototype
 2. timestamp/timeline metadata model planning
@@ -1009,6 +1025,7 @@ Next possible planning/build target should be chosen from:
 4. first checker/QA planning over known-answer outputs
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
+
 
 Do not jump to email import, cloud import, real discovery, UI, connectors, distributed workers, model distribution, or cloud connectors.
 
