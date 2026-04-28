@@ -879,7 +879,67 @@ Why this is a rollback/checkpoint boundary:
 - This confirms the static GUI shell exists, but does not prove runtime Tauri launch, command execution, file selection, bridge invocation, status refresh, or real legal use.
 - It acts as a clean checkpoint before any Phase 2 command wiring.
 
-Next step: Phase 2 command wiring (e.g. file picker, status refresh) is separate and should remain gated by audit findings.
+Next step: Phase 2B command wiring is separate and should remain gated by audit findings. Status refresh is now completed as the narrow Phase 2A checkpoint below.
+
+## Completed Phase 2A Legal Console status refresh
+
+Commit: `4b4710c feat(legal): add console status refresh`
+
+App path:
+`apps/legal-console-spike/`
+
+What was built (Phase 2A only):
+- Added a read-only Legal Console status refresh path.
+- Added Tauri/Rust command: `get_status_snapshot`.
+- Added frontend status refresh handling in `apps/legal-console-spike/src/legalStatus.ts`.
+- Added Rust status implementation in `apps/legal-console-spike/src-tauri/src/status.rs`.
+- Fixed the `.gitignore` allowlist so `apps/legal-console-spike/src-tauri/src/*.rs` files are visible/tracked.
+- Tauri capabilities remain minimal: `core:default` only.
+
+Allowed fixed status reads:
+- `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/03_WORKSTATION_STATUS.md`
+- `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/PRIMARY_NODE_STATUS.md`
+- Existence check only for `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/00_OPEN_THIS_FIRST.md`
+
+Sanitized fields returned:
+- `workstation_status_present`
+- `workstation_state`
+- `workstation_last_updated`
+- `primary_status_present`
+- `primary_state`
+- `primary_last_updated`
+- `outputs_guide_present`
+- `boundary_state`
+- `warnings`
+- `errors`
+
+What remains intentionally unwired:
+- No command execution.
+- No file picker/open folder.
+- No dummy-file creation.
+- No bridge invocation.
+- No Legal Python engine edits.
+- No broad filesystem, shell, dialog, opener, or network permissions.
+- No reads of intake files, source files, extracted text, reports, review packets, support packet bodies, audit logs, arbitrary files/directories, or real matter contents.
+
+Proof summary:
+- `git diff --check` passed.
+- `bash -n mac_eyes/Launchers/scaffold_mac_legal_vault.sh` passed.
+- `bash -n scripts/run_legal_pipeline_v0.sh` passed.
+- `test ! -e /home/openclaw/OpenClawLegalPrivate` passed.
+- Forbidden UX string scan passed.
+- JSON parse checks passed.
+- `cargo metadata --no-deps` passed.
+- VS Code diagnostics showed no errors.
+- `npm run check/build` was intentionally skipped because `node_modules` is missing and dependency install was not approved.
+- `cargo check` was intentionally skipped because offline mode could not resolve uncached `serde_json` and dependency fetch was not approved.
+
+Why this is a rollback/checkpoint boundary:
+- This proves the narrow read-only status-refresh implementation at the code/scaffold level.
+- It does not prove runtime Tauri launch, command execution, file selection/open folder, bridge invocation, or real legal use.
+- It keeps Phase 2A reversible and reviewable before any Phase 2B control expansion.
+
+Next step: Phase 2B should be planned separately. The likely next GUI slice is open-intake-folder, not dummy creation or command execution yet.
 
 ## Dual-Lane Development Model
 
@@ -1127,13 +1187,14 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, and a short-lived planning sync helper.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, and the Phase 2A read-only Legal Console status refresh checkpoint.
 
 Immediate next work:
 
-1. **Controlled GUI spike prompt:** Write and execute a narrow implementation prompt for a disposable Mac workstation + PC/WSL primary-node console spike that reuses existing bridge scripts and dummy data only.
-2. **One-screen proof:** Keep the first surface limited to safe intake, run/reset controls, status/results display, and boundary status. The spike should prove UX control, not replace the Legal engine.
-3. **Security scan/proof:** Prove product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+1. **Phase 2B Legal Console planning:** Plan the next GUI slice separately, likely open-intake-folder next, while keeping dummy creation and command execution out of scope until separately approved.
+2. **Runtime/dependency validation:** Future Tauri runtime launch and dependency validation remain unproven and should wait for an approved dependency/runtime check lane.
+3. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
+4. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Future possible targets:
 
@@ -1144,7 +1205,7 @@ Future possible targets:
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
 
-Do not jump to email import, cloud import, real discovery, Connect, distributed workers, model distribution, or cloud connectors.
+Do not use real matter for the GUI spike. Do not jump to email import, cloud import, real discovery, Connect, distributed workers, model distribution, or cloud connectors.
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
