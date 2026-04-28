@@ -70,6 +70,26 @@
 !docs/archives/**/
 !docs/archives/**/*.md
 !docs/archives/**/README.md
+
+# OpenClaw Legal disposable console spike
+!apps/
+!apps/legal-console-spike/
+!apps/legal-console-spike/README.md
+!apps/legal-console-spike/package.json
+!apps/legal-console-spike/index.html
+!apps/legal-console-spike/tsconfig.json
+!apps/legal-console-spike/src/
+!apps/legal-console-spike/src/*.ts
+!apps/legal-console-spike/src/*.css
+!apps/legal-console-spike/src-tauri/
+!apps/legal-console-spike/src-tauri/Cargo.toml
+!apps/legal-console-spike/src-tauri/tauri.conf.json
+!apps/legal-console-spike/src-tauri/build.rs
+!apps/legal-console-spike/src-tauri/capabilities/
+!apps/legal-console-spike/src-tauri/capabilities/default.json
+!apps/legal-console-spike/src-tauri/src/
+!apps/legal-console-spike/src-tauri/src/main.rs
+
 !docs/handoffs/cassandra/
 !docs/handoffs/cassandra/.gitkeep
 !docs/exports/
