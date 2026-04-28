@@ -1013,6 +1013,34 @@ Date/context: 2026-04-28, after the Phase 1 Mac Obsidian control-surface proof a
 
 Recommendation: start a controlled desktop GUI spike now.
 
+Mac execution lane and tooling gate, verified 2026-04-28:
+
+- PC/WSL Codex can reach the Mac with `ssh mac`; the scout command `ssh mac 'hostname; pwd; whoami'` returned the Mac host/user context successfully.
+- Bounded `rsync` works PC to Mac and Mac to PC when both sides use only synthetic `/tmp/openclaw_legal_*` paths.
+- Allowed Mac paths for future GUI-spike work are `~/OpenClawLegalPrivate/Matter_Alpha_Workspace`, `~/OpenClawLegalDev`, `~/OpenClaw_Watch/law_program`, and `/tmp/openclaw_legal_*`.
+- `~/OpenClawLegalPrivate/Matter_Alpha_Workspace` exists, is writable, and is not a symlink. Only top-level vault names were listed; real matter contents were not read.
+- `~/OpenClawLegalDev` did not exist during the scout but its parent is writable, so it may be created later only when an implementation prompt explicitly authorizes it.
+- The Mac has Rust/Cargo, Xcode Command Line Tools, and Python available. The Mac shell does not currently expose `node` or `npm` on `PATH`.
+- Do not install or enable tooling from Codex without explicit approval. Do not start building Tauri until the Node/npm decision is approved.
+- Future Mac commands must stay path-bounded. Do not search the Mac home directory broadly, do not copy private matter files, do not read real matter file contents, and do not create symlinks between the product repo and the private vault.
+
+Cross-platform architecture requirement for the GUI spike:
+
+- Treat the first GUI as a cross-platform-shaped console, not a Mac-only one-off.
+- Separate shared UI from OS adapters. Shared UI covers status display, intake workflow, run/reset controls, output links, and boundary warnings.
+- Document adapters for macOS, Windows, Linux, and WSL-backed Primary Node operation even if only the macOS workstation to PC/WSL Primary Node path is proven first.
+- Define a Primary Node abstraction with `local`, `ssh`, and future firm-local API transport options so the UX model does not change when transport changes.
+- Use config for product code path, workstation vault path, primary node vault root, staging path, exports path, transport type (`local` or `ssh`), and OS type (`macos`, `windows`, `linux`, or `wsl`).
+- Do not hardcode the spike to one user, one machine pair, WSL-only primary nodes, Mac-only workstations, or one folder layout beyond configured defaults.
+- Unimplemented OS adapters should be explicit stubs or documentation targets, not hidden assumptions.
+
+Tooling decision for the next implementation prompt:
+
+- Preferred path: keep Tauri as the intended desktop direction, but gate implementation on an approved Node/npm plan for the Mac.
+- Do not use PC-side static build plus Mac asset sync as the primary path unless native-window behavior is deliberately deferred; it weakens the desktop proof.
+- Do not switch to a Rust-only alternative unless the team accepts a smaller UI toolkit/prototyping surface than Tauri.
+- If Node/npm remains unavailable and no install/enable step is approved, defer Tauri and use a local web/static shell only as a temporary architecture sketch, not as the desktop-console proof.
+
 Why:
 
 - The Obsidian prototype proved operator comfort, real local buttons, the safe Finder drop-folder path, dummy bridge processing, and reset behavior.
