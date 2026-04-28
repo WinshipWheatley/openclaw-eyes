@@ -1007,28 +1007,81 @@ No real firm deployment should happen without:
 - emergency/rush support pricing or exclusion
 - permission to use only sanitized diagnostics for product improvement
 
+## GUI pre-plan recommendation
+
+Date/context: 2026-04-28, after the Phase 1 Mac Obsidian control-surface proof and clean dummy bridge proof.
+
+Recommendation: start a controlled desktop GUI spike now.
+
+Why:
+
+- The Obsidian prototype proved operator comfort, real local buttons, the safe Finder drop-folder path, dummy bridge processing, and reset behavior.
+- It also proved the core risk: direct Obsidian drag/drop is ambiguous and can place files outside `01_DROP_FILES_HERE/`.
+- Obsidian remains useful as a prototype/private operator surface, but it should not receive more credit-heavy polish as the final sellable UX unless the product contract deliberately changes.
+- The controlled console direction is already supported by `OPENCLAW_LEGAL_CONSOLE_V0_controlled_UX_spec.md`: the sellable product should be a bounded legal operations console, not an Obsidian-only vault.
+- The existing local bridge is enough to support a thin GUI spike without rewriting the Legal engine.
+
+Smallest next slice:
+
+- Create a disposable controlled GUI spike that reuses existing bridge commands and shows only a narrow status/intake flow.
+- Mac workstation surface: choose/open the exact evidence-only drop folder, select or drag/drop copied files into that folder safely, run the existing bridge command, and show workstation/output status.
+- PC/WSL Primary Node surface: show configured vault/staging/export paths, last primary-node status, local-only/security boundary status, and whether outputs exist.
+- Reuse existing commands rather than replacing Legal logic: `Run_OpenClaw_Dry_Run.command`, `Reset_Test_Run.command`, `Reset_All_Test_State.command`, and `scripts/run_legal_pipeline_v0.sh`.
+- Keep product code in `/home/openclaw`, Mac workstation data in `~/OpenClawLegalPrivate`, and PC matter data in `/mnt/c/OpenClawLegalPrivate`.
+- Use dummy/synthetic files only. Real matter data has not been run through this bridge and must stay out of prompts, repo, support packets, update packages, and non-local tools.
+
+What must not be built yet:
+
+- Connect/distributed workers, node enrollment, model distribution, model routing, timeline candidates, contradiction candidates, privilege screening, email/cloud import, scanned-PDF expansion, broad OCR expansion, attorney-replacement language, legal advice, or any UI using internal OpenClaw agent names.
+- Do not build an Obsidian plugin polish pass as the main next product slice.
+- Do not migrate matter data into `/home/openclaw`.
+- Do not use real legal data for GUI proof.
+
+Stop conditions:
+
+- The spike cannot prove matter data stays outside `/home/openclaw`.
+- The GUI needs broad Legal backend rewrites instead of reusing the bridge.
+- The spike requires cloud services, external LLMs, telemetry, or non-local matter-data handling.
+- File intake cannot be constrained to the exact evidence-only folder.
+- Dependencies or packaging complexity exceed a one-screen proof.
+- The scope drifts toward Connect, distributed workers, model distribution, timeline/privilege/email/OCR expansion, or real-matter operation.
+
+Proof expectations for the later build slice:
+
+- `git diff --check` passes for changed files.
+- `bash -n mac_eyes/Launchers/scaffold_mac_legal_vault.sh` passes if touched.
+- `bash -n scripts/run_legal_pipeline_v0.sh` passes if touched.
+- GUI/static smoke test proves the drop target resolves to `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE` or a safe temp equivalent.
+- Dummy run still produces `Status: Done`, one known search result for the dummy query, and no stale instruction files in the output summary.
+- Reset commands remain distinct: local reset clears only Mac drop/outputs; full test reset remains confirmation-gated and refuses unsafe PC paths.
+- Proof verifies no `/home/openclaw/OpenClawLegalPrivate` exists and no matter artifacts are written under `/home/openclaw`.
+- UI string scan finds no internal OpenClaw agent names in legal UX.
+- Final proof uses dummy/synthetic files only and does not print file contents.
+
+Reminder: the Obsidian prototype is proven but is not the final sellable UX. It should remain a private prototype/operator comfort surface unless a future contract deliberately reclassifies it.
+
+Reminder: real matter data has not been run through this bridge. It must stay out of prompts, repo, public fixtures, support packets, update packages, and non-local tools.
+
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts and a proven Obsidian prototype control surface, in addition to dual-mode staging, local image OCR, known-answer fixtures, and sync helper.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, and a short-lived planning sync helper.
 
 Immediate next work:
 
-1. **Package proven pattern:** Update `mac_eyes/Launchers/scaffold_mac_legal_vault.sh` to include the Obsidian action-note/plugin structure.
-2. **Improve Obsidian summaries:** Generate cleaner `04_CASE_NOTES` summaries from `04_OUTPUTS` in an Obsidian-native format.
-3. **Local Agent area:** Add/preserve a PC-side local-agent-readable area under `/mnt/c/OpenClawLegalPrivate/agent_readable/<matter_id>/` (must stay outside `/home/openclaw` and be invisible to non-local tools).
+1. **Controlled GUI spike prompt:** Write and execute a narrow implementation prompt for a disposable Mac workstation + PC/WSL primary-node console spike that reuses existing bridge scripts and dummy data only.
+2. **One-screen proof:** Keep the first surface limited to safe intake, run/reset controls, status/results display, and boundary status. The spike should prove UX control, not replace the Legal engine.
+3. **Security scan/proof:** Prove product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Future possible targets:
 
-1. scanned PDF OCR planning/prototype
-2. timestamp/timeline metadata model planning
-3. personal-matter local workflow dry run using supported local-only file types
-   *(Note: The `create-matter` CLI command requires `--matter-id` and `--display-name`. The `search` and `report` commands require `--query`.)*
+1. package or retire the Obsidian prototype pattern after the GUI spike teaches what should become product UX
+2. cleaner output summaries for operator review
+3. PC-side local-only agent-readable output planning under `/mnt/c/OpenClawLegalPrivate/agent_readable/<matter_id>/`, if still needed and kept invisible to non-local tools
 4. first checker/QA planning over known-answer outputs
 
 Do not imply scanned PDFs/video/audio/timeline/contradiction/checker AI are implemented.
 
-
-Do not jump to email import, cloud import, real discovery, UI, connectors, distributed workers, model distribution, or cloud connectors.
+Do not jump to email import, cloud import, real discovery, Connect, distributed workers, model distribution, or cloud connectors.
 
 The next slice should remain small, testable, reversible, and Legal-only. It should include exact files, tests, proof commands, and rollback/checkpoint expectations.
 
