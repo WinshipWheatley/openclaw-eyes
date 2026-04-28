@@ -838,12 +838,13 @@ Key proven facts:
 - **Clean Dummy Proof Result:** After full reset, processing a single dummy file resulted in `Status: Done`, Search Report result count 1, and no stale/instruction files in the output.
 - **Reset Logic:** Functional, test-only, and confirmation-gated state reset.
 
-## Dual-Lane Development Model
+### Remaining gaps
 
-- Mac double-click + SSH end-to-end not yet tested because `PC_SSH_TARGET` must be configured from the Mac.
-- Desktop shortcut is a symlink, not a native macOS alias.
-- Real personal matter has not been run through this bridge yet.
-- First bridge use should be dummy/synthetic files only, then tiny copied real sample only after bridge proof.
+- **Scaffold Packaging:** The Obsidian prototype (action-note/plugin pattern) is not yet packaged into the reusable PC `scaffold_mac_legal_vault.sh` script.
+- **Improved Summaries:** Cleaner `04_CASE_NOTES` output summaries and the PC-side `agent_readable` area are still future work.
+- **Real Matter Proof:** Real personal matter has not been run through this bridge yet.
+- **Safety Warning:** Real matter should not be used until the dummy/scaffold pattern is packaged and reviewed. First bridge use should remain dummy/synthetic files only.
+- **macOS Native Alias:** The desktop shortcut is currently a symlink, not a native macOS alias.
 
 ## Dual-Lane Development Model
 
