@@ -267,6 +267,7 @@ img {
 .surface__footer,
 .surface__proof,
 .theme-picker,
+.intake-readiness,
 .intake-result,
 .live-status {
   border: 1px solid var(--line);
@@ -1028,6 +1029,63 @@ p {
 
 .action-result:empty {
   display: none;
+}
+
+.intake-readiness-slot {
+  display: grid;
+}
+
+.intake-readiness {
+  border-radius: var(--radius);
+  padding: 13px;
+  background: var(--panel-2);
+}
+
+.intake-readiness--safe {
+  border-color: var(--ok-line);
+}
+
+.intake-readiness--warning {
+  border-color: var(--warn-line);
+}
+
+.intake-readiness--error {
+  border-color: var(--danger-line);
+}
+
+.intake-readiness__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.intake-readiness__heading h3 {
+  margin: 4px 0 0;
+  color: var(--text-strong);
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.intake-readiness__message {
+  margin-bottom: 10px;
+  color: var(--text-strong);
+  font-size: 0.9rem;
+  font-weight: 760;
+}
+
+.intake-readiness__notes {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.intake-readiness__notes p {
+  margin-bottom: 0;
+  color: var(--muted-2);
+  font-size: 0.82rem;
 }
 
 .status-body {

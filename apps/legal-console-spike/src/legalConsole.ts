@@ -1,6 +1,11 @@
 import { osAdapters, primaryNodeTransports, sharedUiResponsibilities } from "./legalAdapters";
 import { proofTargetConfig, displayPath } from "./legalPaths";
-import { initialStatusSnapshot, renderStatusSnapshot } from "./legalStatus";
+import {
+  deriveIntakeReadiness,
+  initialStatusSnapshot,
+  renderIntakeReadinessPanel,
+  renderStatusSnapshot
+} from "./legalStatus";
 
 const brandMarkAssetUrl = new URL("./assets/visual-kit/brand-mark.svg", import.meta.url).href;
 const sidebarMountainDarkAssetUrl = new URL("./assets/visual-kit/sidebar-mountain-dark.svg", import.meta.url)
@@ -154,6 +159,10 @@ function renderProofTargetCard(): string {
             <small>Opens exact drop folder only</small>
           </span>
         </button>
+      </div>
+
+      <div class="intake-readiness-slot" data-intake-readiness>
+        ${renderIntakeReadinessPanel(deriveIntakeReadiness(initialStatusSnapshot))}
       </div>
 
       <div class="action-result" data-intake-result></div>

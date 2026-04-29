@@ -14,6 +14,8 @@ export type IntakeTargetKind = "directory" | "missing" | "not_directory" | "unkn
 export type ProcessingState = "not_run" | "workstation_progress" | "primary_returned" | "error" | "unknown";
 export type GuiBridgeState = "not_wired";
 export type BoundaryState = "safe" | "warning" | "error";
+export type IntakeReadinessState = "before_refresh" | "ready" | "missing" | "blocked" | "unknown";
+export type IntakeReadinessTone = "safe" | "warning" | "error";
 
 export interface LegalStatusSnapshot {
   workstation_status_present: boolean;
@@ -30,6 +32,19 @@ export interface LegalStatusSnapshot {
   gui_bridge_state: GuiBridgeState;
   boundary_state: BoundaryState;
   warnings: string[];
+  errors: string[];
+}
+
+export interface IntakeReadiness {
+  state: IntakeReadinessState;
+  tone: IntakeReadinessTone;
+  label: string;
+  message: string;
+}
+
+export interface IntakeOpenReadinessSignal {
+  opened: boolean;
+  boundary_state: BoundaryState;
   errors: string[];
 }
 
@@ -144,6 +159,105 @@ function guiBridgeStateLabel(value: GuiBridgeState): string {
     case "not_wired":
       return "Not wired from GUI";
   }
+}
+
+const intakePrivacyNote = "No filenames, file counts, or folder contents are displayed by design.";
+const intakeScopeNote =
+  "Manual Finder intake only; this GUI does not process, create dummy files, run the bridge, or reset test state.";
+
+function intakeReadinessForState(state: IntakeReadinessState): IntakeReadiness {
+  switch (state) {
+    case "before_refresh":
+      return {
+        state,
+        tone: "warning",
+        label: "Before refresh",
+        message: "Refresh Status to verify the fixed intake path."
+      };
+    case "ready":
+      return {
+        state,
+        tone: "safe",
+        label: "Ready",
+        message: "Approved intake folder is available. Use Finder to manually place copied evidence there."
+      };
+    case "missing":
+      return {
+        state,
+        tone: "warning",
+        label: "Missing",
+        message: "Intake scaffold is missing. Run the Mac vault scaffold outside this GUI."
+      };
+    case "blocked":
+      return {
+        state,
+        tone: "error",
+        label: "Blocked",
+        message: "Pause. Intake path failed a boundary check."
+      };
+    case "unknown":
+      return {
+        state,
+        tone: "warning",
+        label: "Unknown",
+        message: "Intake readiness unknown. Refresh Status."
+      };
+  }
+}
+
+export function deriveIntakeReadiness(snapshot: LegalStatusSnapshot): IntakeReadiness {
+  if (
+    snapshot.boundary_state === "error" ||
+    snapshot.errors.length > 0 ||
+    snapshot.intake_target_kind === "not_directory"
+  ) {
+    return intakeReadinessForState("blocked");
+  }
+
+  if (snapshot.warnings.includes("status_refresh_not_run")) {
+    return intakeReadinessForState("before_refresh");
+  }
+
+  if (snapshot.intake_folder_present && snapshot.intake_target_kind === "directory") {
+    return intakeReadinessForState("ready");
+  }
+
+  if (snapshot.intake_target_kind === "missing") {
+    return intakeReadinessForState("missing");
+  }
+
+  return intakeReadinessForState("unknown");
+}
+
+export function intakeReadinessFromOpenResult(result: IntakeOpenReadinessSignal): IntakeReadiness {
+  if (result.boundary_state === "error" || result.errors.length > 0) {
+    return intakeReadinessForState("blocked");
+  }
+
+  if (result.opened) {
+    return intakeReadinessForState("ready");
+  }
+
+  return intakeReadinessForState("unknown");
+}
+
+export function renderIntakeReadinessPanel(readiness: IntakeReadiness): string {
+  return `
+    <section class="intake-readiness intake-readiness--${readiness.tone}" data-intake-readiness-state="${readiness.state}" aria-live="polite">
+      <div class="intake-readiness__heading">
+        <div>
+          <p class="eyebrow">Intake readiness</p>
+          <h3>Manual Finder Intake</h3>
+        </div>
+        <span class="state-chip state-chip--${readiness.tone}">${escapeHtml(readiness.label)}</span>
+      </div>
+      <p class="intake-readiness__message">${escapeHtml(readiness.message)}</p>
+      <div class="intake-readiness__notes">
+        <p>${escapeHtml(intakePrivacyNote)}</p>
+        <p>${escapeHtml(intakeScopeNote)}</p>
+      </div>
+    </section>
+  `;
 }
 
 function renderList(title: string, values: string[], className: string): string {

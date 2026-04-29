@@ -1,7 +1,14 @@
 import "./styles.css";
 import { intakeOpenResultFromError, openIntakeFolder, renderIntakeOpenResult } from "./legalIntake";
 import { renderLegalConsole } from "./legalConsole";
-import { getStatusSnapshot, renderStatusSnapshot, statusSnapshotFromError } from "./legalStatus";
+import {
+  deriveIntakeReadiness,
+  getStatusSnapshot,
+  intakeReadinessFromOpenResult,
+  renderIntakeReadinessPanel,
+  renderStatusSnapshot,
+  statusSnapshotFromError
+} from "./legalStatus";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 const themeStorageKey = "openclaw-legal-console-theme";
@@ -18,6 +25,7 @@ const refreshButton = document.querySelector<HTMLButtonElement>("[data-refresh-s
 const statusTarget = document.querySelector<HTMLDivElement>("[data-status-snapshot]");
 const intakeButton = document.querySelector<HTMLButtonElement>("[data-open-intake]");
 const intakeTarget = document.querySelector<HTMLDivElement>("[data-intake-result]");
+const intakeReadinessTarget = document.querySelector<HTMLDivElement>("[data-intake-readiness]");
 const themeButtons = document.querySelectorAll<HTMLButtonElement>("[data-theme-option]");
 
 function isConsoleTheme(value: string | null): value is ConsoleTheme {
@@ -76,6 +84,12 @@ function setIntakeMarkup(markup: string): void {
   }
 }
 
+function setIntakeReadinessMarkup(markup: string): void {
+  if (intakeReadinessTarget) {
+    intakeReadinessTarget.innerHTML = markup;
+  }
+}
+
 intakeButton?.addEventListener("click", async () => {
   intakeButton.disabled = true;
   intakeButton.setAttribute("aria-busy", "true");
@@ -83,8 +97,11 @@ intakeButton?.addEventListener("click", async () => {
   try {
     const result = await openIntakeFolder();
     setIntakeMarkup(renderIntakeOpenResult(result));
+    setIntakeReadinessMarkup(renderIntakeReadinessPanel(intakeReadinessFromOpenResult(result)));
   } catch (error) {
-    setIntakeMarkup(renderIntakeOpenResult(intakeOpenResultFromError(error)));
+    const result = intakeOpenResultFromError(error);
+    setIntakeMarkup(renderIntakeOpenResult(result));
+    setIntakeReadinessMarkup(renderIntakeReadinessPanel(intakeReadinessFromOpenResult(result)));
   } finally {
     intakeButton.disabled = false;
     intakeButton.removeAttribute("aria-busy");
@@ -98,9 +115,12 @@ refreshButton?.addEventListener("click", async () => {
   try {
     const snapshot = await getStatusSnapshot();
     setStatusMarkup(renderStatusSnapshot(snapshot));
+    setIntakeReadinessMarkup(renderIntakeReadinessPanel(deriveIntakeReadiness(snapshot)));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Status refresh failed.";
-    setStatusMarkup(renderStatusSnapshot(statusSnapshotFromError(message)));
+    const snapshot = statusSnapshotFromError(message);
+    setStatusMarkup(renderStatusSnapshot(snapshot));
+    setIntakeReadinessMarkup(renderIntakeReadinessPanel(deriveIntakeReadiness(snapshot)));
   } finally {
     refreshButton.disabled = false;
     refreshButton.removeAttribute("aria-busy");
