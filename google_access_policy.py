@@ -32,8 +32,8 @@ DENIED  = None  # Access explicitly denied
 # Format: { capability: { agent: class_or_DENIED } }
 #
 # Phase 1 active:    google.calendar.read for Cassandra only.
-# Active safe reads: contacts.read, gmail.read.metadata, gmail.read.body.
-# Active review-first write: gmail.draft.create (auto-proceed, structured input).
+# Active safe reads: contacts.read, gmail.read.metadata.
+# Sensitive Gmail body reads and draft creation are Tier 1 confirmation paths.
 # Chief denied for all until phase 2 deliberate decision.
 #
 # Do not change a DENIED entry to CLASS_A/B/C without reviewing the approval class.
@@ -61,15 +61,15 @@ _POLICY: dict[str, dict[str, str | None]] = {
         "chief":     DENIED,
     },
 
-    # ── Grounded thread read — stays inside broker boundary with audit log ───
+    # ── Grounded thread read — private correspondence; Tier 1 confirmation ──
     "google.gmail.read.body": {
-        "cassandra": CLASS_A,
+        "cassandra": CLASS_B,
         "chief":     DENIED,
     },
 
-    # ── Active review-first write — reversible draft creation; no approval gate ─
+    # ── Active review-first write — reversible Gmail Draft; Tier 1 confirmation ─
     "google.gmail.draft.create": {
-        "cassandra": CLASS_A,
+        "cassandra": CLASS_B,
         "chief":     DENIED,
     },
 
@@ -123,7 +123,8 @@ if __name__ == "__main__":
     import sys
     cases = [
         ("cassandra", "google.calendar.read",       True,  CLASS_A),
-        ("cassandra", "google.gmail.draft.create",  True,  CLASS_A),
+        ("cassandra", "google.gmail.read.body",     True,  CLASS_B),
+        ("cassandra", "google.gmail.draft.create",  True,  CLASS_B),
         ("cassandra", "google.calendar.write",      True,  CLASS_B),
         ("cassandra", "google.gmail.send",           True,  CLASS_C),
         ("chief",     "google.calendar.read",       False, DENIED),
