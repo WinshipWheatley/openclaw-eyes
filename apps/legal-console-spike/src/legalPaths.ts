@@ -41,3 +41,13 @@ export const safetyStatements = [
   "Matter data must not enter /home/openclaw",
   "No processing commands wired"
 ];
+
+export function displayPath(value: string, leadingSegments = 2): string {
+  const parts = value.split("/").filter(Boolean);
+
+  if (parts.length <= leadingSegments + 2 || value.startsWith("~")) {
+    return value;
+  }
+
+  return `/${parts.slice(0, leadingSegments).join("/")}/.../${parts[parts.length - 1]}`;
+}

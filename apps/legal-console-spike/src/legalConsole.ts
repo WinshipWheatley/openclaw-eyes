@@ -1,166 +1,405 @@
 import { osAdapters, primaryNodeTransports, sharedUiResponsibilities } from "./legalAdapters";
-import { proofTargetConfig, safetyStatements } from "./legalPaths";
+import { proofTargetConfig, displayPath } from "./legalPaths";
 import { initialStatusSnapshot, renderStatusSnapshot } from "./legalStatus";
 
-const disabledControls = [
-  "Add Dummy File",
-  "Run Dry Run",
-  "Reset Local Test",
-  "Reset All Test State"
-];
+const themeOptions = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "horizon", label: "Horizon" }
+] as const;
 
-function renderPathRow(label: string, value: string): string {
+const navItems = [
+  { id: "overview", label: "Overview", icon: "grid", active: true },
+  { id: "intake", label: "Intake", icon: "doc", active: false },
+  { id: "status", label: "Status", icon: "wave", active: false },
+  { id: "settings", label: "Settings", icon: "gear", active: false },
+  { id: "about", label: "About", icon: "info", active: false }
+] as const;
+
+const disabledActions = [
+  { label: "Add Dummy File", detail: "Not wired in this phase", icon: "plus" },
+  { label: "Run Dry Run", detail: "Not wired in this phase", icon: "play" },
+  { label: "Reset Local Test", detail: "Not wired in this phase", icon: "refresh" },
+  { label: "Reset All Test State", detail: "Not wired in this phase", icon: "trash" }
+] as const;
+
+const workstationRows = [
+  { label: "Workspace Vault", value: proofTargetConfig.workstationVaultPath, tone: "path", icon: "wave" },
+  { label: "Intake Folder", value: displayPath(proofTargetConfig.intakeFolderPath, 2), tone: "path", icon: "folder" },
+  { label: "Status File", value: displayPath(proofTargetConfig.workstationStatusPath, 2), tone: "path", icon: "doc" },
+  { label: "Status Mode", value: "Read-only status snapshot", tone: "value", icon: "pulse" }
+] as const;
+
+const pathRows = [
+  { label: "Private Root (PC)", value: proofTargetConfig.primaryNodePrivateRoot, tone: "path", icon: "lock" },
+  { label: "Vault Root (PC)", value: proofTargetConfig.primaryNodeVaultRoot, tone: "path", icon: "folder" },
+  { label: "Workspace Vault", value: proofTargetConfig.workstationVaultPath, tone: "path", icon: "wave" },
+  { label: "Intake Folder", value: displayPath(proofTargetConfig.intakeFolderPath, 2), tone: "path", icon: "folder" },
+  { label: "Primary Status File", value: displayPath(proofTargetConfig.primaryStatusPath, 2), tone: "path", icon: "doc" },
+  { label: "Output Guide Check", value: displayPath(proofTargetConfig.outputGuidePath, 2), tone: "path", icon: "check" },
+  { label: "Transport", value: proofTargetConfig.transport, tone: "value", icon: "pulse" },
+  { label: "OS Target", value: proofTargetConfig.primaryNodeOs, tone: "value", icon: "gear" }
+] as const;
+
+const boundaryBadges = [
+  { label: "Matter Data in Vault", value: "Blocked", tone: "stop", icon: "lock" },
+  { label: "Private Root", value: "Configured outside repo", tone: "ok", icon: "check" },
+  { label: "Bridge Commands", value: "Not wired", tone: "hold", icon: "alert" },
+  { label: "Live Status Refresh", value: "Read-only", tone: "ok", icon: "check" }
+] as const;
+
+const icons: Record<string, string> = {
+  grid: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/></svg>',
+  doc: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h7l3 3v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 3v3h3"/></svg>',
+  wave: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h3l2-6 3 12 3-9 2 5h3"/></svg>',
+  gear: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2v2.4M10 15.6V18M2 10h2.4M15.6 10H18M4.6 4.6l1.7 1.7M13.7 13.7l1.7 1.7M4.6 15.4l1.7-1.7M13.7 6.3l1.7-1.7"/></svg>',
+  info: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7.4"/><path d="M10 9.2v4.4M10 6.4v.6"/></svg>',
+  shield: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2.4 3.4 4.8v5.1c0 4 2.7 6.7 6.6 7.7 3.9-1 6.6-3.7 6.6-7.7V4.8L10 2.4z"/><path d="m7.4 10.2 1.9 1.9 3.3-3.6"/></svg>',
+  lock: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4.5" y="9" width="11" height="8" rx="1.4"/><path d="M7 9V6.6a3 3 0 0 1 6 0V9"/></svg>',
+  check: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.4"/><path d="m6.8 10.2 2.2 2.2 4.2-4.4"/></svg>',
+  alert: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 2.6 16.2h14.8L10 3z"/><path d="M10 8.4v3.4M10 13.8v.4"/></svg>',
+  plus: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h7l3 3v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke-linejoin="round"/><path d="M9.6 12h2.8M11 10.6v2.8"/></svg>',
+  play: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="10" cy="10" r="7.4"/><path d="M8.5 7.4 13 10l-4.5 2.6V7.4z" fill="currentColor" stroke="none"/></svg>',
+  refresh: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a6 6 0 0 1 10.4-4.1L16.5 8"/><path d="M16.5 4.5V8H13"/><path d="M16 10a6 6 0 0 1-10.4 4.1L3.5 12"/><path d="M3.5 15.5V12H7"/></svg>',
+  trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6h11"/><path d="M6.5 6V4.6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V6"/><path d="M6 6.6 7 16.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L14 6.6"/></svg>',
+  folder: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.8 5.4a1 1 0 0 1 1-1h3.5l1.6 1.8h7.3a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H3.8a1 1 0 0 1-1-1V5.4z"/></svg>',
+  pulse: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h3l1.6-4 2.8 8 2-5h4.6"/></svg>',
+  brand: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21 11 7"/><path d="M11 21 17 7"/><path d="M17 21 23 7"/></svg>'
+};
+
+function escapeAttribute(value: string): string {
+  return value.replace(/[&<>'"]/g, (character) => {
+    switch (character) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "'":
+        return "&#39;";
+      case '"':
+        return "&quot;";
+      default:
+        return character;
+    }
+  });
+}
+
+function renderMountainArt(id: string, className = "rail-scene"): string {
   return `
-    <div class="path-row">
-      <span>${label}</span>
-      <code>${value}</code>
+  <svg class="${className}" viewBox="0 0 240 220" aria-hidden="true" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="${id}Sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--scene-sky-top)"/>
+        <stop offset="1" stop-color="var(--scene-sky-bot)"/>
+      </linearGradient>
+      <linearGradient id="${id}Sun" cx="0.7" cy="0.6" r="0.5">
+        <stop offset="0" stop-color="var(--scene-sun)" stop-opacity="0.9"/>
+        <stop offset="1" stop-color="var(--scene-sun)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="240" height="220" fill="url(#${id}Sky)"/>
+    <circle cx="172" cy="138" r="18" fill="var(--scene-sun)" opacity="0.55"/>
+    <circle cx="172" cy="138" r="46" fill="url(#${id}Sun)"/>
+    <path d="M0 168 L42 132 L74 152 L108 110 L138 142 L172 96 L206 130 L240 112 L240 220 L0 220 Z"
+          fill="var(--scene-ridge-far)" opacity="0.85"/>
+    <path d="M0 188 L36 156 L72 178 L100 150 L132 178 L168 150 L200 176 L240 156 L240 220 L0 220 Z"
+          fill="var(--scene-ridge-mid)" opacity="0.92"/>
+    <path d="M0 206 L40 188 L78 200 L116 184 L154 202 L192 188 L240 200 L240 220 L0 220 Z"
+          fill="var(--scene-ridge-near)"/>
+  </svg>
+`;
+}
+
+function renderNavItem(item: (typeof navItems)[number]): string {
+  return `
+    <li>
+      <button class="nav-item${item.active ? " is-active" : ""}" type="button"
+              data-nav="${item.id}" aria-current="${item.active ? "page" : "false"}"
+              ${item.active ? "" : "disabled"}>
+        <span class="nav-item__icon" aria-hidden="true">${icons[item.icon]}</span>
+        <span class="nav-item__label">${item.label}</span>
+      </button>
+    </li>
+  `;
+}
+
+function renderThemePicker(): string {
+  return `
+    <div class="theme-picker" role="group" aria-label="Theme">
+      ${themeOptions
+        .map(
+          (theme) =>
+            `<button class="theme-dot" type="button" data-theme-option="${theme.id}"
+                     aria-pressed="false" data-theme-tone="${theme.id}">
+               <span>${theme.label}</span>
+             </button>`
+        )
+        .join("")}
     </div>
   `;
 }
 
-function renderDisabledButton(label: string): string {
+function renderProofTargetCard(): string {
   return `
-    <button class="disabled-control" type="button" disabled aria-disabled="true">
-      <span>${label}</span>
-      <small>Not wired in this phase</small>
-    </button>
-  `;
-}
+    <article class="card card--proof" aria-labelledby="proof-target-title">
+      <header class="card__head">
+        <div>
+          <p class="eyebrow">Proof Target</p>
+          <h2 id="proof-target-title">Mac Workstation Console</h2>
+        </div>
+        <span class="os-pill">macOS</span>
+      </header>
 
-function renderOpenIntakeButton(): string {
-  return `
-    <button class="intake-open-button" type="button" data-open-intake>
-      <span>Open Intake Folder</span>
-      <small>Opens exact drop folder only</small>
-    </button>
-  `;
-}
+      <div class="scope-note">
+        <span class="scope-note__icon" aria-hidden="true">${icons.shield}</span>
+        <p>
+          This phase is strictly limited to status refresh and intake folder access.
+          No file picker, no command execution, no bridge run, no dummy-file creation,
+          no private data.
+        </p>
+      </div>
 
-function renderStatusCard(title: string, value: string, tone: "ok" | "hold" | "stop" = "hold"): string {
-  return `
-    <article class="status-card status-card--${tone}">
-      <span>${title}</span>
-      <strong>${value}</strong>
+      <div class="detail-rows detail-rows--workstation" aria-label="Workstation proof details">
+        ${workstationRows.map(renderDetailRowItem).join("")}
+      </div>
+
+      <div class="action-grid" aria-label="Workstation actions">
+        <div class="action-cell">
+          <button class="action action--primary" type="button" data-open-intake>
+            <span class="action__icon" aria-hidden="true">${icons.folder}</span>
+            <span class="action__body">
+              <strong>Open Intake Folder</strong>
+              <small>Opens exact drop folder only</small>
+            </span>
+          </button>
+          <div class="action-result" data-intake-result></div>
+        </div>
+        ${disabledActions
+          .map(
+            (action) => `
+              <button class="action action--disabled" type="button" disabled aria-disabled="true">
+                <span class="action__icon" aria-hidden="true">${icons[action.icon]}</span>
+                <span class="action__body">
+                  <strong>${action.label}</strong>
+                  <small>${action.detail}</small>
+                </span>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
     </article>
   `;
 }
 
-export function renderLegalConsole(): string {
+function renderDetailRowItem(row: (typeof workstationRows)[number]): string {
   return `
-    <section class="shell" aria-labelledby="console-title">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Static controlled UX proof</p>
-          <h1 id="console-title">OpenClaw Legal Console Prototype</h1>
-          <p class="summary">A disposable desktop-console scaffold for the Mac workstation to PC/WSL Primary Node proof path.</p>
+    <div class="detail-row">
+      <span class="detail-row__label">${row.label}</span>
+      <code class="detail-row__value detail-row__value--${row.tone}" title="${escapeAttribute(row.value)}">${row.value}</code>
+    </div>
+  `;
+}
+
+function renderPathRowItem(row: (typeof pathRows)[number]): string {
+  return `
+    <div class="status-row">
+      <span class="status-row__icon" aria-hidden="true">${icons[row.icon]}</span>
+      <span class="status-row__label">${row.label}</span>
+      <code class="status-row__value status-row__value--${row.tone}" title="${escapeAttribute(row.value)}">${row.value}</code>
+    </div>
+  `;
+}
+
+function renderBoundaryBadge(badge: (typeof boundaryBadges)[number]): string {
+  return `
+    <div class="boundary-badge boundary-badge--${badge.tone}">
+      <span class="boundary-badge__icon" aria-hidden="true">${icons[badge.icon]}</span>
+      <span class="boundary-badge__label">${badge.label}</span>
+      <span class="boundary-badge__value">${badge.value}</span>
+    </div>
+  `;
+}
+
+function renderStatusCard(): string {
+  return `
+    <article class="card card--status" aria-labelledby="status-title">
+      <header class="card__head card__head--status">
+        <div class="card__head-title">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          <p class="eyebrow eyebrow--strong" id="status-title">Live Status Snapshot</p>
         </div>
-        <div class="phase-badge" aria-label="Phase status">
-          <strong>Phase 2B</strong>
-          <span>Open intake folder only</span>
+        <span class="state-chip state-chip--quiet">Read-only</span>
+      </header>
+
+      <div class="status-body">
+        <div class="status-rows">
+          ${pathRows.map(renderPathRowItem).join("")}
+        </div>
+        <aside class="status-side" aria-label="Boundary posture">
+          ${boundaryBadges.map(renderBoundaryBadge).join("")}
+          <button class="action action--secondary" type="button" data-refresh-status>
+            <span class="action__icon" aria-hidden="true">${icons.refresh}</span>
+            <span class="action__body">
+              <strong>Refresh Status</strong>
+              <small>Reads fixed status files only</small>
+            </span>
+          </button>
+        </aside>
+      </div>
+
+      <div class="status-snapshot-slot" data-status-snapshot>
+        ${renderStatusSnapshot(initialStatusSnapshot)}
+      </div>
+    </article>
+  `;
+}
+
+function renderArchitectureSection(): string {
+  return `
+    <section class="card card--arch" aria-labelledby="arch-title">
+      <header class="card__head">
+        <div>
+          <p class="eyebrow">Architecture</p>
+          <h2 id="arch-title">Architecture at a Glance</h2>
         </div>
       </header>
 
-      <section class="safety-strip" aria-label="Safety boundaries">
-        ${safetyStatements.map((statement) => `<span>${statement}</span>`).join("")}
-      </section>
+      <div class="arch-grid">
+        <section class="arch-col">
+          <h3>Shared UI (macOS)</h3>
+          <ul class="arch-list arch-list--checks">
+            ${sharedUiResponsibilities.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+        </section>
 
-      <section class="panel-grid" aria-label="Console panels">
-        <article class="panel panel--workstation">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Current proof target</p>
-              <h2>Mac Workstation Console</h2>
-            </div>
-            <span class="os-pill">macOS</span>
-          </div>
-          <div class="warning-box">
-            Only status refresh and exact intake-folder opening are wired in this phase; no file picker, command execution, bridge run, dummy-file creation, or private content display is wired.
-          </div>
-          <div class="path-list">
-            ${renderPathRow("Configured workstation vault", proofTargetConfig.workstationVaultPath)}
-            ${renderPathRow("Exact intake folder", proofTargetConfig.intakeFolderPath)}
-            ${renderPathRow("Workstation status", proofTargetConfig.workstationStatusPath)}
-          </div>
-          <div class="control-grid" aria-label="Disabled workstation controls">
-            <div class="intake-action">
-              ${renderOpenIntakeButton()}
-              <div data-intake-result></div>
-            </div>
-            ${disabledControls.map(renderDisabledButton).join("")}
-          </div>
-        </article>
+        <section class="arch-col">
+          <h3>OS Adapters</h3>
+          <ul class="arch-list arch-list--rows">
+            ${osAdapters
+              .map(
+                (adapter) => `
+                  <li>
+                    <div class="arch-row__head">
+                      <strong>${adapter.label}</strong>
+                      <span class="arch-row__state arch-row__state--${stateTone(adapter.state)}">${adapter.state}</span>
+                    </div>
+                    <p>${adapter.detail}</p>
+                  </li>
+                `
+              )
+              .join("")}
+          </ul>
+        </section>
 
-        <article class="panel panel--primary">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Primary Node abstraction</p>
-              <h2>PC/WSL Primary Node Console</h2>
-            </div>
-            <span class="os-pill">WSL</span>
+        <section class="arch-col arch-col--primary">
+          <h3>Primary Node Transports</h3>
+          <ul class="arch-list arch-list--rows">
+            ${primaryNodeTransports
+              .map(
+                (t) => `
+                  <li>
+                    <div class="arch-row__head">
+                      <strong>${t.label}</strong>
+                      <span class="arch-row__state arch-row__state--${stateTone(t.state)}">${t.state}</span>
+                    </div>
+                    <p>${t.detail}</p>
+                  </li>
+                `
+              )
+              .join("")}
+          </ul>
+          <div class="arch-scenic" aria-hidden="true">
+            ${renderMountainArt("archScene", "arch-scene")}
           </div>
-          <div class="path-list">
-            ${renderPathRow("Product code path", proofTargetConfig.productCodePath)}
-            ${renderPathRow("PC private root", proofTargetConfig.primaryNodePrivateRoot)}
-            ${renderPathRow("Vault root", proofTargetConfig.primaryNodeVaultRoot)}
-            ${renderPathRow("Staging path", proofTargetConfig.stagingPath)}
-            ${renderPathRow("Exports path", proofTargetConfig.exportsPath)}
-            ${renderPathRow("Returned status", proofTargetConfig.primaryStatusPath)}
-            ${renderPathRow("Output guide check", proofTargetConfig.outputGuidePath)}
-            ${renderPathRow("Transport", proofTargetConfig.transport)}
-            ${renderPathRow("OS target", proofTargetConfig.primaryNodeOs)}
-          </div>
-          <div class="status-grid" aria-label="Boundary status">
-            ${renderStatusCard("Matter data in /home/openclaw", "Blocked", "stop")}
-            ${renderStatusCard("Private root", "Configured outside repo", "ok")}
-            ${renderStatusCard("Bridge commands", "Not wired", "hold")}
-            ${renderStatusCard("Live status refresh", "Read-only", "ok")}
-          </div>
-          <button class="status-refresh-button" type="button" data-refresh-status>
-            <span>Refresh Status</span>
-            <small>Reads fixed status files only</small>
-          </button>
-          <div data-status-snapshot>
-            ${renderStatusSnapshot(initialStatusSnapshot)}
-          </div>
-        </article>
-
-        <article class="panel panel--architecture">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Architecture shape</p>
-              <h2>Cross-Platform Architecture</h2>
-            </div>
-          </div>
-          <div class="architecture-grid">
-            <section>
-              <h3>Shared UI</h3>
-              <ul>
-                ${sharedUiResponsibilities.map((item) => `<li>${item}</li>`).join("")}
-              </ul>
-            </section>
-            <section>
-              <h3>OS Adapters</h3>
-              <ul class="adapter-list">
-                ${osAdapters
-                  .map(
-                    (adapter) => `<li><strong>${adapter.label}</strong><span>${adapter.state}</span><p>${adapter.detail}</p></li>`
-                  )
-                  .join("")}
-              </ul>
-            </section>
-            <section>
-              <h3>Primary Node Transports</h3>
-              <ul class="adapter-list">
-                ${primaryNodeTransports
-                  .map(
-                    (transport) => `<li><strong>${transport.label}</strong><span>${transport.state}</span><p>${transport.detail}</p></li>`
-                  )
-                  .join("")}
-              </ul>
-            </section>
-          </div>
-        </article>
-      </section>
+        </section>
+      </div>
     </section>
+  `;
+}
+
+function stateTone(state: string): "active" | "planned" | "future" {
+  if (state === "current proof path") return "active";
+  if (state === "planned stub") return "planned";
+  return "future";
+}
+
+export function renderLegalConsole(): string {
+  return `
+    <div class="app-shell">
+      <aside class="rail" aria-label="Console navigation">
+        <div class="window-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <div class="rail__brand">
+          <span class="brand-mark" aria-hidden="true">${icons.brand}</span>
+          <div class="brand-text">
+            <strong>OPENCLAW</strong>
+            <span>LEGAL CONSOLE</span>
+          </div>
+        </div>
+
+        <span class="phase-pill" aria-label="Current phase">Phase 2B</span>
+
+        <nav class="rail__nav" aria-label="Sections">
+          <ul>
+            ${navItems.map(renderNavItem).join("")}
+          </ul>
+        </nav>
+
+        <div class="rail__scene" aria-hidden="true">
+          ${renderMountainArt("railScene")}
+        </div>
+
+        <div class="rail__footer">
+          ${renderThemePicker()}
+          <div class="node-status">
+            <p class="eyebrow eyebrow--soft">Node Status</p>
+            <div class="node-status__row">
+              <strong>PC/WSL Primary</strong>
+            </div>
+            <div class="node-status__row node-status__row--live">
+              <span class="live-dot" aria-hidden="true"></span>
+              <span>Online</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="surface" role="main">
+        <header class="surface__head">
+          <div class="surface__title">
+            <h1>Welcome to OpenClaw Legal Console</h1>
+            <p>A secure, local-first desktop console for your legal intake workflow.</p>
+          </div>
+          <div class="surface__proof" aria-label="Proof environment">
+            <span class="proof-shield" aria-hidden="true">${icons.shield}</span>
+            <div class="proof-text">
+              <strong>STATIC CONTROLLED UX PROOF</strong>
+              <span>NO REAL MATTER DATA</span>
+            </div>
+          </div>
+        </header>
+
+        <section class="surface__grid">
+          ${renderProofTargetCard()}
+          ${renderStatusCard()}
+        </section>
+
+        ${renderArchitectureSection()}
+
+        <footer class="surface__footer" aria-label="Operating posture">
+          <span class="footer-shield" aria-hidden="true">${icons.shield}</span>
+          <p>OpenClaw stays local, private, and under your control.</p>
+          <span class="footer-divider" aria-hidden="true"></span>
+          <p class="footer-claim">No cloud. No telemetry. No compromises.</p>
+        </footer>
+      </main>
+    </div>
   `;
 }

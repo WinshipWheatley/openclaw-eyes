@@ -4,6 +4,9 @@ import { renderLegalConsole } from "./legalConsole";
 import { getStatusSnapshot, renderStatusSnapshot, statusSnapshotFromError } from "./legalStatus";
 
 const app = document.querySelector<HTMLDivElement>("#app");
+const themeStorageKey = "openclaw-legal-console-theme";
+const themeOptions = ["dark", "light", "horizon"] as const;
+type ConsoleTheme = (typeof themeOptions)[number];
 
 if (!app) {
   throw new Error("Legal console root element was not found.");
@@ -15,6 +18,51 @@ const refreshButton = document.querySelector<HTMLButtonElement>("[data-refresh-s
 const statusTarget = document.querySelector<HTMLDivElement>("[data-status-snapshot]");
 const intakeButton = document.querySelector<HTMLButtonElement>("[data-open-intake]");
 const intakeTarget = document.querySelector<HTMLDivElement>("[data-intake-result]");
+const themeButtons = document.querySelectorAll<HTMLButtonElement>("[data-theme-option]");
+
+function isConsoleTheme(value: string | null): value is ConsoleTheme {
+  return themeOptions.some((theme) => theme === value);
+}
+
+function readStoredTheme(): ConsoleTheme {
+  try {
+    const storedTheme = window.localStorage.getItem(themeStorageKey);
+    return isConsoleTheme(storedTheme) ? storedTheme : "horizon";
+  } catch {
+    return "horizon";
+  }
+}
+
+function writeStoredTheme(theme: ConsoleTheme): void {
+  try {
+    window.localStorage.setItem(themeStorageKey, theme);
+  } catch {
+    return;
+  }
+}
+
+function applyTheme(theme: ConsoleTheme): void {
+  document.documentElement.dataset.theme = theme;
+  themeButtons.forEach((button) => {
+    const isActive = button.dataset.themeOption === theme;
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+themeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const theme = button.dataset.themeOption ?? null;
+
+    if (!isConsoleTheme(theme)) {
+      return;
+    }
+
+    applyTheme(theme);
+    writeStoredTheme(theme);
+  });
+});
+
+applyTheme(readStoredTheme());
 
 function setStatusMarkup(markup: string): void {
   if (statusTarget) {

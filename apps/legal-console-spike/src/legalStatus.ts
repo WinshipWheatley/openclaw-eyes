@@ -87,7 +87,7 @@ function escapeHtml(value: string): string {
 }
 
 function presentLabel(value: boolean): string {
-  return value ? "Present" : "Missing";
+  return value ? "Present" : "Awaiting signal";
 }
 
 function nullableLabel(value: string | null): string {
@@ -110,14 +110,22 @@ function renderList(title: string, values: string[], className: string): string 
 }
 
 export function renderStatusSnapshot(snapshot: LegalStatusSnapshot): string {
+  const summary =
+    snapshot.boundary_state === "safe"
+      ? "Read-only status is inside the expected local boundary."
+      : snapshot.boundary_state === "error"
+        ? "Status refresh stopped with a sanitized failure state."
+        : "No live processing is implied by missing or pending status signals.";
+
   return `
     <section class="live-status live-status--${snapshot.boundary_state}" aria-live="polite">
       <div class="live-status__heading">
         <div>
           <p class="eyebrow">Read-only status snapshot</p>
           <h3>Live Status</h3>
+          <p>${summary}</p>
         </div>
-        <span>${escapeHtml(snapshot.boundary_state)}</span>
+        <span class="state-chip state-chip--${snapshot.boundary_state}">${escapeHtml(snapshot.boundary_state)}</span>
       </div>
       <div class="live-status__grid">
         <div>
