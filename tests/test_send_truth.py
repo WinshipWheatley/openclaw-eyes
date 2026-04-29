@@ -1154,6 +1154,75 @@ class TestGroundedEmailReviewGate:
 
 
 class TestCassandraRouterPolicy:
+    def _patch_handle_to_llm_path(
+        self,
+        monkeypatch,
+        cassandra_brain,
+        *,
+        gmail_ctx: str = "",
+        payment_ctx: str = "",
+        llm_reply: str = "local reply",
+    ):
+        calls = []
+        logged = []
+
+        monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE), raising=False)
+        monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_toggle", lambda text: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_check_payments_command", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_session_fact_correction", lambda text, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_update_cues", lambda state, text: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_remember_finance_entity", lambda query, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_find_designated_contact", lambda **kwargs: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_handle_income_followup", lambda query, pending, state: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_lookup_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_financial_intent", lambda query: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_financial_event", lambda query: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_future_action_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_calendar_delete_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_calendar_create_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_outreach_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_send_email_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_invoice_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_invoice_create_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_looks_like_payment_verify_query", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_finance_status_intent", lambda query: False, raising=False)
+        monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state: "context", raising=False)
+        monkeypatch.setattr(cassandra_brain, "capability_context", lambda: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: gmail_ctx, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "format_finance_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: payment_ctx, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_reality_context", lambda query: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_format_session_fact_override_context", lambda query, state: "", raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, {}), raising=False)
+        monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_rescue_payment_verify_reply", lambda query, reply: None, raising=False)
+        monkeypatch.setattr(cassandra_brain, "gate_reply", lambda reply, query, has_registry_context=False: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "tts_clean", lambda reply: reply, raising=False)
+        monkeypatch.setattr(cassandra_brain, "detect_capability_gaps", lambda query, reply: [], raising=False)
+        monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: True, raising=False)
+        monkeypatch.setattr(cassandra_brain, "_use_small_cassandra_reply_model", lambda query: False, raising=False)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_log_conversation",
+            lambda text, replies, route="llm": logged.append({"text": text, "replies": replies, "route": route}),
+            raising=False,
+        )
+
+        def fake_call(prompt, **kwargs):
+            calls.append({"prompt": prompt, "kwargs": kwargs})
+            assert kwargs["cloud_ok"] is False
+            return llm_reply
+
+        monkeypatch.setattr(cassandra_brain, "_call", fake_call, raising=False)
+        return calls, logged
+
     def test_small_reply_heuristic_only_picks_fast_for_easy_queries(self):
         import cassandra_brain
 
@@ -1287,6 +1356,78 @@ class TestCassandraRouterPolicy:
         assert reply == ""
         assert route_calls == [{"lane": None, "task_class": "cassandra_user_reply"}]
         assert model_calls == ["gemma4:31b"]
+
+    def test_cloud_ok_false_never_invokes_nemotron(self, monkeypatch):
+        import cassandra_brain
+
+        monkeypatch.setattr(
+            cassandra_brain,
+            "nemotron_call",
+            lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("nemotron_call should not run")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "resolve_local_model",
+            lambda prompt, lane=None, task_class=None: ("gemma4:31b", lane or "strong"),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            cassandra_brain,
+            "ollama_call",
+            lambda prompt, timeout=0, model=None, lane=None, task_class=None: "local reply",
+            raising=False,
+        )
+
+        reply = cassandra_brain._call(
+            "Synthetic Gmail/private context must stay local.",
+            task_class="cassandra_user_reply",
+            cloud_ok=False,
+        )
+
+        assert reply == "local reply"
+
+    def test_handle_gmail_metadata_context_passes_cloud_ok_false(self, monkeypatch):
+        import cassandra_brain
+
+        calls, logged = self._patch_handle_to_llm_path(
+            monkeypatch,
+            cassandra_brain,
+            gmail_ctx=(
+                "[GMAIL DATA — inbox, current time: 9:00 AM Wednesday]\n"
+                "  UNREAD  Venue Ops  Settlement update  today"
+            ),
+        )
+
+        replies = cassandra_brain.handle("What should I pay attention to from the inbox context?")
+
+        assert replies == ["local reply"]
+        assert calls
+        assert "[GMAIL DATA" in calls[0]["prompt"]
+        assert calls[0]["kwargs"]["cloud_ok"] is False
+        assert logged[-1]["route"] == "llm_deep"
+
+    def test_handle_payment_gmail_notification_context_passes_cloud_ok_false(self, monkeypatch):
+        import cassandra_brain
+
+        calls, logged = self._patch_handle_to_llm_path(
+            monkeypatch,
+            cassandra_brain,
+            payment_ctx=(
+                "[VERIFIED GMAIL NOTIFICATIONS — recent payment-related emails]\n"
+                "  From: Venue Payments\n"
+                "  Subject: Payment received\n"
+                "  Snippet: A payment notification matched this synthetic fixture."
+            ),
+        )
+
+        replies = cassandra_brain.handle("What should I know from the synthetic notification context?")
+
+        assert replies == ["local reply"]
+        assert calls
+        assert "[VERIFIED GMAIL NOTIFICATIONS" in calls[0]["prompt"]
+        assert calls[0]["kwargs"]["cloud_ok"] is False
+        assert logged[-1]["route"] == "llm_deep"
 
     def test_handle_calendar_fallback_logs_llm_deep_without_name_error(self, monkeypatch):
         import cassandra_brain
