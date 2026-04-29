@@ -25,6 +25,10 @@ cd /home/openclaw && codex "Read only. Inspect <exact file paths>. Do not edit a
 
 ## Stack Start / Stop / Restart
 
+### Service Management Freeze
+
+Pass 3C Slice 1 freezes this section as historical command reference only. Do not remove these command blocks in this slice, but treat service authority, deprecated controls, and cleanup order as governed by [docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md](docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md). Existing start, stop, restart, install, and legacy polling commands are frozen/historical until cleanup slices replace, guard, or retire them.
+
 ### Unified Restart (Authoritative)
 Starts or restarts the **Full OpenClaw Operating Environment**. This is the primary command to bring all systems online.
 - **Includes**: Core systemd stack + Expected legacy polling brains.
