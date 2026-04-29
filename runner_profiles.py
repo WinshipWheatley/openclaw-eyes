@@ -401,6 +401,13 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
     result = dict(PROFILES[tier])
     result["tier"] = tier
     result["role"] = "planner" if planner_mode else "builder"
+    result["cloud_allowed"] = _task_allows_cloud(meta)
+    if _task_is_sensitive(meta):
+        result["cloud_policy"] = "local_only_sensitive"
+    elif result["cloud_allowed"]:
+        result["cloud_policy"] = "cloud_allowed"
+    else:
+        result["cloud_policy"] = "local_only_unclassified"
 
     # Planner mode: scale budget down (reviews cost less)
     if planner_mode:
@@ -503,29 +510,84 @@ CLAUDE_GEMINI_RATIO = (2, 1)  # (claude_share, gemini_share)
 TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 
+CLOUD_CAPABLE_RUNNERS = {"aider", "claude", "codex", "gemini"}
+CLOUD_ALLOWED_CLASSIFICATIONS = {
+    "non_sensitive",
+    "nonsensitive",
+    "public",
+    "public_fixture",
+    "synthetic",
+    "synthetic_public",
+    "test_public",
+}
+
 # Keywords that signal sensitive data requiring local-only processing
 SENSITIVE_KEYWORDS = {
     "ssn", "social security", "credentials", "password", "secret",
     "private key", "api key", "token file", "billing record",
-    "financial", "identity", "pii", "hipaa",
+    "financial", "identity", "pii", "hipaa", "token",
+    "/mnt/c/openclawlegalprivate", "openclawlegalprivate",
+    "gmail body", "private correspondence", ".env", "pii vault",
+    "private vault", "legal matter", "client matter",
 }
+
+
+def _truthy(value) -> bool:
+    return str(value).strip().lower() in ("true", "yes", "1", "y", "on")
+
+
+def _normalize_policy_value(value) -> str:
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _policy_text(value) -> str:
+    if isinstance(value, dict):
+        return " ".join(_policy_text(v) for v in value.values())
+    if isinstance(value, list):
+        return " ".join(_policy_text(v) for v in value)
+    return str(value)
 
 
 def _task_is_sensitive(meta: dict) -> bool:
     """Check if a task requires local-only processing for data sensitivity."""
     # Explicit flag in frontmatter
-    if meta.get("local_required", "").lower() in ("true", "yes", "1"):
+    if _truthy(meta.get("local_required", "")):
         return True
-    if meta.get("sensitive", "").lower() in ("true", "yes", "1"):
+    if _truthy(meta.get("sensitive", "")):
         return True
 
-    # Keyword scan across goal and scope
-    text = " ".join([
-        str(meta.get("title", "")),
-        str(meta.get("goal", "")),
-        str(meta.get("scope", "")),
-    ]).lower()
+    classification = _normalize_policy_value(
+        meta.get("data_classification")
+        or meta.get("classification")
+        or meta.get("sensitivity")
+        or meta.get("privacy")
+        or ""
+    )
+    if classification in ("sensitive", "private", "pii", "secret", "legal_matter", "client_matter"):
+        return True
+
+    # Keyword scan across task metadata, including goal/scope/title fields.
+    text = _policy_text(meta).lower()
     return any(kw in text for kw in SENSITIVE_KEYWORDS)
+
+
+def _task_allows_cloud(meta: dict) -> bool:
+    """Require explicit non-sensitive classification before cloud runners."""
+    if not meta or _task_is_sensitive(meta):
+        return False
+
+    cloud_allowed = any(
+        _truthy(meta.get(key, ""))
+        for key in ("cloud_allowed", "allow_cloud", "cloud_ok")
+    )
+    classification = _normalize_policy_value(
+        meta.get("data_classification")
+        or meta.get("classification")
+        or meta.get("sensitivity")
+        or meta.get("privacy")
+        or ""
+    )
+    return cloud_allowed and classification in CLOUD_ALLOWED_CLASSIFICATIONS
 
 
 def _get_recent_runner_ratio(runner_a: str = "claude", runner_b: str = "gemini",
@@ -813,10 +875,13 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
         blocked_runners = AUTONOMOUS_BLOCKED_RUNNERS
     budget_override = None
 
-    # Step 0: Sensitive data → force ollama
+    # Step 0: Cloud admission gate. Sensitive and unclassified tasks stay local.
     if task_meta and _task_is_sensitive(task_meta):
         return ("ollama", "chief-fast:latest",
                 "sensitive data — local-only required", 0)
+    if task_meta and not _task_allows_cloud(task_meta):
+        return ("ollama", "chief-fast:latest",
+                "cloud not explicitly allowed — local-only required", 0)
 
     # Step 1: Get registry ranking
     ranked_runners = []

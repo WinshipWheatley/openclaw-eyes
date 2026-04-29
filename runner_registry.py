@@ -520,6 +520,10 @@ def get_runners_for_task(task_type: str) -> list[Runner]:
     return [r for _, r in scored]
 
 
+CLOUD_CAPABLE_RUNNERS = {"aider", "claude", "codex", "gemini"}
+LOCAL_ONLY_RUNNERS = {"ollama"}
+
+
 def get_fallback_runner(failed_runner: str, task_type: str = "standard") -> Optional[str]:
     """Return the name of the next best available runner after failed_runner fails.
 
@@ -530,10 +534,14 @@ def get_fallback_runner(failed_runner: str, task_type: str = "standard") -> Opti
     This is the authoritative fallback selection path — builder_watcher.sh calls
     this instead of a static mapping so that only installed runners are selected.
     """
+    allow_cloud_fallback = failed_runner not in LOCAL_ONLY_RUNNERS
     ranked = get_runners_for_task(task_type)
     for r in ranked:
-        if r.name != failed_runner:
-            return r.name
+        if r.name == failed_runner:
+            continue
+        if not allow_cloud_fallback and r.name in CLOUD_CAPABLE_RUNNERS:
+            continue
+        return r.name
     return None
 
 

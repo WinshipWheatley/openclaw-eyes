@@ -157,7 +157,7 @@ fallback_runner_for() {
   case "$runner" in
     codex) printf 'ollama' ;;
     gemini) printf 'ollama' ;;
-    ollama) printf 'codex' ;;
+    ollama) printf '' ;;
     *) printf 'ollama' ;;
   esac
 }
@@ -216,10 +216,10 @@ launch_runner_once() {
   profile_json=$(cd /home/openclaw && python3 runner_profiles.py 2>/dev/null)
   if [ -z "$profile_json" ]; then
     log "PROFILE: runner_profiles.py failed — falling back to hardcoded defaults"
-    profile_json='{"runner":"codex","model":"default","effort":"high","timeout":600,"budget":2.0,"reason":"fallback","invoke_cmd":"setsid timeout 600 codex exec --sandbox workspace-write - < \"/home/openclaw/polish_loop/POLISH_PROMPT.md\"","defer":false}'
+    profile_json='{"runner":"ollama","model":"chief-fast:latest","effort":"high","timeout":600,"budget":0,"reason":"fallback local-only profile selector unavailable","invoke_cmd":"setsid timeout 600 python3 /home/openclaw/polish_loop/local_builder.py --model chief-fast:latest --timeout 600","defer":false,"cloud_allowed":false,"cloud_policy":"local_only_unclassified"}'
   fi
 
-  local p_runner p_model p_effort p_timeout p_budget p_reason p_invoke_cmd p_defer p_tier p_task_id
+  local p_runner p_model p_effort p_timeout p_budget p_reason p_invoke_cmd p_defer p_tier p_task_id p_cloud_allowed
   p_runner=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('runner','codex'))")
   p_model=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model','sonnet'))")
   p_effort=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('effort','high'))")
@@ -229,6 +229,7 @@ launch_runner_once() {
   p_invoke_cmd=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('invoke_cmd',''))")
   p_defer=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('defer',False))")
   p_tier=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tier','standard'))")
+  p_cloud_allowed=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cloud_allowed',False))")
   local p_cascade p_cascade_count
   p_cascade=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cascade_decomposed',False))")
   p_cascade_count=$(echo "$profile_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cascade_child_count',0))")
@@ -280,10 +281,14 @@ launch_runner_once() {
 
   # Override runner if explicitly requested via CODING_RUNNER
   if [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" != "$p_runner" ]; then
-    log "PROFILE: Explicit runner override → $RUNNER_PREFERRED (ignoring registry pick: $p_runner)"
-    p_runner="$RUNNER_PREFERRED"
-    # Fall back to hardcoded command for explicit override
-    p_invoke_cmd=""
+    if { [ "$RUNNER_PREFERRED" = "codex" ] || [ "$RUNNER_PREFERRED" = "gemini" ] || [ "$RUNNER_PREFERRED" = "claude" ] || [ "$RUNNER_PREFERRED" = "aider" ]; } && [ "$p_cloud_allowed" != "True" ]; then
+      log "PROFILE: Explicit cloud runner override denied by cloud_allowed/sensitivity gate -> $RUNNER_PREFERRED (keeping $p_runner)"
+    else
+      log "PROFILE: Explicit runner override → $RUNNER_PREFERRED (ignoring registry pick: $p_runner)"
+      p_runner="$RUNNER_PREFERRED"
+      # Fall back to hardcoded command for explicit override
+      p_invoke_cmd=""
+    fi
   fi
 
   LAST_EFFECTIVE_RUNNER="$p_runner"
@@ -522,18 +527,22 @@ while true; do
     if [ "$RUNNER_EXPLICIT" -eq 0 ] && [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 124 ] && [ "$launch_elapsed" -le 20 ]; then
       FALLBACK_ATTEMPTED=1
       fallback_runner="$(fallback_runner_for "$effective_runner")"
-      fallback_guard_pattern="$(guard_pattern_for_runner "$fallback_runner")"
-      if pgrep -f "$fallback_guard_pattern" >/dev/null 2>&1; then
-        log "FALLBACK-SKIP: runner=$fallback_runner already running; keeping primary exit=$exit_code"
+      if [ -z "$fallback_runner" ]; then
+        log "FALLBACK-SKIP: runner=$effective_runner has no non-cloud fallback"
       else
-        log "FALLBACK: runner=$effective_runner failed fast (exit=$exit_code, elapsed=${launch_elapsed}s); trying runner=$fallback_runner once"
-        launch_runner="$fallback_runner"
-        launch_start_ts=$(date +%s)
-        launch_runner_once "$launch_runner"
-        exit_code=$?
-        launch_elapsed=$(( $(date +%s) - launch_start_ts ))
-        effective_runner="${LAST_EFFECTIVE_RUNNER:-$launch_runner}"
-        log "FALLBACK: runner=$effective_runner completed (exit=$exit_code, elapsed=${launch_elapsed}s)"
+        fallback_guard_pattern="$(guard_pattern_for_runner "$fallback_runner")"
+        if pgrep -f "$fallback_guard_pattern" >/dev/null 2>&1; then
+          log "FALLBACK-SKIP: runner=$fallback_runner already running; keeping primary exit=$exit_code"
+        else
+          log "FALLBACK: runner=$effective_runner failed fast (exit=$exit_code, elapsed=${launch_elapsed}s); trying runner=$fallback_runner once"
+          launch_runner="$fallback_runner"
+          launch_start_ts=$(date +%s)
+          launch_runner_once "$launch_runner"
+          exit_code=$?
+          launch_elapsed=$(( $(date +%s) - launch_start_ts ))
+          effective_runner="${LAST_EFFECTIVE_RUNNER:-$launch_runner}"
+          log "FALLBACK: runner=$effective_runner completed (exit=$exit_code, elapsed=${launch_elapsed}s)"
+        fi
       fi
     else
       log "LAUNCH: runner=$effective_runner completed (exit=$exit_code, elapsed=${launch_elapsed}s)"
@@ -549,17 +558,21 @@ while true; do
       if [ "$out_reason" != "ok" ]; then
         FALLBACK_ATTEMPTED=1
         next_runner="$(fallback_runner_for "$effective_runner")"
-        fbguard="$(guard_pattern_for_runner "$next_runner")"
-        if pgrep -f "$fbguard" >/dev/null 2>&1; then
-          log "OUTPUT-FALLBACK-SKIP: $next_runner already running (output was: $out_reason)"
+        if [ -z "$next_runner" ]; then
+          log "OUTPUT-FALLBACK-SKIP: runner=$effective_runner has no non-cloud fallback (output was: $out_reason)"
         else
-          log "OUTPUT-FALLBACK: runner=$effective_runner output invalid ($out_reason) — trying runner=$next_runner"
-          rm -f "$PC_OUTPUT_FILE" 2>/dev/null || true
-          launch_runner="$next_runner"
-          launch_runner_once "$launch_runner"
-          exit_code=$?
-          effective_runner="${LAST_EFFECTIVE_RUNNER:-$launch_runner}"
-          log "OUTPUT-FALLBACK: runner=$effective_runner completed (exit=$exit_code)"
+          fbguard="$(guard_pattern_for_runner "$next_runner")"
+          if pgrep -f "$fbguard" >/dev/null 2>&1; then
+            log "OUTPUT-FALLBACK-SKIP: $next_runner already running (output was: $out_reason)"
+          else
+            log "OUTPUT-FALLBACK: runner=$effective_runner output invalid ($out_reason) — trying runner=$next_runner"
+            rm -f "$PC_OUTPUT_FILE" 2>/dev/null || true
+            launch_runner="$next_runner"
+            launch_runner_once "$launch_runner"
+            exit_code=$?
+            effective_runner="${LAST_EFFECTIVE_RUNNER:-$launch_runner}"
+            log "OUTPUT-FALLBACK: runner=$effective_runner completed (exit=$exit_code)"
+          fi
         fi
       fi
     fi
