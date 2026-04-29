@@ -1255,6 +1255,9 @@ Good next Legal work should be non-dangerous:
 - support/pilot boundary refinement;
 - repeatable validation checklist.
 
+Synthetic demo validation package:
+- `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` records the docs-only synthetic/public-safe validation checklist for the current Phase 2F-B Legal Console checkpoint.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;
