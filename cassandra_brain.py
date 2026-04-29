@@ -587,6 +587,10 @@ def _sync_outreach_test_seams() -> None:
         "_EMAIL_BRIDGE_LOG",
         _cassandra_outreach._EMAIL_BRIDGE_LOG,
     )
+    _cassandra_outreach.get_finance_status_answer = globals().get(
+        "get_finance_status_answer",
+        _cassandra_outreach.get_finance_status_answer,
+    )
 
 def _load_jsonl_records(path: Path) -> list[dict]:
     _sync_outreach_test_seams()
@@ -2159,12 +2163,29 @@ def _handle_future_action_queue_request(text: str, sender_chat_id: object | None
 
 import cassandra_identity as _cassandra_identity
 
-_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
+_IDENTITY_DEFAULT_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
+_NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
+_LAST_SYNCED_NICKNAMES_PATH = _IDENTITY_DEFAULT_NICKNAMES_PATH
 
 
 def _sync_identity_nicknames_path() -> None:
-    """Keep brain-level nickname-path monkeypatches visible to shared identity helpers."""
-    _cassandra_identity._NICKNAMES_PATH = _NICKNAMES_PATH
+    """Keep brain and identity nickname-path monkeypatches visible to each other."""
+    global _NICKNAMES_PATH, _LAST_SYNCED_NICKNAMES_PATH
+
+    brain_path = _NICKNAMES_PATH
+    identity_path = _cassandra_identity._NICKNAMES_PATH
+    identity_side_patch = (
+        brain_path == _IDENTITY_DEFAULT_NICKNAMES_PATH
+        and identity_path != brain_path
+        and identity_path != _LAST_SYNCED_NICKNAMES_PATH
+    )
+
+    if identity_side_patch:
+        _NICKNAMES_PATH = identity_path
+    else:
+        _cassandra_identity._NICKNAMES_PATH = brain_path
+
+    _LAST_SYNCED_NICKNAMES_PATH = _cassandra_identity._NICKNAMES_PATH
 
 
 def _load_nicknames() -> dict:

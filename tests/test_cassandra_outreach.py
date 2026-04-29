@@ -250,12 +250,14 @@ def test_cassandra_contact_gap_detection_queues_upgrade_and_followup(tmp_path, m
     monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
     monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda text: False, raising=False)
     monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda text: False, raising=False)
-    monkeypatch.setattr(
-        cassandra_brain,
-        "_call",
-        lambda prompt, deep, cloud_ok=False: "I can't verify that file from here.",
-        raising=False,
-    )
+    def fake_call(prompt, **kwargs):
+        assert kwargs.get("task_class") in {
+            "cassandra_user_reply",
+            "cassandra_user_reply_fast",
+        }
+        return "I can't verify that file from here."
+
+    monkeypatch.setattr(cassandra_brain, "_call", fake_call, raising=False)
 
     replies = cassandra_brain.handle(
         "Can you check whether that file exists?",
@@ -1374,8 +1376,11 @@ def test_process_inbound_email_replies_uses_open_ended_model_path_for_simple_con
 
     seen_prompts = []
 
-    def fake_call(prompt, deep, cloud_ok=False):
+    def fake_call(prompt, **kwargs):
         seen_prompts.append(prompt)
+        assert kwargs.get("task_class") == "cassandra_outbound_draft"
+        assert kwargs.get("cloud_ok") is False
+        assert kwargs.get("allow_deep_escalation") is False
         assert "open-ended reply path" in prompt
         assert "Sound natural, warm, and context-aware rather than canned." in prompt
         return "That sounds great — I'm looking forward to it too."
@@ -1633,6 +1638,7 @@ def test_process_inbound_email_replies_holds_caution_lane(tmp_path, monkeypatch)
     monkeypatch.setattr(cassandra_brain, "_EMAIL_BRIDGE_LOG", bridge_log, raising=False)
     monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_ANALYSIS_LOG", analysis_log, raising=False)
     monkeypatch.setattr(cassandra_brain, "_EMAIL_THREAD_STATE", thread_state, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_INBOUND_EMAIL_REPLY_LOCK", tmp_path / "reply.lock", raising=False)
 
     notifications = []
     monkeypatch.setattr("cassandra_sender.send_message", lambda text, chat_id=None: notifications.append(text), raising=False)
