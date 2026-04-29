@@ -82,6 +82,17 @@
 !apps/legal-console-spike/src/
 !apps/legal-console-spike/src/*.ts
 !apps/legal-console-spike/src/*.css
+!apps/legal-console-spike/src/assets/
+!apps/legal-console-spike/src/assets/hero-horizon.svg
+!apps/legal-console-spike/src/assets/sidebar-horizon.svg
+!apps/legal-console-spike/src/assets/openclaw-mark.svg
+!apps/legal-console-spike/src/assets/visual-kit/
+!apps/legal-console-spike/src/assets/visual-kit/brand-mark.svg
+!apps/legal-console-spike/src/assets/visual-kit/sidebar-mountain-dark.svg
+!apps/legal-console-spike/src/assets/visual-kit/sidebar-mountain-light.svg
+!apps/legal-console-spike/src/assets/visual-kit/hero-mountain-dark.svg
+!apps/legal-console-spike/src/assets/visual-kit/hero-mountain-light.svg
+!apps/legal-console-spike/src/assets/visual-kit/status-glyphs.svg
 !apps/legal-console-spike/src-tauri/
 !apps/legal-console-spike/src-tauri/Cargo.toml
 !apps/legal-console-spike/src-tauri/Cargo.lock

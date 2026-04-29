@@ -2,6 +2,14 @@ import { osAdapters, primaryNodeTransports, sharedUiResponsibilities } from "./l
 import { proofTargetConfig, displayPath } from "./legalPaths";
 import { initialStatusSnapshot, renderStatusSnapshot } from "./legalStatus";
 
+const brandMarkAssetUrl = new URL("./assets/visual-kit/brand-mark.svg", import.meta.url).href;
+const sidebarMountainDarkAssetUrl = new URL("./assets/visual-kit/sidebar-mountain-dark.svg", import.meta.url)
+  .href;
+const sidebarMountainLightAssetUrl = new URL("./assets/visual-kit/sidebar-mountain-light.svg", import.meta.url)
+  .href;
+const heroMountainDarkAssetUrl = new URL("./assets/visual-kit/hero-mountain-dark.svg", import.meta.url).href;
+const heroMountainLightAssetUrl = new URL("./assets/visual-kit/hero-mountain-light.svg", import.meta.url).href;
+
 const themeOptions = [
   { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
@@ -63,8 +71,7 @@ const icons: Record<string, string> = {
   refresh: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a6 6 0 0 1 10.4-4.1L16.5 8"/><path d="M16.5 4.5V8H13"/><path d="M16 10a6 6 0 0 1-10.4 4.1L3.5 12"/><path d="M3.5 15.5V12H7"/></svg>',
   trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6h11"/><path d="M6.5 6V4.6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V6"/><path d="M6 6.6 7 16.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L14 6.6"/></svg>',
   folder: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.8 5.4a1 1 0 0 1 1-1h3.5l1.6 1.8h7.3a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H3.8a1 1 0 0 1-1-1V5.4z"/></svg>',
-  pulse: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h3l1.6-4 2.8 8 2-5h4.6"/></svg>',
-  brand: '<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21 11 7"/><path d="M11 21 17 7"/><path d="M17 21 23 7"/></svg>'
+  pulse: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h3l1.6-4 2.8 8 2-5h4.6"/></svg>'
 };
 
 function escapeAttribute(value: string): string {
@@ -86,30 +93,8 @@ function escapeAttribute(value: string): string {
   });
 }
 
-function renderMountainArt(id: string, className = "rail-scene"): string {
-  return `
-  <svg class="${className}" viewBox="0 0 240 220" aria-hidden="true" preserveAspectRatio="xMidYMax slice">
-    <defs>
-      <linearGradient id="${id}Sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="var(--scene-sky-top)"/>
-        <stop offset="1" stop-color="var(--scene-sky-bot)"/>
-      </linearGradient>
-      <linearGradient id="${id}Sun" cx="0.7" cy="0.6" r="0.5">
-        <stop offset="0" stop-color="var(--scene-sun)" stop-opacity="0.9"/>
-        <stop offset="1" stop-color="var(--scene-sun)" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="240" height="220" fill="url(#${id}Sky)"/>
-    <circle cx="172" cy="138" r="18" fill="var(--scene-sun)" opacity="0.55"/>
-    <circle cx="172" cy="138" r="46" fill="url(#${id}Sun)"/>
-    <path d="M0 168 L42 132 L74 152 L108 110 L138 142 L172 96 L206 130 L240 112 L240 220 L0 220 Z"
-          fill="var(--scene-ridge-far)" opacity="0.85"/>
-    <path d="M0 188 L36 156 L72 178 L100 150 L132 178 L168 150 L200 176 L240 156 L240 220 L0 220 Z"
-          fill="var(--scene-ridge-mid)" opacity="0.92"/>
-    <path d="M0 206 L40 188 L78 200 L116 184 L154 202 L192 188 L240 200 L240 220 L0 220 Z"
-          fill="var(--scene-ridge-near)"/>
-  </svg>
-`;
+function renderDecorativeAsset(src: string, className: string): string {
+  return `<img class="${className}" src="${escapeAttribute(src)}" alt="" aria-hidden="true" />`;
 }
 
 function renderNavItem(item: (typeof navItems)[number]): string {
@@ -152,30 +137,32 @@ function renderProofTargetCard(): string {
         <span class="os-pill">macOS</span>
       </header>
 
-      <div class="scope-note">
-        <span class="scope-note__icon" aria-hidden="true">${icons.shield}</span>
-        <p>
-          This phase is strictly limited to status refresh and intake folder access.
-          No file picker, no command execution, no bridge run, no dummy-file creation,
-          no private data.
-        </p>
+      <div class="proof-command-panel">
+        <div class="scope-note">
+          <span class="scope-note__icon" aria-hidden="true">${icons.shield}</span>
+          <p>
+            This phase is strictly limited to status refresh and intake folder access.
+            No file picker, no command execution, no bridge run, no dummy-file creation,
+            no private data.
+          </p>
+        </div>
+
+        <button class="action action--primary action--hero" type="button" data-open-intake>
+          <span class="action__icon" aria-hidden="true">${icons.folder}</span>
+          <span class="action__body">
+            <strong>Open Intake Folder</strong>
+            <small>Opens exact drop folder only</small>
+          </span>
+        </button>
       </div>
+
+      <div class="action-result" data-intake-result></div>
 
       <div class="detail-rows detail-rows--workstation" aria-label="Workstation proof details">
         ${workstationRows.map(renderDetailRowItem).join("")}
       </div>
 
-      <div class="action-grid" aria-label="Workstation actions">
-        <div class="action-cell">
-          <button class="action action--primary" type="button" data-open-intake>
-            <span class="action__icon" aria-hidden="true">${icons.folder}</span>
-            <span class="action__body">
-              <strong>Open Intake Folder</strong>
-              <small>Opens exact drop folder only</small>
-            </span>
-          </button>
-          <div class="action-result" data-intake-result></div>
-        </div>
+      <div class="disabled-actions" aria-label="Future actions">
         ${disabledActions
           .map(
             (action) => `
@@ -231,23 +218,25 @@ function renderStatusCard(): string {
           <span class="pulse-dot" aria-hidden="true"></span>
           <p class="eyebrow eyebrow--strong" id="status-title">Live Status Snapshot</p>
         </div>
-        <span class="state-chip state-chip--quiet">Read-only</span>
-      </header>
-
-      <div class="status-body">
-        <div class="status-rows">
-          ${pathRows.map(renderPathRowItem).join("")}
-        </div>
-        <aside class="status-side" aria-label="Boundary posture">
-          ${boundaryBadges.map(renderBoundaryBadge).join("")}
-          <button class="action action--secondary" type="button" data-refresh-status>
+        <div class="status-actions">
+          <span class="state-chip state-chip--quiet">Read-only</span>
+          <button class="action action--secondary action--refresh" type="button" data-refresh-status>
             <span class="action__icon" aria-hidden="true">${icons.refresh}</span>
             <span class="action__body">
               <strong>Refresh Status</strong>
               <small>Reads fixed status files only</small>
             </span>
           </button>
+        </div>
+      </header>
+
+      <div class="status-body">
+        <aside class="status-side" aria-label="Boundary posture">
+          ${boundaryBadges.map(renderBoundaryBadge).join("")}
         </aside>
+        <div class="status-rows" aria-label="Fixed proof coordinates">
+          ${pathRows.map(renderPathRowItem).join("")}
+        </div>
       </div>
 
       <div class="status-snapshot-slot" data-status-snapshot>
@@ -311,9 +300,6 @@ function renderArchitectureSection(): string {
               )
               .join("")}
           </ul>
-          <div class="arch-scenic" aria-hidden="true">
-            ${renderMountainArt("archScene", "arch-scene")}
-          </div>
         </section>
       </div>
     </section>
@@ -337,7 +323,7 @@ export function renderLegalConsole(): string {
         </div>
 
         <div class="rail__brand">
-          <span class="brand-mark" aria-hidden="true">${icons.brand}</span>
+          <span class="brand-mark" aria-hidden="true">${renderDecorativeAsset(brandMarkAssetUrl, "brand-mark__asset")}</span>
           <div class="brand-text">
             <strong>OPENCLAW</strong>
             <span>LEGAL CONSOLE</span>
@@ -353,7 +339,8 @@ export function renderLegalConsole(): string {
         </nav>
 
         <div class="rail__scene" aria-hidden="true">
-          ${renderMountainArt("railScene")}
+          ${renderDecorativeAsset(sidebarMountainDarkAssetUrl, "rail-scene rail-scene--dark")}
+          ${renderDecorativeAsset(sidebarMountainLightAssetUrl, "rail-scene rail-scene--light")}
         </div>
 
         <div class="rail__footer">
@@ -383,6 +370,10 @@ export function renderLegalConsole(): string {
               <strong>STATIC CONTROLLED UX PROOF</strong>
               <span>NO REAL MATTER DATA</span>
             </div>
+          </div>
+          <div class="surface__hero-scene" aria-hidden="true">
+            ${renderDecorativeAsset(heroMountainDarkAssetUrl, "hero-scene hero-scene--dark")}
+            ${renderDecorativeAsset(heroMountainLightAssetUrl, "hero-scene hero-scene--light")}
           </div>
         </header>
 
