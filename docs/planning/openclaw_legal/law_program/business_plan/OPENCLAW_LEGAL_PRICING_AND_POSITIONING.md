@@ -12,6 +12,8 @@ It is not a final price sheet. It is a strategic guide for how to talk about val
 
 This is internal buyer-facing preparation, not final external sales material. Do not send to buyers as-is. Create external-facing versions only after the go/no-go gate clears. Verify current implementation before making capability claims. Roadmap concepts such as Connect, adaptive ETA, model distribution, multi-node throughput, OCR, email/portal connectors, and local model review must be labeled as roadmap unless verified built.
 
+Support, rush, data, hardware, backup, and offboarding boundaries are governed by `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` before paid pilot or deployment pricing is quoted.
+
 ## Positioning statement
 
 OpenClaw Legal is private local discovery infrastructure for law firms that need control, speed, auditability, and predictable cost.
@@ -48,7 +50,7 @@ Avoid leading with:
 
 - generic AI chat
 - legal advice automation
-- lawyer replacement
+- attorney replacement
 - miracle privilege detection
 - full e-discovery replacement
 - unlimited file support
@@ -209,7 +211,7 @@ Do not offer unlimited scope.
 
 Do not promise every unsupported file will be handled immediately.
 
-Do not include unlimited support by default.
+Do not include open-ended support by default.
 
 Do not promise custom work will be free forever.
 
@@ -447,7 +449,7 @@ Then offer add-ons:
 Do not sell:
 
 - legal advice
-- guaranteed outcome
+- outcome guarantee
 - guaranteed privilege decisions
 - unlimited custom development
 - unlimited file support

@@ -10,6 +10,8 @@ The goal is not to talk the project to death. The goal is to decide whether the 
 
 This should be treated as a decision filter and risk register.
 
+Use `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` as the operating boundary for support scope, buyer expectations, data access, hardware responsibility, rush support, and offboarding.
+
 ## Current strategic question
 
 OpenClaw Legal is potentially valuable, but only if the first deployment is scoped tightly enough to become a reusable product foundation.
@@ -324,7 +326,7 @@ If the product requires constant manual patching, remote access, or emergency ha
 
 ### Why it matters
 
-A product that creates unlimited support expectations can consume all available time and kill profitability.
+A product that creates open-ended support expectations can consume all available time and kill profitability.
 
 ### Early warning signs
 
@@ -347,7 +349,7 @@ A product that creates unlimited support expectations can consume all available 
 
 ### Decision rule
 
-Do not sell unlimited support. Every support category must be included, paid, or out of scope.
+Do not sell open-ended support. Every support category must be included, paid, or out of scope.
 
 ---
 
@@ -665,7 +667,7 @@ The first deployment must fund real work without promising enterprise maturity.
 
 ### Early warning signs
 
-- unlimited support included
+- open-ended support included
 - custom work bundled for free
 - hardware cost not accounted for
 - support/update expectations are vague

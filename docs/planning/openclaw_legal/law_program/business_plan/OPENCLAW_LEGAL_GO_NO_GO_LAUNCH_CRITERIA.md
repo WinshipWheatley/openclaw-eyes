@@ -26,6 +26,8 @@ This document decides whether OpenClaw Legal is safe, profitable, low-stress, an
 
 It exists to prevent OpenClaw Legal from turning into a stressful custom legal-tech services job, emergency discovery support desk, unpaid product lab, or liability trap.
 
+For the concrete buyer/support boundaries behind this launch gate, use `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`.
+
 This is not a hype document. It is a launch filter.
 
 ## Core question
@@ -84,7 +86,7 @@ Winship does not want:
 - to become the firm’s IT department
 - to provide legal advice
 - to be exposed to unnecessary lawsuit risk
-- to take unlimited support calls
+- to take open-ended support calls
 - to be trapped in custom one-off development
 - to hold sensitive client data personally
 - to front major hardware/software costs without a signed path to recovery
@@ -200,7 +202,7 @@ Any single item in this section is enough to stop launch until it is fixed.
 
 - Hardware must be purchased personally on speculation.
 - The firm wants custom ownership of reusable product code.
-- The firm wants unlimited support for a one-time fee.
+- The firm wants open-ended support for a one-time fee.
 - The firm wants broad connectors before the local workflow is stable.
 - The firm requires a full enterprise e-discovery replacement on day one.
 - There is no credible path to Firm #2 reuse.
@@ -225,7 +227,7 @@ The strongest danger signals:
 - “Can you remote in and look at the case files?”
 - “Can you guarantee this found everything?”
 - “Can we just send you the discovery?”
-- “Can you include unlimited support?”
+- “Can you include open-ended support?”
 - “Can we pay later after it works?”
 - “Can you build the whole platform first and then we decide?”
 

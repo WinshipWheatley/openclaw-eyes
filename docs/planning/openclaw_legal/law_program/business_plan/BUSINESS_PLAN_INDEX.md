@@ -12,6 +12,8 @@ It should help Codex and Winship understand the buyer problem, commercial postur
 
 The Go/No-Go file remains the launch gate.
 
+`OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` defines the support, buyer, data, hardware, emergency, and offboarding boundaries that must be clear before paid pilot or deployment.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -29,6 +31,12 @@ External-facing versions should only be created if the internal go/no-go gate cl
 Hard launch filter.
 
 Use this first to decide whether OpenClaw Legal should move toward real buyer-facing launch at all. It protects against open-ended support burden, legal-adjacent liability, unfunded hardware risk, sensitive-data exposure, and a stressful custom services trap.
+
+### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
+
+Support and buyer boundary doctrine.
+
+Use this to define what buyers are buying, what they are not buying, what support includes or excludes, and what must be contracted before paid pilot or deployment.
 
 ### `OPENCLAW_LEGAL_BUYER_PROBLEM_STATEMENT.md`
 
@@ -77,6 +85,7 @@ Use this to preserve revenue-model and expansion ideas such as managed software,
 Internal-only:
 
 - `OPENCLAW_LEGAL_GO_NO_GO_LAUNCH_CRITERIA.md`
+- `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 - `OPENCLAW_LEGAL_GOTCHAS.md`
 - `OPENCLAW_LEGAL_BUSINESS_MODEL_OPPORTUNITIES.md`
 - `BUSINESS_PLAN_INDEX.md`
