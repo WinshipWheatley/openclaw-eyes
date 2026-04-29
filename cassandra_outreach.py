@@ -86,6 +86,29 @@ _SS_SENT_CONFIRMED    = "sent_confirmed"
 _EMAIL_THREAD_ANALYSIS_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_analysis.jsonl")
 _EMAIL_THREAD_STATE = Path("/mnt/c/OpenClaw/logs/cassandra_email_thread_state.json")
 _EMAIL_THREAD_FOLLOWUP_DAYS = 4
+_KNOWN_CONTACT_WATCH_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_known_contact_watch.jsonl")
+
+KNOWN_CONTACT_WATCH_NOTIFICATION = "known_contact_watch_notification"
+IGNORED_NOT_IN_SCOPE_THREAD = "ignored_not_in_scope_thread"
+APPROVED_FOR_FOLLOW_UP_LANE = "approved_for_follow_up_lane"
+
+CASSANDRA_STARTED_THREAD = "cassandra_started_thread"
+USER_ASSIGNED_THREAD = "user_assigned_thread"
+UNASSIGNED_KNOWN_CONTACT_THREAD = "unassigned_known_contact_thread"
+UNKNOWN_THREAD_OWNERSHIP = "unknown"
+
+_VALID_WATCH_STATES = {
+    KNOWN_CONTACT_WATCH_NOTIFICATION,
+    IGNORED_NOT_IN_SCOPE_THREAD,
+    APPROVED_FOR_FOLLOW_UP_LANE,
+}
+
+_VALID_OWNERSHIP_STATES = {
+    CASSANDRA_STARTED_THREAD,
+    USER_ASSIGNED_THREAD,
+    UNASSIGNED_KNOWN_CONTACT_THREAD,
+    UNKNOWN_THREAD_OWNERSHIP,
+}
 
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
 
@@ -848,6 +871,61 @@ def _detect_inner_circle_email_reply_intent(text: str) -> bool:
 
 
 _EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")
+
+
+def record_known_contact_watch_event(
+    *,
+    message_id: str,
+    thread_id: str,
+    sender_email: str,
+    contact_nickname: str,
+    contact_tier: str,
+    watch_state: str = KNOWN_CONTACT_WATCH_NOTIFICATION,
+    ownership_state: str = UNASSIGNED_KNOWN_CONTACT_THREAD,
+    matched_reason: str = "",
+    operator_action: str = "pending",
+    draft_id: str = "",
+    approval_id: str = "",
+    created_at: str | None = None,
+) -> dict:
+    """Append one deterministic known-contact watch event.
+
+    This helper records state only. It does not create Gmail drafts, request
+    Guardian approval, or send email.
+    """
+    normalized_watch_state = str(watch_state or "").strip()
+    if normalized_watch_state not in _VALID_WATCH_STATES:
+        raise ValueError(f"invalid watch_state: {watch_state}")
+
+    normalized_ownership_state = str(ownership_state or "").strip()
+    if normalized_ownership_state not in _VALID_OWNERSHIP_STATES:
+        raise ValueError(f"invalid ownership_state: {ownership_state}")
+
+    entry = {
+        "message_id": str(message_id or "").strip(),
+        "thread_id": str(thread_id or "").strip(),
+        "sender_email": str(sender_email or "").strip().lower(),
+        "contact_nickname": str(contact_nickname or "").strip().lower(),
+        "contact_tier": str(contact_tier or "").strip(),
+        "watch_state": normalized_watch_state,
+        "ownership_state": normalized_ownership_state,
+        "matched_reason": str(matched_reason or "").strip(),
+        "operator_action": str(operator_action or "pending").strip(),
+        "draft_id": str(draft_id or "").strip(),
+        "approval_id": str(approval_id or "").strip(),
+        "created_at": str(created_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    }
+    for key in ("message_id", "thread_id", "sender_email", "contact_nickname", "contact_tier"):
+        if not entry[key]:
+            raise ValueError(f"{key} is required")
+
+    try:
+        _KNOWN_CONTACT_WATCH_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _KNOWN_CONTACT_WATCH_LOG.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] known-contact watch log write failed: {exc}", flush=True)
+    return entry
 
 
 def _email_bridge_message_seen(message_id: str) -> bool:

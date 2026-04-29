@@ -121,6 +121,168 @@ class TestLogEmailBridgeEvent:
         assert len(lines) == 2
 
 
+# ── Known-contact watch event contract ──────────────────────────────────────
+
+class TestKnownContactWatchEvent:
+    def test_records_required_fields(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+
+        entry = outreach.record_known_contact_watch_event(
+            message_id="m-known",
+            thread_id="t-known",
+            sender_email="CLIENT@Example.com",
+            contact_nickname="client_a",
+            contact_tier="client",
+            watch_state=outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            ownership_state=outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            matched_reason="pinned email matched active payment lane",
+            operator_action="notify_only",
+            draft_id="draft-should-stay-data-only",
+            approval_id="approval-should-stay-data-only",
+            created_at="2026-04-29 09:00:00",
+        )
+
+        assert entry == {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": "known_contact_watch_notification",
+            "ownership_state": "unassigned_known_contact_thread",
+            "matched_reason": "pinned email matched active payment lane",
+            "operator_action": "notify_only",
+            "draft_id": "draft-should-stay-data-only",
+            "approval_id": "approval-should-stay-data-only",
+            "created_at": "2026-04-29 09:00:00",
+        }
+        saved = json.loads(log.read_text(encoding="utf-8").strip())
+        assert saved == entry
+
+    def test_missing_optional_fields_default_safely(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+
+        entry = outreach.record_known_contact_watch_event(
+            message_id="m-known",
+            thread_id="t-known",
+            sender_email="client@example.com",
+            contact_nickname="client_a",
+            contact_tier="client",
+        )
+
+        assert entry["watch_state"] == "known_contact_watch_notification"
+        assert entry["ownership_state"] == "unassigned_known_contact_thread"
+        assert entry["operator_action"] == "pending"
+        assert entry["draft_id"] == ""
+        assert entry["approval_id"] == ""
+        assert entry["created_at"]
+
+    def test_notification_only_state_does_not_create_gmail_draft(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        draft_calls = []
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        monkeypatch.setattr(
+            outreach,
+            "create_gmail_draft",
+            lambda *args, **kwargs: draft_calls.append((args, kwargs)),
+        )
+
+        outreach.record_known_contact_watch_event(
+            message_id="m-known",
+            thread_id="t-known",
+            sender_email="client@example.com",
+            contact_nickname="client_a",
+            contact_tier="client",
+            watch_state=outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+        )
+
+        assert draft_calls == []
+        assert log.exists()
+
+    def test_notification_only_state_does_not_request_send_approval(self, tmp_path, monkeypatch):
+        import cassandra_brain
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        approval_calls = []
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            lambda **kwargs: approval_calls.append(kwargs),
+            raising=False,
+        )
+
+        outreach.record_known_contact_watch_event(
+            message_id="m-known",
+            thread_id="t-known",
+            sender_email="client@example.com",
+            contact_nickname="client_a",
+            contact_tier="client",
+            watch_state=outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+        )
+
+        assert approval_calls == []
+        assert log.exists()
+
+    def test_helper_does_not_change_linked_cassandra_started_thread_matching(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        watch_log = tmp_path / "known_contact_watch.jsonl"
+        correspondence_log = tmp_path / "cassandra_correspondence.jsonl"
+        outreach_log = tmp_path / "cassandra_outreach.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", watch_log)
+        monkeypatch.setattr(outreach, "_CORRESPONDENCE_LOG", correspondence_log)
+        monkeypatch.setattr(outreach, "_OUTREACH_LOG", outreach_log)
+
+        correspondence_log.write_text(
+            json.dumps(
+                {
+                    "ts": "2026-04-29 09:00:00",
+                    "recipient": "Client A",
+                    "recipient_email": "client@example.com",
+                    "state": "sent_confirmed",
+                    "subject": "Payment follow-up",
+                    "thread_id": "t-started",
+                    "route": "email_send",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        outreach.record_known_contact_watch_event(
+            message_id="m-watch",
+            thread_id="t-watch",
+            sender_email="client@example.com",
+            contact_nickname="client_a",
+            contact_tier="client",
+            watch_state=outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+        )
+
+        match = outreach._match_outbound_email_record(
+            {
+                "message_id": "m-reply",
+                "thread_id": "t-started",
+                "from_email": "client@example.com",
+                "subject": "Re: Payment follow-up",
+            },
+            "client@example.com",
+        )
+
+        assert match is not None
+        assert match["source"] == "correspondence"
+        assert match["matched_via"] == "thread_id"
+        assert match["thread_id"] == "t-started"
+
+
 # ── _predict_likely_next_questions ───────────────────────────────────────────
 
 class TestPredictLikelyNextQuestions:
@@ -182,9 +344,8 @@ class TestBrainCut6WrapperSmoke:
         assert entry["message_id"] == "m1"
 
     def test_brain_predict_likely_next_questions(self, monkeypatch):
-        import cassandra_outreach as outreach
         import cassandra_brain as brain
-        monkeypatch.setattr(outreach, "get_finance_status_answer",
+        monkeypatch.setattr(brain, "get_finance_status_answer",
                             lambda q: "Deposit posted. Next: Confirm with client.")
         bundles = [{"question": "Did the deposit arrive?", "bundle_id": "q1"}]
         result = brain._predict_likely_next_questions(bundles)
