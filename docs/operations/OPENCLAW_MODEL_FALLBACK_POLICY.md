@@ -104,6 +104,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 |---|---|---|---|---|---|---|
 | Cassandra user replies | local Cassandra task-class router | only if sanitized, context-clean, user-approved, and logged | local task escalation only by default; external pending approval | PII hook, context-clean check, topic/sensitivity gate, route log | `cassandra_brain.py:5058`, `cassandra_brain.py:5144`, `cassandra_brain.py:5576`, `cassandra_pii_hooks.py:112` | PENDING USER APPROVAL |
 | Cassandra outbound drafts | local `cassandra_outbound_draft` | no by default | local only by default | Gmail/private correspondence must stay local unless sanitized and approved | `chief_llm.py:96`, `cassandra_brain.py:3832`, `cassandra_outreach.py:24` | PENDING USER APPROVAL |
+| Cassandra known-contact watch notifications | deterministic known-contact/lane matching plus local-only summary/preview if needed | no by default | no external fallback | notification is not Gmail Draft creation; suggested preview is not send approval; Gmail body/private correspondence stays local | `cassandra_brain.py`, `cassandra_outreach.py`, `cassandra_sender.py`, `google_access_policy.py`, `google_access_broker.py` | POLICY ADDED; IMPLEMENTATION VERIFICATION REQUIRED |
 | Gmail body analysis | local-only or deterministic handling | no by default | none unless sanitized and explicitly approved | no raw body to external model | `google_access_policy.py:64`, `google_access_broker.py:505`, `cassandra_outreach.py:590` | PENDING USER APPROVAL |
 | Cassandra calendar extraction | deterministic/local extraction | no by default | Claude JSON fallback exists but should remain disabled unless approved | action-specific approval before external fallback | `cassandra_brain.py:1860`, `cassandra_brain.py:1900`, `chief_llm.py:516` | CONFLICT / NEEDS USER DECISION |
 | Cassandra morning brief | local briefing stages | no by default | local qwen fallback, then deterministic fallback | local-only, deterministic fallback on failure | `cassandra_briefing_brain.py:871`, `cassandra_briefing_brain.py:1134`, `cassandra_briefing_brain.py:1166` | CONFIRMED BY CODE/DOCS |
@@ -126,6 +127,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 | short summarization | FIRST-PASS/DRAFT ONLY | No benchmark in this document proves quality. |
 | long-context summarization | UNPROVEN | Benchmark harness exists, but this document did not run it. |
 | Cassandra user replies | DETERMINISTIC VALIDATION REQUIRED | Local-first route exists; safety depends on topic gates, PII hooks, and review. |
+| Cassandra known-contact watch notifications | DETERMINISTIC VALIDATION REQUIRED | Known-contact/lane matching, thread ownership, and next-action choices need deterministic state; local model may only assist summary/preview. |
 | email drafting | FIRST-PASS/DRAFT ONLY | Private correspondence risk requires review and local-only default. |
 | Gmail body analysis | DETERMINISTIC VALIDATION REQUIRED | External is forbidden by default; local quality still UNPROVEN. |
 | Legal/private matter analysis | NOT APPROPRIATE | Legal v0 doctrine is no LLM/no cloud for real matter data. |
@@ -144,6 +146,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 | Deterministic classification | no by default | deterministic code | none | n/a | no | normal audit | sensitive/private data to model |
 | Non-sensitive architecture/code review | yes after path/sensitivity check | local/tests first or approved external | external large-context model allowed if sanitized | yes | yes | yes | secrets, private logs, Gmail, Legal, vaults, PII |
 | Cassandra casual replies | only if sanitized and approved | local Cassandra route | external only after context-clean + approval | yes | yes | yes | PII, Gmail bodies, finance/private context, contacts |
+| Cassandra known-contact watch notifications | no by default | deterministic match + local-only summary/preview | none by default | yes before any exception | yes before any exception | yes | raw Gmail bodies, private correspondence, contact/payment context, PII |
 | Email drafting | only if sanitized and explicitly approved | local draft model | external only after explicit approval | yes | yes | yes | raw Gmail bodies, private correspondence, attachments |
 | Gmail body analysis | local-only by default | deterministic/local | none by default | yes if ever exported | yes if ever exported | yes | raw body text and private correspondence |
 | Legal/private matter work | no | deterministic local workflow | none | n/a | n/a | yes | real Legal/client/matter data |

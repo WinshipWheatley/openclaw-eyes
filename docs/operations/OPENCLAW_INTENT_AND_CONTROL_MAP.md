@@ -51,6 +51,15 @@ These decisions are not approved by this document. They are candidate control po
    - Status: PENDING USER APPROVAL.
    - Evidence: `/home/openclaw/chief_llm.py`, `/home/openclaw/cassandra_pii_hooks.py`, `/home/openclaw/headroom_routing_policy.json`, `/home/openclaw/runner_profiles.py`, `/home/openclaw/runner_registry.py`.
 
+7. Cassandra known-contact email watch lane
+   - Candidate policy: Cassandra/Clara may proactively notify the operator in Telegram when a new email arrives from a known gig/payment/vendor/client/active-work contact in her scope.
+   - Candidate policy: A notification may include a safe metadata/snippet/body-summary explanation, grounded lane/status, and an optional suggested response preview.
+   - Candidate policy: Notification is not Gmail Draft creation. Suggested response preview is not Gmail Draft creation. Gmail Draft creation is not approval to send. Guardian send approval is not notification.
+   - Candidate policy: Cassandra should ask what to do next: watch the thread, revise the response, create a Gmail draft, request Guardian send approval, or ignore/do not watch.
+   - Candidate policy: Cassandra must not roam Gmail, jump into arbitrary threads, send without approval, or expand one client/payment/gig lane into another without grounded evidence.
+   - Status: POLICY ADDED; IMPLEMENTATION VERIFICATION STILL REQUIRED.
+   - Evidence: `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/cassandra_sender.py`, `/home/openclaw/google_access_policy.py`, `/home/openclaw/google_access_broker.py`.
+
 ## Verification Checkpoint -- 2026-04-28
 
 - Chief approval tests passed:
@@ -115,6 +124,7 @@ These decisions are not approved by this document. They are candidate control po
 | Sensitive secrets and credentials must not be edited or inspected casually. | CONFIRMED BY CODE/DOCS | `/home/openclaw/OPENCLAW_RUNTIME.md`, `.gitignore`, `/home/openclaw/chief_approval_policy.py` | No |
 | Sensitive/private data should not reach external models unless explicitly sanitized and lane-approved. | INFERRED FROM CODE/DOCS | `/home/openclaw/chief_llm.py`, `/home/openclaw/cassandra_pii_hooks.py`, `/home/openclaw/headroom_routing_policy.json` | Yes |
 | Deterministic-first is preferred for Legal, approvals, path guards, harnesses, and routing. | CONFIRMED BY CODE/DOCS | `/home/openclaw/legal/README.md`, `/home/openclaw/google_access_policy.py`, `/home/openclaw/polish_loop/harness_task_runner.py` | No |
+| Cassandra email assistance should be proactive inside known work/payment lanes but bounded by thread ownership, explicit assignment, and Guardian-gated sends. | INFERRED FROM CODE/DOCS; policy addition pending verification | `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/google_access_policy.py`, `/home/openclaw/google_access_broker.py` | Yes for implementation/gate details |
 | Sidecars may advise but should not become canonical authorities unless explicitly approved. | CONFIRMED BY CODE/DOCS for Hermes docs; CONFLICT with technical capability | `/home/openclaw/sidecars/hermes_home/HERMES_ORIENTATION.md`, `/home/openclaw/sidecars/hermes/tools/file_tools.py` | Yes |
 | Stale/noisy folders should follow manifest -> user review -> quarantine -> delayed deletion. | INFERRED FROM CODE/DOCS and audit risk | `/home/openclaw/CORE_ARCHITECTURE_PRINCIPLES.md`, Pass 1 host path inventory | Yes |
 
@@ -123,7 +133,7 @@ These decisions are not approved by this document. They are candidate control po
 | Lane/component | Intended role | Status | Allowed actions | Forbidden actions | Approval points | Sensitive-data rule | External-model rule | Evidence paths | User decision needed |
 |---|---|---|---|---|---|---|---|---|---|
 | Chief | Runtime operator/orchestrator, approval brain, acceptance reviewer, notification surface. | CONFIRMED BY CODE/DOCS | Local reads, scoped edits/tests, approval routing, bounded acceptance verdicts. | Credential reads/edits, destructive/force/external high-risk actions without approval. | Tier 1 local confirm, Tier 2 Guardian. | Must not casually expose secrets/PII. | Local primary; external calls only after privacy routing. | `/home/openclaw/OPENCLAW_RUNTIME.md`, `/home/openclaw/chief_approval_policy.py`, `/home/openclaw/chief_approval_brain.py`, `/home/openclaw/chief_acceptance_gate.py` | No for role; yes for direct notification bypass treatment |
-| Cassandra | Operator-support assistant for briefs, outreach drafts, Google access through broker, PII-aware replies. | INFERRED FROM CODE/DOCS | Draft Gmail, read allowed Google data, user-facing Telegram replies, PII tokenization. | Direct Gmail send currently disabled; unsafe PII-to-LLM if tokenization fails. | Broker gates Class B/C; HITL sometimes; unclear for Telegram. | PII vault/tokenization expected. | Local first; external only sanitized/non-sensitive. | `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_capability.py`, `/home/openclaw/cassandra_pii_hooks.py` | Yes for Gmail draft and Telegram/SMS behavior |
+| Cassandra | Operator-support assistant for briefs, outreach drafts, Google access through broker, PII-aware replies, and known-contact email watch notifications for gig/payment/vendor/client work lanes. | INFERRED FROM CODE/DOCS; known-contact watch policy added pending verification | Draft Gmail, read allowed Google data, user-facing Telegram replies, PII tokenization, notify on known-contact emails, suggest response previews, watch Cassandra-started/user-assigned/approved threads. | Direct Gmail send currently disabled; unsafe PII-to-LLM if tokenization fails; roaming Gmail; joining arbitrary threads; expanding one lane to another without grounded evidence. | Broker gates Class B/C; HITL sometimes; Guardian required before send; Gmail Draft creation policy still unresolved; known-contact notification is a lower-authority Telegram notification. | PII vault/tokenization expected; Gmail body/private correspondence remains sensitive. | Local first; external only sanitized/non-sensitive and approved; no external model by default for Gmail body analysis. | `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_capability.py`, `/home/openclaw/cassandra_pii_hooks.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/google_access_policy.py` | Yes for Gmail draft, known-contact watch implementation, and Telegram/SMS behavior |
 | Guardian | Human approval bot and high-risk approval path. | CONFIRMED BY CODE/DOCS | Receive approval prompts, record expected approval IDs, approve/deny/delay/why. | Should not be bypassed for Tier 2 actions. | Tier 2 external/high-risk approval. | Approval prompts may contain sensitive summaries; should avoid secrets. | No model role found. | `/home/openclaw/chief_guardian_listener.py`, `/home/openclaw/chief_guardian_sender.py` | No |
 | Hermes | Advisory sidecar, non-canonical synthesis/tooling gateway. | CONFLICT / NEEDS USER DECISION | Docs allow evidence-bound advisory work. Code allows broad file/terminal/MCP tools. | Docs forbid canonical mutation/governance/approval authority. | Hermes has its own command approval modes; not OpenClaw canonical approval. | No OpenClaw-specific denylist found for LegalPrivate or repo-sensitive paths. | Unclear; Hermes has synthesis/tool surface. | `/home/openclaw/sidecars/hermes_home/HERMES_ORIENTATION.md`, `/home/openclaw/sidecars/hermes/LANE_POLICY.md`, `/home/openclaw/sidecars/hermes/tools/file_tools.py`, `/home/openclaw/sidecars/hermes/tools/approval.py` | Yes |
 | PI/PII/operator-support | Sensitive identity and private data containment. | CONFIRMED BY CODE/DOCS for vault/hooks; UNKNOWN for all caller discipline | Tokenize/redact, encrypted vault access, audit without originals. | Raw PII to external LLM; credential exposure. | Credential and sensitive reads are hard Tier 2. | `.pii_vault.enc` is private and ignored by git. | Local-only or sanitized external. | `/home/openclaw/pii_vault.py`, `/home/openclaw/cassandra_pii_hooks.py`, `/home/openclaw/.gitignore` | Yes for external model policy |
@@ -139,6 +149,64 @@ These decisions are not approved by this document. They are candidate control po
 | `/home/openclaw/OpenClaw/state` | Legacy/current runtime state path. | INFERRED FROM CODE/DOCS | Chief/session/state files. | Manual deletion/migration without manifest. | Unknown. | Could contain operational/private state. | Should not be externally prompted blindly. | `/home/openclaw/OpenClaw/state` | Yes for migration/cleanup |
 | `/home/openclaw/sidecars/hermes_home` | Hermes runtime home. | CONFIRMED BY CODE/DOCS | Hermes config, logs, sessions, state DB. | Secret/session inspection without approval. | Hermes gateway approval modes. | May contain private sessions/secrets; ignored by git. | Unknown. | `/home/openclaw/systemd/user/hermes-gateway.service.in`, `/home/openclaw/sidecars/hermes_home` | Yes for boundary |
 
+### Cassandra Known-Contact Email Watch Lane
+
+Status: INFERRED FROM CODE/DOCS for existing Cassandra/Gmail surfaces; policy addition pending implementation verification.
+
+Purpose: Cassandra/Clara should feel like a real assistant who notices relevant work/payment emails in a noisy inbox, flags them politely in Telegram, and offers useful next actions without overstepping. This lane is especially important for vendors/clients who owe money for music, A/V, audio engineering, rentals, and related work.
+
+Policy boundaries:
+
+- Cassandra may proactively notify the operator about new emails from known gig/payment/vendor/client/active-work contacts in her scope.
+- Cassandra may include a suggested response preview for operator convenience.
+- Cassandra should ask what to do next instead of automatically creating Gmail Draft objects or triggering send approval.
+- Guardian approval should be requested only when the operator chooses to send or asks Cassandra to prepare a draft for sending.
+- Cassandra may start new email threads only when asked or explicitly lane-approved.
+- Cassandra may watch/respond to threads she started.
+- Cassandra may respond to a thread she did not start only if the operator explicitly assigns that email/thread to her.
+- Cassandra must not roam Gmail or jump into arbitrary threads.
+- Cassandra must not send without approval.
+- Cassandra must not expand from one client/payment/gig lane into another without grounded evidence.
+
+Authority distinctions:
+
+- Known-contact notification is not draft creation.
+- Suggested response preview is not Gmail Draft object creation.
+- Gmail Draft object creation is not approval to send.
+- Guardian send approval is not notification.
+
+Machine-readable thread ownership/assignment states required:
+
+- `cassandra_started_thread`
+- `user_assigned_thread`
+- `known_contact_watch_notification`
+- `ignored_not_in_scope_thread`
+- `approved_for_follow_up_lane`
+
+Suggested Telegram notification shape:
+
+```text
+Cassandra:
+"Heads up -- new email from {sender}.
+
+Why I'm flagging it:
+- {sender/contact} is tied to {lane/client/gig/payment item}.
+- This appears related to {subject/status}.
+- Current known status: {grounded status}.
+
+Suggested response, if useful:
+{draft preview}
+
+What do you want me to do?
+1. Watch this thread
+2. Revise the response
+3. Create a Gmail draft
+4. Ask Guardian for send approval
+5. Ignore this thread"
+```
+
+Evidence/control surfaces: `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/cassandra_sender.py`, `/home/openclaw/cassandra_capability.py`, `/home/openclaw/google_access_policy.py`, `/home/openclaw/google_access_broker.py`.
+
 ## 4. Action Authority Map
 
 | Action | Current implementation | Intended policy | Current gate | Desired gate candidate | Conflict? | Sensitivity risk | Evidence | User decision needed |
@@ -146,6 +214,9 @@ These decisions are not approved by this document. They are candidate control po
 | Telegram send | Direct sender wrappers can post externally. | CONFIRMED: external sends should be controlled. | Some paths no approval wrapper. | Tier by content/action; routine notifications may be allowlisted. | Yes | Medium/high | `/home/openclaw/chief_sender.py`, `/home/openclaw/chief_notify.py`, `/home/openclaw/OPENCLAW_RUNTIME.md` | Yes |
 | Chief notify | Silent Telegram notification helper. | INFERRED: operational notify may be allowed if non-sensitive. | Env presence only. | Explicit allowlist for non-sensitive notify. | Yes | Medium | `/home/openclaw/chief_notify.py` | Yes |
 | Cassandra Telegram send | Sends Telegram/voice; harness no-send mode exists. | INFERRED: user-facing replies allowed; risky sends gated if sensitive/external. | Harness guard only. | Content/action tier gate. | Yes | Medium | `/home/openclaw/cassandra_sender.py` | Yes |
+| Cassandra known-contact watch notification | Existing Cassandra/Gmail/Telegram surfaces appear relevant; exact implementation not verified in this docs-only edit. | Allow proactive Telegram heads-up for known gig/payment/vendor/client/active-work contacts; ask operator what to do next. | Unknown; should be notification-only and not draft/send approval. | Allowlist known-contact notification lane with machine-readable ownership state. | Implementation unknown | Medium | `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/cassandra_sender.py`, `/home/openclaw/google_access_policy.py` | Yes for implementation and test coverage |
+| Cassandra suggested response preview | May be produced as text in Telegram rather than a Gmail Draft object. | Preview is operator convenience only; it must not create a Gmail Draft or trigger Guardian send approval by itself. | Unknown. | Local-only preview with safe metadata/snippet/body-summary policy. | Implementation unknown | Medium/high | `/home/openclaw/cassandra_brain.py`, `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/cassandra_pii_hooks.py` | Yes |
+| Cassandra thread watch/assignment state | Required policy state; exact current persistence not verified in this docs-only edit. | Maintain explicit states for Cassandra-started, user-assigned, known-contact notification, ignored/not-in-scope, and approved-for-follow-up lane. | Unknown. | Deterministic state transition; no arbitrary inbox roaming. | Implementation unknown | Medium | `/home/openclaw/cassandra_outreach.py`, `/home/openclaw/cassandra_brain.py` | Yes |
 | Gmail read metadata | Broker Class A for Cassandra; Chief denied. | CONFIRMED by broker policy. | Auto-allowed for Cassandra. | Keep Class A if user approves. | No obvious conflict | Medium | `/home/openclaw/google_access_policy.py` | Yes |
 | Gmail read body | Broker Class A for Cassandra; audit omits body text. | CONFIRMED by broker policy; privacy risk remains. | Auto-allowed for Cassandra. | Consider body-specific sensitivity gate. | Possible | High | `/home/openclaw/google_access_policy.py`, `/home/openclaw/google_access_broker.py` | Yes |
 | Gmail draft create | Broker Class A/no approval. Cassandra capability comment says L1 approval. | CONFLICT / NEEDS USER DECISION. | Auto-allowed. | Class A or Tier 1, user decision. | Yes | Medium/high | `/home/openclaw/google_access_policy.py`, `/home/openclaw/google_access_broker.py`, `/home/openclaw/cassandra_capability.py` | Yes |
