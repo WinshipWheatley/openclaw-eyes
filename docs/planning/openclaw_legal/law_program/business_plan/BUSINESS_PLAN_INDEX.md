@@ -14,6 +14,8 @@ The Go/No-Go file remains the launch gate.
 
 `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` defines the support, buyer, data, hardware, emergency, and offboarding boundaries that must be clear before paid pilot or deployment.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md](OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md) defines the smallest conditional first paid pilot scope without implying real deployment readiness.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order

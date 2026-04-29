@@ -1258,6 +1258,9 @@ Good next Legal work should be non-dangerous:
 Synthetic demo validation package:
 - `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` records the docs-only synthetic/public-safe validation checklist for the current Phase 2F-B Legal Console checkpoint.
 
+First-pilot scope package:
+- `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md` records the conditional-go first paid pilot scope and buyer/support boundaries.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;
