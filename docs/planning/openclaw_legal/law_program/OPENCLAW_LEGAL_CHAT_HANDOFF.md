@@ -941,6 +941,74 @@ Why this is a rollback/checkpoint boundary:
 
 Next step: Phase 2B should be planned separately. The likely next GUI slice is open-intake-folder, not dummy creation or command execution yet.
 
+## Completed Phase 2B Legal Console intake-folder opener
+
+Commit: `5105f2e feat(legal): add console intake folder opener`
+
+App path:
+`apps/legal-console-spike/`
+
+What was built (Phase 2B only):
+- Added controlled Open Intake Folder behavior.
+- Added Tauri/Rust command: `open_intake_folder`.
+- Added:
+  - `apps/legal-console-spike/src-tauri/src/intake.rs`
+  - `apps/legal-console-spike/src/legalIntake.ts`
+- Added Rust opener plugin dependency: `tauri-plugin-opener = "2"`.
+- Registered opener plugin with JS link opening disabled.
+- Frontend now enables only Open Intake Folder.
+- Status refresh from Phase 2A remains.
+
+Open Intake Folder scope:
+- Opens only: `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE`
+- macOS proof target only.
+- Takes no arbitrary path input.
+- Validates HOME, exact suffix, existing directory, no traversal, no symlink target/ancestors, no `/home/openclaw` resolution, no cloud/watch path markers.
+- Does not create the folder.
+- Does not list the folder.
+- Does not read or display filenames.
+- Does not process files.
+
+Sanitized fields returned:
+- `opened`
+- `target`
+- `os`
+- `boundary_state`
+- `warnings`
+- `errors`
+
+What remains intentionally unwired:
+- Add Dummy File remains disabled.
+- Run Dry Run remains disabled.
+- Reset Local Test remains disabled.
+- Reset All Test State remains disabled.
+- No bridge invocation.
+- No Legal Python engine edits.
+- No shell execution.
+- No intake listing/reading.
+- No dummy-file creation.
+- No broad filesystem/dialog/shell/network permissions.
+
+Proof summary:
+- `git diff --check` passed.
+- `bash -n mac_eyes/Launchers/scaffold_mac_legal_vault.sh` passed.
+- `bash -n scripts/run_legal_pipeline_v0.sh` passed.
+- `test ! -e /home/openclaw/OpenClawLegalPrivate` passed.
+- Forbidden UX string scan passed.
+- No intake listing/reading scan passed.
+- No shell/bridge wiring scan passed.
+- JSON metadata checks passed during Codex proof.
+- `CARGO_NET_OFFLINE=true cargo metadata --no-deps` passed during Codex proof.
+- VS Code diagnostics showed no errors.
+- `npm run check/build` intentionally skipped because `node_modules` is missing and dependency install was not approved.
+- `cargo check` intentionally skipped because dependency fetching was not approved.
+
+Why this is a rollback/checkpoint boundary:
+- This proves bounded implementation shape at the code/scaffold level for opening the intake folder safely.
+- It does not prove runtime Tauri launch, opener behavior on macOS runtime, command execution, file selection, bridge invocation, or real legal use.
+
+Next step: Phase 2C should likely be runtime/dependency validation before dummy-file creation or command execution.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
