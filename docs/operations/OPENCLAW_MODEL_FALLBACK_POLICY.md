@@ -31,6 +31,46 @@ Installed means present locally as of the inventory date. It does not mean trust
 
 The installed inventory strengthens local-first feasibility, but does not prove local model quality. Benchmarks are still required before trusting drafting, summarization, planner-builder, or acceptance behavior.
 
+## Local Benchmark Checkpoint — 2026-04-28
+
+Benchmark command:
+
+```bash
+python3 openclaw_local_model_benchmark.py --reference-time 2026-04-28-local-fixture-review
+```
+
+Manifest:
+
+`staging/local_model_benchmarks/runs/20260428localfixturereview/manifest.json`
+
+Summary:
+
+- `total_cases`: 18
+- `passed_cases`: 1
+- `chief_morning_replay`: 0/2
+- `cassandra_strong_corpus`: 1/4
+- `guardian_bounded_corpus`: 0/4
+- `wrapper_neutrality_probe`: 0/8
+
+Observed failure pattern:
+
+- `minimal_adapter` large-model calls timed out at about 30 seconds.
+- Most `wrapper_on` large-model calls returned empty output after about 93-184 seconds.
+- `nemotron-3-nano:4b` returned quickly but failed strict JSON validation.
+- One `nemotron-3-nano:30b` Cassandra case passed after about 179 seconds.
+
+Interpretation:
+
+- This run proves the quick benchmark is timeout/observability limited.
+- It does not prove the large local models are unusable.
+- It does not authorize trusting local models for autonomous drafting, summarization, planner-builder, or acceptance behavior.
+- Large local model capability remains UNPROVEN / DEFERRED, not rejected.
+- Large local models require a scheduled long-window benchmark aligned with the real morning/evening stack.
+
+Policy note:
+
+Long local model tests should run only during a planned unattended window, not during active operator work, unless the user explicitly asks.
+
 ## Model Inventory
 
 A model name appearing in code, docs, or tests is evidence of a reference. Only the local models listed in `Installed Local Model Inventory — 2026-04-28` are confirmed installed by this document. Installation is not evidence of capability or trust.
@@ -137,6 +177,7 @@ Do not treat these as authorization to run tests or live model calls. They are t
 | `python3 scripts/check_local_model_usage.py` | `/home/openclaw` | inventory of local model references | no | low | code/docs only |
 | `ollama list` | `/home/openclaw` | installed local model inventory | no inference | low | local daemon metadata |
 | `python3 openclaw_local_model_benchmark.py --reference-time 2026-04-28-model-audit` | `/home/openclaw` | actual local model format/latency on benchmark fixtures | yes, local only | low if fixtures remain synthetic | staged benchmark fixtures |
+| `TBD: create or run scheduled morning-stack benchmark after verifying current stack order` | `/home/openclaw` | long-window local model behavior under the intended AM/evening stack timing | yes, local only | low only if fixtures remain synthetic or explicitly approved | planned unattended window; proposed order Guardian -> Chief -> Cassandra -> Hermes needs verification from current docs/code before test design |
 | `HERMES_HOME="$(mktemp -d)" python -m pytest -o addopts="" tests/test_lane_selector.py tests/run_agent/test_provider_fallback.py tests/run_agent/test_primary_runtime_restore.py` | `/home/openclaw/sidecars/hermes` | Hermes lane selector and provider fallback mechanics | no | low | mocked Hermes tests with temp home |
 
 ## Pending User Decisions
