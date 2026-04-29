@@ -11,6 +11,7 @@ const WORKSTATION_STATUS_PATH: &str =
     "~/OpenClawLegalPrivate/Matter_Alpha_Workspace/03_WORKSTATION_STATUS.md";
 const PRIMARY_STATUS_PATH: &str =
     "~/OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/PRIMARY_NODE_STATUS.md";
+const INTAKE_FOLDER_PATH: &str = "~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE";
 const OUTPUT_GUIDE_PATH: &str =
     "~/OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/00_OPEN_THIS_FIRST.md";
 
@@ -18,6 +19,7 @@ const WORKSTATION_STATUS_SUFFIX: &str =
     "OpenClawLegalPrivate/Matter_Alpha_Workspace/03_WORKSTATION_STATUS.md";
 const PRIMARY_STATUS_SUFFIX: &str =
     "OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/PRIMARY_NODE_STATUS.md";
+const INTAKE_FOLDER_SUFFIX: &str = "OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE";
 const OUTPUT_GUIDE_SUFFIX: &str =
     "OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/00_OPEN_THIS_FIRST.md";
 
@@ -42,7 +44,12 @@ pub struct StatusSnapshot {
     primary_status_present: bool,
     primary_state: String,
     primary_last_updated: Option<String>,
+    intake_folder_present: bool,
+    intake_target_kind: String,
     outputs_guide_present: bool,
+    scaffold_ready: bool,
+    processing_state: String,
+    gui_bridge_state: String,
     boundary_state: String,
     warnings: Vec<String>,
     errors: Vec<String>,
@@ -53,6 +60,14 @@ struct ParsedStatus {
     present: bool,
     state: String,
     last_updated: Option<String>,
+    warnings: Vec<String>,
+    errors: Vec<String>,
+}
+
+#[derive(Debug)]
+struct FixedTargetStatus {
+    present: bool,
+    target_kind: String,
     warnings: Vec<String>,
     errors: Vec<String>,
 }
@@ -71,19 +86,30 @@ pub fn get_status_snapshot() -> StatusSnapshot {
         PRIMARY_STATUS_SUFFIX,
         PRIMARY_STATES,
     );
+    let intake = check_fixed_directory("intake", INTAKE_FOLDER_PATH, INTAKE_FOLDER_SUFFIX);
     let guide = check_output_guide();
 
     let mut warnings = Vec::new();
     warnings.extend(workstation.warnings.clone());
     warnings.extend(primary.warnings.clone());
+    warnings.extend(intake.warnings.clone());
     warnings.extend(guide.1);
 
     let mut errors = Vec::new();
     errors.extend(workstation.errors.clone());
     errors.extend(primary.errors.clone());
+    errors.extend(intake.errors.clone());
     errors.extend(guide.2);
 
-    let boundary_state = if !errors.is_empty() {
+    let has_errors = !errors.is_empty();
+    let scaffold_ready = workstation.present
+        && intake.present
+        && intake.target_kind == "directory"
+        && guide.0
+        && !has_errors;
+    let processing_state = derive_processing_state(&workstation, &primary, has_errors);
+
+    let boundary_state = if has_errors {
         "error"
     } else if !warnings.is_empty() {
         "warning"
@@ -98,10 +124,70 @@ pub fn get_status_snapshot() -> StatusSnapshot {
         primary_status_present: primary.present,
         primary_state: primary.state,
         primary_last_updated: primary.last_updated,
+        intake_folder_present: intake.present,
+        intake_target_kind: intake.target_kind,
         outputs_guide_present: guide.0,
+        scaffold_ready,
+        processing_state,
+        gui_bridge_state: "not_wired".to_string(),
         boundary_state: boundary_state.to_string(),
         warnings,
         errors,
+    }
+}
+
+fn check_fixed_directory(label: &str, raw_path: &str, suffix: &str) -> FixedTargetStatus {
+    let mut warnings = Vec::new();
+    let mut errors = Vec::new();
+
+    let path = match validate_fixed_path(raw_path, suffix) {
+        Ok(path) => path,
+        Err(error) => {
+            errors.push(format!("{label}_{error}"));
+            return FixedTargetStatus {
+                present: false,
+                target_kind: "unknown".to_string(),
+                warnings,
+                errors,
+            };
+        }
+    };
+
+    if !path.exists() {
+        warnings.push(format!("{label}_folder_missing"));
+        return FixedTargetStatus {
+            present: false,
+            target_kind: "missing".to_string(),
+            warnings,
+            errors,
+        };
+    }
+
+    match fs::metadata(&path) {
+        Ok(metadata) if metadata.is_dir() => FixedTargetStatus {
+            present: true,
+            target_kind: "directory".to_string(),
+            warnings,
+            errors,
+        },
+        Ok(_) => {
+            errors.push(format!("{label}_folder_not_directory"));
+            FixedTargetStatus {
+                present: true,
+                target_kind: "not_directory".to_string(),
+                warnings,
+                errors,
+            }
+        }
+        Err(_) => {
+            errors.push(format!("{label}_folder_metadata_failed"));
+            FixedTargetStatus {
+                present: true,
+                target_kind: "unknown".to_string(),
+                warnings,
+                errors,
+            }
+        }
     }
 }
 
@@ -230,6 +316,31 @@ fn check_output_guide() -> (bool, Vec<String>, Vec<String>) {
             errors.push("outputs_guide_metadata_failed".to_string());
             (false, warnings, errors)
         }
+    }
+}
+
+fn derive_processing_state(
+    workstation: &ParsedStatus,
+    primary: &ParsedStatus,
+    has_errors: bool,
+) -> String {
+    if has_errors || workstation.state == "Error" || primary.state == "Error" {
+        return "error".to_string();
+    }
+
+    if primary.present {
+        return "primary_returned".to_string();
+    }
+
+    match workstation.state.as_str() {
+        "Ready" => "not_run".to_string(),
+        "Checking config"
+        | "Files found"
+        | "Sending files to primary node"
+        | "Processing on primary node"
+        | "Pulling outputs back" => "workstation_progress".to_string(),
+        "Error" => "error".to_string(),
+        _ => "unknown".to_string(),
     }
 }
 
@@ -374,5 +485,51 @@ mod tests {
     #[test]
     fn rejects_traversal_components() {
         assert!(has_traversal_component(Path::new("/tmp/../openclaw")));
+    }
+
+    #[test]
+    fn derives_not_run_from_ready_without_primary_status() {
+        let workstation = ParsedStatus {
+            present: true,
+            state: "Ready".to_string(),
+            last_updated: None,
+            warnings: Vec::new(),
+            errors: Vec::new(),
+        };
+        let primary = ParsedStatus {
+            present: false,
+            state: "Unknown".to_string(),
+            last_updated: None,
+            warnings: Vec::new(),
+            errors: Vec::new(),
+        };
+
+        assert_eq!(
+            derive_processing_state(&workstation, &primary, false),
+            "not_run"
+        );
+    }
+
+    #[test]
+    fn derives_primary_returned_from_primary_status_presence() {
+        let workstation = ParsedStatus {
+            present: true,
+            state: "Done".to_string(),
+            last_updated: None,
+            warnings: Vec::new(),
+            errors: Vec::new(),
+        };
+        let primary = ParsedStatus {
+            present: true,
+            state: "Done".to_string(),
+            last_updated: None,
+            warnings: Vec::new(),
+            errors: Vec::new(),
+        };
+
+        assert_eq!(
+            derive_processing_state(&workstation, &primary, false),
+            "primary_returned"
+        );
     }
 }
