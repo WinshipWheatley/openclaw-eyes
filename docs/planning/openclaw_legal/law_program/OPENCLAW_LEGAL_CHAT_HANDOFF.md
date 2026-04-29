@@ -1225,6 +1225,45 @@ Next step:
 - Pause Legal feature work and reassess.
 - Do not wire Run Dry Run, Reset Local Test, Reset All Test State, bridge execution, matter selection, file picker, or real-matter GUI workflow without separate planning and approval.
 
+## Phase 2G planning note — Run Dry Run deferred
+
+OpenClaw Legal remains conditional-go and promising. This is not a product no-go.
+
+Run Dry Run in the GUI is deferred. Run Dry Run must not be implemented next. The next Run step is contract/design only, not code.
+
+Reason: Run is a larger authority class than Create Synthetic Test File because it can process intake files, move data between Mac/PC paths, create outputs, invoke SSH/rsync/bridge behavior, and create support/liability expectations. Phase 2F-B proved one fixed synthetic write. Run is a different class of action.
+
+Any future Run action requires:
+- a written Phase 2G contract;
+- synthetic-only scope;
+- no real matter mode;
+- no arbitrary path, query, matter, or input;
+- a safe runner/service/API decision before shell or SSH wiring;
+- no Reset coupling;
+- no file picker;
+- no output body, report, review packet, or support packet display in the GUI;
+- no filenames, counts, or private paths displayed;
+- Mac runtime validation before commit;
+- separate explicit approval.
+
+Reset remains separately deferred and requires its own confirmation design.
+
+Good next Legal work should be non-dangerous:
+- runner/service design doc;
+- synthetic demo package;
+- first-pilot scope pack;
+- support/pilot boundary refinement;
+- repeatable validation checklist.
+
+Bad next Legal work:
+- wire Run Dry Run now;
+- wire Reset now;
+- file picker;
+- matter selection;
+- real matter mode;
+- Connect/queue/ETA;
+- broad OCR/media/email expansion.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1484,8 +1523,9 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 Immediate next work:
 
 1. **Recommended next target: pause Legal feature work and reassess.** Phase 2F-B proved the first intentionally write-capable GUI action under synthetic-only constraints. Do not keep adding GUI actions by momentum.
-2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
-3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+2. **Next safe Legal slice:** choose docs/design/proof packaging, not Run implementation. Good candidates are a Phase 2G runner/service design doc, a synthetic demo validation checklist/package, or a first-pilot scope/support pack.
+3. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
+4. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Other candidates, deliberately deferred until selected:
 
