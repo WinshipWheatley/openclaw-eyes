@@ -98,15 +98,19 @@ REGISTRY: dict = {
                 "Draft email text",
                 connected=True, scope=["write"],
                 caveats=(
-                    "Brokered Gmail draft creation is connected; drafts are prepared "
-                    "for review in the configured review inbox and CC that mailbox"
+                    "Brokered Gmail Draft object creation is Class B / Tier 1; "
+                    "drafts are prepared for review in the configured review inbox "
+                    "and CC that mailbox"
                 ),
             ),
             Capability(
                 "email_send", "email_send",
                 "Send email via SMTP or API",
                 connected=False, scope=[],
-                caveats="Direct send is intentionally disabled for Cassandra; draft-review flow only",
+                caveats=(
+                    "No direct or autonomous send; Gmail send is only brokered "
+                    "Class C / Tier 2 if requested after draft review"
+                ),
             ),
             Capability(
                 "future_exec", "automation",

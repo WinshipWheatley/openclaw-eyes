@@ -35,8 +35,8 @@ CALENDAR_CONNECTED         = True   # google.calendar.read via google_access_bro
 PAYMENT_EXTERNAL_CONNECTED = False  # no live bank or payment processor connection
 PAYMENT_METADATA_CONNECTED = True   # Gmail payment metadata + income-log check
 FILE_VERIFY_CONNECTED      = True   # tools/file_verify.py wired via cassandra_brain._handle_file_verification_request
-EMAIL_DRAFT_CONNECTED      = True   # google.gmail.draft.create via google_access_broker.py (L1 approval)
-EMAIL_SEND_CONNECTED       = False  # direct outbound send intentionally disabled for Cassandra
+EMAIL_DRAFT_CONNECTED      = True   # google.gmail.draft.create via google_access_broker.py (Class B / Tier 1)
+EMAIL_SEND_CONNECTED       = False  # no direct/autonomous send; brokered send is Class C / Tier 2 if requested
 INVOICE_PDF_CONNECTED = True  # reportlab PDF invoice generation via Cassandra
 FUTURE_ACTION_CONNECTED    = True   # dispatch via cassandra_watcher.py, enqueue via cassandra_brain.py
 FINANCIAL_LOG_CONNECTED    = True   # expense_log.json write via chief_cpa_brain.log_entry / log_expense_from_text
@@ -320,9 +320,10 @@ def capability_context() -> str:
         cap_line("file_verification", FILE_VERIFY_CONNECTED,
                  "Never confirm or deny that a file or path exists."),
         cap_line("email_draft",       EMAIL_DRAFT_CONNECTED,
-                 "Email draft creation is not connected."),
+                 "Email draft creation is not connected.")
+        + " Brokered Gmail Draft object creation requires Tier 1 approval.",
         cap_line("email_send",        EMAIL_SEND_CONNECTED,
-                 "You can create brokered Gmail drafts for review. You cannot send email directly."),
+                 "Gmail send is not direct or autonomous. If requested, send is only brokered Class C / Tier 2."),
         cap_line("future_exec",       FUTURE_ACTION_CONNECTED,
                  "You cannot check, send, or follow up autonomously. You can draft, log, or surface."),
         cap_line("financial_log",     FINANCIAL_LOG_CONNECTED,

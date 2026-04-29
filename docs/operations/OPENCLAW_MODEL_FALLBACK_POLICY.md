@@ -162,7 +162,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 - Cassandra calendar extraction has latent Claude JSON fallback, env-blocked but not action-approval-gated. Evidence: `cassandra_brain.py:1900`, `chief_llm.py:516`.
 - Planner-builder sensitivity routing is keyword/frontmatter based, not a full scrubber. Evidence: `runner_profiles.py:506`, `runner_profiles.py:800`.
 - Runner docs/policy are stale or conflicting around Claude/Gemini/Aider/Ollama. Evidence: `runner_registry.py:14`, `runner_profiles.py:66`, `runner_profiles.py:71`.
-- Gmail body read is Class A and could be misused by future model callers. Evidence: `google_access_policy.py:64`, `google_access_broker.py:505`.
+- Gmail body read is now Class B / Tier 1 after commit `e4e3373`; the remaining risk is body-to-model routing by future callers, not the body-read approval class. Evidence: `google_access_policy.py:64`, `google_access_broker.py:505`.
 - Hermes provider fallback machinery exists but active config was not inspected. Evidence: `sidecars/hermes/tests/run_agent/test_provider_fallback.py:88`, `sidecars/hermes/tests/run_agent/test_primary_runtime_restore.py:126`.
 - Legal has stale LLM references beside current no-LLM Legal v0 doctrine. Evidence: `legal_llm.py:40`, `legal/README.md:37`.
 
