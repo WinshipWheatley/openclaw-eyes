@@ -39,5 +39,5 @@ export const safetyStatements = [
   "Local-only proof surface",
   "Dummy or synthetic files only",
   "Matter data must not enter /home/openclaw",
-  "Commands and folder opening are not wired"
+  "No processing commands wired"
 ];

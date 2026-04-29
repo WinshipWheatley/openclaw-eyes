@@ -26,19 +26,23 @@ Matter data must not enter `/home/openclaw`.
 
 ## Current Phase
 
-Phase 2A adds read-only status refresh only:
+Phase 2B adds exact intake-folder opening only, while preserving the Phase 2A read-only status refresh:
 
 - the Tauri-shaped scaffold exists
 - `get_status_snapshot` may read the fixed workstation status file
 - `get_status_snapshot` may read the fixed returned Primary Node status file
 - `get_status_snapshot` may check whether the fixed output guide exists
+- `open_intake_folder` may open only the fixed intake folder: `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE`
+- opening the intake folder does not read, list, copy, write, import, process, or display intake contents
 - no command execution is wired
 - no file picker is wired
 - no bridge script is run
 - no intake files, source files, reports, review packets, support packet bodies, audit logs, or arbitrary directories are read
-- Open Intake Folder, Add Dummy File, Run Dry Run, Reset Local Test, and Reset All Test State remain disabled placeholders
+- Add Dummy File, Run Dry Run, Reset Local Test, and Reset All Test State remain disabled placeholders
 
 The status refresh returns sanitized fields only: presence booleans, known status names, optional `Last updated` values, boundary state, warnings, and errors. It does not return raw Markdown contents or file names from private matter folders.
+
+The intake-folder opener returns sanitized success/error state only. It does not return expanded private absolute paths, filenames, source counts, or matter data.
 
 The first proof target represented by the UI is Mac workstation to PC/WSL Primary Node over `ssh`, using dummy or synthetic files only.
 

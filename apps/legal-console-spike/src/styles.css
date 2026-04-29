@@ -240,6 +240,12 @@ code {
   width: 100%;
 }
 
+.intake-action {
+  display: grid;
+  gap: 10px;
+}
+
+.intake-open-button,
 .status-refresh-button {
   width: 100%;
   min-height: 58px;
@@ -255,18 +261,82 @@ code {
   text-align: left;
 }
 
+.intake-open-button {
+  border-color: #9ac7af;
+  background: var(--green-soft);
+  color: #174f38;
+}
+
+.intake-open-button:disabled,
 .status-refresh-button:disabled {
   cursor: wait;
   opacity: 0.72;
 }
 
+.intake-open-button span,
 .status-refresh-button span {
   font-weight: 750;
+}
+
+.intake-open-button small {
+  color: #2d6249;
+  font-size: 0.78rem;
 }
 
 .status-refresh-button small {
   color: #315c78;
   font-size: 0.78rem;
+}
+
+.intake-result {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fafbfc;
+}
+
+.intake-result--safe {
+  border-color: #a9d3bf;
+  background: var(--green-soft);
+}
+
+.intake-result--warning {
+  border-color: #e7c175;
+  background: var(--amber-soft);
+}
+
+.intake-result--error {
+  border-color: #f0c3bd;
+  background: var(--red-soft);
+}
+
+.intake-result__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.intake-result__heading span {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-size: 0.74rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.intake-result p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.intake-result ul {
+  margin-top: 6px;
+  color: #6e2925;
+  font-size: 0.86rem;
 }
 
 .live-status {

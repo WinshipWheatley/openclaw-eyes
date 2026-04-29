@@ -3,7 +3,6 @@ import { proofTargetConfig, safetyStatements } from "./legalPaths";
 import { initialStatusSnapshot, renderStatusSnapshot } from "./legalStatus";
 
 const disabledControls = [
-  "Open Intake Folder",
   "Add Dummy File",
   "Run Dry Run",
   "Reset Local Test",
@@ -28,6 +27,15 @@ function renderDisabledButton(label: string): string {
   `;
 }
 
+function renderOpenIntakeButton(): string {
+  return `
+    <button class="intake-open-button" type="button" data-open-intake>
+      <span>Open Intake Folder</span>
+      <small>Opens exact drop folder only</small>
+    </button>
+  `;
+}
+
 function renderStatusCard(title: string, value: string, tone: "ok" | "hold" | "stop" = "hold"): string {
   return `
     <article class="status-card status-card--${tone}">
@@ -47,8 +55,8 @@ export function renderLegalConsole(): string {
           <p class="summary">A disposable desktop-console scaffold for the Mac workstation to PC/WSL Primary Node proof path.</p>
         </div>
         <div class="phase-badge" aria-label="Phase status">
-          <strong>Phase 2A</strong>
-          <span>Status refresh only</span>
+          <strong>Phase 2B</strong>
+          <span>Open intake folder only</span>
         </div>
       </header>
 
@@ -66,7 +74,7 @@ export function renderLegalConsole(): string {
             <span class="os-pill">macOS</span>
           </div>
           <div class="warning-box">
-            Local-only dummy proof surface. Only fixed status-file reads are wired in this phase; no file picker, command execution, bridge run, or private content display is wired.
+            Only status refresh and exact intake-folder opening are wired in this phase; no file picker, command execution, bridge run, dummy-file creation, or private content display is wired.
           </div>
           <div class="path-list">
             ${renderPathRow("Configured workstation vault", proofTargetConfig.workstationVaultPath)}
@@ -74,6 +82,10 @@ export function renderLegalConsole(): string {
             ${renderPathRow("Workstation status", proofTargetConfig.workstationStatusPath)}
           </div>
           <div class="control-grid" aria-label="Disabled workstation controls">
+            <div class="intake-action">
+              ${renderOpenIntakeButton()}
+              <div data-intake-result></div>
+            </div>
             ${disabledControls.map(renderDisabledButton).join("")}
           </div>
         </article>
