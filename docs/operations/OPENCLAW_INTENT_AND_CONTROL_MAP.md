@@ -51,6 +51,52 @@ These decisions are not approved by this document. They are candidate control po
    - Status: PENDING USER APPROVAL.
    - Evidence: `/home/openclaw/chief_llm.py`, `/home/openclaw/cassandra_pii_hooks.py`, `/home/openclaw/headroom_routing_policy.json`, `/home/openclaw/runner_profiles.py`, `/home/openclaw/runner_registry.py`.
 
+## Verification Checkpoint -- 2026-04-28
+
+- Chief approval tests passed:
+  - Command: `python3 -m pytest tests/test_chief_approval_brain.py`
+  - Result: 5 passed.
+
+- Guardian schema harness passed:
+  - Command: `python3 guardian_schema_harness.py --fixture staging/guardian_schema_harness/fixtures/guardian_validation.json`
+  - Result: passed=13 failed=0 total=13.
+
+- Google access policy smoke passed:
+  - Command: `python3 google_access_broker.py --test-policy`
+  - Result: policy cases OK; current Gmail draft create remains Class A / auto-allowed.
+
+- Cassandra block initially had 5 failures, then was patched and passed:
+  - Command: `python3 -m pytest tests/test_cassandra_outreach.py tests/test_cassandra_email_thread_analysis.py tests/test_cassandra_identity.py tests/test_topic_sensitivity_gate.py`
+  - Result after patch: 81 passed.
+  - Note: patch isolated Cassandra outreach/identity test seams and prevented this seam from falling through to live finance/reality state.
+
+- Legal synthetic/path-guard block passed:
+  - Command: `python3 -m pytest tests/test_matter_workspace.py tests/test_local_ingestion.py tests/test_local_search.py tests/test_search_report.py tests/test_review_packet.py tests/test_support_packet.py tests/test_legal_mock_discovery_demo.py`
+  - Result: 79 passed.
+
+- Planner-builder/harness/acceptance block passed:
+  - Command: `python3 -m pytest tests/test_chief_acceptance_gate.py tests/test_harness_task_runner.py tests/test_builder_fallback.py tests/test_pc_review_fallback.py`
+  - Result: 61 passed.
+
+- Main non-Hermes audit verification block passed:
+  - Command: `python3 -m pytest tests/test_chief_approval_brain.py tests/test_cassandra_outreach.py tests/test_cassandra_email_thread_analysis.py tests/test_cassandra_identity.py tests/test_topic_sensitivity_gate.py tests/test_chief_acceptance_gate.py tests/test_harness_task_runner.py tests/test_builder_fallback.py tests/test_pc_review_fallback.py`
+  - Result: 147 passed.
+
+- Hermes boundary block passed in nested sidecar repo:
+  - Working directory: `/home/openclaw/sidecars/hermes`
+  - Command: `HERMES_HOME="$(mktemp -d)" python -m pytest -o addopts="" tests/tools/test_approval.py tests/tools/test_file_write_safety.py tests/tools/test_write_deny.py tests/test_mcp_serve.py`
+  - Result after patch: 195 passed, 39 skipped.
+  - Note: Hermes patch denied writes to `~/.hermes/.env`. Commit belongs to nested Hermes repo, not main repo.
+
+### Verification limits
+
+- These tests do not prove live services are healthy.
+- These tests do not prove external LLM fallback policy is safe.
+- These tests do not approve Gmail draft Class A behavior.
+- These tests do not approve Hermes canonical authority.
+- These tests do not classify or quarantine stale Windows/Mac folders.
+- These tests do not inspect private Legal matter data.
+
 ## 1. Executive Summary
 
 - CONFIRMED BY CODE/DOCS: OpenClaw is intended to be a bounded local-agentic operating system. Local work is allowed when reversible and scoped. Destructive, external, credential-bearing, irreversible, or scope-expanding actions require human control. Evidence: `/home/openclaw/OPENCLAW_RUNTIME.md`.
