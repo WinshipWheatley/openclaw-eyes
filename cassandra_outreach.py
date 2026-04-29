@@ -928,6 +928,101 @@ def record_known_contact_watch_event(
     return entry
 
 
+def build_known_contact_watch_notification_text(
+    event: dict,
+    *,
+    sender_display_name: str = "",
+    subject: str = "",
+    lane_label: str = "",
+    grounded_status: str = "",
+    safe_summary: str = "",
+    suggested_response_preview: str = "",
+) -> str:
+    """Format the operator-facing known-contact watch notification text only."""
+    event_data = event if isinstance(event, dict) else {}
+    sender_email = str(event_data.get("sender_email", "") or "").strip()
+    contact_nickname = str(event_data.get("contact_nickname", "") or "").strip()
+    matched_reason = str(event_data.get("matched_reason", "") or "").strip()
+    contact_tier = str(event_data.get("contact_tier", "") or "").strip()
+
+    sender = _bridge_preview(sender_display_name or sender_email or contact_nickname or "unknown sender", 120)
+    contact = _bridge_preview(contact_nickname or sender, 80)
+    lane = _bridge_preview(lane_label or contact_tier or "a known work lane", 140)
+    reason = _bridge_preview(matched_reason, 180)
+
+    subject_text = _bridge_preview(subject, 160)
+    summary_text = _bridge_preview(safe_summary, 220)
+    if subject_text and summary_text and subject_text != summary_text:
+        topic = f"{subject_text} - {summary_text}"
+    else:
+        topic = subject_text or summary_text or "this thread"
+
+    status = _bridge_preview(grounded_status or "unknown / needs operator review", 180)
+    preview = _bridge_preview(suggested_response_preview or "No response preview yet.", 600)
+    lane_reason = f"{lane}; {reason}" if reason else lane
+
+    return (
+        f"Heads up — new email from {sender}.\n\n"
+        "Why I’m flagging it:\n"
+        f"- {contact} is tied to {lane_reason}.\n"
+        f"- This appears related to {topic}.\n"
+        f"- Current known status: {status}.\n\n"
+        "Suggested response, if useful:\n"
+        f"{preview}\n\n"
+        "What do you want me to do?\n"
+        "1. Watch this thread\n"
+        "2. Revise the response\n"
+        "3. Create a Gmail draft\n"
+        "4. Ask Guardian for send approval\n"
+        "5. Ignore this thread"
+    )
+
+
+def send_known_contact_watch_notification(
+    event: dict,
+    *,
+    sender_display_name: str = "",
+    subject: str = "",
+    lane_label: str = "",
+    grounded_status: str = "",
+    safe_summary: str = "",
+    suggested_response_preview: str = "",
+    send_fn=None,
+) -> dict:
+    """Send only the Telegram notification for a known-contact watch event."""
+    event_data = event if isinstance(event, dict) else {}
+    message_id = str(event_data.get("message_id", "") or "").strip()
+    thread_id = str(event_data.get("thread_id", "") or "").strip()
+    watch_state = str(event_data.get("watch_state", "") or "").strip()
+    if watch_state != KNOWN_CONTACT_WATCH_NOTIFICATION:
+        return {
+            "notified": False,
+            "reason": f"watch_state is not {KNOWN_CONTACT_WATCH_NOTIFICATION}",
+            "message_id": message_id,
+            "thread_id": thread_id,
+        }
+
+    notification_text = build_known_contact_watch_notification_text(
+        event_data,
+        sender_display_name=sender_display_name,
+        subject=subject,
+        lane_label=lane_label,
+        grounded_status=grounded_status,
+        safe_summary=safe_summary,
+        suggested_response_preview=suggested_response_preview,
+    )
+    if send_fn is None:
+        from cassandra_sender import send_message as send_fn
+
+    send_fn(notification_text)
+    return {
+        "notified": True,
+        "message_id": message_id,
+        "thread_id": thread_id,
+        "notification_text": notification_text,
+    }
+
+
 def _email_bridge_message_seen(message_id: str) -> bool:
     if not message_id or not _EMAIL_BRIDGE_LOG.exists():
         return False

@@ -183,6 +183,131 @@ class TestKnownContactWatchEvent:
         assert entry["approval_id"] == ""
         assert entry["created_at"]
 
+    def test_build_known_contact_watch_notification_text_includes_context_and_options(self):
+        import cassandra_outreach as outreach
+
+        event = {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            "matched_reason": "pinned email matched active payment lane",
+        }
+
+        text = outreach.build_known_contact_watch_notification_text(
+            event,
+            sender_display_name="Client A",
+            subject="Payment timing",
+            lane_label="A/V payment lane",
+            grounded_status="invoice still open",
+            safe_summary="asking when payment will be remitted",
+            suggested_response_preview="Thanks - I can confirm the invoice and timing.",
+        )
+
+        assert "Heads up — new email from Client A." in text
+        assert "pinned email matched active payment lane" in text
+        assert "A/V payment lane" in text
+        assert "Payment timing" in text
+        assert "invoice still open" in text
+        assert "Thanks - I can confirm the invoice and timing." in text
+        assert "1. Watch this thread" in text
+        assert "2. Revise the response" in text
+        assert "3. Create a Gmail draft" in text
+        assert "4. Ask Guardian for send approval" in text
+        assert "5. Ignore this thread" in text
+
+    def test_send_known_contact_watch_notification_uses_injected_send_fn_once(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+        event = {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            "matched_reason": "pinned email matched active payment lane",
+        }
+
+        result = outreach.send_known_contact_watch_notification(
+            event,
+            sender_display_name="Client A",
+            lane_label="A/V payment lane",
+            grounded_status="invoice still open",
+            suggested_response_preview="Draft preview only.",
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is True
+        assert result["message_id"] == "m-known"
+        assert result["thread_id"] == "t-known"
+        assert sent == [result["notification_text"]]
+        assert "Draft preview only." in sent[0]
+
+    def test_ignored_known_contact_watch_state_does_not_notify(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+        event = {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+        }
+
+        result = outreach.send_known_contact_watch_notification(event, send_fn=sent.append)
+
+        assert result == {
+            "notified": False,
+            "reason": "watch_state is not known_contact_watch_notification",
+            "message_id": "m-known",
+            "thread_id": "t-known",
+        }
+        assert sent == []
+
+    def test_notification_dispatcher_does_not_create_draft_request_approval_or_call_broker(
+        self,
+        monkeypatch,
+    ):
+        import cassandra_brain
+        import cassandra_outreach as outreach
+
+        def fail_side_effect(*args, **kwargs):
+            raise AssertionError("notification dispatcher must not call side-effect services")
+
+        monkeypatch.setattr(outreach, "create_gmail_draft", fail_side_effect)
+        monkeypatch.setattr(outreach, "broker_call", fail_side_effect)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            fail_side_effect,
+            raising=False,
+        )
+        sent = []
+        event = {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            "matched_reason": "pinned email matched active payment lane",
+        }
+
+        result = outreach.send_known_contact_watch_notification(event, send_fn=sent.append)
+
+        assert result["notified"] is True
+        assert len(sent) == 1
+
     def test_notification_only_state_does_not_create_gmail_draft(self, tmp_path, monkeypatch):
         import cassandra_outreach as outreach
 
