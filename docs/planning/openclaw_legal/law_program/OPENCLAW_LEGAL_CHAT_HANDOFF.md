@@ -1164,6 +1164,67 @@ Proof summary:
 
 Next step: choose a narrow follow-up, likely docs/status cleanup or Phase 2F-B planning; do not wire write-capable controls without separate approval.
 
+## Completed Phase 2F-B Legal Console synthetic test-file action
+
+Commit: `64f5190 feat(legal): add synthetic intake test file action`
+
+App path:
+`apps/legal-console-spike/`
+
+What changed:
+- This is the first write-capable Legal Console GUI action, under strict synthetic/test-only constraints.
+- Added Tauri/Rust command: `create_synthetic_test_file`.
+- Added `apps/legal-console-spike/src-tauri/src/dummy.rs`.
+- Added `apps/legal-console-spike/src/legalDummy.ts`.
+- The former Add Dummy File placeholder became `Create Synthetic Test File`.
+- Run Dry Run remains disabled.
+- Reset Local Test remains disabled.
+- Reset All Test State remains disabled.
+- No bridge, run, or reset behavior was wired.
+- No Legal Python was changed.
+- No Tauri capabilities were expanded.
+
+Synthetic write contract:
+- Writes only to `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE`.
+- Creates only `openclaw_synthetic_dummy_test_file.txt`.
+- Uses fixed content only: `OpenClaw Legal synthetic dummy test file. Query token: test. This is not matter data.`
+- Takes no arbitrary filename, text, path, mode, or user input.
+- Does not create parent folders.
+- Does not list intake contents, count files, or read private intake files.
+- Returns already-present if the exact fixed file already exists with exact expected content.
+- Refuses overwrite if the fixed file exists with different content.
+- Does not return absolute private paths.
+
+Mac runtime validation passed:
+- GUI showed Phase 2F-B.
+- First click returned `Synthetic test file created`.
+- Second click returned `Synthetic test file already exists`.
+- UI stated no folder contents were listed.
+- Run/Reset controls stayed disabled.
+- Bridge remained not wired.
+- No folder contents, file counts, private data, or real matter were displayed.
+
+Proof summary:
+- `git diff --check` passed.
+- Bridge/run/reset/shell scan passed.
+- Directory listing/walking/globbing scan passed.
+- Broad fs/shell/dialog/input scan passed.
+- Private-read/frontend file-read scan passed.
+- Disabled Run/Reset grep passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- `cargo fmt --check` passed.
+- WSL `cargo check` remains blocked by the known `javascriptcoregtk-4.1` / `libsoup-3.0` dependency layer, but Mac validation passed.
+
+Rollback/checkpoint boundary:
+- This proves the first intentionally write-capable GUI action while preserving synthetic-only scope.
+- It does not prove bridge execution, processing, reset behavior, real matter operation, or production deployment readiness.
+- It must not be generalized into arbitrary file writing.
+
+Next step:
+- Pause Legal feature work and reassess.
+- Do not wire Run Dry Run, Reset Local Test, Reset All Test State, bridge execution, matter selection, file picker, or real-matter GUI workflow without separate planning and approval.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1414,7 +1475,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, and Phase 2F-A frontend-only intake readiness guidance at `477dbff`.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, and the Phase 2F-B synthetic test-file GUI action at `64f5190`.
 
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
@@ -1422,14 +1483,17 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 
 Immediate next work:
 
-1. **Recommended next target: choose a narrow follow-up.** Likely candidates are docs/status cleanup or Phase 2F-B planning. Do not wire write-capable controls without separate approval.
+1. **Recommended next target: pause Legal feature work and reassess.** Phase 2F-B proved the first intentionally write-capable GUI action under synthetic-only constraints. Do not keep adding GUI actions by momentum.
 2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Other candidates, deliberately deferred until selected:
 
-1. Phase 2F planning for the first write-capable action, if and only if separately approved
-2. first write-capable action implementation only after Phase 2F is separately planned, reviewed, and approved
+1. Phase 2G planning for any next write-capable action, if and only if separately approved.
+2. Run Dry Run wiring only after Phase 2G approval and a separate bridge-execution plan.
+3. Reset behavior only after separate confirmation design and approval.
+
+Run/Reset/bridge behavior remains deferred until separately planned and approved.
 
 Future possible targets:
 
