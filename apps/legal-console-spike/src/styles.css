@@ -830,6 +830,21 @@ p {
   gap: 12px;
 }
 
+.synthetic-test-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: color-mix(in srgb, var(--panel-3) 72%, transparent);
+}
+
+.synthetic-test-panel__helper {
+  margin-bottom: 0;
+  color: var(--muted-2);
+  font-size: 0.84rem;
+}
+
 .detail-rows {
   display: grid;
   gap: 6px;

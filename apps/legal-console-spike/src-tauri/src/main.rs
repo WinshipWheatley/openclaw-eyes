@@ -1,3 +1,4 @@
+mod dummy;
 mod intake;
 mod status;
 
@@ -9,6 +10,7 @@ fn main() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
+            dummy::create_synthetic_test_file,
             intake::open_intake_folder,
             status::get_status_snapshot
         ])

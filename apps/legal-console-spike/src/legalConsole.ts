@@ -29,8 +29,13 @@ const navItems = [
   { id: "about", label: "About", icon: "info", active: false }
 ] as const;
 
+const syntheticTestAction = {
+  label: "Create Synthetic Test File",
+  detail: "One fixed dummy file only",
+  icon: "plus"
+} as const;
+
 const disabledActions = [
-  { label: "Add Dummy File", detail: "Not wired in this phase", icon: "plus" },
   { label: "Run Dry Run", detail: "Not wired in this phase", icon: "play" },
   { label: "Reset Local Test", detail: "Not wired in this phase", icon: "refresh" },
   { label: "Reset All Test State", detail: "Not wired in this phase", icon: "trash" }
@@ -146,9 +151,9 @@ function renderProofTargetCard(): string {
         <div class="scope-note">
           <span class="scope-note__icon" aria-hidden="true">${icons.shield}</span>
           <p>
-            This phase is strictly limited to status refresh and intake folder access.
-            No file picker, no command execution, no bridge run, no dummy-file creation,
-            no private data.
+            This phase is strictly limited to status refresh, intake folder access,
+            and one fixed synthetic test-file write. No file picker, no command execution,
+            no bridge run, no reset behavior, no private data.
           </p>
         </div>
 
@@ -159,6 +164,20 @@ function renderProofTargetCard(): string {
             <small>Opens exact drop folder only</small>
           </span>
         </button>
+
+        <div class="synthetic-test-panel" aria-label="Synthetic test file action">
+          <p class="synthetic-test-panel__helper">
+            Test-only. Creates one fixed dummy file in the approved intake folder.
+            It does not run processing, read files, list the folder, or reset state.
+          </p>
+          <button class="action action--secondary" type="button" data-create-synthetic-test>
+            <span class="action__icon" aria-hidden="true">${icons[syntheticTestAction.icon]}</span>
+            <span class="action__body">
+              <strong>${syntheticTestAction.label}</strong>
+              <small>${syntheticTestAction.detail}</small>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div class="intake-readiness-slot" data-intake-readiness>
@@ -166,6 +185,7 @@ function renderProofTargetCard(): string {
       </div>
 
       <div class="action-result" data-intake-result></div>
+      <div class="action-result" data-synthetic-test-result></div>
 
       <div class="detail-rows detail-rows--workstation" aria-label="Workstation proof details">
         ${workstationRows.map(renderDetailRowItem).join("")}
@@ -339,7 +359,7 @@ export function renderLegalConsole(): string {
           </div>
         </div>
 
-        <span class="phase-pill" aria-label="Current phase">Phase 2B</span>
+        <span class="phase-pill" aria-label="Current phase">Phase 2F-B</span>
 
         <nav class="rail__nav" aria-label="Sections">
           <ul>

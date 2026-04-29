@@ -1,4 +1,9 @@
 import "./styles.css";
+import {
+  createSyntheticTestFile,
+  renderSyntheticTestFileResult,
+  syntheticTestFileResultFromError
+} from "./legalDummy";
 import { intakeOpenResultFromError, openIntakeFolder, renderIntakeOpenResult } from "./legalIntake";
 import { renderLegalConsole } from "./legalConsole";
 import {
@@ -25,6 +30,8 @@ const refreshButton = document.querySelector<HTMLButtonElement>("[data-refresh-s
 const statusTarget = document.querySelector<HTMLDivElement>("[data-status-snapshot]");
 const intakeButton = document.querySelector<HTMLButtonElement>("[data-open-intake]");
 const intakeTarget = document.querySelector<HTMLDivElement>("[data-intake-result]");
+const syntheticTestButton = document.querySelector<HTMLButtonElement>("[data-create-synthetic-test]");
+const syntheticTestTarget = document.querySelector<HTMLDivElement>("[data-synthetic-test-result]");
 const intakeReadinessTarget = document.querySelector<HTMLDivElement>("[data-intake-readiness]");
 const themeButtons = document.querySelectorAll<HTMLButtonElement>("[data-theme-option]");
 
@@ -84,6 +91,12 @@ function setIntakeMarkup(markup: string): void {
   }
 }
 
+function setSyntheticTestMarkup(markup: string): void {
+  if (syntheticTestTarget) {
+    syntheticTestTarget.innerHTML = markup;
+  }
+}
+
 function setIntakeReadinessMarkup(markup: string): void {
   if (intakeReadinessTarget) {
     intakeReadinessTarget.innerHTML = markup;
@@ -105,6 +118,22 @@ intakeButton?.addEventListener("click", async () => {
   } finally {
     intakeButton.disabled = false;
     intakeButton.removeAttribute("aria-busy");
+  }
+});
+
+syntheticTestButton?.addEventListener("click", async () => {
+  syntheticTestButton.disabled = true;
+  syntheticTestButton.setAttribute("aria-busy", "true");
+
+  try {
+    const result = await createSyntheticTestFile();
+    setSyntheticTestMarkup(renderSyntheticTestFileResult(result));
+  } catch (error) {
+    const result = syntheticTestFileResultFromError(error);
+    setSyntheticTestMarkup(renderSyntheticTestFileResult(result));
+  } finally {
+    syntheticTestButton.disabled = false;
+    syntheticTestButton.removeAttribute("aria-busy");
   }
 });
 
