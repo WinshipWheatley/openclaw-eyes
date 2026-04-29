@@ -1105,6 +1105,33 @@ Operational checkpoint:
 - Phase 2D GUI/runtime validation already proved Mac launch, safe sanitized Refresh Status behavior, and Open Intake Folder opening the exact allowed Mac intake folder.
 - Treat visual polish as paused. The next slice should be functional, safety-scoped, and deliberate.
 
+## Completed Phase 2E Legal Console controlled status realism
+
+Commit: `db4f936 feat(legal): add controlled status realism`
+
+App path:
+`apps/legal-console-spike/`
+
+What changed:
+- Refresh Status now reports more useful safe status fields from fixed-path metadata and deterministic status markdown only.
+- The status snapshot distinguishes workstation status presence/state, primary status presence/state, intake folder presence, intake target kind, output guide presence, scaffold readiness, processing state, GUI bridge state, boundary state, warnings, and errors.
+- The GUI bridge state remains explicitly `not_wired`.
+
+Mac runtime validation result:
+- Before refresh, the snapshot showed `warning` / `status_refresh_not_run`, intake folder awaiting signal, output guide awaiting signal, scaffold readiness not ready, and GUI bridge not wired from GUI.
+- After refresh, the snapshot showed workstation status file present, workstation state `Done`, primary status file present, primary state `Done`, intake folder present, intake target kind `Directory`, output guide present, scaffold readiness `Ready`, processing state `Primary status returned`, GUI bridge `Not wired from GUI`, and a safe badge.
+
+Boundary result:
+- No intake contents were listed.
+- No filenames were displayed.
+- No private matter content was shown.
+- No bridge, run, reset, or dummy action was wired.
+- Future controls remained disabled.
+
+Operational checkpoint:
+- Treat controlled status realism as complete unless a specific bug appears.
+- Do not keep expanding status realism as a substitute for choosing the next functional slice.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1351,20 +1378,22 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, and the `78d03ee` visual identity asset-kit checkpoint.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, and Phase 2E controlled status realism at `db4f936`.
 
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
+Status realism should also stop for now unless a specific bug appears. Refresh Status now has useful safe fields and passed Mac runtime validation without reading/listing private intake contents.
+
 Immediate next work:
 
-1. **Recommended morning target: controlled status realism / demo status scaffold.** Make the existing Refresh Status surface more useful with safe, deterministic demo/status files before adding write-capable behavior. Keep it read-only from the UI, avoid listing or reading private intake/source files, and preserve the current matter-data boundary.
+1. **Recommended next target: safer intake workflow polish.** Keep this read-only/no-listing: improve operator guidance and confidence around the existing Open Intake Folder path without reading intake contents, listing filenames, creating dummy files, running the bridge, or wiring reset behavior.
 2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Other candidates, deliberately deferred until selected:
 
-1. safer intake workflow polish without reading or listing private files
-2. Phase 2E planning for the first write-capable action, if and only if separately approved
+1. Phase 2F planning for the first write-capable action, if and only if separately approved
+2. first write-capable action implementation only after Phase 2F is separately planned, reviewed, and approved
 
 Future possible targets:
 
