@@ -11,25 +11,46 @@ Status: draft operational policy. Pending user approval.
 - Gmail bodies/private correspondence must not go external by default.
 - Model capability is not assumed until benchmarked.
 
+## Installed Local Model Inventory — 2026-04-28
+
+Confirmed `ollama list` output from 2026-04-28 shows these local model names installed:
+
+- `mistral-nemo:12b-instruct-2407-q2_K`
+- `qwen3:8b-q4_K_M`
+- `qwen3:4b`
+- `qwen3.6:latest`
+- `magistral:latest`
+- `mistral-small:latest`
+- `nemotron-3-nano:4b`
+- `nemotron-3-nano:30b`
+- `gemma4:31b`
+- `gemma4:26b`
+- `gemma4:e4b`
+
+Installed means present locally as of the inventory date. It does not mean trusted, benchmarked, policy-approved, or appropriate for sensitive drafting, summarization, planner-builder, or acceptance behavior.
+
+The installed inventory strengthens local-first feasibility, but does not prove local model quality. Benchmarks are still required before trusting drafting, summarization, planner-builder, or acceptance behavior.
+
 ## Model Inventory
 
-Installed status was not verified by this document. A model name appearing in code, docs, or tests is evidence of a reference, not proof that the model is installed or suitable.
+A model name appearing in code, docs, or tests is evidence of a reference. Only the local models listed in `Installed Local Model Inventory — 2026-04-28` are confirmed installed by this document. Installation is not evidence of capability or trust.
 
 | Model/tool | local/external | referenced by | intended lane/task | current status | risk notes | evidence paths |
 |---|---|---|---|---|---|---|
-| Ollama API | local | Chief, Cassandra, Cassandra briefing, Chief acceptance, local builder | shared local model execution | referenced active local API; installed daemon/models UNKNOWN | Local execution does not prove safety or quality. | `chief_llm.py:64`, `chief_llm.py:428`, `cassandra_briefing_brain.py:871`, `chief_acceptance_gate.py:66`, `polish_loop/local_builder.py:394` |
-| `gemma4:e4b` | local | Cassandra task-class router | fast Cassandra replies, inbox/extract/classify, test brief lane | referenced; installed status UNKNOWN | Small/fast lane quality UNPROVEN. | `chief_llm.py:88`, `chief_llm.py:111`, `tests/test_chief_llm_router.py:185` |
-| `gemma4:26b` | local | Cassandra task-class router | normal Cassandra replies, briefs, summaries | referenced; installed status UNKNOWN | Capability UNPROVEN until benchmarked. | `chief_llm.py:89`, `chief_llm.py:101`, `tests/test_chief_llm_router.py:185` |
-| `gemma4:31b` | local | Cassandra strong/outbound lanes | outbound drafts, stronger Cassandra replies, generic strong/deep candidate | referenced; installed status UNKNOWN | May process sensitive local email context; must remain local-only unless sanitized/approved. | `chief_llm.py:70`, `chief_llm.py:96`, `chief_llm.py:101` |
-| `nemotron-3-nano:4b` | local | Chief router, Hermes lane policy as retired | fast lane, Chief evidence scan; retired from Hermes routing | referenced; installed status UNKNOWN | Do not confuse this local name with NVIDIA cloud Nemotron. | `chief_llm.py:67`, `chief_llm.py:120`, `sidecars/hermes/LANE_POLICY.md:27` |
-| `nemotron-3-nano:30b` | local | Chief router | deep lane, Chief evidence synthesis/debug | referenced; installed status UNKNOWN | Capability UNPROVEN. | `chief_llm.py:70`, `chief_llm.py:125`, `chief_llm.py:136` |
-| `qwen2.5-coder:7b` | local | Chief old defaults | older/default code model | referenced; installed status UNKNOWN | Looks legacy beside newer task-class routing. | `chief_llm.py:241` |
-| `qwen2.5-coder:14b` | local | Chief code challenger, runner fallback, registry | code challenger, local builder/review fallback | referenced; installed status UNKNOWN | Needs benchmark before trusting implementation/review behavior. | `chief_llm.py:76`, `runner_registry.py:125`, `runner_profiles.py:883` |
-| `qwen3.6:latest` | local | Chief agentic-code lane, Hermes Lane C, local proof scripts | heavy local reasoning/annex/agentic code lane | referenced; installed status UNKNOWN | Hermes docs only support limited proven use; not broad autonomous authority. | `chief_llm.py:142`, `sidecars/hermes/LANE_POLICY.md:19`, `sidecars/hermes/lane_selector.py:27` |
-| `qwen3:4b` | local | Hermes Lane A | quick aide, advisory synthesis | referenced; installed status UNKNOWN | Hermes docs say not reliable for autonomous tool execution. | `sidecars/hermes/LANE_POLICY.md:14`, `sidecars/hermes/lane_selector.py:28` |
-| `qwen3:8b-q4_K_M` | local | Hermes Lane B, Cassandra non-morning fallback | slower synthesis; non-morning briefing fallback | referenced; installed status UNKNOWN | Limited proof; local fallback only. | `sidecars/hermes/LANE_POLICY.md:16`, `sidecars/hermes/lane_selector.py:29`, `cassandra_briefing_brain.py:66` |
-| `mistral-small:latest` | local | Chief router | evidence synthesis, structured plans, debug | referenced; installed status UNKNOWN | Capability UNPROVEN. | `chief_llm.py:126`, `chief_llm.py:131`, `chief_llm.py:137` |
-| `magistral:latest` | local | Chief router | structured planning, ambiguous debug | referenced; installed status UNKNOWN | Capability UNPROVEN. | `chief_llm.py:127`, `chief_llm.py:136` |
+| Ollama API | local | Chief, Cassandra, Cassandra briefing, Chief acceptance, local builder | shared local model execution | local model inventory CONFIRMED by `ollama list` output dated 2026-04-28 | Local execution does not prove safety or quality. | `chief_llm.py:64`, `chief_llm.py:428`, `cassandra_briefing_brain.py:871`, `chief_acceptance_gate.py:66`, `polish_loop/local_builder.py:394` |
+| `gemma4:e4b` | local | Cassandra task-class router | fast Cassandra replies, inbox/extract/classify, test brief lane | CONFIRMED INSTALLED on 2026-04-28 | Small/fast lane quality UNPROVEN. | `chief_llm.py:88`, `chief_llm.py:111`, `tests/test_chief_llm_router.py:185` |
+| `gemma4:26b` | local | Cassandra task-class router | normal Cassandra replies, briefs, summaries | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN until benchmarked. | `chief_llm.py:89`, `chief_llm.py:101`, `tests/test_chief_llm_router.py:185` |
+| `gemma4:31b` | local | Cassandra strong/outbound lanes | outbound drafts, stronger Cassandra replies, generic strong/deep candidate | CONFIRMED INSTALLED on 2026-04-28 | May process sensitive local email context; must remain local-only unless sanitized/approved. | `chief_llm.py:70`, `chief_llm.py:96`, `chief_llm.py:101` |
+| `nemotron-3-nano:4b` | local | Chief router, Hermes lane policy as retired | fast lane, Chief evidence scan; retired from Hermes routing | CONFIRMED INSTALLED on 2026-04-28 | Do not confuse this local name with NVIDIA cloud Nemotron. | `chief_llm.py:67`, `chief_llm.py:120`, `sidecars/hermes/LANE_POLICY.md:27` |
+| `nemotron-3-nano:30b` | local | Chief router | deep lane, Chief evidence synthesis/debug | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN. | `chief_llm.py:70`, `chief_llm.py:125`, `chief_llm.py:136` |
+| `qwen2.5-coder:7b` | local | Chief old defaults | older/default code model | REFERENCED BUT NOT INSTALLED in 2026-04-28 `ollama list` inventory | Looks legacy beside newer task-class routing. | `chief_llm.py:241` |
+| `qwen2.5-coder:14b` | local | Chief code challenger, runner fallback, registry | code challenger, local builder/review fallback | REFERENCED BUT NOT INSTALLED in 2026-04-28 `ollama list` inventory | Current fallback references may resolve to a model that is not installed. | `chief_llm.py:76`, `runner_registry.py:125`, `runner_profiles.py:883` |
+| `qwen3.6:latest` | local | Chief agentic-code lane, Hermes Lane C, local proof scripts | heavy local reasoning/annex/agentic code lane | CONFIRMED INSTALLED on 2026-04-28 | Hermes docs only support limited proven use; not broad autonomous authority. | `chief_llm.py:142`, `sidecars/hermes/LANE_POLICY.md:19`, `sidecars/hermes/lane_selector.py:27` |
+| `qwen3:4b` | local | Hermes Lane A | quick aide, advisory synthesis | CONFIRMED INSTALLED on 2026-04-28 | Hermes docs say not reliable for autonomous tool execution. | `sidecars/hermes/LANE_POLICY.md:14`, `sidecars/hermes/lane_selector.py:28` |
+| `qwen3:8b-q4_K_M` | local | Hermes Lane B, Cassandra non-morning fallback | slower synthesis; non-morning briefing fallback | CONFIRMED INSTALLED on 2026-04-28 | Limited proof; local fallback only. | `sidecars/hermes/LANE_POLICY.md:16`, `sidecars/hermes/lane_selector.py:29`, `cassandra_briefing_brain.py:66` |
+| `mistral-nemo:12b-instruct-2407-q2_K` | local | Hermes lane policy as retired | retired Hermes routing candidate | CONFIRMED INSTALLED on 2026-04-28 | Installed but not an approved active OpenClaw authority lane in this policy. | `sidecars/hermes/LANE_POLICY.md:27` |
+| `mistral-small:latest` | local | Chief router | evidence synthesis, structured plans, debug | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN. | `chief_llm.py:126`, `chief_llm.py:131`, `chief_llm.py:137` |
+| `magistral:latest` | local | Chief router | structured planning, ambiguous debug | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN. | `chief_llm.py:127`, `chief_llm.py:136` |
 | NVIDIA Nemotron `nvidia/nemotron-3-super-120b-a12b` | external | `nemotron_call`, Cassandra, Chief brainstorm, Chief CPA parse | cloud reasoning/extraction after caller-side checks | active code path if external API is configured | `nemotron_call` depends on callers to decide whether prompt is safe. | `chief_llm.py:177`, `cassandra_brain.py:5144`, `chief_brainstorm_brain.py:99`, `chief_cpa_brain.py:477` |
 | Claude CLI / `claude-sonnet-4-6` | external | Chief wrapper, Cassandra calendar fallback, runner registry | manual/env-gated JSON/text, runner option | wrapper blocks by default unless allowed by env | Latent external fallback if env permits; no broad approval granted here. | `chief_llm.py:245`, `chief_llm.py:516`, `cassandra_brain.py:1900`, `runner_registry.py:125` |
 | Codex CLI | external/cloud | runner registry, runner profiles | cloud code runner/builder | active runner candidate if installed/selected | Repo prompt can leak sensitive files if selection/scrub is wrong. | `runner_registry.py:145`, `runner_profiles.py:914` |
@@ -130,7 +151,7 @@ Do not treat these as authorization to run tests or live model calls. They are t
 
 ## Verification Limits
 
-- This document does not prove installed local models exist.
+- This document confirms the listed local model names from the 2026-04-28 `ollama list` inventory, but does not prove they remain installed later or are usable for any task.
 - This document does not prove model quality.
 - This document does not authorize external fallback.
 - This document does not approve sending private data to any model.
