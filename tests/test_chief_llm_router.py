@@ -131,7 +131,7 @@ def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkey
     )
 
     assert out == "ok"
-    assert calls == [("gemma4:e4b", 90)]
+    assert calls == [("gemma4:e4b", 180)]
 
 
 def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatch):
