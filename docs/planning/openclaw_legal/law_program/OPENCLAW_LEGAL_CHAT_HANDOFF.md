@@ -1009,6 +1009,42 @@ Why this is a rollback/checkpoint boundary:
 
 Next step: Phase 2C should likely be runtime/dependency validation before dummy-file creation or command execution.
 
+## Completed Phase 2C Legal Console dependency/build validation
+
+Commit: `ae24f93 chore(legal): record console validation assets`
+
+App path:
+`apps/legal-console-spike/`
+
+What was built/committed (Phase 2C only):
+- `apps/legal-console-spike/package-lock.json`
+- `apps/legal-console-spike/src-tauri/Cargo.lock`
+- `apps/legal-console-spike/src-tauri/icons/icon.png` (generated generic non-private 256x256 RGBA placeholder PNG)
+- `.gitignore` allowlist updates for those files
+
+PC/WSL validation results:
+- `npm install`, `npm run check`, `npm run build` succeeded.
+- `cargo` validation progressed but stopped at the Linux WebKitGTK/JavascriptCore dependency layer after installing `pkg-config`, `libglib2.0-dev`, `libgtk-3-dev`.
+- Decision: Paused further WSL WebKitGTK installs because macOS is the current workstation proof target.
+
+Mac validation results (run from `~/OpenClawLegalDev/legal-console-spike`):
+- Mac sync used rsync with `node_modules`, `dist`, and `src-tauri/target` excluded.
+- Preflight: `node v25.8.1`, `npm 11.11.0`, `cargo 1.94.1`, `rustc 1.94.1` passed through zsh login shell.
+- `npm ci`, `npm run check`, `npm run build` passed.
+- `cargo check --manifest-path src-tauri/Cargo.toml` passed after fixing the missing icon blocker.
+- Icon blocker: Tauri required `src-tauri/icons/icon.png`. Added a generic 256x256 PNG. No private files/screenshots used.
+- Generated artifacts remain ignored (`node_modules/`, `dist/`, `src-tauri/target/`).
+
+What remains intentionally unproven:
+- GUI launch.
+- Runtime button behavior.
+- Open Intake Folder actually opening Finder.
+- Status refresh against live status files.
+- Bridge invocation.
+- Real legal use. (No real matter used, no bridge run, no GUI launched, no private matter contents inspected).
+
+Next step: Separate GUI launch/runtime behavior validation. Still no dummy creation or Run/Reset wiring.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1259,10 +1295,9 @@ Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prot
 
 Immediate next work:
 
-1. **Phase 2B Legal Console planning:** Plan the next GUI slice separately, likely open-intake-folder next, while keeping dummy creation and command execution out of scope until separately approved.
-2. **Runtime/dependency validation:** Future Tauri runtime launch and dependency validation remain unproven and should wait for an approved dependency/runtime check lane.
-3. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
-4. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+1. **Phase 2D Legal Console GUI launch/runtime behavior validation:** Plan the next GUI slice separately, focusing on GUI launch and runtime behavior validation. Do not add dummy-file creation yet. Do not wire Run/Reset yet. Real matter still must not be used.
+2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
+3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
 Future possible targets:
 
