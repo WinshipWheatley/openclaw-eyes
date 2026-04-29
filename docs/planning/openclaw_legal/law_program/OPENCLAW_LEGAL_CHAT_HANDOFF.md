@@ -1076,6 +1076,35 @@ What remains intentionally unproven:
 
 Next step: Phase 2E planning for the next smallest safe behavior, probably create fixed dummy file OR refine status UX, but not Run/Reset yet unless explicitly justified.
 
+## Completed Phase 2D Legal Console visual identity checkpoint
+
+Commit: `78d03ee style(legal): integrate visual identity asset kit`
+
+App path:
+`apps/legal-console-spike/`
+
+What changed:
+- The approved visual identity asset kit was integrated into the Legal Console shell.
+- The sidebar mark now uses the visual-kit brand mark.
+- Theme-specific sidebar and hero mountain assets are wired for the current console visual treatment.
+- The current visual state is acceptable as a checkpoint for now, but it is not final-brand quality.
+- Future visual work should be a separate brand/asset pass, not ongoing fiddling during functional Legal Console work.
+
+What did not change:
+- No behavior expansion occurred.
+- Refresh Status remains the existing bounded read-only status action.
+- Open Intake Folder remains the existing bounded folder opener, previously validated on Mac.
+- Add Dummy File remains disabled.
+- Run Dry Run remains disabled.
+- Reset Local Test remains disabled.
+- Reset All Test State remains disabled.
+- No bridge/run/reset/dummy creation was wired.
+- No real matter data was inspected.
+
+Operational checkpoint:
+- Phase 2D GUI/runtime validation already proved Mac launch, safe sanitized Refresh Status behavior, and Open Intake Folder opening the exact allowed Mac intake folder.
+- Treat visual polish as paused. The next slice should be functional, safety-scoped, and deliberate.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1322,13 +1351,20 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, and the Phase 2A read-only Legal Console status refresh checkpoint.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, and the `78d03ee` visual identity asset-kit checkpoint.
+
+Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
 Immediate next work:
 
-1. **Phase 2D Legal Console GUI launch/runtime behavior validation:** Plan the next GUI slice separately, focusing on GUI launch and runtime behavior validation. Do not add dummy-file creation yet. Do not wire Run/Reset yet. Real matter still must not be used.
+1. **Recommended morning target: controlled status realism / demo status scaffold.** Make the existing Refresh Status surface more useful with safe, deterministic demo/status files before adding write-capable behavior. Keep it read-only from the UI, avoid listing or reading private intake/source files, and preserve the current matter-data boundary.
 2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+
+Other candidates, deliberately deferred until selected:
+
+1. safer intake workflow polish without reading or listing private files
+2. Phase 2E planning for the first write-capable action, if and only if separately approved
 
 Future possible targets:
 
