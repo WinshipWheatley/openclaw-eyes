@@ -76,6 +76,7 @@
 !apps/legal-console-spike/
 !apps/legal-console-spike/README.md
 !apps/legal-console-spike/package.json
+!apps/legal-console-spike/package-lock.json
 !apps/legal-console-spike/index.html
 !apps/legal-console-spike/tsconfig.json
 !apps/legal-console-spike/src/
@@ -83,10 +84,13 @@
 !apps/legal-console-spike/src/*.css
 !apps/legal-console-spike/src-tauri/
 !apps/legal-console-spike/src-tauri/Cargo.toml
+!apps/legal-console-spike/src-tauri/Cargo.lock
 !apps/legal-console-spike/src-tauri/tauri.conf.json
 !apps/legal-console-spike/src-tauri/build.rs
 !apps/legal-console-spike/src-tauri/capabilities/
 !apps/legal-console-spike/src-tauri/capabilities/default.json
+!apps/legal-console-spike/src-tauri/icons/
+!apps/legal-console-spike/src-tauri/icons/icon.png
 !apps/legal-console-spike/src-tauri/src/
 !apps/legal-console-spike/src-tauri/src/*.rs
 
