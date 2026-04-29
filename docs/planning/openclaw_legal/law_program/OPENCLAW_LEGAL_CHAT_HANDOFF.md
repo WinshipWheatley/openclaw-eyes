@@ -1045,6 +1045,37 @@ What remains intentionally unproven:
 
 Next step: Separate GUI launch/runtime behavior validation. Still no dummy creation or Run/Reset wiring.
 
+## Completed Phase 2D Legal Console GUI runtime validation
+
+Mac dev path:
+`~/OpenClawLegalDev/legal-console-spike`
+
+Launch command used:
+`ssh mac 'zsh -l -c "cd ~/OpenClawLegalDev/legal-console-spike && npm run tauri:dev"'`
+
+Preflight & build validation summary:
+- PC preflight passed: git status clean before launch, lockfiles and icon present, no app source diff
+- Bounded rsync to Mac dev path completed with generated artifacts excluded
+- Mac validation before launch passed: `npm run check`, `npm run build`, `cargo check --manifest-path src-tauri/Cargo.toml`
+
+Runtime behavior proof:
+- GUI launch passed: Tauri/Vite dev launch started successfully, app window opened on Mac, Phase badge displayed Phase 2B / current equivalent
+- Refresh Status displayed safe sanitized status and did not show private contents
+- Open Intake Folder opened the exact allowed folder: `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/01_DROP_FILES_HERE` (operator confirmed)
+- Add Dummy File remained disabled
+- Run Dry Run remained disabled/greyed out
+- Reset Local Test remained disabled/greyed out
+- Reset All Test State remained disabled/greyed out
+
+What remains intentionally unproven:
+- Dummy-file creation
+- Run Dry Run behavior
+- Reset behavior
+- Bridge invocation
+- Real legal use (no real matter used, no private matter contents displayed, no intake contents inspected)
+
+Next step: Phase 2E planning for the next smallest safe behavior, probably create fixed dummy file OR refine status UX, but not Run/Reset yet unless explicitly justified.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
