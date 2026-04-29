@@ -1132,6 +1132,38 @@ Operational checkpoint:
 - Treat controlled status realism as complete unless a specific bug appears.
 - Do not keep expanding status realism as a substitute for choosing the next functional slice.
 
+## Completed Phase 2F-A Legal Console intake readiness guidance
+
+Commit: `477dbff feat(legal): add intake readiness guidance`
+
+App path:
+`apps/legal-console-spike/`
+
+What changed:
+- A frontend-only Intake Readiness panel was added near Open Intake Folder / the proof target area.
+- Intake readiness is derived from existing safe frontend status/open-result data only.
+- No Rust/Tauri commands were added.
+- No Tauri capabilities were expanded.
+- No Legal Python was changed.
+- No bridge, run, reset, or dummy behavior was wired.
+
+Runtime validation passed:
+- Before Refresh Status, the app showed before-refresh guidance.
+- After Refresh Status, the app showed Ready.
+- Open Intake Folder opened `01_DROP_FILES_HERE`.
+- The open-folder result stated no files were read, listed, written, or processed.
+- The app displayed no filenames, file counts, folder contents, private matter content, or real matter data.
+- Future controls remained disabled.
+
+Proof summary:
+- `git diff --check` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- `bash -n mac_eyes/Launchers/scaffold_mac_legal_vault.sh` passed.
+- Capability and forbidden language scans passed.
+
+Next step: choose a narrow follow-up, likely docs/status cleanup or Phase 2F-B planning; do not wire write-capable controls without separate approval.
+
 ## Dual-Lane Development Model
 
 OpenClaw Legal now adopts a **Dual-Lane Development Model** to balance innovation with data safety:
@@ -1225,6 +1257,10 @@ The following points are binding planning doctrine for the next chat:
 - No real legal data should enter the repo, prompts, support packets, update packages, or non-local LLM context.
 - Legal product UX must not expose internal OpenClaw agent names such as Cassandra, Chief, Guardian, Hermes, or PI.
 - Legal-facing roles should use plain law-office labels such as Intake Clerk, Evidence Clerk, Records Custodian, Review Coordinator, Compliance Gate, and Systems Clerk.
+- Law-office terms are allowed.
+- Non-legal technical jargon should be translated to plain ELI5 language.
+- Internal engineering, model, runtime, agent, and system labels should not appear in law-firm UX unless translated into simple operational language.
+- Legal UX should sound like a calm law-office operations console, not an AI/devops dashboard.
 - The Go/No-Go Launch Criteria sits above the business plan.
 - This should become a bounded product/support business, not a stressful law-firm emergency support job.
 - Firm #2 changes must never affect Firm #1 unless Firm #1 explicitly installs/enables them.
@@ -1378,7 +1414,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, and Phase 2E controlled status realism at `db4f936`.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, and Phase 2F-A frontend-only intake readiness guidance at `477dbff`.
 
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
@@ -1386,7 +1422,7 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 
 Immediate next work:
 
-1. **Recommended next target: safer intake workflow polish.** Keep this read-only/no-listing: improve operator guidance and confidence around the existing Open Intake Folder path without reading intake contents, listing filenames, creating dummy files, running the bridge, or wiring reset behavior.
+1. **Recommended next target: choose a narrow follow-up.** Likely candidates are docs/status cleanup or Phase 2F-B planning. Do not wire write-capable controls without separate approval.
 2. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
