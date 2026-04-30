@@ -1258,6 +1258,9 @@ Good next Legal work should be non-dangerous:
 Synthetic demo validation package:
 - `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` records the docs-only synthetic/public-safe validation checklist for the current Phase 2F-B Legal Console checkpoint.
 
+Real-matter local-only validation protocol:
+- `OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md` records the planning-only Lane B protocol for a future real-matter validation. It does not authorize execution; read it before any real-matter run.
+
 First-pilot scope package:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md` records the conditional-go first paid pilot scope and buyer/support boundaries.
 
