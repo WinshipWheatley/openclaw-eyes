@@ -308,6 +308,7 @@
 !retry_send_demo_dashboard.sh
 
 # Harness and snapshot lane
+!chief_end_of_day_review.py
 !chief_eod_harness.py
 !guardian_schema_harness.py
 !morning_brief_harness.py
@@ -318,6 +319,7 @@
 !staging/guardian_schema_harness/fixtures/guardian_validation.json
 !chief_acceptance_gate.py
 !tests/test_chief_acceptance_gate.py
+!tests/test_chief_end_of_day_review.py
 !tests/test_cut4_outreach_helpers.py
 !tests/test_cut5_thread_evidence.py
 !tests/test_cut6_reply_bridge_helpers.py
