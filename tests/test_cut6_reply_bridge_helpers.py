@@ -135,14 +135,21 @@ class TestKnownContactWatchEvent:
             "created_at": "2026-04-29 09:30:00",
         }
 
+    def _write_known_contact_actions(self, log, entries):
+        log.write_text(
+            "".join(json.dumps(entry) + "\n" for entry in entries),
+            encoding="utf-8",
+        )
+
     def _patch_operator_action_side_effects_to_fail(self, monkeypatch):
         import cassandra_brain
         import cassandra_outreach as outreach
 
         def fail_side_effect(*args, **kwargs):
-            raise AssertionError("known-contact operator-action reducer must not call side-effect services")
+            raise AssertionError("known-contact state helpers must not call side-effect services")
 
         monkeypatch.setattr(outreach, "create_gmail_draft", fail_side_effect)
+        monkeypatch.setattr(outreach, "broker_call", fail_side_effect)
         monkeypatch.setattr(
             cassandra_brain,
             "_start_email_send_after_draft",
@@ -150,8 +157,18 @@ class TestKnownContactWatchEvent:
             raising=False,
         )
         try:
+            import cassandra_sender
+            monkeypatch.setattr(cassandra_sender, "send_message", fail_side_effect, raising=False)
+        except Exception:
+            pass
+        try:
             import chief_approval_brain
             monkeypatch.setattr(chief_approval_brain, "request_approval", fail_side_effect, raising=False)
+        except Exception:
+            pass
+        try:
+            import chief_guardian_sender
+            monkeypatch.setattr(chief_guardian_sender, "send_approval", fail_side_effect, raising=False)
         except Exception:
             pass
 
@@ -368,6 +385,251 @@ class TestKnownContactWatchEvent:
             )
 
         assert not log.exists()
+
+    def test_load_operator_actions_missing_log_returns_empty(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        assert outreach.load_known_contact_operator_actions(log_path=tmp_path / "missing.jsonl") == []
+
+    def test_load_operator_actions_skips_malformed_jsonl_by_default(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        valid = self._base_operator_action_kwargs() | {
+            "operator_action": "pending",
+            "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+        }
+        log.write_text(json.dumps(valid) + "\n" + "{not-json\n", encoding="utf-8")
+
+        actions = outreach.load_known_contact_operator_actions(log_path=log)
+
+        assert len(actions) == 1
+        assert actions[0]["sender_email"] == "client@example.com"
+        assert actions[0]["contact_nickname"] == "client_a"
+        assert actions[0]["_log_index"] == 0
+
+    def test_load_operator_actions_can_return_invalid_line_metadata(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        log.write_text("{not-json\n", encoding="utf-8")
+
+        actions = outreach.load_known_contact_operator_actions(log_path=log, include_invalid=True)
+
+        assert len(actions) == 1
+        assert actions[0]["_log_index"] == 0
+        assert actions[0]["_raw_line"] == "{not-json"
+        assert actions[0]["_invalid_reason"]
+
+    def test_latest_operator_action_by_message_uses_exact_message_id(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-target",
+                    "thread_id": "t-one",
+                    "operator_action": "ignore_thread",
+                    "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                    "created_at": "2026-04-29 09:00:00",
+                },
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-target-extra",
+                    "thread_id": "t-two",
+                    "operator_action": "watch_thread",
+                    "watch_state": outreach.APPROVED_FOR_FOLLOW_UP_LANE,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                    "created_at": "2026-04-29 10:00:00",
+                },
+            ],
+        )
+
+        latest = outreach.latest_known_contact_action_for_message("m-target", log_path=log)
+
+        assert latest["message_id"] == "m-target"
+        assert latest["thread_id"] == "t-one"
+        assert latest["operator_action"] == "ignore_thread"
+
+    def test_latest_operator_action_by_thread_uses_created_at_then_log_index(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-old",
+                    "thread_id": "t-sort",
+                    "operator_action": "pending",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                    "created_at": "2026-04-29 08:00:00",
+                },
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-newer",
+                    "thread_id": "t-sort",
+                    "operator_action": "ignore_thread",
+                    "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                    "created_at": "2026-04-29 10:00:00",
+                },
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-tie-wins",
+                    "thread_id": "t-sort",
+                    "operator_action": "watch_thread",
+                    "watch_state": outreach.APPROVED_FOR_FOLLOW_UP_LANE,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                    "created_at": "2026-04-29 10:00:00",
+                },
+            ],
+        )
+
+        latest = outreach.latest_known_contact_action_for_thread("t-sort", log_path=log)
+
+        assert latest["message_id"] == "m-tie-wins"
+        assert latest["operator_action"] == "watch_thread"
+        assert latest["_log_index"] == 2
+
+    def test_ignored_thread_suppresses_repeat_notification(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "ignore_thread",
+                    "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "thread_ignored"
+        assert decision["followup_eligible"] is False
+
+    def test_watched_thread_suppresses_initial_notification_and_marks_followup_eligible(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "watch_thread",
+                    "watch_state": outreach.APPROVED_FOR_FOLLOW_UP_LANE,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "thread_already_approved_for_follow_up"
+        assert decision["followup_eligible"] is True
+
+    def test_pending_notification_suppresses_duplicate_initial_notification(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "pending",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "notification_pending_operator_action"
+        assert decision["followup_eligible"] is False
+
+    def test_different_thread_from_same_sender_is_not_suppressed(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-old",
+                    "thread_id": "t-old",
+                    "operator_action": "ignore_thread",
+                    "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(
+            thread_id="t-new",
+            message_id="m-new",
+            log_path=log,
+        )
+
+        assert decision == {
+            "should_notify": True,
+            "reason": "no_prior_known_contact_state",
+            "latest_action": None,
+            "followup_eligible": False,
+        }
+
+    def test_known_contact_resolvers_are_read_only(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "pending",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                }
+            ],
+        )
+        before = log.read_text(encoding="utf-8")
+
+        actions = outreach.load_known_contact_operator_actions(log_path=log)
+        outreach.latest_known_contact_action_for_thread("t-known", actions=actions)
+        outreach.latest_known_contact_action_for_message("m-known", actions=actions)
+        outreach.should_notify_known_contact_thread(thread_id="t-known", actions=actions)
+
+        assert log.read_text(encoding="utf-8") == before
+
+    def test_known_contact_resolvers_do_not_call_side_effect_services(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "watch_thread",
+                    "watch_state": outreach.APPROVED_FOR_FOLLOW_UP_LANE,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                }
+            ],
+        )
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        actions = outreach.load_known_contact_operator_actions(log_path=log)
+        assert outreach.latest_known_contact_action_for_thread("t-known", actions=actions)["operator_action"] == "watch_thread"
+        assert outreach.latest_known_contact_action_for_message("m-known", actions=actions)["operator_action"] == "watch_thread"
+        assert outreach.should_notify_known_contact_thread(thread_id="t-known", actions=actions)["followup_eligible"] is True
 
     def test_build_known_contact_watch_notification_text_includes_context_and_options(self):
         import cassandra_outreach as outreach

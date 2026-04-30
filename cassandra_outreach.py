@@ -1050,6 +1050,160 @@ def record_known_contact_operator_action(
     return entry
 
 
+def _known_contact_action_log_path(log_path: Path | str | None = None) -> Path:
+    return Path(log_path) if log_path is not None else _KNOWN_CONTACT_WATCH_LOG
+
+
+def _normalize_known_contact_action_record(raw_entry: dict, log_index: int) -> dict:
+    entry = dict(raw_entry)
+    entry["message_id"] = str(entry.get("message_id", "") or "").strip()
+    entry["thread_id"] = str(entry.get("thread_id", "") or "").strip()
+    entry["sender_email"] = str(entry.get("sender_email", "") or "").strip().lower()
+    entry["contact_nickname"] = str(entry.get("contact_nickname", "") or "").strip().lower()
+    entry["contact_tier"] = str(entry.get("contact_tier", "") or "").strip()
+    entry["operator_action"] = str(entry.get("operator_action", "") or "").strip()
+    entry["watch_state"] = str(entry.get("watch_state", "") or "").strip()
+    entry["ownership_state"] = str(entry.get("ownership_state", "") or "").strip()
+    entry["draft_id"] = str(entry.get("draft_id", "") or "").strip()
+    entry["approval_id"] = str(entry.get("approval_id", "") or "").strip()
+    entry["created_at"] = str(entry.get("created_at", "") or "").strip()
+    entry["_log_index"] = log_index
+    return entry
+
+
+def load_known_contact_operator_actions(
+    *,
+    log_path: Path | str | None = None,
+    include_invalid: bool = False,
+) -> list[dict]:
+    """Replay known-contact operator-action records without mutating the log."""
+    path = _known_contact_action_log_path(log_path)
+    if not path.exists():
+        return []
+
+    actions: list[dict] = []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for log_index, raw_line in enumerate(handle):
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    raw_entry = json.loads(line)
+                    if not isinstance(raw_entry, dict):
+                        raise ValueError("line is not a JSON object")
+                except Exception as exc:
+                    if include_invalid:
+                        actions.append({
+                            "_log_index": log_index,
+                            "_invalid_reason": str(exc),
+                            "_raw_line": line,
+                        })
+                    continue
+                actions.append(_normalize_known_contact_action_record(raw_entry, log_index))
+    except FileNotFoundError:
+        return []
+    return actions
+
+
+def _known_contact_action_sort_key(entry: dict) -> tuple[datetime, int]:
+    created_at = _parse_event_datetime(entry.get("created_at"), fallback=datetime.min)
+    try:
+        log_index = int(entry.get("_log_index", -1))
+    except Exception:
+        log_index = -1
+    return created_at, log_index
+
+
+def latest_known_contact_action_for_thread(
+    thread_id: str,
+    *,
+    actions: list[dict] | None = None,
+    log_path: Path | str | None = None,
+) -> dict | None:
+    """Return the newest valid known-contact record for an exact thread id."""
+    target_thread_id = str(thread_id or "").strip()
+    if not target_thread_id:
+        return None
+    source_actions = actions if actions is not None else load_known_contact_operator_actions(log_path=log_path)
+    matches = [
+        action
+        for action in source_actions
+        if not action.get("_invalid_reason") and str(action.get("thread_id", "") or "").strip() == target_thread_id
+    ]
+    if not matches:
+        return None
+    return max(matches, key=_known_contact_action_sort_key)
+
+
+def latest_known_contact_action_for_message(
+    message_id: str,
+    *,
+    actions: list[dict] | None = None,
+    log_path: Path | str | None = None,
+) -> dict | None:
+    """Return the newest valid known-contact record for an exact message id."""
+    target_message_id = str(message_id or "").strip()
+    if not target_message_id:
+        return None
+    source_actions = actions if actions is not None else load_known_contact_operator_actions(log_path=log_path)
+    matches = [
+        action
+        for action in source_actions
+        if not action.get("_invalid_reason") and str(action.get("message_id", "") or "").strip() == target_message_id
+    ]
+    if not matches:
+        return None
+    return max(matches, key=_known_contact_action_sort_key)
+
+
+def should_notify_known_contact_thread(
+    *,
+    thread_id: str,
+    message_id: str = "",
+    actions: list[dict] | None = None,
+    log_path: Path | str | None = None,
+) -> dict:
+    """Decide whether a known-contact thread should receive an initial notification."""
+    source_actions = actions if actions is not None else load_known_contact_operator_actions(log_path=log_path)
+    latest_action = latest_known_contact_action_for_thread(thread_id, actions=source_actions)
+    if latest_action is None and message_id:
+        latest_action = latest_known_contact_action_for_message(message_id, actions=source_actions)
+
+    if latest_action is None:
+        return {
+            "should_notify": True,
+            "reason": "no_prior_known_contact_state",
+            "latest_action": None,
+            "followup_eligible": False,
+        }
+
+    operator_action = str(latest_action.get("operator_action", "") or "").strip()
+    watch_state = str(latest_action.get("watch_state", "") or "").strip()
+    followup_eligible = (
+        watch_state == APPROVED_FOR_FOLLOW_UP_LANE
+        or operator_action == KNOWN_CONTACT_ACTION_WATCH_THREAD
+    )
+
+    if watch_state == IGNORED_NOT_IN_SCOPE_THREAD or operator_action == KNOWN_CONTACT_ACTION_IGNORE_THREAD:
+        reason = "thread_ignored"
+    elif followup_eligible:
+        reason = "thread_already_approved_for_follow_up"
+    elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION and operator_action in {"", "pending", "notify_only"}:
+        reason = "notification_pending_operator_action"
+    elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION:
+        reason = "operator_action_already_recorded"
+    else:
+        reason = "prior_known_contact_state_exists"
+
+    return {
+        "should_notify": False,
+        "reason": reason,
+        "latest_action": latest_action,
+        "followup_eligible": followup_eligible,
+    }
+
+
 def build_known_contact_watch_notification_text(
     event: dict,
     *,
