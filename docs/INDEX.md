@@ -38,4 +38,5 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [AI Working Context](./_ai/AI_WORKING_CONTEXT.md) — High-density context for agentic loading.
 
 ### Planning Packages
+- [Lane A OpenRouter Scout Backlog](./planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md) — Future-only cloud scout/overflow note for public/synthetic work; not runtime doctrine.
 - [OpenClaw Legal Planning Package](./planning/openclaw_legal/law_program/LEGAL_V1_CONTRACT_INDEX.md) — Imported planning-only material; not canonical implementation doctrine.
