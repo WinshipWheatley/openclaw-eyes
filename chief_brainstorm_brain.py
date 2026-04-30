@@ -104,11 +104,33 @@ def _next_id(items: list[dict]) -> str:
 # exception) is a privacy policy change and requires the same review as
 # chief_approval_policy.py. Do not treat this as an ordinary code quality edit.
 #
+CLOUD_HARD_DENY_MARKERS = (
+    "/mnt/c/openclawlegalprivate",
+    "openclawlegalprivate",
+    "gmail body",
+    "private correspondence",
+    ".env",
+    "token",
+    "secret",
+    "pii vault",
+    "private vault",
+    "legal matter",
+    "client matter",
+)
+
+
+def _contains_cloud_hard_deny_marker(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in CLOUD_HARD_DENY_MARKERS)
+
+
 def _brainstorm_cloud_safe(raw_text: str) -> bool:
     """Return True only if raw brainstorm input contains no personal, financial,
     or credential-identifying content. Fails closed — ambiguous input routes local.
     """
     t = raw_text.lower()
+    if _contains_cloud_hard_deny_marker(raw_text):
+        return False
     _blockers = [
         r"\$[\d,]+",                                          # dollar amounts
         r"\b\d{3,}\.?\d*\s*(dollars?|usd)\b",                # spelled-out amounts

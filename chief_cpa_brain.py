@@ -432,12 +432,34 @@ def _format_tax_reply(est: dict) -> str:
 # the dollar-amount requirement) is a privacy policy change and requires the same
 # review discipline as chief_approval_policy.py.
 #
+CLOUD_HARD_DENY_MARKERS = (
+    "/mnt/c/openclawlegalprivate",
+    "openclawlegalprivate",
+    "gmail body",
+    "private correspondence",
+    ".env",
+    "token",
+    "secret",
+    "pii vault",
+    "private vault",
+    "legal matter",
+    "client matter",
+)
+
+
+def _contains_cloud_hard_deny_marker(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in CLOUD_HARD_DENY_MARKERS)
+
+
 def _expense_cloud_safe(text: str) -> bool:
     """Return True only if the input is a narrow expense-logging statement with
     no payer names, client names, income signals, or invoice references.
     Requires a dollar amount to be present. Fails closed.
     """
     t = text.lower()
+    if _contains_cloud_hard_deny_marker(text):
+        return False
     if not re.search(r"\$[\d,]+|\d+\s*(dollars?|bucks?)", t):
         return False
     # Keyword income signals — checked on lowercased text (case already folded)
