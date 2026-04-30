@@ -11,6 +11,19 @@ Status: draft operational policy. Pending user approval.
 - Gmail bodies/private correspondence must not go external by default.
 - Model capability is not assumed until benchmarked.
 
+## Runner/Cloud Audit Checkpoint -- 2026-04-29
+
+Status: runner/cloud hardening is code-complete for this audit phase. This checkpoint is docs/handoff alignment only; it does not authorize new runtime behavior.
+
+- Claude CLI, Claude Code, and Claude models are human-only for OpenClaw automation. Automation paths fail closed instead of invoking Claude when an external packet is not explicitly allowed.
+- External/cloud model packets are governed centrally in `chief_llm.py`.
+- Sensitive/professional packets fail closed for external/cloud by default. Protected categories include Legal, Music Law, CPA, Publishing, Gmail/private correspondence, secrets, PII, private logs, and private vault data.
+- Cassandra's direct cloud route is under the same centralized external packet policy; it is not a separate bypass.
+- A static external-route guard exists to catch new direct external route surfaces.
+- Local Ollama models are local execution targets. They are not external/cloud runners.
+- A full sanitizer/export system is not built. Future external model use for protected or professional packets requires a separate sanitizer/export gate, with approval and logging, before anything leaves local execution.
+- Evidence commits: `9d4fc61`, `426c364`, `bf034b4`, `39863ee`.
+
 ## Installed Local Model Inventory — 2026-04-28
 
 Confirmed `ollama list` output from 2026-04-28 shows these local model names installed:
@@ -76,7 +89,7 @@ Long local model tests should run only during a planned unattended window, not d
 A model name appearing in code, docs, or tests is evidence of a reference. Only the local models listed in `Installed Local Model Inventory — 2026-04-28` are confirmed installed by this document. Installation is not evidence of capability or trust.
 
 | Model/tool | local/external | referenced by | intended lane/task | current status | risk notes | evidence paths |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | Ollama API | local | Chief, Cassandra, Cassandra briefing, Chief acceptance, local builder | shared local model execution | local model inventory CONFIRMED by `ollama list` output dated 2026-04-28 | Local execution does not prove safety or quality. | `chief_llm.py:64`, `chief_llm.py:428`, `cassandra_briefing_brain.py:871`, `chief_acceptance_gate.py:66`, `polish_loop/local_builder.py:394` |
 | `gemma4:e4b` | local | Cassandra task-class router | fast Cassandra replies, inbox/extract/classify, test brief lane | CONFIRMED INSTALLED on 2026-04-28 | Small/fast lane quality UNPROVEN. | `chief_llm.py:88`, `chief_llm.py:111`, `tests/test_chief_llm_router.py:185` |
 | `gemma4:26b` | local | Cassandra task-class router | normal Cassandra replies, briefs, summaries | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN until benchmarked. | `chief_llm.py:89`, `chief_llm.py:101`, `tests/test_chief_llm_router.py:185` |
@@ -91,8 +104,8 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 | `mistral-nemo:12b-instruct-2407-q2_K` | local | Hermes lane policy as retired | retired Hermes routing candidate | CONFIRMED INSTALLED on 2026-04-28 | Installed but not an approved active OpenClaw authority lane in this policy. | `sidecars/hermes/LANE_POLICY.md:27` |
 | `mistral-small:latest` | local | Chief router | evidence synthesis, structured plans, debug | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN. | `chief_llm.py:126`, `chief_llm.py:131`, `chief_llm.py:137` |
 | `magistral:latest` | local | Chief router | structured planning, ambiguous debug | CONFIRMED INSTALLED on 2026-04-28 | Capability UNPROVEN. | `chief_llm.py:127`, `chief_llm.py:136` |
-| NVIDIA Nemotron `nvidia/nemotron-3-super-120b-a12b` | external | `nemotron_call`, Cassandra, Chief brainstorm, Chief CPA parse | cloud reasoning/extraction after caller-side checks | active code path if external API is configured | `nemotron_call` depends on callers to decide whether prompt is safe. | `chief_llm.py:177`, `cassandra_brain.py:5144`, `chief_brainstorm_brain.py:99`, `chief_cpa_brain.py:477` |
-| Claude CLI / `claude-sonnet-4-6` | external | Chief wrapper, Cassandra calendar fallback, runner registry | manual/env-gated JSON/text, runner option | wrapper blocks by default unless allowed by env | Latent external fallback if env permits; no broad approval granted here. | `chief_llm.py:245`, `chief_llm.py:516`, `cassandra_brain.py:1900`, `runner_registry.py:125` |
+| NVIDIA Nemotron `nvidia/nemotron-3-super-120b-a12b` | external | `nemotron_call`, Cassandra, Chief brainstorm, Chief CPA parse | cloud reasoning/extraction only after centralized packet policy allows it | guarded by centralized external packet policy in `chief_llm.py` | Sensitive/professional packets fail closed by default; no full sanitizer/export system exists. | `chief_llm.py`, `cassandra_brain.py:5144`, `chief_brainstorm_brain.py:99`, `chief_cpa_brain.py:477`, commit `426c364`, commit `bf034b4` |
+| Claude CLI / `claude-sonnet-4-6` | external | Chief wrapper, Cassandra calendar fallback references, runner registry | human-only/manual model use; not an OpenClaw automation fallback | HUMAN-ONLY / FAIL-CLOSED FOR OPENCLAW AUTOMATION | Automation must not call Claude, Claude Code, or Claude CLI as a fallback. Future use requires a separate sanitizer/export gate if any protected packet is involved. | `chief_llm.py`, `cassandra_brain.py:1900`, `runner_registry.py:125`, commit `9d4fc61` |
 | Codex CLI | external/cloud | runner registry, runner profiles | cloud code runner/builder | active runner candidate if installed/selected | Repo prompt can leak sensitive files if selection/scrub is wrong. | `runner_registry.py:145`, `runner_profiles.py:914` |
 | Gemini CLI | external/cloud | runner registry, runner profiles | cloud planner/cheap runner | active runner candidate if installed/selected; planner mode forced in profile code | Cloud prompt risk; sensitivity gate is heuristic. | `runner_registry.py:157`, `runner_profiles.py:66`, `runner_profiles.py:967` |
 | Aider | hybrid | runner registry | possible code runner | registered; autonomously blocked for builder by profile policy | Hybrid behavior/config UNKNOWN. | `runner_registry.py:168`, `runner_profiles.py:71` |
@@ -101,12 +114,12 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 ## Task/Lane Policy
 
 | Task/lane | default route | external allowed? | fallback allowed? | required guard | evidence paths | status |
-|---|---|---|---|---|---|---|
-| Cassandra user replies | local Cassandra task-class router | only if sanitized, context-clean, user-approved, and logged | local task escalation only by default; external pending approval | PII hook, context-clean check, topic/sensitivity gate, route log | `cassandra_brain.py:5058`, `cassandra_brain.py:5144`, `cassandra_brain.py:5576`, `cassandra_pii_hooks.py:112` | PENDING USER APPROVAL |
+| --- | --- | --- | --- | --- | --- | --- |
+| Cassandra user replies | local Cassandra task-class router | no by default for sensitive/professional packets; external only after a future sanitizer/export gate, approval, and logging | local task escalation only by default; direct cloud route is centralized-policy-gated | PII hook, context-clean check, topic/sensitivity gate, centralized external packet policy, route log | `cassandra_brain.py:5058`, `cassandra_brain.py:5144`, `cassandra_brain.py:5576`, `cassandra_pii_hooks.py:112`, commit `bf034b4` | CONFIRMED BY CODE/DOCS for fail-closed default; external exceptions pending future sanitizer/export gate |
 | Cassandra outbound drafts | local `cassandra_outbound_draft` | no by default | local only by default | Gmail/private correspondence must stay local unless sanitized and approved | `chief_llm.py:96`, `cassandra_brain.py:3832`, `cassandra_outreach.py:24` | PENDING USER APPROVAL |
 | Cassandra known-contact watch notifications | deterministic known-contact/lane matching plus local-only summary/preview if needed | no by default | no external fallback | notification is not Gmail Draft creation; suggested preview is not send approval; Gmail body/private correspondence stays local | `cassandra_brain.py`, `cassandra_outreach.py`, `cassandra_sender.py`, `google_access_policy.py`, `google_access_broker.py` | POLICY ADDED; IMPLEMENTATION VERIFICATION REQUIRED |
 | Gmail body analysis | local-only or deterministic handling | no by default | none unless sanitized and explicitly approved | no raw body to external model | `google_access_policy.py:64`, `google_access_broker.py:505`, `cassandra_outreach.py:590` | PENDING USER APPROVAL |
-| Cassandra calendar extraction | deterministic/local extraction | no by default | Claude JSON fallback exists but should remain disabled unless approved | action-specific approval before external fallback | `cassandra_brain.py:1860`, `cassandra_brain.py:1900`, `chief_llm.py:516` | CONFLICT / NEEDS USER DECISION |
+| Cassandra calendar extraction | deterministic/local extraction | no by default | no automated Claude fallback; Claude is human-only for automation | centralized external packet policy plus action-specific approval before any future external path | `cassandra_brain.py:1860`, `cassandra_brain.py:1900`, `chief_llm.py`, commit `9d4fc61` | FAIL-CLOSED BY DEFAULT; future external path requires sanitizer/export gate |
 | Cassandra morning brief | local briefing stages | no by default | local qwen fallback, then deterministic fallback | local-only, deterministic fallback on failure | `cassandra_briefing_brain.py:871`, `cassandra_briefing_brain.py:1134`, `cassandra_briefing_brain.py:1166` | CONFIRMED BY CODE/DOCS |
 | Chief evidence/plan/debug/code lanes | local task-class router | no by default for sensitive/private evidence | local candidate selection only | route through `resolve_local_model`; benchmark before trust | `chief_llm.py:120`, `chief_llm.py:150`, `tests/test_chief_llm_router.py:328` | INFERRED FROM CODE/DOCS |
 | Chief acceptance gate | local fast Ollama, fail-closed | no | no external fallback | malformed/empty output must fail closed | `chief_acceptance_gate.py:1`, `chief_acceptance_gate.py:66`, `chief_acceptance_gate.py:88` | CONFIRMED BY CODE/DOCS |
@@ -122,7 +135,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 ## Local Model Suitability
 
 | Task type | classification | notes |
-|---|---|---|
+| --- | --- | --- |
 | deterministic classification support | DETERMINISTIC VALIDATION REQUIRED | Local model may assist extraction/classification, but deterministic validation owns authority. |
 | short summarization | FIRST-PASS/DRAFT ONLY | No benchmark in this document proves quality. |
 | long-context summarization | UNPROVEN | Benchmark harness exists, but this document did not run it. |
@@ -142,26 +155,28 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 ## External Model Policy Table
 
 | Task type | external allowed? | default route | fallback route | sanitization required | approval required | logging required | forbidden inputs |
-|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | Deterministic classification | no by default | deterministic code | none | n/a | no | normal audit | sensitive/private data to model |
-| Non-sensitive architecture/code review | yes after path/sensitivity check | local/tests first or approved external | external large-context model allowed if sanitized | yes | yes | yes | secrets, private logs, Gmail, Legal, vaults, PII |
-| Cassandra casual replies | only if sanitized and approved | local Cassandra route | external only after context-clean + approval | yes | yes | yes | PII, Gmail bodies, finance/private context, contacts |
+| Non-sensitive architecture/code review | yes after path/sensitivity check | local/tests first or approved external | external large-context model allowed if sanitized | yes | yes | yes | secrets, private logs, Gmail/private correspondence, Legal, Music Law, CPA, Publishing, vaults, PII |
+| Cassandra casual replies | only if sanitized and approved | local Cassandra route | external only after future sanitizer/export gate + approval | yes | yes | yes | PII, Gmail bodies, finance/private context, contacts, Legal, Music Law, CPA, Publishing |
 | Cassandra known-contact watch notifications | no by default | deterministic match + local-only summary/preview | none by default | yes before any exception | yes before any exception | yes | raw Gmail bodies, private correspondence, contact/payment context, PII |
 | Email drafting | only if sanitized and explicitly approved | local draft model | external only after explicit approval | yes | yes | yes | raw Gmail bodies, private correspondence, attachments |
 | Gmail body analysis | local-only by default | deterministic/local | none by default | yes if ever exported | yes if ever exported | yes | raw body text and private correspondence |
 | Legal/private matter work | no | deterministic local workflow | none | n/a | n/a | yes | real Legal/client/matter data |
 | Chief acceptance | no | local fail-closed model | none | n/a | no | yes | private evidence to external model |
-| Planner-builder | only repo-only non-sensitive | local for sensitive; cloud for approved non-sensitive | runner registry after scrub/logging | yes | yes | yes | secrets, private data, Gmail, Legal, private vaults |
+| Planner-builder | only repo-only non-sensitive | local for sensitive; cloud for approved non-sensitive | runner registry after scrub/logging and static external-route guard coverage | yes | yes | yes | secrets, private data, Gmail/private correspondence, Legal, Music Law, CPA, Publishing, private vaults |
 | Hermes synthesis | pending approval | advisory local lanes | provider fallback blocked until approved | yes | yes | yes | canonical state, private data, Legal/Gmail/vault data |
-| Support packets | external review only after approval | deterministic sanitized generation | approved external review only | yes | yes | yes | raw secrets, Gmail, Legal/private matter data, PII vault data |
+| Support packets | external review only after approval | deterministic sanitized generation | approved external review only | yes | yes | yes | raw secrets, Gmail/private correspondence, Legal/private matter data, Music Law, CPA, Publishing, PII vault data |
 
 ## Current Fallback Risks
 
-- `nemotron_call` depends on caller-side privacy gates. Evidence: `chief_llm.py:177`, `chief_llm.py:200`.
-- Cassandra `cloud_ok=True` can use external Nemotron; context-cleaning is heuristic. Evidence: `cassandra_brain.py:5058`, `cassandra_brain.py:5144`.
-- Cassandra calendar extraction has latent Claude JSON fallback, env-blocked but not action-approval-gated. Evidence: `cassandra_brain.py:1900`, `chief_llm.py:516`.
+- `chief_llm.py` now owns centralized external packet policy. The remaining risk is any future caller or runner path that bypasses the policy; the static external-route guard exists to catch new direct external route surfaces.
+- Sensitive/professional packets fail closed for external/cloud by default. This is a guard, not a full sanitizer/export system.
+- Future external use for Legal, Music Law, CPA, Publishing, Gmail/private correspondence, secrets, PII, private logs, or private vault data requires a separate sanitizer/export gate with approval and logging.
+- Claude is human-only for OpenClaw automation; automated Claude/Claude Code/Claude CLI fallback is not approved.
+- Cassandra direct cloud routing is now under the same centralized external packet policy; it is not a separate bypass.
 - Planner-builder sensitivity routing is keyword/frontmatter based, not a full scrubber. Evidence: `runner_profiles.py:506`, `runner_profiles.py:800`.
-- Runner docs/policy are stale or conflicting around Claude/Gemini/Aider/Ollama. Evidence: `runner_registry.py:14`, `runner_profiles.py:66`, `runner_profiles.py:71`.
+- Runner/cloud policy still needs a real sanitizer/export gate before any protected packet can use external models. Local Ollama model routes are not external/cloud runners.
 - Gmail body read is now Class B / Tier 1 after commit `e4e3373`; the remaining risk is body-to-model routing by future callers, not the body-read approval class. Evidence: `google_access_policy.py:64`, `google_access_broker.py:505`.
 - Hermes provider fallback machinery exists but active config was not inspected. Evidence: `sidecars/hermes/tests/run_agent/test_provider_fallback.py:88`, `sidecars/hermes/tests/run_agent/test_primary_runtime_restore.py:126`.
 - Legal has stale LLM references beside current no-LLM Legal v0 doctrine. Evidence: `legal_llm.py:40`, `legal/README.md:37`.
@@ -171,7 +186,7 @@ A model name appearing in code, docs, or tests is evidence of a reference. Only 
 Do not treat these as authorization to run tests or live model calls. They are the verification set to run after user approval.
 
 | Command | working directory | proves | live model? | private-data risk | expected safe inputs |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | `python3 -m pytest tests/test_chief_llm_router.py` | `/home/openclaw` | task-class routing and wrapper behavior with mocks | no | low | synthetic tests |
 | `python3 -m pytest tests/test_send_truth.py::TestCassandraRouterPolicy tests/test_cassandra_briefing_context.py` | `/home/openclaw` | Cassandra routing and fallback invariants | no | low | synthetic/mocked tests |
 | `python3 -m pytest tests/test_chief_claude_cleanup.py` | `/home/openclaw` | Chief modules avoid direct Claude calls outside wrapper expectations | no | low | code inspection tests |
@@ -189,6 +204,8 @@ Do not treat these as authorization to run tests or live model calls. They are t
 - Approve deterministic-only/no-LLM rule for real Legal matter data.
 - Approve external architecture/code review only for sanitized repo-only inputs.
 - Approve planner-builder cloud runner rules.
+- Approve any future sanitizer/export gate before protected or professional packets can use external models.
+- Keep Claude human-only for OpenClaw automation unless a separate explicit human-invoked workflow is designed and approved.
 - Approve Hermes advisory-only/provider fallback restriction.
 - Approve benchmark requirement before model-driven drafting, summarization, or builder trust.
 - Approve no silent external fallback.
