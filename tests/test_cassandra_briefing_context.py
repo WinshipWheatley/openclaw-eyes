@@ -187,10 +187,13 @@ def test_ops_actions_artifact_missing_source_records_staleness_note(tmp_path, mo
 
 
 def test_morning_synthesis_missing_artifact_returns_safe_fallback(tmp_path, monkeypatch):
+    import chief_morning_orchestrator
+
     synthesis = tmp_path / "Chief Morning Synthesis.md"
     cache = tmp_path / "morning_reference_cache.json"
     monkeypatch.setattr(bb, "_CHIEF_MORNING_SYNTHESIS", synthesis)
     monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
+    monkeypatch.setattr(chief_morning_orchestrator, "refresh_morning_artifacts", lambda: False)
     monkeypatch.setattr(
         bb,
         "ollama_json",
@@ -321,6 +324,34 @@ def test_non_morning_brief_uses_deterministic_fallback_after_llm_failures(monkey
     assert "evening fallback" in text
     assert "finish the active lane" in text
     assert "LLM did not respond" not in text
+
+
+def test_generate_morning_brief_uses_generous_delivery_timeout(monkeypatch, tmp_path):
+    synthesis = tmp_path / "Chief Morning Synthesis.md"
+    cache = tmp_path / "morning_reference_cache.json"
+    synthesis.write_text(
+        "# Chief Morning Synthesis\n\n"
+        "## Top Priorities\n\n"
+        "- Keep the morning lane alive.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bb, "_CHIEF_MORNING_SYNTHESIS", synthesis)
+    monkeypatch.setattr(bb, "_MORNING_REFERENCE_CACHE", cache)
+    monkeypatch.setattr(bb, "_MORNING_DELIVERY_TIMEOUT_SECONDS", 420)
+    monkeypatch.setattr(bb, "_morning_task_config", lambda: ("cassandra_morning_brief", "llm"))
+
+    calls: list[dict] = []
+
+    def fake_ollama_json(prompt, timeout=0, task_class=None):
+        calls.append({"timeout": timeout, "task_class": task_class})
+        return [{"header": "Priorities", "body": "Morning delivery."}]
+
+    monkeypatch.setattr(bb, "ollama_json", fake_ollama_json)
+
+    text = bb.generate_briefing("morning")
+
+    assert "Morning delivery." in text
+    assert calls == [{"timeout": 420, "task_class": "cassandra_morning_brief"}]
 
 
 def test_scheduler_delivery_uses_chunks_and_compressed_voice(monkeypatch):

@@ -31,7 +31,7 @@ def resolve_morning_model_lane(current_dt: datetime | None = None) -> tuple[str,
     """
     Select the appropriate model and lane based on the current time.
     
-    - Before 07:45: 'strong' lane (gemma4:26b)
+    - Before 07:45: production strong lane (gemma4:31b with smaller local fallback)
     - 07:45 - 08:15: 'fast' lane (gemma4:e4b)
     - After 08:15: 'deterministic' fallback mode
     

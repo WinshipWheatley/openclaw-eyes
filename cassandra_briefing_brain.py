@@ -50,6 +50,14 @@ from chief_file_io import save_json, load_json, append_md_tagged
 import harness_context
 import chief_ops_reporter as ops
 
+
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    try:
+        return max(minimum, int(os.environ.get(name, str(default))))
+    except ValueError:
+        return default
+
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 BRIEFING_DIR  = Path("/mnt/c/OpenClaw/logs/cassandra_briefings")
@@ -64,6 +72,10 @@ _MORNING_TEST_MODE_ENV = "CASSANDRA_MORNING_BRIEF_TEST_MODE"
 _NON_MORNING_BRIEF_TOTAL_TIMEOUT_SECONDS = 300
 _NON_MORNING_BRIEF_PRIMARY_TIMEOUT_SECONDS = 180
 _NON_MORNING_BRIEF_FALLBACK_MODEL = "qwen3:8b-q4_K_M"
+_MORNING_DELIVERY_TIMEOUT_SECONDS = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS", 420, minimum=60)
+_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS", 90, minimum=30)
+_MORNING_STACK_CHIEF_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CHIEF_TIMEOUT_SECONDS", 420, minimum=60)
+_MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS = _env_int("OPENCLAW_MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS", 300, minimum=60)
 
 # Read-only peeks at external state (no circular imports)
 _SESSION_FILE     = Path("/home/openclaw/OpenClaw/state/chief_session.json")
@@ -967,7 +979,7 @@ def _generate_morning_stack() -> dict:
         name="guardian",
         role="guardian",
         lane=agent_default_lane("guardian"),
-        timeout=30,
+        timeout=_MORNING_STACK_GUARDIAN_TIMEOUT_SECONDS,
         prompt=(
             "You are Guardian. Produce a compact morning gate read.\n"
             "Return 3-5 short bullets only covering: immediate blockers, approval or safety flags, "
@@ -981,7 +993,7 @@ def _generate_morning_stack() -> dict:
         name="chief",
         role="chief_morning",
         lane=agent_default_lane("chief_morning"),
-        timeout=60,
+        timeout=_MORNING_STACK_CHIEF_TIMEOUT_SECONDS,
         prompt=(
             "You are Chief. Build the morning operating synthesis.\n"
             "Read Guardian first, then combine it with the available subsystem reports.\n"
@@ -1006,7 +1018,7 @@ def _generate_morning_stack() -> dict:
         name="cassandra",
         role="cassandra_brief",
         lane=agent_default_lane("cassandra_brief", slot="morning"),
-        timeout=45,
+        timeout=_MORNING_STACK_CASSANDRA_TIMEOUT_SECONDS,
         prompt=(
             f"{_PERSONA_BRIEF}\n\n"
             "Condense the staged morning stack into the final operator briefing.\n"
@@ -1226,7 +1238,7 @@ def generate_briefing(slot: str) -> str:
 
     if slot == "morning":
         import json
-        data = ollama_json(prompt, timeout=180, task_class=task_class)
+        data = ollama_json(prompt, timeout=_MORNING_DELIVERY_TIMEOUT_SECONDS, task_class=task_class)
         if data and isinstance(data, list):
             # Sort the chunks here according to policy order
             from cassandra_briefing_morning_policy import sort_morning_chunks

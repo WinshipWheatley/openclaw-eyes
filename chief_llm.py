@@ -12,7 +12,18 @@ import inspect as _inspect
 # -- External call logger --------------------------------------------------
 _EXTERNAL_LOG = Path("/mnt/c/OpenClaw/logs/external_llm_log.csv")
 _OLLAMA_DIAGNOSTICS_LOG = Path("/mnt/c/OpenClaw/logs/ollama_diagnostics.jsonl")
-_CASSANDRA_MORNING_TEST_TIMEOUT = 180
+
+
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    try:
+        return max(minimum, int(os.environ.get(name, str(default))))
+    except ValueError:
+        return default
+
+
+_CASSANDRA_MORNING_BRIEF_TIMEOUT = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_TIMEOUT_SECONDS", 420, minimum=60)
+_CASSANDRA_MORNING_TEST_TIMEOUT = _env_int("OPENCLAW_CASSANDRA_MORNING_TEST_TIMEOUT_SECONDS", 180, minimum=60)
+_CASSANDRA_MORNING_BRIEF_ATTEMPTS = _env_int("OPENCLAW_CASSANDRA_MORNING_BRIEF_ATTEMPTS", 1)
 _CASSANDRA_MORNING_TEST_ATTEMPTS = 1
 
 
@@ -100,8 +111,9 @@ _TASK_CLASS_MODEL_CANDIDATES = {
         "gemma4:26b",
     ),
     "cassandra_morning_brief": (
-        "gemma4:26b",
         "gemma4:31b",
+        "gemma4:26b",
+        "gemma4:e4b",
     ),
     "cassandra_morning_brief_test": (
         "gemma4:e4b",
@@ -539,7 +551,7 @@ def local_model_route_reason(
     if task_class == "cassandra_outbound_draft":
         return "cassandra outbound draft policy uses the top gemma 4 lane"
     if task_class == "cassandra_morning_brief":
-        return "cassandra production morning briefing uses gemma 4 26b before the top lane"
+        return "cassandra production morning briefing uses the top gemma 4 lane with smaller local fallback"
     if task_class == "cassandra_morning_brief_test":
         return "cassandra morning briefing test mode uses the smallest installed gemma 4 lane"
     if task_class in {"cassandra_inbox_summary", "cassandra_extract_classify"}:
@@ -615,9 +627,11 @@ def ollama_call(
     When using 14b (either path), timeout is raised to _DEEP_TIMEOUT_FLOOR.
     """
     selected_lane = lane
+    models_to_try: tuple[str, ...]
     if model is not None:
         if model == OLLAMA_MODEL_DEEP:
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
+        models_to_try = (model,)
     else:
         model, resolved_lane = resolve_local_model(prompt, lane=lane, task_class=task_class)
         selected_lane = resolved_lane
@@ -625,65 +639,76 @@ def ollama_call(
             timeout = max(timeout, _DEEP_TIMEOUT_FLOOR)
             print(f"[llm] routed → deep ({len(prompt.split())} words, timeout={timeout}s)",
                   flush=True)
+        if task_class == "cassandra_morning_brief":
+            installed = _ollama_installed_models()
+            candidates = local_model_candidates(resolved_lane, task_class=task_class)
+            models_to_try = tuple(candidate for candidate in candidates if not installed or candidate in installed)
+            if not models_to_try:
+                models_to_try = (model,)
+        else:
+            models_to_try = (model,)
     attempts = 3
-    if task_class in {"cassandra_morning_brief_test", "cassandra_morning_brief"}:
+    if task_class == "cassandra_morning_brief":
+        timeout = max(timeout, _CASSANDRA_MORNING_BRIEF_TIMEOUT)
+        attempts = max(1, _CASSANDRA_MORNING_BRIEF_ATTEMPTS)
+    elif task_class == "cassandra_morning_brief_test":
         timeout = max(timeout, _CASSANDRA_MORNING_TEST_TIMEOUT)
-        if task_class == "cassandra_morning_brief_test":
-            attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
-    payload = json.dumps({
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        OLLAMA_URL,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+        attempts = _CASSANDRA_MORNING_TEST_ATTEMPTS
     prompt_words = len(prompt.split())
-    for attempt in range(attempts):
-        started = _time.monotonic()
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                result = data.get("response", "").strip()
+    for candidate_model in models_to_try:
+        payload = json.dumps({
+            "model": candidate_model,
+            "prompt": prompt,
+            "stream": False,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            OLLAMA_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        for attempt in range(attempts):
+            started = _time.monotonic()
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    result = data.get("response", "").strip()
+                    duration_ms = int((_time.monotonic() - started) * 1000)
+                    _log_ollama_diagnostic({
+                        "event": "ollama_call",
+                        "status": "success" if result else "failure",
+                        "attempt": attempt + 1,
+                        "model": candidate_model,
+                        "task_class": task_class,
+                        "lane": selected_lane,
+                        "timeout": timeout,
+                        "duration_ms": duration_ms,
+                        "elapsed_ms": duration_ms,
+                        "prompt_words": prompt_words,
+                        "response_chars": len(result),
+                        "empty_response": not bool(result),
+                    })
+                    if result:
+                        return result
+            except Exception as e:
                 duration_ms = int((_time.monotonic() - started) * 1000)
                 _log_ollama_diagnostic({
                     "event": "ollama_call",
-                    "status": "success" if result else "failure",
+                    "status": "exception",
                     "attempt": attempt + 1,
-                    "model": model,
+                    "model": candidate_model,
                     "task_class": task_class,
                     "lane": selected_lane,
                     "timeout": timeout,
                     "duration_ms": duration_ms,
                     "elapsed_ms": duration_ms,
                     "prompt_words": prompt_words,
-                    "response_chars": len(result),
-                    "empty_response": not bool(result),
+                    "exception_type": type(e).__name__,
+                    "exception": str(e),
                 })
-                return result
-        except Exception as e:
-            duration_ms = int((_time.monotonic() - started) * 1000)
-            _log_ollama_diagnostic({
-                "event": "ollama_call",
-                "status": "exception",
-                "attempt": attempt + 1,
-                "model": model,
-                "task_class": task_class,
-                "lane": selected_lane,
-                "timeout": timeout,
-                "duration_ms": duration_ms,
-                "elapsed_ms": duration_ms,
-                "prompt_words": prompt_words,
-                "exception_type": type(e).__name__,
-                "exception": str(e),
-            })
-            if attempt < attempts - 1:
-                _time.sleep(2 ** attempt)
-                continue
-            return ""
+                if attempt < attempts - 1:
+                    _time.sleep(2 ** attempt)
+                    continue
     return ""
 
 

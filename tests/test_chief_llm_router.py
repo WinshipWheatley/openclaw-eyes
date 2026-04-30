@@ -134,6 +134,45 @@ def test_ollama_call_tunes_cassandra_morning_test_timeout_without_retries(monkey
     assert calls == [("gemma4:e4b", 180)]
 
 
+def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatch):
+    calls: list[tuple[str, int]] = []
+    monkeypatch.setattr(chief_llm, "_CASSANDRA_MORNING_BRIEF_TIMEOUT", 420, raising=False)
+    monkeypatch.setattr(chief_llm, "_CASSANDRA_MORNING_BRIEF_ATTEMPTS", 1, raising=False)
+    monkeypatch.setattr(
+        chief_llm,
+        "_ollama_installed_models",
+        lambda force_refresh=False: {"gemma4:31b", "gemma4:26b"},
+    )
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"response": "ok"}).encode("utf-8")
+
+    def _fake_urlopen(req, timeout=0):
+        payload = json.loads(req.data.decode("utf-8"))
+        calls.append((payload["model"], timeout))
+        if payload["model"] == "gemma4:31b":
+            raise TimeoutError("timed out")
+        return _Resp()
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", _fake_urlopen)
+
+    out = chief_llm.ollama_call(
+        "Generate the morning briefing.",
+        timeout=180,
+        task_class="cassandra_morning_brief",
+    )
+
+    assert out == "ok"
+    assert calls == [("gemma4:31b", 420), ("gemma4:26b", 420)]
+
+
 def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
@@ -246,7 +285,7 @@ def test_cassandra_user_reply_falls_back_to_gemma_26b_before_nemotron(monkeypatc
     assert model == "gemma4:26b"
 
 
-def test_cassandra_morning_brief_prefers_gemma_26b(monkeypatch):
+def test_cassandra_morning_brief_prefers_gemma_31b(monkeypatch):
     monkeypatch.setattr(
         chief_llm,
         "_ollama_installed_models",
@@ -259,7 +298,7 @@ def test_cassandra_morning_brief_prefers_gemma_26b(monkeypatch):
     )
 
     assert lane == "strong"
-    assert model == "gemma4:26b"
+    assert model == "gemma4:31b"
 
 
 def test_cassandra_morning_brief_falls_back_to_gemma_26b(monkeypatch):
