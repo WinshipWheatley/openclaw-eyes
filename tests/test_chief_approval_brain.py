@@ -109,3 +109,25 @@ class TestGuardianApprovalCards:
         assert "Proposed send:" in message
         assert "Draft preview:" in message
         assert "Reply code: ABCD" in message
+
+
+class TestApprovalReplyRouting:
+    def test_unknown_approval_code_does_not_fall_through_to_billing(self, monkeypatch):
+        from chief_router import route_message
+
+        monkeypatch.setitem(route_message.__globals__, "_log_route", lambda *args, **kwargs: None)
+        monkeypatch.setitem(route_message.__globals__, "has_pending_approval", lambda: False)
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("stale approval reply fell through to normal routing")
+
+        monkeypatch.setitem(route_message.__globals__, "append_history", fail_if_called)
+        monkeypatch.setitem(route_message.__globals__, "load_session", fail_if_called)
+        monkeypatch.setitem(route_message.__globals__, "billing_handle", fail_if_called)
+
+        result = route_message("0F37 1 - Approve")
+
+        assert result["intent"] == "approval_response"
+        assert result["reply"] == (
+            "Expired or unknown approval code. No approval was applied. Request a fresh approval."
+        )

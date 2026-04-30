@@ -801,6 +801,11 @@ def _hitl_command(text: str) -> tuple[str, str] | None:
     return None
 
 
+def _looks_like_approval_reply(text: str) -> bool:
+    """True for CODE DECISION-shaped approval replies."""
+    return bool(re.match(r"^[A-Z0-9]{4}\s+(?:1|2|3|YES|NO|APPROVE|DENY)\b", text.strip(), re.I))
+
+
 def _route_message_inner(text: str) -> dict:
     t_lower = text.strip().lower()
     t_upper = text.strip().upper()
@@ -809,10 +814,12 @@ def _route_message_inner(text: str) -> dict:
     # Requires CODE DECISION format (e.g. "A3F2 1") — same model as Guardian.
     # Also intercepts bare 1/2/3/YES/NO to return a format rejection rather than
     # falling through to unrelated routing. Both paths enforce the same reply-code model.
+    _approval_reply_like = _looks_like_approval_reply(text)
     if has_pending_approval():
         _t = text.strip()
         _is_approval_attempt = (
-            bool(re.match(r'^[A-Z0-9]{4}\s', _t, re.I))   # CODE DECISION (hex or non-hex)
+            _approval_reply_like                            # CODE DECISION (with optional copied label)
+            or bool(re.match(r'^[A-Z0-9]{4}\s', _t, re.I)) # CODE plus any decision text
             or _t.upper() in ("1", "2", "3", "YES", "NO")  # bare reply → format error
         )
         if _is_approval_attempt:
@@ -823,6 +830,12 @@ def _route_message_inner(text: str) -> dict:
             else:
                 reply = error
             return {"intent": "approval_response", "reply": reply}
+
+    if _approval_reply_like:
+        return {
+            "intent": "approval_response",
+            "reply": "Expired or unknown approval code. No approval was applied. Request a fresh approval.",
+        }
 
     # ── Approval bridge — Chief workflow multi-choice (1/2/3/approve/deny/status) ──
     # Note: approval brain (Claude Code permissions) is checked ABOVE this and
