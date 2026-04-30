@@ -28,6 +28,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_CONVERSATION_GUARDRAILS.md](OPENCLAW_LEGAL_FIRST_PILOT_CONVERSATION_GUARDRAILS.md) is the internal safe script/checklist for an exploratory first pilot conversation.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_CALL_NOTES_TEMPLATE.md](OPENCLAW_LEGAL_FIRST_PILOT_CALL_NOTES_TEMPLATE.md) is the internal sanitized template for capturing first-pilot conversation notes without collecting confidential matter facts.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -75,6 +77,12 @@ Use this to decide whether a first pilot conversation is allowed and to keep the
 Internal first-conversation script/checklist.
 
 Use this to keep an exploratory firm conversation bounded, ask the right workflow/support questions, and avoid turning interest into a final offer or production-readiness claim.
+
+### `OPENCLAW_LEGAL_FIRST_PILOT_CALL_NOTES_TEMPLATE.md`
+
+Internal sanitized call-notes template.
+
+Use this after an exploratory firm conversation to record workflow-fit signals, red flags, and the next safe decision outcome without collecting confidential case facts, client names, privileged material, or legal advice content.
 
 ### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 
@@ -134,6 +142,7 @@ Internal-only:
 - `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_CONVERSATION_GUARDRAILS.md`
+- `OPENCLAW_LEGAL_FIRST_PILOT_CALL_NOTES_TEMPLATE.md`
 - `OPENCLAW_LEGAL_BUSINESS_MODEL_OPPORTUNITIES.md`
 - `BUSINESS_PLAN_INDEX.md`
 
