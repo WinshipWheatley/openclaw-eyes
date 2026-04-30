@@ -451,6 +451,157 @@ def test_candidate_selection_can_use_loaded_jsonl_prior_records(tmp_path):
     assert candidate["message_id"] == "msg-new"
 
 
+def test_builds_unsent_operator_question_packet_from_safe_synthetic_metadata():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(
+            message_id="msg-packet",
+            thread_id="thread-packet",
+            from_name="Newsletter Desk",
+            from_email="News <NEWS@Example.COM>",
+            subject="Weekly newsletter sale",
+            snippet="A metadata-only digest with a discount code.",
+            labels=["INBOX", "CATEGORY_PROMOTIONS"],
+        )
+    ]
+
+    packet = triage.build_email_triage_operator_message_packet(
+        messages,
+        prior_records=[],
+        created_at="2026-04-30 10:00:00",
+    )
+
+    assert packet["ok"] is True
+    assert packet["packet_type"] == "email_triage_training.operator_question"
+    assert packet["schema_version"] == triage.EMAIL_TRIAGE_SCHEMA_VERSION
+    assert packet["created_at"] == "2026-04-30 10:00:00"
+    assert packet["delivery_status"] == "not_sent"
+    assert packet["source_capability"] == "google.gmail.read.metadata"
+    assert packet["message_id"] == "msg-packet"
+    assert packet["thread_id"] == "thread-packet"
+    assert packet["sender_name"] == "Newsletter Desk"
+    assert packet["sender_email"] == "news@example.com"
+    assert packet["sender_domain"] == "example.com"
+    assert packet["subject_preview"] == "Weekly newsletter sale"
+    assert packet["snippet_preview"] == "A metadata-only digest with a discount code."
+    assert packet["gmail_labels_seen"] == ["INBOX", "CATEGORY_PROMOTIONS"]
+    assert "Reply with a simple classification" in packet["operator_question"]
+    assert packet["records_training_intent_only"] is True
+
+
+def test_operator_message_packet_includes_allowed_replies_and_disallowed_live_actions():
+    import cassandra_email_triage as triage
+
+    packet = triage.build_email_triage_operator_message_packet(
+        [_candidate_metadata(message_id="msg-actions", thread_id="thread-actions", subject="Newsletter sale")],
+        prior_records=[],
+        created_at="2026-04-30 10:01:00",
+    )
+
+    assert packet["allowed_reply_examples"] == [
+        "junk",
+        "promo",
+        "useful promo",
+        "newsletter",
+        "receipt",
+        "not sure",
+    ]
+    assert "gmail_draft_creation" in packet["disallowed_live_actions"]
+    assert "send_email" in packet["disallowed_live_actions"]
+    assert "request_guardian_approval" in packet["disallowed_live_actions"]
+    assert "modify_gmail_labels" in packet["disallowed_live_actions"]
+    assert "delete_email" in packet["disallowed_live_actions"]
+
+
+def test_operator_message_packet_excludes_body_or_full_message_fields():
+    import cassandra_email_triage as triage
+
+    packet = triage.build_email_triage_operator_message_packet(
+        [_candidate_metadata(message_id="msg-clean", thread_id="thread-clean", subject="Promo sale")],
+        prior_records=[],
+        created_at="2026-04-30 10:02:00",
+    )
+
+    forbidden_fields = {"body", "body_text", "payload", "raw", "mime", "parts", "messages", "full_message"}
+    assert forbidden_fields.isdisjoint(packet)
+    assert "PRIVATE BODY CONTENT" not in json.dumps(packet)
+
+
+def test_operator_message_packet_returns_no_candidate_packet_when_all_unsafe_or_classified():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-old", thread_id="thread-old", subject="Newsletter sale"),
+        _candidate_metadata(message_id="msg-legal", thread_id="thread-legal", subject="Legal CPA tax matter"),
+    ]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+
+    packet = triage.build_email_triage_operator_message_packet(messages, prior_records)
+
+    assert packet == {
+        "ok": False,
+        "packet_type": "email_triage_training.no_candidate",
+        "reason": "no_safe_unclassified_candidate",
+        "delivery_status": "not_sent",
+        "operator_question": "",
+    }
+
+
+def test_operator_message_packet_respects_prior_thread_suppression():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-same-thread", thread_id="thread-old", subject="Newsletter sale"),
+        _candidate_metadata(message_id="msg-new-thread", thread_id="thread-new", subject="Newsletter digest"),
+    ]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+
+    packet = triage.build_email_triage_operator_message_packet(
+        messages,
+        prior_records,
+        created_at="2026-04-30 10:03:00",
+        suppress_prior_threads=True,
+    )
+
+    assert packet["message_id"] == "msg-new-thread"
+
+
+def test_operator_message_packet_can_allow_same_thread_when_thread_suppression_disabled():
+    import cassandra_email_triage as triage
+
+    messages = [_candidate_metadata(message_id="msg-same-thread", thread_id="thread-old", subject="Newsletter sale")]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+
+    packet = triage.build_email_triage_operator_message_packet(
+        messages,
+        prior_records,
+        created_at="2026-04-30 10:04:00",
+        suppress_prior_threads=False,
+    )
+
+    assert packet["ok"] is True
+    assert packet["message_id"] == "msg-same-thread"
+
+
+def test_operator_message_packet_does_not_mutate_inputs():
+    import cassandra_email_triage as triage
+
+    messages = [_candidate_metadata(message_id="msg-immutable", thread_id="thread-immutable", subject="Promo sale")]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+    messages_before = json.loads(json.dumps(messages))
+    prior_before = json.loads(json.dumps(prior_records))
+
+    triage.build_email_triage_operator_message_packet(
+        messages,
+        prior_records,
+        created_at="2026-04-30 10:05:00",
+    )
+
+    assert messages == messages_before
+    assert prior_records == prior_before
+
+
 def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(monkeypatch, tmp_path):
     import cassandra_email_triage as triage
 
@@ -469,6 +620,9 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
         "ollama_call",
         "nemotron_call",
         "claude",
+        "gemini",
+        "codex",
+        "aider",
         "external_model_packet_policy",
     )
     for token in forbidden_tokens:
@@ -501,9 +655,16 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
         [_candidate_metadata(message_id="msg-candidate", thread_id="thread-candidate")],
         records,
     )
+    packet = triage.build_email_triage_operator_message_packet(
+        [_candidate_metadata(message_id="msg-packet-guard", thread_id="thread-packet-guard")],
+        records,
+        created_at="2026-04-30 10:06:00",
+    )
 
     assert "google.gmail.read.body" not in prompt
     assert "google.gmail.read.body" not in question
     assert entry["source_capability"] == "google.gmail.read.metadata"
     assert records[0]["source_capability"] == "google.gmail.read.metadata"
     assert candidate["message_id"] == "msg-candidate"
+    assert packet["delivery_status"] == "not_sent"
+    assert packet["source_capability"] == "google.gmail.read.metadata"

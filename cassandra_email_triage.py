@@ -22,6 +22,9 @@ from typing import Iterable
 EMAIL_TRIAGE_SCHEMA_VERSION = 1
 EMAIL_TRIAGE_EVENT_TYPE_CLASSIFICATION = "email_triage_classification"
 EMAIL_TRIAGE_SOURCE_CAPABILITY = "google.gmail.read.metadata"
+EMAIL_TRIAGE_PACKET_TYPE_OPERATOR_QUESTION = "email_triage_training.operator_question"
+EMAIL_TRIAGE_PACKET_TYPE_NO_CANDIDATE = "email_triage_training.no_candidate"
+EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT = "not_sent"
 
 EMAIL_TRIAGE_TRAINING_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_triage_training.jsonl")
 
@@ -46,6 +49,28 @@ EMAIL_TRIAGE_SUGGESTED_HANDLINGS = (
     "suggest_folder_or_label",
     "manual_review",
     "possible_follow_up_later",
+)
+
+EMAIL_TRIAGE_ALLOWED_REPLY_EXAMPLES = (
+    "junk",
+    "promo",
+    "useful promo",
+    "newsletter",
+    "receipt",
+    "not sure",
+)
+
+EMAIL_TRIAGE_DISALLOWED_LIVE_ACTIONS = (
+    "read_gmail_body",
+    "send_telegram_message",
+    "gmail_draft_creation",
+    "send_email",
+    "request_guardian_approval",
+    "modify_gmail_labels",
+    "archive_email",
+    "delete_email",
+    "move_email",
+    "create_apple_mail_rule",
 )
 
 SENSITIVE_EMAIL_TRIAGE_CATEGORY = "sensitive_legal_cpa_musiclaw_publishing"
@@ -436,6 +461,44 @@ def select_email_triage_training_candidate(
         return None
     candidates.sort(key=lambda item: (item[0], item[1]))
     return candidates[0][2]
+
+
+def build_email_triage_operator_message_packet(
+    messages: Iterable[dict] | None,
+    prior_records: Iterable[dict] | None,
+    *,
+    created_at: str | None = None,
+    suppress_prior_threads: bool = True,
+) -> dict:
+    """Build an unsent operator-facing triage packet from mocked metadata."""
+    candidate = select_email_triage_training_candidate(
+        messages,
+        prior_records,
+        suppress_prior_threads=suppress_prior_threads,
+    )
+    if candidate is None:
+        return {
+            "ok": False,
+            "packet_type": EMAIL_TRIAGE_PACKET_TYPE_NO_CANDIDATE,
+            "reason": "no_safe_unclassified_candidate",
+            "delivery_status": EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT,
+            "operator_question": "",
+        }
+
+    fields = _normalized_metadata_fields(candidate)
+    return {
+        "ok": True,
+        "packet_type": EMAIL_TRIAGE_PACKET_TYPE_OPERATOR_QUESTION,
+        "schema_version": EMAIL_TRIAGE_SCHEMA_VERSION,
+        "created_at": str(created_at or _now()),
+        "source_capability": EMAIL_TRIAGE_SOURCE_CAPABILITY,
+        "delivery_status": EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT,
+        **fields,
+        "operator_question": build_email_triage_training_question(candidate),
+        "allowed_reply_examples": list(EMAIL_TRIAGE_ALLOWED_REPLY_EXAMPLES),
+        "records_training_intent_only": True,
+        "disallowed_live_actions": list(EMAIL_TRIAGE_DISALLOWED_LIVE_ACTIONS),
+    }
 
 
 def _unsafe_operator_response_reason(response_text: str) -> str:
