@@ -18,7 +18,7 @@ import chief_cpa_brain  # noqa: E402
 import chief_llm  # noqa: E402
 
 
-CLOUD_WRAPPERS = {"nemotron_call", "claude_call", "claude_json"}
+CLOUD_WRAPPERS = {"nemotron_call", "openrouter_call", "claude_call", "claude_json"}
 CLAUDE_WRAPPERS = {"claude_call", "claude_json"}
 NON_RUNNER_SOURCE_FILES = (
     "chief_brainstorm_brain.py",
@@ -213,6 +213,10 @@ def test_allowed_direct_nemotron_call_sites_are_policy_gated():
                 filename,
                 gate_name,
             )
+
+
+def test_no_direct_openrouter_call_sites_in_agent_brains():
+    assert _direct_wrapper_call_sites("openrouter_call") == set()
 
 
 def _agent_claude_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:

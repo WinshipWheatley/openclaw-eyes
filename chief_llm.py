@@ -195,6 +195,7 @@ _FAST_PROMPT_HINTS = frozenset({
 NEMOTRON_URL   = "https://integrate.api.nvidia.com/v1/chat/completions"
 NEMOTRON_MODEL = "nvidia/nemotron-3-super-120b-a12b"
 _NEMOCLAW_CREDS = Path.home() / ".nemoclaw" / "credentials.json"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 def _nemotron_api_key() -> str:
@@ -250,6 +251,90 @@ def nemotron_call(prompt: str, timeout: int = 30) -> str:
                 continue
             return ""
     return ""
+
+
+def _external_model_log_name(provider: str, model: str) -> str:
+    safe_provider = re.sub(r"[^A-Za-z0-9_.:/+-]+", "_", str(provider or "").strip())[:40]
+    safe_model = re.sub(r"[^A-Za-z0-9_.:/+-]+", "_", str(model or "").strip())[:160]
+    return f"{safe_provider or 'external'}:{safe_model or 'unknown'}"
+
+
+def openrouter_call(
+    prompt: str,
+    *,
+    model: str,
+    metadata: dict | None,
+    timeout: int = 30,
+) -> str:
+    """Call OpenRouter only for explicitly allowed external-model packets.
+
+    The caller must provide a concrete OpenRouter model name and metadata that
+    passes external_model_packet_policy(). This function reads only
+    OPENROUTER_API_KEY from the environment and returns '' fail-closed.
+    """
+    prompt_text = str(prompt or "").strip()
+    model_name = str(model or "").strip()
+    if not prompt_text or not model_name or not isinstance(metadata, dict):
+        return ""
+
+    policy = external_model_packet_policy(prompt_text, metadata=dict(metadata))
+    if not policy.get("external_model_safe"):
+        return ""
+
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return ""
+
+    payload = json.dumps({
+        "model": model_name,
+        "messages": [{"role": "user", "content": prompt_text}],
+        "max_tokens": 1024,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        OPENROUTER_URL,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "http://localhost/openclaw",
+            "X-Title": "OpenClaw",
+        },
+        method="POST",
+    )
+
+    prompt_words = len(prompt_text.split())
+    log_model = _external_model_log_name("openrouter", model_name)
+    started = _time.monotonic()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = getattr(resp, "status", None)
+            if status is None and hasattr(resp, "getcode"):
+                status = resp.getcode()
+            if status is not None and not (200 <= int(status) < 300):
+                _log_external_call(log_model, prompt_words, 0, int((_time.monotonic() - started) * 1000), False)
+                return ""
+
+            data = json.loads(resp.read().decode("utf-8"))
+            choices = data.get("choices") if isinstance(data, dict) else None
+            if not isinstance(choices, list) or not choices:
+                _log_external_call(log_model, prompt_words, 0, int((_time.monotonic() - started) * 1000), False)
+                return ""
+            message = choices[0].get("message") if isinstance(choices[0], dict) else None
+            content = message.get("content") if isinstance(message, dict) else None
+            if not isinstance(content, str):
+                _log_external_call(log_model, prompt_words, 0, int((_time.monotonic() - started) * 1000), False)
+                return ""
+            result = content.strip()
+            if not result:
+                _log_external_call(log_model, prompt_words, 0, int((_time.monotonic() - started) * 1000), False)
+                return ""
+            _log_external_call(log_model, prompt_words, len(result.split()), int((_time.monotonic() - started) * 1000), True)
+            return result
+    except Exception:
+        _log_external_call(log_model, prompt_words, 0, int((_time.monotonic() - started) * 1000), False)
+        return ""
+
+
 OLLAMA_MODEL      = "qwen2.5-coder:7b"   # default: fast hot-path model
 OLLAMA_MODEL_DEEP = "qwen2.5-coder:14b"  # escalation: synthesis / deep analysis
 

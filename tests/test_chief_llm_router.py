@@ -2,7 +2,34 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import chief_llm
+
+
+def _openrouter_metadata() -> dict[str, str]:
+    return {"data_classification": "synthetic_public", "cloud_allowed": "true"}
+
+
+class _OpenRouterResp:
+    def __init__(self, payload: dict | str, *, status: int = 200):
+        self.status = status
+        self._payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self):
+        if isinstance(self._payload, str):
+            return self._payload.encode("utf-8")
+        return json.dumps(self._payload).encode("utf-8")
+
+
+def _forbidden_request(*args, **kwargs):
+    raise AssertionError("OpenRouter request must not be constructed")
 
 
 def test_choose_local_model_lane_prefers_fast_for_small_classifier_prompt():
@@ -171,6 +198,201 @@ def test_ollama_call_cassandra_morning_brief_falls_back_across_models(monkeypatc
 
     assert out == "ok"
     assert calls == [("gemma4:31b", 420), ("gemma4:26b", 420)]
+
+
+def test_openrouter_call_missing_key_fails_closed_without_request(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setattr(chief_llm.urllib.request, "Request", _forbidden_request)
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+
+
+@pytest.mark.parametrize(
+    ("prompt", "model", "metadata"),
+    [
+        ("Synthetic public fixture prompt.", "", _openrouter_metadata()),
+        ("Synthetic public fixture prompt.", "   ", _openrouter_metadata()),
+        ("", "openrouter/test-model", _openrouter_metadata()),
+        ("   ", "openrouter/test-model", _openrouter_metadata()),
+        ("Synthetic public fixture prompt.", "openrouter/test-model", None),
+    ],
+)
+def test_openrouter_call_requires_prompt_model_and_metadata_without_request(
+    monkeypatch,
+    prompt,
+    model,
+    metadata,
+):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm.urllib.request, "Request", _forbidden_request)
+
+    assert chief_llm.openrouter_call(prompt, model=model, metadata=metadata) == ""
+
+
+def test_openrouter_call_blocked_policy_does_not_build_request(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm.urllib.request, "Request", _forbidden_request)
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata={"data_classification": "synthetic_public"},
+    )
+
+    assert out == ""
+
+
+def test_openrouter_call_allowed_public_packet_builds_mocked_request_without_exposing_key(
+    monkeypatch,
+    capsys,
+):
+    fake_key = "test-openrouter-secret"
+    captured = {}
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", fake_key)
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+
+    def fake_urlopen(req, timeout=0):
+        captured["req"] = req
+        captured["timeout"] = timeout
+        return _OpenRouterResp({"choices": [{"message": {"content": "mocked answer"}}]})
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", fake_urlopen)
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+        timeout=9,
+    )
+    stdout, stderr = capsys.readouterr()
+
+    assert out == "mocked answer"
+    assert captured["timeout"] == 9
+    request = captured["req"]
+    payload = json.loads(request.data.decode("utf-8"))
+    assert request.full_url == chief_llm.OPENROUTER_URL
+    assert request.get_header("Authorization") == f"Bearer {fake_key}"
+    assert payload == {
+        "model": "openrouter/test-model",
+        "messages": [{"role": "user", "content": "Synthetic public fixture prompt."}],
+        "max_tokens": 1024,
+    }
+    assert len(logs) == 1
+    assert logs[0][0] == "openrouter:openrouter/test-model"
+    assert logs[0][1] == 4
+    assert logs[0][2] == 2
+    assert logs[0][4] is True
+    assert fake_key not in out
+    assert fake_key not in stdout
+    assert fake_key not in stderr
+    assert fake_key not in repr(logs)
+
+
+def test_openrouter_call_non_2xx_returns_empty(monkeypatch):
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        chief_llm.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: _OpenRouterResp({"choices": []}, status=503),
+    )
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+    assert logs[-1][4] is False
+
+
+def test_openrouter_call_network_error_returns_empty(monkeypatch):
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+
+    def raise_timeout(*args, **kwargs):
+        raise TimeoutError("synthetic timeout")
+
+    monkeypatch.setattr(chief_llm.urllib.request, "urlopen", raise_timeout)
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+    assert logs[-1][4] is False
+
+
+def test_openrouter_call_malformed_response_returns_empty(monkeypatch):
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        chief_llm.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: _OpenRouterResp("not-json"),
+    )
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+    assert logs[-1][4] is False
+
+
+def test_openrouter_call_missing_content_returns_empty(monkeypatch):
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        chief_llm.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: _OpenRouterResp({"choices": [{"message": {}}]}),
+    )
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+    assert logs[-1][4] is False
+
+
+def test_openrouter_call_empty_content_returns_empty(monkeypatch):
+    logs = []
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
+    monkeypatch.setattr(chief_llm, "_log_external_call", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        chief_llm.urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: _OpenRouterResp({"choices": [{"message": {"content": "   "}}]}),
+    )
+
+    out = chief_llm.openrouter_call(
+        "Synthetic public fixture prompt.",
+        model="openrouter/test-model",
+        metadata=_openrouter_metadata(),
+    )
+
+    assert out == ""
+    assert logs[-1][4] is False
 
 
 def test_resolve_local_model_routes_cassandra_user_reply_to_gemma_26b(monkeypatch):
