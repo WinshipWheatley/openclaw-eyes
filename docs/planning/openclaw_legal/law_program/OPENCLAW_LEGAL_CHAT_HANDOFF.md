@@ -1272,6 +1272,7 @@ Pilot terms outline:
 
 First-pilot go/no-go review packet:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md` ties readiness, terms, scope, support, and synthetic demo validation into one internal decision workflow before any next step.
+- Latest Legal docs checkpoint: `65b97fd docs(legal): add first pilot go no-go review packet`.
 
 Bad next Legal work:
 - wire Run Dry Run now;
@@ -1534,6 +1535,8 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, and the Phase 2F-B synthetic test-file GUI action at `64f5190`.
 
+Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, and first-pilot go/no-go review packet. The latest Legal docs checkpoint is `65b97fd docs(legal): add first pilot go no-go review packet`.
+
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
 Status realism should also stop for now unless a specific bug appears. Refresh Status now has useful safe fields and passed Mac runtime validation without reading/listing private intake contents.
@@ -1541,7 +1544,7 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 Immediate next work:
 
 1. **Recommended next target: pause Legal feature work and reassess.** Phase 2F-B proved the first intentionally write-capable GUI action under synthetic-only constraints. Do not keep adding GUI actions by momentum.
-2. **Next safe Legal slice:** choose docs/design/proof packaging, not Run implementation. Good candidates are a Phase 2G runner/service design doc, a synthetic demo validation checklist/package, or a first-pilot scope/support pack.
+2. **Next safe Legal slice:** choose docs/design/proof packaging, not Run implementation. Good candidates are buyer-safe demo evidence packaging, support-boundary externalization, handoff tightening, or another narrow review/proof checklist.
 3. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
 4. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 
