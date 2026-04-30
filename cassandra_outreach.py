@@ -92,6 +92,12 @@ KNOWN_CONTACT_WATCH_NOTIFICATION = "known_contact_watch_notification"
 IGNORED_NOT_IN_SCOPE_THREAD = "ignored_not_in_scope_thread"
 APPROVED_FOR_FOLLOW_UP_LANE = "approved_for_follow_up_lane"
 
+KNOWN_CONTACT_ACTION_WATCH_THREAD = "watch_thread"
+KNOWN_CONTACT_ACTION_IGNORE_THREAD = "ignore_thread"
+KNOWN_CONTACT_ACTION_REVISE_RESPONSE = "revise_response"
+KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT = "create_gmail_draft"
+KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL = "ask_guardian_send_approval"
+
 CASSANDRA_STARTED_THREAD = "cassandra_started_thread"
 USER_ASSIGNED_THREAD = "user_assigned_thread"
 UNASSIGNED_KNOWN_CONTACT_THREAD = "unassigned_known_contact_thread"
@@ -108,6 +114,14 @@ _VALID_OWNERSHIP_STATES = {
     USER_ASSIGNED_THREAD,
     UNASSIGNED_KNOWN_CONTACT_THREAD,
     UNKNOWN_THREAD_OWNERSHIP,
+}
+
+_VALID_KNOWN_CONTACT_OPERATOR_ACTIONS = {
+    KNOWN_CONTACT_ACTION_WATCH_THREAD,
+    KNOWN_CONTACT_ACTION_IGNORE_THREAD,
+    KNOWN_CONTACT_ACTION_REVISE_RESPONSE,
+    KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT,
+    KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL,
 }
 
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
@@ -925,6 +939,114 @@ def record_known_contact_watch_event(
             handle.write(json.dumps(entry) + "\n")
     except Exception as exc:
         print(f"[cassandra] known-contact watch log write failed: {exc}", flush=True)
+    return entry
+
+
+def record_known_contact_operator_action(
+    *,
+    message_id: str,
+    thread_id: str,
+    sender_email: str,
+    contact_nickname: str,
+    contact_tier: str,
+    operator_action: str = "",
+    action_token: str = "",
+    matched_reason: str = "",
+    draft_id: str = "",
+    approval_id: str = "",
+    draft_intent: str | bool = "",
+    revision_request: str = "",
+    revision_note: str = "",
+    response_preview: str = "",
+    preview: str = "",
+    body_text: str = "",
+    body: str = "",
+    created_at: str | None = None,
+    metadata: dict | None = None,
+) -> dict:
+    """Append one known-contact operator-action transition.
+
+    This is a pure state reducer: it records operator intent only. It never
+    creates Gmail drafts, asks Guardian for approval, sends email, sends
+    Telegram, or calls a model.
+    """
+    action = str(operator_action or action_token or "").strip()
+    if action not in _VALID_KNOWN_CONTACT_OPERATOR_ACTIONS:
+        raise ValueError(f"invalid operator_action: {operator_action or action_token}")
+
+    watch_state = KNOWN_CONTACT_WATCH_NOTIFICATION
+    ownership_state = UNASSIGNED_KNOWN_CONTACT_THREAD
+    if action == KNOWN_CONTACT_ACTION_WATCH_THREAD:
+        watch_state = APPROVED_FOR_FOLLOW_UP_LANE
+        ownership_state = USER_ASSIGNED_THREAD
+    elif action == KNOWN_CONTACT_ACTION_IGNORE_THREAD:
+        watch_state = IGNORED_NOT_IN_SCOPE_THREAD
+    else:
+        ownership_state = USER_ASSIGNED_THREAD
+
+    preview_text = str(response_preview or preview or "").strip()
+    body_preview = _bridge_preview(body_text or body, 600)
+    if action == KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL:
+        if not str(draft_id or "").strip() and not preview_text and not body_preview:
+            raise ValueError("ask_guardian_send_approval requires draft_id or explicit preview/body text")
+
+    entry = {
+        "message_id": str(message_id or "").strip(),
+        "thread_id": str(thread_id or "").strip(),
+        "sender_email": str(sender_email or "").strip().lower(),
+        "contact_nickname": str(contact_nickname or "").strip().lower(),
+        "contact_tier": str(contact_tier or "").strip(),
+        "watch_state": watch_state,
+        "ownership_state": ownership_state,
+        "matched_reason": str(matched_reason or "").strip(),
+        "operator_action": action,
+        "draft_id": str(draft_id or "").strip(),
+        "approval_id": str(approval_id or "").strip(),
+        "created_at": str(created_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    }
+    for key in ("message_id", "thread_id", "sender_email", "contact_nickname", "contact_tier"):
+        if not entry[key]:
+            raise ValueError(f"{key} is required")
+
+    if action == KNOWN_CONTACT_ACTION_REVISE_RESPONSE:
+        if revision_request:
+            entry["revision_request"] = _bridge_preview(revision_request, 600)
+        if revision_note:
+            entry["revision_note"] = _bridge_preview(revision_note, 600)
+        if preview_text:
+            entry["suggested_response_preview"] = _bridge_preview(preview_text, 600)
+
+    if action == KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT:
+        intent = str(draft_intent or "").strip() or "requested"
+        entry["draft_intent"] = intent
+        if preview_text:
+            entry["suggested_response_preview"] = _bridge_preview(preview_text, 600)
+        if body_preview:
+            entry["body_preview"] = body_preview
+
+    if action == KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL:
+        entry["approval_intent"] = "requested"
+        entry["approval_source"] = "draft_id" if entry["draft_id"] else "preview_or_body"
+        if preview_text:
+            entry["suggested_response_preview"] = _bridge_preview(preview_text, 600)
+        if body_preview:
+            entry["body_preview"] = body_preview
+
+    if metadata:
+        clean_metadata = {
+            str(key): value
+            for key, value in metadata.items()
+            if value not in (None, "", [])
+        }
+        if clean_metadata:
+            entry["metadata"] = clean_metadata
+
+    try:
+        _KNOWN_CONTACT_WATCH_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _KNOWN_CONTACT_WATCH_LOG.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+    except Exception as exc:
+        print(f"[cassandra] known-contact operator-action log write failed: {exc}", flush=True)
     return entry
 
 

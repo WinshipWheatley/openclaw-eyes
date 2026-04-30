@@ -124,6 +124,37 @@ class TestLogEmailBridgeEvent:
 # ── Known-contact watch event contract ──────────────────────────────────────
 
 class TestKnownContactWatchEvent:
+    def _base_operator_action_kwargs(self):
+        return {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "CLIENT@Example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "matched_reason": "pinned email matched active payment lane",
+            "created_at": "2026-04-29 09:30:00",
+        }
+
+    def _patch_operator_action_side_effects_to_fail(self, monkeypatch):
+        import cassandra_brain
+        import cassandra_outreach as outreach
+
+        def fail_side_effect(*args, **kwargs):
+            raise AssertionError("known-contact operator-action reducer must not call side-effect services")
+
+        monkeypatch.setattr(outreach, "create_gmail_draft", fail_side_effect)
+        monkeypatch.setattr(
+            cassandra_brain,
+            "_start_email_send_after_draft",
+            fail_side_effect,
+            raising=False,
+        )
+        try:
+            import chief_approval_brain
+            monkeypatch.setattr(chief_approval_brain, "request_approval", fail_side_effect, raising=False)
+        except Exception:
+            pass
+
     def test_records_required_fields(self, tmp_path, monkeypatch):
         import cassandra_outreach as outreach
 
@@ -182,6 +213,161 @@ class TestKnownContactWatchEvent:
         assert entry["draft_id"] == ""
         assert entry["approval_id"] == ""
         assert entry["created_at"]
+
+    def test_operator_watch_action_records_user_assignment(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        entry = outreach.record_known_contact_operator_action(
+            **self._base_operator_action_kwargs(),
+            operator_action="watch_thread",
+        )
+
+        assert entry["watch_state"] == outreach.APPROVED_FOR_FOLLOW_UP_LANE
+        assert entry["ownership_state"] == outreach.USER_ASSIGNED_THREAD
+        assert entry["operator_action"] == "watch_thread"
+        assert json.loads(log.read_text(encoding="utf-8").strip()) == entry
+
+    def test_operator_ignore_action_records_not_in_scope(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        entry = outreach.record_known_contact_operator_action(
+            **self._base_operator_action_kwargs(),
+            operator_action="ignore_thread",
+        )
+
+        assert entry["watch_state"] == outreach.IGNORED_NOT_IN_SCOPE_THREAD
+        assert entry["operator_action"] == "ignore_thread"
+        assert json.loads(log.read_text(encoding="utf-8").strip()) == entry
+
+    def test_operator_revise_action_records_request_without_side_effects(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        entry = outreach.record_known_contact_operator_action(
+            **self._base_operator_action_kwargs(),
+            operator_action="revise_response",
+            revision_request="Make it shorter and warmer.",
+            response_preview="Thanks - I can confirm the invoice and timing.",
+        )
+
+        assert entry["operator_action"] == "revise_response"
+        assert entry["revision_request"] == "Make it shorter and warmer."
+        assert entry["suggested_response_preview"] == "Thanks - I can confirm the invoice and timing."
+        assert "draft_intent" not in entry
+        assert "approval_intent" not in entry
+        assert json.loads(log.read_text(encoding="utf-8").strip()) == entry
+
+    def test_operator_create_gmail_draft_records_intent_without_execution(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        entry = outreach.record_known_contact_operator_action(
+            **self._base_operator_action_kwargs(),
+            operator_action="create_gmail_draft",
+            draft_id="mock-draft-id",
+            response_preview="Draft this as a concise payment follow-up.",
+        )
+
+        assert entry["operator_action"] == "create_gmail_draft"
+        assert entry["draft_intent"] == "requested"
+        assert entry["draft_id"] == "mock-draft-id"
+        assert "approval_intent" not in entry
+        assert json.loads(log.read_text(encoding="utf-8").strip()) == entry
+
+    def test_operator_send_approval_requires_draft_or_preview_or_body(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        with pytest.raises(ValueError, match="requires draft_id or explicit preview/body text"):
+            outreach.record_known_contact_operator_action(
+                **self._base_operator_action_kwargs(),
+                operator_action="ask_guardian_send_approval",
+            )
+
+        assert not log.exists()
+
+    @pytest.mark.parametrize(
+        ("field", "value", "approval_source"),
+        [
+            ("draft_id", "mock-draft-id", "draft_id"),
+            ("response_preview", "Please approve this preview.", "preview_or_body"),
+            ("body_text", "Please approve this body.", "preview_or_body"),
+        ],
+    )
+    def test_operator_send_approval_records_intent_only(self, tmp_path, monkeypatch, field, value, approval_source):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+
+        entry = outreach.record_known_contact_operator_action(
+            **self._base_operator_action_kwargs(),
+            operator_action="ask_guardian_send_approval",
+            **{field: value},
+        )
+
+        assert entry["operator_action"] == "ask_guardian_send_approval"
+        assert entry["approval_intent"] == "requested"
+        assert entry["approval_source"] == approval_source
+        if field == "draft_id":
+            assert entry["draft_id"] == value
+        if field == "response_preview":
+            assert entry["suggested_response_preview"] == value
+        if field == "body_text":
+            assert entry["body_preview"] == value
+        assert json.loads(log.read_text(encoding="utf-8").strip()) == entry
+
+    def test_operator_invalid_action_raises(self, tmp_path, monkeypatch):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+
+        with pytest.raises(ValueError, match="invalid operator_action"):
+            outreach.record_known_contact_operator_action(
+                **self._base_operator_action_kwargs(),
+                operator_action="send_now",
+            )
+
+        assert not log.exists()
+
+    @pytest.mark.parametrize(
+        "field",
+        ["message_id", "thread_id", "sender_email", "contact_nickname", "contact_tier"],
+    )
+    def test_operator_action_validates_required_identity_fields(self, tmp_path, monkeypatch, field):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        monkeypatch.setattr(outreach, "_KNOWN_CONTACT_WATCH_LOG", log)
+        kwargs = self._base_operator_action_kwargs()
+        kwargs[field] = ""
+
+        with pytest.raises(ValueError, match=f"{field} is required"):
+            outreach.record_known_contact_operator_action(
+                **kwargs,
+                operator_action="watch_thread",
+            )
+
+        assert not log.exists()
 
     def test_build_known_contact_watch_notification_text_includes_context_and_options(self):
         import cassandra_outreach as outreach
