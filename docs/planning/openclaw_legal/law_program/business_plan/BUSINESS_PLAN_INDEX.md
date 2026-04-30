@@ -22,6 +22,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md](OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md) is the internal contract/terms checklist for what must be written before any paid pilot begins.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md](OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md) ties the readiness checklist, terms outline, scope, support boundary, and demo validation package into one internal review workflow.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -51,6 +53,12 @@ Use this before law-firm outreach, demo, or paid-pilot planning to choose Go to 
 Internal pilot terms checklist.
 
 Use this to identify the written scope, payment, support, ownership, data, hardware, backup, offboarding, liability, attorney-review, and no-legal-advice terms needed before any paid pilot.
+
+### `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
+
+Internal first-pilot review packet.
+
+Use this to walk through the source docs in decision order and record whether the next allowed step is synthetic/public demo, paid pilot planning, or no-go/pause.
 
 ### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 
@@ -107,6 +115,7 @@ Internal-only:
 - `OPENCLAW_LEGAL_GO_NO_GO_LAUNCH_CRITERIA.md`
 - `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 - `OPENCLAW_LEGAL_GOTCHAS.md`
+- `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
 - `OPENCLAW_LEGAL_BUSINESS_MODEL_OPPORTUNITIES.md`
 - `BUSINESS_PLAN_INDEX.md`
 

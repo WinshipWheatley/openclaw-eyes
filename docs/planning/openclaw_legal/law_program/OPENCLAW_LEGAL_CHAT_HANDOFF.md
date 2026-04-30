@@ -1270,6 +1270,9 @@ Pilot readiness checklist:
 Pilot terms outline:
 - `business_plan/OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md` converts the scope, buyer brief, support boundary, and readiness gate into an internal checklist for written paid-pilot terms.
 
+First-pilot go/no-go review packet:
+- `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md` ties readiness, terms, scope, support, and synthetic demo validation into one internal decision workflow before any next step.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;
