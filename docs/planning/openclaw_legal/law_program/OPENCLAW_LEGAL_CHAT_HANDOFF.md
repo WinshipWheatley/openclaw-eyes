@@ -1272,7 +1272,7 @@ Pilot terms outline:
 
 First-pilot go/no-go review packet:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md` ties readiness, terms, scope, support, and synthetic demo validation into one internal decision workflow before any next step.
-- Latest Legal docs checkpoint: `e17076f docs(legal): add first pilot conversation guardrails`.
+- Latest Legal docs checkpoint: `7e3f88b docs(legal): add first pilot package index`.
 
 First-pilot outreach readiness summary:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md` answers whether a first pilot conversation is allowed and under what exact limits.
@@ -1547,7 +1547,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, and the Phase 2F-B synthetic test-file GUI action at `64f5190`.
 
-Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, and first-pilot package index. The latest committed Legal docs checkpoint is `7b0a073 docs(legal): add first pilot call notes template`.
+Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, and first-pilot package index. The latest committed Legal docs checkpoint is `7e3f88b docs(legal): add first pilot package index`.
 
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
