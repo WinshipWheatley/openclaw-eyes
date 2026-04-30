@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import chief_brainstorm_brain  # noqa: E402
+import cassandra_brain  # noqa: E402
 import chief_cpa_brain  # noqa: E402
 import chief_llm  # noqa: E402
 
@@ -23,11 +24,13 @@ CLAUDE_WRAPPERS = {"claude_call", "claude_json"}
 ALLOWED_DIRECT_IMPORTS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
+    ("cassandra_brain.py", "nemotron_call", "nemotron_call"),
 }
 
 ALLOWED_DIRECT_CALLS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
+    ("cassandra_brain.py", "nemotron_call", "nemotron_call"),
 }
 
 HARD_DENY_MARKERS = [
@@ -57,7 +60,7 @@ def _chief_cloud_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tup
     direct_imports: set[tuple[str, str, str]] = set()
     direct_calls: set[tuple[str, str, str]] = set()
 
-    for path in sorted(ROOT.glob("chief_*.py")):
+    for path in sorted(ROOT.glob("chief_*.py")) + [ROOT / "cassandra_brain.py"]:
         if path.name == "chief_llm.py":
             continue
 
@@ -104,6 +107,13 @@ def test_direct_chief_cloud_wrapper_inventory_matches_allowlist():
 
     assert direct_imports == ALLOWED_DIRECT_IMPORTS
     assert direct_calls == ALLOWED_DIRECT_CALLS
+
+
+def test_allowed_direct_nemotron_call_sites_are_policy_gated():
+    for filename, wrapper, _local_name in ALLOWED_DIRECT_CALLS:
+        assert wrapper == "nemotron_call"
+        source = (ROOT / filename).read_text(encoding="utf-8")
+        assert "external_model_packet_policy" in source, filename
 
 
 def _agent_claude_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:
@@ -160,11 +170,12 @@ def test_agent_brains_do_not_import_or_call_claude_wrappers():
     assert direct_calls == set()
 
 
+@pytest.mark.parametrize("cloud_flag", ["cloud_allowed", "allow_cloud", "cloud_ok"])
 @pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
-def test_external_model_policy_blocks_professional_packets_even_with_cloud_metadata(label, packet):
+def test_external_model_policy_blocks_professional_packets_even_with_cloud_metadata(label, packet, cloud_flag):
     policy = chief_llm.external_model_packet_policy(
         packet,
-        metadata={"data_classification": "non_sensitive", "cloud_allowed": "true"},
+        metadata={"data_classification": "non_sensitive", cloud_flag: "true"},
     )
 
     assert policy["external_model_safe"] is False, label
@@ -195,6 +206,95 @@ def test_external_model_policy_allows_explicit_public_synthetic_packet():
 def test_non_runner_cloud_gates_block_professional_packets(label, packet):
     assert chief_brainstorm_brain._brainstorm_cloud_safe(packet) is False, label
     assert chief_cpa_brain._expense_cloud_safe(packet) is False, label
+
+
+def _cassandra_clean_context(query: str, *, context_snapshot: str = "") -> bool:
+    return cassandra_brain._cassandra_context_clean(
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        context_snapshot,
+        query,
+    )
+
+
+@pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
+def test_cassandra_cloud_gate_blocks_professional_packets_without_live_context(label, packet):
+    assert _cassandra_clean_context(packet) is False, label
+
+
+def test_cassandra_cloud_gate_fails_closed_for_unclassified_packet():
+    assert _cassandra_clean_context("Update an ordinary helper.") is False
+
+
+def test_cassandra_cloud_gate_delegates_clean_context_to_central_policy(monkeypatch):
+    calls = []
+
+    def fake_policy(packet, metadata=None):
+        calls.append({"packet": packet, "metadata": metadata})
+        return {"external_model_safe": True}
+
+    monkeypatch.setattr(cassandra_brain, "external_model_packet_policy", fake_policy)
+
+    assert _cassandra_clean_context("Synthetic public fixture for a generic reply.") is True
+    assert calls == [
+        {
+            "packet": {
+                "query": "Synthetic public fixture for a generic reply.",
+                "context_snapshot": "",
+            },
+            "metadata": {"workload": "cassandra_user_reply"},
+        }
+    ]
+
+
+def test_cassandra_cloud_ok_true_still_requires_external_model_policy(monkeypatch):
+    def forbidden_nemotron(*args, **kwargs):
+        raise AssertionError("cloud_ok=True must not bypass central external-model policy")
+
+    monkeypatch.setattr(cassandra_brain, "nemotron_call", forbidden_nemotron)
+    monkeypatch.setattr(
+        cassandra_brain,
+        "resolve_local_model",
+        lambda prompt, lane=None, task_class=None: ("chief-fast:latest", "fast"),
+    )
+    monkeypatch.setattr(
+        cassandra_brain,
+        "ollama_call",
+        lambda prompt, timeout=0, model=None, lane=None, task_class=None: "local reply",
+    )
+
+    reply = cassandra_brain._call(
+        "Synthetic public prompt without explicit classification metadata.",
+        task_class="cassandra_user_reply",
+        cloud_ok=True,
+    )
+
+    assert reply == "local reply"
+
+
+def test_cassandra_cloud_ok_allows_only_explicit_public_metadata(monkeypatch):
+    local_calls = []
+
+    monkeypatch.setattr(cassandra_brain, "nemotron_call", lambda *args, **kwargs: "cloud reply")
+    monkeypatch.setattr(
+        cassandra_brain,
+        "ollama_call",
+        lambda *args, **kwargs: local_calls.append(args) or "local reply",
+    )
+
+    reply = cassandra_brain._call(
+        "Synthetic public fixture for a generic reply.",
+        task_class="cassandra_user_reply",
+        cloud_ok=True,
+        external_model_metadata={"data_classification": "synthetic_public", "cloud_allowed": "true"},
+    )
+
+    assert reply == "cloud reply"
+    assert local_calls == []
 
 
 @pytest.mark.parametrize("marker", HARD_DENY_MARKERS)

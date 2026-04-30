@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call, nemotron_call, resolve_local_model
+from chief_llm import external_model_packet_policy, ollama_call, nemotron_call, resolve_local_model
 from chief_output_utils import tts_clean
 from cassandra_mode import (
     is_focus_mode,
@@ -5127,7 +5127,11 @@ def _cassandra_context_clean(
         if re.search(pattern, q):
             return False
 
-    return True
+    policy = external_model_packet_policy(
+        {"query": query, "context_snapshot": context_snapshot},
+        metadata={"workload": "cassandra_user_reply"},
+    )
+    return bool(policy.get("external_model_safe"))
 
 
 # ── LLM call ─────────────────────────────────────────────────────────────────
@@ -5139,14 +5143,25 @@ def _call(
     cloud_ok: bool = False,
     allow_deep_escalation: bool = False,
     validation_outcome: str | None = None,
+    external_model_metadata: dict | None = None,
 ) -> str:
     # Cloud path: only when _cassandra_context_clean() confirmed clean context
     if cloud_ok:
-        result = nemotron_call(prompt, timeout=30).strip()
-        if result:
-            print("[cassandra] reply routed to Nemotron cloud", flush=True)
-            return result
-        print("[cassandra] cloud call failed or empty, falling back to local", flush=True)
+        policy_metadata = {"workload": task_class, "cloud_ok": True}
+        if external_model_metadata:
+            policy_metadata.update(external_model_metadata)
+        policy = external_model_packet_policy(prompt, metadata=policy_metadata)
+        if policy.get("external_model_safe"):
+            result = nemotron_call(prompt, timeout=30).strip()
+            if result:
+                print("[cassandra] reply routed to Nemotron cloud", flush=True)
+                return result
+            print("[cassandra] cloud call failed or empty, falling back to local", flush=True)
+        else:
+            print(
+                f"[cassandra] central external-model policy blocked cloud routing: {policy.get('reason')}",
+                flush=True,
+            )
 
     model, lane = resolve_local_model(prompt, task_class=task_class)
     _log_model_route(

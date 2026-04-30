@@ -190,6 +190,20 @@ def test_professional_packets_block_cloud_even_with_non_sensitive_cloud_metadata
     assert profile["cloud_policy"] == "local_only_sensitive"
 
 
+@pytest.mark.parametrize("cloud_flag", ["cloud_allowed", "allow_cloud", "cloud_ok"])
+def test_cloud_allowance_aliases_cannot_override_professional_markers(runner_policy_context, cloud_flag):
+    profile = runner_profiles.select_profile(
+        _task(
+            "Legal matter packet with Gmail private correspondence and client payment details.",
+            frontmatter=f"data_classification: non_sensitive\n{cloud_flag}: true",
+        )
+    )
+
+    _assert_local_only_or_fail_closed(profile)
+    assert profile["cloud_allowed"] is False
+    assert profile["cloud_policy"] == "local_only_sensitive"
+
+
 def test_unclassified_packet_policy_fails_closed_before_runner_choice(runner_policy_context):
     profile = runner_profiles.select_profile(
         _task("Update an ordinary helper without sensitivity metadata.")

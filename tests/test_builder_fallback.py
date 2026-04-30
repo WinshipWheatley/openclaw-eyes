@@ -336,6 +336,18 @@ def test_get_fallback_runner_uses_ranked_order():
     assert result == "gemini"
 
 
+def test_local_runner_failure_never_falls_back_to_cloud_runner():
+    """A local-only failure is not promoted into cloud fallback without metadata."""
+    ollama = _make_runner("ollama", runner_type="local", cost_tier="free")
+    codex = _make_runner("codex")
+    gemini = _make_runner("gemini")
+
+    with patch("runner_registry.get_runners_for_task", return_value=[ollama, codex, gemini]):
+        result = get_fallback_runner("ollama")
+
+    assert result is None
+
+
 def test_get_fallback_runner_quota_scenario(tmp_path):
     """End-to-end scenario: quota message detected → registry fallback selected → valid output."""
     # Step 1: Preferred runner (claude) produces a quota message
