@@ -24,6 +24,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md](OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md) ties the readiness checklist, terms outline, scope, support boundary, and demo validation package into one internal review workflow.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md](OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md) summarizes whether a first pilot conversation is allowed and under what exact limits.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -59,6 +61,12 @@ Use this to identify the written scope, payment, support, ownership, data, hardw
 Internal first-pilot review packet.
 
 Use this to walk through the source docs in decision order and record whether the next allowed step is synthetic/public demo, paid pilot planning, or no-go/pause.
+
+### `OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md`
+
+Internal outreach readiness summary.
+
+Use this to decide whether a first pilot conversation is allowed and to keep the outreach posture bounded to synthetic/public demo and conditional paid-pilot planning.
 
 ### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 
@@ -116,6 +124,7 @@ Internal-only:
 - `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 - `OPENCLAW_LEGAL_GOTCHAS.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
+- `OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md`
 - `OPENCLAW_LEGAL_BUSINESS_MODEL_OPPORTUNITIES.md`
 - `BUSINESS_PLAN_INDEX.md`
 
