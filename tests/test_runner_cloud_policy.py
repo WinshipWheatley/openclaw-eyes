@@ -166,6 +166,32 @@ def test_explicit_non_sensitive_cloud_allowed_task_may_select_cloud_runner(runne
     assert profile["runner"] not in HUMAN_ONLY_RUNNERS
 
 
+def test_planner_mode_does_not_override_unclassified_local_only_policy(runner_policy_context):
+    profile = runner_profiles.select_profile(
+        _task("Review an ordinary helper without sensitivity metadata."),
+        planner_mode=True,
+    )
+
+    _assert_local_only_or_fail_closed(profile)
+    assert profile["role"] == "planner"
+    assert profile["cloud_allowed"] is False
+    assert profile["cloud_policy"] == "local_only_unclassified"
+
+
+def test_planner_mode_gemini_override_requires_explicit_cloud_safe_metadata(runner_policy_context):
+    profile = runner_profiles.select_profile(
+        _task(
+            "Review a synthetic public fixture using the planner runner pool.",
+            frontmatter="data_classification: synthetic_public\ncloud_allowed: true",
+        ),
+        planner_mode=True,
+    )
+
+    assert profile["role"] == "planner"
+    assert profile["cloud_allowed"] is True
+    assert profile["runner"] == "gemini"
+
+
 @pytest.mark.parametrize(
     "goal",
     [
@@ -227,6 +253,39 @@ def test_unclassified_local_failure_does_not_silently_fallback_to_cloud(monkeypa
     fallback_runner = runner_registry.get_fallback_runner("ollama", task_type="standard")
 
     assert fallback_runner is None or fallback_runner not in CLOUD_CAPABLE_RUNNERS
+
+
+def test_cloud_runner_selection_static_surface_is_policy_wrapped():
+    profiles_source = (ROOT / "runner_profiles.py").read_text(encoding="utf-8")
+    task_allows_start = profiles_source.index("def _task_allows_cloud")
+    task_allows_end = profiles_source.index("def _get_recent_runner_ratio", task_allows_start)
+    task_allows_block = profiles_source[task_allows_start:task_allows_end]
+
+    pick_runner_start = profiles_source.index("def _pick_runner")
+    registry_lookup = profiles_source.index("runner_registry.get_runners_for_task", pick_runner_start)
+    pick_runner_gate_block = profiles_source[pick_runner_start:registry_lookup]
+
+    assert "external_model_packet_policy" in task_allows_block
+    assert "if not task_meta:" in pick_runner_gate_block
+    assert "_task_is_sensitive(task_meta)" in pick_runner_gate_block
+    assert "not _task_allows_cloud(task_meta)" in pick_runner_gate_block
+    assert 'planner_mode and result["cloud_allowed"]' in profiles_source
+
+    registry_source = (ROOT / "runner_registry.py").read_text(encoding="utf-8")
+    assert 'CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}' in registry_source
+
+    watcher_source = (ROOT / "builder_watcher.sh").read_text(encoding="utf-8")
+    assert "python3 runner_profiles.py" in watcher_source
+    assert "p_cloud_allowed=" in watcher_source
+    override_marker = "# Override runner if explicitly requested via CODING_RUNNER"
+    override_start = watcher_source.index(override_marker)
+    override_end = watcher_source.index("LAST_EFFECTIVE_RUNNER", override_start)
+    override_block = watcher_source[override_start:override_end]
+
+    for runner_name in CLOUD_CAPABLE_RUNNERS:
+        assert f'RUNNER_PREFERRED" = "{runner_name}"' in override_block
+    assert 'p_cloud_allowed" != "True"' in override_block
+    assert "Explicit cloud runner override denied" in override_block
 
 
 def test_coding_runner_cloud_override_is_denied_for_sensitive_task_text(runner_policy_context):

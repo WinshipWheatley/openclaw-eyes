@@ -433,10 +433,11 @@ def select_profile(task_text: str, *, planner_mode: bool = False) -> dict:
         blocked_runners=blocked_runners,
     )
 
-    # Planner policy surface: Gemini is the planner runner on Mac.
+    # Planner policy surface: Gemini is the planner runner on Mac for packets
+    # already admitted by the shared external-model/cloud policy.
     # TODO: the real Mac-side launcher is outside this repo, so Gemini
     # invocation remains unverified here; only the routing surface is enforced.
-    if planner_mode and runner_name != "gemini":
+    if planner_mode and result["cloud_allowed"] and runner_name != "gemini":
         runner_name = "gemini"
         model = "default"
         runner_reason += " → planner policy override: gemini required on Mac planner surface"
@@ -837,6 +838,9 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
     budget_override = None
 
     # Step 0: Cloud admission gate. Sensitive and unclassified tasks stay local.
+    if not task_meta:
+        return ("ollama", "chief-fast:latest",
+                "cloud metadata missing — local-only required", 0)
     if task_meta and _task_is_sensitive(task_meta):
         return ("ollama", "chief-fast:latest",
                 "sensitive data — local-only required", 0)
@@ -1022,6 +1026,8 @@ def main():
         result = dict(PROFILES[tier])
         result["tier"] = tier
         result["role"] = "planner" if planner_mode else "builder"
+        result["cloud_allowed"] = False
+        result["cloud_policy"] = "local_only_unclassified"
         if planner_mode:
             result["budget"] = round(result["budget"] * PLANNER_BUDGET_SCALE, 2)
         model_prefs = PLANNER_PREFERRED_MODELS if planner_mode else PREFERRED_MODELS
@@ -1029,10 +1035,11 @@ def main():
         runner_name, model, runner_reason, budget_override = _pick_runner(
             tier, model_prefs=model_prefs, blocked_runners=blocked_runners
         )
-        # Planner policy surface: Gemini is the planner runner on Mac.
+        # Planner policy surface: Gemini is the planner runner on Mac for packets
+        # already admitted by the shared external-model/cloud policy.
         # TODO: the real Mac-side launcher is outside this repo, so Gemini
         # invocation remains unverified here; only the routing surface is enforced.
-        if planner_mode and runner_name != "gemini":
+        if planner_mode and result["cloud_allowed"] and runner_name != "gemini":
             runner_name = "gemini"
             model = "default"
             runner_reason += " → planner policy override: gemini required on Mac planner surface"

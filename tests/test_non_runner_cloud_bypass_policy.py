@@ -20,6 +20,14 @@ import chief_llm  # noqa: E402
 
 CLOUD_WRAPPERS = {"nemotron_call", "claude_call", "claude_json"}
 CLAUDE_WRAPPERS = {"claude_call", "claude_json"}
+NON_RUNNER_SOURCE_FILES = (
+    "chief_brainstorm_brain.py",
+    "chief_cpa_brain.py",
+    "chief_musiclaw_brain.py",
+    "chief_publishing_brain.py",
+    "chief_fundo_session.py",
+    "cassandra_brain.py",
+)
 
 ALLOWED_DIRECT_IMPORTS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
@@ -31,6 +39,12 @@ ALLOWED_DIRECT_CALLS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
     ("cassandra_brain.py", "nemotron_call", "nemotron_call"),
+}
+
+ALLOWED_DIRECT_NEMOTRON_GATES = {
+    ("chief_brainstorm_brain.py", "_synthesize"): "_brainstorm_cloud_safe",
+    ("chief_cpa_brain.py", "_parse_expense_from_text"): "_expense_cloud_safe",
+    ("cassandra_brain.py", "_call"): "external_model_packet_policy",
 }
 
 HARD_DENY_MARKERS = [
@@ -56,11 +70,49 @@ PROFESSIONAL_PACKET_FIXTURES = [
 ]
 
 
+def _source_paths() -> list[Path]:
+    return [ROOT / filename for filename in NON_RUNNER_SOURCE_FILES]
+
+
+def _called_name(node: ast.Call) -> str:
+    called = node.func
+    if isinstance(called, ast.Name):
+        return called.id
+    if isinstance(called, ast.Attribute):
+        if isinstance(called.value, ast.Name):
+            return f"{called.value.id}.{called.attr}"
+        return called.attr
+    return ""
+
+
+def _function_defs(tree: ast.AST) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    return [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+
+def _find_function(tree: ast.AST, name: str) -> ast.FunctionDef | ast.AsyncFunctionDef:
+    for function in _function_defs(tree):
+        if function.name == name:
+            return function
+    raise AssertionError(f"missing function: {name}")
+
+
+def _function_call_lines(function: ast.FunctionDef | ast.AsyncFunctionDef, names: set[str]) -> list[int]:
+    lines: list[int] = []
+    for node in ast.walk(function):
+        if isinstance(node, ast.Call) and _called_name(node) in names:
+            lines.append(node.lineno)
+    return sorted(lines)
+
+
 def _chief_cloud_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:
     direct_imports: set[tuple[str, str, str]] = set()
     direct_calls: set[tuple[str, str, str]] = set()
 
-    for path in sorted(ROOT.glob("chief_*.py")) + [ROOT / "cassandra_brain.py"]:
+    for path in _source_paths():
         if path.name == "chief_llm.py":
             continue
 
@@ -109,19 +161,65 @@ def test_direct_chief_cloud_wrapper_inventory_matches_allowlist():
     assert direct_calls == ALLOWED_DIRECT_CALLS
 
 
+def _direct_wrapper_call_sites(wrapper_name: str) -> set[tuple[str, str, int]]:
+    sites: set[tuple[str, str, int]] = set()
+
+    for path in _source_paths():
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        local_wrapper_names: dict[str, str] = {}
+        chief_llm_module_aliases: set[str] = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "chief_llm":
+                        chief_llm_module_aliases.add(alias.asname or alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.module == "chief_llm":
+                for alias in node.names:
+                    if alias.name == wrapper_name:
+                        local_wrapper_names[alias.asname or alias.name] = alias.name
+
+        for function in _function_defs(tree):
+            for node in ast.walk(function):
+                if not isinstance(node, ast.Call):
+                    continue
+                called_name = _called_name(node)
+                if local_wrapper_names.get(called_name) == wrapper_name:
+                    sites.add((path.name, function.name, node.lineno))
+                elif called_name == wrapper_name:
+                    sites.add((path.name, function.name, node.lineno))
+                elif any(called_name == f"{alias}.{wrapper_name}" for alias in chief_llm_module_aliases):
+                    sites.add((path.name, function.name, node.lineno))
+
+    return sites
+
+
 def test_allowed_direct_nemotron_call_sites_are_policy_gated():
-    for filename, wrapper, _local_name in ALLOWED_DIRECT_CALLS:
-        assert wrapper == "nemotron_call"
-        source = (ROOT / filename).read_text(encoding="utf-8")
-        assert "external_model_packet_policy" in source, filename
+    sites = _direct_wrapper_call_sites("nemotron_call")
+    assert {(filename, function_name) for filename, function_name, _line in sites} == set(
+        ALLOWED_DIRECT_NEMOTRON_GATES
+    )
+
+    for filename, function_name, call_line in sites:
+        tree = ast.parse((ROOT / filename).read_text(encoding="utf-8"), filename=filename)
+        function = _find_function(tree, function_name)
+        gate_name = ALLOWED_DIRECT_NEMOTRON_GATES[(filename, function_name)]
+        gate_lines = _function_call_lines(function, {gate_name})
+
+        assert any(line < call_line for line in gate_lines), (filename, function_name, call_line)
+        if gate_name != "external_model_packet_policy":
+            guard_function = _find_function(tree, gate_name)
+            assert _function_call_lines(guard_function, {"external_model_packet_policy"}), (
+                filename,
+                gate_name,
+            )
 
 
 def _agent_claude_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:
     direct_imports: set[tuple[str, str, str]] = set()
     direct_calls: set[tuple[str, str, str]] = set()
 
-    paths = sorted(ROOT.glob("chief_*.py")) + [ROOT / "cassandra_brain.py"]
-    for path in paths:
+    for path in _source_paths():
         if path.name == "chief_llm.py":
             continue
 
@@ -170,6 +268,25 @@ def test_agent_brains_do_not_import_or_call_claude_wrappers():
     assert direct_calls == set()
 
 
+def test_chief_llm_claude_wrappers_are_fail_closed_definitions():
+    tree = ast.parse((ROOT / "chief_llm.py").read_text(encoding="utf-8"), filename="chief_llm.py")
+
+    claude_call_function = _find_function(tree, "claude_call")
+    claude_json_function = _find_function(tree, "claude_json")
+
+    for function in (claude_call_function, claude_json_function):
+        docstring = ast.get_docstring(function) or ""
+        lowered_docstring = docstring.lower()
+        assert "human-only" in lowered_docstring or "blocked" in lowered_docstring
+        assert not _function_call_lines(function, {"subprocess.run"})
+
+    claude_call_returns = [node.value for node in ast.walk(claude_call_function) if isinstance(node, ast.Return)]
+    assert any(isinstance(value, ast.Constant) and value.value == "" for value in claude_call_returns)
+
+    claude_json_returns = [node.value for node in ast.walk(claude_json_function) if isinstance(node, ast.Return)]
+    assert any(isinstance(value, ast.Dict) and not value.keys for value in claude_json_returns)
+
+
 @pytest.mark.parametrize("cloud_flag", ["cloud_allowed", "allow_cloud", "cloud_ok"])
 @pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
 def test_external_model_policy_blocks_professional_packets_even_with_cloud_metadata(label, packet, cloud_flag):
@@ -200,6 +317,17 @@ def test_external_model_policy_allows_explicit_public_synthetic_packet():
     assert policy["external_model_safe"] is True
     assert policy["sensitive"] is False
     assert policy["reason"] == "explicit_cloud_allowed_public_or_synthetic"
+
+
+@pytest.mark.parametrize("cloud_flag", ["cloud_allowed", "allow_cloud", "cloud_ok"])
+def test_external_model_policy_treats_cloud_allowance_aliases_as_explicit_safe_metadata(cloud_flag):
+    policy = chief_llm.external_model_packet_policy(
+        "Synthetic public fixture for a generic parser helper.",
+        metadata={"data_classification": "synthetic_public", cloud_flag: "true"},
+    )
+
+    assert policy["external_model_safe"] is True
+    assert policy["cloud_allowed"] is True
 
 
 @pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
