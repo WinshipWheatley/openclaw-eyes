@@ -1264,6 +1264,9 @@ First-pilot scope package:
 Buyer-facing pilot brief:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md` adapts the first-pilot scope into plain-English buyer-facing draft language while preserving no-go boundaries.
 
+Pilot readiness checklist:
+- `business_plan/OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md` converts the first-pilot scope and buyer brief into an internal go/no-go checklist before outreach, demos, or paid pilot planning.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;

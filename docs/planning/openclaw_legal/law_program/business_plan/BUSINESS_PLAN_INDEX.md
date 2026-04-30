@@ -18,6 +18,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md](OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md) is buyer-facing draft language for the same bounded first-pilot offer and exclusions.
 
+[OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md](OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md) is the internal go/no-go checklist for deciding whether to show a synthetic/public demo, move to paid pilot planning, or pause.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -35,6 +37,12 @@ External-facing versions should only be created if the internal go/no-go gate cl
 Hard launch filter.
 
 Use this first to decide whether OpenClaw Legal should move toward real buyer-facing launch at all. It protects against open-ended support burden, legal-adjacent liability, unfunded hardware risk, sensitive-data exposure, and a stressful custom services trap.
+
+### `OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md`
+
+Internal pilot decision checklist.
+
+Use this before law-firm outreach, demo, or paid-pilot planning to choose Go to synthetic/public demo, Conditional Go to paid pilot planning, or No-Go / pause.
 
 ### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 
