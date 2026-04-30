@@ -25,6 +25,12 @@ def _metadata(**overrides):
     return data
 
 
+def _candidate_metadata(**overrides):
+    data = _metadata(**overrides)
+    data.pop("body_text", None)
+    return data
+
+
 def test_valid_synthetic_metadata_builds_clear_operator_prompt():
     import cassandra_email_triage as triage
 
@@ -311,6 +317,140 @@ def test_resolver_records_sensitive_response_as_manual_review(tmp_path):
     assert entry["sensitivity_flags"] == ["operator_marked_sensitive", "sensitive_category"]
 
 
+def test_selects_low_risk_promotional_synthetic_email():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(
+            message_id="msg-promo",
+            thread_id="thread-promo",
+            subject="Weekend sale on studio gear",
+            snippet="Marketing note with a coupon code.",
+            labels=["INBOX", "CATEGORY_PROMOTIONS"],
+        )
+    ]
+
+    candidate = triage.select_email_triage_training_candidate(messages, prior_records=[])
+
+    assert candidate == messages[0]
+
+
+def test_candidate_selection_skips_already_classified_message_id():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-1", thread_id="thread-1", subject="Newsletter sale"),
+        _candidate_metadata(message_id="msg-2", thread_id="thread-2", subject="Newsletter digest"),
+    ]
+    prior_records = [{"message_id": "msg-1", "thread_id": "older-thread"}]
+
+    candidate = triage.select_email_triage_training_candidate(messages, prior_records)
+
+    assert candidate["message_id"] == "msg-2"
+
+
+def test_candidate_selection_skips_missing_message_id():
+    import cassandra_email_triage as triage
+
+    candidate = triage.select_email_triage_training_candidate(
+        [_candidate_metadata(message_id="", thread_id="thread-1", subject="Promo sale")],
+        prior_records=[],
+    )
+
+    assert candidate is None
+
+
+def test_candidate_selection_skips_missing_thread_id():
+    import cassandra_email_triage as triage
+
+    candidate = triage.select_email_triage_training_candidate(
+        [_candidate_metadata(message_id="msg-1", thread_id="", subject="Promo sale")],
+        prior_records=[],
+    )
+
+    assert candidate is None
+
+
+@pytest.mark.parametrize("field_name", ["body", "body_text", "payload", "raw", "mime", "parts", "messages", "full_message"])
+def test_candidate_selection_skips_body_or_full_message_shaped_records(field_name):
+    import cassandra_email_triage as triage
+
+    metadata = _candidate_metadata(subject="Promo sale")
+    metadata[field_name] = "private full-message content"
+
+    candidate = triage.select_email_triage_training_candidate([metadata], prior_records=[])
+
+    assert candidate is None
+
+
+def test_candidate_selection_does_not_mutate_input_metadata():
+    import cassandra_email_triage as triage
+
+    metadata = _candidate_metadata(
+        message_id="msg-copy",
+        thread_id="thread-copy",
+        subject="Newsletter sale",
+        labels=["INBOX", "CATEGORY_PROMOTIONS"],
+    )
+    before = json.loads(json.dumps(metadata))
+
+    candidate = triage.select_email_triage_training_candidate([metadata], prior_records=[])
+
+    assert metadata == before
+    assert candidate == before
+    assert candidate is not metadata
+
+
+def test_candidate_selection_returns_none_when_all_unsafe_or_already_classified():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-old", thread_id="thread-old", subject="Newsletter sale"),
+        _candidate_metadata(message_id="msg-legal", thread_id="thread-legal", subject="Legal tax CPA matter"),
+        _candidate_metadata(message_id="msg-private", thread_id="thread-private", subject="Private correspondence"),
+    ]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+
+    candidate = triage.select_email_triage_training_candidate(messages, prior_records)
+
+    assert candidate is None
+
+
+def test_candidate_selection_prefers_newsletter_over_invoice_payment_client_or_gig_items():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-payment", thread_id="thread-payment", subject="Payment invoice update"),
+        _candidate_metadata(message_id="msg-client", thread_id="thread-client", subject="Client vendor gig lead"),
+        _candidate_metadata(message_id="msg-news", thread_id="thread-news", subject="Newsletter sale digest"),
+    ]
+
+    candidate = triage.select_email_triage_training_candidate(messages, prior_records=[])
+
+    assert candidate["message_id"] == "msg-news"
+
+
+def test_candidate_selection_can_use_loaded_jsonl_prior_records(tmp_path):
+    import cassandra_email_triage as triage
+
+    log_path = tmp_path / "triage.jsonl"
+    triage.record_email_triage_classification(
+        metadata=_candidate_metadata(message_id="msg-old", thread_id="thread-old"),
+        operator_classification="promotional",
+        future_suggested_handling="suggest_folder_or_label",
+        log_path=log_path,
+    )
+    prior_records = triage.load_email_triage_classifications(log_path=log_path)
+    messages = [
+        _candidate_metadata(message_id="msg-old", thread_id="thread-old", subject="Promo old"),
+        _candidate_metadata(message_id="msg-new", thread_id="thread-new", subject="Newsletter sale"),
+    ]
+
+    candidate = triage.select_email_triage_training_candidate(messages, prior_records)
+
+    assert candidate["message_id"] == "msg-new"
+
+
 def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(monkeypatch, tmp_path):
     import cassandra_email_triage as triage
 
@@ -357,8 +497,13 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
         log_path=tmp_path / "triage.jsonl",
     )
     records = triage.load_email_triage_classifications(log_path=tmp_path / "triage.jsonl")
+    candidate = triage.select_email_triage_training_candidate(
+        [_candidate_metadata(message_id="msg-candidate", thread_id="thread-candidate")],
+        records,
+    )
 
     assert "google.gmail.read.body" not in prompt
     assert "google.gmail.read.body" not in question
     assert entry["source_capability"] == "google.gmail.read.metadata"
     assert records[0]["source_capability"] == "google.gmail.read.metadata"
+    assert candidate["message_id"] == "msg-candidate"

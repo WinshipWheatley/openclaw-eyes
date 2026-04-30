@@ -81,6 +81,85 @@ _RESPONSE_RULES = (
     (r"\bjunk\b|\bspam\b|\bgarbage\b", "junk", "ignore_future_similar"),
 )
 
+_FULL_MESSAGE_FIELD_NAMES = {
+    "body",
+    "body_text",
+    "payload",
+    "raw",
+    "mime",
+    "parts",
+    "messages",
+    "full_message",
+}
+
+_CANDIDATE_TEXT_FIELD_NAMES = (
+    "from_name",
+    "sender_name",
+    "from_email",
+    "sender_email",
+    "sender_domain",
+    "subject",
+    "subject_preview",
+    "snippet",
+    "snippet_preview",
+)
+
+_SENSITIVE_CANDIDATE_PATTERNS = (
+    r"\blegal\b",
+    r"\blaw\s+firm\b",
+    r"\battorney\b",
+    r"\blawyer\b",
+    r"\bcounsel\b",
+    r"\bcourt\b",
+    r"\blawsuit\b",
+    r"\bsubpoena\b",
+    r"\bretainer\b",
+    r"\bcpa\b",
+    r"\btax(?:es)?\b",
+    r"\birs\b",
+    r"\baccountant\b",
+    r"\bmusic\s+law\b",
+    r"\bpublishing\b",
+    r"\bpublisher\b",
+    r"\bprivate\s+correspondence\b",
+    r"\bconfidential\b",
+    r"\bprivileged\b",
+)
+
+_SENSITIVE_BUSINESS_CANDIDATE_PATTERNS = (
+    r"\b(client|vendor|gig)\b.*\b(payment|invoice|contract|wire|bank|due|overdue)\b",
+    r"\b(payment|invoice|contract|wire|bank|due|overdue)\b.*\b(client|vendor|gig)\b",
+)
+
+_LOW_RISK_CANDIDATE_SCORES = (
+    (0, (r"\bjunk\b", r"\bspam\b", r"\bcategory_spam\b")),
+    (10, (r"\bnewsletter\b", r"\bunsubscribe\b", r"\bdigest\b")),
+    (
+        20,
+        (
+            r"\bpromo(?:tional|tion)?\b",
+            r"\bcategory_promotions\b",
+            r"\bmarketing\b",
+            r"\bsale\b",
+            r"\bdeal\b",
+            r"\boffer\b",
+            r"\bcoupon\b",
+            r"\bdiscount\b",
+            r"\bclearance\b",
+        ),
+    ),
+    (40, (r"\breceipt\b", r"\border\s+confirmation\b", r"\bpurchase\s+confirmation\b")),
+)
+
+_HIGHER_RISK_CANDIDATE_PATTERNS = (
+    r"\binvoice\b",
+    r"\bpayment\b",
+    r"\bclient\b",
+    r"\bvendor\b",
+    r"\bgig\b",
+    r"\blead\b",
+)
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -100,6 +179,54 @@ def _metadata_value(metadata: dict | None, *names: str) -> object:
         if value not in (None, "", []):
             return value
     return ""
+
+
+def _contains_pattern(text: str, patterns: Iterable[str]) -> bool:
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+def _has_full_message_fields(metadata: dict) -> bool:
+    return any(str(key or "").strip().lower() in _FULL_MESSAGE_FIELD_NAMES for key in metadata)
+
+
+def _prior_triage_ids(prior_records: Iterable[dict] | None) -> tuple[set[str], set[str]]:
+    message_ids: set[str] = set()
+    thread_ids: set[str] = set()
+    for raw_record in prior_records or []:
+        if not isinstance(raw_record, dict):
+            continue
+        message_id = str(raw_record.get("message_id", "") or "").strip()
+        thread_id = str(raw_record.get("thread_id", "") or "").strip()
+        if message_id:
+            message_ids.add(message_id)
+        if thread_id:
+            thread_ids.add(thread_id)
+    return message_ids, thread_ids
+
+
+def _candidate_text_blob(metadata: dict) -> str:
+    text_parts: list[str] = []
+    for field_name in _CANDIDATE_TEXT_FIELD_NAMES:
+        value = _metadata_value(metadata, field_name)
+        if value not in (None, "", []):
+            text_parts.append(str(value))
+    text_parts.extend(_normalize_labels(_metadata_value(metadata, "gmail_labels_seen", "labels")))
+    return re.sub(r"\s+", " ", " ".join(text_parts)).strip().lower()
+
+
+def _email_triage_candidate_score(metadata: dict) -> int | None:
+    text = _candidate_text_blob(metadata)
+    if _contains_pattern(text, _SENSITIVE_CANDIDATE_PATTERNS):
+        return None
+    if _contains_pattern(text, _SENSITIVE_BUSINESS_CANDIDATE_PATTERNS):
+        return None
+
+    for score, patterns in _LOW_RISK_CANDIDATE_SCORES:
+        if _contains_pattern(text, patterns):
+            return score
+    if _contains_pattern(text, _HIGHER_RISK_CANDIDATE_PATTERNS):
+        return 120
+    return 80
 
 
 def _normalize_sender_email(value: object) -> str:
@@ -274,6 +401,41 @@ def build_email_triage_training_question(metadata: dict) -> str:
         "newsletter, receipt, invoice, gig lead, client, travel, or not sure. "
         "This records training intent only."
     )
+
+
+def select_email_triage_training_candidate(
+    messages: Iterable[dict] | None,
+    prior_records: Iterable[dict] | None,
+    *,
+    suppress_prior_threads: bool = True,
+) -> dict | None:
+    """Return the safest next unclassified metadata record for triage training."""
+    prior_message_ids, prior_thread_ids = _prior_triage_ids(prior_records)
+    candidates: list[tuple[int, int, dict]] = []
+
+    for index, message in enumerate(messages or []):
+        if not isinstance(message, dict):
+            continue
+        if _has_full_message_fields(message):
+            continue
+        message_id = str(message.get("message_id", "") or "").strip()
+        thread_id = str(message.get("thread_id", "") or "").strip()
+        if not message_id or not thread_id:
+            continue
+        if message_id in prior_message_ids:
+            continue
+        if suppress_prior_threads and thread_id in prior_thread_ids:
+            continue
+
+        score = _email_triage_candidate_score(message)
+        if score is None:
+            continue
+        candidates.append((score, index, dict(message)))
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    return candidates[0][2]
 
 
 def _unsafe_operator_response_reason(response_text: str) -> str:
