@@ -25,6 +25,7 @@ EMAIL_TRIAGE_SOURCE_CAPABILITY = "google.gmail.read.metadata"
 EMAIL_TRIAGE_PACKET_TYPE_OPERATOR_QUESTION = "email_triage_training.operator_question"
 EMAIL_TRIAGE_PACKET_TYPE_NO_CANDIDATE = "email_triage_training.no_candidate"
 EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT = "not_sent"
+EMAIL_TRIAGE_DISPLAY_TYPE = "email_triage_training.operator_display"
 
 EMAIL_TRIAGE_TRAINING_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_triage_training.jsonl")
 
@@ -498,6 +499,75 @@ def build_email_triage_operator_message_packet(
         "allowed_reply_examples": list(EMAIL_TRIAGE_ALLOWED_REPLY_EXAMPLES),
         "records_training_intent_only": True,
         "disallowed_live_actions": list(EMAIL_TRIAGE_DISALLOWED_LIVE_ACTIONS),
+    }
+
+
+def render_email_triage_operator_packet(packet: dict | None) -> str:
+    """Render an unsent triage packet as display-only operator text."""
+    data = packet if isinstance(packet, dict) else {}
+    packet_type = str(data.get("packet_type", "") or "").strip()
+    delivery_status = str(data.get("delivery_status", EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT) or "").strip()
+    if delivery_status != EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT:
+        delivery_status = EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT
+
+    if data.get("ok") is False or packet_type == EMAIL_TRIAGE_PACKET_TYPE_NO_CANDIDATE:
+        return "\n".join(
+            [
+                "Cassandra email triage training",
+                "Status: no safe unclassified metadata candidate.",
+                f"Delivery status: {delivery_status}",
+                "No Gmail action will be taken.",
+            ]
+        )
+
+    labels = ", ".join(_normalize_labels(data.get("gmail_labels_seen", []))) or "none"
+    allowed_replies = ", ".join(_normalize_labels(data.get("allowed_reply_examples", EMAIL_TRIAGE_ALLOWED_REPLY_EXAMPLES)))
+    sender_name = _preview(data.get("sender_name", ""), 120) or "unknown sender"
+    sender_email = _normalize_sender_email(data.get("sender_email", ""))
+    sender = f"{sender_name} <{sender_email}>" if sender_email else sender_name
+    disallowed_phrase = "delete/archive/label/reply/send/draft"
+
+    return "\n".join(
+        [
+            "Cassandra email triage training",
+            "Metadata-only display. No Gmail action will be taken.",
+            f"Delivery status: {delivery_status}",
+            f"Message ID: {str(data.get('message_id', '') or '').strip()}",
+            f"Thread ID: {str(data.get('thread_id', '') or '').strip()}",
+            f"Sender: {sender}",
+            f"Sender domain: {str(data.get('sender_domain', '') or '').strip() or 'unknown'}",
+            f"Subject: {_preview(data.get('subject_preview', ''), 180) or '(no subject)'}",
+            f"Snippet: {_preview(data.get('snippet_preview', ''), 260) or '(no snippet)'}",
+            f"Gmail labels seen: {labels}",
+            f"Reply with a simple classification such as {allowed_replies}.",
+            f"Live actions like {disallowed_phrase} are not handled here.",
+        ]
+    )
+
+
+def build_email_triage_operator_display(
+    messages: Iterable[dict] | None,
+    prior_records: Iterable[dict] | None,
+    *,
+    created_at: str | None = None,
+    suppress_prior_threads: bool = True,
+) -> dict:
+    """Build a display-only triage result from mocked metadata records."""
+    packet = build_email_triage_operator_message_packet(
+        messages,
+        prior_records,
+        created_at=created_at,
+        suppress_prior_threads=suppress_prior_threads,
+    )
+    return {
+        "ok": bool(packet.get("ok")),
+        "display_type": EMAIL_TRIAGE_DISPLAY_TYPE,
+        "delivery_status": EMAIL_TRIAGE_DELIVERY_STATUS_NOT_SENT,
+        "packet_type": packet.get("packet_type", ""),
+        "message_id": packet.get("message_id", ""),
+        "thread_id": packet.get("thread_id", ""),
+        "display_text": render_email_triage_operator_packet(packet),
+        "packet": dict(packet),
     }
 
 

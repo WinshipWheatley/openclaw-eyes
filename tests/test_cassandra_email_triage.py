@@ -602,6 +602,183 @@ def test_operator_message_packet_does_not_mutate_inputs():
     assert prior_records == prior_before
 
 
+def test_renders_safe_operator_question_packet_clearly():
+    import cassandra_email_triage as triage
+
+    packet = triage.build_email_triage_operator_message_packet(
+        [
+            _candidate_metadata(
+                message_id="msg-display",
+                thread_id="thread-display",
+                from_name="Promo Desk",
+                from_email="Deals <deals@example.com>",
+                subject="Newsletter sale",
+                snippet="Save on cases this week.",
+                labels=["INBOX", "CATEGORY_PROMOTIONS"],
+            )
+        ],
+        prior_records=[],
+        created_at="2026-04-30 12:00:00",
+    )
+
+    display = triage.render_email_triage_operator_packet(packet)
+
+    assert "Cassandra email triage training" in display
+    assert "Metadata-only display" in display
+    assert "No Gmail action will be taken" in display
+    assert "Delivery status: not_sent" in display
+    assert "Promo Desk <deals@example.com>" in display
+    assert "Subject: Newsletter sale" in display
+    assert "Snippet: Save on cases this week." in display
+    assert "Gmail labels seen: INBOX, CATEGORY_PROMOTIONS" in display
+    assert "junk, promo, useful promo, newsletter, receipt, not sure" in display
+    assert "delete/archive/label/reply/send/draft" in display
+
+
+def test_operator_display_preserves_not_sent_status():
+    import cassandra_email_triage as triage
+
+    display = triage.build_email_triage_operator_display(
+        [_candidate_metadata(message_id="msg-display-status", thread_id="thread-display-status")],
+        prior_records=[],
+        created_at="2026-04-30 12:01:00",
+    )
+
+    assert display["delivery_status"] == "not_sent"
+    assert display["packet"]["delivery_status"] == "not_sent"
+    assert "Delivery status: not_sent" in display["display_text"]
+
+
+def test_renders_no_candidate_packet_deterministically():
+    import cassandra_email_triage as triage
+
+    packet = triage.build_email_triage_operator_message_packet(
+        [_candidate_metadata(message_id="msg-old", thread_id="thread-old", subject="Legal CPA tax matter")],
+        prior_records=[],
+    )
+
+    display = triage.render_email_triage_operator_packet(packet)
+
+    assert packet == {
+        "ok": False,
+        "packet_type": "email_triage_training.no_candidate",
+        "reason": "no_safe_unclassified_candidate",
+        "delivery_status": "not_sent",
+        "operator_question": "",
+    }
+    assert display == "\n".join(
+        [
+            "Cassandra email triage training",
+            "Status: no safe unclassified metadata candidate.",
+            "Delivery status: not_sent",
+            "No Gmail action will be taken.",
+        ]
+    )
+
+
+def test_operator_display_excludes_body_or_full_message_fields():
+    import cassandra_email_triage as triage
+
+    packet = triage.build_email_triage_operator_message_packet(
+        [_candidate_metadata(message_id="msg-display-clean", thread_id="thread-display-clean", subject="Promo sale")],
+        prior_records=[],
+        created_at="2026-04-30 12:02:00",
+    )
+    polluted_packet = dict(packet)
+    polluted_packet.update({"body_text": "PRIVATE BODY CONTENT SHOULD NOT BE USED", "payload": "FULL MESSAGE"})
+
+    display = triage.render_email_triage_operator_packet(polluted_packet)
+
+    assert "PRIVATE BODY CONTENT" not in display
+    assert "FULL MESSAGE" not in display
+    assert "body_text" not in display
+    assert "payload" not in display
+
+
+def test_operator_display_does_not_mutate_packet_or_input_messages():
+    import cassandra_email_triage as triage
+
+    messages = [_candidate_metadata(message_id="msg-display-copy", thread_id="thread-display-copy", subject="Promo sale")]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+    packet = triage.build_email_triage_operator_message_packet(messages, prior_records, created_at="2026-04-30 12:03:00")
+    messages_before = json.loads(json.dumps(messages))
+    prior_before = json.loads(json.dumps(prior_records))
+    packet_before = json.loads(json.dumps(packet))
+
+    display = triage.render_email_triage_operator_packet(packet)
+    built = triage.build_email_triage_operator_display(
+        messages,
+        prior_records,
+        created_at="2026-04-30 12:03:00",
+    )
+
+    assert display
+    assert built["display_text"]
+    assert messages == messages_before
+    assert prior_records == prior_before
+    assert packet == packet_before
+
+
+def test_operator_display_only_path_does_not_write_jsonl(monkeypatch, tmp_path):
+    import cassandra_email_triage as triage
+
+    log_path = tmp_path / "triage.jsonl"
+    monkeypatch.setattr(triage, "EMAIL_TRIAGE_TRAINING_LOG", log_path)
+
+    triage.build_email_triage_operator_display(
+        [_candidate_metadata(message_id="msg-no-write", thread_id="thread-no-write", subject="Newsletter sale")],
+        prior_records=[],
+        created_at="2026-04-30 12:04:00",
+    )
+
+    assert not log_path.exists()
+
+
+def test_operator_display_builds_from_synthetic_messages_and_prior_records():
+    import cassandra_email_triage as triage
+
+    messages = [
+        _candidate_metadata(message_id="msg-old", thread_id="thread-old", subject="Newsletter old"),
+        _candidate_metadata(message_id="msg-display-new", thread_id="thread-display-new", subject="Newsletter sale"),
+    ]
+    prior_records = [{"message_id": "msg-old", "thread_id": "thread-old"}]
+
+    display = triage.build_email_triage_operator_display(
+        messages,
+        prior_records,
+        created_at="2026-04-30 12:05:00",
+    )
+
+    assert display["ok"] is True
+    assert display["display_type"] == "email_triage_training.operator_display"
+    assert display["packet_type"] == "email_triage_training.operator_question"
+    assert display["message_id"] == "msg-display-new"
+    assert "Message ID: msg-display-new" in display["display_text"]
+
+
+def test_operator_display_returns_no_candidate_display_from_synthetic_messages():
+    import cassandra_email_triage as triage
+
+    display = triage.build_email_triage_operator_display(
+        [_candidate_metadata(message_id="msg-unsafe", thread_id="thread-unsafe", subject="Legal CPA tax matter")],
+        prior_records=[],
+        created_at="2026-04-30 12:06:00",
+    )
+
+    assert display["ok"] is False
+    assert display["packet_type"] == "email_triage_training.no_candidate"
+    assert display["message_id"] == ""
+    assert display["thread_id"] == ""
+    assert display["display_text"] == "\n".join(
+        [
+            "Cassandra email triage training",
+            "Status: no safe unclassified metadata candidate.",
+            "Delivery status: not_sent",
+            "No Gmail action will be taken.",
+        ]
+    )
+
+
 def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(monkeypatch, tmp_path):
     import cassandra_email_triage as triage
 
@@ -660,6 +837,12 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
         records,
         created_at="2026-04-30 10:06:00",
     )
+    display_text = triage.render_email_triage_operator_packet(packet)
+    display = triage.build_email_triage_operator_display(
+        [_candidate_metadata(message_id="msg-display-guard", thread_id="thread-display-guard")],
+        records,
+        created_at="2026-04-30 12:07:00",
+    )
 
     assert "google.gmail.read.body" not in prompt
     assert "google.gmail.read.body" not in question
@@ -668,3 +851,5 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
     assert candidate["message_id"] == "msg-candidate"
     assert packet["delivery_status"] == "not_sent"
     assert packet["source_capability"] == "google.gmail.read.metadata"
+    assert "No Gmail action will be taken" in display_text
+    assert display["delivery_status"] == "not_sent"
