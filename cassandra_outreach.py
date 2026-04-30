@@ -1276,6 +1276,10 @@ def send_known_contact_watch_notification(
     grounded_status: str = "",
     safe_summary: str = "",
     suggested_response_preview: str = "",
+    notification_decision: dict | None = None,
+    latest_action: dict | None = None,
+    actions: list[dict] | None = None,
+    log_path: Path | str | None = None,
     send_fn=None,
 ) -> dict:
     """Send only the Telegram notification for a known-contact watch event."""
@@ -1289,6 +1293,30 @@ def send_known_contact_watch_notification(
             "reason": f"watch_state is not {KNOWN_CONTACT_WATCH_NOTIFICATION}",
             "message_id": message_id,
             "thread_id": thread_id,
+        }
+
+    should_check_decision = (
+        notification_decision is not None
+        or latest_action is not None
+        or actions is not None
+        or log_path is not None
+    )
+    decision = notification_decision if isinstance(notification_decision, dict) else None
+    if should_check_decision and decision is None:
+        decision = should_notify_known_contact_thread(
+            candidate_event=event_data,
+            latest_action=latest_action,
+            actions=actions,
+            log_path=log_path,
+        )
+    if decision and decision.get("should_notify") is False:
+        return {
+            "notified": False,
+            "reason": str(decision.get("reason", "known_contact_notification_suppressed") or "known_contact_notification_suppressed"),
+            "message_id": message_id,
+            "thread_id": thread_id,
+            "followup_eligible": bool(decision.get("followup_eligible", False)),
+            "notification_decision": decision,
         }
 
     notification_text = build_known_contact_watch_notification_text(

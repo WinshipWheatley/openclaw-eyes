@@ -135,6 +135,20 @@ class TestKnownContactWatchEvent:
             "created_at": "2026-04-29 09:30:00",
         }
 
+    def _base_known_contact_event(self):
+        import cassandra_outreach as outreach
+
+        return {
+            "message_id": "m-known",
+            "thread_id": "t-known",
+            "sender_email": "client@example.com",
+            "contact_nickname": "client_a",
+            "contact_tier": "client",
+            "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            "matched_reason": "pinned email matched active payment lane",
+        }
+
     def _write_known_contact_actions(self, log, entries):
         log.write_text(
             "".join(json.dumps(entry) + "\n" for entry in entries),
@@ -812,6 +826,94 @@ class TestKnownContactWatchEvent:
         assert result["thread_id"] == "t-known"
         assert sent == [result["notification_text"]]
         assert "Draft preview only." in sent[0]
+
+    def test_notification_dispatcher_accepts_suppressed_decision_without_send(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+        decision = {
+            "should_notify": False,
+            "reason": "thread_ignored",
+            "latest_action": self._base_operator_action_kwargs() | {
+                "operator_action": "ignore_thread",
+                "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+                "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+            },
+            "followup_eligible": False,
+        }
+
+        result = outreach.send_known_contact_watch_notification(
+            self._base_known_contact_event(),
+            notification_decision=decision,
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is False
+        assert result["reason"] == "thread_ignored"
+        assert result["notification_decision"] == decision
+        assert sent == []
+
+    @pytest.mark.parametrize(
+        ("operator_action", "watch_state", "extra_fields", "expected_reason", "expected_followup"),
+        [
+            ("ignore_thread", "ignored_not_in_scope_thread", {}, "thread_ignored", False),
+            ("create_gmail_draft", "known_contact_watch_notification", {"draft_intent": "requested"}, "gmail_draft_action_pending", False),
+            (
+                "ask_guardian_send_approval",
+                "known_contact_watch_notification",
+                {"approval_intent": "requested", "suggested_response_preview": "Please approve this preview."},
+                "guardian_send_approval_pending",
+                False,
+            ),
+            ("revise_response", "known_contact_watch_notification", {"revision_request": "Make this warmer."}, "revision_pending_operator_action", False),
+            ("watch_thread", "approved_for_follow_up_lane", {}, "thread_already_approved_for_follow_up", True),
+        ],
+    )
+    def test_notification_dispatcher_resolves_known_actions_before_send(
+        self,
+        monkeypatch,
+        operator_action,
+        watch_state,
+        extra_fields,
+        expected_reason,
+        expected_followup,
+    ):
+        import cassandra_outreach as outreach
+
+        sent = []
+        self._patch_operator_action_side_effects_to_fail(monkeypatch)
+        latest_action = self._base_operator_action_kwargs() | {
+            "operator_action": operator_action,
+            "watch_state": watch_state,
+            "ownership_state": outreach.USER_ASSIGNED_THREAD,
+        } | extra_fields
+
+        result = outreach.send_known_contact_watch_notification(
+            self._base_known_contact_event(),
+            latest_action=latest_action,
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is False
+        assert result["reason"] == expected_reason
+        assert result["followup_eligible"] is expected_followup
+        assert sent == []
+
+    def test_notification_dispatcher_keeps_unknown_candidate_notify_eligible(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+
+        result = outreach.send_known_contact_watch_notification(
+            self._base_known_contact_event(),
+            actions=[],
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is True
+        assert result["message_id"] == "m-known"
+        assert result["thread_id"] == "t-known"
+        assert sent == [result["notification_text"]]
 
     def test_ignored_known_contact_watch_state_does_not_notify(self):
         import cassandra_outreach as outreach
