@@ -280,6 +280,7 @@
 !scripts/install_hermes_gateway_service.sh
 !scripts/install_openclaw_stack.sh
 !scripts/run_legal_pipeline_v0.sh
+!scripts/demo_legal_synthetic_stress_pack.py
 !legal/
 !legal/alternative_methods.py
 !legal/local_capability_policy.py
@@ -289,6 +290,7 @@
 !tests/test_support_packet.py
 !tests/test_legal_mock_discovery_demo.py
 !tests/test_known_answer_fixtures.py
+!tests/test_legal_synthetic_stress_pack.py
 !tests/test_audit_openclaw_services_static.py
 !systemd/
 !systemd/user/
