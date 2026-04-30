@@ -67,7 +67,7 @@ def test_extract_event_details_parses_exact_doctor_appointment_shape_without_mod
     assert details["duration_minutes"] == 45
 
 
-def test_extract_event_details_falls_back_to_claude_when_local_extract_is_invalid(monkeypatch):
+def test_extract_event_details_fails_closed_when_local_extract_is_invalid(monkeypatch):
     import cassandra_brain
 
     monkeypatch.setattr(
@@ -85,26 +85,16 @@ def test_extract_event_details_falls_back_to_claude_when_local_extract_is_invali
     monkeypatch.setattr(
         cassandra_brain,
         "claude_json",
-        lambda prompt, timeout=20: {
-            "title": "Lunch",
-            "date": "2026-04-19",
-            "start_time": "12:00",
-            "duration_minutes": 60,
-        },
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("claude fallback should not run")),
         raising=False,
     )
 
     details = cassandra_brain._extract_event_details("put lunch on my calendar tomorrow at noon")
 
-    assert details == {
-        "title": "Lunch",
-        "date": "2026-04-19",
-        "start_time": "12:00",
-        "duration_minutes": 60,
-    }
+    assert details is None
 
 
-def test_extract_event_details_uses_bounded_single_shot_claude_fallback(monkeypatch):
+def test_extract_event_details_does_not_use_claude_fallback(monkeypatch):
     import cassandra_brain
 
     fallback_calls = []
@@ -126,12 +116,7 @@ def test_extract_event_details_uses_bounded_single_shot_claude_fallback(monkeypa
         "claude_json",
         lambda prompt, timeout=20, retries=3: fallback_calls.append(
             {"timeout": timeout, "retries": retries}
-        ) or {
-            "title": "Doctor Appointment",
-            "date": "2026-04-19",
-            "start_time": "14:30",
-            "duration_minutes": 45,
-        },
+        ) or {},
         raising=False,
     )
 
@@ -139,10 +124,5 @@ def test_extract_event_details_uses_bounded_single_shot_claude_fallback(monkeypa
         "Put lunch with Dana on my calendar sometime tomorrow afternoon."
     )
 
-    assert details == {
-        "title": "Doctor Appointment",
-        "date": "2026-04-19",
-        "start_time": "14:30",
-        "duration_minutes": 45,
-    }
-    assert fallback_calls == [{"timeout": 6, "retries": 1}]
+    assert details is None
+    assert fallback_calls == []

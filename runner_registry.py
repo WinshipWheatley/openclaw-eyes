@@ -12,13 +12,10 @@ It does NOT decide which runner gets a task. That policy lives in
 then applies task-tier scoring.
 
 Runner selection intent, as implemented across the pipeline:
-  - `quick` prefers Gemini as the default smart/cheap/fast option.
-  - `surgical` favors Codex or Claude because they are stronger on
-    sandboxed, correctness-oriented edits.
-  - `standard` mostly prefers Claude, while `runner_profiles.py` rotates
-    roughly one out of every three standard tasks to Gemini for cost control.
-  - `architect` strongly prefers Claude for its architecture and reasoning
-    strengths.
+    - `quick` prefers Gemini as the default smart/cheap/fast option.
+    - `surgical` favors Codex for sandboxed, correctness-oriented edits.
+    - `standard` prefers the best non-Claude approved runner from the registry.
+    - `architect` uses approved non-Claude runners only.
 
 Auto-discovery runs on import or via `refresh()`. New tools are detected by
 scanning PATH for known binary names and by reading the plug-in directory for
@@ -67,6 +64,7 @@ REGISTRY_CACHE = Path("/home/openclaw/.runner_registry_cache.json")
 RUNNERS_D = Path("/home/openclaw/runners.d")
 DISCOVERY_LOG = Path("/mnt/c/OpenClaw/logs/runner_discovery.log")
 CACHE_TTL = 3600  # Re-discover every hour
+HUMAN_ONLY_RUNNERS = {"claude"}
 
 EXTRA_BINARY_GLOBS = (
     "/home/openclaw/.local/bin",
@@ -91,7 +89,7 @@ class RunnerFlag:
 @dataclass
 class Runner:
     """A coding tool that can execute tasks."""
-    name: str                     # e.g. "claude", "codex", "gemini", "aider", "ollama"
+    name: str                     # e.g. "codex", "gemini", "aider", "ollama"
     binary: str                   # full path to executable
     version: str                  # version string
     available: bool               # True if binary exists and responds
@@ -102,7 +100,7 @@ class Runner:
     weaknesses: list[str] = field(default_factory=list)   # e.g. ["slow", "expensive"]
     cost_tier: str = "unknown"    # "free" | "cheap" | "moderate" | "expensive"
     max_timeout: int = 900        # max seconds before kill
-    invoke_pattern: str = ""      # template: e.g. "setsid timeout {timeout} claude --model {model} ..."
+    invoke_pattern: str = ""      # template for the runner command
     headless_flag: str = ""       # flag for non-interactive mode
     discovered_at: str = ""       # ISO timestamp
     source: str = "auto"          # "auto" | "manual" | "plugin"
@@ -123,18 +121,6 @@ class Runner:
 # ---------------------------------------------------------------------------
 
 KNOWN_RUNNERS = {
-    "claude": {
-        "binary_names": ["claude"],
-        "version_cmd": ["claude", "--version"],
-        "help_cmd": ["claude", "--help"],
-        "runner_type": "cloud",
-        "cost_tier": "moderate",
-        "headless_flag": "--print",
-        "invoke_pattern": "setsid timeout {timeout} claude --model {model} --effort {effort} --dangerously-skip-permissions --print --max-budget-usd {budget} --fallback-model {fallback_model} < {prompt_file}",
-        "strengths": ["architecture", "complex-reasoning", "multi-file", "safety"],
-        "weaknesses": ["cost-on-opus"],
-        "flag_parser": "_parse_claude_help",
-    },
     "codex": {
         "binary_names": ["codex"],
         "version_cmd": ["codex", "--version"],
@@ -144,7 +130,7 @@ KNOWN_RUNNERS = {
         "headless_flag": "exec",
         "invoke_pattern": "setsid timeout {timeout} codex exec --sandbox workspace-write - < \"{prompt_file}\"",
         "strengths": ["code-review", "sandbox-isolation", "openai-models"],
-        "weaknesses": ["less-context-than-claude"],
+        "weaknesses": ["context-limits"],
         "flag_parser": "_parse_codex_help",
     },
     "gemini": {
@@ -156,7 +142,7 @@ KNOWN_RUNNERS = {
         "headless_flag": "--prompt",
         "invoke_pattern": "setsid timeout {timeout} gemini --prompt \"$(cat {prompt_file})\" --yolo --output-format text",
         "strengths": ["fast", "cheap", "large-context", "sandbox"],
-        "weaknesses": ["less-agentic-than-claude"],
+        "weaknesses": ["less-agentic"],
         "flag_parser": "_parse_generic_help",
     },
     "aider": {
@@ -244,18 +230,6 @@ def _parse_flags_generic(help_text: str) -> list[RunnerFlag]:
     return flags
 
 
-def _parse_claude_help(help_text: str) -> list[RunnerFlag]:
-    """Parse Claude CLI help with awareness of key flags."""
-    flags = _parse_flags_generic(help_text)
-    # Ensure we capture effort values even if not in choices format
-    for f in flags:
-        if f.name == "--effort" and not f.values:
-            f.values = ["low", "medium", "high", "max"]
-        if f.name == "--permission-mode" and not f.values:
-            f.values = ["acceptEdits", "bypassPermissions", "default", "dontAsk", "plan", "auto"]
-    return flags
-
-
 def _parse_codex_help(help_text: str) -> list[RunnerFlag]:
     return _parse_flags_generic(help_text)
 
@@ -269,7 +243,6 @@ def _parse_generic_help(help_text: str) -> list[RunnerFlag]:
 
 
 PARSERS = {
-    "_parse_claude_help": _parse_claude_help,
     "_parse_codex_help": _parse_codex_help,
     "_parse_ollama_help": _parse_ollama_help,
     "_parse_generic_help": _parse_generic_help,
@@ -309,9 +282,6 @@ def _discover_runner(name: str, spec: dict) -> Optional[Runner]:
             parts = line.split()
             if parts:
                 models.append(parts[0])
-    elif name == "claude":
-        # Models from help text
-        models = ["sonnet", "opus", "haiku"]
     elif name == "codex":
         models = ["default"]
 
@@ -408,6 +378,8 @@ def refresh(force: bool = False) -> dict[str, Runner]:
     global _registry, _last_refresh
 
     if not force and _registry and (time.time() - _last_refresh) < CACHE_TTL:
+        for name in HUMAN_ONLY_RUNNERS:
+            _registry.pop(name, None)
         return _registry
 
     # Try loading from cache first (fast path)
@@ -418,7 +390,7 @@ def refresh(force: bool = False) -> dict[str, Runner]:
             if cache_age < CACHE_TTL:
                 _registry = {}
                 for name, data in cache.items():
-                    if name.startswith("_"):
+                    if name.startswith("_") or name in HUMAN_ONLY_RUNNERS:
                         continue
                     flags = [RunnerFlag(**f) for f in data.pop("flags", [])]
                     runner = Runner(**data, flags=flags)
@@ -446,6 +418,9 @@ def refresh(force: bool = False) -> dict[str, Runner]:
 
     # Discover plugin runners
     for runner in _load_plugin_runners():
+        if runner.name in HUMAN_ONLY_RUNNERS:
+            _log(f"Skipped human-only runner plugin: {runner.name}")
+            continue
         new_registry[runner.name] = runner
         _log(f"Plugin: {runner.name}: {runner.binary} v{runner.version}")
 
@@ -492,6 +467,8 @@ def refresh(force: bool = False) -> dict[str, Runner]:
 
 def get_runner(name: str) -> Optional[Runner]:
     """Get a specific runner by name."""
+    if name in HUMAN_ONLY_RUNNERS:
+        return None
     reg = refresh()
     return reg.get(name)
 
@@ -499,7 +476,7 @@ def get_runner(name: str) -> Optional[Runner]:
 def get_available_runners() -> list[Runner]:
     """Get all available runners."""
     reg = refresh()
-    return [r for r in reg.values() if r.available]
+    return [r for r in reg.values() if r.available and r.name not in HUMAN_ONLY_RUNNERS]
 
 
 def get_runners_for_task(task_type: str) -> list[Runner]:
@@ -520,7 +497,7 @@ def get_runners_for_task(task_type: str) -> list[Runner]:
     return [r for _, r in scored]
 
 
-CLOUD_CAPABLE_RUNNERS = {"aider", "claude", "codex", "gemini"}
+CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}
 LOCAL_ONLY_RUNNERS = {"ollama"}
 
 
@@ -538,6 +515,8 @@ def get_fallback_runner(failed_runner: str, task_type: str = "standard") -> Opti
     ranked = get_runners_for_task(task_type)
     for r in ranked:
         if r.name == failed_runner:
+            continue
+        if r.name in HUMAN_ONLY_RUNNERS:
             continue
         if not allow_cloud_fallback and r.name in CLOUD_CAPABLE_RUNNERS:
             continue
@@ -557,13 +536,12 @@ def _score_runner_for_task(runner: Runner, task_type: str) -> float:
       - `quick`: Gemini should usually rank first because it is cheap, fast,
         and still capable. Ollama gets a smaller boost, but it is not meant to
         win general quick work by default.
-      - `surgical`: Codex and Claude should rise because sandboxing, safety,
-        and code-review traits matter more than raw speed.
-      - `standard`: Claude should usually rank first for multi-file reasoning,
-        but `runner_profiles.py` may still route about one-third of standard
-        tasks to Gemini through ratio rotation after scoring.
-      - `architect`: Claude should dominate because architecture and complex
-        reasoning matter more than cost.
+            - `surgical`: Codex should rise because sandboxing and code-review traits
+                matter more than raw speed.
+            - `standard`: approved cloud runners are ranked for multi-file work after
+                privacy policy admits cloud use.
+            - `architect`: approved non-Claude runners are ranked for architecture and
+                complex reasoning work.
     """
     score = 50.0  # base
 
@@ -642,7 +620,7 @@ def _score_runner_for_task(runner: Runner, task_type: str) -> float:
             score -= 20
         if "limited-reasoning" in runner.weaknesses:
             score -= 30
-        if "less-agentic-than-claude" in runner.weaknesses:
+        if "less-agentic" in runner.weaknesses:
             score -= 5
         if "small-context" in runner.weaknesses:
             score -= 10

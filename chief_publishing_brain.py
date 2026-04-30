@@ -23,7 +23,7 @@ import json
 from datetime import date
 from pathlib import Path
 
-from chief_llm import claude_json as ollama_json
+from chief_llm import ollama_json
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 

@@ -684,14 +684,14 @@ def test_fundo_session_suno_prompt_uses_chief_structured_plan(monkeypatch):
     }]
 
 
-def test_fundo_session_coaching_remains_deferred(monkeypatch):
+def test_fundo_session_coaching_uses_local_structured_plan(monkeypatch):
     calls = []
 
-    def fake_deferred(prompt, timeout=0):
-        calls.append({"prompt": prompt, "timeout": timeout})
+    def fake_ollama(prompt, timeout=0, lane=None, task_class=None, model=None):
+        calls.append({"prompt": prompt, "timeout": timeout, "lane": lane, "task_class": task_class})
         return "Coaching instructions"
 
-    monkeypatch.setattr(chief_fundo_session, "deferred_fundo_session_call", fake_deferred)
+    monkeypatch.setattr(chief_fundo_session, "ollama_call", fake_ollama)
 
     session = {
         "name": "Arrival",
@@ -712,6 +712,8 @@ def test_fundo_session_coaching_remains_deferred(monkeypatch):
             element_label=chief_fundo_session._ELEMENT_LABELS["kick"],
         ),
         "timeout": 45,
+        "lane": None,
+        "task_class": "chief_structured_plan",
     }]
 
 
@@ -862,15 +864,15 @@ def test_website_creative_paths_use_chief_structured_plan(monkeypatch):
     ]
 
 
-def test_no_new_direct_chief_claude_calls_outside_allowlist():
+def test_no_agent_brain_imports_or_calls_chief_claude_wrappers():
     root = Path("/home/openclaw")
-    allowed = {
-        "chief_llm.py",
-    }
     offenders = []
-    pattern = re.compile(r"\bclaude_(?:call|json)\s*\(")
-    for path in sorted(root.glob("chief_*.py")):
+    call_pattern = re.compile(r"\bclaude_(?:call|json)\s*\(")
+    import_pattern = re.compile(r"from\s+chief_llm\s+import\s+[^\n]*\bclaude_(?:call|json)\b")
+    for path in sorted(root.glob("chief_*.py")) + [root / "cassandra_brain.py"]:
+        if path.name == "chief_llm.py":
+            continue
         text = path.read_text(encoding="utf-8")
-        if pattern.search(text) and path.name not in allowed:
+        if call_pattern.search(text) or import_pattern.search(text):
             offenders.append(path.name)
     assert offenders == []

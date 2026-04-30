@@ -242,11 +242,11 @@ def test_validate_quota_word_in_concerns_does_not_flag(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_fallback_runner_selection_logic(tmp_path):
-    """Simulate: preferred runner (claude) produced a quota message.
+    """Simulate: preferred cloud runner produced a quota message.
     The validator detects this; the system should select the fallback runner.
     """
-    # Step 1: Claude produces a quota message as its output
-    quota_output = "You have exceeded your quota for Claude API.\nPlease retry later.\n"
+    # Step 1: A cloud runner produces a quota message as its output
+    quota_output = "Error: rate limit exceeded. Please retry later.\n"
     pc_output = _write(tmp_path, quota_output)
 
     ok, reason = validate(pc_output)
@@ -254,10 +254,10 @@ def test_fallback_runner_selection_logic(tmp_path):
     assert reason == "quota_message"
 
     # Step 2: Confirm fallback runner mapping (mirrors fallback_runner_for() in bash)
-    fallback_map = {"claude": "gemini", "gemini": "claude", "codex": "claude"}
-    preferred_runner = "claude"
-    fallback_runner = fallback_map.get(preferred_runner, "claude")
-    assert fallback_runner == "gemini", "Fallback for claude should be gemini"
+    fallback_map = {"codex": "gemini", "gemini": "ollama"}
+    preferred_runner = "codex"
+    fallback_runner = fallback_map.get(preferred_runner, "ollama")
+    assert fallback_runner == "gemini", "Fallback for codex should be gemini"
 
     # Step 3: Simulate fallback runner producing valid output
     pc_output.write_text("RUNNER: gemini\n" + _minimal_valid_output(pass_num=1))
@@ -300,13 +300,13 @@ def test_get_fallback_runner_basic():
 
 
 def test_get_fallback_runner_skips_failed():
-    """get_fallback_runner never returns the runner that just failed."""
+    """get_fallback_runner never returns the failed runner or human-only Claude."""
     gemini = _make_runner("gemini")
     claude = _make_runner("claude")
 
     with patch("runner_registry.get_runners_for_task", return_value=[gemini, claude]):
         result = get_fallback_runner("gemini")
-    assert result == "claude"
+    assert result is None
 
 
 def test_get_fallback_runner_no_alternative_returns_none():
@@ -326,14 +326,14 @@ def test_get_fallback_runner_empty_registry_returns_none():
 
 
 def test_get_fallback_runner_uses_ranked_order():
-    """Fallback respects ranking — returns the highest-ranked non-failed runner."""
+    """Fallback respects ranking while skipping human-only Claude."""
     codex = _make_runner("codex")
     claude = _make_runner("claude")
     gemini = _make_runner("gemini")
-    # Ranked: codex > claude > gemini. Failed: codex. Expect: claude.
+    # Ranked: codex > claude > gemini. Failed: codex. Expect: gemini.
     with patch("runner_registry.get_runners_for_task", return_value=[codex, claude, gemini]):
         result = get_fallback_runner("codex")
-    assert result == "claude"
+    assert result == "gemini"
 
 
 def test_get_fallback_runner_quota_scenario(tmp_path):
@@ -380,4 +380,4 @@ def test_get_fallback_runner_forced_error_scenario(tmp_path):
     claude_r = _make_runner("claude")
     with patch("runner_registry.get_runners_for_task", return_value=[codex_r, claude_r]):
         fallback = get_fallback_runner("codex")
-    assert fallback == "claude"
+    assert fallback is None

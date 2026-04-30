@@ -514,75 +514,14 @@ def ollama_call(
 
 
 def claude_call(prompt: str, timeout: int = 30, retries: int = 3) -> str:
-    """Call Claude via CLI (Pro sub). Returns '' on any error.
-
-    Policy: blocked by default. Only allowed when the explicit manual override
-    environment variable OPENCLAW_ALLOW_CLAUDE_MANUAL is truthy.
-    """
-    manual_ok = os.environ.get("OPENCLAW_ALLOW_CLAUDE_MANUAL", "").strip().lower() in {"1", "true", "yes"}
-    if not manual_ok:
-        print("[chief_llm] claude_call blocked by policy", flush=True)
-        return ""
-    import subprocess as _subprocess
-    _pw = len(prompt.split())
-    retries = max(1, int(retries))
-    for attempt in range(retries):
-        _t0 = _time.monotonic()
-        try:
-            # Strip ANTHROPIC_API_KEY so CLI uses OAuth/Pro auth, not API billing
-            env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
-            result = _subprocess.run(
-                [CLAUDE_CLI, "--print", "--output-format", "json",
-                 "--model", CLAUDE_MODEL, "--no-session-persistence"],
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env=env,
-            )
-            if result.returncode != 0:
-                _log_external_call(CLAUDE_MODEL, _pw, 0,
-                                   int((_time.monotonic() - _t0) * 1000), False)
-                if attempt < retries - 1:
-                    _time.sleep(2 ** attempt)
-                    continue
-                return ""
-            data = json.loads(result.stdout)
-            text = data.get("result", "").strip()
-            _log_external_call(CLAUDE_MODEL, _pw, len(text.split()),
-                               int((_time.monotonic() - _t0) * 1000), bool(text))
-            return text
-        except Exception:
-            _log_external_call(CLAUDE_MODEL, _pw, 0,
-                               int((_time.monotonic() - _t0) * 1000), False)
-            if attempt < retries - 1:
-                _time.sleep(2 ** attempt)
-                continue
-            return ""
+    """Claude CLI is human-only; OpenClaw agents fail closed."""
+    print("[chief_llm] claude_call blocked by policy: Claude CLI is human-only", flush=True)
     return ""
 
 
 def claude_json(prompt: str, timeout: int = 20, retries: int = 3) -> dict | list:
-    """Call Claude API and parse JSON from response. Returns {} on error or parse failure."""
-    raw = claude_call(prompt, timeout=timeout, retries=retries)
-    if not raw:
-        return {}
-    text = raw.strip()
-    # Strip markdown fences
-    if text.startswith("```"):
-        lines = text.splitlines()
-        inner = lines[1:-1] if lines and lines[-1].strip() == "```" else lines[1:]
-        text = "\n".join(inner)
-    try:
-        return json.loads(text)
-    except Exception:
-        # Try finding a JSON object or array
-        m = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if m:
-            try:
-                return json.loads(m.group(0))
-            except Exception:
-                pass
+    """Claude CLI JSON helper is blocked for OpenClaw agent-side use."""
+    print("[chief_llm] claude_json blocked by policy: Claude CLI is human-only", flush=True)
     return {}
 
 

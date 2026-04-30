@@ -36,7 +36,6 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import claude_call as deferred_fundo_session_call
 from chief_llm import ollama_call
 
 # ── Paths ────────────────────────────────────────────────────────────────────────
@@ -234,8 +233,8 @@ def _coach_next_element(session: dict) -> str:
         coached_list=coached_list,
         element_label=label,
     )
-    result = deferred_fundo_session_call(prompt, timeout=45)
-    return result or f"Coaching unavailable for {label} — check Claude API."
+    result = ollama_call(prompt, timeout=45, task_class="chief_structured_plan")
+    return result or f"Coaching unavailable for {label} — local model unavailable."
 
 
 # ── Release handoff ──────────────────────────────────────────────────────────────
@@ -349,7 +348,7 @@ def handle(text: str = "") -> list[str]:
                 f"Revised Suno prompt for '{session['name']}':\n\n{new_prompt}\n\n"
                 "Paste this into Suno and listen. Reply 'approve' or 'revise [notes]'."
             ]
-        return ["Revision failed — check Claude API."]
+        return ["Revision failed — local model unavailable."]
 
     # ── Element coached — mark done ──────────────────────────────────────────────
     if "element done" in t or "next element" in t or "move on" in t:

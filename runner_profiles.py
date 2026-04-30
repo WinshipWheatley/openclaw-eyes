@@ -13,8 +13,8 @@ standard   – normal implementation                → high effort, 600s, $2.00
 architect  – multi-file design, new subsystem     → max effort, 900s, $5.00
 
 Runner selection is DYNAMIC via runner_registry.py — the system auto-discovers
-which tools are installed and scores them per task tier.  If the registry is
-unavailable, falls back to hardcoded Claude.
+which approved tools are installed and scores them per task tier.  If the
+registry is unavailable, falls back to Codex.
 
 Detection order:
 1. Explicit `profile:` in task frontmatter → used as-is
@@ -64,10 +64,11 @@ PLANNER_BUDGET_SCALE = 0.5  # planner reviews cost ~half of building
 
 # ---------------------------------------------------------------------------
 # Autonomous runner policy (2026-04-04)
-#   Gemini = planner, Codex = builder, Claude = manual exception only.
-#   Claude must never be selected for autonomous loop spawning.
+#   Gemini = planner, Codex = builder. Claude CLI is human-only and must never
+#   be selected for autonomous loop spawning.
 # ---------------------------------------------------------------------------
-AUTONOMOUS_BLOCKED_RUNNERS = {"claude"}
+HUMAN_ONLY_RUNNERS = {"claude"}
+AUTONOMOUS_BLOCKED_RUNNERS = set(HUMAN_ONLY_RUNNERS)
 AUTONOMOUS_BUILDER_BLOCKED_RUNNERS = AUTONOMOUS_BLOCKED_RUNNERS | {"gemini", "aider", "ollama"}
 
 # ---------------------------------------------------------------------------
@@ -503,14 +504,13 @@ def _check_deferral(task_id: str, tier: str, is_blocking: bool) -> Optional[dict
 # Runner rotation — ratio-based with queue look-ahead
 # ---------------------------------------------------------------------------
 
-# Standard tier target ratio: 2 claude tasks per 1 gemini task.
-# The easiest upcoming standard task gets assigned to gemini.
-CLAUDE_GEMINI_RATIO = (2, 1)  # (claude_share, gemini_share)
+# Standard-tier cost rotation can promote Gemini among approved candidates.
+STANDARD_GEMINI_RATIO = (2, 1)  # (primary_share, gemini_share)
 
 TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 
-CLOUD_CAPABLE_RUNNERS = {"aider", "claude", "codex", "gemini"}
+CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}
 CLOUD_ALLOWED_CLASSIFICATIONS = {
     "non_sensitive",
     "nonsensitive",
@@ -590,7 +590,7 @@ def _task_allows_cloud(meta: dict) -> bool:
     return cloud_allowed and classification in CLOUD_ALLOWED_CLASSIFICATIONS
 
 
-def _get_recent_runner_ratio(runner_a: str = "claude", runner_b: str = "gemini",
+def _get_recent_runner_ratio(runner_a: str = "codex", runner_b: str = "gemini",
                               window: int = 6) -> tuple[int, int]:
     """Count recent tasks assigned to runner_a vs runner_b.
 
@@ -623,8 +623,8 @@ def _estimate_task_complexity(task_text: str) -> int:
 def _should_gemini_take_this(task_text: str, tier: str) -> bool:
     """Decide if this standard-tier task should go to gemini.
 
-    Logic:
-      1. Check the 2:1 claude:gemini ratio — is it gemini's turn?
+        Logic:
+            1. Check the legacy cloud-runner ratio — is it gemini's turn?
       2. If yes, peek at upcoming queued tasks.  If this task is the
          easiest in the next batch of 3, gemini takes it.  Otherwise
          wait for an easier one.
@@ -635,21 +635,21 @@ def _should_gemini_take_this(task_text: str, tier: str) -> bool:
         return False
 
     # Check ratio
-    claude_count, gemini_count = _get_recent_runner_ratio("claude", "gemini")
-    target_claude, target_gemini = CLAUDE_GEMINI_RATIO
-    total = claude_count + gemini_count
+    primary_count, gemini_count = _get_recent_runner_ratio("codex", "gemini")
+    target_primary, target_gemini = STANDARD_GEMINI_RATIO
+    total = primary_count + gemini_count
 
     # Determine if gemini is "due" a task
     if total == 0:
-        # Fresh start — let claude go first
+        # Fresh start — keep the current approved ranking.
         return False
 
     # Current gemini share vs target share
-    target_gemini_pct = target_gemini / (target_claude + target_gemini)  # 0.333
+    target_gemini_pct = target_gemini / (target_primary + target_gemini)  # 0.333
     actual_gemini_pct = gemini_count / total if total > 0 else 0
 
     if actual_gemini_pct >= target_gemini_pct:
-        # Gemini has had enough turns — claude's turn
+        # Gemini has had enough turns — keep the current approved ranking.
         return False
 
     # Gemini is under-represented.  Check queue to find easiest task.
@@ -708,10 +708,10 @@ def _should_gemini_take_this(task_text: str, tier: str) -> bool:
 def _apply_rotation(ranked_runners: list, tier: str, task_text: str = "") -> list:
     """Reorder runners based on ratio targets and task complexity.
 
-    Standard tier: 2:1 claude:gemini ratio.  Gemini gets the easiest task
-    in each batch of 3.  Queue look-ahead picks the right moment.
+    Standard tier: legacy ratio can promote Gemini for the easiest task in a
+    batch after human-only runners have already been filtered.
 
-    Surgical tier: natural alternation (claude and codex are tied in scoring).
+    Surgical tier: registry ranking after human-only runner filtering.
 
     Architect tier: no rotation — always picks best tool.
 
@@ -867,7 +867,7 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
     """Pick the best available runner for a task tier, budget-aware + rotation.
 
     Returns (runner_name, model, reason_fragment, budget_override_or_None).
-    Falls back to claude/sonnet if registry unavailable.
+    Falls back to codex if registry unavailable.
     """
     if model_prefs is None:
         model_prefs = PREFERRED_MODELS
@@ -940,6 +940,8 @@ def _pick_runner(tier: str, task_id: str = "unknown", is_blocking: bool = False,
             if alt:
                 # Try the alternative directly
                 alt_runner = alt["runner"]
+                if alt_runner in blocked_runners or alt_runner in HUMAN_ONLY_RUNNERS:
+                    continue
                 alt_model = alt.get("model", "default")
                 alt_allowance = budget_tracker.get_runner_allowance(alt_runner, alt_model, tier)
                 if alt_allowance["allowed"]:

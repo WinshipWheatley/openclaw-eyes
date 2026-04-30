@@ -17,7 +17,8 @@ import runner_registry  # noqa: E402
 from runner_registry import Runner  # noqa: E402
 
 
-CLOUD_CAPABLE_RUNNERS = {"aider", "claude", "codex", "gemini"}
+CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}
+HUMAN_ONLY_RUNNERS = {"claude"}
 LOCAL_ONLY_RUNNERS = {"ollama"}
 
 
@@ -162,6 +163,7 @@ def test_explicit_non_sensitive_cloud_allowed_task_may_select_cloud_runner(runne
     )
 
     assert profile["runner"] in CLOUD_CAPABLE_RUNNERS
+    assert profile["runner"] not in HUMAN_ONLY_RUNNERS
 
 
 def test_unclassified_local_failure_does_not_silently_fallback_to_cloud(monkeypatch, runner_policy_context):
@@ -198,3 +200,24 @@ def test_coding_runner_cloud_override_is_denied_for_sensitive_task_text(runner_p
         r"sensitive|local_required|private|cloud_allowed|classification|fail[_ -]?closed",
         override_block,
     )
+
+
+def test_claude_is_not_registered_as_agent_runner():
+    assert "claude" not in runner_registry.KNOWN_RUNNERS
+    assert "claude" not in runner_registry.CLOUD_CAPABLE_RUNNERS
+    assert "claude" in runner_registry.HUMAN_ONLY_RUNNERS
+
+
+def test_claude_is_not_cloud_capable_in_runner_profiles():
+    assert "claude" not in runner_profiles.CLOUD_CAPABLE_RUNNERS
+    assert "claude" in runner_profiles.HUMAN_ONLY_RUNNERS
+
+
+def test_builder_watcher_hard_denies_claude_runner():
+    source = (ROOT / "builder_watcher.sh").read_text(encoding="utf-8")
+
+    assert 'RUNNER_PREFERRED" = "claude"' in source
+    assert 'Explicit Claude runner override denied by human-only policy' in source
+    assert 'p_runner" = "claude"' in source
+    assert 'Claude runner denied by human-only policy' in source
+    assert '--output-format json' not in source

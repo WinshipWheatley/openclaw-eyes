@@ -199,7 +199,7 @@ inject_runner_header() {
 
 any_builder_session_running() {
   # Prevent duplicate launches after watcher restart: detect active timed runner sessions.
-  # Match any runner wrapped in setsid timeout (claude, codex, gemini, aider, ollama, etc.)
+  # Match any approved runner wrapped in setsid timeout (codex, gemini, aider, ollama, etc.)
   pgrep -f 'timeout [0-9]+ (codex|gemini|aider|local_builder)' >/dev/null 2>&1
 }
 
@@ -210,7 +210,7 @@ launch_runner_once() {
 
   # --- Smart profile selection via runner_profiles.py ---
   # runner_profiles.py now uses runner_registry.py internally to pick the
-  # best available tool (claude, codex, gemini, aider, ollama, or any
+  # best available approved tool (codex, gemini, aider, ollama, or any
   # plugin runner).  It returns a fully-built invoke_cmd.
   local profile_json
   profile_json=$(cd /home/openclaw && python3 runner_profiles.py 2>/dev/null)
@@ -280,8 +280,10 @@ launch_runner_once() {
   fi
 
   # Override runner if explicitly requested via CODING_RUNNER
-  if [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" != "$p_runner" ]; then
-    if { [ "$RUNNER_PREFERRED" = "codex" ] || [ "$RUNNER_PREFERRED" = "gemini" ] || [ "$RUNNER_PREFERRED" = "claude" ] || [ "$RUNNER_PREFERRED" = "aider" ]; } && [ "$p_cloud_allowed" != "True" ]; then
+  if [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" = "claude" ]; then
+    log "PROFILE: Explicit Claude runner override denied by human-only policy (keeping $p_runner)"
+  elif [ "$RUNNER_EXPLICIT" -eq 1 ] && [ "$RUNNER_PREFERRED" != "$p_runner" ]; then
+    if { [ "$RUNNER_PREFERRED" = "codex" ] || [ "$RUNNER_PREFERRED" = "gemini" ] || [ "$RUNNER_PREFERRED" = "aider" ]; } && [ "$p_cloud_allowed" != "True" ]; then
       log "PROFILE: Explicit cloud runner override denied by cloud_allowed/sensitivity gate -> $RUNNER_PREFERRED (keeping $p_runner)"
     else
       log "PROFILE: Explicit runner override → $RUNNER_PREFERRED (ignoring registry pick: $p_runner)"
@@ -289,6 +291,14 @@ launch_runner_once() {
       # Fall back to hardcoded command for explicit override
       p_invoke_cmd=""
     fi
+  fi
+
+  if [ "$p_runner" = "claude" ]; then
+    log "PROFILE: Claude runner denied by human-only policy -> ollama local builder"
+    p_runner="ollama"
+    p_model="chief-fast:latest"
+    p_budget=0
+    p_invoke_cmd="setsid timeout $p_timeout python3 /home/openclaw/polish_loop/local_builder.py --model $p_model --timeout $p_timeout"
   fi
 
   LAST_EFFECTIVE_RUNNER="$p_runner"
@@ -318,36 +328,21 @@ launch_runner_once() {
   if [ -n "$p_invoke_cmd" ]; then
     p_invoke_cmd="$(normalize_invoke_cmd "$p_runner" "$p_invoke_cmd" "$p_timeout" "$p_model" "$p_effort" "$p_budget" "$fallback_model")"
     log "INVOKE: $p_invoke_cmd"
-    # For Claude with JSON output, capture cost data
-    if [ "$p_runner" = "claude" ]; then
-      local json_cmd
-      json_cmd=$(echo "$p_invoke_cmd" | sed 's/--print/--print --output-format json/')
-      cd /home/openclaw && eval "$json_cmd" > "$run_output_file" 2>> "$LOG_FILE"
-      run_exit_code=$?
+    if [ "$p_runner" = "ollama" ]; then
+      cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
     else
-      if [ "$p_runner" = "ollama" ]; then
-        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
-      else
-        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
-      fi
-      run_exit_code=$?
+      cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
     fi
+    run_exit_code=$?
   else
     p_invoke_cmd="$(build_fallback_invoke_cmd "$p_runner" "$p_timeout" "$p_model" "$p_effort" "$p_budget" "$fallback_model")"
     log "INVOKE: $p_invoke_cmd"
-    if [ "$p_runner" = "claude" ]; then
-      local json_cmd
-      json_cmd=$(echo "$p_invoke_cmd" | sed 's/--print/--print --output-format json/')
-      cd /home/openclaw && eval "$json_cmd" > "$run_output_file" 2>> "$LOG_FILE"
-      run_exit_code=$?
+    if [ "$p_runner" = "ollama" ]; then
+      cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
     else
-      if [ "$p_runner" = "ollama" ]; then
-        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
-      else
-        cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
-      fi
-      run_exit_code=$?
+      cd /home/openclaw && eval "$p_invoke_cmd" >> "$LOG_FILE" 2>&1
     fi
+    run_exit_code=$?
   fi
 
   local run_end_ts

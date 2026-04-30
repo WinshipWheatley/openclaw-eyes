@@ -1,4 +1,13 @@
+from pathlib import Path
+
 import chief_musiclaw_brain
+
+
+def test_musiclaw_brain_uses_local_model_not_claude_wrapper():
+    source = Path(chief_musiclaw_brain.__file__).read_text(encoding="utf-8")
+
+    assert "claude_call" not in source
+    assert "claude_json" not in source
 
 
 def test_musiclaw_advice_prompt_contains_legal_boundaries_and_ten_fingers_facts(monkeypatch):

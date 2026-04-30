@@ -18,21 +18,16 @@ import chief_llm  # noqa: E402
 
 
 CLOUD_WRAPPERS = {"nemotron_call", "claude_call", "claude_json"}
+CLAUDE_WRAPPERS = {"claude_call", "claude_json"}
 
 ALLOWED_DIRECT_IMPORTS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
-    ("chief_fundo_session.py", "claude_call", "deferred_fundo_session_call"),
-    ("chief_musiclaw_brain.py", "claude_call", "ollama_call"),
-    ("chief_publishing_brain.py", "claude_json", "ollama_json"),
 }
 
 ALLOWED_DIRECT_CALLS = {
     ("chief_brainstorm_brain.py", "nemotron_call", "nemotron_call"),
     ("chief_cpa_brain.py", "nemotron_call", "nemotron_call"),
-    ("chief_fundo_session.py", "claude_call", "deferred_fundo_session_call"),
-    ("chief_musiclaw_brain.py", "claude_call", "ollama_call"),
-    ("chief_publishing_brain.py", "claude_json", "ollama_json"),
 }
 
 HARD_DENY_MARKERS = [
@@ -103,11 +98,58 @@ def test_direct_chief_cloud_wrapper_inventory_matches_allowlist():
     assert direct_calls == ALLOWED_DIRECT_CALLS
 
 
-def test_musiclaw_claude_alias_is_tracked_as_cloud_risk_surface():
-    direct_imports, direct_calls = _chief_cloud_wrapper_inventory()
+def _agent_claude_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:
+    direct_imports: set[tuple[str, str, str]] = set()
+    direct_calls: set[tuple[str, str, str]] = set()
 
-    assert ("chief_musiclaw_brain.py", "claude_call", "ollama_call") in direct_imports
-    assert ("chief_musiclaw_brain.py", "claude_call", "ollama_call") in direct_calls
+    paths = sorted(ROOT.glob("chief_*.py")) + [ROOT / "cassandra_brain.py"]
+    for path in paths:
+        if path.name == "chief_llm.py":
+            continue
+
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        local_wrapper_names: dict[str, str] = {}
+        chief_llm_module_aliases: set[str] = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "chief_llm":
+                        chief_llm_module_aliases.add(alias.asname or alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.module == "chief_llm":
+                for alias in node.names:
+                    if alias.name == "*":
+                        direct_imports.add((path.name, "*", "*"))
+                    elif alias.name in CLAUDE_WRAPPERS:
+                        local_name = alias.asname or alias.name
+                        local_wrapper_names[local_name] = alias.name
+                        direct_imports.add((path.name, alias.name, local_name))
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            called = node.func
+            if isinstance(called, ast.Name):
+                if called.id in local_wrapper_names:
+                    direct_calls.add((path.name, local_wrapper_names[called.id], called.id))
+                elif called.id in CLAUDE_WRAPPERS:
+                    direct_calls.add((path.name, called.id, called.id))
+            elif (
+                isinstance(called, ast.Attribute)
+                and called.attr in CLAUDE_WRAPPERS
+                and isinstance(called.value, ast.Name)
+                and called.value.id in chief_llm_module_aliases
+            ):
+                direct_calls.add((path.name, called.attr, f"{called.value.id}.{called.attr}"))
+
+    return direct_imports, direct_calls
+
+
+def test_agent_brains_do_not_import_or_call_claude_wrappers():
+    direct_imports, direct_calls = _agent_claude_wrapper_inventory()
+
+    assert direct_imports == set()
+    assert direct_calls == set()
 
 
 @pytest.mark.parametrize("marker", HARD_DENY_MARKERS)
@@ -168,15 +210,15 @@ def test_cpa_hard_deny_markers_do_not_route_to_nemotron(monkeypatch, marker):
     assert local_calls == [{"timeout": 20, "task_class": None}]
 
 
-@pytest.mark.parametrize("env_value", [None, "", "0", "false", "no"])
-def test_claude_wrappers_are_blocked_without_manual_override(monkeypatch, env_value):
+@pytest.mark.parametrize("env_value", [None, "", "0", "false", "no", "1", "true", "yes"])
+def test_claude_wrappers_are_blocked_even_with_manual_override_env(monkeypatch, env_value):
     if env_value is None:
         monkeypatch.delenv("OPENCLAW_ALLOW_CLAUDE_MANUAL", raising=False)
     else:
         monkeypatch.setenv("OPENCLAW_ALLOW_CLAUDE_MANUAL", env_value)
 
     def forbidden_process(*args, **kwargs):
-        raise AssertionError("Claude subprocess must not spawn without manual override")
+        raise AssertionError("Claude subprocess must not spawn from OpenClaw agents")
 
     monkeypatch.setattr(chief_llm.subprocess, "run", forbidden_process)
 

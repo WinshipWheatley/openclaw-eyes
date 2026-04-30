@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from chief_file_io import load_json, save_json
-from chief_llm import ollama_call, nemotron_call, claude_json, resolve_local_model
+from chief_llm import ollama_call, nemotron_call, resolve_local_model
 from chief_output_utils import tts_clean
 from cassandra_mode import (
     is_focus_mode,
@@ -1889,17 +1889,8 @@ def _extract_event_details(text: str) -> dict | None:
         f"- 'tomorrow' means {(date.today().__class__.fromordinal(date.today().toordinal()+1)).strftime('%Y-%m-%d')}\n"
         f"- Return JSON only, no other text"
     )
-    # Keep calendar extraction bounded so Cassandra's 60s listener timeout can
-    # still deliver a useful result or escalation instead of burning the whole
-    # budget inside multi-retry fallback extraction.
-    _calendar_fallback_timeout = 6
-    _calendar_fallback_retries = 1
     try:
         data = _call_hidden_extract_classify_json(prompt, validation_label="calendar_event_details")
-        if not data or not isinstance(data, dict):
-            data = claude_json(prompt, timeout=_calendar_fallback_timeout, retries=_calendar_fallback_retries)
-        elif not data.get("title") or not data.get("date") or not data.get("start_time"):
-            data = claude_json(prompt, timeout=_calendar_fallback_timeout, retries=_calendar_fallback_retries)
         if not data or not isinstance(data, dict):
             return None
         # Require title, date, start_time — duration_minutes has a default
