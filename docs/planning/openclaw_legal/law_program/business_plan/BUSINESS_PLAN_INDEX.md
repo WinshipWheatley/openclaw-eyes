@@ -14,6 +14,8 @@ The Go/No-Go file remains the launch gate.
 
 `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` defines the support, buyer, data, hardware, emergency, and offboarding boundaries that must be clear before paid pilot or deployment.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md](OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md) is the compact internal navigation index for the first-pilot outreach package.
+
 [OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md](OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md) defines the smallest conditional first paid pilot scope without implying real deployment readiness.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md](OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md) is buyer-facing draft language for the same bounded first-pilot offer and exclusions.
@@ -47,6 +49,12 @@ External-facing versions should only be created if the internal go/no-go gate cl
 Hard launch filter.
 
 Use this first to decide whether OpenClaw Legal should move toward real buyer-facing launch at all. It protects against open-ended support burden, legal-adjacent liability, unfunded hardware risk, sensitive-data exposure, and a stressful custom services trap.
+
+### `OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md`
+
+Internal first-pilot package navigation index.
+
+Use this to find the first-pilot outreach, conversation, notes, review, readiness, terms, scope, buyer-brief, and support-boundary docs in the intended order without creating new policy.
 
 ### `OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md`
 
@@ -139,6 +147,7 @@ Internal-only:
 - `OPENCLAW_LEGAL_GO_NO_GO_LAUNCH_CRITERIA.md`
 - `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 - `OPENCLAW_LEGAL_GOTCHAS.md`
+- `OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_CONVERSATION_GUARDRAILS.md`
