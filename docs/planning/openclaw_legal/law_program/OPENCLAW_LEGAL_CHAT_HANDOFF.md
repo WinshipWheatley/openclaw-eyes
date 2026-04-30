@@ -1277,6 +1277,9 @@ First-pilot go/no-go review packet:
 First-pilot outreach readiness summary:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md` answers whether a first pilot conversation is allowed and under what exact limits.
 
+First-pilot conversation guardrails:
+- `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_CONVERSATION_GUARDRAILS.md` gives an internal safe script/checklist for exploratory first-pilot conversations without making a final offer or production-readiness claim.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;
@@ -1538,7 +1541,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, and the Phase 2F-B synthetic test-file GUI action at `64f5190`.
 
-Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, and first-pilot outreach readiness summary. The latest committed Legal docs checkpoint is `65b97fd docs(legal): add first pilot go no-go review packet`.
+Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, and first-pilot conversation guardrails. The latest committed Legal docs checkpoint is `65b97fd docs(legal): add first pilot go no-go review packet`.
 
 Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
 
