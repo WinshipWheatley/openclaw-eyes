@@ -557,6 +557,122 @@ class TestKnownContactWatchEvent:
         assert decision["reason"] == "notification_pending_operator_action"
         assert decision["followup_eligible"] is False
 
+    def test_unknown_thread_and_message_returns_notify_eligible(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "message_id": "m-other",
+                    "thread_id": "t-other",
+                    "operator_action": "pending",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.UNASSIGNED_KNOWN_CONTACT_THREAD,
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(
+            thread_id="t-unknown",
+            message_id="m-unknown",
+            log_path=log,
+        )
+
+        assert decision == {
+            "should_notify": True,
+            "reason": "no_prior_known_contact_state",
+            "latest_action": None,
+            "followup_eligible": False,
+        }
+
+    def test_create_gmail_draft_action_suppresses_notification_as_pending(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "create_gmail_draft",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                    "draft_intent": "requested",
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "gmail_draft_action_pending"
+        assert decision["followup_eligible"] is False
+
+    def test_ask_guardian_send_approval_action_suppresses_notification_as_pending(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "ask_guardian_send_approval",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                    "approval_intent": "requested",
+                    "suggested_response_preview": "Please approve this preview.",
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "guardian_send_approval_pending"
+        assert decision["followup_eligible"] is False
+
+    def test_revise_response_action_marks_revision_pending(self, tmp_path):
+        import cassandra_outreach as outreach
+
+        log = tmp_path / "known_contact_watch.jsonl"
+        self._write_known_contact_actions(
+            log,
+            [
+                self._base_operator_action_kwargs() | {
+                    "operator_action": "revise_response",
+                    "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+                    "ownership_state": outreach.USER_ASSIGNED_THREAD,
+                    "revision_request": "Make this warmer.",
+                }
+            ],
+        )
+
+        decision = outreach.should_notify_known_contact_thread(thread_id="t-known", log_path=log)
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "revision_pending_operator_action"
+        assert decision["followup_eligible"] is False
+
+    def test_decision_helper_accepts_candidate_event_and_resolved_latest_action(self):
+        import cassandra_outreach as outreach
+
+        latest_action = self._base_operator_action_kwargs() | {
+            "operator_action": "watch_thread",
+            "watch_state": outreach.APPROVED_FOR_FOLLOW_UP_LANE,
+            "ownership_state": outreach.USER_ASSIGNED_THREAD,
+        }
+
+        decision = outreach.should_notify_known_contact_thread(
+            candidate_event={"message_id": "m-known", "thread_id": "t-known"},
+            latest_action=latest_action,
+        )
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "thread_already_approved_for_follow_up"
+        assert decision["latest_action"] == latest_action
+        assert decision["followup_eligible"] is True
+
     def test_different_thread_from_same_sender_is_not_suppressed(self, tmp_path):
         import cassandra_outreach as outreach
 

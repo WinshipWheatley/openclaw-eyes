@@ -1159,16 +1159,23 @@ def latest_known_contact_action_for_message(
 
 def should_notify_known_contact_thread(
     *,
-    thread_id: str,
+    thread_id: str = "",
     message_id: str = "",
+    candidate_event: dict | None = None,
+    latest_action: dict | None = None,
     actions: list[dict] | None = None,
     log_path: Path | str | None = None,
 ) -> dict:
     """Decide whether a known-contact thread should receive an initial notification."""
-    source_actions = actions if actions is not None else load_known_contact_operator_actions(log_path=log_path)
-    latest_action = latest_known_contact_action_for_thread(thread_id, actions=source_actions)
-    if latest_action is None and message_id:
-        latest_action = latest_known_contact_action_for_message(message_id, actions=source_actions)
+    candidate = candidate_event if isinstance(candidate_event, dict) else {}
+    target_thread_id = str(thread_id or candidate.get("thread_id", "") or "").strip()
+    target_message_id = str(message_id or candidate.get("message_id", "") or "").strip()
+
+    if latest_action is None:
+        source_actions = actions if actions is not None else load_known_contact_operator_actions(log_path=log_path)
+        latest_action = latest_known_contact_action_for_thread(target_thread_id, actions=source_actions)
+        if latest_action is None and target_message_id:
+            latest_action = latest_known_contact_action_for_message(target_message_id, actions=source_actions)
 
     if latest_action is None:
         return {
@@ -1189,6 +1196,12 @@ def should_notify_known_contact_thread(
         reason = "thread_ignored"
     elif followup_eligible:
         reason = "thread_already_approved_for_follow_up"
+    elif operator_action == KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT:
+        reason = "gmail_draft_action_recorded" if latest_action.get("draft_id") else "gmail_draft_action_pending"
+    elif operator_action == KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL:
+        reason = "guardian_send_approval_recorded" if latest_action.get("approval_id") else "guardian_send_approval_pending"
+    elif operator_action == KNOWN_CONTACT_ACTION_REVISE_RESPONSE:
+        reason = "revision_pending_operator_action"
     elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION and operator_action in {"", "pending", "notify_only"}:
         reason = "notification_pending_operator_action"
     elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION:
