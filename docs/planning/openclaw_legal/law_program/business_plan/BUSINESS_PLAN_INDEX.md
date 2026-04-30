@@ -20,6 +20,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md](OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md) is the internal go/no-go checklist for deciding whether to show a synthetic/public demo, move to paid pilot planning, or pause.
 
+[OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md](OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md) is the internal contract/terms checklist for what must be written before any paid pilot begins.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
@@ -43,6 +45,12 @@ Use this first to decide whether OpenClaw Legal should move toward real buyer-fa
 Internal pilot decision checklist.
 
 Use this before law-firm outreach, demo, or paid-pilot planning to choose Go to synthetic/public demo, Conditional Go to paid pilot planning, or No-Go / pause.
+
+### `OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md`
+
+Internal pilot terms checklist.
+
+Use this to identify the written scope, payment, support, ownership, data, hardware, backup, offboarding, liability, attorney-review, and no-legal-advice terms needed before any paid pilot.
 
 ### `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 

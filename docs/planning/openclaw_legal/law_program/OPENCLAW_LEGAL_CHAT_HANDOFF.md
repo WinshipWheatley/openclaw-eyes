@@ -1267,6 +1267,9 @@ Buyer-facing pilot brief:
 Pilot readiness checklist:
 - `business_plan/OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md` converts the first-pilot scope and buyer brief into an internal go/no-go checklist before outreach, demos, or paid pilot planning.
 
+Pilot terms outline:
+- `business_plan/OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md` converts the scope, buyer brief, support boundary, and readiness gate into an internal checklist for written paid-pilot terms.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;
