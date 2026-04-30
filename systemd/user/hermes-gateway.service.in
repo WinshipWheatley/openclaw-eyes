@@ -6,6 +6,9 @@ PartOf=openclaw-stack.target
 Type=simple
 WorkingDirectory=@REPO_ROOT@/sidecars/hermes
 Environment=HERMES_HOME=@REPO_ROOT@/sidecars/hermes_home
+Environment=HERMES_OPENCLAW_MODE=gateway
+Environment=HERMES_OPENCLAW_GATEWAY=1
+Environment=HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK=1
 ExecCondition=/bin/bash -lc 'test -x @REPO_ROOT@/sidecars/hermes/.venv/bin/python && test -f @REPO_ROOT@/sidecars/hermes_home/config.yaml && test -f @REPO_ROOT@/sidecars/hermes_home/.env && @REPO_ROOT@/sidecars/hermes/.venv/bin/python -c "import telegram"'
 Restart=on-failure
 RestartSec=10
