@@ -277,6 +277,7 @@
 !scripts/demo_legal_mock_discovery.py
 !scripts/demo_legal_known_answer_fixtures.py
 !scripts/audit_openclaw_services.sh
+!scripts/install_hermes_gateway_service.sh
 !scripts/install_openclaw_stack.sh
 !scripts/run_legal_pipeline_v0.sh
 !legal/

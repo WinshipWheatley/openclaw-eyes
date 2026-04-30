@@ -18,7 +18,7 @@ The following units are currently treated as systemd-owned. Control should remai
 - `cassandra-watcher.service`
 - `cassandra-briefing-scheduler.service`
 - `chief-guardian-listener.service`
-- `hermes-gateway.service` - systemd-owned, with a known repo-template vs installed-unit mismatch to reconcile in Slice 5.
+- `hermes-gateway.service` - systemd-owned, with a narrow repo-supported reconciliation path in `scripts/install_hermes_gateway_service.sh`; do not use the broad stack installer for this unit.
 - `openclaw-gateway.service` - systemd-owned as an installed unit, with no repo template currently recorded; add a template or documented external owner in Slice 6.
 - `openclaw-drift-control-scan.timer` and `openclaw-drift-control-scan.service` - systemd-owned as installed units, with no repo templates currently recorded; add templates or documented external owners in Slice 6 and unify scheduling in Slice 7.
 
@@ -64,7 +64,7 @@ Do not expand any of these controls in this slice. Existing references are histo
 | `cassandra-watcher.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate watcher launch or `pkill` | Frozen; inventory check in Slice 2 |
 | `cassandra-briefing-scheduler.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate scheduler launch or `pkill` | Frozen; inventory check in Slice 2 |
 | `chief-guardian-listener.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate listener launch, duplicate Telegram polling, `pkill` | Frozen; inventory check in Slice 2 |
-| `hermes-gateway.service` | systemd user unit | systemd user-unit ownership; preserve current installed behavior until reconciled | Editing the unit/template mismatch opportunistically, blanket enablement, or alternate launch path | Frozen; reconcile mismatch in Slice 5 |
+| `hermes-gateway.service` | systemd user unit | `scripts/install_hermes_gateway_service.sh` may render only `systemd/user/hermes-gateway.service.in`, reload the user daemon, verify gateway flags, and optionally restart only this unit when explicitly requested | Editing the unit/template mismatch opportunistically, blanket enablement, broad stack install, `openclaw-stack.target` restart, or alternate launch path | Narrow reconciliation path added; operator run/restart remains explicit |
 | `openclaw-gateway.service` | installed systemd user unit without repo template | Installed unit ownership only, pending a repo template or documented external owner | Blanket enablement, unreviewed template creation, or duplicate gateway launch path | Frozen; add template or owner in Slice 6 |
 | `openclaw-drift-control-scan.timer` | installed systemd user timer without repo template | Installed timer ownership only, pending template/owner documentation and scheduler unification | Running both systemd timer and dashboard cron scheduling paths | Frozen; add template/owner in Slice 6, unify scheduler in Slice 7 |
 | `openclaw-drift-control-scan.service` | installed systemd user service without repo template | Installed service ownership only, pending template/owner documentation and scheduler unification | Running both systemd timer and dashboard cron scheduling paths | Frozen; add template/owner in Slice 6, unify scheduler in Slice 7 |
@@ -82,7 +82,7 @@ Do not expand any of these controls in this slice. Existing references are histo
 1. Slice 2: add read-only service inventory/audit check.
 2. Slice 3: harden install script behavior behind dry-run/explicit flags.
 3. Slice 4: deprecate or guard legacy launch scripts.
-4. Slice 5: reconcile Hermes template vs installed unit.
+4. Slice 5: reconcile Hermes template vs installed unit through the narrow Hermes-only installer.
 5. Slice 6: add repo templates or documented external owners for `openclaw-gateway` and drift-control.
 6. Slice 7: unify drift-control scheduler.
 7. Slice 8: decide legacy polling/loop supervisor ownership.

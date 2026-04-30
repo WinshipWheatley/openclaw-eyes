@@ -9,10 +9,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "audit_openclaw_services.sh"
+HERMES_INSTALL_SCRIPT = ROOT / "scripts" / "install_hermes_gateway_service.sh"
 
 
 def test_audit_script_has_valid_bash_syntax() -> None:
     subprocess.run(["bash", "-n", str(SCRIPT)], check=True)
+
+
+def test_hermes_gateway_installer_has_valid_bash_syntax() -> None:
+    subprocess.run(["bash", "-n", str(HERMES_INSTALL_SCRIPT)], check=True)
 
 
 def _executable_lines(source: str) -> list[str]:
@@ -43,6 +48,38 @@ def test_audit_script_does_not_execute_service_or_process_mutations() -> None:
     assert not forbidden_lifecycle.search(command_source)
     assert not forbidden_commands.search(command_source)
     assert "systemctl --user list-unit-files" in command_source
+
+
+def test_hermes_gateway_installer_is_single_unit_and_no_broad_stack_control() -> None:
+    source = HERMES_INSTALL_SCRIPT.read_text(encoding="utf-8")
+    command_source = "\n".join(_executable_lines(source))
+
+    assert "systemd/user/hermes-gateway.service.in" in source
+    assert "${HOME}/.config/systemd/user" in source
+    assert "systemctl --user daemon-reload" in command_source
+    assert 'systemctl --user restart "${UNIT_NAME}"' in command_source
+
+    assert "for template in" not in command_source
+    assert "install_openclaw_stack.sh" not in command_source
+    assert "systemctl --user enable" not in command_source
+    assert "systemctl --user start" not in command_source
+    assert "systemctl --user stop" not in command_source
+    assert "systemctl --user disable" not in command_source
+    assert "systemctl --user enable --now" not in command_source
+    assert "openclaw-stack.target" not in command_source
+    assert "chief-" not in command_source
+    assert "cassandra-" not in command_source
+    assert "guardian" not in command_source.lower()
+
+
+def test_hermes_gateway_installer_verifies_required_openclaw_flags() -> None:
+    source = HERMES_INSTALL_SCRIPT.read_text(encoding="utf-8")
+
+    assert "Environment=HERMES_OPENCLAW_MODE=gateway" in source
+    assert "Environment=HERMES_OPENCLAW_GATEWAY=1" in source
+    assert "Environment=HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK=1" in source
+    assert "verify_required_flags" in source
+    assert "grep -Fq" in source
 
 
 def _write(path: Path, text: str) -> None:
