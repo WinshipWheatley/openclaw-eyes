@@ -23,7 +23,7 @@ import re
 from datetime import datetime, date
 from pathlib import Path
 
-from chief_llm import ollama_call, ollama_json, nemotron_call
+from chief_llm import external_model_packet_policy, ollama_call, ollama_json, nemotron_call
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -457,6 +457,9 @@ def _expense_cloud_safe(text: str) -> bool:
     no payer names, client names, income signals, or invoice references.
     Requires a dollar amount to be present. Fails closed.
     """
+    policy = external_model_packet_policy(text, metadata={"workload": "chief_cpa_expense_parse"})
+    if not policy.get("external_model_safe"):
+        return False
     t = text.lower()
     if _contains_cloud_hard_deny_marker(text):
         return False

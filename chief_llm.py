@@ -244,6 +244,180 @@ OLLAMA_MODEL_DEEP = "qwen2.5-coder:14b"  # escalation: synthesis / deep analysis
 CLAUDE_MODEL = "claude-sonnet-4-6"
 CLAUDE_CLI   = "/home/openclaw/.local/bin/claude"
 
+# External model packet policy -------------------------------------------------
+#
+# This is the shared deterministic gate for deciding whether a packet is safe
+# to send to any external model or cloud runner. It intentionally does not try
+# to sanitize or judge content with a model: callers must provide explicit
+# cloud-allowed metadata, and protected professional/private markers block.
+
+EXTERNAL_MODEL_SAFE_CLASSIFICATIONS = frozenset({
+    "non_sensitive",
+    "nonsensitive",
+    "public",
+    "public_fixture",
+    "sanitized",
+    "sanitized_public",
+    "synthetic",
+    "synthetic_public",
+    "test_public",
+})
+
+EXTERNAL_MODEL_BLOCKED_CLASSIFICATIONS = frozenset({
+    "client_matter",
+    "confidential",
+    "cpa",
+    "financial",
+    "gmail",
+    "legal_matter",
+    "matter",
+    "music_law",
+    "pii",
+    "private",
+    "publishing",
+    "secret",
+    "sensitive",
+    "tax",
+})
+
+EXTERNAL_MODEL_BLOCK_MARKERS = frozenset({
+    "/mnt/c/openclawlegalprivate",
+    "openclawlegalprivate",
+    ".env",
+    "api key",
+    "attorney",
+    "billing record",
+    "catalog registration",
+    "client",
+    "client identity",
+    "client identities",
+    "client matter",
+    "confidential",
+    "contract",
+    "cpa",
+    "credential",
+    "dispute",
+    "disputes",
+    "expense",
+    "gmail",
+    "gmail body",
+    "income",
+    "invoice",
+    "law firm",
+    "legal matter",
+    "matter",
+    "music law",
+    "oauth",
+    "password",
+    "payment",
+    "pii",
+    "pii vault",
+    "private",
+    "private correspondence",
+    "private deal terms",
+    "private key",
+    "private rights",
+    "private vault",
+    "publishing",
+    "publishing catalog",
+    "registration",
+    "registrations",
+    "rights admin",
+    "royalties",
+    "royalty",
+    "secret",
+    "split sheet",
+    "split sheets",
+    "splits",
+    "ssn",
+    "tax",
+    "token",
+    "token file",
+})
+
+_EXTERNAL_MODEL_BLOCK_PATTERNS = (
+    ("money_amount", re.compile(r"\$\s*\d|\b\d+(?:\.\d+)?\s*(?:dollars?|usd|bucks?)\b", re.IGNORECASE)),
+)
+
+
+def _policy_truthy(value) -> bool:
+    return str(value).strip().lower() in {"true", "yes", "1", "y", "on"}
+
+
+def _normalize_policy_value(value) -> str:
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _policy_text(value) -> str:
+    if isinstance(value, dict):
+        return " ".join(_policy_text(item) for item in value.values())
+    if isinstance(value, (list, tuple, set)):
+        return " ".join(_policy_text(item) for item in value)
+    return str(value)
+
+
+def external_model_packet_policy(packet="", metadata: dict | None = None) -> dict:
+    """Return deterministic external-model/cloud eligibility for a packet.
+
+    The result shape is intentionally plain so runner code, brains, and tests can
+    share it without importing a policy framework.
+    """
+    meta = metadata or {}
+    classification = _normalize_policy_value(
+        meta.get("data_classification")
+        or meta.get("classification")
+        or meta.get("sensitivity")
+        or meta.get("privacy")
+        or ""
+    )
+    cloud_allowed = any(
+        _policy_truthy(meta.get(key, ""))
+        for key in ("cloud_allowed", "allow_cloud", "cloud_ok")
+    )
+
+    def blocked(reason: str, *, sensitive: bool) -> dict:
+        return {
+            "external_model_safe": False,
+            "blocked": True,
+            "sensitive": sensitive,
+            "cloud_allowed": cloud_allowed,
+            "classification": classification,
+            "reason": reason,
+        }
+
+    if _policy_truthy(meta.get("local_required", "")):
+        return blocked("local_required", sensitive=True)
+    if _policy_truthy(meta.get("sensitive", "")):
+        return blocked("sensitive_flag", sensitive=True)
+    if classification in EXTERNAL_MODEL_BLOCKED_CLASSIFICATIONS:
+        return blocked(f"blocked_classification:{classification}", sensitive=True)
+
+    text_lower = _policy_text({"packet": packet, "metadata": meta}).lower()
+    for marker in sorted(EXTERNAL_MODEL_BLOCK_MARKERS, key=len, reverse=True):
+        if marker in text_lower:
+            return blocked(f"blocked_marker:{marker}", sensitive=True)
+    for pattern_name, pattern in _EXTERNAL_MODEL_BLOCK_PATTERNS:
+        if pattern.search(text_lower):
+            return blocked(f"blocked_pattern:{pattern_name}", sensitive=True)
+
+    if not cloud_allowed:
+        return blocked("cloud_not_explicitly_allowed", sensitive=False)
+    if classification not in EXTERNAL_MODEL_SAFE_CLASSIFICATIONS:
+        return blocked("classification_not_external_safe", sensitive=False)
+
+    return {
+        "external_model_safe": True,
+        "blocked": False,
+        "sensitive": False,
+        "cloud_allowed": True,
+        "classification": classification,
+        "reason": "explicit_cloud_allowed_public_or_synthetic",
+    }
+
+
+def external_model_safe(packet="", metadata: dict | None = None) -> bool:
+    return bool(external_model_packet_policy(packet, metadata).get("external_model_safe"))
+
 # ── Escalation logic ──────────────────────────────────────────────────────────
 #
 # Automatic local model escalation: use 14b instead of 7b when the prompt

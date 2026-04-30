@@ -33,6 +33,12 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from chief_llm import (
+    EXTERNAL_MODEL_BLOCK_MARKERS,
+    EXTERNAL_MODEL_SAFE_CLASSIFICATIONS,
+    external_model_packet_policy,
+)
+
 TASK_FILE_CANDIDATES = (
     Path("/home/openclaw/polish_loop/current/task.md"),
     Path("/home/openclaw/polish_loop/task.md"),
@@ -511,25 +517,10 @@ TASK_QUEUE_DIR = Path("/home/openclaw/polish_loop/tasks")
 ARCHIVE_DIR = Path("/home/openclaw/polish_loop/archive")
 
 CLOUD_CAPABLE_RUNNERS = {"aider", "codex", "gemini"}
-CLOUD_ALLOWED_CLASSIFICATIONS = {
-    "non_sensitive",
-    "nonsensitive",
-    "public",
-    "public_fixture",
-    "synthetic",
-    "synthetic_public",
-    "test_public",
-}
+CLOUD_ALLOWED_CLASSIFICATIONS = set(EXTERNAL_MODEL_SAFE_CLASSIFICATIONS)
 
 # Keywords that signal sensitive data requiring local-only processing
-SENSITIVE_KEYWORDS = {
-    "ssn", "social security", "credentials", "password", "secret",
-    "private key", "api key", "token file", "billing record",
-    "financial", "identity", "pii", "hipaa", "token",
-    "/mnt/c/openclawlegalprivate", "openclawlegalprivate",
-    "gmail body", "private correspondence", ".env", "pii vault",
-    "private vault", "legal matter", "client matter",
-}
+SENSITIVE_KEYWORDS = set(EXTERNAL_MODEL_BLOCK_MARKERS)
 
 
 def _truthy(value) -> bool:
@@ -550,44 +541,14 @@ def _policy_text(value) -> str:
 
 def _task_is_sensitive(meta: dict) -> bool:
     """Check if a task requires local-only processing for data sensitivity."""
-    # Explicit flag in frontmatter
-    if _truthy(meta.get("local_required", "")):
-        return True
-    if _truthy(meta.get("sensitive", "")):
-        return True
-
-    classification = _normalize_policy_value(
-        meta.get("data_classification")
-        or meta.get("classification")
-        or meta.get("sensitivity")
-        or meta.get("privacy")
-        or ""
-    )
-    if classification in ("sensitive", "private", "pii", "secret", "legal_matter", "client_matter"):
-        return True
-
-    # Keyword scan across task metadata, including goal/scope/title fields.
-    text = _policy_text(meta).lower()
-    return any(kw in text for kw in SENSITIVE_KEYWORDS)
+    return bool(external_model_packet_policy(meta, metadata=meta).get("sensitive"))
 
 
 def _task_allows_cloud(meta: dict) -> bool:
     """Require explicit non-sensitive classification before cloud runners."""
-    if not meta or _task_is_sensitive(meta):
+    if not meta:
         return False
-
-    cloud_allowed = any(
-        _truthy(meta.get(key, ""))
-        for key in ("cloud_allowed", "allow_cloud", "cloud_ok")
-    )
-    classification = _normalize_policy_value(
-        meta.get("data_classification")
-        or meta.get("classification")
-        or meta.get("sensitivity")
-        or meta.get("privacy")
-        or ""
-    )
-    return cloud_allowed and classification in CLOUD_ALLOWED_CLASSIFICATIONS
+    return bool(external_model_packet_policy(meta, metadata=meta).get("external_model_safe"))
 
 
 def _get_recent_runner_ratio(runner_a: str = "codex", runner_b: str = "gemini",

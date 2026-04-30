@@ -24,7 +24,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from chief_llm import ollama_call, nemotron_call
+from chief_llm import external_model_packet_policy, ollama_call, nemotron_call
 from chief_session_manager import (
     set_workflow,
     set_workflow_state,
@@ -128,6 +128,9 @@ def _brainstorm_cloud_safe(raw_text: str) -> bool:
     """Return True only if raw brainstorm input contains no personal, financial,
     or credential-identifying content. Fails closed — ambiguous input routes local.
     """
+    policy = external_model_packet_policy(raw_text, metadata={"workload": "chief_brainstorm_synthesis"})
+    if not policy.get("external_model_safe"):
+        return False
     t = raw_text.lower()
     if _contains_cloud_hard_deny_marker(raw_text):
         return False

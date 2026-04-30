@@ -166,6 +166,40 @@ def test_explicit_non_sensitive_cloud_allowed_task_may_select_cloud_runner(runne
     assert profile["runner"] not in HUMAN_ONLY_RUNNERS
 
 
+@pytest.mark.parametrize(
+    "goal",
+    [
+        "Review a Legal matter packet for a law firm client.",
+        "Summarize Music Law contract royalties and split sheet disputes.",
+        "Classify CPA tax, income, invoice, and payment details.",
+        "Update Publishing catalog registrations, splits, and private rights admin data.",
+        "Analyze Gmail private correspondence tied to a client invoice.",
+    ],
+    ids=["legal", "musiclaw", "cpa", "publishing", "gmail"],
+)
+def test_professional_packets_block_cloud_even_with_non_sensitive_cloud_metadata(runner_policy_context, goal):
+    profile = runner_profiles.select_profile(
+        _task(
+            goal,
+            frontmatter="data_classification: non_sensitive\ncloud_allowed: true",
+        )
+    )
+
+    _assert_local_only_or_fail_closed(profile)
+    assert profile["cloud_allowed"] is False
+    assert profile["cloud_policy"] == "local_only_sensitive"
+
+
+def test_unclassified_packet_policy_fails_closed_before_runner_choice(runner_policy_context):
+    profile = runner_profiles.select_profile(
+        _task("Update an ordinary helper without sensitivity metadata.")
+    )
+
+    _assert_local_only_or_fail_closed(profile)
+    assert profile["cloud_allowed"] is False
+    assert profile["cloud_policy"] == "local_only_unclassified"
+
+
 def test_unclassified_local_failure_does_not_silently_fallback_to_cloud(monkeypatch, runner_policy_context):
     ranked_after_local_failure = [
         runner_policy_context.runners["ollama"],

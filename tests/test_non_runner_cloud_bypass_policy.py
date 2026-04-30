@@ -44,6 +44,14 @@ HARD_DENY_MARKERS = [
     "client matter",
 ]
 
+PROFESSIONAL_PACKET_FIXTURES = [
+    ("legal", "Legal matter packet for a law firm client intake."),
+    ("musiclaw", "Music Law contract royalty dispute with private deal terms."),
+    ("cpa", "CPA tax packet with income, invoice, and payment details."),
+    ("publishing", "Publishing catalog registration with splits and private rights admin data."),
+    ("gmail", "Gmail private correspondence about a client invoice payment."),
+]
+
 
 def _chief_cloud_wrapper_inventory() -> tuple[set[tuple[str, str, str]], set[tuple[str, str, str]]]:
     direct_imports: set[tuple[str, str, str]] = set()
@@ -150,6 +158,43 @@ def test_agent_brains_do_not_import_or_call_claude_wrappers():
 
     assert direct_imports == set()
     assert direct_calls == set()
+
+
+@pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
+def test_external_model_policy_blocks_professional_packets_even_with_cloud_metadata(label, packet):
+    policy = chief_llm.external_model_packet_policy(
+        packet,
+        metadata={"data_classification": "non_sensitive", "cloud_allowed": "true"},
+    )
+
+    assert policy["external_model_safe"] is False, label
+    assert policy["sensitive"] is True, policy
+    assert policy["reason"].startswith("blocked_"), policy
+
+
+def test_external_model_policy_fails_closed_for_unclassified_packet():
+    policy = chief_llm.external_model_packet_policy("Update an ordinary helper.")
+
+    assert policy["external_model_safe"] is False
+    assert policy["sensitive"] is False
+    assert policy["reason"] == "cloud_not_explicitly_allowed"
+
+
+def test_external_model_policy_allows_explicit_public_synthetic_packet():
+    policy = chief_llm.external_model_packet_policy(
+        "Synthetic public fixture for a generic parser helper.",
+        metadata={"data_classification": "synthetic_public", "cloud_allowed": "true"},
+    )
+
+    assert policy["external_model_safe"] is True
+    assert policy["sensitive"] is False
+    assert policy["reason"] == "explicit_cloud_allowed_public_or_synthetic"
+
+
+@pytest.mark.parametrize("label,packet", PROFESSIONAL_PACKET_FIXTURES)
+def test_non_runner_cloud_gates_block_professional_packets(label, packet):
+    assert chief_brainstorm_brain._brainstorm_cloud_safe(packet) is False, label
+    assert chief_cpa_brain._expense_cloud_safe(packet) is False, label
 
 
 @pytest.mark.parametrize("marker", HARD_DENY_MARKERS)
