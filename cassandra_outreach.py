@@ -97,6 +97,56 @@ KNOWN_CONTACT_ACTION_IGNORE_THREAD = "ignore_thread"
 KNOWN_CONTACT_ACTION_REVISE_RESPONSE = "revise_response"
 KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT = "create_gmail_draft"
 KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL = "ask_guardian_send_approval"
+KNOWN_CONTACT_ACTION_PENDING = "pending"
+KNOWN_CONTACT_ACTION_NOTIFY_ONLY = "notify_only"
+
+KNOWN_CONTACT_OPERATOR_ACTIONS = (
+    KNOWN_CONTACT_ACTION_WATCH_THREAD,
+    KNOWN_CONTACT_ACTION_IGNORE_THREAD,
+    KNOWN_CONTACT_ACTION_REVISE_RESPONSE,
+    KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT,
+    KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL,
+)
+KNOWN_CONTACT_PASSIVE_OPERATOR_ACTIONS = (
+    KNOWN_CONTACT_ACTION_PENDING,
+    KNOWN_CONTACT_ACTION_NOTIFY_ONLY,
+)
+
+KNOWN_CONTACT_REASON_NO_PRIOR_STATE = "no_prior_known_contact_state"
+KNOWN_CONTACT_REASON_THREAD_IGNORED = "thread_ignored"
+KNOWN_CONTACT_REASON_THREAD_APPROVED_FOR_FOLLOW_UP = "thread_already_approved_for_follow_up"
+KNOWN_CONTACT_REASON_NOTIFICATION_PENDING_OPERATOR_ACTION = "notification_pending_operator_action"
+KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_PENDING = "gmail_draft_action_pending"
+KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_RECORDED = "gmail_draft_action_recorded"
+KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_PENDING = "guardian_send_approval_pending"
+KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_RECORDED = "guardian_send_approval_recorded"
+KNOWN_CONTACT_REASON_REVISION_PENDING_OPERATOR_ACTION = "revision_pending_operator_action"
+KNOWN_CONTACT_REASON_OPERATOR_ACTION_ALREADY_RECORDED = "operator_action_already_recorded"
+KNOWN_CONTACT_REASON_PRIOR_STATE_EXISTS = "prior_known_contact_state_exists"
+KNOWN_CONTACT_REASON_UNKNOWN_OPERATOR_ACTION_MANUAL_REVIEW = "unknown_operator_action_manual_review"
+KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW = "malformed_latest_action_manual_review"
+KNOWN_CONTACT_REASON_MALFORMED_NOTIFICATION_DECISION_MANUAL_REVIEW = "malformed_notification_decision_manual_review"
+KNOWN_CONTACT_REASON_CONTRADICTORY_NOTIFICATION_DECISION_MANUAL_REVIEW = "contradictory_notification_decision_manual_review"
+KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED = "known_contact_notification_suppressed"
+
+KNOWN_CONTACT_DECISION_REASONS = (
+    KNOWN_CONTACT_REASON_NO_PRIOR_STATE,
+    KNOWN_CONTACT_REASON_THREAD_IGNORED,
+    KNOWN_CONTACT_REASON_THREAD_APPROVED_FOR_FOLLOW_UP,
+    KNOWN_CONTACT_REASON_NOTIFICATION_PENDING_OPERATOR_ACTION,
+    KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_PENDING,
+    KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_RECORDED,
+    KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_PENDING,
+    KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_RECORDED,
+    KNOWN_CONTACT_REASON_REVISION_PENDING_OPERATOR_ACTION,
+    KNOWN_CONTACT_REASON_OPERATOR_ACTION_ALREADY_RECORDED,
+    KNOWN_CONTACT_REASON_PRIOR_STATE_EXISTS,
+    KNOWN_CONTACT_REASON_UNKNOWN_OPERATOR_ACTION_MANUAL_REVIEW,
+    KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW,
+    KNOWN_CONTACT_REASON_MALFORMED_NOTIFICATION_DECISION_MANUAL_REVIEW,
+    KNOWN_CONTACT_REASON_CONTRADICTORY_NOTIFICATION_DECISION_MANUAL_REVIEW,
+    KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED,
+)
 
 CASSANDRA_STARTED_THREAD = "cassandra_started_thread"
 USER_ASSIGNED_THREAD = "user_assigned_thread"
@@ -116,13 +166,9 @@ _VALID_OWNERSHIP_STATES = {
     UNKNOWN_THREAD_OWNERSHIP,
 }
 
-_VALID_KNOWN_CONTACT_OPERATOR_ACTIONS = {
-    KNOWN_CONTACT_ACTION_WATCH_THREAD,
-    KNOWN_CONTACT_ACTION_IGNORE_THREAD,
-    KNOWN_CONTACT_ACTION_REVISE_RESPONSE,
-    KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT,
-    KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL,
-}
+_VALID_KNOWN_CONTACT_OPERATOR_ACTIONS = set(KNOWN_CONTACT_OPERATOR_ACTIONS)
+_VALID_KNOWN_CONTACT_PASSIVE_OPERATOR_ACTIONS = set(KNOWN_CONTACT_PASSIVE_OPERATOR_ACTIONS)
+_VALID_KNOWN_CONTACT_DECISION_REASONS = set(KNOWN_CONTACT_DECISION_REASONS)
 
 _RECIPIENT_ORDER = ("draper", "dad", "mom")
 
@@ -887,6 +933,82 @@ def _detect_inner_circle_email_reply_intent(text: str) -> bool:
 _EMAIL_BRIDGE_LOG = Path("/mnt/c/OpenClaw/logs/cassandra_email_bridge.jsonl")
 
 
+def _normalize_known_contact_action_token(action: str | None) -> str:
+    return str(action or "").strip()
+
+
+def _is_known_contact_operator_action(action: str) -> bool:
+    return action in _VALID_KNOWN_CONTACT_OPERATOR_ACTIONS
+
+
+def _is_known_contact_passive_operator_action(action: str) -> bool:
+    return action in _VALID_KNOWN_CONTACT_PASSIVE_OPERATOR_ACTIONS or action == ""
+
+
+def _known_contact_suppressed_decision(
+    *,
+    reason: str,
+    latest_action=None,
+    followup_eligible: bool = False,
+) -> dict:
+    reason_text = str(reason or KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED).strip()
+    if reason_text not in _VALID_KNOWN_CONTACT_DECISION_REASONS:
+        reason_text = KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED
+    return {
+        "should_notify": False,
+        "reason": reason_text,
+        "latest_action": latest_action,
+        "followup_eligible": bool(followup_eligible),
+    }
+
+
+def _normalize_known_contact_notification_decision(decision) -> dict | None:
+    if decision is None:
+        return None
+    if not isinstance(decision, dict):
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_NOTIFICATION_DECISION_MANUAL_REVIEW,
+        )
+
+    normalized = dict(decision)
+    should_notify = normalized.get("should_notify")
+    latest_action = normalized.get("latest_action")
+    followup_eligible = bool(normalized.get("followup_eligible", False))
+    reason = str(normalized.get("reason", "") or "").strip()
+    if not isinstance(should_notify, bool):
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_NOTIFICATION_DECISION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+
+    if should_notify:
+        if (
+            reason != KNOWN_CONTACT_REASON_NO_PRIOR_STATE
+            or latest_action is not None
+            or followup_eligible
+        ):
+            return _known_contact_suppressed_decision(
+                reason=KNOWN_CONTACT_REASON_CONTRADICTORY_NOTIFICATION_DECISION_MANUAL_REVIEW,
+                latest_action=latest_action,
+            )
+        normalized["reason"] = reason
+        normalized["followup_eligible"] = False
+        return normalized
+
+    if reason == KNOWN_CONTACT_REASON_NO_PRIOR_STATE:
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_CONTRADICTORY_NOTIFICATION_DECISION_MANUAL_REVIEW,
+            latest_action=latest_action,
+            followup_eligible=followup_eligible,
+        )
+    if reason not in _VALID_KNOWN_CONTACT_DECISION_REASONS:
+        reason = KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED
+    normalized["should_notify"] = False
+    normalized["reason"] = reason
+    normalized["followup_eligible"] = followup_eligible
+    return normalized
+
+
 def record_known_contact_watch_event(
     *,
     message_id: str,
@@ -915,6 +1037,15 @@ def record_known_contact_watch_event(
     if normalized_ownership_state not in _VALID_OWNERSHIP_STATES:
         raise ValueError(f"invalid ownership_state: {ownership_state}")
 
+    normalized_operator_action = _normalize_known_contact_action_token(
+        operator_action or KNOWN_CONTACT_ACTION_PENDING
+    )
+    if (
+        not _is_known_contact_operator_action(normalized_operator_action)
+        and not _is_known_contact_passive_operator_action(normalized_operator_action)
+    ):
+        raise ValueError(f"invalid operator_action: {operator_action}")
+
     entry = {
         "message_id": str(message_id or "").strip(),
         "thread_id": str(thread_id or "").strip(),
@@ -924,7 +1055,7 @@ def record_known_contact_watch_event(
         "watch_state": normalized_watch_state,
         "ownership_state": normalized_ownership_state,
         "matched_reason": str(matched_reason or "").strip(),
-        "operator_action": str(operator_action or "pending").strip(),
+        "operator_action": normalized_operator_action,
         "draft_id": str(draft_id or "").strip(),
         "approval_id": str(approval_id or "").strip(),
         "created_at": str(created_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -970,8 +1101,8 @@ def record_known_contact_operator_action(
     creates Gmail drafts, asks Guardian for approval, sends email, sends
     Telegram, or calls a model.
     """
-    action = str(operator_action or action_token or "").strip()
-    if action not in _VALID_KNOWN_CONTACT_OPERATOR_ACTIONS:
+    action = _normalize_known_contact_action_token(operator_action or action_token)
+    if not _is_known_contact_operator_action(action):
         raise ValueError(f"invalid operator_action: {operator_action or action_token}")
 
     watch_state = KNOWN_CONTACT_WATCH_NOTIFICATION
@@ -1180,34 +1311,65 @@ def should_notify_known_contact_thread(
     if latest_action is None:
         return {
             "should_notify": True,
-            "reason": "no_prior_known_contact_state",
+            "reason": KNOWN_CONTACT_REASON_NO_PRIOR_STATE,
             "latest_action": None,
             "followup_eligible": False,
         }
 
-    operator_action = str(latest_action.get("operator_action", "") or "").strip()
+    if not isinstance(latest_action, dict):
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+    if latest_action.get("_invalid_reason"):
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+
+    operator_action = _normalize_known_contact_action_token(latest_action.get("operator_action", ""))
     watch_state = str(latest_action.get("watch_state", "") or "").strip()
+    if not operator_action and not watch_state:
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+    if (
+        operator_action
+        and not _is_known_contact_operator_action(operator_action)
+        and not _is_known_contact_passive_operator_action(operator_action)
+    ):
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_UNKNOWN_OPERATOR_ACTION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+    if watch_state and watch_state not in _VALID_WATCH_STATES:
+        return _known_contact_suppressed_decision(
+            reason=KNOWN_CONTACT_REASON_MALFORMED_LATEST_ACTION_MANUAL_REVIEW,
+            latest_action=latest_action,
+        )
+
     followup_eligible = (
         watch_state == APPROVED_FOR_FOLLOW_UP_LANE
         or operator_action == KNOWN_CONTACT_ACTION_WATCH_THREAD
     )
 
     if watch_state == IGNORED_NOT_IN_SCOPE_THREAD or operator_action == KNOWN_CONTACT_ACTION_IGNORE_THREAD:
-        reason = "thread_ignored"
+        reason = KNOWN_CONTACT_REASON_THREAD_IGNORED
     elif followup_eligible:
-        reason = "thread_already_approved_for_follow_up"
+        reason = KNOWN_CONTACT_REASON_THREAD_APPROVED_FOR_FOLLOW_UP
     elif operator_action == KNOWN_CONTACT_ACTION_CREATE_GMAIL_DRAFT:
-        reason = "gmail_draft_action_recorded" if latest_action.get("draft_id") else "gmail_draft_action_pending"
+        reason = KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_RECORDED if latest_action.get("draft_id") else KNOWN_CONTACT_REASON_GMAIL_DRAFT_ACTION_PENDING
     elif operator_action == KNOWN_CONTACT_ACTION_ASK_GUARDIAN_SEND_APPROVAL:
-        reason = "guardian_send_approval_recorded" if latest_action.get("approval_id") else "guardian_send_approval_pending"
+        reason = KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_RECORDED if latest_action.get("approval_id") else KNOWN_CONTACT_REASON_GUARDIAN_SEND_APPROVAL_PENDING
     elif operator_action == KNOWN_CONTACT_ACTION_REVISE_RESPONSE:
-        reason = "revision_pending_operator_action"
-    elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION and operator_action in {"", "pending", "notify_only"}:
-        reason = "notification_pending_operator_action"
+        reason = KNOWN_CONTACT_REASON_REVISION_PENDING_OPERATOR_ACTION
+    elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION and _is_known_contact_passive_operator_action(operator_action):
+        reason = KNOWN_CONTACT_REASON_NOTIFICATION_PENDING_OPERATOR_ACTION
     elif watch_state == KNOWN_CONTACT_WATCH_NOTIFICATION:
-        reason = "operator_action_already_recorded"
+        reason = KNOWN_CONTACT_REASON_OPERATOR_ACTION_ALREADY_RECORDED
     else:
-        reason = "prior_known_contact_state_exists"
+        reason = KNOWN_CONTACT_REASON_PRIOR_STATE_EXISTS
 
     return {
         "should_notify": False,
@@ -1301,18 +1463,20 @@ def send_known_contact_watch_notification(
         or actions is not None
         or log_path is not None
     )
-    decision = notification_decision if isinstance(notification_decision, dict) else None
-    if should_check_decision and decision is None:
-        decision = should_notify_known_contact_thread(
+    decision = None
+    if notification_decision is not None:
+        decision = _normalize_known_contact_notification_decision(notification_decision)
+    elif should_check_decision:
+        decision = _normalize_known_contact_notification_decision(should_notify_known_contact_thread(
             candidate_event=event_data,
             latest_action=latest_action,
             actions=actions,
             log_path=log_path,
-        )
+        ))
     if decision and decision.get("should_notify") is False:
         return {
             "notified": False,
-            "reason": str(decision.get("reason", "known_contact_notification_suppressed") or "known_contact_notification_suppressed"),
+            "reason": str(decision.get("reason", KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED) or KNOWN_CONTACT_REASON_NOTIFICATION_SUPPRESSED),
             "message_id": message_id,
             "thread_id": thread_id,
             "followup_eligible": bool(decision.get("followup_eligible", False)),

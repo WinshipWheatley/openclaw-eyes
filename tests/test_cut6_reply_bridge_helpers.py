@@ -380,6 +380,39 @@ class TestKnownContactWatchEvent:
 
         assert not log.exists()
 
+    def test_known_contact_action_and_reason_contract_constants_are_stable(self):
+        import cassandra_outreach as outreach
+
+        assert outreach.KNOWN_CONTACT_OPERATOR_ACTIONS == (
+            "watch_thread",
+            "ignore_thread",
+            "revise_response",
+            "create_gmail_draft",
+            "ask_guardian_send_approval",
+        )
+        assert outreach.KNOWN_CONTACT_PASSIVE_OPERATOR_ACTIONS == (
+            "pending",
+            "notify_only",
+        )
+        assert outreach.KNOWN_CONTACT_DECISION_REASONS == (
+            "no_prior_known_contact_state",
+            "thread_ignored",
+            "thread_already_approved_for_follow_up",
+            "notification_pending_operator_action",
+            "gmail_draft_action_pending",
+            "gmail_draft_action_recorded",
+            "guardian_send_approval_pending",
+            "guardian_send_approval_recorded",
+            "revision_pending_operator_action",
+            "operator_action_already_recorded",
+            "prior_known_contact_state_exists",
+            "unknown_operator_action_manual_review",
+            "malformed_latest_action_manual_review",
+            "malformed_notification_decision_manual_review",
+            "contradictory_notification_decision_manual_review",
+            "known_contact_notification_suppressed",
+        )
+
     @pytest.mark.parametrize(
         "field",
         ["message_id", "thread_id", "sender_email", "contact_nickname", "contact_tier"],
@@ -668,6 +701,33 @@ class TestKnownContactWatchEvent:
         assert decision["reason"] == "revision_pending_operator_action"
         assert decision["followup_eligible"] is False
 
+    def test_unknown_latest_operator_action_suppresses_for_manual_review(self):
+        import cassandra_outreach as outreach
+
+        decision = outreach.should_notify_known_contact_thread(
+            thread_id="t-known",
+            latest_action=self._base_operator_action_kwargs() | {
+                "operator_action": "send_now",
+                "watch_state": outreach.KNOWN_CONTACT_WATCH_NOTIFICATION,
+            },
+        )
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "unknown_operator_action_manual_review"
+        assert decision["followup_eligible"] is False
+
+    def test_malformed_latest_action_suppresses_for_manual_review(self):
+        import cassandra_outreach as outreach
+
+        decision = outreach.should_notify_known_contact_thread(
+            thread_id="t-known",
+            latest_action={"_invalid_reason": "line is not a JSON object"},
+        )
+
+        assert decision["should_notify"] is False
+        assert decision["reason"] == "malformed_latest_action_manual_review"
+        assert decision["followup_eligible"] is False
+
     def test_decision_helper_accepts_candidate_event_and_resolved_latest_action(self):
         import cassandra_outreach as outreach
 
@@ -851,6 +911,47 @@ class TestKnownContactWatchEvent:
         assert result["notified"] is False
         assert result["reason"] == "thread_ignored"
         assert result["notification_decision"] == decision
+        assert sent == []
+
+    def test_notification_dispatcher_fails_closed_for_malformed_decision(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+
+        result = outreach.send_known_contact_watch_notification(
+            self._base_known_contact_event(),
+            notification_decision={"should_notify": "yes", "reason": "no_prior_known_contact_state"},
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is False
+        assert result["reason"] == "malformed_notification_decision_manual_review"
+        assert result["notification_decision"]["should_notify"] is False
+        assert sent == []
+
+    def test_notification_dispatcher_fails_closed_for_contradictory_decision(self):
+        import cassandra_outreach as outreach
+
+        sent = []
+        decision = {
+            "should_notify": True,
+            "reason": "thread_ignored",
+            "latest_action": self._base_operator_action_kwargs() | {
+                "operator_action": "ignore_thread",
+                "watch_state": outreach.IGNORED_NOT_IN_SCOPE_THREAD,
+            },
+            "followup_eligible": False,
+        }
+
+        result = outreach.send_known_contact_watch_notification(
+            self._base_known_contact_event(),
+            notification_decision=decision,
+            send_fn=sent.append,
+        )
+
+        assert result["notified"] is False
+        assert result["reason"] == "contradictory_notification_decision_manual_review"
+        assert result["notification_decision"]["should_notify"] is False
         assert sent == []
 
     @pytest.mark.parametrize(
