@@ -3,6 +3,8 @@ import os
 import sys
 from datetime import datetime, timedelta
 
+import pytest
+
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -109,6 +111,103 @@ class TestGuardianApprovalCards:
         assert "Proposed send:" in message
         assert "Draft preview:" in message
         assert "Reply code: ABCD" in message
+
+
+class TestGuardianSenderPolicy:
+    def test_button_send_uses_guardian_token_when_present(self, monkeypatch):
+        import chief_guardian_sender as sender
+
+        posted = []
+
+        class Response:
+            def raise_for_status(self):
+                return None
+
+        def fake_post(url, json=None, timeout=None):
+            posted.append((url, json, timeout))
+            return Response()
+
+        monkeypatch.setattr(sender.chief_env, "load_env", lambda: None)
+        monkeypatch.setenv("GUARDIAN_BOT_TOKEN", "guardian-token")
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "chief-token")
+        monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+        monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+        monkeypatch.setattr(sender.requests, "post", fake_post)
+
+        keyboard = {"inline_keyboard": [[{"text": "Approve", "callback_data": "YES:ABCD1234"}]]}
+        sender.send_approval("Approve this", reply_markup=keyboard)
+
+        assert len(posted) == 1
+        url, payload, timeout = posted[0]
+        assert url == "https://api.telegram.org/botguardian-token/sendMessage"
+        assert payload == {"chat_id": "42", "text": "Approve this", "reply_markup": keyboard}
+        assert timeout == 15
+
+    def test_button_send_requires_guardian_token(self, monkeypatch):
+        import chief_guardian_sender as sender
+
+        monkeypatch.setattr(sender.chief_env, "load_env", lambda: None)
+        monkeypatch.delenv("GUARDIAN_BOT_TOKEN", raising=False)
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "chief-token")
+        monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+        monkeypatch.setattr(
+            sender.requests,
+            "post",
+            lambda *args, **kwargs: pytest.fail("button send fell back to Telegram bot"),
+        )
+
+        keyboard = {"inline_keyboard": [[{"text": "Approve", "callback_data": "YES:ABCD1234"}]]}
+        with pytest.raises(sender.GuardianConfigurationError, match="GUARDIAN_BOT_TOKEN is required"):
+            sender.send_approval("Approve this", reply_markup=keyboard)
+
+    def test_plain_send_keeps_chief_fallback_when_guardian_missing(self, monkeypatch):
+        import chief_guardian_sender as sender
+
+        posted = []
+
+        class Response:
+            def raise_for_status(self):
+                return None
+
+        def fake_post(url, json=None, timeout=None):
+            posted.append((url, json, timeout))
+            return Response()
+
+        monkeypatch.setattr(sender.chief_env, "load_env", lambda: None)
+        monkeypatch.delenv("GUARDIAN_BOT_TOKEN", raising=False)
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "chief-token")
+        monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "42")
+        monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+        monkeypatch.setattr(sender.requests, "post", fake_post)
+
+        sender.send_approval("No pending approval requests.")
+
+        assert len(posted) == 1
+        url, payload, timeout = posted[0]
+        assert url == "https://api.telegram.org/botchief-token/sendMessage"
+        assert payload == {"chat_id": "42", "text": "No pending approval requests."}
+        assert timeout == 15
+
+    def test_approval_brain_button_failure_does_not_fallback_to_chief(self, monkeypatch):
+        import chief_approval_brain as approval_brain
+        import chief_guardian_sender as sender
+
+        chief_messages = []
+
+        def fail_send(*args, **kwargs):
+            raise sender.GuardianConfigurationError("missing Guardian token")
+
+        monkeypatch.setattr(approval_brain.chief_env, "load_env", lambda: None)
+        monkeypatch.setattr(sender, "send_approval", fail_send)
+        monkeypatch.setattr(approval_brain, "_send_chief", lambda message: chief_messages.append(message))
+
+        ok = approval_brain._send_via_guardian(
+            "APPROVAL REQUIRED",
+            keyboard={"inline_keyboard": [[{"text": "Approve", "callback_data": "YES:ABCD1234"}]]},
+        )
+
+        assert ok is False
+        assert chief_messages == []
 
 
 class TestApprovalReplyRouting:

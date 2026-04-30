@@ -4,17 +4,17 @@ chief_guardian_sender.py
 Sends approval requests via the dedicated Guardian bot channel.
 
 Bot priority fallback chain:
-  1. GUARDIAN_BOT_TOKEN   — dedicated approval bot (ideal; create via BotFather)
-  2. TELEGRAM_BOT_TOKEN   — Chief bot (current behavior, preserved as fallback)
+    1. GUARDIAN_BOT_TOKEN   — dedicated approval bot (required for buttons)
+    2. TELEGRAM_BOT_TOKEN   — Chief bot (plain status-message fallback only)
 
 Cassandra bot is intentionally excluded from the fallback chain.
 Cassandra is an executive assistant layer, not an approval authority.
 Role separation: Chief = operator, Cassandra = assistant, Guardian = approval gate.
 
-If GUARDIAN_BOT_TOKEN is not set, this module falls back to the Chief bot —
-meaning approval messages continue to travel via the Chief channel until a
-dedicated Guardian bot is configured. Behavior is identical to pre-upgrade
-in that case.
+If GUARDIAN_BOT_TOKEN is not set, plain status messages may still fall back to
+the Chief bot. Button-bearing approval requests do not fall back: they fail
+closed so Guardian approval UX cannot silently degrade into Chief/signalrelay
+text-code UX.
 
 Usage:
     from chief_guardian_sender import send_approval
@@ -30,13 +30,22 @@ import requests
 import chief_env
 
 
-def _token() -> str:
+class GuardianConfigurationError(RuntimeError):
+    """Raised when a Guardian-only approval cannot be delivered safely."""
+
+
+def _token(*, require_guardian: bool = False) -> str:
     """Return the bot token to use for approval delivery."""
     chief_env.load_env()
-    return (
-        os.environ.get("GUARDIAN_BOT_TOKEN")
-        or os.environ["TELEGRAM_BOT_TOKEN"]
-    )
+    guardian_token = os.environ.get("GUARDIAN_BOT_TOKEN")
+    if guardian_token:
+        return guardian_token
+    if require_guardian:
+        raise GuardianConfigurationError(
+            "GUARDIAN_BOT_TOKEN is required for button-bearing Guardian "
+            "approval messages; refusing to fall back to TELEGRAM_BOT_TOKEN."
+        )
+    return os.environ["TELEGRAM_BOT_TOKEN"]
 
 
 def _chat_id() -> str:
@@ -60,7 +69,7 @@ def send_approval(message: str, reply_markup: dict | None = None) -> None:
     the message is sent with inline tap buttons. Pass None (default) to send
     plain text (e.g. collision/timeout notifications that need no buttons).
     """
-    token = _token()
+    token = _token(require_guardian=reply_markup is not None)
     chat_id = _chat_id()
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload: dict = {"chat_id": chat_id, "text": message}

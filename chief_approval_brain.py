@@ -187,16 +187,23 @@ def _build_approval_context_block(approval_context: dict | None) -> str:
     return "\n".join(lines)
 
 
-def _send_via_guardian(message: str, keyboard: dict | None = None) -> None:
+def _send_via_guardian(message: str, keyboard: dict | None = None) -> bool:
     chief_env.load_env()
     try:
         from chief_guardian_sender import send_approval
         send_approval(message, reply_markup=keyboard)
+        return True
     except (ImportError, Exception) as e:
+        if keyboard is not None:
+            print(
+                f"[approval] Guardian button send failed ({e!r}); "
+                "refusing Chief bot fallback for button-bearing approval.",
+                flush=True,
+            )
+            return False
         print(f"[approval] Guardian send failed ({e!r}), falling back to Chief bot.", flush=True)
         _send_chief(message)
-        # Chief bot fallback does not support inline keyboards — the typed CODE DECISION
-        # path on the Chief channel remains available as intentional fallback.
+        return True
 
 
 # ── Pending state ──────────────────────────────────────────────────────────────
@@ -358,11 +365,10 @@ def resend_pending_request() -> bool:
     if not action_hash and approval_id and requested_at:
         action_hash = _compute_hash(action, approval_id, requested_at)
 
-    _send_via_guardian(
+    return _send_via_guardian(
         _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
         keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
     )
-    return True
 
 
 def send_no_pending_confirmation() -> None:
@@ -558,10 +564,14 @@ def request_approval(
         )
         return False
 
-    _send_via_guardian(
+    if not _send_via_guardian(
         _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
         keyboard=_build_l2_keyboard(approval_id, options),
-    )
+    ):
+        elapsed = time.time() - start
+        _clear_pending()
+        _append_log(action, requester, "DENIED - GUARDIAN SEND FAILED", requested_at, elapsed, tier=tier)
+        return False
 
     # Operator assist escalation for blocked terminals or agents (e.g. Claude Code)
     try:
@@ -614,10 +624,14 @@ def request_approval(
             start = time.time()
             data["status"] = "pending"
             _save_pending(data)
-            _send_via_guardian(
+            if not _send_via_guardian(
                 _build_l2_message(action, approval_id, action_hash, options, approval_context=approval_context),
                 keyboard=_build_l2_keyboard(approval_id, options, allow_delay=False),
-            )
+            ):
+                elapsed = time.time() - start
+                _clear_pending()
+                _append_log(action, requester, "DENIED - GUARDIAN SEND FAILED", requested_at, elapsed, tier=tier)
+                return False
 
     # Timeout
     elapsed = time.time() - start
