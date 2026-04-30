@@ -1261,6 +1261,9 @@ Synthetic demo validation package:
 First-pilot scope package:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md` records the conditional-go first paid pilot scope and buyer/support boundaries.
 
+Buyer-facing pilot brief:
+- `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md` adapts the first-pilot scope into plain-English buyer-facing draft language while preserving no-go boundaries.
+
 Bad next Legal work:
 - wire Run Dry Run now;
 - wire Reset now;

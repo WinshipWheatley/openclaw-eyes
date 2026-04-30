@@ -16,6 +16,8 @@ The Go/No-Go file remains the launch gate.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md](OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md) defines the smallest conditional first paid pilot scope without implying real deployment readiness.
 
+[OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md](OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md) is buyer-facing draft language for the same bounded first-pilot offer and exclusions.
+
 Business opportunities do not overrule governing principles or go/no-go criteria.
 
 ## Decision order
