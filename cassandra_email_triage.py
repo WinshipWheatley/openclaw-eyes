@@ -54,6 +54,33 @@ MANUAL_REVIEW_HANDLING = "manual_review"
 _VALID_EMAIL_TRIAGE_CATEGORIES = set(EMAIL_TRIAGE_CATEGORIES)
 _VALID_EMAIL_TRIAGE_SUGGESTED_HANDLINGS = set(EMAIL_TRIAGE_SUGGESTED_HANDLINGS)
 
+_UNSAFE_OPERATOR_RESPONSE_PATTERNS = (
+    r"\bdelete\s+(it|this|that|the\s+email|the\s+message)?\b",
+    r"\btrash\s+(it|this|that|the\s+email|the\s+message)?\b",
+    r"\barchive\s+(it|this|that|the\s+email|the\s+message)?\b",
+    r"\bmove\s+(it|this|that|the\s+email|the\s+message)?\b",
+    r"\blabel\s+(it|this|that|the\s+email|the\s+message)?\b",
+    r"\breply\s+(to\s+it|to\s+this|to\s+that|to\s+the\s+email|to\s+the\s+message)?\b",
+    r"\bsend\s+(an?\s+)?(email|message|reply)\b",
+    r"\bcreate\s+(a\s+)?draft\b",
+    r"\bdraft\s+(a\s+)?(reply|response|email|message)\b",
+)
+
+_RESPONSE_RULES = (
+    (r"\bnot\s+sure\b|\bunsure\b|\bunknown\b|\bmanual\s+review\b", "unknown_manual_review", "manual_review"),
+    (r"\bsensitive\b|\blegal\b|\bcpa\b|\bmusic\s+law\b|\bpublishing\b", "sensitive_legal_cpa_musiclaw_publishing", "manual_review"),
+    (r"\buseful\s+(promo|promotion|promotional)\b|\bpromo\b.*\buseful\b", "useful_promo", "possible_follow_up_later"),
+    (r"\bpromo\b|\bpromotional\b|\bpromotion\b", "promotional", "suggest_folder_or_label"),
+    (r"\bnewsletter\b", "newsletter", "suggest_folder_or_label"),
+    (r"\breceipt\b", "receipt", "suggest_folder_or_label"),
+    (r"\binvoice\b|\bpayment\b", "invoice_payment", "possible_follow_up_later"),
+    (r"\bgig\s+lead\b|\blead\b.*\bgig\b", "gig_lead", "possible_follow_up_later"),
+    (r"\bclient\b|\bvendor\b", "client_vendor", "manual_review"),
+    (r"\btravel\b|\bhotel\b|\bevent\b", "travel_hotel_event", "suggest_folder_or_label"),
+    (r"\bmusic\s+(business|admin|administration)\b", "music_business_admin", "possible_follow_up_later"),
+    (r"\bjunk\b|\bspam\b|\bgarbage\b", "junk", "ignore_future_similar"),
+)
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -237,6 +264,70 @@ def build_email_triage_operator_prompt(metadata: dict) -> str:
         "Sensitive Legal, CPA, Music Law, Publishing, or private professional items "
         "must stay in manual review. Do not classify from message body content here."
     )
+
+
+def build_email_triage_training_question(metadata: dict) -> str:
+    """Build the operator-facing triage question for one metadata record."""
+    return (
+        f"{build_email_triage_operator_prompt(metadata)}\n\n"
+        "Reply with a simple classification such as junk, promo, useful promo, "
+        "newsletter, receipt, invoice, gig lead, client, travel, or not sure. "
+        "This records training intent only."
+    )
+
+
+def _unsafe_operator_response_reason(response_text: str) -> str:
+    response = str(response_text or "").strip().lower()
+    for pattern in _UNSAFE_OPERATOR_RESPONSE_PATTERNS:
+        if re.search(pattern, response):
+            return "unsafe_live_action_requested"
+    return ""
+
+
+def _classify_operator_response(response_text: str) -> tuple[str, str]:
+    response = str(response_text or "").strip().lower()
+    if not response:
+        raise ValueError("response_text is required")
+
+    unsafe_reason = _unsafe_operator_response_reason(response)
+    if unsafe_reason:
+        raise ValueError(f"unsafe operator response: {unsafe_reason}")
+
+    for pattern, category, handling in _RESPONSE_RULES:
+        if re.search(pattern, response):
+            return category, handling
+
+    return "unknown_manual_review", "manual_review"
+
+
+def resolve_email_triage_operator_response(
+    metadata: dict,
+    response_text: str,
+    *,
+    confidence: object = 1.0,
+    classification_source: str = "operator",
+    sensitivity_flags: object = None,
+    created_at: str | None = None,
+    log_path: Path | str | None = None,
+) -> dict:
+    """Resolve a simple operator answer and record classification intent only."""
+    classification, handling = _classify_operator_response(response_text)
+    response_flags = sensitivity_flags
+    if classification == SENSITIVE_EMAIL_TRIAGE_CATEGORY and response_flags is None:
+        response_flags = ["operator_marked_sensitive"]
+
+    entry = record_email_triage_classification(
+        metadata=metadata,
+        operator_classification=classification,
+        future_suggested_handling=handling,
+        confidence=confidence,
+        classification_source=classification_source,
+        sensitivity_flags=response_flags,
+        created_at=created_at,
+        log_path=log_path,
+    )
+    entry["operator_response_text"] = _preview(response_text, 180)
+    return entry
 
 
 def _triage_log_path(log_path: Path | str | None = None) -> Path:

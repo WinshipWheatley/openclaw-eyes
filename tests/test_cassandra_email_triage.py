@@ -44,6 +44,21 @@ def test_valid_synthetic_metadata_builds_clear_operator_prompt():
     assert "google.gmail.read.body" not in prompt
 
 
+def test_builds_clear_training_question_from_synthetic_gmail_metadata():
+    import cassandra_email_triage as triage
+
+    question = triage.build_email_triage_training_question(_metadata())
+
+    assert "Cassandra email triage training" in question
+    assert "Reply with a simple classification" in question
+    assert "junk, promo, useful promo" in question
+    assert "This records training intent only" in question
+    assert "Message ID: msg-1" in question
+    assert "Thread ID: thread-1" in question
+    assert "PRIVATE BODY CONTENT" not in question
+    assert "google.gmail.read.body" not in question
+
+
 def test_sender_domain_is_derived_safely_from_sender_email(tmp_path):
     import cassandra_email_triage as triage
 
@@ -168,6 +183,7 @@ def test_loading_replay_normalizes_entries(tmp_path):
     assert records[0]["source_capability"] == "google.gmail.read.metadata"
 
 
+
 def test_loading_skips_malformed_lines_by_default_and_can_include_them(tmp_path):
     import cassandra_email_triage as triage
 
@@ -205,6 +221,94 @@ def test_sensitive_category_requires_manual_review_handling(tmp_path):
 
     assert entry["future_suggested_handling"] == "manual_review"
     assert entry["sensitivity_flags"] == ["legal", "sensitive_category"]
+
+
+@pytest.mark.parametrize(
+    ("response_text", "expected_category", "expected_handling"),
+    [
+        ("junk", "junk", "ignore_future_similar"),
+        ("promo", "promotional", "suggest_folder_or_label"),
+        ("useful promo", "useful_promo", "possible_follow_up_later"),
+        ("newsletter", "newsletter", "suggest_folder_or_label"),
+        ("receipt", "receipt", "suggest_folder_or_label"),
+        ("invoice", "invoice_payment", "possible_follow_up_later"),
+        ("payment", "invoice_payment", "possible_follow_up_later"),
+        ("gig lead", "gig_lead", "possible_follow_up_later"),
+        ("client", "client_vendor", "manual_review"),
+        ("travel", "travel_hotel_event", "suggest_folder_or_label"),
+        ("not sure", "unknown_manual_review", "manual_review"),
+        ("unknown / manual review", "unknown_manual_review", "manual_review"),
+    ],
+)
+def test_resolves_simple_operator_responses_to_classification_intent(
+    tmp_path,
+    response_text,
+    expected_category,
+    expected_handling,
+):
+    import cassandra_email_triage as triage
+
+    log_path = tmp_path / "triage.jsonl"
+    entry = triage.resolve_email_triage_operator_response(
+        _metadata(),
+        response_text,
+        confidence=0.8,
+        created_at="2026-04-29 11:00:00",
+        log_path=log_path,
+    )
+
+    assert entry["operator_classification"] == expected_category
+    assert entry["future_suggested_handling"] == expected_handling
+    assert entry["classification_source"] == "operator"
+    assert entry["confidence"] == 0.8
+    assert entry["operator_response_text"] == response_text
+    assert entry["source_capability"] == "google.gmail.read.metadata"
+
+    records = triage.load_email_triage_classifications(log_path=log_path)
+    assert len(records) == 1
+    assert records[0]["operator_classification"] == expected_category
+    assert records[0]["future_suggested_handling"] == expected_handling
+
+
+@pytest.mark.parametrize(
+    "response_text",
+    [
+        "delete it",
+        "archive it",
+        "move it",
+        "label it promo",
+        "reply to it",
+        "send an email",
+        "create a draft",
+        "draft a reply",
+    ],
+)
+def test_rejects_live_action_operator_responses_without_recording(tmp_path, response_text):
+    import cassandra_email_triage as triage
+
+    log_path = tmp_path / "triage.jsonl"
+    with pytest.raises(ValueError, match="unsafe operator response"):
+        triage.resolve_email_triage_operator_response(
+            _metadata(),
+            response_text,
+            log_path=log_path,
+        )
+
+    assert not log_path.exists()
+
+
+def test_resolver_records_sensitive_response_as_manual_review(tmp_path):
+    import cassandra_email_triage as triage
+
+    entry = triage.resolve_email_triage_operator_response(
+        _metadata(),
+        "sensitive legal CPA publishing",
+        log_path=tmp_path / "triage.jsonl",
+    )
+
+    assert entry["operator_classification"] == "sensitive_legal_cpa_musiclaw_publishing"
+    assert entry["future_suggested_handling"] == "manual_review"
+    assert entry["sensitivity_flags"] == ["operator_marked_sensitive", "sensitive_category"]
 
 
 def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(monkeypatch, tmp_path):
@@ -246,14 +350,15 @@ def test_no_live_broker_sender_guardian_draft_send_or_model_surfaces_are_used(mo
 
     monkeypatch.setattr(builtins, "__import__", guarded_import)
     prompt = triage.build_email_triage_operator_prompt(_metadata())
-    entry = triage.record_email_triage_classification(
+    question = triage.build_email_triage_training_question(_metadata())
+    entry = triage.resolve_email_triage_operator_response(
         metadata=_metadata(),
-        operator_classification="junk",
-        future_suggested_handling="ignore_future_similar",
+        response_text="junk",
         log_path=tmp_path / "triage.jsonl",
     )
     records = triage.load_email_triage_classifications(log_path=tmp_path / "triage.jsonl")
 
     assert "google.gmail.read.body" not in prompt
+    assert "google.gmail.read.body" not in question
     assert entry["source_capability"] == "google.gmail.read.metadata"
     assert records[0]["source_capability"] == "google.gmail.read.metadata"
