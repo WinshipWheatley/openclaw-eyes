@@ -7,11 +7,11 @@ import sys
 import pytest
 
 import expert_result_schema as result_module
-from expert_escalation_job_manifest import build_expert_job_manifest
+from expert_escalation_job_manifest import build_expert_job_manifest, hash_expert_job_manifest
 from expert_escalation_lane_policy import select_expert_lane
 from expert_escalation_packet import REQUIRED_SENSITIVITY_ATTESTATIONS, build_expert_escalation_packet
 from expert_execution_approval_receipt import REQUIRED_FORBIDDEN_ACTION_ACKS
-from expert_provider_policy import select_expert_provider
+from expert_provider_policy import hash_expert_provider_plan, select_expert_provider
 from expert_result_schema import check_expert_result_artifact
 
 
@@ -63,9 +63,7 @@ def _chain():
     packet = _valid_packet()
     lane_plan = select_expert_lane(packet)
     provider_plan = dict(select_expert_provider(packet, lane_plan))
-    provider_plan["provider_plan_hash"] = "providerplanhash-20260430-0002"
     manifest = dict(build_expert_job_manifest(packet, created_at="2026-04-30T13:00:00Z"))
-    manifest["manifest_hash"] = "manifesthash-20260430-0002"
     receipt = {
         "receipt_schema_version": 1,
         "receipt_type": "external_expert.execution_approval_receipt",
@@ -150,6 +148,8 @@ def test_valid_result_artifact_passes_with_bound_receipt():
     assert check.violations == []
     assert check.recommended_action == "pass"
     assert result["model_selected"] is None
+    assert result["manifest_hash"] == hash_expert_job_manifest(manifest)
+    assert receipt["provider_plan_hash"] == hash_expert_provider_plan(provider_plan)
 
 
 def test_missing_approval_receipt_fails_closed():
@@ -181,6 +181,21 @@ def test_result_rejects_manifest_and_provider_drift():
     assert check.passed is False
     assert "manifest_hash_mismatch" in check.violations
     assert "provider_drift" in check.violations
+
+
+def test_result_rejects_mismatched_canonical_manifest_hash():
+    _packet, manifest, provider_plan, receipt, result = _chain()
+    manifest["manifest_hash"] = "sha256:" + "3" * 64
+
+    check = check_expert_result_artifact(
+        result,
+        approval_receipt=receipt,
+        manifest=manifest,
+        provider_plan=provider_plan,
+    )
+
+    assert check.passed is False
+    assert "manifest_hash_mismatch" in check.violations
 
 
 def test_result_rejects_model_selection_by_default():

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Pure provider-candidate policy for checked external expert packets."""
 
+import hashlib
+import json
 from typing import Any, Mapping, Sequence
 
 from expert_escalation_packet import ALLOWED_TASK_TYPES, check_expert_escalation_packet
@@ -30,6 +32,35 @@ _MODEL_SELECTION_FIELDS = frozenset({
     "model_name",
     "selected_model",
 })
+_PROVIDER_PLAN_HASH_FIELDS = frozenset({"provider_plan_hash", "provider_policy_hash"})
+
+
+def _canonical_json_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {str(key): _canonical_json_value(item) for key, item in sorted(value.items(), key=lambda item: str(item[0]))}
+    if isinstance(value, (list, tuple)):
+        return [_canonical_json_value(item) for item in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _canonical_json_hash(value: object) -> str:
+    payload = json.dumps(_canonical_json_value(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def hash_expert_provider_plan(provider_plan: Mapping[str, Any] | object) -> str:
+    """Return the canonical hash for a provider plan, excluding hash fields."""
+    if not isinstance(provider_plan, Mapping):
+        return ""
+    hashable = {str(key): value for key, value in provider_plan.items() if str(key) not in _PROVIDER_PLAN_HASH_FIELDS}
+    return _canonical_json_hash(hashable)
+
+
+def _with_provider_plan_hash(provider_plan: dict[str, Any]) -> dict[str, Any]:
+    provider_plan["provider_plan_hash"] = hash_expert_provider_plan(provider_plan)
+    return provider_plan
 
 
 def _normalize_policy_value(value: object) -> str:
@@ -97,7 +128,7 @@ def _refusal(
     packet_id = packet.get("packet_id") if isinstance(packet, Mapping) else None
     task_type = packet.get("task_type") if isinstance(packet, Mapping) else None
     selected_lane = lane_plan.get("selected_lane") if isinstance(lane_plan, Mapping) else None
-    return {
+    return _with_provider_plan_hash({
         "packet_id": str(packet_id or ""),
         "task_type": _normalize_policy_value(task_type),
         "selected_lane": _normalize_policy_value(selected_lane) or None,
@@ -109,7 +140,7 @@ def _refusal(
         "requires_operator_approval": True,
         "refusal_reason": refusal_reason,
         "violations": _unique_violations(violations),
-    }
+    })
 
 
 def _lane_plan_violations(packet: Mapping[str, Any], lane_plan: Mapping[str, Any] | object) -> list[str]:
@@ -233,7 +264,7 @@ def select_expert_provider(
             violations=violations,
         )
 
-    return {
+    return _with_provider_plan_hash({
         "packet_id": str(packet.get("packet_id") or ""),
         "task_type": task_type,
         "selected_lane": _normalize_policy_value(lane_plan.get("selected_lane")),
@@ -246,4 +277,4 @@ def select_expert_provider(
         "requires_operator_approval": True,
         "refusal_reason": "",
         "violations": [],
-    }
+    })

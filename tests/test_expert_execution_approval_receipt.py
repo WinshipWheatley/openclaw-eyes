@@ -7,10 +7,10 @@ import sys
 import pytest
 
 import expert_execution_approval_receipt as receipt_module
-from expert_escalation_job_manifest import build_expert_job_manifest
+from expert_escalation_job_manifest import build_expert_job_manifest, hash_expert_job_manifest
 from expert_escalation_lane_policy import select_expert_lane
 from expert_escalation_packet import REQUIRED_SENSITIVITY_ATTESTATIONS, build_expert_escalation_packet
-from expert_provider_policy import select_expert_provider
+from expert_provider_policy import hash_expert_provider_plan, select_expert_provider
 from expert_execution_approval_receipt import (
     REQUIRED_FORBIDDEN_ACTION_ACKS,
     check_expert_execution_approval_receipt,
@@ -65,9 +65,7 @@ def _chain():
     packet = _valid_packet()
     lane_plan = select_expert_lane(packet)
     provider_plan = dict(select_expert_provider(packet, lane_plan))
-    provider_plan["provider_plan_hash"] = "providerplanhash-20260430-0001"
     manifest = dict(build_expert_job_manifest(packet, created_at="2026-04-30T13:00:00Z"))
-    manifest["manifest_hash"] = "manifesthash-20260430-0001"
     receipt = _valid_receipt(packet, manifest, provider_plan)
     return packet, manifest, provider_plan, receipt
 
@@ -119,6 +117,8 @@ def test_valid_bound_receipt_passes_without_execution():
     assert check.recommended_action == "pass"
     assert receipt["execution_allowed"] is True
     assert provider_plan["execution_allowed"] is False
+    assert receipt["manifest_hash"] == hash_expert_job_manifest(manifest)
+    assert receipt["provider_plan_hash"] == hash_expert_provider_plan(provider_plan)
 
 
 def test_missing_receipt_fails_closed():
@@ -187,6 +187,24 @@ def test_receipt_rejects_mismatched_packet_manifest_and_provider_plan():
     assert "manifest_packet_id_mismatch" in check.violations
     assert "manifest_hash_mismatch" in check.violations
     assert "provider_drift" in check.violations
+    assert "provider_plan_hash_mismatch" in check.violations
+
+
+def test_receipt_rejects_mismatched_canonical_hashes():
+    packet, manifest, provider_plan, receipt = _chain()
+    receipt["manifest_hash"] = "sha256:" + "1" * 64
+    receipt["provider_plan_hash"] = "sha256:" + "2" * 64
+
+    check = check_expert_execution_approval_receipt(
+        receipt,
+        packet=packet,
+        manifest=manifest,
+        provider_plan=provider_plan,
+        now="2026-04-30T13:07:00Z",
+    )
+
+    assert check.passed is False
+    assert "manifest_hash_mismatch" in check.violations
     assert "provider_plan_hash_mismatch" in check.violations
 
 
@@ -275,7 +293,16 @@ def test_receipt_module_does_not_import_or_call_execution_surfaces(monkeypatch):
             elif isinstance(called, ast.Attribute):
                 called_names.add(called.attr)
 
-    assert imported_modules <= {"__future__", "dataclasses", "datetime", "expert_escalation_packet", "re", "typing"}
+    assert imported_modules <= {
+        "__future__",
+        "dataclasses",
+        "datetime",
+        "expert_escalation_job_manifest",
+        "expert_escalation_packet",
+        "expert_provider_policy",
+        "re",
+        "typing",
+    }
     assert called_names.isdisjoint({"openrouter_call", "run", "Popen", "urlopen", "Request"})
     forbidden_text = {
         "chief_llm",

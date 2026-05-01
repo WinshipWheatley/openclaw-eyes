@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """No-execution job manifests for checked external expert escalation packets."""
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
@@ -11,6 +13,35 @@ from expert_escalation_packet import check_expert_escalation_packet, render_expe
 
 EXPERT_JOB_MANIFEST_SCHEMA_VERSION = 1
 EXPERT_JOB_MANIFEST_TYPE = "external_expert.job_manifest"
+_MANIFEST_HASH_FIELD = "manifest_hash"
+
+
+def _canonical_json_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {str(key): _canonical_json_value(item) for key, item in sorted(value.items(), key=lambda item: str(item[0]))}
+    if isinstance(value, (list, tuple)):
+        return [_canonical_json_value(item) for item in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _canonical_json_hash(value: object) -> str:
+    payload = json.dumps(_canonical_json_value(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def hash_expert_job_manifest(manifest: Mapping[str, Any] | object) -> str:
+    """Return the canonical manifest hash, excluding the manifest hash field."""
+    if not isinstance(manifest, Mapping):
+        return ""
+    hashable = {str(key): value for key, value in manifest.items() if str(key) != _MANIFEST_HASH_FIELD}
+    return _canonical_json_hash(hashable)
+
+
+def _with_manifest_hash(manifest: dict[str, Any]) -> dict[str, Any]:
+    manifest[_MANIFEST_HASH_FIELD] = hash_expert_job_manifest(manifest)
+    return manifest
 
 
 def _utc_now() -> str:
@@ -90,7 +121,7 @@ def _refusal_manifest(
     )
     manifest["refusal_reason"] = refusal_reason
     manifest["violations"] = list(dict.fromkeys(violations))
-    return manifest
+    return _with_manifest_hash(manifest)
 
 
 def _candidate_runner_metadata(packet: Mapping[str, Any], lane_plan: Mapping[str, Any]) -> dict[str, Any]:
@@ -161,4 +192,4 @@ def build_expert_job_manifest(packet: Mapping[str, Any] | object, *, created_at:
     if provider_metadata is not None:
         manifest["provider_metadata"] = _safe_metadata(provider_metadata)
 
-    return manifest
+    return _with_manifest_hash(manifest)

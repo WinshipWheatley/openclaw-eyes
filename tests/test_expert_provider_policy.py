@@ -1,5 +1,6 @@
 import ast
 import builtins
+import copy
 import inspect
 import sys
 
@@ -8,7 +9,7 @@ import pytest
 import expert_provider_policy as provider_policy
 from expert_escalation_lane_policy import select_expert_lane
 from expert_escalation_packet import REQUIRED_SENSITIVITY_ATTESTATIONS, build_expert_escalation_packet
-from expert_provider_policy import select_expert_provider
+from expert_provider_policy import hash_expert_provider_plan, select_expert_provider
 
 
 def _attestation() -> dict[str, bool]:
@@ -55,12 +56,38 @@ def test_valid_openrouter_candidate_is_metadata_only():
     assert provider_plan["provider_candidate_is_metadata_only"] is True
     assert provider_plan["execution_allowed"] is False
     assert provider_plan["model_selected"] is None
+    assert provider_plan["provider_plan_hash"].startswith("sha256:")
+    assert provider_plan["provider_plan_hash"] == hash_expert_provider_plan(provider_plan)
     assert provider_plan["requires_operator_approval"] is True
     assert provider_plan["refusal_reason"] == ""
     assert provider_plan["violations"] == []
     assert "kimi" not in repr(provider_plan).lower()
     assert "codex" not in repr(provider_plan).lower()
     assert "gemini" not in repr(provider_plan).lower()
+
+
+def test_identical_provider_plans_hash_identically_and_exclude_hash_field():
+    packet = _valid_packet(execution_policy={"candidate_provider": "openrouter"})
+    lane_plan = select_expert_lane(packet)
+
+    first = select_expert_provider(packet, lane_plan)
+    second = select_expert_provider(copy.deepcopy(packet), copy.deepcopy(lane_plan))
+    same_plan_with_different_hash_field = dict(first)
+    same_plan_with_different_hash_field["provider_plan_hash"] = "sha256:" + "0" * 64
+
+    assert first["provider_plan_hash"] == second["provider_plan_hash"]
+    assert hash_expert_provider_plan(same_plan_with_different_hash_field) == first["provider_plan_hash"]
+
+
+def test_changed_provider_plan_field_changes_provider_plan_hash():
+    packet = _valid_packet(execution_policy={"candidate_provider": "openrouter"})
+    lane_plan = select_expert_lane(packet)
+
+    provider_plan = select_expert_provider(packet, lane_plan)
+    changed = dict(provider_plan)
+    changed["selected_lane"] = "security_review"
+
+    assert hash_expert_provider_plan(changed) != provider_plan["provider_plan_hash"]
 
 
 def test_available_openrouter_can_be_selected_without_packet_provider_metadata():
@@ -266,7 +293,7 @@ def test_provider_policy_module_does_not_import_or_call_external_surfaces(monkey
             elif isinstance(called, ast.Attribute):
                 called_names.add(called.attr)
 
-    assert imported_modules <= {"__future__", "expert_escalation_packet", "typing"}
+    assert imported_modules <= {"__future__", "expert_escalation_packet", "hashlib", "json", "typing"}
     forbidden_call_names = {
         "openrouter_call",
         "claude_call",

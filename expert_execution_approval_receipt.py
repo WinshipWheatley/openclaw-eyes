@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
 
+from expert_escalation_job_manifest import hash_expert_job_manifest
 from expert_escalation_packet import check_expert_escalation_packet
+from expert_provider_policy import hash_expert_provider_plan
 
 
 EXPERT_EXECUTION_APPROVAL_RECEIPT_SCHEMA_VERSION = 1
@@ -247,7 +249,11 @@ def _append_manifest_binding_violations(
     if str(manifest.get("packet_id") or "") != str(receipt.get("packet_id") or ""):
         violations.append("manifest_packet_id_mismatch")
     manifest_hash = str(manifest.get("manifest_hash") or "").strip()
-    if manifest_hash and manifest_hash != str(receipt.get("manifest_hash") or ""):
+    canonical_manifest_hash = hash_expert_job_manifest(manifest)
+    expected_manifest_hash = str(receipt.get("manifest_hash") or "").strip()
+    if manifest_hash and manifest_hash != canonical_manifest_hash:
+        violations.append("manifest_hash_mismatch")
+    if canonical_manifest_hash and canonical_manifest_hash != expected_manifest_hash:
         violations.append("manifest_hash_mismatch")
     if manifest.get("approval_required") is not True:
         violations.append("manifest_approval_not_required")
@@ -278,7 +284,11 @@ def _append_provider_binding_violations(
         or provider_plan.get("provider_policy_hash")
         or ""
     ).strip()
-    if provider_hash and provider_hash != str(receipt.get("provider_plan_hash") or ""):
+    canonical_provider_hash = hash_expert_provider_plan(provider_plan)
+    expected_provider_hash = str(receipt.get("provider_plan_hash") or "").strip()
+    if provider_hash and provider_hash != canonical_provider_hash:
+        violations.append("provider_plan_hash_mismatch")
+    if canonical_provider_hash and canonical_provider_hash != expected_provider_hash:
         violations.append("provider_plan_hash_mismatch")
     if provider_plan.get("execution_allowed") is not False:
         violations.append("provider_plan_execution_not_metadata_only")

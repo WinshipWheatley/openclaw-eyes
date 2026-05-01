@@ -7,7 +7,7 @@ import sys
 import pytest
 
 import expert_escalation_job_manifest as manifest_module
-from expert_escalation_job_manifest import build_expert_job_manifest
+from expert_escalation_job_manifest import build_expert_job_manifest, hash_expert_job_manifest
 from expert_escalation_packet import REQUIRED_SENSITIVITY_ATTESTATIONS, build_expert_escalation_packet
 
 
@@ -59,6 +59,8 @@ def test_valid_packet_produces_no_execution_manifest():
     assert manifest["approval_required"] is True
     assert manifest["checker_passed"] is True
     assert manifest["lane_policy_passed"] is True
+    assert manifest["manifest_hash"].startswith("sha256:")
+    assert manifest["manifest_hash"] == hash_expert_job_manifest(manifest)
     assert manifest["refusal_reason"] == ""
     assert manifest["violations"] == []
 
@@ -135,6 +137,26 @@ def test_prompt_body_is_rendered_deterministically():
     assert first == second
 
 
+def test_identical_manifests_hash_identically_and_exclude_hash_field():
+    packet = _valid_packet()
+
+    first = build_expert_job_manifest(packet, created_at="2026-04-30T13:00:00Z")
+    second = build_expert_job_manifest(copy.deepcopy(packet), created_at="2026-04-30T13:00:00Z")
+    same_manifest_with_different_hash_field = dict(first)
+    same_manifest_with_different_hash_field["manifest_hash"] = "sha256:" + "0" * 64
+
+    assert first["manifest_hash"] == second["manifest_hash"]
+    assert hash_expert_job_manifest(same_manifest_with_different_hash_field) == first["manifest_hash"]
+
+
+def test_changed_manifest_field_changes_manifest_hash():
+    manifest = build_expert_job_manifest(_valid_packet(), created_at="2026-04-30T13:00:00Z")
+    changed = dict(manifest)
+    changed["selected_lane"] = "security_review"
+
+    assert hash_expert_job_manifest(changed) != manifest["manifest_hash"]
+
+
 def test_no_shell_invoke_or_provider_command_field_exists():
     packet = _valid_packet(provider_metadata={"capability_class": "large_context_review"})
 
@@ -194,6 +216,8 @@ def test_job_manifest_module_does_not_import_or_call_external_surfaces(monkeypat
         "datetime",
         "expert_escalation_lane_policy",
         "expert_escalation_packet",
+        "hashlib",
+        "json",
         "typing",
     }
     assert "eval" not in called_names
