@@ -109,7 +109,7 @@ Status: INFERRED FROM CODE/DOCS for cross-lane policy shape; CONFIRMED BY CODE/D
 
 Purpose: every higher-authority lane should begin with a deterministic packet, minimal initial context/tools, an explicit unlock trigger, a policy/approval/verifier gate where needed, and a logged reveal/unlock artifact. Structured outputs are preferred because they reduce repeated model-mediated context/tool discovery. Broad MCP/tool disclosure is not a default operating mode.
 
-Known future hardening item: `.mcp.json` currently exposes broad filesystem surfaces, including the repo, shared vault, and logs. This section records that risk for future work only. This docs-only slice does not change MCP configuration, MCP implementation, services, schedulers, providers, Gmail, Telegram, Hermes runtime behavior, or any live model execution.
+Known future hardening item: `.mcp.json` currently exposes broad filesystem surfaces, including the repo, shared vault, and logs. This section records that risk for future work only. This docs-only slice does not change MCP configuration, MCP implementation, services, schedulers, providers, Gmail, Telegram, Hermes runtime behavior, or any live model execution. The intended hardened MCP profile split is defined in `docs/operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md` before any config edit.
 
 | Lane | First deterministic packet | Withheld surfaces by default | Unlock trigger | Approval/policy/verifier gate | Reveal/unlock artifact |
 |---|---|---|---|---|---|
