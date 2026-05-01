@@ -88,6 +88,8 @@ MANIFEST=(
   'tests/test_expert_result_schema.py|08_expert_lane_contracts/test_expert_result_schema.py'
   'expert_staged_packet_flow.py|08_expert_lane_contracts/expert_staged_packet_flow.py'
   'tests/test_expert_staged_packet_flow.py|08_expert_lane_contracts/test_expert_staged_packet_flow.py'
+  'expert_approval_packet.py|08_expert_lane_contracts/expert_approval_packet.py'
+  'tests/test_expert_approval_packet.py|08_expert_lane_contracts/test_expert_approval_packet.py'
   'overnight_run_manifest.py|09_eod_overnight_lane/overnight_run_manifest.py'
   'tests/test_overnight_run_manifest.py|09_eod_overnight_lane/test_overnight_run_manifest.py'
   'chief_eod_harness.py|09_eod_overnight_lane/chief_eod_harness.py'
