@@ -248,6 +248,147 @@ def test_private_refs_are_not_copied_into_snapshot_top_issues():
     ]
 
 
+def test_valid_snapshot_renders_deterministic_markdown():
+    records = [
+        _overnight_record(),
+        _evidence_record(
+            artifact_type="cassandra_briefing",
+            artifact_id="2026-04-30:morning",
+            status="pending",
+            severity="warning",
+            title="Cassandra morning briefing",
+            summary="focus_mode",
+        ),
+    ]
+    report = snapshot.build_dashboard_report_snapshot(records, created_at="2026-05-01T12:00:00Z")
+
+    first = snapshot.render_dashboard_report_snapshot_markdown(report)
+    second = snapshot.render_dashboard_report_snapshot_markdown(report)
+
+    assert first == second
+    assert first.startswith("# OpenClaw Dashboard Report Snapshot\n")
+    assert "snapshot_type: `openclaw.dashboard_report_snapshot`" in first
+    assert "schema_version: `1`" in first
+    assert "created_at: `2026-05-01T12:00:00Z`" in first
+    assert "total_records: `2`" in first
+    assert "- pending: 1" in first
+    assert "- ready_for_morning_synthesis: 1" in first
+    assert "- warning: 1" in first
+    assert "- ready_count: 1" in first
+    assert "- blocked_count: 0" in first
+    assert "- requires_review_count: 1" in first
+    assert "execution_allowed: false" in first
+    assert "service_wiring_allowed: false" in first
+    assert "telegram_send_allowed: false" in first
+    assert "dashboard_control_allowed: false" in first
+    assert "This Markdown export is report-only and is not an execution surface." in first
+
+
+def test_top_issues_render_without_private_or_raw_content():
+    record = _overnight_record(
+        status="blocked",
+        severity="error",
+        ready_for_morning_synthesis=False,
+        dashboard_issues=[
+            _issue(
+                summary="Inspect the referenced sanitized harness manifest.",
+                raw_content="PRIVATE SECRET FULL TEXT SHOULD NOT RENDER",
+                source_refs=[
+                    {"label": "source_artifact", "reference_type": "path", "path": "/mnt/c/OpenClawLegalPrivate/matter.json"}
+                ],
+            )
+        ],
+        issue_count=1,
+        blocker_count=1,
+    )
+    report = snapshot.build_dashboard_report_snapshot([record], created_at="2026-05-01T12:00:00Z")
+
+    markdown = snapshot.render_dashboard_report_snapshot_markdown(report)
+
+    assert "overnight-20260430-eod-harness-failed" in markdown
+    assert "Inspect the referenced sanitized harness manifest." in markdown
+    assert "PRIVATE SECRET FULL TEXT" not in markdown
+    assert "OpenClawLegalPrivate" not in markdown
+    assert "source_artifact path rejected" in markdown
+
+
+def test_markdown_drilldown_refs_are_rendered_without_file_reads(tmp_path, monkeypatch):
+    referenced = tmp_path / "drilldown.json"
+    referenced.write_text('{"would": "fail if read"}', encoding="utf-8")
+    record = _overnight_record(
+        drilldown_refs=[{"label": "overnight_manifest", "reference_type": "path", "path": str(referenced)}],
+    )
+    original_read_text = Path.read_text
+
+    def guarded_read_text(self, *args, **kwargs):
+        if self == referenced:
+            raise AssertionError("markdown renderer should not read drilldown references")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", guarded_read_text)
+
+    report = snapshot.build_dashboard_report_snapshot([record], created_at="2026-05-01T12:00:00Z")
+    markdown = snapshot.render_dashboard_report_snapshot_markdown(report)
+
+    assert str(referenced) in markdown
+    assert "overnight_manifest path" in markdown
+
+
+def test_markdown_renderer_rejects_protected_private_markers():
+    report = snapshot.build_dashboard_report_snapshot([_overnight_record()], created_at="2026-05-01T12:00:00Z")
+    report["records"][0]["summary"] = "Legal private matter text must never render."
+
+    with pytest.raises(snapshot.DashboardReportSnapshotRenderError):
+        snapshot.render_dashboard_report_snapshot_markdown(report)
+
+
+@pytest.mark.parametrize(
+    "malformed_snapshot",
+    [
+        "not a snapshot",
+        {},
+        {"snapshot_type": "wrong", "schema_version": 1},
+        {
+            "snapshot_type": "openclaw.dashboard_report_snapshot",
+            "schema_version": 1,
+            "created_at": "2026-05-01T12:00:00Z",
+            "total_records": 0,
+            "status_counts": {},
+            "severity_counts": {},
+            "ready_count": 0,
+            "blocked_count": 0,
+            "requires_review_count": 0,
+            "records": [],
+            "top_issues": [],
+            "execution_allowed": True,
+            "service_wiring_allowed": False,
+            "telegram_send_allowed": False,
+            "dashboard_control_allowed": False,
+        },
+        {
+            "snapshot_type": "openclaw.dashboard_report_snapshot",
+            "schema_version": 1,
+            "created_at": "2026-05-01T12:00:00Z",
+            "total_records": 0,
+            "status_counts": [],
+            "severity_counts": {},
+            "ready_count": 0,
+            "blocked_count": 0,
+            "requires_review_count": 0,
+            "records": [],
+            "top_issues": [],
+            "execution_allowed": False,
+            "service_wiring_allowed": False,
+            "telegram_send_allowed": False,
+            "dashboard_control_allowed": False,
+        },
+    ],
+)
+def test_markdown_renderer_malformed_snapshots_fail_closed(malformed_snapshot):
+    with pytest.raises(snapshot.DashboardReportSnapshotRenderError):
+        snapshot.render_dashboard_report_snapshot_markdown(malformed_snapshot)
+
+
 def test_no_execution_no_discovery_no_service_control_import_guard(monkeypatch):
     source = inspect.getsource(snapshot)
     tree = ast.parse(source)

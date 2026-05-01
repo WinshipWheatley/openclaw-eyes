@@ -16,6 +16,16 @@ _DEFAULT_MAX_RECORDS = 50
 _DEFAULT_MAX_TOP_ISSUES = 10
 _TEXT_LIMIT = 240
 _SUMMARY_LIMIT = 360
+_MARKDOWN_MAX_RECORDS = 20
+_MARKDOWN_MAX_TOP_ISSUES = 10
+_MARKDOWN_MAX_COUNT_ITEMS = 25
+_MARKDOWN_MAX_CHARS = 12000
+_DISABLED_CONTROL_FLAGS = (
+    "execution_allowed",
+    "service_wiring_allowed",
+    "telegram_send_allowed",
+    "dashboard_control_allowed",
+)
 _READY_STATUSES = frozenset({
     "completed",
     "delivered",
@@ -61,6 +71,10 @@ _GLOB_MARKERS = frozenset({"*", "?", "[", "]"})
 
 class DashboardReportSnapshotPathError(ValueError):
     """Raised when an explicit dashboard snapshot output path is unsafe."""
+
+
+class DashboardReportSnapshotRenderError(ValueError):
+    """Raised when a snapshot cannot be safely rendered as Markdown."""
 
 
 def build_dashboard_report_snapshot(
@@ -115,6 +129,59 @@ def write_dashboard_report_snapshot(snapshot: Mapping[str, Any], output_path: st
     return path
 
 
+def render_dashboard_report_snapshot_markdown(
+    snapshot: Mapping[str, Any] | object,
+    *,
+    max_records: int = _MARKDOWN_MAX_RECORDS,
+    max_top_issues: int = _MARKDOWN_MAX_TOP_ISSUES,
+) -> str:
+    """Render a validated dashboard report snapshot as bounded report-only Markdown."""
+    checked_snapshot = _validated_markdown_snapshot(snapshot)
+    record_limit = _bounded_int(max_records, default=_MARKDOWN_MAX_RECORDS, lower=0, upper=_MARKDOWN_MAX_RECORDS)
+    issue_limit = _bounded_int(max_top_issues, default=_MARKDOWN_MAX_TOP_ISSUES, lower=0, upper=_MARKDOWN_MAX_TOP_ISSUES)
+    records = _markdown_mapping_list(checked_snapshot.get("records"), "records")
+    top_issues = _markdown_mapping_list(checked_snapshot.get("top_issues"), "top_issues")
+    lines = [
+        "# OpenClaw Dashboard Report Snapshot",
+        "",
+        "## Snapshot",
+        f"- snapshot_type: `{_markdown_code_text(checked_snapshot.get('snapshot_type'), DASHBOARD_REPORT_SNAPSHOT_TYPE)}`",
+        f"- schema_version: `{_markdown_int_text(checked_snapshot.get('schema_version'), 'schema_version')}`",
+        f"- created_at: `{_markdown_code_text(checked_snapshot.get('created_at'), _DEFAULT_CREATED_AT)}`",
+        f"- total_records: `{_markdown_int_text(checked_snapshot.get('total_records'), 'total_records')}`",
+        "",
+        "## Status Counts",
+    ]
+    _append_markdown_counts(lines, checked_snapshot.get("status_counts"), "status_counts")
+    lines.extend(["", "## Severity Counts"])
+    _append_markdown_counts(lines, checked_snapshot.get("severity_counts"), "severity_counts")
+    lines.extend([
+        "",
+        "## Readiness Counts",
+        f"- ready_count: {_markdown_int_text(checked_snapshot.get('ready_count'), 'ready_count')}",
+        f"- blocked_count: {_markdown_int_text(checked_snapshot.get('blocked_count'), 'blocked_count')}",
+        f"- requires_review_count: {_markdown_int_text(checked_snapshot.get('requires_review_count'), 'requires_review_count')}",
+        "",
+        "## Disabled Controls",
+    ])
+    for flag in _DISABLED_CONTROL_FLAGS:
+        lines.append(f"- {flag}: false")
+    lines.extend([
+        "",
+        "## Boundary",
+        "This Markdown export is report-only and is not an execution surface.",
+        "",
+        "## Top Issues",
+    ])
+    _append_markdown_issues(lines, top_issues[:issue_limit], omitted_count=max(0, len(top_issues) - issue_limit))
+    lines.extend(["", "## Record Summaries"])
+    _append_markdown_records(lines, records[:record_limit], omitted_count=max(0, len(records) - record_limit))
+    markdown = "\n".join(lines).rstrip() + "\n"
+    if len(markdown) > _MARKDOWN_MAX_CHARS:
+        return markdown[: _MARKDOWN_MAX_CHARS - 6].rstrip() + "\n...\n"
+    return markdown
+
+
 def _snapshot_record(record: Mapping[str, Any]) -> dict[str, Any]:
     blocker_count = _record_blocker_count(record)
     issue_count = _record_issue_count(record)
@@ -140,6 +207,9 @@ def _snapshot_record(record: Mapping[str, Any]) -> dict[str, Any]:
     dashboard_issue_ids = _dashboard_issue_ids(record)
     if dashboard_issue_ids:
         snapshot["dashboard_issue_ids"] = dashboard_issue_ids
+    drilldown_refs = _snapshot_refs(record.get("drilldown_refs"))
+    if drilldown_refs:
+        snapshot["drilldown_refs"] = drilldown_refs
     return snapshot
 
 
@@ -289,6 +359,169 @@ def _issue_sort_key(issue: Mapping[str, Any]) -> tuple[int, int, str]:
     return (_ISSUE_SEVERITY_RANK.get(severity, 6), blocking_rank, _text(issue.get("issue_id"), "issue"))
 
 
+def _validated_markdown_snapshot(snapshot: Mapping[str, Any] | object) -> Mapping[str, Any]:
+    if not isinstance(snapshot, Mapping):
+        raise DashboardReportSnapshotRenderError("snapshot_must_be_mapping")
+    if _text(snapshot.get("snapshot_type"), "") != DASHBOARD_REPORT_SNAPSHOT_TYPE:
+        raise DashboardReportSnapshotRenderError("invalid_snapshot_type")
+    if _optional_int(snapshot.get("schema_version")) != DASHBOARD_REPORT_SNAPSHOT_SCHEMA_VERSION:
+        raise DashboardReportSnapshotRenderError("invalid_schema_version")
+    for field_name in ("total_records", "ready_count", "blocked_count", "requires_review_count"):
+        _markdown_int_text(snapshot.get(field_name), field_name)
+    _markdown_counts(snapshot.get("status_counts"), "status_counts")
+    _markdown_counts(snapshot.get("severity_counts"), "severity_counts")
+    _markdown_mapping_list(snapshot.get("records"), "records")
+    _markdown_mapping_list(snapshot.get("top_issues"), "top_issues")
+    for flag in _DISABLED_CONTROL_FLAGS:
+        if snapshot.get(flag) is not False:
+            raise DashboardReportSnapshotRenderError(f"{flag}_must_be_false")
+    _markdown_code_text(snapshot.get("created_at"), _DEFAULT_CREATED_AT)
+    return snapshot
+
+
+def _append_markdown_counts(lines: list[str], counts: object, field_name: str) -> None:
+    count_items = _markdown_counts(counts, field_name)
+    if not count_items:
+        lines.append("- none")
+        return
+    for token, count in count_items:
+        lines.append(f"- {token}: {count}")
+
+
+def _append_markdown_issues(lines: list[str], issues: list[Mapping[str, Any]], *, omitted_count: int) -> None:
+    if not issues:
+        lines.append("- none")
+    for issue_index, issue in enumerate(issues, start=1):
+        severity = _markdown_code_text(_token(issue.get("severity"), "medium"), "medium", limit=80)
+        status = _markdown_code_text(_token(issue.get("status"), "open"), "open", limit=80)
+        title = _markdown_inline_text(issue.get("title"), "Untitled issue", limit=180)
+        issue_id = _markdown_code_text(issue.get("issue_id") or issue.get("artifact_id"), f"issue_{issue_index}", limit=160)
+        parent = _markdown_code_text(issue.get("parent_artifact_id"), "unknown", limit=180)
+        summary = _markdown_inline_text(issue.get("summary"), "", limit=220)
+        lines.append(f"{issue_index}. `{severity}` / `{status}` - {title}")
+        lines.append(f"   - issue_id: `{issue_id}`")
+        lines.append(f"   - parent_artifact_id: `{parent}`")
+        if summary:
+            lines.append(f"   - summary: {summary}")
+        _append_markdown_ref_lines(lines, issue.get("source_refs"), indent="   ")
+    if omitted_count:
+        lines.append(f"- {omitted_count} additional issue(s) omitted by Markdown bound.")
+
+
+def _append_markdown_records(lines: list[str], records: list[Mapping[str, Any]], *, omitted_count: int) -> None:
+    if not records:
+        lines.append("- none")
+    for record_index, record in enumerate(records, start=1):
+        artifact_type = _markdown_code_text(record.get("artifact_type"), "unknown", limit=120)
+        artifact_id = _markdown_code_text(record.get("artifact_id"), f"record_{record_index}", limit=180)
+        status = _markdown_code_text(_token(record.get("status"), "unknown"), "unknown", limit=80)
+        severity = _markdown_code_text(_token(record.get("severity"), "info"), "info", limit=80)
+        title = _markdown_inline_text(record.get("title"), "Dashboard evidence record", limit=180)
+        summary = _markdown_inline_text(record.get("summary"), "", limit=220)
+        generated_at = _optional_text(record.get("generated_at"))
+        source_path = _markdown_path_text(record.get("source_path"))
+        source_status = _markdown_code_text(record.get("source_path_status"), "absent", limit=80)
+        lines.append(f"{record_index}. `{artifact_type}` / `{artifact_id}`")
+        lines.append(f"   - status: `{status}`; severity: `{severity}`; title: {title}")
+        if generated_at:
+            lines.append(f"   - generated_at: `{_markdown_code_text(generated_at, 'unspecified')}`")
+        if summary:
+            lines.append(f"   - summary: {summary}")
+        if source_path:
+            lines.append(f"   - source_ref: `{source_path}` (`{source_status}`)")
+        elif source_status != "absent":
+            lines.append(f"   - source_ref: `{source_status}`")
+        _append_markdown_ref_lines(lines, record.get("drilldown_refs"), indent="   ", label="drilldown_refs")
+    if omitted_count:
+        lines.append(f"- {omitted_count} additional record(s) omitted by Markdown bound.")
+
+
+def _append_markdown_ref_lines(lines: list[str], refs: object, *, indent: str, label: str = "source_refs") -> None:
+    ref_lines = _markdown_ref_lines(refs, label)
+    if ref_lines:
+        lines.append(f"{indent}- {label}:")
+        for ref_line in ref_lines:
+            lines.append(f"{indent}  - {ref_line}")
+
+
+def _markdown_counts(counts: object, field_name: str) -> list[tuple[str, int]]:
+    if not isinstance(counts, Mapping):
+        raise DashboardReportSnapshotRenderError(f"{field_name}_must_be_mapping")
+    count_items: list[tuple[str, int]] = []
+    for raw_key, raw_count in sorted(counts.items(), key=lambda item: str(item[0]))[:_MARKDOWN_MAX_COUNT_ITEMS]:
+        count = _optional_int(raw_count)
+        if count is None or count < 0:
+            raise DashboardReportSnapshotRenderError(f"{field_name}_contains_invalid_count")
+        count_items.append((_markdown_code_text(_token(raw_key, "unknown"), "unknown", limit=80), count))
+    return count_items
+
+
+def _markdown_mapping_list(value: object, field_name: str) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        raise DashboardReportSnapshotRenderError(f"{field_name}_must_be_list")
+    mappings: list[Mapping[str, Any]] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise DashboardReportSnapshotRenderError(f"{field_name}_contains_non_mapping")
+        mappings.append(item)
+    return mappings
+
+
+def _markdown_ref_lines(refs: object, field_name: str) -> list[str]:
+    if refs is None:
+        return []
+    if not isinstance(refs, list):
+        raise DashboardReportSnapshotRenderError(f"{field_name}_must_be_list")
+    lines: list[str] = []
+    for ref in refs[:10]:
+        if not isinstance(ref, Mapping):
+            raise DashboardReportSnapshotRenderError(f"{field_name}_contains_non_mapping")
+        label = _markdown_inline_text(ref.get("label"), "source_ref", limit=80)
+        reference_type = _markdown_inline_text(ref.get("reference_type"), "reference", limit=80)
+        status = _markdown_inline_text(ref.get("status"), "recorded", limit=80)
+        path = _markdown_path_text(ref.get("path"))
+        identifier = _optional_text(ref.get("id"))
+        if path:
+            lines.append(f"{label} {reference_type} `{path}` ({status})")
+        elif identifier:
+            lines.append(f"{label} {reference_type} `{_markdown_code_text(identifier, 'ref', limit=160)}` ({status})")
+        else:
+            lines.append(f"{label} {reference_type} {status}")
+    return lines
+
+
+def _markdown_int_text(value: object, field_name: str) -> str:
+    parsed = _optional_int(value)
+    if parsed is None or parsed < 0:
+        raise DashboardReportSnapshotRenderError(f"{field_name}_must_be_nonnegative_int")
+    return str(parsed)
+
+
+def _markdown_path_text(value: object) -> str | None:
+    text = _optional_text(value)
+    if not text:
+        return None
+    if not _path_text_is_safe(text):
+        raise DashboardReportSnapshotRenderError("unsafe_reference_path")
+    return _markdown_code_text(text, "reference", limit=240)
+
+
+def _markdown_code_text(value: object, fallback: str, *, limit: int = _TEXT_LIMIT) -> str:
+    return _markdown_inline_text(value, fallback, limit=limit).replace("`", "'")
+
+
+def _markdown_inline_text(value: object, fallback: str, *, limit: int = _TEXT_LIMIT) -> str:
+    text = _bounded_text(value if _optional_text(value) else fallback, limit=limit).replace("|", "/")
+    if _markdown_text_has_forbidden_marker(text):
+        raise DashboardReportSnapshotRenderError("unsafe_private_marker")
+    return text
+
+
+def _markdown_text_has_forbidden_marker(text: str) -> bool:
+    lowered = text.lower().replace("\\", "/")
+    return any(marker in lowered for marker in _FORBIDDEN_PATH_MARKERS)
+
+
 def _validated_output_path(value: str | Path) -> Path:
     raw = str(value or "").strip()
     if not raw:
@@ -364,6 +597,8 @@ __all__ = [
     "DASHBOARD_REPORT_SNAPSHOT_SCHEMA_VERSION",
     "DASHBOARD_REPORT_SNAPSHOT_TYPE",
     "DashboardReportSnapshotPathError",
+    "DashboardReportSnapshotRenderError",
     "build_dashboard_report_snapshot",
+    "render_dashboard_report_snapshot_markdown",
     "write_dashboard_report_snapshot",
 ]
