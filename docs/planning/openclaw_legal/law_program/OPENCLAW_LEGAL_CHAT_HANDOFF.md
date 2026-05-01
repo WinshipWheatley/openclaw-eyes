@@ -1261,6 +1261,9 @@ Synthetic demo validation package:
 Real-matter local-only validation protocol:
 - `OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md` records the planning-only Lane B protocol for a future real-matter validation. It does not authorize execution; read it before any real-matter run.
 
+Real-matter Mac bridge validation protocol:
+- `OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md` records the planning-only Lane B protocol for a future real-matter Mac workstation bridge validation after fake-data bridge proof. It does not authorize execution; read it before any real-matter Mac bridge run.
+
 First-pilot scope package:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md` records the conditional-go first paid pilot scope and buyer/support boundaries.
 
