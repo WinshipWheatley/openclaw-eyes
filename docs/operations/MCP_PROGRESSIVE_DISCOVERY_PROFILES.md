@@ -1,8 +1,8 @@
 # MCP Progressive Discovery Profiles
 
-Status: proof contract before editing `.mcp.json`.
+Status: implemented hardened default for `.mcp.json`; unlock profiles remain explicit gated contracts.
 
-Authority: this document defines the intended hardened MCP profile shape for future implementation. It does not change MCP configuration, services, schedulers, providers, Gmail, Telegram, Hermes runtime behavior, or live model execution.
+Authority: this document records the active hardened MCP default and the bounded profile contracts required for any future unlock. It does not authorize service, scheduler, provider, Gmail, Telegram, Hermes runtime, live model, or messaging expansion.
 
 Purpose: MCP access should start with the smallest deterministic packet and expand only after an explicit unlock trigger, a gate, and a logged reveal artifact. Broad filesystem or tool disclosure is trusted-local development behavior, not agent default behavior.
 
@@ -23,4 +23,4 @@ The hardened default profile must not expose broad filesystem roots, vaults, log
 
 ## Current Implementation Note
 
-Current `.mcp.json` uses the `default-docs-read` filesystem profile. Broad repo, vault, log, Legal private, and Hermes runtime access belongs behind explicit unlock profiles or trusted local development, not default agent MCP access.
+Current `.mcp.json` uses the `default-docs-read` filesystem profile and defaults filesystem MCP access to `docs/operations` and `docs/specs` only. Repo source, vaults, logs, Legal private paths, Hermes runtime paths, provider tools, messaging tools, terminal/process tools, write tools, and MCP/plugin discovery remain withheld unless an explicit unlock profile or trusted local development profile is selected with its required gate and reveal artifact.

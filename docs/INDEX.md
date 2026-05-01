@@ -25,6 +25,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Doc Lifecycle](./operations/DOC_LIFECYCLE.md) — Rules for identifying and archiving stale material.
 - [Dependency Hygiene](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
 - [Intent and Control Map](./operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md) — Cross-lane authority map, progressive discovery contract, and integration-readiness notes.
+- [MCP Progressive Discovery Profiles](./operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md) — Hardened default filesystem profile and explicit unlock contracts.
 - [OpenRouter Key Storage](./operations/OPENROUTER_KEY_STORAGE.md) — Non-printing key metadata, optional-provider boundaries, and approval rules for guarded OpenRouter use.
 - [Known Gaps](../KNOWN_GAPS.md) — Systemic issues and un-implemented features.
 
