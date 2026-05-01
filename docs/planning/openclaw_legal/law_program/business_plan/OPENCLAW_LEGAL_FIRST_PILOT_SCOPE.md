@@ -6,7 +6,7 @@ This document defines the smallest safe shape for a conditional first paid OpenC
 
 It is not a general release plan. It is not proof of real deployment readiness. It is not buyer-facing sales copy as-is. It is an internal scope package for deciding whether a first paid pilot can be written, priced, and supported without turning OpenClaw Legal into emergency legal-operations support or open-ended custom work.
 
-This scope assumes the current Legal Console checkpoint remains limited: Phase 2F-B synthetic write is complete, Run Dry Run is explicitly deferred, Reset is explicitly deferred, and feature work should pause unless a new slice is docs/design/proof packaging.
+This scope assumes the current Legal Console checkpoint remains limited: Phase 2F-B synthetic write is complete, Phase 2G-S synthetic-only GUI Run exists for proof only, real-matter Run is blocked, Reset is explicitly deferred, and feature work should stay bounded to proof/planning unless a new slice is separately approved.
 
 ## 2. Pilot verdict
 

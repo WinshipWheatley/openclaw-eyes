@@ -16,7 +16,7 @@ The current readiness baseline is:
 - synthetic stress pack: PASS
 - fake data through PC real-shaped paths: PASS
 - fake data through Mac bridge path: PASS
-- GUI real-matter readiness: NO-GO, because the GUI does not run the bridge
+- GUI real-matter readiness: NO-GO, because the GUI Run wrapper is synthetic-only and has no real-matter mode
 
 This baseline permits planning a real-matter Mac bridge validation protocol. It does not authorize execution.
 
@@ -225,15 +225,15 @@ Local attorney/operator review may open content-bearing outputs inside the priva
 
 GUI Run and Reset remain forbidden for real matter.
 
-Reason: the current GUI is intentionally limited to status refresh, exact intake-folder open, and one fixed synthetic test-file write. It does not run the bridge. It does not process intake contents. It does not make real-matter authorization, redaction, matter-ID, query-sensitivity, or reset-safety decisions.
+Reason: the current GUI is intentionally limited to status refresh, exact intake-folder open, one fixed synthetic test-file write, and one fixed synthetic-only dry run. The synthetic-only Run wrapper is not a real-matter run mode. It does not make real-matter authorization, redaction, matter-ID, query-sensitivity, or reset-safety decisions.
 
 Reset is especially forbidden for real matter because reset behavior can delete local drop/output folders and, in full test-reset mode, configured PC-side staging, vault, and exports. Reset is a test-only action unless a separate real-matter preservation and cleanup protocol exists.
 
-Do not wire GUI Run, Reset, matter selection, file picker, report display, review packet display, support packet display, or bridge execution as part of this protocol.
+Do not wire real-matter GUI Run, Reset, matter selection, file picker, report display, review packet display, support packet display, or real-matter bridge execution as part of this protocol.
 
 ## 10. Current GUI allowance
 
-The current GUI may be used only to open the exact Mac intake folder for manual drop and to refresh fixed status files, if those actions remain within their current bounded implementation.
+For real-matter protocol purposes, the current GUI may be used only to open the exact Mac intake folder for manual drop and to refresh fixed status files, if those actions remain within their current bounded implementation.
 
 Allowed current GUI actions:
 
@@ -243,7 +243,8 @@ Allowed current GUI actions:
 Not allowed for real matter:
 
 - Create Synthetic Test File
-- GUI Run
+- Run Synthetic Dry Run
+- GUI real-matter Run
 - Reset Local Test
 - Reset All Test State
 - file picker
@@ -251,7 +252,7 @@ Not allowed for real matter:
 - report/review/support body display
 - any GUI action that lists, counts, reads, hashes, previews, or uploads intake contents
 
-If the GUI behavior changes before the future validation, re-audit it before use.
+The synthetic-only GUI Run wrapper may be used only for Lane A synthetic proof. It is not authorization to place real matter in the app or to trigger a real-matter bridge run from the GUI. If the GUI behavior changes before the future validation, re-audit it before use.
 
 ## 11. Stop conditions
 

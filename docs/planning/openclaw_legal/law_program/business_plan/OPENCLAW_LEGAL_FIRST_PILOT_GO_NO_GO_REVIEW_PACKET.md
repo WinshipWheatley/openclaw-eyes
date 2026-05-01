@@ -13,7 +13,7 @@ This is not buyer-facing copy, not legal advice, not a contract, and not approva
 - Synthetic/public demo: Go.
 - Paid first pilot: Conditional Go.
 - Real deployment: No-Go until separately proven.
-- Run Dry Run and Reset remain deferred.
+- Synthetic-only GUI Run exists for proof only; real-matter Run and Reset remain deferred.
 - Safe Legal work is buyer/support/proof/terms packaging, not new functionality.
 
 If any review step contradicts this posture, stop and update the source docs before continuing.
@@ -53,7 +53,8 @@ Before moving to a synthetic/public demo, confirm:
 - [ ] Synthetic/public demo data only.
 - [ ] Current Legal Console checkpoint known.
 - [ ] No real matter data used or inspected.
-- [ ] Run Dry Run remains disabled or clearly unavailable.
+- [ ] Any Run action used in demo is clearly synthetic-only and fixed-scope.
+- [ ] Real-matter Run remains disabled or clearly unavailable.
 - [ ] Reset remains disabled or clearly unavailable.
 - [ ] No bridge execution.
 - [ ] No file picker, matter selection, real matter mode, Connect, queue/ETA, or model distribution.

@@ -81,6 +81,53 @@ It self-expires and must not be treated as a permanent watcher.
 
 Do not implement blindly from the Mac planning docs. First verify the current PC/WSL repo state.
 
+## Current Legal checkpoint — 2026-05-01
+
+Latest Legal implementation checkpoints in `/home/openclaw`:
+
+- `6c70786 feat(legal): add synthetic-only console run wrapper`
+- `560d7ac fix(legal): align console status with synthetic run wrapper`
+
+Current validation baseline:
+
+- synthetic CLI demos: PASS
+- synthetic stress pack: PASS
+- fake data through PC real-shaped paths: PASS
+- fake data through Mac bridge path: PASS
+- real-matter Mac bridge protocol: written, planning-only, not execution approval
+- synthetic-only GUI Run wrapper: implemented and committed
+- GUI status now reports synthetic-only bridge state
+- Real-matter GUI Run: still NO-GO
+- Reset from GUI: still NO-GO
+- real matter through the Mac app: still NO-GO
+- local-model real-matter processing: not yet proven and not approved
+
+Current GUI Run posture:
+
+- The Legal Console has a `Run Synthetic Dry Run` control only.
+- The synthetic-only GUI Run wrapper is fixed-scope.
+- It uses fixed synthetic values only: `MATTER_ID=bridge_synthetic_proof_20260430` and `QUERY=stress-omega-77`.
+- It does not accept arbitrary matter ID, query, path, filename, or free-text input.
+- It invokes only the existing Mac bridge command path under the synthetic proof contract.
+- It returns only sanitized status fields: started/succeeded/failed, exit code, bridge mode `synthetic_only`, and generic warnings/errors.
+- Reset remains disabled.
+- Real-matter GUI Run remains blocked.
+
+Current real-matter boundary:
+
+- Do not drop real matter into the app unless following `OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md` with explicit confirmation for the exact matter, operator, paths, query, and run window.
+- The synthetic-only GUI Run wrapper is not authorization for real matter.
+- The real-matter Mac bridge protocol remains planning-only until separately authorized.
+- Use no external, cloud, browser-upload, telemetry, or non-local model path with real matter.
+- For real matter, do not display filenames, contents, snippets, hashes, reports, review packet bodies, support packet bodies, private file lists, screenshots of matter outputs, manifests, audit rows, or raw bridge output.
+
+Next safe Legal move:
+
+- Run the synthetic GUI-run proof on the Mac workstation with synthetic/fake data only.
+- If direct GUI automation is unavailable, the next session should produce exact manual GUI proof steps instead of improvising or invoking lower-level bridge paths.
+- The proof report must be status-only: synthetic run state, sanitized exit/status, primary state token, expected output container presence, repo-boundary sentinel, and final git status.
+- Do not use Reset, real-matter Run, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing.
+
 ## Known Legal v0 work already built on PC/WSL
 
 The Legal v0 foundation was built in `/home/openclaw` before this Mac planning session, then audited in the canonical PC/WSL repo.
@@ -977,9 +1024,9 @@ Sanitized fields returned:
 - `warnings`
 - `errors`
 
-What remains intentionally unwired:
+What remained intentionally unwired at this Phase 2B checkpoint:
 - Add Dummy File remains disabled.
-- Run Dry Run remains disabled.
+- Run Dry Run was disabled.
 - Reset Local Test remains disabled.
 - Reset All Test State remains disabled.
 - No bridge invocation.
@@ -1095,7 +1142,7 @@ What did not change:
 - Refresh Status remains the existing bounded read-only status action.
 - Open Intake Folder remains the existing bounded folder opener, previously validated on Mac.
 - Add Dummy File remains disabled.
-- Run Dry Run remains disabled.
+- Run Dry Run was still disabled at this visual checkpoint.
 - Reset Local Test remains disabled.
 - Reset All Test State remains disabled.
 - No bridge/run/reset/dummy creation was wired.
@@ -1115,7 +1162,7 @@ App path:
 What changed:
 - Refresh Status now reports more useful safe status fields from fixed-path metadata and deterministic status markdown only.
 - The status snapshot distinguishes workstation status presence/state, primary status presence/state, intake folder presence, intake target kind, output guide presence, scaffold readiness, processing state, GUI bridge state, boundary state, warnings, and errors.
-- The GUI bridge state remains explicitly `not_wired`.
+- At this Phase 2E checkpoint, the GUI bridge state was explicitly `not_wired`. Current state is `synthetic_only` after `560d7ac`.
 
 Mac runtime validation result:
 - Before refresh, the snapshot showed `warning` / `status_refresh_not_run`, intake folder awaiting signal, output guide awaiting signal, scaffold readiness not ready, and GUI bridge not wired from GUI.
@@ -1177,7 +1224,7 @@ What changed:
 - Added `apps/legal-console-spike/src-tauri/src/dummy.rs`.
 - Added `apps/legal-console-spike/src/legalDummy.ts`.
 - The former Add Dummy File placeholder became `Create Synthetic Test File`.
-- Run Dry Run remains disabled.
+- Run Dry Run was still disabled at this Phase 2F-B checkpoint.
 - Reset Local Test remains disabled.
 - Reset All Test State remains disabled.
 - No bridge, run, or reset behavior was wired.
@@ -1225,31 +1272,82 @@ Next step:
 - Pause Legal feature work and reassess.
 - Do not wire Run Dry Run, Reset Local Test, Reset All Test State, bridge execution, matter selection, file picker, or real-matter GUI workflow without separate planning and approval.
 
-## Phase 2G planning note — Run Dry Run deferred
+## Completed Phase 2G-S synthetic-only GUI Run wrapper
 
 OpenClaw Legal remains conditional-go and promising. This is not a product no-go.
 
-Run Dry Run in the GUI is deferred. Run Dry Run must not be implemented next. The next Run step is contract/design only, not code.
+Recent commits:
 
-Reason: Run is a larger authority class than Create Synthetic Test File because it can process intake files, move data between Mac/PC paths, create outputs, invoke SSH/rsync/bridge behavior, and create support/liability expectations. Phase 2F-B proved one fixed synthetic write. Run is a different class of action.
+```text
+6c70786 feat(legal): add synthetic-only console run wrapper
+560d7ac fix(legal): align console status with synthetic run wrapper
+```
 
-Any future Run action requires:
-- a written Phase 2G contract;
-- synthetic-only scope;
-- no real matter mode;
-- no arbitrary path, query, matter, or input;
-- a safe runner/service/API decision before shell or SSH wiring;
-- no Reset coupling;
-- no file picker;
-- no output body, report, review packet, or support packet display in the GUI;
-- no filenames, counts, or private paths displayed;
-- Mac runtime validation before commit;
-- separate explicit approval.
+What changed:
 
-Reset remains separately deferred and requires its own confirmation design.
+- Added a synthetic-only GUI Run wrapper for the existing Mac bridge command.
+- Added backend command `run_synthetic_dry_run` in `apps/legal-console-spike/src-tauri/src/run.rs`.
+- Added frontend adapter `apps/legal-console-spike/src/legalRun.ts`.
+- Registered the command in the Tauri command handler.
+- Added the visible GUI control `Run Synthetic Dry Run`.
+- Updated the GUI bridge state to `synthetic_only`.
+
+Synthetic-only Run contract:
+
+- Runs only the existing Mac bridge command:
+  `~/OpenClawLegalPrivate/Matter_Alpha_Workspace/Run_OpenClaw_Dry_Run.command`
+- Uses fixed synthetic values only:
+  - `MATTER_ID=bridge_synthetic_proof_20260430`
+  - `QUERY=stress-omega-77`
+- Verifies fixed synthetic config values before starting.
+- Takes no arbitrary matter ID, query, path, filename, or free-text input.
+- Has no file picker and no matter selector.
+- Captures/suppresses raw bridge process text.
+- Returns only sanitized status fields: started/succeeded/failed, exit code, `bridge_mode=synthetic_only`, boundary state, and generic warning/error categories.
+- Does not display filenames, contents, snippets, hashes, manifests, audit rows, support JSON, reports, review packet bodies, private file lists, screenshots, or raw bridge output.
+
+What remains blocked:
+
+- Real-matter GUI Run remains blocked.
+- Reset remains disabled.
+- Real matter through the Mac app remains blocked.
+- Local-model real-matter processing remains unproven and not approved.
+- No output body, report, review packet, support packet, manifest, audit row, filename, private file list, screenshot, hash, snippet, or raw bridge output may be displayed by the GUI.
+
+Proof completed before/around the wrapper checkpoints:
+
+- `git diff --check` passed.
+- `npm run check` passed.
+- `npm run build` passed.
+- `cargo fmt --check --manifest-path apps/legal-console-spike/src-tauri/Cargo.toml` passed.
+- Python static safety proof passed for synthetic-only wording, fixed matter/query, Reset disabled, no picker/selector/input surface, no output body display, and no raw command output exposure.
+
+Runtime gap:
+
+- The synthetic GUI-run proof itself is still pending.
+- A Linux/WSL session cannot prove the macOS GUI run; it can only prove static/build constraints and the `unsupported_os` guard.
+- If GUI automation is unavailable from the next environment, produce manual Mac GUI proof steps instead of improvising lower-level bridge execution.
+
+Next safe Legal move:
+
+- Run or plan the synthetic GUI-run proof with synthetic/fake data only.
+- The proof must confirm the GUI shows synthetic-only bridge state, `Run Synthetic Dry Run` is available, Reset remains disabled, the bridge succeeds with synthetic data only, Refresh Status shows primary state `Done`, expected output containers exist, `/home/openclaw/OpenClawLegalPrivate` does not exist, and final `git status -sb --untracked-files=all` remains clean.
+- Report only sanitized status/container signals.
+
+Bad next Legal work:
+
+- real-matter GUI Run;
+- Reset wiring;
+- file picker;
+- matter selection;
+- arbitrary matter ID/query/path input;
+- report/review/support body display;
+- Connect/queue/ETA;
+- broad OCR/media/email expansion;
+- cloud/external/non-local model processing for real matter.
 
 Good next Legal work should be non-dangerous:
-- runner/service design doc;
+- synthetic GUI-run proof planning or execution;
 - synthetic demo package;
 - first-pilot scope pack;
 - support/pilot boundary refinement;
@@ -1291,15 +1389,6 @@ First-pilot call notes template:
 
 First-pilot package index:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md` gives the compact internal navigation order for the first-pilot outreach package without creating new policy.
-
-Bad next Legal work:
-- wire Run Dry Run now;
-- wire Reset now;
-- file picker;
-- matter selection;
-- real matter mode;
-- Connect/queue/ETA;
-- broad OCR/media/email expansion.
 
 ## Dual-Lane Development Model
 
@@ -1551,7 +1640,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, and the Phase 2F-B synthetic test-file GUI action at `64f5190`.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, and the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`.
 
 Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, and first-pilot package index. The latest committed Legal docs checkpoint is `7e3f88b docs(legal): add first pilot package index`.
 
@@ -1561,18 +1650,18 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 
 Immediate next work:
 
-1. **Recommended next target: pause Legal feature work and reassess.** Phase 2F-B proved the first intentionally write-capable GUI action under synthetic-only constraints. Do not keep adding GUI actions by momentum.
-2. **Next safe Legal slice:** choose docs/design/proof packaging, not Run implementation. Good candidates are buyer-safe demo evidence packaging, support-boundary externalization, handoff tightening, or another narrow review/proof checklist.
-3. **Read-only OpenClaw audit Pass 0:** A broader OpenClaw audit Pass 0 may run in parallel if it stays read-only and does not inspect real matter data or private vault contents.
-4. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+1. **Recommended next target: synthetic GUI-run proof.** Use synthetic/fake data only. Confirm the GUI shows synthetic-only bridge state, exposes `Run Synthetic Dry Run`, keeps Reset disabled, completes the bridge with synthetic data only, shows primary state `Done` after Refresh Status, and reports only sanitized status/container signals.
+2. **If direct GUI automation is unavailable:** produce exact manual Mac GUI proof steps for Winship instead of improvising lower-level bridge execution.
+3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
+4. **Real matter remains blocked in the app:** do not drop real matter into the app unless following the real-matter Mac bridge protocol with explicit confirmation gate. Do not use cloud/external/non-local models with real matter.
 
 Other candidates, deliberately deferred until selected:
 
-1. Phase 2G planning for any next write-capable action, if and only if separately approved.
-2. Run Dry Run wiring only after Phase 2G approval and a separate bridge-execution plan.
-3. Reset behavior only after separate confirmation design and approval.
+1. A separate real-matter GUI Run contract, if and only if explicitly approved after synthetic GUI-run proof.
+2. Reset behavior only after separate confirmation design and approval.
+3. Any local-model real-matter processing protocol, only after synthetic/fake validation and no-network proof.
 
-Run/Reset/bridge behavior remains deferred until separately planned and approved.
+Real-matter Run and Reset behavior remain deferred until separately planned and approved.
 
 Future possible targets:
 
