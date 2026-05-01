@@ -76,16 +76,16 @@ FOLDER_2_FILES=(
   '08_expert_lane_contracts/test_expert_execution_approval_receipt.py|test_expert_execution_approval_receipt.py'
   '08_expert_lane_contracts/expert_result_schema.py|expert_result_schema.py'
   '08_expert_lane_contracts/test_expert_result_schema.py|test_expert_result_schema.py'
+  '08_expert_lane_contracts/expert_staged_packet_flow.py|expert_staged_packet_flow.py'
+  '08_expert_lane_contracts/test_expert_staged_packet_flow.py|test_expert_staged_packet_flow.py'
   '07_dashboard_evidence_reporting/dashboard_evidence_adapter.py|dashboard_evidence_adapter.py'
   '07_dashboard_evidence_reporting/test_dashboard_evidence_adapter.py|test_dashboard_evidence_adapter.py'
+  '07_dashboard_evidence_reporting/dashboard_report_snapshot.py|dashboard_report_snapshot.py'
+  '07_dashboard_evidence_reporting/test_dashboard_report_snapshot.py|test_dashboard_report_snapshot.py'
   '09_eod_overnight_lane/overnight_run_manifest.py|overnight_run_manifest.py'
   '09_eod_overnight_lane/test_overnight_run_manifest.py|test_overnight_run_manifest.py'
   '09_eod_overnight_lane/chief_eod_harness.py|chief_eod_harness.py'
   '03_harness_test_proof/test_chief_end_of_day_review.py|test_chief_end_of_day_review.py'
-  '03_harness_test_proof/chief_acceptance_gate.py|chief_acceptance_gate.py'
-  '03_harness_test_proof/test_chief_acceptance_gate.py|test_chief_acceptance_gate.py'
-  '09_eod_overnight_lane/morning_brief_harness.py|morning_brief_harness.py'
-  '00_current_handoff_checkpoint/OPENCLAW_INTENT_AND_CONTROL_MAP.md|OPENCLAW_INTENT_AND_CONTROL_MAP.md'
 )
 
 FOLDER_3_FILES=(
