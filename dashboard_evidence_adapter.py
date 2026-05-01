@@ -14,6 +14,7 @@ from typing import Any, Iterable
 
 
 DASHBOARD_RECORD_SCHEMA_VERSION = 1
+_OVERNIGHT_MANIFEST_TYPE = "openclaw.overnight_run_manifest"
 
 _HARNESS_REQUIRED_KEYS = frozenset({
     "harness_name",
@@ -39,6 +40,7 @@ _FORBIDDEN_PATH_MARKERS = (
 )
 _RAW_PRIVATE_SUFFIXES = frozenset({".csv", ".db", ".jsonl", ".log", ".out", ".sqlite", ".sqlite3"})
 _GLOB_MARKERS = frozenset({"*", "?", "[", "]"})
+_OVERNIGHT_ISSUE_SEVERITIES = frozenset({"low", "medium", "high", "critical"})
 
 
 class DashboardEvidencePathError(ValueError):
@@ -104,6 +106,8 @@ def normalize_dashboard_artifact(artifact_path: str | Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return _unsupported_record(path, "JSON artifact must contain an object to be dashboard evidence.")
 
+    if _is_overnight_run_manifest(payload):
+        return _normalize_overnight_run_manifest(path, payload)
     if _is_harness_manifest(payload):
         return _normalize_harness_manifest(path, payload)
     if _is_expert_job_manifest(payload):
@@ -158,6 +162,282 @@ def _is_eod_review(payload: dict[str, Any]) -> bool:
 
 def _is_loop_status(payload: dict[str, Any]) -> bool:
     return str(payload.get("status", "")).strip().lower() in _VALID_LOOP_STATES
+
+
+def _is_overnight_run_manifest(payload: dict[str, Any]) -> bool:
+    return payload.get("manifest_type") == _OVERNIGHT_MANIFEST_TYPE
+
+
+def _normalize_overnight_run_manifest(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    cycle_date = _text(payload.get("cycle_date"), "unknown-cycle")
+    ready_for_morning_synthesis = _bool_value(payload.get("ready_for_morning_synthesis"), default=False)
+    ready_for_service_timer_wiring = _bool_value(payload.get("ready_for_service_timer_wiring"), default=False)
+    execution_allowed = _bool_value(payload.get("execution_allowed"), default=False)
+    service_wiring_allowed = _bool_value(payload.get("service_wiring_allowed"), default=False)
+    dashboard_issues = _normalize_overnight_dashboard_issues(payload, cycle_date)
+    blocker_count = sum(1 for issue in dashboard_issues if issue["blocking_readiness"])
+    issue_count = len(dashboard_issues)
+    readiness_status = _overnight_readiness_status(
+        ready_for_morning_synthesis=ready_for_morning_synthesis,
+        ready_for_service_timer_wiring=ready_for_service_timer_wiring,
+        execution_allowed=execution_allowed,
+        service_wiring_allowed=service_wiring_allowed,
+        blocker_count=blocker_count,
+    )
+    severity = _overnight_card_severity(
+        readiness_status=readiness_status,
+        ready_for_morning_synthesis=ready_for_morning_synthesis,
+        issue_count=issue_count,
+    )
+    checks = [
+        _check("execution_not_allowed", execution_allowed is False, "overnight manifest keeps execution disabled"),
+        _check("service_wiring_not_allowed", service_wiring_allowed is False, "overnight manifest keeps service wiring disabled"),
+        _check(
+            "morning_synthesis_readiness_recorded",
+            isinstance(payload.get("ready_for_morning_synthesis"), bool),
+            "morning synthesis readiness is an explicit boolean",
+        ),
+        _check(
+            "service_timer_readiness_safe",
+            ready_for_service_timer_wiring is False or isinstance(payload.get("ready_for_service_timer_wiring"), bool),
+            "service/timer readiness is false unless explicitly recorded by the manifest",
+        ),
+    ]
+
+    record = _base_record(
+        record_type="dashboard_card",
+        artifact_type="overnight_run_manifest",
+        artifact_id=f"overnight_run_manifest:{cycle_date}",
+        generated_at=_optional_text(payload.get("created_at")),
+        source_path=str(path),
+        status=readiness_status,
+        severity=severity,
+        title=f"Overnight run manifest: {cycle_date}",
+        summary=_overnight_summary(
+            cycle_date=cycle_date,
+            readiness_status=readiness_status,
+            ready_for_morning_synthesis=ready_for_morning_synthesis,
+            ready_for_service_timer_wiring=ready_for_service_timer_wiring,
+            execution_allowed=execution_allowed,
+            service_wiring_allowed=service_wiring_allowed,
+            issue_count=issue_count,
+            blocker_count=blocker_count,
+        ),
+        checks=checks,
+        drilldown_refs=_overnight_drilldown_refs(path, payload),
+    )
+    record.update({
+        "cycle_date": cycle_date,
+        "readiness_status": readiness_status,
+        "ready_for_morning_synthesis": ready_for_morning_synthesis,
+        "ready_for_service_timer_wiring": ready_for_service_timer_wiring,
+        "execution_allowed": execution_allowed,
+        "service_wiring_allowed": service_wiring_allowed,
+        "readiness": {
+            "ready_for_morning_synthesis": ready_for_morning_synthesis,
+            "ready_for_service_timer_wiring": ready_for_service_timer_wiring,
+            "execution_allowed": execution_allowed,
+            "service_wiring_allowed": service_wiring_allowed,
+        },
+        "dashboard_issues": dashboard_issues,
+        "issue_count": issue_count,
+        "blocker_count": blocker_count,
+        "blocker_ids": [issue["issue_id"] for issue in dashboard_issues if issue["blocking_readiness"]],
+        "severity_summary": _overnight_severity_summary(dashboard_issues),
+        "status_summary": {
+            "readiness_status": readiness_status,
+            "issue_count": issue_count,
+            "blocker_count": blocker_count,
+            "execution_allowed": execution_allowed,
+            "service_wiring_allowed": service_wiring_allowed,
+        },
+    })
+    return record
+
+
+def _normalize_overnight_dashboard_issues(payload: dict[str, Any], cycle_date: str) -> list[dict[str, Any]]:
+    blockers = payload.get("blockers") if isinstance(payload.get("blockers"), list) else []
+    issues = payload.get("issues") if isinstance(payload.get("issues"), list) else []
+    blocker_ids = {
+        _overnight_issue_id(item, index=index, prefix="blocker", cycle_date=cycle_date)
+        for index, item in enumerate(blockers, start=1)
+    }
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for index, item in enumerate(blockers, start=1):
+        issue = _overnight_dashboard_issue(item, index=index, prefix="blocker", cycle_date=cycle_date, blocking=True)
+        if issue["issue_id"] not in seen:
+            normalized.append(issue)
+            seen.add(issue["issue_id"])
+
+    for index, item in enumerate(issues, start=1):
+        issue_id = _overnight_issue_id(item, index=index, prefix="issue", cycle_date=cycle_date)
+        issue = _overnight_dashboard_issue(
+            item,
+            index=index,
+            prefix="issue",
+            cycle_date=cycle_date,
+            blocking=issue_id in blocker_ids or _mapping_bool(item, "blocking_readiness"),
+        )
+        if issue["issue_id"] not in seen:
+            normalized.append(issue)
+            seen.add(issue["issue_id"])
+
+    return normalized
+
+
+def _overnight_dashboard_issue(
+    item: object,
+    *,
+    index: int,
+    prefix: str,
+    cycle_date: str,
+    blocking: bool,
+) -> dict[str, Any]:
+    data = item if isinstance(item, dict) else {}
+    issue_id = _overnight_issue_id(data, index=index, prefix=prefix, cycle_date=cycle_date)
+    severity = _overnight_issue_severity(data.get("severity"))
+    title = _bounded_text(data.get("title") or issue_id, limit=180)
+    source_artifact = _optional_text(data.get("source_artifact") or data.get("artifact_ref") or data.get("reference"))
+    source_refs = _safe_path_refs("source_artifact", [source_artifact]) if source_artifact else []
+    return {
+        "record_type": "dashboard_issue",
+        "artifact_type": "overnight_run_manifest_issue",
+        "artifact_id": f"overnight_run_manifest:{cycle_date}:{issue_id}",
+        "issue_id": issue_id,
+        "status": "blocking" if blocking else "open",
+        "severity": severity,
+        "title": title,
+        "summary": _bounded_text(data.get("recommended_next_action") or "Review this overnight manifest issue.", limit=240),
+        "blocking_readiness": bool(blocking),
+        "source_refs": source_refs,
+    }
+
+
+def _overnight_issue_id(item: object, *, index: int, prefix: str, cycle_date: str) -> str:
+    data = item if isinstance(item, dict) else {}
+    raw_id = _optional_text(data.get("id") or data.get("code"))
+    if raw_id:
+        return _bounded_text(raw_id, limit=160)
+    compact_date = re.sub(r"[^0-9]", "", cycle_date) or "unknown"
+    return f"overnight-{compact_date}-{prefix}-{index}"
+
+
+def _overnight_issue_severity(value: object) -> str:
+    severity = _text(value, "medium").lower().replace("-", "_").replace(" ", "_")
+    return severity if severity in _OVERNIGHT_ISSUE_SEVERITIES else "medium"
+
+
+def _overnight_readiness_status(
+    *,
+    ready_for_morning_synthesis: bool,
+    ready_for_service_timer_wiring: bool,
+    execution_allowed: bool,
+    service_wiring_allowed: bool,
+    blocker_count: int,
+) -> str:
+    if execution_allowed or service_wiring_allowed:
+        return "unsafe_execution_enabled"
+    if blocker_count:
+        return "blocked"
+    if ready_for_service_timer_wiring:
+        return "ready_for_service_timer_wiring"
+    if ready_for_morning_synthesis:
+        return "ready_for_morning_synthesis"
+    return "not_ready"
+
+
+def _overnight_card_severity(*, readiness_status: str, ready_for_morning_synthesis: bool, issue_count: int) -> str:
+    if readiness_status in {"unsafe_execution_enabled", "blocked"}:
+        return "error"
+    if issue_count or not ready_for_morning_synthesis:
+        return "warning"
+    return "ok"
+
+
+def _overnight_summary(
+    *,
+    cycle_date: str,
+    readiness_status: str,
+    ready_for_morning_synthesis: bool,
+    ready_for_service_timer_wiring: bool,
+    execution_allowed: bool,
+    service_wiring_allowed: bool,
+    issue_count: int,
+    blocker_count: int,
+) -> str:
+    if readiness_status == "unsafe_execution_enabled":
+        return (
+            f"{cycle_date}: manifest reports execution_allowed={str(execution_allowed).lower()} "
+            f"and service_wiring_allowed={str(service_wiring_allowed).lower()}."
+        )
+    if blocker_count:
+        return f"{cycle_date}: {blocker_count} blocking issue(s), {issue_count} total issue(s); morning synthesis readiness is false."
+    if issue_count:
+        return f"{cycle_date}: {issue_count} non-blocking issue(s); morning synthesis readiness is {str(ready_for_morning_synthesis).lower()}."
+    return (
+        f"{cycle_date}: morning synthesis readiness is {str(ready_for_morning_synthesis).lower()}; "
+        f"service/timer readiness is {str(ready_for_service_timer_wiring).lower()}; execution remains disabled."
+    )
+
+
+def _overnight_severity_summary(issues: list[dict[str, Any]]) -> dict[str, int]:
+    summary = {"critical": 0, "high": 0, "medium": 0, "low": 0, "blocking": 0, "total": len(issues)}
+    for issue in issues:
+        severity = issue.get("severity")
+        if severity in _OVERNIGHT_ISSUE_SEVERITIES:
+            summary[severity] += 1
+        if issue.get("blocking_readiness") is True:
+            summary["blocking"] += 1
+    return summary
+
+
+def _overnight_drilldown_refs(path: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    refs = _source_ref(path)
+    for label in ("eod_review", "eod_harness", "proposal_promotion", "morning_synthesis", "guardian_status"):
+        refs.extend(_safe_path_refs(label, [_section_artifact_ref(payload.get(label))]))
+    for field in ("blockers", "issues"):
+        values = payload.get(field) if isinstance(payload.get(field), list) else []
+        for item in values:
+            if isinstance(item, dict):
+                refs.extend(_safe_path_refs("issue_source_artifact", [item.get("source_artifact")]))
+    return _dedupe_refs(refs)
+
+
+def _section_artifact_ref(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    for key in ("artifact_ref", "source_artifact", "source_artifact_ref", "reference", "path", "artifact"):
+        text = _optional_text(value.get(key))
+        if text:
+            return text
+    return None
+
+
+def _dedupe_refs(refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for ref in refs:
+        key = (
+            str(ref.get("label", "")),
+            str(ref.get("reference_type", "")),
+            str(ref.get("path", "")),
+            str(ref.get("id", "")),
+        )
+        if key in seen:
+            continue
+        deduped.append(ref)
+        seen.add(key)
+    return deduped
+
+
+def _bool_value(value: object, *, default: bool) -> bool:
+    return value if isinstance(value, bool) else default
+
+
+def _mapping_bool(value: object, key: str) -> bool:
+    return bool(isinstance(value, dict) and value.get(key) is True)
 
 
 def _normalize_harness_manifest(path: Path, payload: dict[str, Any]) -> dict[str, Any]:

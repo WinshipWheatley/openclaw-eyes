@@ -19,6 +19,62 @@ def _write_json(path: Path, payload: object) -> Path:
     return path
 
 
+def _overnight_manifest(**overrides):
+    manifest = {
+        "manifest_type": "openclaw.overnight_run_manifest",
+        "schema_version": 1,
+        "created_at": "2026-04-30T06:00:00Z",
+        "cycle_date": "2026-04-30",
+        "execution_allowed": False,
+        "service_wiring_allowed": False,
+        "eod_review": {
+            "artifact_ref": "artifacts/eod_review/2026-04-30.json",
+            "status": "completed",
+            "available": True,
+        },
+        "eod_harness": {
+            "artifact_ref": "artifacts/eod_harness/manifest.json",
+            "status": "passed",
+            "harness_name": "chief_eod_harness",
+            "flow": "chief_end_of_day_review",
+            "passed": 5,
+            "failed": 0,
+            "total_cases": 5,
+        },
+        "proposal_promotion": {
+            "artifact_ref": "artifacts/proposals/promoted.json",
+            "status": "promoted",
+            "proposal_ids": ["ATP-CHIEF-20260430-001"],
+        },
+        "morning_synthesis": {
+            "artifact_ref": "artifacts/morning_synthesis/2026-04-30.md",
+            "status": "fresh",
+            "available": True,
+            "freshness": "fresh",
+            "generated_at": "2026-04-30T05:00:00Z",
+        },
+        "guardian_status": {
+            "artifact_ref": "artifacts/guardian/approval_clear.json",
+            "status": "clear",
+            "approval_pending": False,
+        },
+        "blockers": [],
+        "issues": [],
+        "ready_for_morning_synthesis": True,
+        "ready_for_service_timer_wiring": False,
+    }
+    for key, value in overrides.items():
+        if value is None:
+            manifest.pop(key, None)
+        elif isinstance(value, dict) and isinstance(manifest.get(key), dict):
+            merged = dict(manifest[key])
+            merged.update(value)
+            manifest[key] = merged
+        else:
+            manifest[key] = value
+    return manifest
+
+
 def test_loop_status_normalizes_to_dashboard_record(tmp_path):
     path = _write_json(
         tmp_path / "status.json",
@@ -177,6 +233,164 @@ def test_eod_review_json_normalizes_to_review_card(tmp_path):
     assert any(ref.get("id") == "ATP-CHIEF-20260430-001" for ref in record["drilldown_refs"])
 
 
+def test_overnight_manifest_normalizes_to_dashboard_safe_card(tmp_path):
+    path = _write_json(tmp_path / "overnight" / "manifest.json", _overnight_manifest())
+
+    record = adapter.normalize_dashboard_artifact(path)
+
+    assert record["artifact_type"] == "overnight_run_manifest"
+    assert record["artifact_id"] == "overnight_run_manifest:2026-04-30"
+    assert record["generated_at"] == "2026-04-30T06:00:00Z"
+    assert record["status"] == "ready_for_morning_synthesis"
+    assert record["severity"] == "ok"
+    assert record["cycle_date"] == "2026-04-30"
+    assert record["ready_for_morning_synthesis"] is True
+    assert record["ready_for_service_timer_wiring"] is False
+    assert record["execution_allowed"] is False
+    assert record["service_wiring_allowed"] is False
+    assert record["readiness"] == {
+        "ready_for_morning_synthesis": True,
+        "ready_for_service_timer_wiring": False,
+        "execution_allowed": False,
+        "service_wiring_allowed": False,
+    }
+    assert record["dashboard_issues"] == []
+    assert record["severity_summary"] == {"critical": 0, "high": 0, "medium": 0, "low": 0, "blocking": 0, "total": 0}
+    assert {ref["label"] for ref in record["drilldown_refs"]} >= {
+        "source_artifact",
+        "eod_review",
+        "eod_harness",
+        "proposal_promotion",
+        "morning_synthesis",
+        "guardian_status",
+    }
+
+
+def test_overnight_blockers_and_issues_become_stable_dashboard_entries(tmp_path):
+    blocker = {
+        "id": "overnight-20260430-eod-harness-failed",
+        "severity": "high",
+        "title": "EOD harness evidence reported one or more failed checks.",
+        "source_artifact": "artifacts/eod_harness/manifest.json",
+        "recommended_next_action": "Inspect the referenced EOD harness manifest.",
+        "blocking_readiness": True,
+    }
+    non_blocking_issue = {
+        "id": "overnight-20260430-operator-note",
+        "severity": "medium",
+        "title": "Operator note carried for dashboard drill-down.",
+        "source_artifact": "artifacts/operator_note.json",
+        "recommended_next_action": "Review during morning standup.",
+        "blocking_readiness": False,
+    }
+    path = _write_json(
+        tmp_path / "overnight" / "blocked_manifest.json",
+        _overnight_manifest(
+            blockers=[blocker],
+            issues=[blocker, non_blocking_issue],
+            ready_for_morning_synthesis=False,
+        ),
+    )
+
+    record = adapter.normalize_dashboard_artifact(path)
+
+    assert record["status"] == "blocked"
+    assert record["severity"] == "error"
+    assert record["blocker_count"] == 1
+    assert record["issue_count"] == 2
+    assert record["blocker_ids"] == ["overnight-20260430-eod-harness-failed"]
+    assert record["severity_summary"] == {"critical": 0, "high": 1, "medium": 1, "low": 0, "blocking": 1, "total": 2}
+    assert [issue["issue_id"] for issue in record["dashboard_issues"]] == [
+        "overnight-20260430-eod-harness-failed",
+        "overnight-20260430-operator-note",
+    ]
+    assert record["dashboard_issues"][0]["record_type"] == "dashboard_issue"
+    assert record["dashboard_issues"][0]["status"] == "blocking"
+    assert record["dashboard_issues"][1]["status"] == "open"
+    assert all(issue["source_refs"] for issue in record["dashboard_issues"])
+
+
+def test_overnight_service_timer_readiness_defaults_false_when_absent(tmp_path):
+    path = _write_json(
+        tmp_path / "overnight" / "manifest_without_service_timer_flag.json",
+        _overnight_manifest(ready_for_service_timer_wiring=None),
+    )
+
+    record = adapter.normalize_dashboard_artifact(path)
+
+    assert record["ready_for_morning_synthesis"] is True
+    assert record["ready_for_service_timer_wiring"] is False
+    assert record["readiness"]["ready_for_service_timer_wiring"] is False
+    assert record["status"] == "ready_for_morning_synthesis"
+
+
+def test_overnight_drilldown_references_are_not_read(tmp_path, monkeypatch):
+    eod_review = tmp_path / "eod_review.json"
+    issue_source = tmp_path / "issue_source.json"
+    eod_review.write_text('{"do_not": "read"}', encoding="utf-8")
+    issue_source.write_text('{"do_not": "read"}', encoding="utf-8")
+    path = _write_json(
+        tmp_path / "overnight" / "manifest.json",
+        _overnight_manifest(
+            eod_review={"artifact_ref": str(eod_review)},
+            issues=[
+                {
+                    "id": "overnight-20260430-operator-note",
+                    "severity": "low",
+                    "title": "Operator note carried for dashboard drill-down.",
+                    "source_artifact": str(issue_source),
+                    "recommended_next_action": "Review during morning standup.",
+                    "blocking_readiness": False,
+                }
+            ],
+        ),
+    )
+    original_read_text = Path.read_text
+
+    def guarded_read_text(self, *args, **kwargs):
+        if self in {eod_review, issue_source}:
+            raise AssertionError("overnight drilldown reference should not be read")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", guarded_read_text)
+
+    record = adapter.normalize_dashboard_artifact(path)
+
+    assert any(ref.get("path") == str(eod_review) for ref in record["drilldown_refs"])
+    assert any(ref.get("path") == str(issue_source) for ref in record["drilldown_refs"])
+    assert any(ref.get("path") == str(issue_source) for ref in record["dashboard_issues"][0]["source_refs"])
+
+
+def test_overnight_private_drilldown_references_are_rejected(tmp_path):
+    path = _write_json(
+        tmp_path / "overnight" / "manifest.json",
+        _overnight_manifest(
+            issues=[
+                {
+                    "id": "overnight-20260430-private-ref",
+                    "severity": "medium",
+                    "title": "Private reference should not become a drilldown path.",
+                    "source_artifact": "/mnt/c/OpenClawLegalPrivate/matter.json",
+                    "recommended_next_action": "Replace the reference with a sanitized artifact.",
+                    "blocking_readiness": False,
+                }
+            ],
+        ),
+    )
+
+    record = adapter.normalize_dashboard_artifact(path)
+
+    assert record["dashboard_issues"][0]["source_refs"] == [
+        {
+            "label": "source_artifact",
+            "reference_type": "rejected_path",
+            "path": "/mnt/c/OpenClawLegalPrivate/matter.json",
+            "status": "rejected",
+        }
+    ]
+    assert any(ref.get("reference_type") == "rejected_path" for ref in record["drilldown_refs"])
+
+
 def test_missing_artifact_returns_deterministic_error_record(tmp_path):
     path = tmp_path / "missing.json"
 
@@ -286,14 +500,20 @@ def test_no_execution_no_network_import_guard(monkeypatch):
 
     forbidden_modules = {
         "cassandra_briefing_brain",
+        "chief_end_of_day_worker",
         "chief_llm",
         "codex",
+        "gmail",
         "googleapiclient",
         "hermes",
+        "legal",
+        "mcp",
         "openai",
         "openrouter",
         "requests",
+        "service",
         "smtplib",
+        "systemd",
         "subprocess",
         "telegram",
         "urllib",
