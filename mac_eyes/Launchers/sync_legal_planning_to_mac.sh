@@ -6,6 +6,10 @@ set -euo pipefail
 
 SRC="/home/openclaw/docs/planning/openclaw_legal/law_program"
 DEST="mac:~/OpenClaw_Watch/law_program"
+rsync_excludes=(
+  --exclude='CHATGPT_PROJECT_INGEST_LEGAL/'
+  --exclude='refresh_chatgpt_project_ingest_legal.sh'
+)
 
 usage() {
   cat <<EOF
@@ -16,7 +20,8 @@ Usage:
 Warning:
   Apply mode uses rsync --delete. Mac-only files inside
   ~/OpenClaw_Watch/law_program will be removed because the PC source is
-  authoritative for this mirror.
+  authoritative for this mirror, except the Mac-only ChatGPT ingest
+  helper directory and refresh script explicitly excluded by this helper.
 EOF
 }
 
@@ -48,12 +53,13 @@ fi
 echo "legal-planning-sync: mode=$mode"
 echo "legal-planning-sync: source=$SRC/"
 echo "legal-planning-sync: destination=$DEST/"
-echo "legal-planning-sync: WARNING apply mode deletes Mac-only files under ~/OpenClaw_Watch/law_program"
+echo "legal-planning-sync: preserving Mac-only ChatGPT ingest helpers"
+echo "legal-planning-sync: WARNING apply mode deletes other Mac-only files under ~/OpenClaw_Watch/law_program"
 
 if [[ "$mode" == "apply" ]]; then
   ssh mac "mkdir -p ~/OpenClaw_Watch/law_program"
 fi
 
 echo "legal-planning-sync: sync started"
-rsync -az --itemize-changes --timeout=10 --delete "${rsync_mode[@]}" "$SRC/" "$DEST/"
+rsync -az --itemize-changes --timeout=10 --delete "${rsync_mode[@]}" "${rsync_excludes[@]}" "$SRC/" "$DEST/"
 echo "legal-planning-sync: sync finished"
