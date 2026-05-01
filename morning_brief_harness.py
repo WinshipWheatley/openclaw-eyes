@@ -71,6 +71,16 @@ def _load_fixture(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _check(name: str, passed: bool, detail: str) -> dict[str, Any]:
+    return {"name": name, "passed": bool(passed), "detail": detail}
+
+
+def _evidence_counts(checks: list[dict[str, Any]]) -> dict[str, int]:
+    passed = sum(1 for check in checks if check.get("passed") is True)
+    total = len(checks)
+    return {"passed": passed, "failed": total - passed, "total_cases": total}
+
+
 def _normalize_recorded_stage(stage: dict[str, Any]) -> dict[str, Any]:
     out = dict(stage)
     out["inference_mode"] = "recorded"
@@ -205,21 +215,40 @@ def run_replay(
         finally:
             briefing._build_morning_stack_inputs = original
 
+    text = str(bundle.get("text", "") or "")
+    generation = bundle.get("generation", {}) if isinstance(bundle.get("generation"), dict) else {}
+    stages = generation.get("stages", []) if isinstance(generation.get("stages"), list) else []
+    generation_path = generation.get("path")
+    stage_names = [str(stage.get("name", "") or "").strip() for stage in stages if isinstance(stage, dict)]
+    checks = [
+        _check("fixture_has_inputs", bool(fixture_inputs), "fixture inputs are present"),
+        _check("brief_text_present", bool(text.strip()), "generated brief text is present"),
+        _check("generation_path_present", bool(str(generation_path or "").strip()), "generation path is recorded"),
+        _check("stages_present", bool(stages), f"stage_count={len(stages)}"),
+        _check("stage_names_present", len(stage_names) == len(stages) and all(stage_names), "all stages have names"),
+        _check("staging_only", str(run_dir).startswith(str(roots.runs)), "run artifacts are under the harness runs root"),
+    ]
+
     manifest = {
         "harness_mode": True,
         "dry_run": True,
+        "harness_name": "morning_brief_harness",
+        "task_name": "morning_brief",
         "flow": "morning_brief",
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
         "inference_mode": inference_mode,
         "reference_time": reference_time or fixture.get("reference_time"),
         "fixture_path": str(fixture_path),
         "staging_root": str(roots.root),
         "recorded_source": recorded_source,
-        "generation_path": bundle.get("generation", {}).get("path"),
-        "stages": bundle.get("generation", {}).get("stages", []),
+        "generation_path": generation_path,
+        "stages": stages,
+        "checks": checks,
+        **_evidence_counts(checks),
     }
     _write_stage_outputs(run_dir, manifest["stages"])
     (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    (run_dir / "generated_brief.txt").write_text(str(bundle.get("text", "")), encoding="utf-8")
+    (run_dir / "generated_brief.txt").write_text(text, encoding="utf-8")
     (run_dir / "input_fixture_copy.json").write_text(json.dumps(fixture, indent=2), encoding="utf-8")
     (run_dir / "recorded_stage_outputs.json").write_text(
         json.dumps(bundle.get("generation", {}).get("stages", []), indent=2),

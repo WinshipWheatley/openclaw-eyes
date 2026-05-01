@@ -559,6 +559,52 @@ def test_chief_gate_insufficient_blocks(isolated_orchestrator, monkeypatch):
     assert status["block_reason"] == "chief_insufficient_evidence"
 
 
+def test_latest_harness_manifest_preserves_machine_readable_contract(isolated_orchestrator, monkeypatch, tmp_path):
+    staging_root = tmp_path / "staging"
+    run_dir = staging_root / "morning_brief_harness" / "runs" / "20260430T050000"
+    run_dir.mkdir(parents=True)
+    checks = [
+        {"name": "fixture_has_inputs", "passed": True, "detail": "fixture inputs are present"},
+        {"name": "brief_text_present", "passed": True, "detail": "generated brief text is present"},
+    ]
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "harness_name": "morning_brief_harness",
+                "task_name": "morning_brief",
+                "flow": "morning_brief",
+                "generated_at": "2026-04-30T05:00:00",
+                "passed": 2,
+                "failed": 0,
+                "total_cases": 2,
+                "checks": checks,
+            }
+        ),
+        encoding="utf-8",
+    )
+    isolated_orchestrator["task_file"].write_text(
+        "title: Harness Task\n"
+        "goal: Retest the morning brief\n"
+        "execution_mode: harness-backed-retest\n"
+        "harness_mode: dry-run\n"
+        "harness_flow: morning_brief\n"
+    )
+    monkeypatch.setattr(orchestrator, "STAGING_ROOT", staging_root, raising=False)
+
+    manifest = orchestrator._latest_harness_manifest({"task_name": "harness-task"})
+
+    assert manifest == {
+        "harness_name": "morning_brief_harness",
+        "task_name": "morning_brief",
+        "flow": "morning_brief",
+        "generated_at": "2026-04-30T05:00:00",
+        "passed": 2,
+        "failed": 0,
+        "total_cases": 2,
+        "checks": checks,
+    }
+
+
 def test_non_harness_task_skips_chief_gate(isolated_orchestrator, monkeypatch):
     """Non-harness-backed tasks should go straight to approved without calling the gate."""
     isolated_orchestrator["task_file"].write_text(

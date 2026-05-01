@@ -71,6 +71,7 @@ TASK_MD      = LOOP_DIR / "task.md"
 LOG_FILE     = Path("/mnt/c/OpenClaw/logs/orchestrator.log")
 WATCHER_LOG  = Path("/home/openclaw/mac_eyes/sync/watcher.log")
 BUILDER_LOG  = Path("/mnt/c/OpenClaw/logs/builder_watcher.out")
+STAGING_ROOT = Path("/home/openclaw/staging")
 
 VALID_STATES = {"idle", "pc_turn", "mac_turn", "approved", "blocked", "parked"}
 WATCHER_TS_RE = re.compile(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
@@ -355,7 +356,6 @@ def _latest_harness_manifest(status: dict) -> dict | None:
     flow = _active_task_frontmatter_value("harness_flow")
     if not flow:
         return None
-    staging_root = Path("/home/openclaw/staging")
     flow_dirs = {
         "morning_brief": "morning_brief_harness",
         "chief_end_of_day_review": "chief_eod_harness",
@@ -364,7 +364,7 @@ def _latest_harness_manifest(status: dict) -> dict | None:
     dir_name = flow_dirs.get(flow)
     if not dir_name:
         return None
-    runs_dir = staging_root / dir_name / "runs"
+    runs_dir = STAGING_ROOT / dir_name / "runs"
     if not runs_dir.exists():
         return None
     try:
@@ -383,10 +383,14 @@ def _latest_harness_manifest(status: dict) -> dict | None:
     try:
         m = json.loads(manifest_path.read_text(encoding="utf-8"))
         return {
+            "harness_name": m.get("harness_name"),
+            "task_name": m.get("task_name"),
             "flow": m.get("flow", flow),
+            "generated_at": m.get("generated_at"),
             "passed": m.get("passed"),
             "failed": m.get("failed"),
             "total_cases": m.get("total_cases"),
+            "checks": m.get("checks") if isinstance(m.get("checks"), list) else [],
         }
     except Exception:
         return None

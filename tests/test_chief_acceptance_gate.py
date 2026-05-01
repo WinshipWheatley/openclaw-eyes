@@ -110,10 +110,15 @@ def test_evaluate_evidence_harness_failures_visible_in_prompt(monkeypatch):
         "passed": 10,
         "failed": 3,
         "total_cases": 13,
+        "checks": [
+            {"name": "fixture_has_inputs", "passed": True, "detail": "fixture inputs are present"},
+            {"name": "live_pending_not_touched", "passed": False, "detail": "damage gate failed"},
+        ],
     })
     result = gate.evaluate_evidence(evidence)
     assert result == "REWORK"
     assert "3 FAILED" in calls[0]
+    assert "live_pending_not_touched" in calls[0]
 
 
 def test_evaluate_evidence_non_dict_falls_safe():

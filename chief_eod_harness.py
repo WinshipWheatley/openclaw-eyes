@@ -76,10 +76,39 @@ def _load_fixture(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_recorded_review(path: Path) -> dict[str, Any]:
+    manifest_path = path / "manifest.json" if path.is_dir() else path
+    recorded = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if isinstance(recorded.get("_review_meta"), dict):
+        return recorded
+    return {
+        "summary": str(recorded.get("summary", "") or ""),
+        "findings": recorded.get("findings") if isinstance(recorded.get("findings"), list) else [],
+        "proposals": recorded.get("proposals") if isinstance(recorded.get("proposals"), list) else [],
+        "_review_meta": {
+            "structured_output_lane": recorded.get("structured_output_lane"),
+            "fast_attempt_structured": recorded.get("fast_attempt_structured"),
+            "strong_attempt_structured": recorded.get("strong_attempt_structured"),
+            "empty_output_cause": recorded.get("empty_output_cause"),
+        },
+    }
+
+
+def _check(name: str, passed: bool, detail: str) -> dict[str, Any]:
+    return {"name": name, "passed": bool(passed), "detail": detail}
+
+
+def _evidence_counts(checks: list[dict[str, Any]]) -> dict[str, int]:
+    passed = sum(1 for check in checks if check.get("passed") is True)
+    total = len(checks)
+    return {"passed": passed, "failed": total - passed, "total_cases": total}
+
+
 def run_replay(
     fixture_path: Path,
     roots: HarnessRoots,
     reference_time: str | None = None,
+    recorded_from: Path | None = None,
 ) -> Path:
     """Replay end-of-day review against a fixture. All writes go to staging only."""
     _ensure_roots(roots)
@@ -90,25 +119,47 @@ def run_replay(
 
     context = fixture["inputs"]["context"]
     t0 = time.monotonic()
-    parsed = eod._run_review_model(context)
+    inference_mode = "recorded" if recorded_from is not None else "live"
+    recorded_source = None
+    if recorded_from is not None:
+        parsed = _load_recorded_review(recorded_from)
+        recorded_source = str(recorded_from / "manifest.json" if recorded_from.is_dir() else recorded_from)
+    else:
+        parsed = eod._run_review_model(context)
     duration_ms = int((time.monotonic() - t0) * 1000)
 
     review_meta = parsed.get("_review_meta") if isinstance(parsed.get("_review_meta"), dict) else {}
     findings = [str(x).strip() for x in parsed.get("findings", []) if str(x).strip()]
     proposals = [p for p in parsed.get("proposals", []) if isinstance(p, dict)]
+    summary = str(parsed.get("summary", "") or "").strip()
+    lane = str(review_meta.get("structured_output_lane") or "unknown")
+    checks = [
+        _check("fixture_has_context", bool(str(context).strip()), "fixture context is present"),
+        _check("summary_present", bool(summary), "review summary is present"),
+        _check("structured_lane_recorded", lane != "unknown", f"structured_output_lane={lane}"),
+        _check("proposals_are_objects", len(proposals) == len(parsed.get("proposals", []) or []), "proposal entries are objects"),
+        _check("staging_only", str(run_dir).startswith(str(roots.runs)), "run artifacts are under the harness runs root"),
+    ]
 
     manifest = {
         "harness_mode": True,
         "dry_run": True,
+        "harness_name": "chief_eod_harness",
+        "task_name": "chief_end_of_day_review",
         "flow": "chief_end_of_day_review",
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "inference_mode": inference_mode,
         "fixture_path": str(fixture_path),
         "staging_root": str(roots.root),
+        "recorded_source": recorded_source,
         "reference_time": reference_time or fixture.get("reference_time"),
         "duration_ms": duration_ms,
-        "summary": str(parsed.get("summary", "")).strip(),
+        "summary": summary,
         "findings": findings,
         "proposals": proposals,
-        "structured_output_lane": str(review_meta.get("structured_output_lane") or "unknown"),
+        "checks": checks,
+        **_evidence_counts(checks),
+        "structured_output_lane": lane,
         "fast_attempt_structured": bool(review_meta.get("fast_attempt_structured")),
         "strong_attempt_structured": bool(review_meta.get("strong_attempt_structured")),
         "empty_output_cause": review_meta.get("empty_output_cause"),
@@ -123,6 +174,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Chief end-of-day review staging/replay harness")
     parser.add_argument("--capture-fixture", metavar="NAME", help="Capture an end-of-day review context fixture")
     parser.add_argument("--fixture", type=Path, help="Replay this fixture file")
+    parser.add_argument("--recorded-from", type=Path, help="Reuse recorded review output from a prior manifest or run directory")
     parser.add_argument("--reference-time", help="Fixed reference time string recorded in harness artifacts")
     parser.add_argument("--staging-root", type=Path, help="Override staging root")
     args = parser.parse_args()
@@ -145,6 +197,7 @@ def main() -> None:
         fixture_path,
         roots,
         reference_time=args.reference_time,
+        recorded_from=args.recorded_from,
     )
     print(run_dir)
 

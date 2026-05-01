@@ -48,9 +48,16 @@ def _format_harness(manifest: dict | None) -> str:
     passed = manifest.get("passed", "?")
     failed = manifest.get("failed", "?")
     total = manifest.get("total_cases", "?")
+    checks = manifest.get("checks") if isinstance(manifest.get("checks"), list) else []
+    failed_names = [
+        str(check.get("name", "")).strip()
+        for check in checks
+        if isinstance(check, dict) and check.get("passed") is False and str(check.get("name", "")).strip()
+    ]
+    check_suffix = f"; failed checks: {', '.join(failed_names[:5])}" if failed_names else ""
     if failed and failed != 0 and failed != "?":
-        return f"{flow}: {passed}/{total} passed, {failed} FAILED"
-    return f"{flow}: {passed}/{total} passed, 0 failed"
+        return f"{flow}: {passed}/{total} passed, {failed} FAILED{check_suffix}"
+    return f"{flow}: {passed}/{total} passed, 0 failed{check_suffix}"
 
 
 def _build_prompt(evidence: dict) -> str:

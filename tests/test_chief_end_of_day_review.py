@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import chief_end_of_day_review as eod
+import chief_eod_harness as eod_harness
 
 
 def _redirect_live_writes(tmp_path, monkeypatch):
@@ -238,3 +239,60 @@ def test_run_review_model_uses_generous_fast_then_deep_timeouts(monkeypatch):
         {"lane": "fast", "timeout": 120},
         {"lane": "deep", "timeout": 420},
     ]
+
+
+def test_eod_harness_recorded_replay_writes_machine_readable_manifest(tmp_path, monkeypatch):
+    roots = eod_harness.HarnessRoots(
+        root=tmp_path / "chief_eod_harness",
+        fixtures=tmp_path / "chief_eod_harness" / "fixtures",
+        runs=tmp_path / "chief_eod_harness" / "runs",
+    )
+    roots.fixtures.mkdir(parents=True)
+    fixture = roots.fixtures / "sample_eod.json"
+    fixture.write_text(
+        json.dumps(
+            {
+                "fixture_name": "sample_eod",
+                "reference_time": "2026-04-30T01:00:00",
+                "inputs": {"context": "RECENT REPO CHANGES\n- fixture only"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    recorded = tmp_path / "recorded_eod_manifest.json"
+    recorded.write_text(
+        json.dumps(
+            {
+                "summary": "Recorded EOD summary.",
+                "findings": ["Recorded finding."],
+                "proposals": [],
+                "structured_output_lane": "fallback",
+                "fast_attempt_structured": False,
+                "strong_attempt_structured": False,
+                "empty_output_cause": "recorded_contract_fixture",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        eod_harness.eod,
+        "_run_review_model",
+        lambda context: (_ for _ in ()).throw(AssertionError("recorded replay must not call a model")),
+    )
+
+    run_dir = eod_harness.run_replay(fixture, roots, recorded_from=recorded)
+
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["harness_name"] == "chief_eod_harness"
+    assert manifest["task_name"] == "chief_end_of_day_review"
+    assert manifest["flow"] == "chief_end_of_day_review"
+    assert manifest["inference_mode"] == "recorded"
+    assert manifest["generated_at"]
+    assert manifest["passed"] == manifest["total_cases"]
+    assert manifest["failed"] == 0
+    assert {check["name"] for check in manifest["checks"]} >= {
+        "fixture_has_context",
+        "summary_present",
+        "structured_lane_recorded",
+        "staging_only",
+    }

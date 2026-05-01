@@ -12,6 +12,7 @@ Verifies:
 
 import cassandra_briefing_brain as bb
 import chief_ops_reporter as ops
+import morning_brief_harness
 
 
 def test_classify_separates_pending_and_completed():
@@ -436,3 +437,60 @@ def test_compact_morning_test_context_uses_parsed_sections_only():
     assert "calendar notes may be stale" in context
     assert "/mnt/c/" not in context
     assert len(context.split()) < 120
+
+
+def test_morning_harness_recorded_replay_writes_machine_readable_manifest(tmp_path, monkeypatch):
+    roots = morning_brief_harness.HarnessRoots(
+        root=tmp_path / "morning_brief_harness",
+        fixtures=tmp_path / "morning_brief_harness" / "fixtures",
+        runs=tmp_path / "morning_brief_harness" / "runs",
+    )
+    roots.fixtures.mkdir(parents=True)
+    fixture = roots.fixtures / "sample_morning.json"
+    fixture.write_text(
+        bb.json.dumps(
+            {
+                "fixture_name": "sample_morning",
+                "reference_time": "2026-04-30T05:00:00",
+                "inputs": {
+                    "context": "canonical context",
+                    "morning_context": "morning context",
+                    "action_summary": "Pending (0):\n  (none)",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    recorded_dir = tmp_path / "recorded_morning"
+    recorded_dir.mkdir()
+    recorded_stages = [
+        {"name": "guardian", "lane": "fast", "text": "Guardian gate clear.", "duration_ms": 1},
+        {"name": "chief", "lane": "deep", "text": "Chief synthesis ready.", "duration_ms": 1},
+        {"name": "cassandra", "lane": "fast", "text": "Cassandra brief ready.", "duration_ms": 1},
+    ]
+    (recorded_dir / "recorded_stage_outputs.json").write_text(bb.json.dumps(recorded_stages), encoding="utf-8")
+    (recorded_dir / "manifest.json").write_text(bb.json.dumps({"stages": recorded_stages}), encoding="utf-8")
+    monkeypatch.setattr(
+        morning_brief_harness.briefing,
+        "ollama_call",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("recorded replay must not call a model")),
+    )
+
+    run_dir = morning_brief_harness.run_replay(fixture, roots, recorded_from=recorded_dir)
+
+    manifest = bb.json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["harness_name"] == "morning_brief_harness"
+    assert manifest["task_name"] == "morning_brief"
+    assert manifest["flow"] == "morning_brief"
+    assert manifest["inference_mode"] == "recorded"
+    assert manifest["generated_at"]
+    assert manifest["passed"] == manifest["total_cases"]
+    assert manifest["failed"] == 0
+    assert {check["name"] for check in manifest["checks"]} >= {
+        "fixture_has_inputs",
+        "brief_text_present",
+        "generation_path_present",
+        "stages_present",
+        "stage_names_present",
+        "staging_only",
+    }
