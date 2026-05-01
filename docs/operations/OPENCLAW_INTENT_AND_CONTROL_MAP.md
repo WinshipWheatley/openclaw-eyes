@@ -125,6 +125,16 @@ Known future hardening item: `.mcp.json` currently exposes broad filesystem surf
 
 Contract rule: if a lane cannot name its first packet, withheld surfaces, unlock trigger, gate, and artifact, it should stay in read-only/advisory mode until those fields are explicit and reviewed.
 
+## Integration Readiness Batch -- 2026-04-30
+
+Status: CONFIRMED BY CODE/DOCS for pure contract modules and focused tests. This section does not authorize live provider execution, service/timer wiring, scheduler changes, Hermes runtime expansion, Gmail/Telegram actions, Legal matter access, or `.mcp.json` changes.
+
+- Expert handoff chain: `expert_escalation_job_manifest.py` creates no-execution job metadata with `execution_allowed: false` and `approval_required: true`. `expert_execution_approval_receipt.py` validates Guardian-bound approval receipts and requires `manifest_hash` plus `provider_plan_hash`. `expert_result_schema.py` validates bounded result artifacts against receipt, manifest, and provider metadata; concrete `model_selected` remains disallowed by default, and private markers plus unsafe artifact paths fail closed.
+- Coordination note: current manifest and provider-plan builders do not mint canonical `manifest_hash` or `provider_plan_hash` values. Downstream integration must define deterministic hash generation and ownership before any live handoff or result acceptance.
+- Dashboard evidence adapter: `dashboard_evidence_adapter.py` normalizes explicit JSON artifact paths only. It does not discover files, parse Markdown reports, read drilldown references, inspect raw private logs, read Hermes session state, inspect secrets, or enter LegalPrivate paths. It currently recognizes harness manifests, expert job manifests, Cassandra briefing records, Chief EOD review records, and loop status records.
+- Overnight run manifest: `overnight_run_manifest.py` builds a deterministic no-execution readiness summary from explicit EOD, harness, proposal-promotion, morning-synthesis, and Guardian-status dictionaries. `execution_allowed`, `service_wiring_allowed`, and `ready_for_service_timer_wiring` remain false. `ready_for_morning_synthesis` is advisory readiness only.
+- Safe next slice: docs/test-only cleanup or a small adapter-integration slice after the hash-owner decision. Runtime/provider/service/timer wiring remains stopped until separately approved.
+
 ## Verification Checkpoint -- 2026-04-28
 
 - Chief approval tests passed:

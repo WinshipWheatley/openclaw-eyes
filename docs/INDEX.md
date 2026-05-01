@@ -24,6 +24,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Doc Governance](./operations/DOC_GOVERNANCE.md) — Lifecycle and authority for this `docs/` folder.
 - [Doc Lifecycle](./operations/DOC_LIFECYCLE.md) — Rules for identifying and archiving stale material.
 - [Dependency Hygiene](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
+- [Intent and Control Map](./operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md) — Cross-lane authority map, progressive discovery contract, and integration-readiness notes.
 - [OpenRouter Key Storage](./operations/OPENROUTER_KEY_STORAGE.md) — Non-printing key metadata, optional-provider boundaries, and approval rules for guarded OpenRouter use.
 - [Known Gaps](../KNOWN_GAPS.md) — Systemic issues and un-implemented features.
 
