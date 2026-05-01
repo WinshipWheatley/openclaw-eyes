@@ -35,8 +35,14 @@ const syntheticTestAction = {
   icon: "plus"
 } as const;
 
+const syntheticRunAction = {
+  label: "Run Synthetic Dry Run",
+  detail: "Fixed bridge proof only",
+  icon: "play"
+} as const;
+
 const disabledActions = [
-  { label: "Run Dry Run", detail: "Not wired in this phase", icon: "play" },
+  { label: "Run Real Matter", detail: "Disabled", icon: "lock" },
   { label: "Reset Local Test", detail: "Not wired in this phase", icon: "refresh" },
   { label: "Reset All Test State", detail: "Not wired in this phase", icon: "trash" }
 ] as const;
@@ -62,7 +68,7 @@ const pathRows = [
 const boundaryBadges = [
   { label: "Matter Data in Vault", value: "Blocked", tone: "stop", icon: "lock" },
   { label: "Private Root", value: "Configured outside repo", tone: "ok", icon: "check" },
-  { label: "Bridge Commands", value: "Not wired", tone: "hold", icon: "alert" },
+  { label: "Bridge Commands", value: "Synthetic only", tone: "hold", icon: "alert" },
   { label: "Live Status Refresh", value: "Read-only", tone: "ok", icon: "check" }
 ] as const;
 
@@ -152,8 +158,8 @@ function renderProofTargetCard(): string {
           <span class="scope-note__icon" aria-hidden="true">${icons.shield}</span>
           <p>
             This phase is strictly limited to status refresh, intake folder access,
-            and one fixed synthetic test-file write. No file picker, no command execution,
-            no bridge run, no reset behavior, no private data.
+            one fixed synthetic test-file write, and one fixed synthetic-only dry run.
+            No ad hoc file selection, no real-matter run, no reset behavior, no private data.
           </p>
         </div>
 
@@ -178,6 +184,20 @@ function renderProofTargetCard(): string {
             </span>
           </button>
         </div>
+
+        <div class="synthetic-test-panel" aria-label="Synthetic dry run action">
+          <p class="synthetic-test-panel__helper">
+            Test-only. Runs the existing bridge command only with fixed synthetic proof values.
+            It accepts no matter ID, query, path, filename, or free-text input, and returns no command output body.
+          </p>
+          <button class="action action--secondary" type="button" data-run-synthetic-dry-run>
+            <span class="action__icon" aria-hidden="true">${icons[syntheticRunAction.icon]}</span>
+            <span class="action__body">
+              <strong>${syntheticRunAction.label}</strong>
+              <small>${syntheticRunAction.detail}</small>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div class="intake-readiness-slot" data-intake-readiness>
@@ -186,6 +206,7 @@ function renderProofTargetCard(): string {
 
       <div class="action-result" data-intake-result></div>
       <div class="action-result" data-synthetic-test-result></div>
+      <div class="action-result" data-synthetic-run-result></div>
 
       <div class="detail-rows detail-rows--workstation" aria-label="Workstation proof details">
         ${workstationRows.map(renderDetailRowItem).join("")}
@@ -359,7 +380,7 @@ export function renderLegalConsole(): string {
           </div>
         </div>
 
-        <span class="phase-pill" aria-label="Current phase">Phase 2F-B</span>
+        <span class="phase-pill" aria-label="Current phase">Phase 2G-S</span>
 
         <nav class="rail__nav" aria-label="Sections">
           <ul>

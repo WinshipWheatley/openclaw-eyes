@@ -7,6 +7,12 @@ import {
 import { intakeOpenResultFromError, openIntakeFolder, renderIntakeOpenResult } from "./legalIntake";
 import { renderLegalConsole } from "./legalConsole";
 import {
+  renderSyntheticDryRunResult,
+  renderSyntheticDryRunStarted,
+  runSyntheticDryRun,
+  syntheticDryRunResultFromError
+} from "./legalRun";
+import {
   deriveIntakeReadiness,
   getStatusSnapshot,
   intakeReadinessFromOpenResult,
@@ -32,6 +38,8 @@ const intakeButton = document.querySelector<HTMLButtonElement>("[data-open-intak
 const intakeTarget = document.querySelector<HTMLDivElement>("[data-intake-result]");
 const syntheticTestButton = document.querySelector<HTMLButtonElement>("[data-create-synthetic-test]");
 const syntheticTestTarget = document.querySelector<HTMLDivElement>("[data-synthetic-test-result]");
+const syntheticRunButton = document.querySelector<HTMLButtonElement>("[data-run-synthetic-dry-run]");
+const syntheticRunTarget = document.querySelector<HTMLDivElement>("[data-synthetic-run-result]");
 const intakeReadinessTarget = document.querySelector<HTMLDivElement>("[data-intake-readiness]");
 const themeButtons = document.querySelectorAll<HTMLButtonElement>("[data-theme-option]");
 
@@ -97,6 +105,12 @@ function setSyntheticTestMarkup(markup: string): void {
   }
 }
 
+function setSyntheticRunMarkup(markup: string): void {
+  if (syntheticRunTarget) {
+    syntheticRunTarget.innerHTML = markup;
+  }
+}
+
 function setIntakeReadinessMarkup(markup: string): void {
   if (intakeReadinessTarget) {
     intakeReadinessTarget.innerHTML = markup;
@@ -134,6 +148,23 @@ syntheticTestButton?.addEventListener("click", async () => {
   } finally {
     syntheticTestButton.disabled = false;
     syntheticTestButton.removeAttribute("aria-busy");
+  }
+});
+
+syntheticRunButton?.addEventListener("click", async () => {
+  syntheticRunButton.disabled = true;
+  syntheticRunButton.setAttribute("aria-busy", "true");
+  setSyntheticRunMarkup(renderSyntheticDryRunStarted());
+
+  try {
+    const result = await runSyntheticDryRun();
+    setSyntheticRunMarkup(renderSyntheticDryRunResult(result));
+  } catch (error) {
+    const result = syntheticDryRunResultFromError(error);
+    setSyntheticRunMarkup(renderSyntheticDryRunResult(result));
+  } finally {
+    syntheticRunButton.disabled = false;
+    syntheticRunButton.removeAttribute("aria-busy");
   }
 });
 

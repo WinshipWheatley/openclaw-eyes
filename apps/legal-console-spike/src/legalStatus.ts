@@ -12,7 +12,7 @@ export type WorkstationState =
 export type PrimaryState = "Processing" | "Done" | "Error" | "Unknown";
 export type IntakeTargetKind = "directory" | "missing" | "not_directory" | "unknown";
 export type ProcessingState = "not_run" | "workstation_progress" | "primary_returned" | "error" | "unknown";
-export type GuiBridgeState = "not_wired";
+export type GuiBridgeState = "not_wired" | "synthetic_only";
 export type BoundaryState = "safe" | "warning" | "error";
 export type IntakeReadinessState = "before_refresh" | "ready" | "missing" | "blocked" | "unknown";
 export type IntakeReadinessTone = "safe" | "warning" | "error";
@@ -158,12 +158,14 @@ function guiBridgeStateLabel(value: GuiBridgeState): string {
   switch (value) {
     case "not_wired":
       return "Not wired from GUI";
+    case "synthetic_only":
+      return "Synthetic-only GUI run";
   }
 }
 
 const intakePrivacyNote = "No filenames, file counts, or folder contents are displayed by design.";
 const intakeScopeNote =
-  "Manual Finder intake only; this GUI does not process, create dummy files, run the bridge, or reset test state.";
+  "Manual Finder intake only; real-matter Run, file picking, matter selection, and reset state remain disabled.";
 
 function intakeReadinessForState(state: IntakeReadinessState): IntakeReadiness {
   switch (state) {
@@ -286,11 +288,11 @@ export function renderStatusSnapshot(snapshot: LegalStatusSnapshot): string {
     }
 
     if (snapshot.processing_state === "workstation_progress") {
-      return "Workstation status reports progress; the GUI remains read-only.";
+      return "Workstation status indicates progress; the GUI shows sanitized status only.";
     }
 
     if (snapshot.scaffold_ready && snapshot.processing_state === "not_run") {
-      return "Scaffold files are ready and processing has not run from this GUI.";
+      return "Scaffold files are ready for the fixed synthetic-only Run wrapper.";
     }
 
     return "No live processing is implied by missing or pending status signals.";

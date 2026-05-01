@@ -1,5 +1,6 @@
 mod dummy;
 mod intake;
+mod run;
 mod status;
 
 fn main() {
@@ -12,6 +13,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             dummy::create_synthetic_test_file,
             intake::open_intake_folder,
+            run::run_synthetic_dry_run,
             status::get_status_snapshot
         ])
         .run(tauri::generate_context!())
