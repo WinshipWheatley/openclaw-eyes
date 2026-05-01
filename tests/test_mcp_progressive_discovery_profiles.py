@@ -1,17 +1,10 @@
 import json
 from pathlib import Path
 
-import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MCP_CONFIG = REPO_ROOT / ".mcp.json"
 PROFILE_DOC = REPO_ROOT / "docs" / "operations" / "MCP_PROGRESSIVE_DISCOVERY_PROFILES.md"
-
-FUTURE_HARDENING_REASON = (
-    "Expected failure until the future .mcp.json hardening slice narrows "
-    "or splits the current broad default filesystem roots."
-)
 
 REQUIRED_PROFILES = {
     "default-docs-read",
@@ -20,6 +13,11 @@ REQUIRED_PROFILES = {
     "shared-vault-operator-approved",
     "hermes-gateway-advisory",
     "trusted-local-dev",
+}
+
+ALLOWED_DEFAULT_FILESYSTEM_ROOTS = {
+    "/home/openclaw/docs/operations",
+    "/home/openclaw/docs/specs",
 }
 
 REQUIRED_CONTRACT_FIELDS = {
@@ -105,12 +103,14 @@ def test_profile_doc_names_required_profiles_and_contract_fields():
         assert field in lowered
 
 
-@pytest.mark.xfail(reason=FUTURE_HARDENING_REASON, strict=True)
+def test_default_filesystem_roots_are_docs_only():
+    assert set(_configured_filesystem_roots()) == ALLOWED_DEFAULT_FILESYSTEM_ROOTS
+
+
 def test_default_profile_does_not_include_shared_vault_root():
     assert not _any_configured_root_exposes("/mnt/c/OpenClawShared/openclaw-vault")
 
 
-@pytest.mark.xfail(reason=FUTURE_HARDENING_REASON, strict=True)
 def test_default_profile_does_not_include_log_root():
     assert not _any_configured_root_exposes("/mnt/c/OpenClaw/logs")
 
@@ -119,9 +119,9 @@ def test_default_profile_does_not_include_legal_private_root():
     assert not _any_configured_root_exposes("/mnt/c/OpenClawLegalPrivate")
 
 
-@pytest.mark.xfail(reason=FUTURE_HARDENING_REASON, strict=True)
 def test_default_profile_does_not_expose_hermes_session_or_state_homes():
     sensitive_targets = [
+        "/home/openclaw/sidecars/hermes_home",
         "/home/openclaw/sidecars/hermes_home/sessions",
         "/home/openclaw/sidecars/hermes_home/state.db",
         "/home/openclaw/sidecars/hermes_home/state",

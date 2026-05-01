@@ -5,9 +5,8 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/openclaw",
-        "/mnt/c/OpenClawShared/openclaw-vault",
-        "/mnt/c/OpenClaw/logs"
+        "/home/openclaw/docs/operations",
+        "/home/openclaw/docs/specs"
       ]
     }
   }
