@@ -94,6 +94,7 @@ Current validation baseline:
 - synthetic stress pack: PASS
 - fake data through PC real-shaped paths: PASS
 - fake data through Mac bridge path: PASS
+- Phase 2G-S synthetic GUI-run proof: PASS / complete with status-only sanitized reporting
 - real-matter Mac bridge protocol: written, planning-only, not execution approval
 - synthetic-only GUI Run wrapper: implemented and committed
 - GUI status now reports synthetic-only bridge state
@@ -106,6 +107,9 @@ Current GUI Run posture:
 
 - The Legal Console has a `Run Synthetic Dry Run` control only.
 - The synthetic-only GUI Run wrapper is fixed-scope.
+- The Phase 2G-S synthetic GUI-run proof is now complete and passed with status-only sanitized reporting.
+- Proof result: started yes, status succeeded, exit code 0, bridge mode `synthetic_only`, primary state token `Done`, expected output containers present, Mac copied status file present, and repo-boundary sentinel passed.
+- Raw bridge output remained captured/suppressed, and no filenames, file counts, source text, snippets, hashes, report bodies, review packet bodies, support packet bodies, raw status bodies, raw bridge output, or private file lists were printed.
 - It uses fixed synthetic values only: `MATTER_ID=bridge_synthetic_proof_20260430` and `QUERY=stress-omega-77`.
 - It does not accept arbitrary matter ID, query, path, filename, or free-text input.
 - It invokes only the existing Mac bridge command path under the synthetic proof contract.
@@ -123,10 +127,10 @@ Current real-matter boundary:
 
 Next safe Legal move:
 
-- Run the synthetic GUI-run proof on the Mac workstation with synthetic/fake data only.
-- If direct GUI automation is unavailable, the next session should produce exact manual GUI proof steps instead of improvising or invoking lower-level bridge paths.
-- The proof report must be status-only: synthetic run state, sanitized exit/status, primary state token, expected output container presence, repo-boundary sentinel, and final git status.
-- Do not use Reset, real-matter Run, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing.
+- Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
+- Folder 2 is for visual polish and console UX only, not behavior expansion.
+- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO.
+- Do not add behavior, bridge modes, Reset wiring, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing as part of Folder 2 work.
 
 ## Known Legal v0 work already built on PC/WSL
 
@@ -1322,17 +1326,20 @@ Proof completed before/around the wrapper checkpoints:
 - `cargo fmt --check --manifest-path apps/legal-console-spike/src-tauri/Cargo.toml` passed.
 - Python static safety proof passed for synthetic-only wording, fixed matter/query, Reset disabled, no picker/selector/input surface, no output body display, and no raw command output exposure.
 
-Runtime gap:
+Runtime proof:
 
-- The synthetic GUI-run proof itself is still pending.
-- A Linux/WSL session cannot prove the macOS GUI run; it can only prove static/build constraints and the `unsupported_os` guard.
-- If GUI automation is unavailable from the next environment, produce manual Mac GUI proof steps instead of improvising lower-level bridge execution.
+- Phase 2G-S synthetic GUI-run proof is now complete.
+- The Mac GUI showed Phase 2G-S, exposed `Run Synthetic Dry Run`, kept Real-matter Run disabled, kept both Reset controls disabled, and completed the synthetic run with status `succeeded`, exit code 0, and bridge mode `synthetic_only`.
+- Refresh Status showed GUI bridge `Synthetic-only GUI run` and primary state token `Done`.
+- Sanitized post-proof verification passed: repo boundary passed, primary status token `Done`, expected output containers present, and Mac copied primary status file present.
+- Proof reporting stayed status-only: no filenames, file counts, source text, snippets, hashes, report bodies, review packet bodies, support packet bodies, raw status bodies, raw bridge output, or private file lists were printed.
 
 Next safe Legal move:
 
-- Run or plan the synthetic GUI-run proof with synthetic/fake data only.
-- The proof must confirm the GUI shows synthetic-only bridge state, `Run Synthetic Dry Run` is available, Reset remains disabled, the bridge succeeds with synthetic data only, Refresh Status shows primary state `Done`, expected output containers exist, `/home/openclaw/OpenClawLegalPrivate` does not exist, and final `git status -sb --untracked-files=all` remains clean.
-- Report only sanitized status/container signals.
+- Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
+- Folder 2 is for visual polish and console UX only, not behavior expansion.
+- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO.
+- Do not add bridge behavior, real-matter GUI Run, Reset wiring, file picker, matter selection, arbitrary matter ID/query/path input, report/review/support body display, Connect/queue/ETA behavior, broad OCR/media/email expansion, or cloud/external/non-local model processing for real matter.
 
 Bad next Legal work:
 
@@ -1347,8 +1354,8 @@ Bad next Legal work:
 - cloud/external/non-local model processing for real matter.
 
 Good next Legal work should be non-dangerous:
-- synthetic GUI-run proof planning or execution;
-- synthetic demo package;
+- visual polish and console UX refinement within Folder 2 only;
+- synthetic demo package cleanup;
 - first-pilot scope pack;
 - support/pilot boundary refinement;
 - repeatable validation checklist.
@@ -1640,18 +1647,18 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, and the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`, and a completed Phase 2G-S synthetic GUI-run proof with status-only sanitized reporting.
 
 Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, and first-pilot package index. The latest committed Legal docs checkpoint is `7e3f88b docs(legal): add first pilot package index`.
 
-Visual polish should stop for now. The current console is visually acceptable as a checkpoint, but not final-brand quality. Future visual work should be scheduled as a distinct brand/asset pass after functional priorities are clearer.
+Visual polish may resume only through ChatGPT Project Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`. Folder 2 is a distinct visual polish / console UX lane and must not expand behavior.
 
 Status realism should also stop for now unless a specific bug appears. Refresh Status now has useful safe fields and passed Mac runtime validation without reading/listing private intake contents.
 
 Immediate next work:
 
-1. **Recommended next target: synthetic GUI-run proof.** Use synthetic/fake data only. Confirm the GUI shows synthetic-only bridge state, exposes `Run Synthetic Dry Run`, keeps Reset disabled, completes the bridge with synthetic data only, shows primary state `Done` after Refresh Status, and reports only sanitized status/container signals.
-2. **If direct GUI automation is unavailable:** produce exact manual Mac GUI proof steps for Winship instead of improvising lower-level bridge execution.
+1. **Recommended next target: Folder 2 visual polish / console UX.** Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
+2. **Folder 2 boundary:** visual polish and console UX only; no behavior expansion, no new bridge modes, no Reset wiring, no real-matter GUI Run, no file picker, no matter selector, and no output body display.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 4. **Real matter remains blocked in the app:** do not drop real matter into the app unless following the real-matter Mac bridge protocol with explicit confirmation gate. Do not use cloud/external/non-local models with real matter.
 

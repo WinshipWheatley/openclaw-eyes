@@ -16,9 +16,12 @@ The current readiness baseline is:
 - synthetic stress pack: PASS
 - fake data through PC real-shaped paths: PASS
 - fake data through Mac bridge path: PASS
+- Phase 2G-S synthetic GUI-run proof: PASS / complete with status-only sanitized reporting
 - GUI real-matter readiness: NO-GO, because the GUI Run wrapper is synthetic-only and has no real-matter mode
 
 This baseline permits planning a real-matter Mac bridge validation protocol. It does not authorize execution.
+
+The completed synthetic GUI-run proof does not change the real-matter boundary: Real-matter GUI Run remains NO-GO, Reset remains NO-GO, and real matter through the app remains NO-GO.
 
 ## 1. Preconditions before Mac intake receives real matter
 
@@ -252,7 +255,7 @@ Not allowed for real matter:
 - report/review/support body display
 - any GUI action that lists, counts, reads, hashes, previews, or uploads intake contents
 
-The synthetic-only GUI Run wrapper may be used only for Lane A synthetic proof. It is not authorization to place real matter in the app or to trigger a real-matter bridge run from the GUI. If the GUI behavior changes before the future validation, re-audit it before use.
+The synthetic-only GUI Run wrapper was proven only for Lane A synthetic proof with status-only sanitized reporting. It is not authorization to place real matter in the app or to trigger a real-matter bridge run from the GUI. If the GUI behavior changes before the future validation, re-audit it before use.
 
 ## 11. Stop conditions
 

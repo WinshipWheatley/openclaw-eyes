@@ -21,9 +21,13 @@ Current posture:
 - OpenClaw Legal remains promising / conditional-go.
 - Phase 2F-B synthetic write is complete.
 - Phase 2G-S synthetic-only GUI Run wrapper is implemented and committed.
-- Real-matter GUI Run is explicitly blocked.
-- Reset is explicitly deferred.
-- The next safe Legal work is synthetic GUI-run proof, or manual proof steps if GUI automation is unavailable.
+- Phase 2G-S synthetic GUI-run proof is now complete.
+- Synthetic GUI-run proof passed with status-only sanitized reporting.
+- Real-matter GUI Run remains NO-GO.
+- Reset remains NO-GO.
+- Real matter through the app remains NO-GO.
+- The next safe Legal workflow should switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
+- Folder 2 is for visual polish / console UX only, not behavior expansion.
 
 ## 3. Allowed validation scope
 
@@ -131,6 +135,38 @@ Expected UI outcomes:
 - `Reset Local Test` remains disabled.
 - `Reset All Test State` remains disabled.
 
+## 6A. Completed Phase 2G-S proof result
+
+The Phase 2G-S synthetic GUI-run proof passed with status-only sanitized reporting.
+
+Observed proof result:
+
+- Mac GUI showed Phase 2G-S.
+- `Run Synthetic Dry Run` was visible.
+- Synthetic dry run succeeded.
+- Started: yes.
+- Status: succeeded.
+- Exit code: 0.
+- Bridge mode: `synthetic_only`.
+- Raw bridge output was captured/suppressed.
+- Real-matter GUI Run remained disabled.
+- `Reset Local Test` remained disabled.
+- `Reset All Test State` remained disabled.
+- Refresh Status showed GUI bridge: Synthetic-only GUI run.
+- Primary state token: `Done`.
+
+Sanitized post-proof verification passed:
+
+- repo boundary: PASS
+- primary status token: `Done`
+- `alternative_methods.json`: PRESENT
+- `reports` container: PRESENT
+- `review_packets` container: PRESENT
+- `support` container: PRESENT
+- Mac copied primary status file: PRESENT
+
+No filenames, file counts, source text, snippets, hashes, report bodies, review packet bodies, support packet bodies, raw status bodies, raw bridge output, or private file lists were printed.
+
 ## 7. Proof commands
 
 PC/WSL docs proof for this validation package:
@@ -178,7 +214,8 @@ Useful screenshots or notes:
 - After `Refresh Status`.
 - `Create Synthetic Test File` created result.
 - `Create Synthetic Test File` already-present result.
-- Disabled `Run Dry Run` control.
+- `Run Synthetic Dry Run` success result showing sanitized fields only.
+- Disabled `Run Real Matter` control.
 - Disabled `Reset Local Test` control.
 - Disabled `Reset All Test State` control.
 - Note confirming no private filenames, counts, contents, output bodies, review packet bodies, support packet bodies, or private absolute paths were displayed.
@@ -196,16 +233,16 @@ Halt validation immediately if any of these occur:
 - Output body text appears.
 - Review packet body text appears.
 - Support packet body text appears.
-- `Run Dry Run` becomes enabled.
+- Real-matter GUI Run becomes enabled.
 - `Reset Local Test` becomes enabled.
 - `Reset All Test State` becomes enabled.
-- The bridge executes.
+- Any non-synthetic bridge mode executes.
 - Arbitrary input appears for path, filename, file body, query, matter, or mode.
 - Private absolute paths are displayed.
 - The app implies production readiness.
 
 ## 10. Next-step rule
 
-After validation, pause Legal feature work.
+After validation, switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
 
-Any Run action requires a separate Phase 2G contract/design and explicit approval before implementation. Reset behavior remains separately deferred and requires its own confirmation design and approval.
+Folder 2 is for visual polish / console UX only, not behavior expansion. Real-matter GUI Run remains NO-GO. Reset remains NO-GO. Real matter through the app remains NO-GO. Any behavior expansion requires a separate contract/design and explicit approval before implementation.
