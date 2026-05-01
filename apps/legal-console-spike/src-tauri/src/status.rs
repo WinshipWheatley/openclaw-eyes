@@ -129,7 +129,7 @@ pub fn get_status_snapshot() -> StatusSnapshot {
         outputs_guide_present: guide.0,
         scaffold_ready,
         processing_state,
-        gui_bridge_state: "not_wired".to_string(),
+        gui_bridge_state: "synthetic_only".to_string(),
         boundary_state: boundary_state.to_string(),
         warnings,
         errors,

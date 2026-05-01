@@ -26,8 +26,8 @@ export const proofTargetConfig: LegalConsoleConfig = {
   outputGuidePath: "~/OpenClawLegalPrivate/Matter_Alpha_Workspace/04_OUTPUTS/00_OPEN_THIS_FIRST.md",
   primaryNodePrivateRoot: "/mnt/c/OpenClawLegalPrivate",
   primaryNodeVaultRoot: "/mnt/c/OpenClawLegalPrivate/vault",
-  stagingPath: "/mnt/c/OpenClawLegalPrivate/staging/matter_alpha",
-  exportsPath: "/mnt/c/OpenClawLegalPrivate/exports/matter_alpha",
+  stagingPath: "/mnt/c/OpenClawLegalPrivate/staging/bridge_synthetic_proof_20260430",
+  exportsPath: "/mnt/c/OpenClawLegalPrivate/exports/bridge_synthetic_proof_20260430",
   transport: "ssh",
   workstationOs: "macos",
   primaryNodeOs: "wsl"
@@ -39,7 +39,7 @@ export const safetyStatements = [
   "Local-only proof surface",
   "Dummy or synthetic files only",
   "Matter data must not enter /home/openclaw",
-  "No processing commands wired"
+  "No real-matter processing commands wired"
 ];
 
 export function displayPath(value: string, leadingSegments = 2): string {
