@@ -1,0 +1,83 @@
+{
+  "fixture_id": "fixture_operator_experience_golden_overview",
+  "fixture_type": "mission_control_overview",
+  "app_surface": "mac_desktop_mission_control_read_only",
+  "source_set_baseline": "02_MAC_IOS_APP_BUILD",
+  "source_manifest_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+  "ui_state": "launch_ready",
+  "overview": {
+    "overview_id": "golden_calm_mission_control_overview",
+    "north_star": "Prepare read-only Mac desktop Mission Control fixtures before implementation.",
+    "primary_route": "Balanced Route",
+    "authority_state": "not_approved",
+    "freshness_state": "fresh",
+    "next_safe_action": "Review fixture contract; any validation run requires a separate Launch Packet/Approval Receipt.",
+    "visible_sections": [
+      "north_star",
+      "current_route",
+      "authority",
+      "freshness",
+      "evidence",
+      "blockers",
+      "next_safe_action"
+    ],
+    "taste_eval": {
+      "operator_can_orient_within_seconds": true,
+      "authority_boundaries_visually_obvious": true,
+      "status_copy_exact_and_evidence_backed": true,
+      "calm_sparse_premium_controlled": true,
+      "rejects_fake_intelligence": true,
+      "rejects_chatbot_slop": true,
+      "rejects_generic_admin_panel_energy": true
+    }
+  },
+  "hard_boundaries": {
+    "no_swiftui_appkit_implementation": true,
+    "no_backend_api_schema_implementation": true,
+    "no_runtime_calls": true,
+    "no_service_control": true,
+    "no_provider_model_calls": true,
+    "no_gmail_telegram_actions": true,
+    "no_hermes_runtime_expansion": true,
+    "no_private_data_vault_log_legalprivate_secrets_inspection": true,
+    "no_approval_mutation_guardian_control": true,
+    "no_app_execution": true
+  },
+  "evidence_refs": [
+    {
+      "kind": "doc",
+      "path_or_id": "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md",
+      "claim_supported": "Product Taste / Operator Experience Eval Spine must be preserved before app implementation",
+      "limits": "Fixture does not implement UI"
+    },
+    {
+      "kind": "doc",
+      "path_or_id": "docs/planning/launch_ladder/operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md",
+      "claim_supported": "Separate freshness, validation, confidence, and authority",
+      "limits": "Research guidance only"
+    }
+  ],
+  "freshness": {
+    "state": "fresh",
+    "source_basis": [
+      "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md",
+      "docs/planning/launch_ladder/operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md"
+    ],
+    "source_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+    "generated_at": "2026-05-02T12:00:00-04:00",
+    "reviewed_at": "2026-05-02T12:00:00-04:00",
+    "stale_conditions": [
+      "Taste eval spine changes",
+      "Mission Control fixture set changes",
+      "App-planning baseline changes"
+    ],
+    "refresh_trigger": "Refresh before any Mac desktop UI design or fixture loader work"
+  },
+  "expected_validation": {
+    "fixture_valid": true,
+    "expected_ui_state": "launch_ready",
+    "authorizes_execution": false,
+    "must_preserve_taste_eval": true,
+    "must_expose_evidence_authority_freshness_next_safe_action": true
+  }
+}

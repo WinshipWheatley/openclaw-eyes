@@ -1,0 +1,64 @@
+{
+  "fixture_id": "fixture_malformed_executable_profile",
+  "fixture_type": "workspace_launch_profile",
+  "app_surface": "mac_desktop_mission_control_read_only",
+  "source_set_baseline": "02_MAC_IOS_APP_BUILD",
+  "source_manifest_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+  "ui_state": "blocked",
+  "profile": {
+    "profile_id": "invalid_profile_that_runs",
+    "display_name": "Invalid executable profile",
+    "purpose": "Malformed negative fixture proving profiles cannot contain execution.",
+    "owner_lane": "operator_harness",
+    "target_machine": "Mac",
+    "target_root": "~/OpenClaw_Watch/operator_harness_readiness",
+    "allowed_navigation_actions": [
+      "open_folder"
+    ],
+    "required_next_launch_packet_for_execution": "missing_because_this_fixture_is_malformed",
+    "executable_commands_forbidden_example": [
+      "FORBIDDEN_EXAMPLE_ONLY: run tests from a Workspace Launch Profile",
+      "FORBIDDEN_EXAMPLE_ONLY: sync files from a Workspace Launch Profile"
+    ]
+  },
+  "hard_boundaries": {
+    "no_swiftui_appkit_implementation": true,
+    "no_backend_api_schema_implementation": true,
+    "no_runtime_calls": true,
+    "no_service_control": true,
+    "no_provider_model_calls": true,
+    "no_gmail_telegram_actions": true,
+    "no_hermes_runtime_expansion": true,
+    "no_private_data_vault_log_legalprivate_secrets_inspection": true,
+    "no_approval_mutation_guardian_control": true,
+    "no_app_execution": true
+  },
+  "evidence_refs": [
+    {
+      "kind": "doc",
+      "path_or_id": "docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md",
+      "claim_supported": "Profiles with executable commands are malformed",
+      "limits": "Negative fixture only"
+    }
+  ],
+  "freshness": {
+    "source_basis": [
+      "docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md"
+    ],
+    "source_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+    "generated_at": "2026-05-02T12:00:00-04:00",
+    "reviewed_at": "2026-05-02T12:00:00-04:00",
+    "stale_conditions": [
+      "Workspace Launch Profile execution boundary changes"
+    ],
+    "refresh_trigger": "Refresh if profiles ever gain new navigation fields"
+  },
+  "expected_validation": {
+    "fixture_valid": false,
+    "expected_ui_state": "blocked",
+    "navigation_only": false,
+    "contains_executable_commands": true,
+    "authorizes_execution": false,
+    "reason_invalid": "Workspace Launch Profiles must not contain executable commands."
+  }
+}

@@ -120,9 +120,46 @@ Each record must include source commit, generated/reviewed time, stale condition
 
 Each atlas-level record should answer what it is, what it can do, its North Star, readiness, blockers, evidence, and next safe Launch Ladder.
 
-## Mock Fixture Needs
+## Read-Only Mission Control Fixture Contract
 
-Create mock fixtures in a later slice before app work starts:
+The first app-planning fixture contract is now:
+
+```text
+docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md
+docs/planning/launch_ladder/fixtures/mission_control/
+```
+
+This contract remains docs/test-only. It defines mock fixture shapes, golden examples, malformed examples, and static validation expectations for a read-only Mac desktop Mission Control surface. It does not create SwiftUI/AppKit code, a backend/API/schema, runtime calls, service control, provider/model calls, Gmail/Telegram behavior, Hermes runtime expansion, private-data inspection, approval mutation, or app execution.
+
+Required fixture files:
+
+- `fixture_fresh_navigation_profile.json`
+- `fixture_malformed_executable_profile.json`
+- `fixture_packet_available_not_approved.json`
+- `fixture_approval_receipt_valid.json`
+- `fixture_approval_receipt_expired.json`
+- `fixture_stale_evidence_route.json`
+- `fixture_blocked_missing_authority.json`
+- `fixture_ui_claim_without_evidence.json`
+- `fixture_operator_experience_golden_overview.json`
+
+Required app-state rules:
+
+- `profile_available`: navigation context exists only.
+- `packet_available`: bounded action object exists for review only.
+- `launch_ready`: preconditions appear satisfied for operator review only.
+- `approved`: Approval Receipt permits one named packet/action/scope only.
+- `executed`: attempted, not necessarily successful.
+- `succeeded`: execution result plus validation evidence.
+- `stale`: source basis, timestamp, evidence, or freshness is no longer valid.
+- `blocked`: authority, evidence, freshness, validation, or scope is missing or invalid.
+- `unknown`: app lacks evidence; do not soften this into confidence.
+
+The first app must not collapse profile, packet, approval, execution, and result into one "agent progress" object. A Workspace Launch Profile fixture must remain navigation-only. A Launch Packet fixture may show a bounded action object for review, but packet availability is not approval. A valid Approval Receipt fixture binds one packet/action/scope, and an expired receipt cannot authorize execution.
+
+## Future Mock Fixture Needs
+
+Additional mock fixtures can be created in later slices before app work starts:
 
 - Fresh Direct Route for docs-only work.
 - Stale Balanced Route after source change.

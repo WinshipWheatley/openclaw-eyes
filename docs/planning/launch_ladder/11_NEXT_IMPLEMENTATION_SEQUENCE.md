@@ -20,9 +20,9 @@ Freshness:
 5. Add generator spec before generator code.
 6. Add generator code only after the spec and tests exist.
 7. Generate source sets only after the generator is validated.
-8. Create read-only app mock fixtures.
+8. Create read-only Mac desktop Mission Control mock fixtures.
 9. Define Workspace Launch Profile records for view/navigation only.
-10. Route a Codex Desktop Mac app build from the app-specific source set.
+10. Route a Codex Desktop Mac app build from the app-specific source set only after fixture, state, and taste contracts pass static validation.
 
 The Multi-OpenClaw Command Atlas should stay a long-range horizon until the v1 Launch Ladder proof is committed and statically checked. Do not skip from this package to a multi-deployment app or registry without first defining data contracts, freshness rules, authority boundaries, and fixtures.
 
@@ -38,7 +38,7 @@ Do not create folder 04 until folder 03 evidence shows what it should contain. B
 
 ## Current Slice Source-Set Posture
 
-This Workspace Launch Profile, profile-to-packet handoff, approval receipt, and Product Taste / Operator Experience Eval Spine contract work stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
+The active app-planning posture is `02_MAC_IOS_APP_BUILD`. The read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`; it does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder 04, does not create generated source-set scripts, does not edit generated source-set folders, and does not start app/backend/runtime implementation. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
 
 ## Workspace Launch Profile Primitive
 
@@ -50,11 +50,11 @@ The next contract slice should keep the handoff narrow: a Workspace Launch Profi
 
 Do not create actual workspace launcher scripts until the profile record shape, stale conditions, prompt-copy behavior, and authority warning are statically documented and tested.
 
-## Product Taste Gate Before App Planning
+## Product Taste Gate During App Planning
 
-Before preparing `02_MAC_IOS_APP_BUILD`, keep one final product-spec gate: the app planning source set must preserve the Product Taste / Operator Experience Eval Spine. Taste means trust, control, clarity, evidence visibility, sparse high-confidence action, and anti-slop discipline; it is not decorative polish.
+Now that `02_MAC_IOS_APP_BUILD` is active, preserve the Product Taste / Operator Experience Eval Spine as an app-planning gate before any implementation. Taste means trust, control, clarity, evidence visibility, sparse high-confidence action, and anti-slop discipline; it is not decorative polish.
 
-The Mac desktop app planning source set should carry the golden and malformed taste examples forward as acceptance criteria. Do not start app implementation, backend/schema implementation, live runtime integration, or launcher behavior from this gate. Premature app details such as exact SwiftUI layout, visual system tokens, animations, persistence, native workspace-opening implementation, backend APIs, and runtime state polling belong in `02_MAC_IOS_APP_BUILD` or later.
+The Mac desktop app planning source set should carry the golden and malformed taste examples forward as acceptance criteria. Do not start app implementation, backend/schema implementation, live runtime integration, or launcher behavior from this gate. Premature app details such as exact SwiftUI layout, visual system tokens, animations, persistence, native workspace-opening implementation, backend APIs, and runtime state polling belong in a later implementation slice after the read-only fixture contract passes static validation.
 
 ## Prior-Art Upgrade Candidates
 

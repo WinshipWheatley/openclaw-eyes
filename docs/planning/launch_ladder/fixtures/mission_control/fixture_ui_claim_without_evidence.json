@@ -1,0 +1,57 @@
+{
+  "fixture_id": "fixture_ui_claim_without_evidence",
+  "fixture_type": "ui_state_claim",
+  "app_surface": "mac_desktop_mission_control_read_only",
+  "source_set_baseline": "02_MAC_IOS_APP_BUILD",
+  "source_manifest_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+  "ui_state": "unknown",
+  "ui_claim": {
+    "claim_id": "invalid_healthy_running_synced_without_evidence",
+    "label": "Healthy, running, synced, and tested",
+    "claimed_states": [
+      "healthy",
+      "running",
+      "synced",
+      "tested",
+      "current"
+    ],
+    "source_commit": null,
+    "observed_at": null,
+    "artifact": null,
+    "evidence_refs": []
+  },
+  "hard_boundaries": {
+    "no_swiftui_appkit_implementation": true,
+    "no_backend_api_schema_implementation": true,
+    "no_runtime_calls": true,
+    "no_service_control": true,
+    "no_provider_model_calls": true,
+    "no_gmail_telegram_actions": true,
+    "no_hermes_runtime_expansion": true,
+    "no_private_data_vault_log_legalprivate_secrets_inspection": true,
+    "no_approval_mutation_guardian_control": true,
+    "no_app_execution": true
+  },
+  "evidence_refs": [],
+  "freshness": {
+    "state": "unknown",
+    "source_basis": [
+      "docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md",
+      "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md"
+    ],
+    "source_commit": null,
+    "generated_at": "2026-05-02T12:00:00-04:00",
+    "reviewed_at": "2026-05-02T12:00:00-04:00",
+    "stale_conditions": [
+      "Evidence remains absent"
+    ],
+    "refresh_trigger": "Replace with explicit source commit, timestamp, artifact, and evidence before any positive status claim"
+  },
+  "expected_validation": {
+    "fixture_valid": false,
+    "expected_ui_state": "unknown",
+    "authorizes_execution": false,
+    "reason_invalid": "healthy/current/tested/running/synced claims require source commit, timestamp, artifact, and evidence",
+    "must_not_soften_unknown_into_confidence": true
+  }
+}

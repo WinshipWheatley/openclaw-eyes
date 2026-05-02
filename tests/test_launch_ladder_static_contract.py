@@ -1,10 +1,14 @@
 from launch_ladder_contract_check import (
-    OMITTED_CURRENT_PRODUCT_SPEC_FILES,
-    UPLOADED_CURRENT_PRODUCT_SPEC,
+    ACTIVE_SOURCE_SET,
+    MISSION_CONTROL_APP_SURFACE,
+    MISSION_CONTROL_SOURCE_SET_BASELINE,
+    REQUIRED_MISSION_CONTROL_FIXTURES,
     UPLOAD_AUTHORITY_COMMIT,
     check_contract,
     freshness_warnings,
     load_corpus,
+    load_mission_control_fixtures,
+    mission_control_fixture_failures,
 )
 
 
@@ -13,18 +17,16 @@ def test_launch_ladder_static_contract_is_present():
     assert report.failures == ()
 
 
-def test_current_product_spec_source_set_warnings_are_preserved():
+def test_active_app_planning_source_set_warnings_are_preserved():
     corpus = load_corpus()
     warnings = freshness_warnings(corpus)
     joined = "\n".join(warnings)
 
-    assert UPLOADED_CURRENT_PRODUCT_SPEC in joined
+    assert ACTIVE_SOURCE_SET in joined
     assert UPLOAD_AUTHORITY_COMMIT in joined
     assert "generated MANIFEST.md" in joined
     assert "upload authority" in joined
     assert "package-level freshness markers" in joined
-    assert OMITTED_CURRENT_PRODUCT_SPEC_FILES[0] in joined
-    assert "do not generate Mac/iOS app-build prompts" in joined
     assert "Freshness normalization TODO" in joined
 
 
@@ -34,7 +36,7 @@ def test_source_set_ladder_delta_bridge_contract_is_present():
 
     assert "CHAT_STAY_UP_TO_DATE.md" in corpus.launch_ladder_text
     assert "Source-Set Ladder" in corpus.launch_ladder_text
-    assert "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2" in corpus.launch_ladder_text
+    assert UPLOAD_AUTHORITY_COMMIT in corpus.launch_ladder_text
     assert "source-set folders are not launch ladder steps" in launch_text
     assert "openclaw_audit_build_readiness" in corpus.launch_ladder_text
     assert "law_program" in corpus.launch_ladder_text
@@ -282,11 +284,78 @@ def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_docu
     corpus = load_corpus()
     launch_text = corpus.launch_ladder_text
 
-    assert "This Workspace Launch Profile, profile-to-packet handoff, approval receipt, and Product Taste / Operator Experience Eval Spine contract work stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
-    assert "does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`" in launch_text
+    assert "active app-planning posture is `02_MAC_IOS_APP_BUILD`" in launch_text
+    assert "read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`" in launch_text
+    assert "does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`" in launch_text
     assert "does not create source-set folder `04`" in launch_text
     assert "does not create generated source-set scripts" in launch_text
     assert "does not edit generated source-set folders" in launch_text
+    assert "does not start app/backend/runtime implementation" in launch_text
     assert "`Mac/iOS` is Apple-platform planning shorthand" in launch_text
     assert "Mac desktop app first, iOS companion later" in launch_text
     assert "Do not read this brief as iOS-first implementation" in launch_text
+
+
+def test_mac_desktop_mission_control_fixture_contract_is_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Mac Desktop Mission Control Fixture Contract" in launch_text
+    assert "docs/planning/launch_ladder/fixtures/mission_control/" in launch_text
+    for fixture_name in REQUIRED_MISSION_CONTROL_FIXTURES:
+        assert fixture_name in launch_text
+
+    for state_rule in (
+        "`profile_available`: navigation context exists only",
+        "`packet_available`: bounded action object exists for review only",
+        "`launch_ready`: preconditions appear satisfied for operator review only",
+        "`approved`: Approval Receipt permits one named packet/action/scope only",
+        "`executed`: attempted, not necessarily successful",
+        "`succeeded`: execution result plus validation evidence",
+        "`stale`: source basis, timestamp, evidence, or freshness is no longer valid",
+        "`blocked`: authority, evidence, freshness, validation, or scope is missing or invalid",
+        "`unknown`: app lacks evidence; do not soften this into confidence",
+    ):
+        assert state_rule in launch_text
+
+    assert "must not collapse profile, packet, approval, execution, and result" in launch_text
+    assert "Product Taste / Operator Experience Evals must reject AI slop" in launch_text
+    assert "All nine required fixture files exist and parse as JSON" in launch_text
+    assert "Workspace Launch Profiles with executable command fields are invalid" in launch_text
+    assert "Expired receipts cannot authorize execution" in launch_text
+    assert "`healthy`, `current`, `tested`, `running`, or `synced` without evidence are invalid" in launch_text
+
+
+def test_mac_desktop_mission_control_fixtures_validate_static_boundaries():
+    failures = mission_control_fixture_failures()
+    assert failures == ()
+
+    fixtures = load_mission_control_fixtures()
+    assert set(fixtures) == set(REQUIRED_MISSION_CONTROL_FIXTURES)
+
+    for fixture in fixtures.values():
+        assert fixture["app_surface"] == MISSION_CONTROL_APP_SURFACE
+        assert fixture["source_set_baseline"] == MISSION_CONTROL_SOURCE_SET_BASELINE
+        assert fixture["source_manifest_commit"] == UPLOAD_AUTHORITY_COMMIT
+        assert fixture["hard_boundaries"]["no_runtime_calls"] is True
+        assert fixture["hard_boundaries"]["no_service_control"] is True
+        assert fixture["hard_boundaries"]["no_provider_model_calls"] is True
+        assert fixture["hard_boundaries"]["no_private_data_vault_log_legalprivate_secrets_inspection"] is True
+        assert fixture["hard_boundaries"]["no_approval_mutation_guardian_control"] is True
+        assert fixture["hard_boundaries"]["no_app_execution"] is True
+
+    assert fixtures["fixture_fresh_navigation_profile.json"]["expected_validation"]["navigation_only"] is True
+    assert fixtures["fixture_fresh_navigation_profile.json"]["expected_validation"]["authorizes_execution"] is False
+    assert fixtures["fixture_malformed_executable_profile.json"]["expected_validation"]["fixture_valid"] is False
+    assert fixtures["fixture_malformed_executable_profile.json"]["expected_validation"]["contains_executable_commands"] is True
+    assert fixtures["fixture_packet_available_not_approved.json"]["expected_validation"]["approval_receipt_present"] is False
+    assert fixtures["fixture_packet_available_not_approved.json"]["expected_validation"]["authorizes_execution"] is False
+    assert fixtures["fixture_approval_receipt_valid.json"]["expected_validation"]["authorizes_one_named_packet_action_scope"] is True
+    assert fixtures["fixture_approval_receipt_valid.json"]["expected_validation"]["app_can_execute"] is False
+    assert fixtures["fixture_approval_receipt_expired.json"]["expected_validation"]["expired"] is True
+    assert fixtures["fixture_approval_receipt_expired.json"]["expected_validation"]["authorizes_execution"] is False
+    assert fixtures["fixture_stale_evidence_route.json"]["expected_validation"]["launch_ready_claim_allowed"] is False
+    assert fixtures["fixture_blocked_missing_authority.json"]["expected_validation"]["must_distinguish_launch_ready_from_launch_authorized"] is True
+    assert fixtures["fixture_ui_claim_without_evidence.json"]["expected_validation"]["fixture_valid"] is False
+    assert fixtures["fixture_ui_claim_without_evidence.json"]["expected_validation"]["must_not_soften_unknown_into_confidence"] is True
+    assert fixtures["fixture_operator_experience_golden_overview.json"]["expected_validation"]["must_preserve_taste_eval"] is True

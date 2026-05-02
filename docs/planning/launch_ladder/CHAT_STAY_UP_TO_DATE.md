@@ -14,12 +14,12 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 
 | Field | Current value |
 | --- | --- |
-| Current source-set folder | `01_CURRENT_PRODUCT_SPEC` |
-| Source-set ladder position | `01_CURRENT_PRODUCT_SPEC` of the current `01 -> 02 -> 03` ladder. |
-| Source commit from latest audited `MANIFEST.md` | `005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2` |
-| Latest repo changes since upload | Repo HEAD checked at slice start: `cfc7cd8 docs(launch-ladder): define approval receipts`; changes since the uploaded manifest include the delta bridge, freshness/static contract alignment, Workspace Launch Profile contract, profile-to-packet handoff, prior-art decision record, mirror inclusion, Action Authorization / Approval Receipt, and UI State Claim contract. This current docs/test-only slice defines the Product Taste / Operator Experience Eval Spine. |
-| Current chat focus | Product Taste / Operator Experience Eval Spine inside `01_CURRENT_PRODUCT_SPEC`. |
-| Next likely source-set folder | `02_MAC_IOS_APP_BUILD`, after the current product/spec session has extracted stable app-facing requirements. |
+| Current source-set folder | `02_MAC_IOS_APP_BUILD` |
+| Source-set ladder position | `02_MAC_IOS_APP_BUILD` of the current `01 -> 02 -> 03` ladder. |
+| Source commit from latest audited `MANIFEST.md` | `df52ff4687d7dd8a32990658d557cb2b4d1371d9` |
+| Latest repo changes since upload | Repo HEAD checked at slice start: `df52ff4 docs(launch-ladder): define operator experience evals`. This current docs/test-only slice defines the first Mac desktop Mission Control read-only fixture contract for app planning. |
+| Current chat focus | Mac Desktop App Planning - Read-Only Mission Control Fixture Contract inside `02_MAC_IOS_APP_BUILD`. |
+| Next likely source-set folder | `03_BACKEND_AND_DATA_MODEL`, after app-facing fixture states, read-only display boundaries, and validation expectations are stable enough to formalize data/schema contracts. |
 | Full 24-file refresh needed? | No, if the only change is a small docs/test clarification that does not alter included file count, withheld surfaces, or source-set purpose. |
 | Bridge-only upload enough? | Yes, for small current-context updates that explain what changed since the latest `MANIFEST.md`. |
 
@@ -37,8 +37,11 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - UI State Claim rules must keep profile available, packet available, approved, executed, succeeded, current/fresh, synced/tested/healthy/running, configured, observed, requested, and stale copy tied to explicit evidence.
 - Product Taste / Operator Experience Eval Spine is part of the product contract before app planning. Taste means operator trust, calm control, clear authority hierarchy, legible evidence, sparse high-confidence actions, and zero fake intelligence.
 - App planning must preserve anti-slop checks: no vague agent status, no fake intelligence language, no hidden authority/execution, no generic admin-panel energy, no chatbot slop, and no evidence-backed status copy buried too deeply to trust.
+- Active source-set baseline is now `02_MAC_IOS_APP_BUILD` for app planning. The current slice adds the read-only Mac desktop Mission Control fixture contract and nine JSON fixtures under `docs/planning/launch_ladder/fixtures/mission_control/`.
+- Mission Control fixture states must preserve the exact meanings of `profile_available`, `packet_available`, `launch_ready`, `approved`, `executed`, `succeeded`, `stale`, `blocked`, and `unknown`.
+- The future app may display fixture records, but it must not execute from them.
 - A Workspace Launch Profile that contains executable commands is malformed. Executable commands belong only in a Launch Packet or higher Launch Ladder action.
-- This slice stays in `01_CURRENT_PRODUCT_SPEC`, does not move to `02_MAC_IOS_APP_BUILD`, does not create source-set folder `04`, does not create generated source-set scripts, and does not edit generated source-set folders.
+- This slice stays in `02_MAC_IOS_APP_BUILD`, does not move to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder `04`, does not create generated source-set scripts, and does not edit generated source-set folders.
 - `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.
 - Do not refresh the Mac mirror after every small docs/test slice; batch mirror refreshes at meaningful checkpoints unless source-set membership, withheld surfaces, manifest basis, or operator upload needs change.
 

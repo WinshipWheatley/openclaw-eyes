@@ -9,6 +9,7 @@ folders.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import re
 import sys
@@ -25,12 +26,46 @@ REFRESH_OPERATOR_HARNESS = (
     REPO_ROOT / "mac_eyes" / "Launchers" / "refresh_operator_harness_ingest.sh"
 )
 
-UPLOADED_CURRENT_PRODUCT_SPEC = (
-    "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC"
+ACTIVE_SOURCE_SET = "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/02_MAC_IOS_APP_BUILD"
+UPLOAD_AUTHORITY_COMMIT = "df52ff4687d7dd8a32990658d557cb2b4d1371d9"
+MISSION_CONTROL_APP_SURFACE = "mac_desktop_mission_control_read_only"
+MISSION_CONTROL_SOURCE_SET_BASELINE = "02_MAC_IOS_APP_BUILD"
+MISSION_CONTROL_FIXTURE_DIR = (
+    LAUNCH_LADDER_DIR / "fixtures" / "mission_control"
 )
-UPLOAD_AUTHORITY_COMMIT = "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2"
-OMITTED_CURRENT_PRODUCT_SPEC_FILES = (
-    "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md",
+REQUIRED_MISSION_CONTROL_FIXTURES = (
+    "fixture_fresh_navigation_profile.json",
+    "fixture_malformed_executable_profile.json",
+    "fixture_packet_available_not_approved.json",
+    "fixture_approval_receipt_valid.json",
+    "fixture_approval_receipt_expired.json",
+    "fixture_stale_evidence_route.json",
+    "fixture_blocked_missing_authority.json",
+    "fixture_ui_claim_without_evidence.json",
+    "fixture_operator_experience_golden_overview.json",
+)
+MISSION_CONTROL_UI_STATES = (
+    "profile_available",
+    "packet_available",
+    "launch_ready",
+    "approved",
+    "executed",
+    "succeeded",
+    "stale",
+    "blocked",
+    "unknown",
+)
+MISSION_CONTROL_REQUIRED_HARD_BOUNDARIES = (
+    "no_swiftui_appkit_implementation",
+    "no_backend_api_schema_implementation",
+    "no_runtime_calls",
+    "no_service_control",
+    "no_provider_model_calls",
+    "no_gmail_telegram_actions",
+    "no_hermes_runtime_expansion",
+    "no_private_data_vault_log_legalprivate_secrets_inspection",
+    "no_approval_mutation_guardian_control",
+    "no_app_execution",
 )
 
 
@@ -120,6 +155,223 @@ def _require_any(
         failures.append(f"{section}: missing one of {', '.join(variants)}")
 
 
+def _fixture_dir(repo_root: Path = REPO_ROOT) -> Path:
+    return repo_root / "docs" / "planning" / "launch_ladder" / "fixtures" / "mission_control"
+
+
+def load_mission_control_fixtures(repo_root: Path = REPO_ROOT) -> dict[str, dict]:
+    fixture_dir = _fixture_dir(repo_root)
+    fixtures: dict[str, dict] = {}
+    for filename in REQUIRED_MISSION_CONTROL_FIXTURES:
+        path = fixture_dir / filename
+        fixtures[filename] = json.loads(_read_text(path))
+    return fixtures
+
+
+def _profile_contains_executable_command_field(profile: object) -> bool:
+    if not isinstance(profile, dict):
+        return False
+    return any("executable" in key or key in {"execution_commands", "commands"} for key in profile)
+
+
+def _navigation_actions_are_clean(profile: dict) -> bool:
+    actions = profile.get("allowed_navigation_actions", [])
+    if not isinstance(actions, list):
+        return False
+    forbidden_fragments = ("run", "sync", "commit", "push", "service", "provider", "model", "execute")
+    return not any(
+        fragment in str(action).lower()
+        for action in actions
+        for fragment in forbidden_fragments
+    )
+
+
+def mission_control_fixture_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
+    failures: list[str] = []
+    fixture_dir = _fixture_dir(repo_root)
+    loaded: dict[str, dict] = {}
+
+    for filename in REQUIRED_MISSION_CONTROL_FIXTURES:
+        path = fixture_dir / filename
+        if not path.is_file():
+            failures.append(f"mission control fixtures: missing {path}")
+            continue
+        try:
+            loaded[filename] = json.loads(_read_text(path))
+        except json.JSONDecodeError as exc:
+            failures.append(f"mission control fixtures: invalid JSON in {path}: {exc}")
+
+    for filename, fixture in loaded.items():
+        section = f"mission control fixture {filename}"
+        expected_id = filename.removesuffix(".json")
+        if fixture.get("fixture_id") != expected_id:
+            failures.append(f"{section}: fixture_id must be {expected_id}")
+        if fixture.get("app_surface") != MISSION_CONTROL_APP_SURFACE:
+            failures.append(f"{section}: app_surface must be {MISSION_CONTROL_APP_SURFACE}")
+        if fixture.get("source_set_baseline") != MISSION_CONTROL_SOURCE_SET_BASELINE:
+            failures.append(
+                f"{section}: source_set_baseline must be {MISSION_CONTROL_SOURCE_SET_BASELINE}"
+            )
+        if fixture.get("source_manifest_commit") != UPLOAD_AUTHORITY_COMMIT:
+            failures.append(f"{section}: source_manifest_commit must be {UPLOAD_AUTHORITY_COMMIT}")
+        if fixture.get("ui_state") not in MISSION_CONTROL_UI_STATES:
+            failures.append(f"{section}: ui_state must be one of {', '.join(MISSION_CONTROL_UI_STATES)}")
+
+        expected_validation = fixture.get("expected_validation")
+        if not isinstance(expected_validation, dict):
+            failures.append(f"{section}: expected_validation must be an object")
+            continue
+        if expected_validation.get("expected_ui_state") != fixture.get("ui_state"):
+            failures.append(f"{section}: expected_ui_state must match ui_state")
+        if expected_validation.get("app_can_execute") is True:
+            failures.append(f"{section}: read-only Mission Control fixture cannot set app_can_execute true")
+
+        hard_boundaries = fixture.get("hard_boundaries")
+        if not isinstance(hard_boundaries, dict):
+            failures.append(f"{section}: hard_boundaries must be an object")
+        else:
+            missing_boundaries = [
+                boundary
+                for boundary in MISSION_CONTROL_REQUIRED_HARD_BOUNDARIES
+                if hard_boundaries.get(boundary) is not True
+            ]
+            if missing_boundaries:
+                failures.append(f"{section}: missing true hard boundaries {', '.join(missing_boundaries)}")
+
+        freshness = fixture.get("freshness")
+        if not isinstance(freshness, dict):
+            failures.append(f"{section}: freshness must be an object")
+        else:
+            for key in ("source_basis", "generated_at", "reviewed_at", "stale_conditions", "refresh_trigger"):
+                if not freshness.get(key):
+                    failures.append(f"{section}: freshness missing {key}")
+            if expected_validation.get("fixture_valid") is True and freshness.get("source_commit") != UPLOAD_AUTHORITY_COMMIT:
+                failures.append(f"{section}: valid fixtures must carry source_commit {UPLOAD_AUTHORITY_COMMIT}")
+
+        evidence_refs = fixture.get("evidence_refs")
+        if expected_validation.get("fixture_valid") is True and not evidence_refs:
+            failures.append(f"{section}: valid fixtures must include evidence_refs")
+
+        fixture_type = fixture.get("fixture_type")
+        if fixture_type == "workspace_launch_profile":
+            profile = fixture.get("profile")
+            if not isinstance(profile, dict):
+                failures.append(f"{section}: workspace fixture missing profile object")
+            else:
+                contains_exec = _profile_contains_executable_command_field(profile)
+                if filename == "fixture_malformed_executable_profile.json":
+                    if expected_validation.get("fixture_valid") is not False:
+                        failures.append(f"{section}: malformed profile must be expected invalid")
+                    if not contains_exec:
+                        failures.append(f"{section}: malformed profile must contain a forbidden executable field")
+                    if "reason_invalid" not in expected_validation:
+                        failures.append(f"{section}: malformed profile must state reason_invalid")
+                else:
+                    if contains_exec:
+                        failures.append(f"{section}: valid profile must not contain executable fields")
+                    if not profile.get("required_next_launch_packet_for_execution"):
+                        failures.append(f"{section}: profile missing required_next_launch_packet_for_execution")
+                    if not _navigation_actions_are_clean(profile):
+                        failures.append(f"{section}: profile navigation actions contain execution-looking terms")
+
+        if filename == "fixture_packet_available_not_approved.json":
+            packet = fixture.get("launch_packet", {})
+            if packet.get("approval_receipt_or_operator_decision") is not None:
+                failures.append(f"{section}: packet_available fixture must not include approval")
+            if expected_validation.get("authorizes_execution") is not False:
+                failures.append(f"{section}: packet_available fixture must not authorize execution")
+            if expected_validation.get("must_display_for_review_only") is not True:
+                failures.append(f"{section}: packet_available fixture must be review-only")
+
+        if filename == "fixture_approval_receipt_valid.json":
+            receipt = fixture.get("approval_receipt", {})
+            required_receipt_fields = (
+                "receipt_id",
+                "launch_packet_id",
+                "approved_by_operator",
+                "approved_at",
+                "approved_scope",
+                "approved_action",
+                "evidence_snapshot",
+                "freshness_snapshot",
+                "expiry",
+                "replay_policy",
+                "consumed_state",
+                "lifecycle_state",
+                "execution_result_reference",
+                "revocation_state",
+                "forbidden_scope_expansion",
+            )
+            missing = [field for field in required_receipt_fields if field not in receipt]
+            if missing:
+                failures.append(f"{section}: missing receipt fields {', '.join(missing)}")
+            if receipt.get("expiry", {}).get("expired_state") is not False:
+                failures.append(f"{section}: valid receipt fixture must not be expired")
+            if expected_validation.get("authorizes_one_named_packet_action_scope") is not True:
+                failures.append(f"{section}: valid receipt must bind one packet/action/scope")
+
+        if filename == "fixture_approval_receipt_expired.json":
+            receipt = fixture.get("approval_receipt", {})
+            if receipt.get("expiry", {}).get("expired_state") is not True:
+                failures.append(f"{section}: expired receipt must set expired_state true")
+            if expected_validation.get("authorizes_execution") is not False:
+                failures.append(f"{section}: expired receipt must not authorize execution")
+            if expected_validation.get("must_display_expired_reason") is not True:
+                failures.append(f"{section}: expired receipt must require visible reason")
+
+        if filename == "fixture_stale_evidence_route.json":
+            if fixture.get("freshness", {}).get("state") != "stale":
+                failures.append(f"{section}: stale route must set freshness.state stale")
+            route = fixture.get("launch_route", {})
+            if route.get("launch_ready_claim_allowed") is not False:
+                failures.append(f"{section}: stale route must block launch-ready claim")
+            if expected_validation.get("must_display_stale_reason") is not True:
+                failures.append(f"{section}: stale route must display stale reason")
+
+        if filename == "fixture_blocked_missing_authority.json":
+            route = fixture.get("launch_route", {})
+            if not route.get("blocked_reason"):
+                failures.append(f"{section}: blocked route missing blocked_reason")
+            if route.get("launch_authorized_claim_allowed") is not False:
+                failures.append(f"{section}: missing authority must block launch-authorized claim")
+            if expected_validation.get("must_distinguish_launch_ready_from_launch_authorized") is not True:
+                failures.append(f"{section}: must distinguish launch-ready from launch-authorized")
+
+        if filename == "fixture_ui_claim_without_evidence.json":
+            ui_claim = fixture.get("ui_claim", {})
+            claimed_states = set(ui_claim.get("claimed_states", []))
+            proof_claims = {"healthy", "current", "tested", "running", "synced"}
+            if not claimed_states.intersection(proof_claims):
+                failures.append(f"{section}: malformed UI claim must include proof-demanding states")
+            if ui_claim.get("source_commit") is not None or ui_claim.get("artifact") is not None or ui_claim.get("evidence_refs"):
+                failures.append(f"{section}: negative UI claim must lack source commit, artifact, and evidence")
+            if expected_validation.get("fixture_valid") is not False:
+                failures.append(f"{section}: UI claim without evidence must be expected invalid")
+            if expected_validation.get("must_not_soften_unknown_into_confidence") is not True:
+                failures.append(f"{section}: unknown must not soften into confidence")
+
+        if filename == "fixture_operator_experience_golden_overview.json":
+            overview = fixture.get("overview", {})
+            taste_eval = overview.get("taste_eval", {})
+            required_taste_flags = (
+                "operator_can_orient_within_seconds",
+                "authority_boundaries_visually_obvious",
+                "status_copy_exact_and_evidence_backed",
+                "calm_sparse_premium_controlled",
+                "rejects_fake_intelligence",
+                "rejects_chatbot_slop",
+                "rejects_generic_admin_panel_energy",
+            )
+            missing_taste = [flag for flag in required_taste_flags if taste_eval.get(flag) is not True]
+            if missing_taste:
+                failures.append(f"{section}: missing true taste flags {', '.join(missing_taste)}")
+            for visible in ("north_star", "current_route", "authority", "freshness", "evidence", "next_safe_action"):
+                if visible not in overview.get("visible_sections", []):
+                    failures.append(f"{section}: golden overview must expose {visible}")
+
+    return tuple(failures)
+
+
 def freshness_warnings(corpus: ContractCorpus) -> tuple[str, ...]:
     warnings: list[str] = []
     launch_text = corpus.launch_ladder_text
@@ -138,22 +390,13 @@ def freshness_warnings(corpus: ContractCorpus) -> tuple[str, ...]:
     if stale_markers:
         warnings.append(
             "Freshness normalization TODO: "
-            f"the generated MANIFEST.md for {UPLOADED_CURRENT_PRODUCT_SPEC} is "
+            f"the generated MANIFEST.md for {ACTIVE_SOURCE_SET} is "
             f"upload authority and reports source commit {UPLOAD_AUTHORITY_COMMIT}; "
             "canonical Launch Ladder docs still contain package-level freshness "
             f"markers: {', '.join(stale_markers)}. Treat the manifest as source-set "
             "authority and the doc markers as package-level review metadata until "
             "a docs-only freshness normalization pass updates them."
         )
-
-    for omitted in OMITTED_CURRENT_PRODUCT_SPEC_FILES:
-        if (REPO_ROOT / omitted).is_file():
-            warnings.append(
-                "Source-set limitation: "
-                f"{omitted} exists repo-side but was omitted from "
-                f"{UPLOADED_CURRENT_PRODUCT_SPEC}; do not generate Mac/iOS "
-                "app-build prompts from that source set alone."
-            )
 
     return tuple(warnings)
 
@@ -283,7 +526,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "01_CURRENT_PRODUCT_SPEC",
             "02_MAC_IOS_APP_BUILD",
             "03_BACKEND_AND_DATA_MODEL",
-            "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2",
+            UPLOAD_AUTHORITY_COMMIT,
             "source-set folders are not Launch Ladder steps",
             "When folder 01 is exhausted, move to folder 02",
             "When folder 02 is exhausted, move to folder 03",
@@ -508,13 +751,54 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     _require_all(
         failures,
         launch,
+        "mac desktop mission control fixture contract",
+        (
+            "Mac Desktop Mission Control Fixture Contract",
+            "docs/planning/launch_ladder/fixtures/mission_control",
+            "fixture_fresh_navigation_profile.json",
+            "fixture_malformed_executable_profile.json",
+            "fixture_packet_available_not_approved.json",
+            "fixture_approval_receipt_valid.json",
+            "fixture_approval_receipt_expired.json",
+            "fixture_stale_evidence_route.json",
+            "fixture_blocked_missing_authority.json",
+            "fixture_ui_claim_without_evidence.json",
+            "fixture_operator_experience_golden_overview.json",
+            "profile_available",
+            "packet_available",
+            "launch_ready",
+            "approved",
+            "executed",
+            "succeeded",
+            "stale",
+            "blocked",
+            "unknown",
+            "navigation context exists only",
+            "bounded action object exists for review only",
+            "Approval Receipt permits one named packet/action/scope only",
+            "execution result plus validation evidence",
+            "do not soften this into confidence",
+            "must not collapse profile, packet, approval, execution, and result",
+            "Product Taste / Operator Experience Evals must reject AI slop",
+            "All nine required fixture files exist and parse as JSON",
+            "Workspace Launch Profiles with executable command fields are invalid",
+            "Expired receipts cannot authorize execution",
+            "healthy, current, tested, running, or synced without evidence are invalid",
+        ),
+    )
+
+    _require_all(
+        failures,
+        launch,
         "current source-set posture",
         (
-            "This Workspace Launch Profile, profile-to-packet handoff, approval receipt, and Product Taste / Operator Experience Eval Spine contract work stays in 01_CURRENT_PRODUCT_SPEC",
-            "does not move the active ChatGPT Project source-set posture to 02_MAC_IOS_APP_BUILD",
+            "active app-planning posture is 02_MAC_IOS_APP_BUILD",
+            "read-only Mac desktop Mission Control fixture contract stays in 02_MAC_IOS_APP_BUILD",
+            "does not move the active ChatGPT Project source-set posture to 03_BACKEND_AND_DATA_MODEL",
             "does not create source-set folder 04",
             "does not create generated source-set scripts",
             "does not edit generated source-set folders",
+            "does not start app/backend/runtime implementation",
         ),
     )
 
@@ -626,8 +910,14 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
         failures,
         validation_map,
         "validation map entry",
-        ("launch_ladder_contract_check.py", "test_launch_ladder_static_contract.py"),
+        (
+            "launch_ladder_contract_check.py",
+            "test_launch_ladder_static_contract.py",
+            "fixtures mission control",
+        ),
     )
+
+    failures.extend(mission_control_fixture_failures())
 
     return StaticContractReport(
         failures=tuple(failures),

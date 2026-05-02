@@ -1,0 +1,77 @@
+{
+  "fixture_id": "fixture_approval_receipt_valid",
+  "fixture_type": "approval_receipt",
+  "app_surface": "mac_desktop_mission_control_read_only",
+  "source_set_baseline": "02_MAC_IOS_APP_BUILD",
+  "source_manifest_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+  "ui_state": "approved",
+  "approval_receipt": {
+    "receipt_id": "receipt_mission_control_fixture_review_valid",
+    "launch_packet_id": "packet_mission_control_fixture_static_validation",
+    "approved_by_operator": true,
+    "approved_at": "2026-05-02T12:05:00-04:00",
+    "approved_scope": "Permit one static docs/test validation review for the Mission Control fixture contract.",
+    "approved_action": "run_static_validation_after_operator_approval",
+    "evidence_snapshot": [
+      "docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md",
+      "tests/test_launch_ladder_static_contract.py"
+    ],
+    "freshness_snapshot": {
+      "state": "fresh",
+      "source_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+      "reviewed_at": "2026-05-02T12:05:00-04:00"
+    },
+    "expiry": {
+      "expires_at": "end_of_current_operator_session",
+      "expired_state": false
+    },
+    "replay_policy": "single_use",
+    "consumed_state": "not_consumed",
+    "lifecycle_state": "permitted",
+    "execution_result_reference": null,
+    "revocation_state": "not_revoked",
+    "forbidden_scope_expansion": "Receipt cannot add app implementation, backend/schema implementation, runtime calls, provider/model calls, service control, private-data inspection, sync, commit, or Guardian control."
+  },
+  "hard_boundaries": {
+    "no_swiftui_appkit_implementation": true,
+    "no_backend_api_schema_implementation": true,
+    "no_runtime_calls": true,
+    "no_service_control": true,
+    "no_provider_model_calls": true,
+    "no_gmail_telegram_actions": true,
+    "no_hermes_runtime_expansion": true,
+    "no_private_data_vault_log_legalprivate_secrets_inspection": true,
+    "no_approval_mutation_guardian_control": true,
+    "no_app_execution": true
+  },
+  "evidence_refs": [
+    {
+      "kind": "doc",
+      "path_or_id": "docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md",
+      "claim_supported": "Approval Receipt binds to one packet/action/scope",
+      "limits": "Fixture does not perform approval mutation"
+    }
+  ],
+  "freshness": {
+    "source_basis": [
+      "docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md"
+    ],
+    "source_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+    "generated_at": "2026-05-02T12:00:00-04:00",
+    "reviewed_at": "2026-05-02T12:05:00-04:00",
+    "stale_conditions": [
+      "Approval Receipt lifecycle rules change",
+      "Launch Packet scope changes"
+    ],
+    "refresh_trigger": "Refresh before app receipt UI work"
+  },
+  "expected_validation": {
+    "fixture_valid": true,
+    "expected_ui_state": "approved",
+    "approval_receipt_present": true,
+    "expired": false,
+    "authorizes_one_named_packet_action_scope": true,
+    "authorizes_execution": true,
+    "app_can_execute": false
+  }
+}
