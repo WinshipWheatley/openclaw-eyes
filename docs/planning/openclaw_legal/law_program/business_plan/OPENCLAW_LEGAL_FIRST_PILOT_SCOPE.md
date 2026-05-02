@@ -76,7 +76,7 @@ The first pilot excludes by default:
 - Privilege screening.
 - Email, cloud, or portal connectors.
 - Production installer or update manager unless separately approved.
-- Run/Reset GUI behavior unless separately planned and approved.
+- Run/Reset behavior beyond the fixed synthetic demo control, changes to `Run Synthetic Dry Run`, Real-matter GUI Run, Reset, real matter through the app, or arbitrary bridge execution unless separately planned and approved.
 - Full firm IT support.
 - Guaranteed search completeness or legal outcome.
 

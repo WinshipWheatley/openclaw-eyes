@@ -58,7 +58,7 @@ The pilot does not include:
 - Unlimited support.
 - Support for every file type.
 - A real deployment guarantee.
-- Run/Reset GUI controls.
+- Run/Reset controls beyond the fixed synthetic demo control, changes to `Run Synthetic Dry Run`, Real-matter GUI Run, Reset, real matter through the app, or arbitrary bridge execution.
 - Connect, queue/ETA, or model distribution.
 - Timeline, contradiction, or privilege-screening features.
 - Email, cloud, or portal connectors.

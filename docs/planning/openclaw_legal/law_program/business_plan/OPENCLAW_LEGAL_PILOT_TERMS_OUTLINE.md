@@ -89,7 +89,7 @@ The pilot should exclude by default:
 - broad custom development
 - unsupported critical file rescue
 - free custom file handlers
-- Run/Reset GUI behavior
+- Run/Reset behavior beyond the fixed synthetic demo control, changes to `Run Synthetic Dry Run`, Real-matter GUI Run, Reset, real matter through the app, or arbitrary bridge execution
 - Connect/queue/ETA/model distribution
 - full e-discovery replacement
 - email, cloud, portal, audio, video, or broad media workflows unless separately scoped
@@ -217,7 +217,7 @@ The pilot should be paused, declined, or terminated if the buyer:
 - refuses hardware, data, backup, retention, or offboarding responsibility
 - wants open-ended custom work for a narrow setup fee
 - treats roadmap modules as included deliverables
-- requires Run/Reset GUI behavior, Connect, queue, ETA, or model distribution as a condition of pilot
+- requires broader Run/Reset behavior, changes to `Run Synthetic Dry Run`, Real-matter GUI Run, Reset, arbitrary bridge execution, real-matter workflows, file pickers, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, cloud/external model processing, or raw matter support as a condition of pilot
 - asks for cloud/non-local matter processing without written approval and privacy review
 
 Do not build custom features to rescue a no-go deal. Rewrite the scope, reprice the work, or stop.
