@@ -3,20 +3,38 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: scripts/install_hermes_gateway_service.sh [--restart]
+Usage: scripts/install_hermes_gateway_service.sh [--dry-run] [--apply] [--restart]
 
 Render only systemd/user/hermes-gateway.service.in to:
   $HOME/.config/systemd/user/hermes-gateway.service
 
-Default: install and daemon-reload only. This does not enable, start, or restart
-services. Pass --restart to restart only hermes-gateway.service after the
-installed unit verifies.
+Modes:
+  no args     Report what would happen. No files are written and no services are changed.
+  --dry-run   Report what would happen. Cannot be combined with mutation flags.
+  --apply     Render/install only hermes-gateway.service, daemon-reload, and verify flags.
+  --restart   Restart only hermes-gateway.service after verification. Requires --apply.
+
+No enable/start behavior is available from this Hermes-only installer. Unknown
+or ambiguous flag combinations fail closed.
 USAGE
 }
 
+apply_changes=0
 restart_service=0
+dry_run=0
+
+if (($# == 0)); then
+    dry_run=1
+fi
+
 while (($#)); do
     case "$1" in
+        --dry-run)
+            dry_run=1
+            ;;
+        --apply)
+            apply_changes=1
+            ;;
         --restart)
             restart_service=1
             ;;
@@ -33,6 +51,18 @@ while (($#)); do
     shift
 done
 
+if (( dry_run && (apply_changes || restart_service) )); then
+    printf 'ERROR: --dry-run cannot be combined with --apply or --restart.\n' >&2
+    usage >&2
+    exit 2
+fi
+
+if (( restart_service && ! apply_changes )); then
+    printf 'ERROR: --restart requires --apply.\n' >&2
+    usage >&2
+    exit 2
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TEMPLATE_PATH="${REPO_ROOT}/systemd/user/hermes-gateway.service.in"
@@ -45,6 +75,25 @@ REQUIRED_FLAGS=(
     "Environment=HERMES_OPENCLAW_GATEWAY=1"
     "Environment=HERMES_OPENCLAW_DISABLE_EXTERNAL_FALLBACK=1"
 )
+
+report_plan() {
+    printf 'Hermes gateway installer dry run from %s\n' "${REPO_ROOT}"
+    printf 'No files will be written and no service commands will be run.\n'
+    printf 'With --apply: would render only %s to %s, run systemctl --user daemon-reload, and verify required gateway flags.\n' "${TEMPLATE_PATH}" "${INSTALLED_UNIT}"
+    printf 'With --apply --restart: would restart only %s after successful verification.\n' "${UNIT_NAME}"
+    printf 'This installer does not enable services, start services, or broaden Hermes beyond gateway sidecar mode.\n'
+}
+
+if (( dry_run )); then
+    report_plan
+    exit 0
+fi
+
+if (( ! apply_changes )); then
+    printf 'ERROR: --apply is required for Hermes gateway installer mutation.\n' >&2
+    usage >&2
+    exit 2
+fi
 
 render_template() {
     local replacement="${REPO_ROOT}"
@@ -87,12 +136,14 @@ verify_required_flags "${INSTALLED_UNIT}"
 
 printf 'Installed %s from %s\n' "${INSTALLED_UNIT}" "${TEMPLATE_PATH}"
 printf 'Verified OpenClaw Hermes gateway env flags.\n'
+printf 'Ran systemctl --user daemon-reload after rendering only %s.\n' "${UNIT_NAME}"
 
 if (( restart_service )); then
     printf 'Restarting only %s...\n' "${UNIT_NAME}"
     systemctl --user restart "${UNIT_NAME}"
     printf 'Restarted %s.\n' "${UNIT_NAME}"
 else
-    printf 'Next step after review:\n'
-    printf '  systemctl --user restart %s\n' "${UNIT_NAME}"
+    printf 'Did not restart %s; pass --restart with --apply to restart only this unit after verification.\n' "${UNIT_NAME}"
 fi
+
+printf 'Hermes gateway installer finished with explicit apply=%s restart=%s.\n' "${apply_changes}" "${restart_service}"

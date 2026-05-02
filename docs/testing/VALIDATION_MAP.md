@@ -47,6 +47,7 @@ This map provides a deterministic lookup for selecting the correct tests and har
 | `service_inventory_audit.py`, `docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md` | `tests/test_service_inventory_audit.py` | Verifies read-only service inventory parsing without live service inspection or mutation |
 | `scripts/install_openclaw_stack.sh` | `tests/test_install_openclaw_stack_safety.py` | Verifies dry-run defaults, explicit apply/enable/start gates, and no broad user-service enablement |
 | `scripts/start_all.sh`, `start_chief.sh`, `start_openclaw_brains.sh` | `tests/test_legacy_launch_script_safety.py` | Verifies Slice 4 dry-run/refusal-only defaults, fail-closed flags, and no preserved live launch path |
+| `scripts/install_hermes_gateway_service.sh`, `systemd/user/hermes-gateway.service.in` | `tests/test_hermes_gateway_installer_safety.py` | Verifies Hermes gateway dry-run/apply/restart gates and no authority expansion beyond the sidecar gateway template |
 | `chief_llm.py` model routing and external packet policy | `tests/test_chief_llm_router.py` | Verifies local routing, mocked provider behavior, and external packet guardrails |
 
 ## 6. Global Readiness (Full Suite)
