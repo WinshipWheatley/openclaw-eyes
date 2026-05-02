@@ -17,9 +17,9 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 | Current source-set folder | `02_MAC_IOS_APP_BUILD` |
 | Source-set ladder position | `02_MAC_IOS_APP_BUILD` of the current `01 -> 02 -> 03` ladder. |
 | Source commit from latest audited `MANIFEST.md` | `df52ff4687d7dd8a32990658d557cb2b4d1371d9` |
-| Latest repo changes since upload | Repo HEAD checked at slice start: `df52ff4 docs(launch-ladder): define operator experience evals`. This current docs/test-only slice defines the first Mac desktop Mission Control read-only fixture contract for app planning. |
-| Current chat focus | Mac Desktop App Planning - Read-Only Mission Control Fixture Contract inside `02_MAC_IOS_APP_BUILD`. |
-| Next likely source-set folder | `03_BACKEND_AND_DATA_MODEL`, after app-facing fixture states, read-only display boundaries, and validation expectations are stable enough to formalize data/schema contracts. |
+| Latest repo changes since upload | Repo HEAD checked at slice start: `2c859ed docs(app): add mission control fixture contract`. This current docs/test-only slice creates a SQLite-backed Compiled Knowledge / RAG substrate planning package under `docs/planning/launch_ladder/knowledge_substrate/`. |
+| Current chat focus | Mac Desktop App Planning - Compiled Knowledge Substrate planning contract inside `02_MAC_IOS_APP_BUILD`. |
+| Next likely source-set folder | `03_BACKEND_AND_DATA_MODEL`, after app-facing fixture states, read-only display boundaries, knowledge-substrate concepts, and validation expectations are stable enough to formalize data/schema contracts. |
 | Full 24-file refresh needed? | No, if the only change is a small docs/test clarification that does not alter included file count, withheld surfaces, or source-set purpose. |
 | Bridge-only upload enough? | Yes, for small current-context updates that explain what changed since the latest `MANIFEST.md`. |
 
@@ -40,6 +40,11 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - Active source-set baseline is now `02_MAC_IOS_APP_BUILD` for app planning. The current slice adds the read-only Mac desktop Mission Control fixture contract and nine JSON fixtures under `docs/planning/launch_ladder/fixtures/mission_control/`.
 - Mission Control fixture states must preserve the exact meanings of `profile_available`, `packet_available`, `launch_ready`, `approved`, `executed`, `succeeded`, `stale`, `blocked`, and `unknown`.
 - The future app may display fixture records, but it must not execute from them.
+- The knowledge-substrate planning package lives at `docs/planning/launch_ladder/knowledge_substrate/`. It is docs/test-only and prepares future SQLite-backed local memory thinking without creating a database, ingestion scripts, real file scanning, provider/model calls, app implementation, or backend/runtime implementation.
+- Knowledge-substrate doctrine: this is not vanilla RAG and not classic flat chunk-vector RAG. SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful.
+- Raw files are evidence, extracted text is parsed evidence, compiled notes are interpretation, claims are confidence-bounded, and operator promotions determine what is accepted, rejected, marked historical, marked sensitive, or excluded.
+- Unknown means unknown; do not soften it into confidence. Sensitive and unknown content remains local-only/restricted by default.
+- The Mac mirror for this planning package should be adjacent to Operator Harness readiness at `~/OpenClaw_Watch/operator_harness_knowledge_substrate/`, not inside `~/OpenClaw_Watch/operator_harness_readiness/` and not inside any numbered 24-file source-set folder.
 - A Workspace Launch Profile that contains executable commands is malformed. Executable commands belong only in a Launch Packet or higher Launch Ladder action.
 - This slice stays in `02_MAC_IOS_APP_BUILD`, does not move to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder `04`, does not create generated source-set scripts, and does not edit generated source-set folders.
 - `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.

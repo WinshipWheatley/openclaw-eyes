@@ -157,6 +157,26 @@ Required app-state rules:
 
 The first app must not collapse profile, packet, approval, execution, and result into one "agent progress" object. A Workspace Launch Profile fixture must remain navigation-only. A Launch Packet fixture may show a bounded action object for review, but packet availability is not approval. A valid Approval Receipt fixture binds one packet/action/scope, and an expired receipt cannot authorize execution.
 
+## Compiled Knowledge Substrate Planning Package
+
+The app-planning source set now has a docs/test-only package for future SQLite-backed local memory:
+
+```text
+docs/planning/launch_ladder/knowledge_substrate/
+```
+
+This package is not vanilla RAG and not classic flat chunk-vector RAG. It is a compile-first knowledge substrate inspired by Karpathy-style LLM Wiki thinking: retrieval finds candidates, compilation creates durable inspectable knowledge, and operator promotions decide what becomes accepted working context.
+
+Core phrase:
+
+```text
+SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful.
+```
+
+The future app may eventually display Knowledge Atlas, discovered source, extracted text, rendered fragment, classification, claim, compiled note, contradiction, freshness/staleness, operator promotion, conversation packet, and blocked sensitive source cards. In this slice, those are planning contracts only. They do not create a database, ingestion scripts, real business-file scanning, provider/model calls, app code, backend/schema implementation, or runtime behavior.
+
+The app must preserve the evidence boundary: raw files are evidence, extracted text is parsed evidence, compiled notes are interpretation, claims are evidence-backed and confidence-bounded, and operator promotions are explicit acceptance/rejection/historical/sensitive/excluded decisions. Unknown means unknown.
+
 ## Future Mock Fixture Needs
 
 Additional mock fixtures can be created in later slices before app work starts:

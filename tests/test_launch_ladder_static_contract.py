@@ -1,11 +1,18 @@
 from launch_ladder_contract_check import (
     ACTIVE_SOURCE_SET,
+    KNOWLEDGE_SUBSTRATE_APP_CARDS,
+    KNOWLEDGE_SUBSTRATE_FIXTURE_NAMES,
+    KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS,
+    KNOWLEDGE_SUBSTRATE_TABLES,
+    KNOWLEDGE_SUBSTRATE_UI_STATES,
     MISSION_CONTROL_APP_SURFACE,
     MISSION_CONTROL_SOURCE_SET_BASELINE,
     REQUIRED_MISSION_CONTROL_FIXTURES,
+    REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS,
     UPLOAD_AUTHORITY_COMMIT,
     check_contract,
     freshness_warnings,
+    knowledge_substrate_package_failures,
     load_corpus,
     load_mission_control_fixtures,
     mission_control_fixture_failures,
@@ -359,3 +366,57 @@ def test_mac_desktop_mission_control_fixtures_validate_static_boundaries():
     assert fixtures["fixture_ui_claim_without_evidence.json"]["expected_validation"]["fixture_valid"] is False
     assert fixtures["fixture_ui_claim_without_evidence.json"]["expected_validation"]["must_not_soften_unknown_into_confidence"] is True
     assert fixtures["fixture_operator_experience_golden_overview.json"]["expected_validation"]["must_preserve_taste_eval"] is True
+
+
+def test_knowledge_substrate_planning_package_is_documented():
+    failures = knowledge_substrate_package_failures()
+    assert failures == ()
+
+    corpus = load_corpus()
+    knowledge_text = corpus.knowledge_substrate_text
+
+    for filename in REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS:
+        assert filename in knowledge_text or filename == "README.md"
+
+    assert "Compiled Knowledge Substrate" in knowledge_text
+    assert "SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful" in knowledge_text
+    assert "not vanilla RAG" in knowledge_text
+    assert "not classic flat chunk-vector RAG" in knowledge_text
+    assert "Karpathy-style LLM Wiki thinking" in knowledge_text
+    assert "retrieval finds candidates" in knowledge_text
+    assert "compilation creates durable inspectable knowledge" in knowledge_text
+    assert "SQLite should be treated as the canonical local memory substrate" in knowledge_text
+    assert "Markdown is an export and handoff surface" in knowledge_text
+    assert "HTML/rich fragments preserve source shape" in knowledge_text or "HTML or rich fragments preserve source shape" in knowledge_text
+    assert "FTS5/search finds relevant records quickly" in knowledge_text
+    assert "Compiled notes make recurring knowledge useful" in knowledge_text
+    assert "Operator promotions determine what is accepted, rejected, marked historical, marked sensitive, or excluded" in knowledge_text
+    assert "Raw files are evidence, not truth" in knowledge_text
+    assert "Extracted text is parsed evidence, not truth" in knowledge_text
+    assert "Compiled notes are interpretation, not truth" in knowledge_text
+    assert "Claims are evidence-backed and confidence-bounded, not truth by default" in knowledge_text
+    assert "Unknown means unknown" in knowledge_text
+
+    for table_name in KNOWLEDGE_SUBSTRATE_TABLES:
+        assert table_name in knowledge_text
+
+    for safety_level in KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS:
+        assert safety_level in knowledge_text
+
+    for card_name in KNOWLEDGE_SUBSTRATE_APP_CARDS:
+        assert card_name in knowledge_text
+
+    for ui_state in KNOWLEDGE_SUBSTRATE_UI_STATES:
+        assert ui_state in knowledge_text
+
+    for fixture_name in KNOWLEDGE_SUBSTRATE_FIXTURE_NAMES:
+        assert fixture_name in knowledge_text
+
+    assert "This package is app-planning only and does not authorize ingestion" in knowledge_text
+    assert "Fixtures are synthetic only" in knowledge_text
+    assert "Do not ingest real files" in knowledge_text
+    assert "Do not scan user directories" in knowledge_text
+    assert "No external model access to raw/extracted sensitive content unless sanitized through a future explicit approval path" in knowledge_text
+    assert "Secrets/credentials must never be summarized into prompts" in knowledge_text
+    assert "no language collapses raw/extracted/compiled/promoted into one truth state" in knowledge_text
+    assert "no private/vault/legal/business files are inspected" in knowledge_text

@@ -67,11 +67,88 @@ MISSION_CONTROL_REQUIRED_HARD_BOUNDARIES = (
     "no_approval_mutation_guardian_control",
     "no_app_execution",
 )
+KNOWLEDGE_SUBSTRATE_DIR = LAUNCH_LADDER_DIR / "knowledge_substrate"
+REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS = (
+    "README.md",
+    "01_NORTH_STAR.md",
+    "02_SQLITE_LAYER_MODEL.md",
+    "03_SAFETY_AND_SENSITIVITY_LEVELS.md",
+    "04_APP_CARDS_AND_UI_STATES.md",
+    "05_FIXTURE_PLAN.md",
+    "06_STATIC_VALIDATION_EXPECTATIONS.md",
+    "INDEX.md",
+)
+KNOWLEDGE_SUBSTRATE_TABLES = (
+    "source_files",
+    "extracted_text",
+    "rendered_fragments",
+    "artifact_classifications",
+    "entities",
+    "entity_links",
+    "claims",
+    "compiled_notes",
+    "freshness",
+    "operator_promotions",
+    "conversation_packets",
+    "audit_events",
+    "substrate_events",
+)
+KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS = (
+    "public_or_low_sensitivity",
+    "business_internal",
+    "client_confidential",
+    "financial_tax_accounting",
+    "music_law_publishing_sensitive",
+    "legal_sensitive",
+    "secrets_credentials",
+    "unknown_unclassified",
+)
+KNOWLEDGE_SUBSTRATE_FIXTURE_NAMES = (
+    "fixture_source_file_public_note.json",
+    "fixture_source_file_business_internal_invoice.json",
+    "fixture_source_file_sensitive_contract_blocked.json",
+    "fixture_extracted_text_with_warning.json",
+    "fixture_rendered_fragment_html_and_plaintext.json",
+    "fixture_artifact_classification_unknown.json",
+    "fixture_claim_with_evidence.json",
+    "fixture_claim_contradicted.json",
+    "fixture_compiled_note_historical_business_context.json",
+    "fixture_operator_promotion_mark_historical.json",
+    "fixture_conversation_packet_safe_summary.json",
+    "fixture_blocked_secrets_source.json",
+)
+KNOWLEDGE_SUBSTRATE_APP_CARDS = (
+    "Knowledge Atlas Overview card",
+    "Discovered Source card",
+    "Extracted Text card",
+    "Rendered Fragment card",
+    "Artifact Classification card",
+    "Claim card",
+    "Compiled Note card",
+    "Contradiction card",
+    "Freshness/Staleness card",
+    "Operator Promotion card",
+    "Conversation Packet card",
+    "Blocked Sensitive Source card",
+)
+KNOWLEDGE_SUBSTRATE_UI_STATES = (
+    "discovered",
+    "extracted",
+    "classified",
+    "compiled",
+    "promoted",
+    "contradicted",
+    "stale",
+    "blocked",
+    "unknown",
+    "excluded",
+)
 
 
 @dataclass(frozen=True)
 class ContractCorpus:
     launch_ladder_text: str
+    knowledge_substrate_text: str
     ledger_text: str
     validation_map_text: str
     script_text: str
@@ -81,6 +158,7 @@ class ContractCorpus:
         return "\n".join(
             [
                 self.launch_ladder_text,
+                self.knowledge_substrate_text,
                 self.ledger_text,
                 self.validation_map_text,
                 self.script_text,
@@ -106,6 +184,9 @@ def load_corpus(repo_root: Path = REPO_ROOT) -> ContractCorpus:
     launch_dir = repo_root / "docs" / "planning" / "launch_ladder"
     launch_docs = sorted(launch_dir.glob("*.md"))
     launch_text = "\n\n".join(_read_text(path) for path in launch_docs)
+    knowledge_dir = launch_dir / "knowledge_substrate"
+    knowledge_docs = sorted(knowledge_dir.glob("*.md"))
+    knowledge_substrate_text = "\n\n".join(_read_text(path) for path in knowledge_docs)
     ledger_text = _read_text(
         repo_root / "docs" / "planning" / "OPENCLAW_MODULAR_READINESS_LEDGER.md"
     )
@@ -121,6 +202,7 @@ def load_corpus(repo_root: Path = REPO_ROOT) -> ContractCorpus:
     )
     return ContractCorpus(
         launch_ladder_text=launch_text,
+        knowledge_substrate_text=knowledge_substrate_text,
         ledger_text=ledger_text,
         validation_map_text=validation_map_text,
         script_text=script_text,
@@ -368,6 +450,115 @@ def mission_control_fixture_failures(repo_root: Path = REPO_ROOT) -> tuple[str, 
             for visible in ("north_star", "current_route", "authority", "freshness", "evidence", "next_safe_action"):
                 if visible not in overview.get("visible_sections", []):
                     failures.append(f"{section}: golden overview must expose {visible}")
+
+    return tuple(failures)
+
+
+def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
+    failures: list[str] = []
+    package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
+    texts: list[str] = []
+
+    for filename in REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS:
+        path = package_dir / filename
+        if not path.is_file():
+            failures.append(f"knowledge substrate package: missing {path}")
+            continue
+        texts.append(_read_text(path))
+
+    if not texts:
+        return tuple(failures)
+
+    text = "\n\n".join(texts)
+    normalized_text = normalize(text)
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate doctrine",
+        (
+            "Compiled Knowledge Substrate",
+            "SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful",
+            "not vanilla RAG",
+            "not classic flat chunk-vector RAG",
+            "compile-first knowledge substrate",
+            "Karpathy-style LLM Wiki thinking",
+            "retrieval finds candidates",
+            "compilation creates durable inspectable knowledge",
+            "SQLite should be treated as the canonical local memory substrate",
+            "Markdown is an export and handoff surface, not the database authority",
+            "HTML or rich fragments preserve source shape where structure matters",
+            "FTS5/search finds relevant records quickly",
+            "Compiled notes make recurring knowledge useful",
+            "Operator promotions determine what is accepted, rejected, marked historical, marked sensitive, or excluded",
+            "Raw files are evidence, not truth",
+            "Extracted text is parsed evidence, not truth",
+            "Compiled notes are interpretation, not truth",
+            "Claims are evidence-backed and confidence-bounded, not truth by default",
+            "Unknown means unknown",
+        ),
+    )
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate sqlite layers",
+        KNOWLEDGE_SUBSTRATE_TABLES,
+    )
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate sensitivity levels",
+        KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS
+        + (
+            "Unknown defaults restricted",
+            "Sensitive content is local-only by default",
+            "No external model access to raw/extracted sensitive content unless sanitized through a future explicit approval path",
+            "Secrets/credentials must never be summarized into prompts",
+            "client names, contracts, payments, tax details, publishing splits, private correspondence, or operational history",
+        ),
+    )
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate app cards and states",
+        KNOWLEDGE_SUBSTRATE_APP_CARDS
+        + KNOWLEDGE_SUBSTRATE_UI_STATES
+        + (
+            "The app displays evidence-backed state",
+            "must not imply hidden ingestion, hidden analysis, approval, execution, or truth",
+        ),
+    )
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate fixture plan",
+        KNOWLEDGE_SUBSTRATE_FIXTURE_NAMES
+        + (
+            "Fixtures are synthetic only",
+            "Do not ingest real files",
+            "Do not scan user directories",
+            "Do not inspect private/vault/legal/business files",
+        ),
+    )
+
+    _require_all(
+        failures,
+        normalized_text,
+        "knowledge substrate no-implementation boundary",
+        (
+            "does not authorize ingestion",
+            "No real business-file scanning",
+            "No external model access to raw or extracted sensitive content",
+            "No app or backend runtime implementation",
+            "Do not create migrations, SQL DDL, ingestion scripts, fixture loaders, API routes, or app storage code",
+            "no commands scan user directories",
+            "no private/vault/legal/business files are inspected",
+        ),
+    )
 
     return tuple(failures)
 
@@ -914,10 +1105,12 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "launch_ladder_contract_check.py",
             "test_launch_ladder_static_contract.py",
             "fixtures mission control",
+            "knowledge_substrate",
         ),
     )
 
     failures.extend(mission_control_fixture_failures())
+    failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(
         failures=tuple(failures),

@@ -68,6 +68,8 @@
 !docs/planning/launch_ladder/fixtures/
 !docs/planning/launch_ladder/fixtures/mission_control/
 !docs/planning/launch_ladder/fixtures/mission_control/*.json
+!docs/planning/launch_ladder/knowledge_substrate/
+!docs/planning/launch_ladder/knowledge_substrate/*.md
 !docs/planning/openclaw_legal/
 !docs/planning/openclaw_legal/law_program/
 !docs/planning/openclaw_legal/law_program/**/*.md

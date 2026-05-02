@@ -40,6 +40,10 @@ Do not create folder 04 until folder 03 evidence shows what it should contain. B
 
 The active app-planning posture is `02_MAC_IOS_APP_BUILD`. The read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`; it does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder 04, does not create generated source-set scripts, does not edit generated source-set folders, and does not start app/backend/runtime implementation. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
 
+The SQLite-backed Compiled Knowledge Substrate package also stays in `02_MAC_IOS_APP_BUILD` as app-planning context. It prepares future backend/data-model work but does not move the project to `03_BACKEND_AND_DATA_MODEL`, create a database, create ingestion scripts, scan old business files, call providers/models, or start app/backend/runtime implementation.
+
+Before moving this lane to `03_BACKEND_AND_DATA_MODEL`, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
+
 ## Workspace Launch Profile Primitive
 
 Workspace Launch Profiles should become an Operator Harness primitive after the source-set and data-contract rules are stable. They are named, evidence-backed view/navigation routes that open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task.
