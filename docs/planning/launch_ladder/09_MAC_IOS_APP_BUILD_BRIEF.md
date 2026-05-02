@@ -27,6 +27,19 @@ Long range, that console can become a client for the Multi-OpenClaw Command Atla
 - Parallel Step Bundle preview that displays collisions, validation commands, commit boundaries, and stop conditions.
 - Evidence and freshness panels for every claim.
 
+## App-Facing Workspace Launch Profiles
+
+The app may eventually display or open Workspace Launch Profiles, but only as view/navigation routes. A profile can help the operator open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for the current task. It must not run tests, sync files, commit changes, call providers/models, issue service commands, mutate runtime state, or infer authority from the fact that a workspace opened.
+
+First app-facing examples:
+
+- `Operator Harness - Upload Prep View`
+- `Operator Harness - Backend/Data Model View`
+- `Operator Harness - Mac/iOS App Planning View`
+- `Hermes - Advisory Packet View`
+
+If the operator selects an action from a profile, the app should route to a separate Launch Packet / Launch Ladder action with explicit command, machine, workspace, validation, evidence, authority, and stop condition fields. Opening VS Code/workspace/files is safe navigation; execution is a separate approval surface.
+
 ## Read-Only Data Contract Needs
 
 The app should consume stable JSON or Markdown-derived fixtures before any backend API exists.

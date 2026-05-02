@@ -21,7 +21,8 @@ Freshness:
 6. Add generator code only after the spec and tests exist.
 7. Generate source sets only after the generator is validated.
 8. Create read-only app mock fixtures.
-9. Route a Codex Desktop Mac app build from the app-specific source set.
+9. Define Workspace Launch Profile records for view/navigation only.
+10. Route a Codex Desktop Mac app build from the app-specific source set.
 
 The Multi-OpenClaw Command Atlas should stay a long-range horizon until the v1 Launch Ladder proof is committed and statically checked. Do not skip from this package to a multi-deployment app or registry without first defining data contracts, freshness rules, authority boundaries, and fixtures.
 
@@ -34,6 +35,14 @@ The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUIL
 Build the future generic multi-build version only after the Operator Harness version proves the rule. The generic form should support personal systems, client/company systems, and future deployment-specific source-set ladders without mixing source commits, withheld surfaces, authority, or evidence.
 
 Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat reaches folder 03, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
+
+## Workspace Launch Profile Primitive
+
+Workspace Launch Profiles should become an Operator Harness primitive after the source-set and data-contract rules are stable. They are named, evidence-backed view/navigation routes that open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task.
+
+They are not action launchers in v1. Opening VS Code/workspace/files is safe navigation. Running tests, syncing, committing, service commands, provider/model calls, or runtime work must stay in a separate Launch Packet / Launch Ladder action with explicit validation, evidence, authority, and stop conditions.
+
+Do not create actual workspace launcher scripts until the profile record shape, stale conditions, prompt-copy behavior, and authority warning are statically documented and tested.
 
 ## Prior-Art Upgrade Candidates
 

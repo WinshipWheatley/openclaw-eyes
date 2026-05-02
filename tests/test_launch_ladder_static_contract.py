@@ -40,3 +40,26 @@ def test_source_set_ladder_delta_bridge_contract_is_present():
     assert "law_program" in corpus.launch_ladder_text
     assert "DELTA_BRIDGE_NAME" in corpus.script_text
     assert "counted_in_24=false" in corpus.script_text
+
+
+def test_workspace_launch_profiles_and_prototype_bridge_retirement_are_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Workspace Launch Profile" in launch_text
+    assert "named, evidence-backed view/navigation route" in launch_text
+    assert "Opening VS Code/workspace/files is safe navigation" in launch_text
+    assert "separate Launch Packet / Launch Ladder action" in launch_text
+    assert "Operator Harness - Upload Prep View" in launch_text
+    assert "Operator Harness - Backend/Data Model View" in launch_text
+    assert "Operator Harness - Mac/iOS App Planning View" in launch_text
+    assert "Legal - Visual Polish View" in launch_text
+    assert "Audit - Runtime Review View" in launch_text
+    assert "Hermes - Advisory Packet View" in launch_text
+    assert (
+        "/Users/hwinshipwheatley/OpenClaw_Watch/.claude/Chat_Stay Up To Date.md"
+        in launch_text
+    )
+    assert "prototype/example only" in launch_text
+    assert "not canonical" in launch_text
+    assert "explicit Mac cleanup step" in launch_text

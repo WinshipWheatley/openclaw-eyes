@@ -41,6 +41,40 @@ Every routing entry must include:
 | `future_macos_ios_client` | native app | macOS/iOS | User device app sandbox | Read-only generated artifacts/API payloads. | App UI/cache TBD. | read-only display. | App tests TBD. | Service control, credential storage beyond approved auth, direct mutation, hidden sync. |
 | `future_other_client` | TBD client | TBD | TBD | Read-only artifacts/API payloads. | TBD | read-only first. | TBD | Same withheld surfaces as default unless explicitly narrowed. |
 
+## Workspace Launch Profiles
+
+A Workspace Launch Profile is a named, evidence-backed view/navigation route that helps the operator open the right working surface for the reason work is happening. It can name the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task. It is a creature-comfort/navigation feature, not hidden execution.
+
+A Workspace Launch Profile does not imply permission to mutate repo/runtime state. Opening VS Code/workspace/files is safe navigation. Running tests, syncing, committing, service commands, provider/model calls, or runtime work is a separate Launch Packet / Launch Ladder action.
+
+Every profile should include:
+
+- `profile_id`
+- `display_name`
+- `purpose`
+- `machine`
+- `workspace_path`
+- `workspace_layout`
+- `files_or_tabs`
+- `optional_copied_prompt`
+- `evidence_basis`
+- `linked_source_set`
+- `linked_launch_ladder_or_packet`
+- `authority_warning`
+- `separate_execution_required`
+- `stale_conditions`
+
+Initial examples:
+
+| Profile | Machine/surface | Purpose | Boundary |
+| --- | --- | --- | --- |
+| `Operator Harness - Upload Prep View` | PC/WSL or Mac mirror | Open source-set docs, manifests, and bridge notes for upload prep. | Navigation only; upload/sync/refresh remain separate approved actions. |
+| `Operator Harness - Backend/Data Model View` | PC/WSL repo | Open data-model planning docs, Hermes advisory packet references, and static tests. | Navigation only; tests or code edits require a Launch Packet. |
+| `Operator Harness - Mac/iOS App Planning View` | Mac/Codex Desktop future workspace | Open app brief, source-set rules, UX/security research, and read-only fixture plans. | Navigation only; app build commands require a separate Launch Packet. |
+| `Legal - Visual Polish View` | Legal planning workspace | Open visual polish planning surfaces after a Legal-specific boundary review. | Navigation only; Legal/private data is withheld unless separately authorized. |
+| `Audit - Runtime Review View` | Audit-build readiness mirror | Open runtime review source sets and manifests when that flow is upgraded. | Navigation only; runtime inspection or service commands are separate actions. |
+| `Hermes - Advisory Packet View` | PC/WSL repo | Open advisory contract, packet fixtures, and memo-shape tests. | Navigation only; Hermes runtime expansion remains withheld. |
+
 ## Delta Bridge Routing Rule
 
 `CHAT_STAY_UP_TO_DATE.md` may be uploaded alongside the active ChatGPT Project source-set folder as an adjacent delta bridge. It must stay outside `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/*`, must not be counted in the 24-file folder total, and must not replace `MANIFEST.md` as source-set authority.

@@ -8,6 +8,8 @@ Status: repo-side delta bridge/template for Operator Harness ChatGPT Project ses
 
 The baseline remains the numbered source-set folder. This bridge is adjacent to the folders, not inside them, and is not counted in the 24 files.
 
+The real bridge is this repo-side template plus the Mac readiness-root copy at `~/OpenClaw_Watch/operator_harness_readiness/CHAT_STAY_UP_TO_DATE.md`. The old Mac prototype file at `/Users/hwinshipwheatley/OpenClaw_Watch/.claude/Chat_Stay Up To Date.md` is prototype/example only and is not canonical. After the real Operator Harness bridge is verified at the readiness root, retire the `.claude` prototype by an explicit Mac cleanup step that deletes it or clearly archives it. Do not delete that prototype from this docs/test slice.
+
 ## Current Source-Set Baseline
 
 | Field | Current value |
@@ -29,6 +31,7 @@ The baseline remains the numbered source-set folder. This bridge is adjacent to 
 - `CHAT_STAY_UP_TO_DATE.md` is adjacent to `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/` and should not be copied into any numbered source-set folder.
 - Each numbered folder remains exactly 23 content files plus `MANIFEST.md`, 24 upload files total.
 - The Mac-audited Operator Harness baseline uses per-source-set `MANIFEST.md` files. The audit-build and law-program flows are legacy-but-usable prior art and should be upgraded later, not in this bridge slice.
+- Workspace Launch Profiles are navigation helpers only: opening VS Code/workspace/files does not authorize tests, sync, commits, service commands, provider/model calls, or runtime work.
 
 ## Source-Set Ladder Movement Criteria
 

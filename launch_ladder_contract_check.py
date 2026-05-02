@@ -304,6 +304,42 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
 
     _require_all(
         failures,
+        launch,
+        "workspace launch profiles",
+        (
+            "Workspace Launch Profile",
+            "named, evidence-backed view/navigation route",
+            "correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt",
+            "does not imply permission to mutate repo/runtime state",
+            "Opening VS Code/workspace/files is safe navigation",
+            "Running tests, syncing, committing, service commands, provider/model calls, or runtime work is a separate Launch Packet / Launch Ladder action",
+            "Operator Harness - Upload Prep View",
+            "Operator Harness - Backend/Data Model View",
+            "Operator Harness - Mac/iOS App Planning View",
+            "Legal - Visual Polish View",
+            "Audit - Runtime Review View",
+            "Hermes - Advisory Packet View",
+        ),
+    )
+
+    _require_all(
+        failures,
+        launch,
+        "prototype bridge retirement",
+        (
+            "real bridge is this repo-side template",
+            "~/OpenClaw_Watch/operator_harness_readiness/CHAT_STAY_UP_TO_DATE.md",
+            "/Users/hwinshipwheatley/OpenClaw_Watch/.claude/Chat_Stay Up To Date.md",
+            "prototype/example only",
+            "not canonical",
+            "explicit Mac cleanup step",
+            "deletes it or clearly archives it",
+            "Do not delete that prototype from this docs/test slice",
+        ),
+    )
+
+    _require_all(
+        failures,
         scripts,
         "operator harness bridge scripts",
         (
