@@ -2,7 +2,7 @@
 
 _Created: 2026-04-29. Runtime-neutral documentation freeze only._
 
-This document records the current service-management source of truth for Pass 3C Slice 1. It does not start, stop, restart, reload, enable, disable, install, remove, or otherwise change any service. It also does not authorize new runtime behavior. Until later cleanup slices land, treat this page as a freeze marker: it names the current owners, the safe control boundaries, and the controls that must not be expanded.
+This document records the current service-management source of truth after service-freeze Slices 2-8. It does not start, stop, restart, reload, enable, disable, install, remove, or otherwise change any service. It also does not authorize new runtime behavior. Slices 2-8 are complete only as static, documented, tested service-freeze contracts: they do not prove live service state, select runtime owners, create missing templates, delete or revive legacy controls, or authorize service operations. Treat this page as a closure marker for current owners, safe control boundaries, and controls that must not be expanded without a separate planned lane.
 
 ## Systemd-Owned Services
 
@@ -37,7 +37,7 @@ The following processes remain legacy/manual-owned during the freeze. They must 
 
 ## Deprecated/Frozen Controls
 
-These controls are deprecated or frozen until the cleanup slices below explicitly replace, guard, or retire them:
+These controls remain deprecated or frozen after the Slice 2-8 static closure unless a separate future lane explicitly replaces, guards, or retires them:
 
 - `scripts/start_all.sh`
 - `start_chief.sh`
@@ -48,12 +48,12 @@ These controls are deprecated or frozen until the cleanup slices below explicitl
 - blanket enabling all installed services
 - running both drift-control cron and timer scheduling paths
 
-Do not expand any of these controls in this slice. Existing references are historical and must remain visible until later slices replace them with guarded, tested behavior.
+Do not expand any of these controls under this freeze. Existing references are historical and must remain visible until a later planned lane replaces them with guarded, tested behavior.
 
 ## Source-Of-Truth Table
 
 | Service/process | current owner | allowed control path | forbidden control path | cleanup status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `openclaw-stack.target` | systemd user unit | Existing systemd target ownership only; no behavior change implied by this document | Legacy launch wrappers, blanket enablement, or process kills as substitutes for systemd ownership | Frozen; inventory check in Slice 2 |
 | `chief-listener.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | `start_chief.sh`, `scripts/start_all.sh`, `pkill`, duplicate `nohup` polling/listener launches | Frozen; guard legacy scripts in Slice 4 |
 | `chief-worker.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | `start_chief.sh`, `scripts/start_all.sh`, `pkill`, manual duplicate worker launch | Frozen; guard legacy scripts in Slice 4 |
@@ -66,16 +66,16 @@ Do not expand any of these controls in this slice. Existing references are histo
 | `chief-guardian-listener.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate listener launch, duplicate Telegram polling, `pkill` | Frozen; inventory check in Slice 2 |
 | `hermes-gateway.service` | systemd user unit | `scripts/install_hermes_gateway_service.sh` may render only `systemd/user/hermes-gateway.service.in`, reload the user daemon, verify gateway flags, and optionally restart only this unit when explicitly requested | Editing the unit/template mismatch opportunistically, blanket enablement, broad stack install, `openclaw-stack.target` restart, or alternate launch path | Narrow reconciliation path added; operator run/restart remains explicit |
 | `openclaw-gateway.service` | installed systemd user unit without repo template | Installed unit ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Blanket enablement, unreviewed template creation, or duplicate gateway launch path | Frozen pending documented external owner or future repo template decision |
-| `openclaw-drift-control-scan.timer` | installed systemd user timer without repo template | Installed timer ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; unify scheduler in Slice 7 |
-| `openclaw-drift-control-scan.service` | installed systemd user service without repo template | Installed service ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; unify scheduler in Slice 7 |
-| `chief_album_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; decide ownership in Slice 8 |
-| `chief_billing_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; decide ownership in Slice 8 |
-| `loop_supervisor.sh` | legacy/manual supervisor | Legacy/manual ownership only until guarded or retired | Supervising or killing systemd-owned services outside systemd | Frozen; deprecate or guard in Slice 4, decide ownership in Slice 8 |
-| `orchestrator.py --loop` | legacy/manual loop process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate loop supervision | Frozen; decide ownership in Slice 8 |
-| `builder_watcher.sh` | legacy/manual watcher | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate watcher supervision | Frozen; decide ownership in Slice 8 |
-| `dashboard_gen.py` | legacy/manual dashboard/cron participant | Legacy/manual ownership only until drift-control scheduler is unified | Running drift-control cron path alongside the systemd timer | Frozen; unify scheduler in Slice 7 |
-| `loop_dashboard_watchdog.sh` | legacy/manual watchdog | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate dashboard supervision | Frozen; decide ownership in Slice 8 |
-| `ceo_briefing_worker.py` | legacy/manual worker | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate worker supervision | Frozen; decide ownership in Slice 8 |
+| `openclaw-drift-control-scan.timer` | installed systemd user timer without repo template | Installed timer ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; Slice 7 records static scheduler-owner classification only |
+| `openclaw-drift-control-scan.service` | installed systemd user service without repo template | Installed service ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; Slice 7 records static scheduler-owner classification only |
+| `chief_album_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; Slice 8 records static legacy ownership disposition only |
+| `chief_billing_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; Slice 8 records static legacy ownership disposition only |
+| `loop_supervisor.sh` | legacy/manual supervisor | Legacy/manual ownership only until guarded or retired | Supervising or killing systemd-owned services outside systemd | Frozen; Slice 4 guard recorded; Slice 8 records static legacy ownership disposition only |
+| `orchestrator.py --loop` | legacy/manual loop process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate loop supervision | Frozen; Slice 8 records static legacy ownership disposition only |
+| `builder_watcher.sh` | legacy/manual watcher | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate watcher supervision | Frozen; Slice 8 records static legacy ownership disposition only |
+| `dashboard_gen.py` | legacy/manual dashboard/cron participant | Legacy/manual ownership only until drift-control scheduler is unified | Running drift-control cron path alongside the systemd timer | Frozen; Slice 7 records static scheduler-owner classification only |
+| `loop_dashboard_watchdog.sh` | legacy/manual watchdog | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate dashboard supervision | Frozen; Slice 8 records static legacy ownership disposition only |
+| `ceo_briefing_worker.py` | legacy/manual worker | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate worker supervision | Frozen; Slice 8 records static legacy ownership disposition only |
 
 ## Legacy Ownership Disposition Contract
 
@@ -90,7 +90,7 @@ Allowed disposition classes are:
 - `unknown_unowned_finding`
 
 | Surface | disposition class | source evidence | allowed control path | forbidden control path | runtime mutation allowed | live inspection required | next action |
-|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | `scripts/start_all.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only launcher | Report-only dry-run/refusal text | Stack restart, delegated poller launch, live process inspection | false | false | Keep guarded until a later owner decision retires or replaces it |
 | `start_chief.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only Chief launcher | Report-only dry-run/refusal text | Private env loading, log creation, process termination, duplicate listener or worker startup | false | false | Keep guarded until a later owner decision retires or replaces it |
 | `start_openclaw_brains.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only poller launcher | Report-only dry-run/refusal text | `pkill`, detached poller launch, hidden Chief album or billing process mutation | false | false | Keep guarded until a later owner decision retires or replaces it |
@@ -132,9 +132,9 @@ Installed somewhere is not sufficient scheduler ownership evidence. Future unifi
 3. Slice 4: deprecate or guard legacy launch scripts.
 4. Slice 5: reconcile Hermes template vs installed unit through the narrow Hermes-only installer.
 5. Slice 6: record owner classification for `openclaw-gateway` and drift-control; no repo templates are added without enough source evidence.
-6. Slice 7: unify drift-control scheduler.
-7. Slice 8: decide legacy polling/loop supervisor ownership.
+6. Slice 7: record static drift-control scheduler-owner classification without selecting an owner.
+7. Slice 8: record static legacy polling/loop supervisor ownership disposition.
 
 ## Runtime-Neutral Rule
 
-This freeze is documentation only. It records ownership and forbidden control paths so future slices can make narrow, reviewable changes. Any future service operation, script guard, unit edit, template addition, scheduler change, or process ownership change must be performed in a later slice with explicit scope and verification.
+This freeze is documentation only. It records ownership and forbidden control paths so future lanes can make narrow, reviewable changes. Any future service operation, script guard, unit edit, template addition, scheduler change, live-state verification, or process ownership change must be performed in a separate planned lane with explicit scope and verification.

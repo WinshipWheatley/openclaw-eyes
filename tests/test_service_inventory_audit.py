@@ -56,7 +56,7 @@ def test_cleanup_slice_order_is_deterministic_and_starts_with_read_only_inventor
     }
     assert report["cleanup_slice_order"][-1] == {
         "slice": 8,
-        "description": "decide legacy polling/loop supervisor ownership.",
+        "description": "record static legacy polling/loop supervisor ownership disposition.",
     }
 
 
