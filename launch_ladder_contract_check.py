@@ -22,7 +22,7 @@ VALIDATION_MAP = REPO_ROOT / "docs" / "testing" / "VALIDATION_MAP.md"
 UPLOADED_CURRENT_PRODUCT_SPEC = (
     "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC"
 )
-UPLOAD_AUTHORITY_COMMIT = "9fbd230006179fcc77546a96ea953b9158cc03ac"
+UPLOAD_AUTHORITY_COMMIT = "f364a83b604bb1b2f251caddbbf8dfbcc2dee055"
 OMITTED_CURRENT_PRODUCT_SPEC_FILES = (
     "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md",
 )
@@ -106,15 +106,24 @@ def freshness_warnings(corpus: ContractCorpus) -> tuple[str, ...]:
     internal_commits = sorted(
         set(re.findall(r"Source commit at creation:\s*`([^`]+)`", launch_text))
     )
+    package_markers = sorted(
+        set(re.findall(r"Package commit:\s*`([^`]+)`", launch_text))
+    )
     older_internal_commits = [
         commit for commit in internal_commits if commit != UPLOAD_AUTHORITY_COMMIT
     ]
-    if older_internal_commits:
+    stale_markers = older_internal_commits + [
+        marker for marker in package_markers if marker == "TBD_AFTER_COMMIT"
+    ]
+    if stale_markers:
         warnings.append(
             "Freshness normalization TODO: "
-            f"{UPLOADED_CURRENT_PRODUCT_SPEC} is upload-authoritative at "
-            f"{UPLOAD_AUTHORITY_COMMIT}, while Launch Ladder docs still contain "
-            f"internal source commit text: {', '.join(older_internal_commits)}."
+            f"the generated MANIFEST.md for {UPLOADED_CURRENT_PRODUCT_SPEC} is "
+            f"upload authority and reports source commit {UPLOAD_AUTHORITY_COMMIT}; "
+            "canonical Launch Ladder docs still contain package-level freshness "
+            f"markers: {', '.join(stale_markers)}. Treat the manifest as source-set "
+            "authority and the doc markers as package-level review metadata until "
+            "a docs-only freshness normalization pass updates them."
         )
 
     for omitted in OMITTED_CURRENT_PRODUCT_SPEC_FILES:
@@ -222,6 +231,18 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "source commit",
             "stale conditions",
             "refresh trigger",
+        ),
+    )
+
+    _require_all(
+        failures,
+        launch,
+        "source-set manifest authority",
+        (
+            "canonical Launch Ladder docs may contain package-level review/freshness fields",
+            "MANIFEST.md is the upload authority",
+            "use MANIFEST.md for the uploaded source set",
+            "Do not hardcode fast-changing source-set commits across canonical docs",
         ),
     )
 

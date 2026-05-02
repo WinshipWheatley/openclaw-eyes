@@ -20,6 +20,9 @@ def test_current_product_spec_source_set_warnings_are_preserved():
 
     assert UPLOADED_CURRENT_PRODUCT_SPEC in joined
     assert UPLOAD_AUTHORITY_COMMIT in joined
+    assert "generated MANIFEST.md" in joined
+    assert "upload authority" in joined
+    assert "package-level freshness markers" in joined
     assert OMITTED_CURRENT_PRODUCT_SPEC_FILES[0] in joined
     assert "do not generate Mac/iOS app-build prompts" in joined
     assert "Freshness normalization TODO" in joined

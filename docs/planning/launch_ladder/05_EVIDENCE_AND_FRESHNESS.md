@@ -39,6 +39,14 @@ Every map, source set, status card, route, compact button, parallel bundle, and 
 | `refresh_trigger` | What action should refresh it. |
 | `withheld_surfaces` | Surfaces intentionally not read. |
 
+## Source-Set Manifest Authority
+
+Canonical Launch Ladder docs may contain package-level review/freshness fields such as `Generated/reviewed`, `Source commit at creation`, and `Package commit`. Those fields describe the doc package's creation/review basis; they are not the authority for an uploaded ChatGPT Project source set.
+
+For generated ingest folders, `MANIFEST.md` is the upload authority for source repo path, source commit, generated timestamp, included files, omitted/withheld surfaces, stale conditions, and upload instructions. If a canonical doc's package-level freshness marker differs from the generated `MANIFEST.md`, use `MANIFEST.md` for the uploaded source set and treat the doc marker as a freshness-normalization TODO, not as proof that the upload is stale.
+
+Do not hardcode fast-changing source-set commits across canonical docs. Reserve exact uploaded commit hashes for generated manifests, source-set audit notes, and narrow validation fixtures that explicitly state which upload they are checking.
+
 ## Evidence Reference Shape
 
 Use this lightweight shape in future JSON/Markdown artifacts:
