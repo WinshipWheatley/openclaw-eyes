@@ -46,6 +46,8 @@ Do not create actual workspace launcher scripts until the profile record shape, 
 
 ## Prior-Art Upgrade Candidates
 
+Use `WATCH_PRIOR_ART_CANONICALIZATION.md` as the intake gate before promoting, mirroring, deleting, archiving, or relying on Mac `OpenClaw_Watch` loose Markdown files, generated readiness folders, dashboard/status prior art, handoffs, model/router notes, or staging replay notes.
+
 Operator Harness now has the current best source-set pattern: three numbered 24-file source sets, one `MANIFEST.md` per source set, and an adjacent `CHAT_STAY_UP_TO_DATE.md` delta bridge at the readiness root.
 
 Defer these upgrade candidates to later lanes:
