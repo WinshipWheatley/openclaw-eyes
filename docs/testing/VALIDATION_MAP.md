@@ -49,6 +49,7 @@ This map provides a deterministic lookup for selecting the correct tests and har
 | Drift-control scheduler-owner static classification | `tests/test_drift_control_scheduler_static_contract.py` | Verifies no canonical scheduler owner is selected, cron/timer paths remain frozen pending, and no templates or launch/install claims are added |
 | `scripts/install_openclaw_stack.sh` | `tests/test_install_openclaw_stack_safety.py` | Verifies dry-run defaults, explicit apply/enable/start gates, and no broad user-service enablement |
 | `scripts/start_all.sh`, `start_chief.sh`, `start_openclaw_brains.sh` | `tests/test_legacy_launch_script_safety.py` | Verifies Slice 4 dry-run/refusal-only defaults, fail-closed flags, and no preserved live launch path |
+| Legacy ownership/disposition static contract | `tests/test_legacy_ownership_disposition_static_contract.py` | Verifies every Slice 8 legacy launch/process surface has a definitive static disposition without live service/runtime inspection |
 | `scripts/install_hermes_gateway_service.sh`, `systemd/user/hermes-gateway.service.in` | `tests/test_hermes_gateway_installer_safety.py` | Verifies Hermes gateway dry-run/apply/restart gates and no authority expansion beyond the sidecar gateway template |
 | `chief_llm.py` model routing and external packet policy | `tests/test_chief_llm_router.py` | Verifies local routing, mocked provider behavior, and external packet guardrails |
 

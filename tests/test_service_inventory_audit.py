@@ -37,6 +37,13 @@ def test_build_service_inventory_audit_extracts_freeze_inventory():
     assert "start_chief.sh" in report["deprecated_frozen_controls"]
     assert "blanket enabling all installed services" in report["deprecated_frozen_controls"]
     assert report["runtime_neutral_rule_present"] is True
+    assert "retained_manual_only_refusal_or_dry_run" in report["legacy_ownership_disposition_classes"]
+    assert any(
+        item["surface"] == "start_openclaw_brains.sh"
+        and item["disposition_class"] == "retained_manual_only_refusal_or_dry_run"
+        for item in report["legacy_ownership_dispositions"]
+    )
+    assert report["legacy_ownership_disposition_findings"] == []
 
 
 def test_cleanup_slice_order_is_deterministic_and_starts_with_read_only_inventory():
@@ -103,6 +110,33 @@ def test_repo_root_mode_reads_freeze_doc_and_template_filenames_only():
     assert scheduler_paths["dashboard_cron_jobs_json"]["classification"] == "frozen_pending_owner_decision"
     assert report["live_service_inspection_allowed"] is False
     assert report["service_mutation_allowed"] is False
+    assert {row["surface"] for row in report["legacy_ownership_dispositions"]} >= {
+        "builder_watcher.sh",
+        "loop_supervisor.sh",
+        "orchestrator.py --loop",
+        "scripts/audit_openclaw_services.sh",
+    }
+
+
+def test_legacy_ownership_disposition_contract_is_static_and_definitive():
+    report = build_service_inventory_audit(freeze_text=_freeze_text())
+    dispositions = {row["surface"]: row for row in report["legacy_ownership_dispositions"]}
+
+    assert report["legacy_ownership_disposition_classes"] == [
+        "retired_dead_entrypoint",
+        "frozen_pending_owner_decision",
+        "replaced_by_systemd_owned_path",
+        "retained_manual_only_refusal_or_dry_run",
+        "unknown_unowned_finding",
+    ]
+    assert dispositions["start_cassandra_core.sh"]["disposition_class"] == "replaced_by_systemd_owned_path"
+    assert dispositions["loop_supervisor.sh"]["disposition_class"] == "frozen_pending_owner_decision"
+    assert dispositions["scripts/install_openclaw_stack.sh"]["runtime_mutation_allowed"] == "false"
+    assert dispositions["scripts/install_hermes_gateway_service.sh"]["live_inspection_required"] == "false"
+    assert all(row["runtime_mutation_allowed"] == "false" for row in dispositions.values())
+    assert all(row["live_inspection_required"] == "false" for row in dispositions.values())
+    assert "maybe still useful" not in _freeze_text().lower()
+    assert "maybe safe" not in _freeze_text().lower()
 
 
 def test_service_inventory_audit_is_deterministic():

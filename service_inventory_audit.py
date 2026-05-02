@@ -23,6 +23,13 @@ DRIFT_CONTROL_SCHEDULER_PATHS = (
     ("installed_systemd_service", "openclaw-drift-control-scan.service"),
     ("dashboard_cron_jobs_json", "dashboard_gen.py"),
 )
+LEGACY_OWNERSHIP_DISPOSITION_CLASSES = (
+    "retired_dead_entrypoint",
+    "frozen_pending_owner_decision",
+    "replaced_by_systemd_owned_path",
+    "retained_manual_only_refusal_or_dry_run",
+    "unknown_unowned_finding",
+)
 
 
 def _section(text: str, heading: str) -> str:
@@ -86,6 +93,105 @@ def _table_rows(section_text: str) -> list[dict[str, str]]:
             "cleanup_status": cells[4],
         })
     return rows
+
+
+def _legacy_disposition_rows(section_text: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for line in section_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or "---" in stripped:
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) != 8 or cells[0].lower() == "surface":
+            continue
+        surface_spans = _code_spans(cells[0])
+        rows.append({
+            "surface": surface_spans[0] if surface_spans else cells[0],
+            "disposition_class": cells[1],
+            "source_evidence": cells[2],
+            "allowed_control_path": cells[3],
+            "forbidden_control_path": cells[4],
+            "runtime_mutation_allowed": cells[5].lower(),
+            "live_inspection_required": cells[6].lower(),
+            "next_action": cells[7],
+        })
+    return rows
+
+
+def _is_script_surface(item: str) -> bool:
+    normalized = item.strip()
+    return normalized.endswith(".sh") or normalized.startswith("scripts/")
+
+
+def _legacy_disposition_findings(
+    rows: list[dict[str, str]],
+    legacy_manual: Iterable[str],
+    deprecated_frozen_controls: Iterable[str],
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    valid_classes = set(LEGACY_OWNERSHIP_DISPOSITION_CLASSES)
+    seen: set[str] = set()
+
+    for row in rows:
+        surface = row["surface"]
+        if surface in seen:
+            findings.append({
+                "severity": "error",
+                "finding": "duplicate_legacy_disposition_surface",
+                "surface": surface,
+            })
+        seen.add(surface)
+
+        disposition_class = row["disposition_class"]
+        if disposition_class not in valid_classes:
+            findings.append({
+                "severity": "error",
+                "finding": "invalid_legacy_disposition_class",
+                "surface": surface,
+                "disposition_class": disposition_class,
+            })
+
+        if row["runtime_mutation_allowed"] != "false":
+            findings.append({
+                "severity": "error",
+                "finding": "legacy_runtime_mutation_allowed",
+                "surface": surface,
+                "runtime_mutation_allowed": row["runtime_mutation_allowed"],
+            })
+
+        if row["live_inspection_required"] != "false":
+            findings.append({
+                "severity": "error",
+                "finding": "legacy_live_inspection_required",
+                "surface": surface,
+                "live_inspection_required": row["live_inspection_required"],
+            })
+
+        if disposition_class == "unknown_unowned_finding":
+            findings.append({
+                "severity": "warning",
+                "finding": "legacy_unknown_unowned_finding",
+                "surface": surface,
+            })
+
+    dispositioned = {row["surface"] for row in rows}
+    for item in legacy_manual:
+        if item not in dispositioned:
+            findings.append({
+                "severity": "error",
+                "finding": "undispositioned_legacy_manual_surface",
+                "surface": item,
+            })
+
+    for item in deprecated_frozen_controls:
+        if _is_script_surface(item) and item not in dispositioned:
+            findings.append({
+                "severity": "error",
+                "finding": "undispositioned_deprecated_script_surface",
+                "surface": item,
+            })
+
+    return findings
 
 
 def _template_unit_names(template_filenames: Iterable[str] | None) -> set[str]:
@@ -246,10 +352,14 @@ def build_service_inventory_audit(
     legacy_section = _section(freeze_text, "Legacy/Manual-Owned Processes")
     deprecated_section = _section(freeze_text, "Deprecated/Frozen Controls")
     table_section = _section(freeze_text, "Source-Of-Truth Table")
+    legacy_disposition_section = _section(freeze_text, "Legacy Ownership Disposition Contract")
     cleanup_section = _section(freeze_text, "Cleanup Slice Order")
     runtime_section = _section(freeze_text, "Runtime-Neutral Rule")
 
     source_rows = _table_rows(table_section)
+    legacy_manual = _inventory_items(legacy_section)
+    deprecated_frozen_controls = _inventory_items(deprecated_section)
+    legacy_dispositions = _legacy_disposition_rows(legacy_disposition_section)
     return {
         "audit_type": SERVICE_INVENTORY_AUDIT_TYPE,
         "schema_version": SERVICE_INVENTORY_AUDIT_SCHEMA_VERSION,
@@ -258,12 +368,19 @@ def build_service_inventory_audit(
         "live_service_inspection_allowed": False,
         "service_mutation_allowed": False,
         "systemd_owned": _inventory_items(systemd_section),
-        "legacy_manual": _inventory_items(legacy_section),
-        "deprecated_frozen_controls": _inventory_items(deprecated_section),
+        "legacy_manual": legacy_manual,
+        "deprecated_frozen_controls": deprecated_frozen_controls,
         "cleanup_slice_order": _cleanup_slice_order(cleanup_section),
         "source_of_truth_rows": source_rows,
         "owner_classifications": _owner_classifications(source_rows, template_filenames),
         "drift_control_scheduler": _drift_control_scheduler_classification(source_rows),
+        "legacy_ownership_disposition_classes": list(LEGACY_OWNERSHIP_DISPOSITION_CLASSES),
+        "legacy_ownership_dispositions": legacy_dispositions,
+        "legacy_ownership_disposition_findings": _legacy_disposition_findings(
+            legacy_dispositions,
+            legacy_manual,
+            deprecated_frozen_controls,
+        ),
         "findings": _pending_template_findings(source_rows, template_filenames),
         "runtime_neutral_rule_present": "Any future service operation" in runtime_section,
     }

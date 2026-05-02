@@ -77,6 +77,42 @@ Do not expand any of these controls in this slice. Existing references are histo
 | `loop_dashboard_watchdog.sh` | legacy/manual watchdog | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate dashboard supervision | Frozen; decide ownership in Slice 8 |
 | `ceo_briefing_worker.py` | legacy/manual worker | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate worker supervision | Frozen; decide ownership in Slice 8 |
 
+## Legacy Ownership Disposition Contract
+
+Slice 8 records definitive static disposition only. It does not delete files, select new runtime owners, run service audits, reconcile installed live state, start processes, stop processes, inspect live processes, or touch private/runtime data. A surface is either dispositioned below or must be reported as `unknown_unowned_finding` by the static audit contract.
+
+Allowed disposition classes are:
+
+- `retired_dead_entrypoint`
+- `frozen_pending_owner_decision`
+- `replaced_by_systemd_owned_path`
+- `retained_manual_only_refusal_or_dry_run`
+- `unknown_unowned_finding`
+
+| Surface | disposition class | source evidence | allowed control path | forbidden control path | runtime mutation allowed | live inspection required | next action |
+|---|---|---|---|---|---|---|---|
+| `scripts/start_all.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only launcher | Report-only dry-run/refusal text | Stack restart, delegated poller launch, live process inspection | false | false | Keep guarded until a later owner decision retires or replaces it |
+| `start_chief.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only Chief launcher | Report-only dry-run/refusal text | Private env loading, log creation, process termination, duplicate listener or worker startup | false | false | Keep guarded until a later owner decision retires or replaces it |
+| `start_openclaw_brains.sh` | retained_manual_only_refusal_or_dry_run | Slice 4 refusal-only poller launcher | Report-only dry-run/refusal text | `pkill`, detached poller launch, hidden Chief album or billing process mutation | false | false | Keep guarded until a later owner decision retires or replaces it |
+| `scripts/install_openclaw_stack.sh` | retained_manual_only_refusal_or_dry_run | Slice 3 gated stack installer | Default dry-run report only in this slice | Broad enablement, hidden start, Hermes ownership claim, gateway or drift-control claim | false | false | Keep explicit apply/enable/start gates outside Slice 8 |
+| `scripts/install_hermes_gateway_service.sh` | retained_manual_only_refusal_or_dry_run | Slice 5 Hermes-only gated installer | Default dry-run report only in this slice | Broad stack control, enable/start behavior, non-Hermes unit mutation | false | false | Keep narrow Hermes reconciliation separate from legacy disposition |
+| `start_album_brain.sh` | frozen_pending_owner_decision | Static source directly activates venv and runs `chief_album_brain.py` | No run path in Slice 8 | Manual poller startup before owner decision | false | false | Later slice must guard, retire, or document manual-only ownership |
+| `start_cassandra_core.sh` | replaced_by_systemd_owned_path | Static source restarts Cassandra listener, watcher, and scheduler via systemd or nohup fallback | Use repo-owned Cassandra systemd templates as the documented replacement path | `pkill`, nohup fallback, private env startup, duplicate Cassandra services | false | false | Retire or replace with refusal-only notice in a later cleanup slice |
+| `orchestrator.py --loop` | frozen_pending_owner_decision | Freeze table and `polish_loop/orchestrator.py` continuous loop entrypoint | No run path in Slice 8 | Unreviewed loop promotion or duplicate orchestration | false | false | Later owner decision must retain manual-only, systemd-own, or retire |
+| `polish_loop/start_orchestrator.sh` | frozen_pending_owner_decision | Static source launches `polish_loop/orchestrator.py` with `nohup` and PID file | No run path in Slice 8 | Background daemon launch before owner decision | false | false | Later slice must guard, retire, or document manual-only ownership |
+| `builder_watcher.sh` | frozen_pending_owner_decision | Freeze table and static source launch coding runners from loop state | No run path in Slice 8 | Runner spawning, provider/model calls, duplicate watcher supervision | false | false | Later owner decision must define builder loop ownership and allowed runner path |
+| `loop_supervisor.sh` | frozen_pending_owner_decision | Freeze table and static source restarts loop processes with `setsid` and `nohup` | No run path in Slice 8 | Supervising, restarting, SSH checking, killing, or duplicating loop processes | false | false | Later slice must retire or replace with explicit owner path |
+| `dashboard_gen.py` | frozen_pending_owner_decision | Freeze table and static source dashboard cron participant | No run path in Slice 8 | Dashboard cron execution alongside drift-control timer path | false | false | Later scheduler decision must retain, replace, or disable cron participation |
+| `loop_dashboard_watchdog.sh` | frozen_pending_owner_decision | Freeze table and static source watchdog restarts `dashboard_gen.py` | No run path in Slice 8 | `pkill`, `setsid`, `nohup`, stale-dashboard restart loop | false | false | Later slice must guard, retire, or document manual-only ownership |
+| `ceo_briefing_worker.py` | frozen_pending_owner_decision | Freeze table and static source long-running briefing worker | No run path in Slice 8 | Unowned background worker or messaging side effect | false | false | Later owner decision must retain manual-only, systemd-own, or retire |
+| `chief_album_brain.py` | frozen_pending_owner_decision | Freeze table and static source legacy polling shim | No run path in Slice 8 | Duplicate Telegram polling or unmanaged loop launch | false | false | Later owner decision must retain manual-only, systemd-own, or retire |
+| `chief_billing_brain.py` | frozen_pending_owner_decision | Freeze table and static source polling loop | No run path in Slice 8 | Duplicate Telegram polling or unmanaged loop launch | false | false | Later owner decision must retain manual-only, systemd-own, or retire |
+| `drift_control_scanner.py --scan` | frozen_pending_owner_decision | Static source registers `drift-control-scan` dashboard cron path | No run path in Slice 8 | Running scan, registering cron, updating drift state, or applying proposals | false | false | Later scheduler decision must choose canonical path or retire scheduling |
+| `openclaw-gateway.service` | frozen_pending_owner_decision | Slice 6 installed-only unit record without repo template | Installed-only record in docs; no repo template claim | Template creation, blanket enablement, duplicate gateway launch | false | false | Future slice needs documented external owner or repo template decision |
+| `openclaw-drift-control-scan.timer` | frozen_pending_owner_decision | Slice 6 and Slice 7 installed-only timer record without repo template | Installed-only record in docs; no canonical scheduler selected | Timer enablement, cron/timer dual scheduling, template creation | false | false | Future scheduler slice must choose systemd, dashboard cron, or retired path |
+| `openclaw-drift-control-scan.service` | frozen_pending_owner_decision | Slice 6 and Slice 7 installed-only service record without repo template | Installed-only record in docs; no canonical scheduler selected | Service enablement, cron/timer dual scheduling, template creation | false | false | Future scheduler slice must choose systemd, dashboard cron, or retired path |
+| `scripts/audit_openclaw_services.sh` | frozen_pending_owner_decision | Static source reads installed unit files and may query user unit-file status | No run path in Slice 8; use `service_inventory_audit.py` for static source audit | Service audit execution, installed-state reconciliation, `systemctl` query in this lane | false | false | Later service-audit slice must gate, retire, or replace this live-state audit path |
+
 ## Drift-Control Scheduler Classification
 
 Slice 7 records scheduler-owner classification only. It does not choose a canonical scheduler owner, add a systemd timer/service template, enable or disable any scheduler, or change runtime behavior.
