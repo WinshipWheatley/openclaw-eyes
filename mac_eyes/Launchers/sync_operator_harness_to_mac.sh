@@ -7,6 +7,7 @@ set -euo pipefail
 SSH_HOST="${SSH_HOST:-mac}"
 REPO_ROOT="${REPO_ROOT:-/home/openclaw}"
 MAC_MIRROR_REL="${MAC_MIRROR_REL:-OpenClaw_Watch/operator_harness_readiness}"
+DELTA_BRIDGE_NAME="CHAT_STAY_UP_TO_DATE.md"
 
 usage() {
   cat <<'EOF'
@@ -128,6 +129,7 @@ printf 'operator-harness-sync: source=%s\n' "$REPO_ROOT"
 printf 'operator-harness-sync: source_commit=%s\n' "$SOURCE_COMMIT"
 printf 'operator-harness-sync: generated_at=%s\n' "$GENERATED_AT"
 printf 'operator-harness-sync: destination=%s:%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL"
+printf 'operator-harness-sync: delta_bridge=%s:%s/%s adjacent_to_ingest=true counted_in_24=false\n' "$SSH_HOST" "~/$MAC_MIRROR_REL" "$DELTA_BRIDGE_NAME"
 printf 'operator-harness-sync: manifest_entries=%s\n' "${#MANIFEST[@]}"
 
 missing=0
@@ -163,14 +165,48 @@ command -v rsync >/dev/null 2>&1 || { echo 'ERROR: rsync is required' >&2; exit 
 copied=0
 verified=0
 
+prepare_remote_destination() {
+  local dest_rel="$1"
+  local dest_dir
+
+  if [[ "$dest_rel" == */* ]]; then
+    dest_dir="${dest_rel%/*}"
+    ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL/$dest_dir\""
+  else
+    ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL\""
+  fi
+
+  ssh "$SSH_HOST" 'bash -s --' "$MAC_MIRROR_REL" "$dest_rel" "$DELTA_BRIDGE_NAME" <<'EOF'
+set -euo pipefail
+mirror_rel="$1"
+dest_rel="$2"
+delta_bridge_name="$3"
+target="$HOME/$mirror_rel/$dest_rel"
+
+if [[ -d "$target" ]]; then
+  nested="$target/${dest_rel##*/}"
+  entry_count="$(find "$target" -maxdepth 1 -mindepth 1 | wc -l | tr -d '[:space:]')"
+
+  if [[ "$dest_rel" == "$delta_bridge_name" && -f "$nested" && "$entry_count" == "1" ]]; then
+    tmp="$target.repaired.$$"
+    mv "$nested" "$tmp"
+    rmdir "$target"
+    mv "$tmp" "$target"
+  else
+    printf 'ERROR: mirror destination is a directory where a file is expected: %s\n' "$dest_rel" >&2
+    exit 1
+  fi
+fi
+EOF
+}
+
 ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL\""
 
 for entry in "${MANIFEST[@]}"; do
   IFS='|' read -r source_rel dest_rel <<< "$entry"
   source_path="$REPO_ROOT/$source_rel"
-  dest_dir="${dest_rel%/*}"
 
-  ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL/$dest_dir\""
+  prepare_remote_destination "$dest_rel"
   rsync -az --timeout=10 "$source_path" "$SSH_HOST:$MAC_MIRROR_REL/$dest_rel"
   ssh "$SSH_HOST" "test -f \"\$HOME/$MAC_MIRROR_REL/$dest_rel\""
   copied=$((copied + 1))

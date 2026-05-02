@@ -5,6 +5,7 @@ set -euo pipefail
 # The ingest folders are curated copies only; the PC/WSL repo remains canonical.
 
 SSH_HOST="${SSH_HOST:-mac}"
+REPO_ROOT="${REPO_ROOT:-/home/openclaw}"
 MAC_MIRROR_REL="${MAC_MIRROR_REL:-OpenClaw_Watch/operator_harness_readiness}"
 INGEST_DIR_NAME="CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS"
 DELTA_BRIDGE_NAME="CHAT_STAY_UP_TO_DATE.md"
@@ -156,9 +157,14 @@ validate_folder_design "$FOLDER_3" "${FOLDER_3_FILES[@]}"
 
 if [[ "$mode" == "list" || "$mode" == "dry-run" ]]; then
   printf 'operator-harness-ingest: mode=%s\n' "$mode"
+  if [[ "$mode" == "dry-run" ]]; then
+    DRY_RUN_SOURCE_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || printf 'UNKNOWN')"
+    printf 'operator-harness-ingest: source_commit=%s dry_run_basis=local_HEAD apply_basis=mirror_metadata_from_latest_sync\n' "$DRY_RUN_SOURCE_COMMIT"
+  fi
   printf 'operator-harness-ingest: mirror=%s:%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL"
   printf 'operator-harness-ingest: ingest=%s:%s/%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL" "$INGEST_DIR_NAME"
   printf 'operator-harness-ingest: delta_bridge=%s:%s/%s adjacent_to_ingest=true counted_in_24=false\n' "$SSH_HOST" "~/$MAC_MIRROR_REL" "$DELTA_BRIDGE_NAME"
+  printf 'operator-harness-ingest: bridge_check=apply_requires_regular_file_at_readiness_root\n'
   print_folder_design "$FOLDER_1" "$FOLDER_1_PURPOSE" "${FOLDER_1_FILES[@]}"
   print_folder_design "$FOLDER_2" "$FOLDER_2_PURPOSE" "${FOLDER_2_FILES[@]}"
   print_folder_design "$FOLDER_3" "$FOLDER_3_PURPOSE" "${FOLDER_3_FILES[@]}"
@@ -168,6 +174,23 @@ fi
 
 command -v ssh >/dev/null 2>&1 || { echo 'ERROR: ssh is required' >&2; exit 127; }
 
+validate_mirror_ready() {
+  ssh "$SSH_HOST" "set -euo pipefail
+root=\"\$HOME/$MAC_MIRROR_REL\"
+bridge=\"\$root/$DELTA_BRIDGE_NAME\"
+test -d \"\$root\"
+if [ -d \"\$bridge\" ]; then
+  echo 'ERROR: adjacent delta bridge path is a directory, not a file. Re-run the fixed sync_operator_harness_to_mac.sh to repair the generated mirror bridge.' >&2
+  exit 1
+fi
+test -f \"\$bridge\" || { echo 'ERROR: missing adjacent delta bridge at readiness root' >&2; exit 1; }
+test -f \"\$root/.operator_harness_source_repo_path\" || { echo 'ERROR: missing Operator Harness mirror metadata: .operator_harness_source_repo_path' >&2; exit 1; }
+test -f \"\$root/.operator_harness_source_commit\" || { echo 'ERROR: missing Operator Harness mirror metadata: .operator_harness_source_commit' >&2; exit 1; }
+test -f \"\$root/.operator_harness_generated_at\" || { echo 'ERROR: missing Operator Harness mirror metadata: .operator_harness_generated_at' >&2; exit 1; }
+"
+}
+
+validate_mirror_ready
 SOURCE_REPO_PATH="$(ssh "$SSH_HOST" "cat \"\$HOME/$MAC_MIRROR_REL/.operator_harness_source_repo_path\"")"
 SOURCE_COMMIT="$(ssh "$SSH_HOST" "cat \"\$HOME/$MAC_MIRROR_REL/.operator_harness_source_commit\"")"
 SOURCE_SYNCED_AT="$(ssh "$SSH_HOST" "cat \"\$HOME/$MAC_MIRROR_REL/.operator_harness_generated_at\"")"
