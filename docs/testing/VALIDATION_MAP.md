@@ -37,7 +37,16 @@ This map provides a deterministic lookup for selecting the correct tests and har
 | `dashboard_gen.py` | `tests/test_agent_task_proposals.py` | Verifies advisory lane rendering |
 | `finance_state.py` | `tests/test_cassandra_payment_verify.py`| — |
 
-## 5. Global Readiness (Full Suite)
+## 5. Static Policy / Contract Coverage
+
+| Area / File | Primary Test(s) | Notes |
+| :--- | :--- | :--- |
+| `docs/operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md`, `.mcp.json` | `tests/test_mcp_progressive_discovery_profiles.py` | Verifies hardened default MCP roots and withheld surfaces |
+| Expert evidence chain static contracts | `tests/test_expert_evidence_chain_static_contract.py` | Verifies hash preservation, no-execution metadata, and fail-closed protected markers |
+| `docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md`, `docs/operations/OPENCLAW_MODEL_FALLBACK_POLICY.md`, runtime/model backlog context | `tests/test_runtime_service_model_backlog_static_contract.py` | Verifies service freeze, no silent external fallback, and blocked Claude/provider paths |
+| `chief_llm.py` model routing and external packet policy | `tests/test_chief_llm_router.py` | Verifies local routing, mocked provider behavior, and external packet guardrails |
+
+## 6. Global Readiness (Full Suite)
 If multiple core boundaries are touched (e.g., refactoring `chief_env` or `cassandra_mode`), run the full suite:
 ```bash
 PYTHONPATH=. pytest tests/
