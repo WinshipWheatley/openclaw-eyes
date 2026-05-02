@@ -1410,7 +1410,12 @@ Good next Legal work should be non-dangerous:
 - repeatable validation checklist.
 
 Synthetic demo validation package:
-- `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` records the docs-only synthetic/public-safe validation checklist for the current Phase 2F-B Legal Console checkpoint.
+
+- `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` records the docs-only synthetic/public-safe validation checklist for the current Phase 2G-S synthetic-only Legal Console checkpoint, including `Run Synthetic Dry Run` under fixed synthetic values and sanitized status-only output.
+
+Folder 3 intake checkpoint:
+
+- `business_plan/OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md` records the active Folder 3 planning/pilot/package/readiness lane, carries forward the completed Folder 2 / Phase 2G-S visual-runtime facts, and states that Folder 3 is not implementation authorization.
 
 Real-matter local-only validation protocol:
 - `OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md` records the planning-only Lane B protocol for a future real-matter validation. It does not authorize execution; read it before any real-matter run.
@@ -1701,7 +1706,7 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`, a completed Phase 2G-S synthetic GUI-run proof with status-only sanitized reporting, the Phase 2G-S visual translation brief at `6348994`, and the CSS-only Phase 2G-S console visual polish at `a8e5772` with passing Mac visual/runtime proof.
 
-Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, first-pilot package index, and Phase 2G-S visual translation brief. The first-pilot package index checkpoint is `7e3f88b docs(legal): add first pilot package index`; the later committed Legal visual-brief docs checkpoint is `6348994 docs(legal): add Phase 2G-S visual translation brief`.
+Current Legal docs/proof packaging now includes the synthetic demo validation package, Folder 3 intake checkpoint, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, first-pilot package index, and Phase 2G-S visual translation brief. The first-pilot package index checkpoint is `7e3f88b docs(legal): add first pilot package index`; the later committed Legal visual-brief docs checkpoint is `6348994 docs(legal): add Phase 2G-S visual translation brief`.
 
 The bounded Folder 2 visual polish/CSS-only console UX slice is now complete. Do not keep treating Folder 2 visual polish as the next move by default.
 

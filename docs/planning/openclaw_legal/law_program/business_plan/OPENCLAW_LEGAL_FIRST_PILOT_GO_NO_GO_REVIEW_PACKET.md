@@ -13,7 +13,7 @@ This is not buyer-facing copy, not legal advice, not a contract, and not approva
 - Synthetic/public demo: Go.
 - Paid first pilot: Conditional Go.
 - Real deployment: No-Go until separately proven.
-- Synthetic-only GUI Run exists for proof only; real-matter Run and Reset remain deferred.
+- `Run Synthetic Dry Run` exists for synthetic demo validation only, with fixed synthetic values and sanitized status-only output; Real-matter GUI Run, Reset, arbitrary bridge execution, and real matter through the app remain deferred or NO-GO.
 - Safe Legal work is buyer/support/proof/terms packaging, not new functionality.
 
 If any review step contradicts this posture, stop and update the source docs before continuing.
@@ -28,6 +28,7 @@ Use these documents together:
 - `OPENCLAW_LEGAL_FIRST_PILOT_BUYER_BRIEF.md` for buyer-facing draft language and exclusions.
 - `OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md` for the internal demo and paid-pilot planning gate.
 - `OPENCLAW_LEGAL_PILOT_TERMS_OUTLINE.md` for written agreement terms that must exist before paid pilot.
+- `OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md` for the active Folder 3 planning lane and implementation boundary.
 - `../OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md` for synthetic/public-safe demo proof.
 
 Do not use this packet to weaken any source document.
@@ -53,10 +54,10 @@ Before moving to a synthetic/public demo, confirm:
 - [ ] Synthetic/public demo data only.
 - [ ] Current Legal Console checkpoint known.
 - [ ] No real matter data used or inspected.
-- [ ] Any Run action used in demo is clearly synthetic-only and fixed-scope.
+- [ ] Any Run action used in demo is `Run Synthetic Dry Run` only and follows the synthetic demo validation package, fixed synthetic values, and sanitized status-only output.
 - [ ] Real-matter Run remains disabled or clearly unavailable.
 - [ ] Reset remains disabled or clearly unavailable.
-- [ ] No bridge execution.
+- [ ] No arbitrary bridge execution beyond the fixed synthetic-only dry run allowed by the synthetic demo validation package.
 - [ ] No file picker, matter selection, real matter mode, Connect, queue/ETA, or model distribution.
 - [ ] No internal OpenClaw agent names in legal UX.
 - [ ] Buyer-facing language reviewed for overpromising.
@@ -138,4 +139,4 @@ If the packet produces Conditional Go to paid pilot planning, the next step is w
 
 If the packet produces No-Go / pause, do not build custom features to rescue the deal.
 
-Any implementation slice still needs its own scope, files, proof commands, tests if applicable, rollback expectations, and explicit approval. Anything involving Run Dry Run, Reset, bridge execution, real matter workflows, file pickers, Connect, queue/ETA, model distribution, timeline, contradiction, privilege screening, email/cloud connectors, or OCR/media expansion remains out of scope until separately planned and approved.
+Any implementation slice still needs its own scope, files, proof commands, tests if applicable, rollback expectations, and explicit approval. Anything involving changes to `Run Synthetic Dry Run`, Reset, arbitrary bridge execution, Real-matter GUI Run, real matter workflows, file pickers, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, timeline, contradiction, privilege screening, email/cloud connectors, cloud/external model processing, or OCR/media expansion remains out of scope until separately planned and approved.

@@ -14,6 +14,8 @@ The Go/No-Go file remains the launch gate.
 
 `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md` defines the support, buyer, data, hardware, emergency, and offboarding boundaries that must be clear before paid pilot or deployment.
 
+[OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md](OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md) defines the active Folder 3 planning/pilot/package/readiness lane, carries forward the completed Folder 2 / Phase 2G-S facts, and states that Folder 3 is not implementation authorization.
+
 [OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md](OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md) is the compact internal navigation index for the first-pilot outreach package.
 
 [OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md](OPENCLAW_LEGAL_FIRST_PILOT_SCOPE.md) defines the smallest conditional first paid pilot scope without implying real deployment readiness.
@@ -55,6 +57,12 @@ Use this first to decide whether OpenClaw Legal should move toward real buyer-fa
 Internal first-pilot package navigation index.
 
 Use this to find the first-pilot outreach, conversation, notes, review, readiness, terms, scope, buyer-brief, and support-boundary docs in the intended order without creating new policy.
+
+### `OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md`
+
+Internal Folder 3 intake/checkpoint brief.
+
+Use this to orient Folder 3 as planning/pilot/package/readiness review only, not implementation authorization. It carries forward completed Phase 2G-S visual/runtime proof and keeps Real-matter GUI Run, Reset, real matter through the app, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, cloud/external model processing, and broader Run/Reset behavior gated or NO-GO.
 
 ### `OPENCLAW_LEGAL_PILOT_READINESS_CHECKLIST.md`
 
@@ -147,6 +155,7 @@ Internal-only:
 - `OPENCLAW_LEGAL_GO_NO_GO_LAUNCH_CRITERIA.md`
 - `OPENCLAW_LEGAL_SUPPORT_BOUNDARY.md`
 - `OPENCLAW_LEGAL_GOTCHAS.md`
+- `OPENCLAW_LEGAL_FOLDER_3_INTAKE_CHECKPOINT.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_PACKAGE_INDEX.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md`
 - `OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md`

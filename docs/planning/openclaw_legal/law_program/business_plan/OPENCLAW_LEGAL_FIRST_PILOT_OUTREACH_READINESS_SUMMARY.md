@@ -15,7 +15,8 @@ It is not buyer-facing sales copy, not a final offer, not a contract, not legal 
 - Synthetic/public demo: Go.
 - Paid pilot discussion: Conditional.
 - Real deployment: No-Go until separately proven.
-- Run Dry Run, Reset, bridge execution, and real matter mode remain deferred.
+- `Run Synthetic Dry Run` is allowed only under the synthetic demo validation package, fixed synthetic values, and sanitized status-only output.
+- Real-matter GUI Run, Reset, arbitrary bridge execution, real matter through the app, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, cloud/external model processing, and broader Run/Reset behavior remain gated or NO-GO.
 
 The answer is: yes, a first conversation is allowed if it stays exploratory, bounded, and honest. It may discuss a synthetic/public demo and conditional paid-pilot planning. It must not imply real deployment readiness.
 
@@ -47,8 +48,8 @@ Do not promise:
 - raw matter remote review
 - unlimited support
 - broad custom development
-- Run/Reset GUI behavior
-- bridge execution from the GUI
+- broader Run/Reset GUI behavior
+- arbitrary bridge execution or Real-matter GUI Run from the app
 - real matter mode
 - Connect, queue/ETA, or model distribution
 - timeline, contradiction, privilege-screening, email/cloud connector, or broad OCR/media workflows
@@ -108,7 +109,7 @@ Do not present it as a launched product, general release, production deployment,
 
 A synthetic/public demo can be shown if it uses only synthetic or public-safe data and follows the synthetic demo validation package.
 
-The demo may show bounded built behavior and clearly labeled prototype or roadmap concepts. It must not use real matter data, inspect private matter paths, execute the bridge, enable Run Dry Run, enable Reset, or imply production readiness.
+The demo may use `Run Synthetic Dry Run` only under the synthetic demo validation package, fixed synthetic fixture values, and sanitized status-only output. It must not use real matter data, inspect private matter paths, execute arbitrary bridge behavior, enable Reset, enable Real-matter GUI Run, or imply production readiness.
 
 ## Paid pilot discussion
 

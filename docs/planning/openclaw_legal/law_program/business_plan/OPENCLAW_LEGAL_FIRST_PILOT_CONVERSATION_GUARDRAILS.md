@@ -24,7 +24,7 @@ Safe phrases:
 
 - "This is about private local discovery infrastructure, not replacing lawyers."
 - "The first possible pilot would be narrow: one firm, one scoped workflow, one primary machine, one local vault, and agreed file types only."
-- "A Synthetic/public demo can be shown with no real matter data."
+- "A synthetic/public demo can be shown with no real matter data. `Run Synthetic Dry Run` is allowed only under the synthetic demo validation package, fixed synthetic values, and sanitized status-only output."
 - "Paid pilot planning is conditional on written scope, support, hardware, data, backup, offboarding, attorney-review, and payment terms."
 - "Supported and unsupported file types have to be written down before any pilot."
 - "Outputs are review aids. Attorneys remain responsible for legal judgment, privilege decisions, completeness decisions, and final use."
@@ -47,7 +47,8 @@ Do not say or imply:
 - "I can be available for court-deadline emergencies."
 - "Just send me the discovery."
 - "I can remote in and look at the raw matter files by default."
-- "Run/Reset GUI controls are part of the pilot."
+- "Broader Run/Reset GUI controls are part of the pilot."
+- "Real-matter GUI Run is available."
 - "Connect, queue/ETA, model distribution, timelines, contradictions, privilege screening, email/cloud connectors, or broad OCR/media support are included now."
 - "We can figure out scope, support, hardware, backups, and offboarding later."
 - "This call is a final offer."
@@ -126,7 +127,9 @@ Use this language:
 Synthetic/public demo: Go. I can show a safe demo using synthetic or public-safe material only. The demo is for proving the workflow shape, not processing real matter data or claiming production readiness.
 ```
 
-Do not use real matter data in the demo. Do not inspect private matter paths. Do not execute the bridge, enable Run Dry Run, enable Reset, or show private file contents.
+`Run Synthetic Dry Run` may be shown only if it follows the synthetic demo validation package, fixed synthetic fixture values, and sanitized status-only output.
+
+Do not use real matter data in the demo. Do not inspect private matter paths. Do not execute arbitrary bridge behavior, enable Reset, enable Real-matter GUI Run, or show private file contents.
 
 ## How to describe paid pilot status
 

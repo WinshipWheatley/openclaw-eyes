@@ -25,7 +25,7 @@ Before any real law-firm outreach or demo, confirm:
 - [ ] Synthetic demo validation package exists.
 - [ ] Current Legal Console checkpoint is known.
 - [ ] Demo uses no real matter.
-- [ ] Run/Reset disabled and not presented as available.
+- [ ] Any demo Run action is limited to `Run Synthetic Dry Run` under the synthetic demo validation package, fixed synthetic values, and sanitized status-only output; Real-matter GUI Run and Reset remain disabled and not presented as available.
 - [ ] Support boundary is understood before speaking with the firm.
 - [ ] Buyer brief and first-pilot scope doc are current.
 - [ ] No internal OpenClaw agent names in UX.
@@ -103,7 +103,7 @@ Before moving beyond demo planning, confirm:
 - [ ] Current known limitations are written.
 - [ ] Real matter stays outside prompts, repo, public fixtures, support packets, and update packages.
 - [ ] Unsupported, failed, and no-text files are surfaced honestly.
-- [ ] Run Dry Run and Reset remain deferred unless separately planned and approved.
+- [ ] `Run Synthetic Dry Run` remains limited to synthetic demo validation; Reset, Real-matter GUI Run, arbitrary bridge execution, real matter through the app, and broader Run/Reset behavior remain deferred unless separately planned and approved.
 
 If technical proof is unclear, use synthetic/public demo only or pause.
 
@@ -167,4 +167,4 @@ If checklist produces No-Go, do not build custom features to rescue the deal.
 
 If checklist produces Go to synthetic demo, use synthetic/public demo only.
 
-Any next implementation slice still needs its own scoped plan, proof commands, and explicit approval, especially anything involving real matter workflows, bridge execution, Run Dry Run, Reset, Connect, queue/ETA, model distribution, file pickers, new file types, OCR expansion, or raw matter support.
+Any next implementation slice still needs its own scoped plan, proof commands, and explicit approval, especially anything involving real matter workflows, arbitrary bridge execution, changes to `Run Synthetic Dry Run`, Reset, Real-matter GUI Run, Connect, queue/ETA, OCR/model distribution, file pickers, new file types, unsupported-file feature expansion, cloud/external model processing, or raw matter support.
