@@ -132,11 +132,12 @@ Current real-matter boundary:
 
 Current next safe Legal move:
 
-- Update/checkpoint docs first, then choose the next bounded planning slice.
+- Active next lane is Folder 3 planning/pilot/package/readiness source-set review.
+- Folder 3 is not implementation authorization.
+- Next safe work is docs-only Folder 3 intake/checkpoint or pilot/readiness/package consistency audit.
 - Do not start behavior expansion by default.
-- Possible next slices may include buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
 - Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO unless a separate future contract explicitly authorizes otherwise.
-- Do not add behavior, bridge modes, Reset wiring, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing by default.
+- Do not add behavior, bridge modes, Reset wiring, file picker, matter selector, arbitrary input, output body display, Connect, queue/ETA, OCR/model distribution, cloud/external tools, or non-local model processing by default.
 
 ## Known Legal v0 work already built on PC/WSL
 
@@ -1377,11 +1378,12 @@ What remains blocked:
 
 Current next safe Legal move:
 
-- Update/checkpoint docs first, then choose the next bounded planning slice.
+- Active next lane is Folder 3 planning/pilot/package/readiness source-set review.
+- Folder 3 is not implementation authorization.
+- Next safe work is docs-only Folder 3 intake/checkpoint or pilot/readiness/package consistency audit.
 - Do not start behavior expansion by default.
-- Possible next slices may include buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
 - Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO unless a separate future contract explicitly authorizes otherwise.
-- Do not add bridge behavior, real-matter GUI Run, Reset wiring, file picker, matter selection, arbitrary matter ID/query/path input, report/review/support body display, Connect/queue/ETA behavior, broad OCR/media/email expansion, or cloud/external/non-local model processing for real matter by default.
+- Do not add bridge behavior, real-matter GUI Run, Reset wiring, file picker, matter selection, arbitrary matter ID/query/path input, report/review/support body display, Connect/queue/ETA behavior, OCR/model distribution, broad OCR/media/email expansion, or cloud/external/non-local model processing for real matter by default.
 
 Bad next Legal work:
 
@@ -1397,6 +1399,8 @@ Bad next Legal work:
 
 Good next Legal work should be non-dangerous:
 
+- docs-only Folder 3 intake/checkpoint;
+- pilot/readiness/package consistency audit;
 - buyer-facing/internal demo packaging;
 - post-polish screenshots/mockup documentation;
 - another planning-only handoff refresh;
@@ -1428,7 +1432,8 @@ Pilot terms outline:
 
 First-pilot go/no-go review packet:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_GO_NO_GO_REVIEW_PACKET.md` ties readiness, terms, scope, support, and synthetic demo validation into one internal decision workflow before any next step.
-- Latest Legal docs checkpoint: `7e3f88b docs(legal): add first pilot package index`.
+- Historical first-pilot package docs checkpoint: `7e3f88b docs(legal): add first pilot package index`.
+- Later Legal docs checkpoints include `6348994 docs(legal): add Phase 2G-S visual translation brief` and `f42a33f docs(legal): update handoff after visual proof`.
 
 First-pilot outreach readiness summary:
 - `business_plan/OPENCLAW_LEGAL_FIRST_PILOT_OUTREACH_READINESS_SUMMARY.md` answers whether a first pilot conversation is allowed and under what exact limits.
@@ -1704,11 +1709,11 @@ Status realism should also stop for now unless a specific bug appears. Refresh S
 
 Immediate next work:
 
-1. **Recommended next target: update/checkpoint docs first, then choose the next bounded planning slice.** Do not start behavior expansion by default.
-2. **Possible safe planning slices:** buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
+1. **Recommended next target: Folder 3 planning/pilot/package/readiness source-set review.** Folder 3 is not implementation authorization.
+2. **Safe first slice:** docs-only Folder 3 intake/checkpoint or pilot/readiness/package consistency audit. Do not start behavior expansion by default.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 4. **Real matter remains blocked in the app:** do not drop real matter into the app unless following the real-matter Mac bridge protocol with explicit confirmation gate. Do not use cloud/external/non-local models with real matter.
-5. **Behavior expansion remains deferred:** do not add real-matter GUI Run, Reset wiring, bridge modes, file picker, matter selector, arbitrary matter/query/path input, output body display, Connect, queue, ETA, or cloud/external/non-local model processing unless separately planned and authorized.
+5. **Behavior expansion remains deferred:** do not add real-matter GUI Run, Reset wiring, bridge modes, file picker, matter selector, arbitrary matter/query/path input, output body display, Connect, queue/ETA, OCR/model distribution, or cloud/external/non-local model processing unless separately planned and authorized.
 
 Other candidates, deliberately deferred until selected:
 

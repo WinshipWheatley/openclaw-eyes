@@ -15,6 +15,9 @@ Relevant commits:
 - `64f5190` - `feat(legal): add synthetic intake test file action`
 - `9809e69` - `docs(legal): record synthetic test file validation`
 - `2a7737d` - `docs(legal): defer run dry run planning`
+- `6348994` - `docs(legal): add Phase 2G-S visual translation brief`
+- `a8e5772` - `style(legal): polish Phase 2G-S console shell`
+- `f42a33f` - `docs(legal): update handoff after visual proof`
 
 Current posture:
 
@@ -23,11 +26,15 @@ Current posture:
 - Phase 2G-S synthetic-only GUI Run wrapper is implemented and committed.
 - Phase 2G-S synthetic GUI-run proof is now complete.
 - Synthetic GUI-run proof passed with status-only sanitized reporting.
+- Folder 2 / Phase 2G-S visual polish is complete and checkpointed.
+- Mac visual/runtime proof passed for the committed CSS-only polish.
 - Real-matter GUI Run remains NO-GO.
 - Reset remains NO-GO.
 - Real matter through the app remains NO-GO.
-- The next safe Legal workflow should switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
-- Folder 2 is for visual polish / console UX only, not behavior expansion.
+- Active next lane is Folder 3 planning/pilot/package/readiness source-set review.
+- Folder 3 is not implementation authorization.
+- Next safe work is docs-only Folder 3 intake/checkpoint or pilot/readiness/package consistency audit.
+- Connect, queue/ETA, OCR/model distribution, Run/Reset, and real-matter behavior must not start unless separately authorized.
 
 ## 3. Allowed validation scope
 
@@ -243,6 +250,8 @@ Halt validation immediately if any of these occur:
 
 ## 10. Next-step rule
 
-After validation, switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
+Historical note: this validation package previously directed the next workflow toward Folder 2 visual polish. That Folder 2 / Phase 2G-S CSS-only visual polish lane is now complete and checkpointed, and Mac visual/runtime proof passed.
 
-Folder 2 is for visual polish / console UX only, not behavior expansion. Real-matter GUI Run remains NO-GO. Reset remains NO-GO. Real matter through the app remains NO-GO. Any behavior expansion requires a separate contract/design and explicit approval before implementation.
+After validation, the active next lane is Folder 3 planning/pilot/package/readiness source-set review. Folder 3 is not implementation authorization. Next safe work is docs-only Folder 3 intake/checkpoint or pilot/readiness/package consistency audit.
+
+Real-matter GUI Run remains NO-GO. Reset remains NO-GO. Real matter through the app remains NO-GO. Connect, queue/ETA, OCR/model distribution, Run/Reset, and real-matter behavior must not start unless separately authorized. Any behavior expansion requires a separate contract/design and explicit approval before implementation.
