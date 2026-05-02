@@ -132,6 +132,81 @@ def test_workspace_launch_profile_to_launch_packet_handoff_is_documented():
     assert "higher Launch Ladder action" in launch_text
 
 
+def test_action_authorization_approval_receipt_contract_is_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Action Authorization / Approval Receipt" in launch_text
+    assert "Launch Packet exists does not equal approved" in launch_text
+    assert "Approval Receipt records explicit operator authorization" in launch_text
+    assert "Approval Receipt binds to one Launch Packet/action/scope" in launch_text
+    assert "visible evidence/freshness state at approval time" in launch_text
+    assert "expired receipts cannot authorize new execution" in launch_text
+    assert "single-use receipts cannot be replayed after consumption" in launch_text
+    for lifecycle_state in (
+        "permitted",
+        "executed",
+        "succeeded",
+        "failed",
+        "expired",
+        "revoked",
+    ):
+        assert lifecycle_state in launch_text
+    assert "must not broaden the Launch Packet scope" in launch_text
+
+    for field in (
+        "receipt_id",
+        "launch_packet_id",
+        "approved_by_operator",
+        "approved_at",
+        "approved_scope",
+        "evidence_snapshot",
+        "freshness_snapshot",
+        "expiry",
+        "replay_policy",
+        "consumed_state",
+        "execution_result_reference",
+        "revocation_state",
+        "forbidden_scope_expansion",
+    ):
+        assert field in launch_text
+
+    for fixture in (
+        "receipt_docs_test_2026_05_02_001",
+        "receipt_docs_test_expired",
+        "receipt_docs_test_consumed",
+        "receipt_docs_test_revoked",
+        "invalid_broadened_receipt",
+    ):
+        assert fixture in launch_text
+
+    assert "Approval Receipt cannot broaden the Launch Packet scope" in launch_text
+
+
+def test_ui_state_claim_rules_are_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "UI State Claim Rules" in launch_text
+    assert '"Profile available" does not mean "packet available."' in launch_text
+    assert '"Packet available" does not mean "approved."' in launch_text
+    assert '"Approved" does not mean "executed."' in launch_text
+    assert '"Executed" does not mean "succeeded."' in launch_text
+    assert '"Current/fresh" requires evidence/freshness proof' in launch_text
+    assert '"Synced/tested/healthy/running" cannot be shown unless backed by explicit evidence' in launch_text
+    assert "configured vs observed" in launch_text
+    assert "requested vs approved" in launch_text
+    assert "approved vs executed" in launch_text
+    assert "executed vs succeeded" in launch_text
+    assert "current vs stale" in launch_text
+    assert "Convenience must not collapse navigation, approval, and execution into one hidden action" in launch_text
+    assert "Opening a Workspace Launch Profile must not auto-approve, auto-run, or auto-consume a Launch Packet" in launch_text
+    assert "invalid_tests_passed_without_evidence" in launch_text
+    assert "UI state claim says tests passed without evidence" in launch_text
+    assert "invalid_profile_open_auto_approves_and_runs" in launch_text
+    assert "Opening a Workspace Launch Profile silently approves/runs a packet" in launch_text
+
+
 def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_documented():
     corpus = load_corpus()
     launch_text = corpus.launch_ladder_text

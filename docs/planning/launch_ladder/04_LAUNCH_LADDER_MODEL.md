@@ -105,6 +105,147 @@ Minimum Launch Packet fields:
 
 The packet authorizes only the named bounded next action. If operator-readable scope, evidence/freshness, validation, authority, or stop condition is missing, the state remains a proposal or planned slice, not launch-authorized.
 
+## Action Authorization / Approval Receipt
+
+Launch Packet exists does not equal approved. A Launch Packet is a scoped proposal for one bounded action; an Approval Receipt is the separate operator-readable record that explicit authorization was granted for that packet, action, and scope.
+
+Approval Receipt rules:
+
+- Approval Receipt records explicit operator authorization and must name whether `approved_by_operator` is true.
+- Approval Receipt binds to one Launch Packet/action/scope through `launch_packet_id` and `approved_scope`.
+- Approval Receipt records visible evidence/freshness state at approval time through `evidence_snapshot` and `freshness_snapshot`.
+- Approval Receipt has expiry/replay rules through `expiry` and `replay_policy`; expired receipts cannot authorize new execution.
+- Approval Receipt records whether approval was consumed through `consumed_state`; single-use receipts cannot be replayed after consumption.
+- Approval Receipt distinguishes `permitted`, `executed`, `succeeded`, `failed`, `expired`, and `revoked` instead of collapsing them into one approved-looking state.
+- Approval Receipt must be operator-readable: the human must be able to see who approved, what was approved, which evidence was visible, whether it is fresh, whether it is expired/revoked, and whether it was consumed.
+- Approval Receipt must not broaden the Launch Packet scope. `forbidden_scope_expansion` records the explicit rule that a receipt cannot add commands, files, machines, withheld surfaces, or target systems beyond the packet.
+
+Minimum Approval Receipt fields:
+
+- `receipt_id`
+- `launch_packet_id`
+- `approved_by_operator`
+- `approved_at`
+- `approved_scope`
+- `evidence_snapshot`
+- `freshness_snapshot`
+- `expiry`
+- `replay_policy`
+- `consumed_state`
+- `execution_result_reference`
+- `revocation_state`
+- `forbidden_scope_expansion`
+
+Valid narrow Approval Receipt example:
+
+```yaml
+approval_receipt:
+	receipt_id: "receipt_docs_test_2026_05_02_001"
+	launch_packet_id: "operator_harness_docs_test_packet"
+	approved_by_operator: true
+	approved_at: "2026-05-02T00:00:00-07:00"
+	approved_scope: "Edit only Launch Ladder docs/static checker/tests, then run the named static validations."
+	evidence_snapshot:
+		source_commit: "ae0eb56"
+		visible_files:
+			- "docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md"
+			- "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md"
+			- "launch_ladder_contract_check.py"
+			- "tests/test_launch_ladder_static_contract.py"
+	freshness_snapshot:
+		state: "current"
+		proof: "git status and git log checked at slice start"
+		stale_if:
+			- "repo HEAD changes before execution"
+			- "requested scope changes"
+	expiry:
+		expires_at: "end_of_current_operator_session"
+		expired_state: false
+	replay_policy: "single_use"
+	consumed_state: "not_consumed"
+	lifecycle_state: "permitted"
+	execution_result_reference: null
+	revocation_state: "not_revoked"
+	forbidden_scope_expansion: "Receipt cannot add runtime code, app code, provider/model calls, launchers, services, private data, or commits beyond the Launch Packet."
+```
+
+Expired Approval Receipt example:
+
+```yaml
+approval_receipt:
+	receipt_id: "receipt_docs_test_expired"
+	launch_packet_id: "operator_harness_docs_test_packet"
+	approved_by_operator: true
+	approved_scope: "Run the named static validations once."
+	evidence_snapshot: "visible at approval time"
+	freshness_snapshot: "current at approval time, stale after HEAD changed"
+	expiry:
+		expires_at: "2026-05-02T10:00:00-07:00"
+		expired_state: true
+	replay_policy: "single_use"
+	consumed_state: "not_consumed"
+	lifecycle_state: "expired"
+	execution_result_reference: null
+	revocation_state: "not_revoked"
+	forbidden_scope_expansion: "Expired receipt cannot authorize a later broader run."
+```
+
+Consumed Approval Receipt example:
+
+```yaml
+approval_receipt:
+	receipt_id: "receipt_docs_test_consumed"
+	launch_packet_id: "operator_harness_docs_test_packet"
+	approved_by_operator: true
+	approved_scope: "Run the named static validations once."
+	evidence_snapshot: "visible at approval time"
+	freshness_snapshot: "current at approval time"
+	expiry:
+		expires_at: "end_of_current_operator_session"
+		expired_state: false
+	replay_policy: "single_use"
+	consumed_state: "consumed"
+	lifecycle_state: "executed"
+	execution_result_reference: "validation output or operator trail artifact for succeeded or failed result"
+	revocation_state: "not_revoked"
+	forbidden_scope_expansion: "Consumed single-use receipt cannot be replayed."
+```
+
+Revoked Approval Receipt example:
+
+```yaml
+approval_receipt:
+	receipt_id: "receipt_docs_test_revoked"
+	launch_packet_id: "operator_harness_docs_test_packet"
+	approved_by_operator: true
+	approved_scope: "Run the named static validations once."
+	evidence_snapshot: "visible at approval time"
+	freshness_snapshot: "current at approval time"
+	expiry:
+		expires_at: "end_of_current_operator_session"
+		expired_state: false
+	replay_policy: "single_use"
+	consumed_state: "not_consumed"
+	lifecycle_state: "revoked"
+	execution_result_reference: null
+	revocation_state: "revoked_by_operator"
+	forbidden_scope_expansion: "Revoked receipt grants no remaining permission."
+```
+
+Invalid scope-broadening receipt example:
+
+```yaml
+approval_receipt:
+	receipt_id: "invalid_broadened_receipt"
+	launch_packet_id: "operator_harness_docs_test_packet"
+	approved_by_operator: true
+	approved_scope: "Run static docs/tests validation only."
+	requested_execution_scope: "Run tests, sync the Mac mirror, commit changes, and start app planning."
+	lifecycle_state: "invalid"
+	reason_invalid: "Approval Receipt cannot broaden the Launch Packet scope."
+	forbidden_scope_expansion: "Sync, commit, launcher, service, provider/model, runtime, app execution, private-data inspection, and source-set movement require a separate Launch Packet or higher Launch Ladder action."
+```
+
 ## Parallel Step Bundles
 
 One operator-approved button may fire multiple independent lanes only when all of these are explicit:

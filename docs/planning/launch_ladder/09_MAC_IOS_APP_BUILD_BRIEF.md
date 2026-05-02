@@ -97,6 +97,79 @@ The app must handle:
 - Validation failed.
 - Source-set count mismatch.
 
+## UI State Claim Rules
+
+The app must use product copy that separates record availability, authorization, execution, result, and freshness. A display state is allowed only when the named evidence supports exactly that state.
+
+- "Profile available" does not mean "packet available." It means a Workspace Launch Profile can navigate to context.
+- "Packet available" does not mean "approved." It means a bounded Launch Packet exists for operator review.
+- "Approved" does not mean "executed." It means an Approval Receipt currently permits the named packet/action/scope.
+- "Executed" does not mean "succeeded." It means the action was attempted and needs a separate result reference.
+- "Succeeded" requires an execution result reference and validation/evidence proof.
+- "Current/fresh" requires evidence/freshness proof, including source basis, timestamp or commit, stale conditions, and refresh trigger.
+- "Synced/tested/healthy/running" cannot be shown unless backed by explicit evidence for that exact claim.
+- UI must distinguish configured vs observed, requested vs approved, approved vs executed, executed vs succeeded, and current vs stale.
+- Convenience must not collapse navigation, approval, and execution into one hidden action.
+- Opening a Workspace Launch Profile must not auto-approve, auto-run, or auto-consume a Launch Packet.
+
+Valid UI copy examples:
+
+```yaml
+ui_state_claim:
+	id: "packet_waiting_for_approval"
+	label: "Packet available"
+	meaning: "A bounded Launch Packet exists for review."
+	must_not_imply:
+		- "approved"
+		- "executed"
+		- "succeeded"
+	evidence_required:
+		- "launch_packet_id"
+		- "operator_readable_scope"
+		- "freshness_snapshot"
+```
+
+```yaml
+ui_state_claim:
+	id: "approved_not_executed"
+	label: "Approved"
+	meaning: "A current Approval Receipt permits one named packet/action/scope."
+	must_not_imply:
+		- "executed"
+		- "succeeded"
+	evidence_required:
+		- "approval_receipt.receipt_id"
+		- "approval_receipt.launch_packet_id"
+		- "approval_receipt.approved_scope"
+		- "approval_receipt.expiry"
+		- "approval_receipt.consumed_state"
+		- "approval_receipt.revocation_state"
+```
+
+Invalid UI state claim example:
+
+```yaml
+ui_state_claim:
+	id: "invalid_tests_passed_without_evidence"
+	label: "Tests passed"
+	evidence_refs: []
+	freshness_snapshot: "unknown"
+	reason_invalid: "UI state claim says tests passed without evidence."
+```
+
+Invalid profile-open execution flow example:
+
+```yaml
+workspace_launch_flow:
+	id: "invalid_profile_open_auto_approves_and_runs"
+	profile_id: "mac_upload_prep_view"
+	on_open:
+		- "create_launch_packet"
+		- "approve_launch_packet"
+		- "run_launch_packet"
+	reason_invalid: "Opening a Workspace Launch Profile silently approves/runs a packet; navigation, approval, and execution must stay separate."
+```
+
 ## Suggested Project Placeholders
 
 | Field | Placeholder |
