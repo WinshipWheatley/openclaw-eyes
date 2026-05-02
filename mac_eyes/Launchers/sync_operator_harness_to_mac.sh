@@ -49,6 +49,7 @@ MANIFEST=(
   'docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|00_launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md'
   'docs/planning/launch_ladder/10_PRODUCTIZATION_PROFILES.md|00_launch_ladder/10_PRODUCTIZATION_PROFILES.md'
   'docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|00_launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md'
+  'docs/planning/launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md|00_launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md'
   'docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md|CHAT_STAY_UP_TO_DATE.md'
   'docs/planning/launch_ladder/operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md|01_operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md'
   'docs/planning/launch_ladder/operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md|01_operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md'
