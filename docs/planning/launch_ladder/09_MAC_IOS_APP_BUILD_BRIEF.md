@@ -19,6 +19,58 @@ The first macOS/iOS app is a read-only control console. It displays Launch Ladde
 
 Long range, that console can become a client for the Multi-OpenClaw Command Atlas: a zoomable map across personal OpenClaw and future client/company deployments. The first app must not try to build the whole atlas. It should prove read-only presentation of Launch Ladders, evidence, freshness, blockers, and next safe actions first.
 
+## Product Taste / Operator Experience Eval Spine
+
+Taste is not decorative polish. For Operator Harness, taste means operator trust, calm control, clear authority hierarchy, legible evidence, sparse high-confidence actions, and zero fake intelligence. It is testable: the operator can orient within a few seconds, authority boundaries are visually obvious, highest-risk actions cannot be confused with navigation, status copy is exact and evidence-backed, and the interface feels calm, sparse, premium, and controlled.
+
+The app planning source set must preserve this eval spine before implementation. The intended taste references are practical, not ornamental: F-22 cockpit discipline, Bugatti material confidence, SpaceX mission-control clarity, high-end music studio ergonomics, and Apple-level restraint. The app must reject fake-futuristic AI slop, generic SaaS admin dashboard defaults, and vague chatbot panels.
+
+Highest-risk taste failures:
+
+- Visual clutter that prevents fast orientation.
+- Vague agent status such as "working on it" without exact state, authority, or evidence.
+- Fake intelligence language that implies the system knows, decided, handled, or optimized something without proof.
+- Scary controls with unclear blast radius, target machine, target workspace, or stop condition.
+- Hidden authority or hidden execution behind friendly UI.
+- Dead generic admin-panel energy: dense tables, weak hierarchy, and no obvious next safe action.
+- Unclear state hierarchy between profile available, packet available, approved, executed, succeeded, current, stale, configured, and observed.
+- Chatbot slop: open-ended assistant panels that blur navigation, advice, approval, and execution.
+- Over-automation that makes the operator feel less in command.
+- Evidence buried too deeply to trust the displayed status.
+
+Eval categories:
+
+- Copy/state-language checks: every status word must mean one exact state and cite required proof.
+- Cockpit/instrument hierarchy checks: North Star, current route, authority, risk, evidence, and next safe action must be scannable in that order.
+- Action safety visibility checks: navigation, proposal, approval, execution, and result controls must look and read differently.
+- Density/calmness checks: the primary view must stay sparse enough for fast orientation and avoid noisy dashboard fill.
+- Evidence visibility checks: current, fresh, synced, tested, healthy, running, approved, and succeeded claims must expose evidence without deep digging.
+- Operator trust checks: the interface must make the operator feel in command of timing, scope, authority, and stop conditions.
+- Anti-slop checks: reject fake urgency, fake confidence, mascot/chatbot energy, magic-agent panels, and vague AI self-reporting.
+- Accessibility/legibility checks: text, contrast, hierarchy, target sizes, and state distinctions must remain readable under repeated operator use.
+
+Minimum golden examples:
+
+- `golden_calm_mission_control_overview`: one-screen overview with North Star, route, authority, freshness, blockers, and next safe action.
+- `golden_navigation_only_workspace_card`: Workspace Launch Profile card that opens context only and points to `required_next_launch_packet_for_execution`.
+- `golden_bounded_packet_card`: Launch Packet card with bounded next action, operator-readable scope, evidence/freshness, validation, authority, and stop condition.
+- `golden_approval_receipt_card`: Approval Receipt card showing one packet/action/scope, evidence snapshot, freshness snapshot, expiry, replay, consumed, result, and revocation state.
+- `golden_stale_evidence_warning`: stale claim with source basis, stale condition, refresh trigger, and blocked launch-ready state.
+- `golden_blocked_action_with_clear_reason`: disabled action that says exactly which authority, evidence, validation, or freshness field is missing.
+- `golden_ready_but_not_approved_action`: launch-ready state that is visually distinct from launch-authorized.
+- `golden_fresh_evidence_backed_status`: fresh/current/synced/tested claim with visible source commit, timestamp, command or artifact, and limits.
+
+Malformed taste examples:
+
+- `invalid_chatbot_i_handled_it_state`: chatbot-style "I handled it" copy without execution result evidence.
+- `invalid_glowing_ai_brain_panel`: glowing AI brain or magic agent panel that implies hidden intelligence or hidden authority.
+- `invalid_one_click_hides_approval`: one-click action that hides approval, scope, evidence, or stop condition.
+- `invalid_tests_passed_without_evidence`: "tests passed" without command, output, timestamp, and source commit evidence.
+- `invalid_healthy_running_without_observation`: "healthy" or "running" without explicit observation evidence.
+- `invalid_dense_admin_table_no_next_action`: dense admin table with unclear hierarchy and no next safe action.
+- `invalid_profile_card_matches_execution_action`: profile/navigation card visually identical to an execution action.
+- `invalid_fake_urgency_or_confidence`: fake urgency or fake confidence language that is not evidence-backed.
+
 ## Initial App Goals
 
 - Bird's Eye view for North Star, module readiness, stale flags, and next safe route.

@@ -38,7 +38,7 @@ Do not create folder 04 until folder 03 evidence shows what it should contain. B
 
 ## Current Slice Source-Set Posture
 
-This Workspace Launch Profile and profile-to-packet handoff contract slice stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
+This Workspace Launch Profile, profile-to-packet handoff, approval receipt, and Product Taste / Operator Experience Eval Spine contract work stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
 
 ## Workspace Launch Profile Primitive
 
@@ -49,6 +49,12 @@ They are not action launchers in v1. Opening VS Code/workspace/files is safe nav
 The next contract slice should keep the handoff narrow: a Workspace Launch Profile may point to `required_next_launch_packet_for_execution`, but executable commands belong only in the Launch Packet or higher Launch Ladder action. Malformed profiles that contain command arrays should be rejected by static contract checks before any app/backend/runtime work starts.
 
 Do not create actual workspace launcher scripts until the profile record shape, stale conditions, prompt-copy behavior, and authority warning are statically documented and tested.
+
+## Product Taste Gate Before App Planning
+
+Before preparing `02_MAC_IOS_APP_BUILD`, keep one final product-spec gate: the app planning source set must preserve the Product Taste / Operator Experience Eval Spine. Taste means trust, control, clarity, evidence visibility, sparse high-confidence action, and anti-slop discipline; it is not decorative polish.
+
+The Mac desktop app planning source set should carry the golden and malformed taste examples forward as acceptance criteria. Do not start app implementation, backend/schema implementation, live runtime integration, or launcher behavior from this gate. Premature app details such as exact SwiftUI layout, visual system tokens, animations, persistence, native workspace-opening implementation, backend APIs, and runtime state polling belong in `02_MAC_IOS_APP_BUILD` or later.
 
 ## Prior-Art Upgrade Candidates
 

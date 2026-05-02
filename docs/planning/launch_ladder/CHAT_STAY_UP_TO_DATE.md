@@ -17,8 +17,8 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 | Current source-set folder | `01_CURRENT_PRODUCT_SPEC` |
 | Source-set ladder position | `01_CURRENT_PRODUCT_SPEC` of the current `01 -> 02 -> 03` ladder. |
 | Source commit from latest audited `MANIFEST.md` | `005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2` |
-| Latest repo changes since upload | Repo HEAD checked at slice start: `ae0eb56 docs(launch-ladder): define profile packet handoff`; changes since the uploaded manifest include the delta bridge, freshness/static contract alignment, Workspace Launch Profile contract, profile-to-packet handoff, prior-art decision record, and mirror inclusion. This current docs/test-only slice defines the Action Authorization / Approval Receipt and UI State Claim contract. |
-| Current chat focus | Action Authorization / Approval Receipt + UI State Claim Contract inside `01_CURRENT_PRODUCT_SPEC`. |
+| Latest repo changes since upload | Repo HEAD checked at slice start: `cfc7cd8 docs(launch-ladder): define approval receipts`; changes since the uploaded manifest include the delta bridge, freshness/static contract alignment, Workspace Launch Profile contract, profile-to-packet handoff, prior-art decision record, mirror inclusion, Action Authorization / Approval Receipt, and UI State Claim contract. This current docs/test-only slice defines the Product Taste / Operator Experience Eval Spine. |
+| Current chat focus | Product Taste / Operator Experience Eval Spine inside `01_CURRENT_PRODUCT_SPEC`. |
 | Next likely source-set folder | `02_MAC_IOS_APP_BUILD`, after the current product/spec session has extracted stable app-facing requirements. |
 | Full 24-file refresh needed? | No, if the only change is a small docs/test clarification that does not alter included file count, withheld surfaces, or source-set purpose. |
 | Bridge-only upload enough? | Yes, for small current-context updates that explain what changed since the latest `MANIFEST.md`. |
@@ -35,9 +35,12 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - Profile-to-packet handoff is explicit: a profile opens context only; a Launch Packet authorizes a bounded next action only after evidence/freshness, operator-readable scope, validation, authority, and stop conditions are present.
 - Launch Packet exists does not equal approved. Approval Receipt records explicit operator authorization for one Launch Packet/action/scope, including evidence/freshness at approval time, expiry, replay, consumed, result, and revocation state.
 - UI State Claim rules must keep profile available, packet available, approved, executed, succeeded, current/fresh, synced/tested/healthy/running, configured, observed, requested, and stale copy tied to explicit evidence.
+- Product Taste / Operator Experience Eval Spine is part of the product contract before app planning. Taste means operator trust, calm control, clear authority hierarchy, legible evidence, sparse high-confidence actions, and zero fake intelligence.
+- App planning must preserve anti-slop checks: no vague agent status, no fake intelligence language, no hidden authority/execution, no generic admin-panel energy, no chatbot slop, and no evidence-backed status copy buried too deeply to trust.
 - A Workspace Launch Profile that contains executable commands is malformed. Executable commands belong only in a Launch Packet or higher Launch Ladder action.
 - This slice stays in `01_CURRENT_PRODUCT_SPEC`, does not move to `02_MAC_IOS_APP_BUILD`, does not create source-set folder `04`, does not create generated source-set scripts, and does not edit generated source-set folders.
 - `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.
+- Do not refresh the Mac mirror after every small docs/test slice; batch mirror refreshes at meaningful checkpoints unless source-set membership, withheld surfaces, manifest basis, or operator upload needs change.
 
 ## Source-Set Ladder Movement Criteria
 

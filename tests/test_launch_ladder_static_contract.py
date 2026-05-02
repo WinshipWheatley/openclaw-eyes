@@ -207,11 +207,82 @@ def test_ui_state_claim_rules_are_documented():
     assert "Opening a Workspace Launch Profile silently approves/runs a packet" in launch_text
 
 
+def test_product_taste_operator_experience_eval_spine_is_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Product Taste / Operator Experience Eval Spine" in launch_text
+    assert "Taste is not decorative polish" in launch_text
+    assert "operator trust, calm control, clear authority hierarchy" in launch_text
+    assert "legible evidence, sparse high-confidence actions, and zero fake intelligence" in launch_text
+    assert "operator can orient within a few seconds" in launch_text
+    assert "authority boundaries are visually obvious" in launch_text
+    assert "highest-risk actions cannot be confused with navigation" in launch_text
+    assert "status copy is exact and evidence-backed" in launch_text
+    assert "calm, sparse, premium, and controlled" in launch_text
+    assert "fake-futuristic AI slop" in launch_text
+    assert "generic SaaS admin dashboard" in launch_text
+    assert "vague chatbot panels" in launch_text
+
+    for failure in (
+        "Visual clutter",
+        "Vague agent status",
+        "Fake intelligence language",
+        "Scary controls with unclear blast radius",
+        "Hidden authority or hidden execution",
+        "Dead generic admin-panel energy",
+        "Unclear state hierarchy",
+        "Chatbot slop",
+        "Over-automation",
+        "Evidence buried too deeply",
+    ):
+        assert failure in launch_text
+
+    for category in (
+        "Copy/state-language checks",
+        "Cockpit/instrument hierarchy checks",
+        "Action safety visibility checks",
+        "Density/calmness checks",
+        "Evidence visibility checks",
+        "Operator trust checks",
+        "Anti-slop checks",
+        "Accessibility/legibility checks",
+    ):
+        assert category in launch_text
+
+    for golden in (
+        "golden_calm_mission_control_overview",
+        "golden_navigation_only_workspace_card",
+        "golden_bounded_packet_card",
+        "golden_approval_receipt_card",
+        "golden_stale_evidence_warning",
+        "golden_blocked_action_with_clear_reason",
+        "golden_ready_but_not_approved_action",
+        "golden_fresh_evidence_backed_status",
+    ):
+        assert golden in launch_text
+
+    for malformed in (
+        "invalid_chatbot_i_handled_it_state",
+        "invalid_glowing_ai_brain_panel",
+        "invalid_one_click_hides_approval",
+        "invalid_tests_passed_without_evidence",
+        "invalid_healthy_running_without_observation",
+        "invalid_dense_admin_table_no_next_action",
+        "invalid_profile_card_matches_execution_action",
+        "invalid_fake_urgency_or_confidence",
+    ):
+        assert malformed in launch_text
+
+    assert "app planning source set must preserve this eval spine before implementation" in launch_text
+    assert "Do not start app implementation" in launch_text
+
+
 def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_documented():
     corpus = load_corpus()
     launch_text = corpus.launch_ladder_text
 
-    assert "This Workspace Launch Profile and profile-to-packet handoff contract slice stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
+    assert "This Workspace Launch Profile, profile-to-packet handoff, approval receipt, and Product Taste / Operator Experience Eval Spine contract work stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
     assert "does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`" in launch_text
     assert "does not create source-set folder `04`" in launch_text
     assert "does not create generated source-set scripts" in launch_text
