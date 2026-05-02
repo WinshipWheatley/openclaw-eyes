@@ -42,6 +42,8 @@ First app-facing examples:
 
 If the operator selects an action from a profile, the app should route to a separate Launch Packet / Launch Ladder action with explicit command, machine, workspace, validation, evidence, authority, and stop condition fields. Opening VS Code/workspace/files is safe navigation; execution is a separate approval surface.
 
+The app must treat any Workspace Launch Profile that contains executable commands as malformed. The valid path is profile opens context only, then a Launch Packet authorizes a bounded next action with operator-readable scope, evidence/freshness, validation, authority, and stop conditions.
+
 ## Read-Only Data Contract Needs
 
 The app should consume stable JSON or Markdown-derived fixtures before any backend API exists.

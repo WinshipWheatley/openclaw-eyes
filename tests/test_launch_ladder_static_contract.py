@@ -93,11 +93,50 @@ def test_workspace_launch_profiles_and_prototype_bridge_retirement_are_documente
     assert "explicit Mac cleanup step" in launch_text
 
 
+def test_workspace_launch_profile_to_launch_packet_handoff_is_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Workspace Profile To Launch Packet Handoff" in launch_text
+    assert "profile-to-packet handoff is explicit and one-way" in launch_text
+    assert "The Workspace Launch Profile opens context only" in launch_text
+    assert "The profile may point to `required_next_launch_packet_for_execution`" in launch_text
+    assert "The Launch Packet authorizes a bounded next action" in launch_text
+    assert "operator-readable scope" in launch_text
+    assert "evidence/freshness" in launch_text
+    assert "Workspace Launch Profile must not contain executable commands" in launch_text
+    assert "silently authorize them" in launch_text
+
+    for field in (
+        "handoff_reason",
+        "handoff_evidence_sources",
+        "handoff_freshness_fields",
+        "handoff_operator_readable_scope",
+        "packet_id",
+        "source_profile_id",
+        "bounded_next_action",
+        "target_machine",
+        "target_workspace",
+        "operator_readable_scope",
+        "execution_commands",
+        "validation_commands",
+        "withheld_surfaces",
+        "approval_receipt_or_operator_decision",
+    ):
+        assert field in launch_text
+
+    assert "operator_harness_refresh_packet" in launch_text
+    assert "A Workspace Launch Profile with executable commands is invalid" in launch_text
+    assert "commands belong in a Launch Packet" in launch_text
+    assert "launcher action" in launch_text
+    assert "higher Launch Ladder action" in launch_text
+
+
 def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_documented():
     corpus = load_corpus()
     launch_text = corpus.launch_ladder_text
 
-    assert "This Workspace Launch Profile contract slice stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
+    assert "This Workspace Launch Profile and profile-to-packet handoff contract slice stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
     assert "does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`" in launch_text
     assert "does not create source-set folder `04`" in launch_text
     assert "does not create generated source-set scripts" in launch_text

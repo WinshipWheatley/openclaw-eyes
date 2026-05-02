@@ -79,6 +79,32 @@ Button shape:
 
 The button must show the resulting step count and what work is deferred before the operator chooses it.
 
+## Launch Packets
+
+A Launch Packet is the separate execution-authorizing object for one bounded next action. It can be attached to a Launch Ladder step after the applicable operator, Chief, Guardian, broker, or lane approval path is explicit.
+
+Opening a Workspace Launch Profile never creates, approves, or executes a Launch Packet. Any tests, sync, commit, service command, provider/model call, runtime mutation, app execution, private-data inspection, launcher action, or other side effect requires a Launch Packet or higher Launch Ladder action.
+
+Minimum Launch Packet fields:
+
+- `packet_id`
+- `source_profile_id`, if the action was proposed from a Workspace Launch Profile.
+- `bounded_next_action`
+- `target_machine`
+- `target_workspace`
+- `operator_readable_scope`
+- `execution_commands` or `execution_plan`, only in the Launch Packet, never in the Workspace Launch Profile.
+- `evidence_sources`
+- `freshness_fields`
+- `constraints`
+- `validation_commands`
+- `withheld_surfaces`
+- `authority_required`
+- `approval_receipt_or_operator_decision`
+- `stop_condition`
+
+The packet authorizes only the named bounded next action. If operator-readable scope, evidence/freshness, validation, authority, or stop condition is missing, the state remains a proposal or planned slice, not launch-authorized.
+
 ## Parallel Step Bundles
 
 One operator-approved button may fire multiple independent lanes only when all of these are explicit:

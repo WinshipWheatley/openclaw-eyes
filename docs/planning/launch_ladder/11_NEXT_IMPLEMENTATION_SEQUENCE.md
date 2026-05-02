@@ -38,13 +38,15 @@ Do not create folder 04 until folder 03 evidence shows what it should contain. B
 
 ## Current Slice Source-Set Posture
 
-This Workspace Launch Profile contract slice stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
+This Workspace Launch Profile and profile-to-packet handoff contract slice stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
 
 ## Workspace Launch Profile Primitive
 
 Workspace Launch Profiles should become an Operator Harness primitive after the source-set and data-contract rules are stable. They are named, evidence-backed view/navigation routes that open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task.
 
 They are not action launchers in v1. Opening VS Code/workspace/files is safe navigation. Running tests, syncing, committing, service commands, provider/model calls, or runtime work must stay in a separate Launch Packet / Launch Ladder action with explicit validation, evidence, authority, and stop conditions.
+
+The next contract slice should keep the handoff narrow: a Workspace Launch Profile may point to `required_next_launch_packet_for_execution`, but executable commands belong only in the Launch Packet or higher Launch Ladder action. Malformed profiles that contain command arrays should be rejected by static contract checks before any app/backend/runtime work starts.
 
 Do not create actual workspace launcher scripts until the profile record shape, stale conditions, prompt-copy behavior, and authority warning are statically documented and tested.
 

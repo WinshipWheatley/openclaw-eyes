@@ -340,9 +340,55 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     _require_all(
         failures,
         launch,
+        "workspace profile to launch packet handoff",
+        (
+            "Workspace Profile To Launch Packet Handoff",
+            "profile-to-packet handoff is explicit and one-way",
+            "Workspace Launch Profile opens context only",
+            "The profile may point to required_next_launch_packet_for_execution",
+            "Launch Packet authorizes a bounded next action",
+            "evidence/freshness, operator-readable scope, validation, authority, and stop conditions",
+            "Workspace Launch Profile must not contain executable commands",
+            "silently authorize them",
+            "tests, sync, commit, service command, provider/model call, runtime mutation, app execution, private-data inspection, launcher action",
+            "handoff_reason",
+            "handoff_evidence_sources",
+            "handoff_freshness_fields",
+            "handoff_operator_readable_scope",
+            "operator_harness_refresh_packet",
+            "executable_commands",
+            "reason_invalid",
+            "A Workspace Launch Profile with executable commands is invalid",
+        ),
+    )
+
+    _require_all(
+        failures,
+        launch,
+        "launch packet minimum fields",
+        (
+            "A Launch Packet is the separate execution-authorizing object for one bounded next action",
+            "Opening a Workspace Launch Profile never creates, approves, or executes a Launch Packet",
+            "packet_id",
+            "source_profile_id",
+            "bounded_next_action",
+            "target_machine",
+            "target_workspace",
+            "operator_readable_scope",
+            "execution_commands or execution_plan",
+            "validation_commands",
+            "withheld_surfaces",
+            "approval_receipt_or_operator_decision",
+            "The packet authorizes only the named bounded next action",
+        ),
+    )
+
+    _require_all(
+        failures,
+        launch,
         "current source-set posture",
         (
-            "This Workspace Launch Profile contract slice stays in 01_CURRENT_PRODUCT_SPEC",
+            "This Workspace Launch Profile and profile-to-packet handoff contract slice stays in 01_CURRENT_PRODUCT_SPEC",
             "does not move the active ChatGPT Project source-set posture to 02_MAC_IOS_APP_BUILD",
             "does not create source-set folder 04",
             "does not create generated source-set scripts",

@@ -128,6 +128,89 @@ Example/fixture profiles:
 | `audit_runtime_review_view` | Audit runtime-review view | Audit-build readiness mirror | `~/OpenClaw_Watch/openclaw_audit_build_readiness` | audit-build source sets, future manifests, service-freeze docs | Navigation only; runtime inspection, service commands, logs, or installed-unit checks require a separate approved Launch Packet. |
 | `hermes_advisory_packet_view` | Hermes advisory-packet view | PC/WSL repo | `/home/openclaw` | `docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md`, `docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md`, Hermes packet fixtures/tests | Navigation only; Hermes runtime expansion, provider fallback, or advisory execution requires a separate Launch Packet. |
 
+## Workspace Profile To Launch Packet Handoff
+
+The profile-to-packet handoff is explicit and one-way:
+
+1. The Workspace Launch Profile opens context only.
+2. The profile may point to `required_next_launch_packet_for_execution`.
+3. The Launch Packet authorizes a bounded next action only after evidence/freshness, operator-readable scope, validation, authority, and stop conditions are present.
+4. The Workspace Launch Profile must not contain executable commands or silently authorize them.
+
+The handoff exists so navigation can be comfortable without becoming hidden execution. A profile can identify the right machine, folder, workspace, files/tabs, and prompt hints. A packet is the separate execution-authorizing object for tests, sync, commit, service command, provider/model call, runtime mutation, app execution, private-data inspection, launcher action, or any other side effect.
+
+Profile handoff fields:
+
+- `required_next_launch_packet_for_execution`: packet id, packet type, or prompt hint for the next action.
+- `handoff_reason`: why execution is outside the profile.
+- `handoff_evidence_sources`: docs, manifests, commits, tests, or prior-art records the packet must cite.
+- `handoff_freshness_fields`: source commit, generated/reviewed timestamp, stale conditions, and refresh trigger the packet must preserve.
+- `handoff_operator_readable_scope`: plain-language scope the operator should see before approving the packet.
+
+Valid context-only profile example:
+
+```yaml
+workspace_launch_profile:
+  profile_id: "mac_upload_prep_view"
+  display_name: "Mac upload-prep view"
+  target_machine: "Mac"
+  target_root: "~/OpenClaw_Watch/operator_harness_readiness"
+  recommended_files:
+    - "CHAT_STAY_UP_TO_DATE.md"
+    - "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC/MANIFEST.md"
+  allowed_navigation_actions:
+    - "open_folder"
+    - "open_files"
+    - "copy_prompt_text"
+  required_next_launch_packet_for_execution: "operator_harness_refresh_packet"
+  handoff_reason: "Sync, refresh, upload, or cleanup are execution actions."
+```
+
+Bounded Launch Packet example:
+
+```yaml
+launch_packet:
+  packet_id: "operator_harness_refresh_packet"
+  source_profile_id: "mac_upload_prep_view"
+  bounded_next_action: "Refresh the existing Operator Harness Mac mirror and ingest folders."
+  target_machine: "PC_WSL_to_Mac"
+  target_workspace: "/home/openclaw"
+  operator_readable_scope: "Run only the existing Operator Harness sync and refresh scripts, then verify the adjacent bridge and 24-file folder counts."
+  execution_commands:
+    - "mac_eyes/Launchers/sync_operator_harness_to_mac.sh"
+    - "mac_eyes/Launchers/refresh_operator_harness_ingest.sh"
+  evidence_sources:
+    - "docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md"
+    - "docs/planning/launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md"
+  freshness_fields:
+    source_commit: "current repo HEAD or manifest basis"
+    generated_or_reviewed: "timestamp at packet creation"
+    stale_conditions:
+      - "source-set membership changed"
+      - "withheld surfaces changed"
+  validation_commands:
+    - "folder count verification from refresh script"
+  withheld_surfaces:
+    - "secrets"
+    - "vaults"
+    - "logs"
+    - "LegalPrivate"
+    - "runtime state"
+  authority_required: "operator_authorized"
+  stop_condition: "Stop on missing bridge, non-24 file count, stale manifest basis, or any request outside Operator Harness readiness."
+```
+
+Denied/malformed profile example:
+
+```yaml
+workspace_launch_profile:
+  profile_id: "bad_upload_prep_runner"
+  target_root: "~/OpenClaw_Watch/operator_harness_readiness"
+  executable_commands:
+    - "mac_eyes/Launchers/refresh_operator_harness_ingest.sh"
+  reason_invalid: "A Workspace Launch Profile with executable commands is invalid; commands belong in a Launch Packet."
+```
+
 ## Delta Bridge Routing Rule
 
 `CHAT_STAY_UP_TO_DATE.md` may be uploaded alongside the active ChatGPT Project source-set folder as an adjacent delta bridge. It must stay outside `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/*`, must not be counted in the 24-file folder total, and must not replace `MANIFEST.md` as source-set authority.
