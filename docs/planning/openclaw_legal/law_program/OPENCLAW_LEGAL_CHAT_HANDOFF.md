@@ -90,6 +90,19 @@ Latest Legal implementation checkpoints in `/home/openclaw`:
 - `6348994 docs(legal): add Phase 2G-S visual translation brief`
 - `a8e5772 style(legal): polish Phase 2G-S console shell`
 
+Final Folder 3 checkpoint status:
+
+- Folder 3 pilot/package/support/terms cleanup is complete enough to checkpoint.
+- The final read-only sweep found no blocking issues in the requested Folder 3 source set.
+- `Run Synthetic Dry Run` remains allowed only under `OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md`, fixed synthetic fixture values, and sanitized status-only output.
+- Real-matter GUI Run remains NO-GO.
+- Reset remains NO-GO.
+- Real matter through the app remains NO-GO.
+- Arbitrary bridge execution, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, cloud/external model processing, and broader Run/Reset behavior remain gated or NO-GO.
+- Any remaining broad Run/Reset phrasing is protective hard-stop language, not approval and not a checkpoint blocker.
+- Next Legal move should be stop/checkpoint, commit/push housekeeping, buyer/demo documentation, or a separate explicit implementation planning gate.
+- Do not start implementation from Folder 3 by implication.
+
 Current validation baseline:
 
 - synthetic CLI demos: PASS
