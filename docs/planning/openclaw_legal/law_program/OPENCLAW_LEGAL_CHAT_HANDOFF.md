@@ -87,6 +87,8 @@ Latest Legal implementation checkpoints in `/home/openclaw`:
 
 - `6c70786 feat(legal): add synthetic-only console run wrapper`
 - `560d7ac fix(legal): align console status with synthetic run wrapper`
+- `6348994 docs(legal): add Phase 2G-S visual translation brief`
+- `a8e5772 style(legal): polish Phase 2G-S console shell`
 
 Current validation baseline:
 
@@ -95,6 +97,9 @@ Current validation baseline:
 - fake data through PC real-shaped paths: PASS
 - fake data through Mac bridge path: PASS
 - Phase 2G-S synthetic GUI-run proof: PASS / complete with status-only sanitized reporting
+- Phase 2G-S visual translation brief: complete and committed
+- Phase 2G-S CSS-only Legal Console visual polish: complete and committed
+- Phase 2G-S Mac visual/runtime proof for the CSS polish: PASS
 - real-matter Mac bridge protocol: written, planning-only, not execution approval
 - synthetic-only GUI Run wrapper: implemented and committed
 - GUI status now reports synthetic-only bridge state
@@ -125,12 +130,13 @@ Current real-matter boundary:
 - Use no external, cloud, browser-upload, telemetry, or non-local model path with real matter.
 - For real matter, do not display filenames, contents, snippets, hashes, reports, review packet bodies, support packet bodies, private file lists, screenshots of matter outputs, manifests, audit rows, or raw bridge output.
 
-Next safe Legal move:
+Current next safe Legal move:
 
-- Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
-- Folder 2 is for visual polish and console UX only, not behavior expansion.
-- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO.
-- Do not add behavior, bridge modes, Reset wiring, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing as part of Folder 2 work.
+- Update/checkpoint docs first, then choose the next bounded planning slice.
+- Do not start behavior expansion by default.
+- Possible next slices may include buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
+- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO unless a separate future contract explicitly authorizes otherwise.
+- Do not add behavior, bridge modes, Reset wiring, file picker, matter selector, arbitrary input, output body display, cloud/external tools, or non-local model processing by default.
 
 ## Known Legal v0 work already built on PC/WSL
 
@@ -1153,8 +1159,9 @@ What did not change:
 - No real matter data was inspected.
 
 Operational checkpoint:
+
 - Phase 2D GUI/runtime validation already proved Mac launch, safe sanitized Refresh Status behavior, and Open Intake Folder opening the exact allowed Mac intake folder.
-- Treat visual polish as paused. The next slice should be functional, safety-scoped, and deliberate.
+- Historical note: visual polish was paused at Phase 2D, then resumed later through the bounded Phase 2G-S visual translation/CSS-only pass. Do not treat this old pause note as current next-step guidance.
 
 ## Completed Phase 2E Legal Console controlled status realism
 
@@ -1334,12 +1341,47 @@ Runtime proof:
 - Sanitized post-proof verification passed: repo boundary passed, primary status token `Done`, expected output containers present, and Mac copied primary status file present.
 - Proof reporting stayed status-only: no filenames, file counts, source text, snippets, hashes, report bodies, review packet bodies, support packet bodies, raw status bodies, raw bridge output, or private file lists were printed.
 
-Next safe Legal move:
+## Completed Phase 2G-S visual translation and CSS-only polish
 
-- Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
-- Folder 2 is for visual polish and console UX only, not behavior expansion.
-- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO.
-- Do not add bridge behavior, real-matter GUI Run, Reset wiring, file picker, matter selection, arbitrary matter ID/query/path input, report/review/support body display, Connect/queue/ETA behavior, broad OCR/media/email expansion, or cloud/external/non-local model processing for real matter.
+Recent commits:
+
+```text
+6348994 docs(legal): add Phase 2G-S visual translation brief
+a8e5772 style(legal): polish Phase 2G-S console shell
+```
+
+What changed:
+
+- `OPENCLAW_LEGAL_PHASE_2G_S_VISUAL_TRANSLATION_BRIEF.md` is complete and committed.
+- The Phase 2G-S Legal Console visual polish is complete and committed as a CSS-only pass in `apps/legal-console-spike/src/styles.css`.
+- The polish refined proportion, hierarchy, spacing, rail/hero/card treatment, status surfaces, disabled-control clarity, and restrained premium legal-operations styling.
+- No TypeScript, Rust/Tauri, backend, package, script, or Legal Python behavior change was made.
+- No labels, data attributes, bridge logic, command wiring, Reset behavior, real-matter behavior, file picker, matter selector, arbitrary input, output body display, Connect, queue, ETA, cloud/external tool, or non-local model behavior was added.
+
+Mac visual/runtime proof:
+
+- Mac visual/runtime proof passed for the committed CSS-only polish.
+- The app was synced to `~/OpenClawLegalDev/legal-console-spike` with generated dependency/build directories excluded.
+- Mac validation passed: `npm ci`, `npm run check`, `npm run build`, and `cargo check --manifest-path src-tauri/Cargo.toml`.
+- `npm ci` reported 2 moderate audit findings; no audit fix was run.
+- The first non-login SSH validation attempt could not find `npm`; rerunning validation through Mac login `zsh` worked.
+- Runtime proof confirmed app launch, Phase 2G-S visible, coherent calm/premium visual polish, sanitized Refresh Status, Open Intake Folder opening only the allowed folder, `Run Synthetic Dry Run` remaining the only run control, `Run Real Matter` disabled, Reset controls disabled, and no private contents, filenames, counts, raw bridge output, or report bodies displayed.
+- Proof-only Mac dev processes were stopped and verified.
+
+What remains blocked:
+
+- Real-matter GUI Run remains NO-GO.
+- Reset remains NO-GO.
+- Real matter through the app remains NO-GO.
+- Any Run/Reset/real-matter behavior expansion requires separate authorization, design, and proof.
+
+Current next safe Legal move:
+
+- Update/checkpoint docs first, then choose the next bounded planning slice.
+- Do not start behavior expansion by default.
+- Possible next slices may include buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
+- Keep Real-matter GUI Run NO-GO, Reset NO-GO, and real matter through the app NO-GO unless a separate future contract explicitly authorizes otherwise.
+- Do not add bridge behavior, real-matter GUI Run, Reset wiring, file picker, matter selection, arbitrary matter ID/query/path input, report/review/support body display, Connect/queue/ETA behavior, broad OCR/media/email expansion, or cloud/external/non-local model processing for real matter by default.
 
 Bad next Legal work:
 
@@ -1354,7 +1396,10 @@ Bad next Legal work:
 - cloud/external/non-local model processing for real matter.
 
 Good next Legal work should be non-dangerous:
-- visual polish and console UX refinement within Folder 2 only;
+
+- buyer-facing/internal demo packaging;
+- post-polish screenshots/mockup documentation;
+- another planning-only handoff refresh;
 - synthetic demo package cleanup;
 - first-pilot scope pack;
 - support/pilot boundary refinement;
@@ -1566,7 +1611,9 @@ No real firm deployment should happen without:
 
 Date/context: 2026-04-28, after the Phase 1 Mac Obsidian control-surface proof and clean dummy bridge proof.
 
-Recommendation: start a controlled desktop GUI spike now.
+Historical status: this GUI pre-plan is retained for context, but it is no longer the current next slice. The Tauri Legal Console scaffold, Phase 2G-S synthetic-only GUI Run wrapper, visual translation brief, CSS-only visual polish, and Mac visual/runtime proof were completed later. Use the current checkpoint and current next safe Legal move above instead of treating this historical pre-plan as active guidance.
+
+Historical recommendation at the time: start a controlled desktop GUI spike.
 
 Mac execution lane and tooling gate, verified 2026-04-28:
 
@@ -1575,8 +1622,8 @@ Mac execution lane and tooling gate, verified 2026-04-28:
 - Allowed Mac paths for future GUI-spike work are `~/OpenClawLegalPrivate/Matter_Alpha_Workspace`, `~/OpenClawLegalDev`, `~/OpenClaw_Watch/law_program`, and `/tmp/openclaw_legal_*`.
 - `~/OpenClawLegalPrivate/Matter_Alpha_Workspace` exists, is writable, and is not a symlink. Only top-level vault names were listed; real matter contents were not read.
 - `~/OpenClawLegalDev` did not exist during the scout but its parent is writable, so it may be created later only when an implementation prompt explicitly authorizes it.
-- The Mac has Rust/Cargo, Xcode Command Line Tools, and Python available. The Mac shell does not currently expose `node` or `npm` on `PATH`.
-- Do not install or enable tooling from Codex without explicit approval. Do not start building Tauri until the Node/npm decision is approved.
+- The Mac has Rust/Cargo, Xcode Command Line Tools, and Python available. Historical note: the non-login Mac SSH shell did not expose `node` or `npm` on `PATH`; later Phase 2G-S proof used Mac login `zsh`, where `npm` was available and validation passed.
+- Historical gate at the time: do not install or enable tooling from Codex without explicit approval; do not start building Tauri until the Node/npm decision is approved. Later Phase 2G-S validation used already-available Mac login-shell tooling.
 - Future Mac commands must stay path-bounded. Do not search the Mac home directory broadly, do not copy private matter files, do not read real matter file contents, and do not create symlinks between the product repo and the private vault.
 
 Cross-platform architecture requirement for the GUI spike:
@@ -1589,9 +1636,9 @@ Cross-platform architecture requirement for the GUI spike:
 - Do not hardcode the spike to one user, one machine pair, WSL-only primary nodes, Mac-only workstations, or one folder layout beyond configured defaults.
 - Unimplemented OS adapters should be explicit stubs or documentation targets, not hidden assumptions.
 
-Tooling decision for the next implementation prompt:
+Historical tooling decision for the next implementation prompt:
 
-- Preferred path: keep Tauri as the intended desktop direction, but gate implementation on an approved Node/npm plan for the Mac.
+- At the time, preferred path: keep Tauri as the intended desktop direction, but gate implementation on an approved Node/npm plan for the Mac.
 - Do not use PC-side static build plus Mac asset sync as the primary path unless native-window behavior is deliberately deferred; it weakens the desktop proof.
 - Do not switch to a Rust-only alternative unless the team accepts a smaller UI toolkit/prototyping surface than Tauri.
 - If Node/npm remains unavailable and no install/enable step is approved, defer Tauri and use a local web/static shell only as a temporary architecture sketch, not as the desktop-console proof.
@@ -1604,7 +1651,7 @@ Why:
 - The controlled console direction is already supported by `OPENCLAW_LEGAL_CONSOLE_V0_controlled_UX_spec.md`: the sellable product should be a bounded legal operations console, not an Obsidian-only vault.
 - The existing local bridge is enough to support a thin GUI spike without rewriting the Legal engine.
 
-Smallest next slice:
+Smallest next slice from this historical pre-plan, now superseded by later completed GUI work:
 
 - Create a disposable controlled GUI spike that reuses existing bridge commands and shows only a narrow status/intake flow.
 - Mac workstation surface: choose/open the exact evidence-only drop folder, select or drag/drop copied files into that folder safely, run the existing bridge command, and show workstation/output status.
@@ -1647,20 +1694,21 @@ Reminder: real matter data has not been run through this bridge. It must stay ou
 
 ## Recommended next step
 
-Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`, and a completed Phase 2G-S synthetic GUI-run proof with status-only sanitized reporting.
+Current Legal now has Phase 1 workstation bridge scripts, a proven Obsidian prototype control surface, dual-mode staging, local image OCR, known-answer fixtures, a short-lived planning sync helper, a static Legal Console scaffold, Phase 2A read-only status refresh, Phase 2B controlled Open Intake Folder, Phase 2C build/dependency validation, Phase 2D GUI/runtime validation, the `78d03ee` visual identity asset-kit checkpoint, Phase 2E controlled status realism at `db4f936`, Phase 2F-A frontend-only intake readiness guidance at `477dbff`, Phase 2F-B synthetic test-file GUI action at `64f5190`, the Phase 2G-S synthetic-only GUI Run wrapper at `6c70786` plus alignment commit `560d7ac`, a completed Phase 2G-S synthetic GUI-run proof with status-only sanitized reporting, the Phase 2G-S visual translation brief at `6348994`, and the CSS-only Phase 2G-S console visual polish at `a8e5772` with passing Mac visual/runtime proof.
 
-Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, and first-pilot package index. The latest committed Legal docs checkpoint is `7e3f88b docs(legal): add first pilot package index`.
+Current Legal docs/proof packaging now includes the synthetic demo validation package, first-pilot scope, buyer brief, pilot readiness checklist, pilot terms outline, first-pilot go/no-go review packet, first-pilot outreach readiness summary, first-pilot conversation guardrails, first-pilot call notes template, first-pilot package index, and Phase 2G-S visual translation brief. The first-pilot package index checkpoint is `7e3f88b docs(legal): add first pilot package index`; the later committed Legal visual-brief docs checkpoint is `6348994 docs(legal): add Phase 2G-S visual translation brief`.
 
-Visual polish may resume only through ChatGPT Project Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`. Folder 2 is a distinct visual polish / console UX lane and must not expand behavior.
+The bounded Folder 2 visual polish/CSS-only console UX slice is now complete. Do not keep treating Folder 2 visual polish as the next move by default.
 
 Status realism should also stop for now unless a specific bug appears. Refresh Status now has useful safe fields and passed Mac runtime validation without reading/listing private intake contents.
 
 Immediate next work:
 
-1. **Recommended next target: Folder 2 visual polish / console UX.** Switch ChatGPT Project sources from Folder 1 to Folder 2: `2_VISUAL_POLISH_AND_CONSOLE_UX`.
-2. **Folder 2 boundary:** visual polish and console UX only; no behavior expansion, no new bridge modes, no Reset wiring, no real-matter GUI Run, no file picker, no matter selector, and no output body display.
+1. **Recommended next target: update/checkpoint docs first, then choose the next bounded planning slice.** Do not start behavior expansion by default.
+2. **Possible safe planning slices:** buyer-facing/internal demo packaging, post-polish screenshots/mockup documentation, or another planning-only handoff refresh.
 3. **Boundary proof:** Continue proving product code stays in `/home/openclaw`, PC matter data stays in `/mnt/c/OpenClawLegalPrivate`, Mac workstation data stays in `~/OpenClawLegalPrivate`, and no internal OpenClaw agent names appear in legal UX.
 4. **Real matter remains blocked in the app:** do not drop real matter into the app unless following the real-matter Mac bridge protocol with explicit confirmation gate. Do not use cloud/external/non-local models with real matter.
+5. **Behavior expansion remains deferred:** do not add real-matter GUI Run, Reset wiring, bridge modes, file picker, matter selector, arbitrary matter/query/path input, output body display, Connect, queue, ETA, or cloud/external/non-local model processing unless separately planned and authorized.
 
 Other candidates, deliberately deferred until selected:
 
