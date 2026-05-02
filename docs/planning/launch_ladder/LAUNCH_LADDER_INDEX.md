@@ -37,6 +37,7 @@ The atlas should eventually let the operator move from all builds and deployment
 | `09_MAC_IOS_APP_BUILD_BRIEF.md` | Read-only first macOS/iOS app build brief and data-contract needs. |
 | `10_PRODUCTIZATION_PROFILES.md` | Personal OpenClaw and future client/company deployment profiles. |
 | `11_NEXT_IMPLEMENTATION_SEQUENCE.md` | Smallest safe sequence after this docs package. |
+| `CHAT_STAY_UP_TO_DATE.md` | Adjacent ChatGPT Project delta bridge template; not part of any 24-file source-set folder. |
 
 ## Non-Authority Rule
 

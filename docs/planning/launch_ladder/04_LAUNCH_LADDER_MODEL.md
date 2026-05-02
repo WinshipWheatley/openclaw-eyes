@@ -27,6 +27,14 @@ The Launch Ladder has seven distinct stages:
 
 Launch-ready is not launch-authorized. The console must display those as separate states.
 
+## Launch Ladder Vs Source-Set Ladder
+
+Launch Ladder is the operator-facing work progression toward a North Star. Source-Set Ladder is the slower ChatGPT Project context progression across folders such as `01_CURRENT_PRODUCT_SPEC`, `02_MAC_IOS_APP_BUILD`, `03_BACKEND_AND_DATA_MODEL`, and future `04/05/etc.` folders.
+
+Source-set folders are not Launch Ladder steps. A Launch Ladder may include a `source_set_ready` stage, but that stage means the exact context packet is assembled or specified. It does not mean the chat has advanced from source-set folder 01 to 02 or 03.
+
+The console should preserve both views without merging them: Launch Ladders track work readiness and authority; Source-Set Ladders track which source packet a ChatGPT Project session is currently using and what packet should come next.
+
 ## Ladders Replace Vague Lanes
 
 For operator-facing work, Launch Ladders replace vague lanes. A lane can still be a planning or ownership category in source docs, but the atlas/console should route the operator through a Launch Ladder when work needs to get done.

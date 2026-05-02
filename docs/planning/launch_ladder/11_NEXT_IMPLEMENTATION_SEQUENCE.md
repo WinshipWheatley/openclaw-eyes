@@ -25,6 +25,16 @@ Freshness:
 
 The Multi-OpenClaw Command Atlas should stay a long-range horizon until the v1 Launch Ladder proof is committed and statically checked. Do not skip from this package to a multi-deployment app or registry without first defining data contracts, freshness rules, authority boundaries, and fixtures.
 
+## Source-Set Ladder / Delta Bridge Primitive
+
+Treat the Source-Set Ladder as an Operator Harness primitive adjacent to Launch Ladders. Launch Ladders move work toward a North Star; Source-Set Ladders move ChatGPT Project context through slower planning/build packets.
+
+The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_BACKEND_AND_DATA_MODEL -> future 04/05/etc.`. Do not over-refresh source sets. Use `CHAT_STAY_UP_TO_DATE.md` as the adjacent bridge when the baseline 24-file folder is still valid and the chat only needs small repo deltas.
+
+Build the future generic multi-build version only after the Operator Harness version proves the rule. The generic form should support personal systems, client/company systems, and future deployment-specific source-set ladders without mixing source commits, withheld surfaces, authority, or evidence.
+
+Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat reaches folder 03, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
+
 ## Recommended Direct Route
 
 Use when the operator wants the smallest safe next move after this package.

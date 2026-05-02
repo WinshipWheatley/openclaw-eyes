@@ -7,6 +7,7 @@ set -euo pipefail
 SSH_HOST="${SSH_HOST:-mac}"
 MAC_MIRROR_REL="${MAC_MIRROR_REL:-OpenClaw_Watch/operator_harness_readiness}"
 INGEST_DIR_NAME="CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS"
+DELTA_BRIDGE_NAME="CHAT_STAY_UP_TO_DATE.md"
 
 FOLDER_1="01_CURRENT_PRODUCT_SPEC"
 FOLDER_2="02_MAC_IOS_APP_BUILD"
@@ -26,6 +27,8 @@ present in ~/OpenClaw_Watch/operator_harness_readiness on the Mac.
 It deletes/recreates only those three upload folders and writes one
 README_DO_NOT_UPLOAD.md outside them. Each numbered upload folder is curated
 to 24 files total: 23 content files plus MANIFEST.md.
+The adjacent CHAT_STAY_UP_TO_DATE.md bridge stays at the readiness root, outside
+the numbered folders, and is not counted in the 24 files.
 
 No secrets, runtime vaults, logs, generated artifacts, installed units,
 provider/model calls, Gmail bodies, LegalPrivate, or broad repo folders are
@@ -155,6 +158,7 @@ if [[ "$mode" == "list" || "$mode" == "dry-run" ]]; then
   printf 'operator-harness-ingest: mode=%s\n' "$mode"
   printf 'operator-harness-ingest: mirror=%s:%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL"
   printf 'operator-harness-ingest: ingest=%s:%s/%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL" "$INGEST_DIR_NAME"
+  printf 'operator-harness-ingest: delta_bridge=%s:%s/%s adjacent_to_ingest=true counted_in_24=false\n' "$SSH_HOST" "~/$MAC_MIRROR_REL" "$DELTA_BRIDGE_NAME"
   print_folder_design "$FOLDER_1" "$FOLDER_1_PURPOSE" "${FOLDER_1_FILES[@]}"
   print_folder_design "$FOLDER_2" "$FOLDER_2_PURPOSE" "${FOLDER_2_FILES[@]}"
   print_folder_design "$FOLDER_3" "$FOLDER_3_PURPOSE" "${FOLDER_3_FILES[@]}"
@@ -178,6 +182,7 @@ case \"\$ingest\" in
   *) echo 'ERROR: unsafe ingest path' >&2; exit 1 ;;
 esac
 test -d \"\$root\"
+test -f \"\$root/$DELTA_BRIDGE_NAME\" || { echo 'ERROR: missing adjacent delta bridge at readiness root' >&2; exit 1; }
 mkdir -p \"\$ingest\"
 rm -rf \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\"
 mkdir -p \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\"
@@ -195,6 +200,8 @@ These folders are curated ChatGPT Project upload sets for OpenClaw Operator Harn
 - This Mac mirror and the ingest folders are readable derived copies only.
 - Upload one numbered workflow folder at a time, in order.
 - Each numbered workflow folder intentionally contains exactly 24 files total: 23 curated content files plus \`MANIFEST.md\`.
+- \`$DELTA_BRIDGE_NAME\` is adjacent to this ingest root. Upload it alongside the active numbered folder only when a bridge-only delta is enough.
+- \`$DELTA_BRIDGE_NAME\` is not counted inside the numbered folder's 24 files.
 - Do not upload this README as part of the numbered workflow batches.
 - Do not treat copied files as permission to run providers, services, Gmail, Legal matter workflows, Hermes runtime expansion, or runtime mutation.
 EOF
@@ -266,8 +273,9 @@ EOF
 1. Upload this numbered folder as one ChatGPT Project batch.
 2. Upload all 24 files in this folder, including this `MANIFEST.md`.
 3. Do not upload the parent `README_DO_NOT_UPLOAD.md`.
-4. Treat model output as advisory until promoted back into the canonical repo.
-5. Refresh the mirror and ingest folder if any stale condition is true.
+4. If the adjacent `../CHAT_STAY_UP_TO_DATE.md` bridge is provided, upload it alongside this folder only as a delta note; it is not part of the 24-file count.
+5. Treat model output as advisory until promoted back into the canonical repo.
+6. Refresh the mirror and ingest folder if any stale condition is true.
 
 ## Derived/Non-Canonical Warning
 

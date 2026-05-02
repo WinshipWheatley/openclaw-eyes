@@ -18,6 +18,12 @@ REPO_ROOT = Path(__file__).resolve().parent
 LAUNCH_LADDER_DIR = REPO_ROOT / "docs" / "planning" / "launch_ladder"
 MODULAR_LEDGER = REPO_ROOT / "docs" / "planning" / "OPENCLAW_MODULAR_READINESS_LEDGER.md"
 VALIDATION_MAP = REPO_ROOT / "docs" / "testing" / "VALIDATION_MAP.md"
+SYNC_OPERATOR_HARNESS = (
+    REPO_ROOT / "mac_eyes" / "Launchers" / "sync_operator_harness_to_mac.sh"
+)
+REFRESH_OPERATOR_HARNESS = (
+    REPO_ROOT / "mac_eyes" / "Launchers" / "refresh_operator_harness_ingest.sh"
+)
 
 UPLOADED_CURRENT_PRODUCT_SPEC = (
     "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC"
@@ -33,11 +39,17 @@ class ContractCorpus:
     launch_ladder_text: str
     ledger_text: str
     validation_map_text: str
+    script_text: str
 
     @property
     def combined_text(self) -> str:
         return "\n".join(
-            [self.launch_ladder_text, self.ledger_text, self.validation_map_text]
+            [
+                self.launch_ladder_text,
+                self.ledger_text,
+                self.validation_map_text,
+                self.script_text,
+            ]
         )
 
 
@@ -65,10 +77,18 @@ def load_corpus(repo_root: Path = REPO_ROOT) -> ContractCorpus:
     validation_map_text = _read_text(
         repo_root / "docs" / "testing" / "VALIDATION_MAP.md"
     )
+    script_text = "\n\n".join(
+        _read_text(path)
+        for path in (
+            repo_root / "mac_eyes" / "Launchers" / "sync_operator_harness_to_mac.sh",
+            repo_root / "mac_eyes" / "Launchers" / "refresh_operator_harness_ingest.sh",
+        )
+    )
     return ContractCorpus(
         launch_ladder_text=launch_text,
         ledger_text=ledger_text,
         validation_map_text=validation_map_text,
+        script_text=script_text,
     )
 
 
@@ -143,6 +163,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     launch = normalize(corpus.launch_ladder_text)
     combined = normalize(corpus.combined_text)
     validation_map = normalize(corpus.validation_map_text)
+    scripts = normalize(corpus.script_text)
     failures: list[str] = []
 
     _require_all(
@@ -251,6 +272,43 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
         launch,
         "source-set upload rule",
         ("23 content files + MANIFEST.md = 24 total upload files",),
+    )
+
+    _require_all(
+        failures,
+        launch,
+        "source-set ladder and delta bridge",
+        (
+            "Source-Set Ladder",
+            "01_CURRENT_PRODUCT_SPEC",
+            "02_MAC_IOS_APP_BUILD",
+            "03_BACKEND_AND_DATA_MODEL",
+            "source-set folders are not Launch Ladder steps",
+            "When folder 01 is exhausted, move to folder 02",
+            "When folder 02 is exhausted, move to folder 03",
+            "By folder 03, the system should already propose what folder 04 should contain",
+            "CHAT_STAY_UP_TO_DATE.md",
+            "not counted in the 24 files",
+            "bridge-only upload",
+            "full 24-file refresh",
+            "current source-set folder",
+            "latest repo changes since upload",
+            "next likely source-set folder",
+        ),
+    )
+
+    _require_all(
+        failures,
+        scripts,
+        "operator harness bridge scripts",
+        (
+            "CHAT_STAY_UP_TO_DATE.md",
+            "DELTA_BRIDGE_NAME",
+            "adjacent_to_ingest=true",
+            "counted_in_24=false",
+            "CONTENT_FILES_PER_FOLDER=23",
+            "EXPECTED_FILES_PER_FOLDER=24",
+        ),
     )
 
     _require_any(

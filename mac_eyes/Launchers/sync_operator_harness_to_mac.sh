@@ -17,9 +17,11 @@ Usage:
 
 Copies only the explicit Operator Harness / Launch Ladder readiness source set
 from /home/openclaw to ~/OpenClaw_Watch/operator_harness_readiness on the Mac
-SSH host. No secrets, runtime vaults, logs, generated artifacts, installed
-units, provider/model calls, Gmail bodies, LegalPrivate, or broad repo folders
-are copied. This script never deletes Mac files.
+SSH host. The adjacent CHAT_STAY_UP_TO_DATE.md bridge is copied to the mirror
+root, outside the ChatGPT Project ingest folders. No secrets, runtime vaults,
+logs, generated artifacts, installed units, provider/model calls, Gmail bodies,
+LegalPrivate, or broad repo folders are copied. This script never deletes Mac
+files.
 EOF
 }
 
@@ -46,6 +48,7 @@ MANIFEST=(
   'docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|00_launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md'
   'docs/planning/launch_ladder/10_PRODUCTIZATION_PROFILES.md|00_launch_ladder/10_PRODUCTIZATION_PROFILES.md'
   'docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|00_launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md'
+  'docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md|CHAT_STAY_UP_TO_DATE.md'
   'docs/planning/launch_ladder/operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md|01_operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md'
   'docs/planning/launch_ladder/operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md|01_operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md'
   'docs/planning/launch_ladder/operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md|01_operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md'

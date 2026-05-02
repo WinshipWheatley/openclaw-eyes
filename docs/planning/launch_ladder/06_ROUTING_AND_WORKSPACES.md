@@ -41,6 +41,12 @@ Every routing entry must include:
 | `future_macos_ios_client` | native app | macOS/iOS | User device app sandbox | Read-only generated artifacts/API payloads. | App UI/cache TBD. | read-only display. | App tests TBD. | Service control, credential storage beyond approved auth, direct mutation, hidden sync. |
 | `future_other_client` | TBD client | TBD | TBD | Read-only artifacts/API payloads. | TBD | read-only first. | TBD | Same withheld surfaces as default unless explicitly narrowed. |
 
+## Delta Bridge Routing Rule
+
+`CHAT_STAY_UP_TO_DATE.md` may be uploaded alongside the active ChatGPT Project source-set folder as an adjacent delta bridge. It must stay outside `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/*`, must not be counted in the 24-file folder total, and must not replace `MANIFEST.md` as source-set authority.
+
+Use the bridge for small repo deltas and current chat focus. Use a full 24-file refresh when folder purpose, file membership, source commit basis, withheld surfaces, authority rules, or source-set ladder position changes.
+
 ## Route Compression Fields
 
 Every route comparison should include `steps_to_launch`, `estimated_true_steps`, `includes`, `defers`, `risk`, `confidence`, and freshness.
