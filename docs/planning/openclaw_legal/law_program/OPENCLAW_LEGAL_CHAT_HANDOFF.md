@@ -1280,9 +1280,9 @@ Rollback/checkpoint boundary:
 - It does not prove bridge execution, processing, reset behavior, real matter operation, or production deployment readiness.
 - It must not be generalized into arbitrary file writing.
 
-Next step:
-- Pause Legal feature work and reassess.
-- Do not wire Run Dry Run, Reset Local Test, Reset All Test State, bridge execution, matter selection, file picker, or real-matter GUI workflow without separate planning and approval.
+Historical Phase 2F-B next step:
+- Pause Legal feature work and reassess before any later Run-wrapper planning.
+- This was a historical warning, not current Folder 3 next-step guidance. Current truth is narrower: `Run Synthetic Dry Run` is allowed only under the synthetic demo validation package, fixed synthetic fixture values, and sanitized status-only output; Real-matter GUI Run remains NO-GO; Reset remains NO-GO; real matter through the app remains NO-GO; arbitrary bridge execution remains blocked.
 
 ## Completed Phase 2G-S synthetic-only GUI Run wrapper
 

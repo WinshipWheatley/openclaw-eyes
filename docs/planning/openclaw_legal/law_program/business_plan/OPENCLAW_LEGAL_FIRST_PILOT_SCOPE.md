@@ -215,4 +215,4 @@ The correct posture is a focused first deployment or v1 buildout with clear scop
 
 After this document, do not build features automatically.
 
-Use this package for a planning session, buyer-readiness review, or written pilot-scope drafting. Any new implementation slice still needs its own scoped plan, proof commands, and approval, especially anything involving Run Dry Run, Reset, bridge execution, real matter workflows, file pickers, Connect, queue, ETA, model distribution, or new file-type handling.
+Use this package for a planning session, buyer-readiness review, or written pilot-scope drafting. Any new implementation slice still needs its own scoped plan, proof commands, and approval. `Run Synthetic Dry Run` is allowed only under the synthetic demo validation package, fixed synthetic fixture values, and sanitized status-only output; changes to that control, Real-matter GUI Run, Reset, arbitrary bridge execution, real matter through the app, file pickers, Connect, queue/ETA, OCR/model distribution, unsupported-file feature expansion, cloud/external model processing, or raw matter support remain out of scope unless separately planned and approved.
