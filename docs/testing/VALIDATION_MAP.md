@@ -53,6 +53,7 @@ This map provides a deterministic lookup for selecting the correct tests and har
 | `scripts/install_hermes_gateway_service.sh`, `systemd/user/hermes-gateway.service.in` | `tests/test_hermes_gateway_installer_safety.py` | Verifies Hermes gateway dry-run/apply/restart gates and no authority expansion beyond the sidecar gateway template |
 | `hermes_advisory_packet.py`, `docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md`, `docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md` | `tests/test_hermes_advisory_packet_contract.py` | Verifies Hermes packet-in/proposal-out advisory contract, withheld surfaces, non-canonical memo shape, and no live runtime/provider/service/private-state dependency |
 | `chief_llm.py` model routing and external packet policy | `tests/test_chief_llm_router.py` | Verifies local routing, mocked provider behavior, and external packet guardrails |
+| `docs/planning/launch_ladder/*.md`, `docs/planning/OPENCLAW_MODULAR_READINESS_LEDGER.md`, `launch_ladder_contract_check.py` | `tests/test_launch_ladder_static_contract.py` | Verifies Launch Ladder stages, route compression, compact buttons, parallel bundle requirements, view modes, evidence/freshness fields, 23+MANIFEST=24 source-set rule, non-authority boundaries, Atlas horizon/zoom levels, and preserves the current-product source-set warning that `09_MAC_IOS_APP_BUILD_BRIEF.md` was not included in the uploaded `01_CURRENT_PRODUCT_SPEC` batch |
 
 ## 6. Global Readiness (Full Suite)
 

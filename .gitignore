@@ -40,6 +40,7 @@
 !chief_approval_brain.py
 !chief_reporter_brain.py
 !chief_validator_brain.py
+!launch_ladder_contract_check.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -252,6 +253,7 @@
 !tests/test_pc_review_fallback.py
 !tests/test_builder_fallback.py
 !tests/test_skill_pipeline_smoke.py
+!tests/test_launch_ladder_static_contract.py
 !tests/test_cassandra_outreach.py
 !tests/test_cassandra_whisper_relay.py
 !tests/test_topic_sensitivity_gate.py

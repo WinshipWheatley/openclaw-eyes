@@ -22,6 +22,14 @@ Freshness:
 - No launch-ready claim is valid without evidence, freshness, route, and authority fields.
 - Launch-ready is not launch-authorized.
 
+## V1 Hard Boundaries
+
+- The console/atlas is a window/router/evidence browser, not authority; the operator remains authority.
+- Guardian may approve/deny exact action packets, but must not handle secrets, store passwords, transmit tokens, paste credentials, unlock SSH passphrases, or inspect vault contents.
+- No service/runtime mutation in v1.
+- No private/legal/vault/log inspection in v1.
+- No provider/model calls in v1.
+
 ## Authority Separation
 
 | Surface | Authority in this package | Notes |
