@@ -97,21 +97,67 @@ def _pending_template_findings(
     rows: list[dict[str, str]],
     template_filenames: Iterable[str] | None,
 ) -> list[dict[str, Any]]:
-    template_units = _template_unit_names(template_filenames)
+    classifications = {
+        item["item"]: item
+        for item in _owner_classifications(rows, template_filenames)
+    }
     findings: list[dict[str, Any]] = []
     for row in rows:
         row_text = " ".join(str(value) for value in row.values()).lower()
         if "without repo template" not in row_text and "no repo template" not in row_text:
             continue
         item = row["item"]
+        classification = classifications[item]
         findings.append({
             "severity": "warning",
             "finding": "documented_installed_unit_without_repo_template",
             "item": item,
-            "repo_template_present": item in template_units,
+            "repo_template_present": classification["repo_template_present"],
+            "documented_external_owner": classification["documented_external_owner"],
+            "frozen_pending_template_decision": classification["frozen_pending_template_decision"],
+            "unknown_unowned": classification["unknown_unowned"],
             "cleanup_status": row["cleanup_status"],
         })
     return findings
+
+
+def _has_documented_external_owner(row_text: str) -> bool:
+    if "pending documented external owner" in row_text:
+        return False
+    return "documented external owner:" in row_text or "external owner:" in row_text
+
+
+def _owner_classifications(
+    rows: list[dict[str, str]],
+    template_filenames: Iterable[str] | None,
+) -> list[dict[str, Any]]:
+    template_units = _template_unit_names(template_filenames)
+    classifications: list[dict[str, Any]] = []
+    for row in rows:
+        item = row["item"]
+        row_text = " ".join(str(value) for value in row.values()).lower()
+        repo_template_present = item in template_units
+        missing_repo_template = "without repo template" in row_text or "no repo template" in row_text
+        documented_external_owner = _has_documented_external_owner(row_text)
+        frozen_pending_template_decision = missing_repo_template and (
+            "frozen pending" in row_text
+            or "pending a repo template" in row_text
+            or "pending template/owner" in row_text
+        )
+        unknown_unowned = (
+            not repo_template_present
+            and not documented_external_owner
+            and not frozen_pending_template_decision
+        )
+        classifications.append({
+            "item": item,
+            "repo_template_present": repo_template_present,
+            "documented_external_owner": documented_external_owner,
+            "frozen_pending_template_decision": frozen_pending_template_decision,
+            "unknown_unowned": unknown_unowned,
+            "cleanup_status": row["cleanup_status"],
+        })
+    return classifications
 
 
 def build_service_inventory_audit(
@@ -156,6 +202,7 @@ def build_service_inventory_audit(
         "deprecated_frozen_controls": _inventory_items(deprecated_section),
         "cleanup_slice_order": _cleanup_slice_order(cleanup_section),
         "source_of_truth_rows": source_rows,
+        "owner_classifications": _owner_classifications(source_rows, template_filenames),
         "findings": _pending_template_findings(source_rows, template_filenames),
         "runtime_neutral_rule_present": "Any future service operation" in runtime_section,
     }

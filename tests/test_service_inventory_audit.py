@@ -73,15 +73,28 @@ def test_pending_template_findings_are_advisory_only():
         assert finding["severity"] == "warning"
         assert finding["finding"] == "documented_installed_unit_without_repo_template"
         assert finding["repo_template_present"] is False
+        assert finding["documented_external_owner"] is False
+        assert finding["frozen_pending_template_decision"] is True
+        assert finding["unknown_unowned"] is False
         assert "Frozen" in finding["cleanup_status"]
 
 
 def test_repo_root_mode_reads_freeze_doc_and_template_filenames_only():
     report = build_service_inventory_audit(repo_root=REPO_ROOT)
+    classifications = {item["item"]: item for item in report["owner_classifications"]}
 
     assert report["source"] == "docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md"
     assert "hermes-gateway.service" in report["systemd_owned"]
     assert any(finding["item"] == "openclaw-gateway.service" for finding in report["findings"])
+    assert classifications["hermes-gateway.service"]["repo_template_present"] is True
+    assert classifications["openclaw-gateway.service"] == {
+        "item": "openclaw-gateway.service",
+        "repo_template_present": False,
+        "documented_external_owner": False,
+        "frozen_pending_template_decision": True,
+        "unknown_unowned": False,
+        "cleanup_status": "Frozen pending documented external owner or future repo template decision",
+    }
     assert report["live_service_inspection_allowed"] is False
     assert report["service_mutation_allowed"] is False
 

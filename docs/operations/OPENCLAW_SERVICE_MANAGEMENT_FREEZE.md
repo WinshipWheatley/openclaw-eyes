@@ -19,8 +19,8 @@ The following units are currently treated as systemd-owned. Control should remai
 - `cassandra-briefing-scheduler.service`
 - `chief-guardian-listener.service`
 - `hermes-gateway.service` - systemd-owned, with a narrow repo-supported reconciliation path in `scripts/install_hermes_gateway_service.sh`; do not use the broad stack installer for this unit.
-- `openclaw-gateway.service` - systemd-owned as an installed unit, with no repo template currently recorded; add a template or documented external owner in Slice 6.
-- `openclaw-drift-control-scan.timer` and `openclaw-drift-control-scan.service` - systemd-owned as installed units, with no repo templates currently recorded; add templates or documented external owners in Slice 6 and unify scheduling in Slice 7.
+- `openclaw-gateway.service` - systemd-owned as an installed unit, with no repo template in this source set. Slice 6 records this as frozen pending a documented external owner or future repo template decision; installed somewhere is not sufficient ownership evidence.
+- `openclaw-drift-control-scan.timer` and `openclaw-drift-control-scan.service` - systemd-owned as installed units, with no repo templates in this source set. Slice 6 records these as frozen pending documented external owners or future repo template decisions; installed somewhere is not sufficient ownership evidence. Scheduler unification remains Slice 7.
 
 ## Legacy/Manual-Owned Processes
 
@@ -65,9 +65,9 @@ Do not expand any of these controls in this slice. Existing references are histo
 | `cassandra-briefing-scheduler.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate scheduler launch or `pkill` | Frozen; inventory check in Slice 2 |
 | `chief-guardian-listener.service` | systemd user unit | systemd user-unit ownership through `openclaw-stack.target` or the explicit unit | Manual duplicate listener launch, duplicate Telegram polling, `pkill` | Frozen; inventory check in Slice 2 |
 | `hermes-gateway.service` | systemd user unit | `scripts/install_hermes_gateway_service.sh` may render only `systemd/user/hermes-gateway.service.in`, reload the user daemon, verify gateway flags, and optionally restart only this unit when explicitly requested | Editing the unit/template mismatch opportunistically, blanket enablement, broad stack install, `openclaw-stack.target` restart, or alternate launch path | Narrow reconciliation path added; operator run/restart remains explicit |
-| `openclaw-gateway.service` | installed systemd user unit without repo template | Installed unit ownership only, pending a repo template or documented external owner | Blanket enablement, unreviewed template creation, or duplicate gateway launch path | Frozen; add template or owner in Slice 6 |
-| `openclaw-drift-control-scan.timer` | installed systemd user timer without repo template | Installed timer ownership only, pending template/owner documentation and scheduler unification | Running both systemd timer and dashboard cron scheduling paths | Frozen; add template/owner in Slice 6, unify scheduler in Slice 7 |
-| `openclaw-drift-control-scan.service` | installed systemd user service without repo template | Installed service ownership only, pending template/owner documentation and scheduler unification | Running both systemd timer and dashboard cron scheduling paths | Frozen; add template/owner in Slice 6, unify scheduler in Slice 7 |
+| `openclaw-gateway.service` | installed systemd user unit without repo template | Installed unit ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Blanket enablement, unreviewed template creation, or duplicate gateway launch path | Frozen pending documented external owner or future repo template decision |
+| `openclaw-drift-control-scan.timer` | installed systemd user timer without repo template | Installed timer ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; unify scheduler in Slice 7 |
+| `openclaw-drift-control-scan.service` | installed systemd user service without repo template | Installed service ownership only; no repo template in this source set; installed somewhere is not sufficient ownership evidence; frozen pending documented external owner or future repo template decision | Running both systemd timer and dashboard cron scheduling paths | Frozen pending documented external owner or future repo template decision; unify scheduler in Slice 7 |
 | `chief_album_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; decide ownership in Slice 8 |
 | `chief_billing_brain.py` | legacy/manual polling process | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice, duplicate Telegram polling, unmanaged `nohup` expansion | Frozen; decide ownership in Slice 8 |
 | `loop_supervisor.sh` | legacy/manual supervisor | Legacy/manual ownership only until guarded or retired | Supervising or killing systemd-owned services outside systemd | Frozen; deprecate or guard in Slice 4, decide ownership in Slice 8 |
@@ -83,7 +83,7 @@ Do not expand any of these controls in this slice. Existing references are histo
 2. Slice 3: harden install script behavior behind dry-run/explicit flags.
 3. Slice 4: deprecate or guard legacy launch scripts.
 4. Slice 5: reconcile Hermes template vs installed unit through the narrow Hermes-only installer.
-5. Slice 6: add repo templates or documented external owners for `openclaw-gateway` and drift-control.
+5. Slice 6: record owner classification for `openclaw-gateway` and drift-control; no repo templates are added without enough source evidence.
 6. Slice 7: unify drift-control scheduler.
 7. Slice 8: decide legacy polling/loop supervisor ownership.
 
