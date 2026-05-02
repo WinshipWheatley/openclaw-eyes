@@ -1,59 +1,66 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-source ~/chief_env/bin/activate
-source /home/openclaw/.chief.env
+usage() {
+    cat <<'USAGE'
+Usage: start_chief.sh [--dry-run]
 
-validate_env() {
-    local missing=()
-    for var in TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID PII_VAULT_KEY; do
-        if [ -z "${!var}" ]; then
-            missing+=("$var")
-        fi
-    done
-    if [ ${#missing[@]} -gt 0 ]; then
-        echo "ERROR: Missing required env vars: ${missing[*]}" >&2
-        echo "Check /home/openclaw/.chief.env and ensure all required vars are set." >&2
-        exit 1
-    fi
+Slice 4 contract:
+  no args     Report the refused legacy Chief stack launch. No live action occurs.
+  --dry-run   Report the refused legacy Chief stack launch. No live action occurs.
+  --help      Show this usage.
+
+No live execution flags are available for this script in Slice 4. Any future
+manual/live behavior belongs to a later explicit ownership decision.
+USAGE
 }
-validate_env
 
-mkdir -p /mnt/c/OpenClaw/logs
-
-# Refresh runner registry (auto-discovers installed coding tools)
-python3 ~/runner_registry.py --refresh > /mnt/c/OpenClaw/logs/runner_discovery_startup.log 2>&1 &
-
-pkill -f chief_listener.py
-pkill -f cassandra_listener.py
-pkill -f chief_worker.py
-pkill -f chief_memory_worker.py
-pkill -f chief_state_worker.py
-pkill -f cassandra_watcher.py
-pkill -f cassandra_briefing_scheduler.py
-pkill -f chief_watcher_brain.py
-pkill -f chief_guardian_listener.py
-
-nohup python -u ~/chief_listener.py > /mnt/c/OpenClaw/logs/listener.out 2>&1 &
-nohup python -u ~/cassandra_listener.py > /mnt/c/OpenClaw/logs/cassandra_listener.out 2>&1 &
-nohup python -u ~/chief_worker.py > /mnt/c/OpenClaw/logs/worker.out 2>&1 &
-nohup python -u ~/chief_memory_worker.py > /mnt/c/OpenClaw/logs/memory_worker.out 2>&1 &
-nohup python -u ~/chief_state_worker.py > /mnt/c/OpenClaw/logs/state_worker.out 2>&1 &
-nohup python -u ~/cassandra_watcher.py > /mnt/c/OpenClaw/logs/cassandra_watcher.out 2>&1 &
-nohup python -u ~/cassandra_briefing_scheduler.py > /mnt/c/OpenClaw/logs/cassandra_briefing_scheduler.out 2>&1 &
-nohup python -u ~/chief_watcher_brain.py > /mnt/c/OpenClaw/logs/chief_watcher.out 2>&1 &
-
-# Guardian approval listener — only starts if a dedicated bot token is configured.
-# If GUARDIAN_BOT_TOKEN is empty, Chief listener handles approval responses (existing behavior).
-if [ -n "$GUARDIAN_BOT_TOKEN" ]; then
-    nohup python -u ~/chief_guardian_listener.py > /mnt/c/OpenClaw/logs/guardian_listener.out 2>&1 &
-    echo "Guardian approval listener started."
+dry_run=0
+if (($# == 0)); then
+    dry_run=1
 fi
 
-echo "Chief stack started."
+while (($#)); do
+    case "$1" in
+        --dry-run)
+            dry_run=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'ERROR: unknown argument: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
 
-# Loop supervisor — monitors orchestrator, builder_watcher, dashboard_gen, watchdog
-# Restarts any that die. Checks every 60s.
-pkill -f loop_supervisor.sh 2>/dev/null
-sleep 1
-setsid nohup bash ~/loop_supervisor.sh >> /mnt/c/OpenClaw/logs/supervisor.out 2>&1 &
-echo "Loop supervisor started."
+report_refusal() {
+    cat <<'REPORT'
+Slice 4 legacy launcher refusal: start_chief.sh
+No live service, process, private environment, or log action was requested or taken.
+
+Refused historical behavior:
+  - private environment loading and credential-dependent startup
+  - log directory creation and runner registry refresh
+  - process termination of systemd-owned listeners/workers
+  - unmanaged duplicate listener/worker startup
+  - guardian listener and loop supervisor startup
+
+Reason: this launcher overlaps systemd-owned services/listeners/workers and
+private runtime surfaces frozen by docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md.
+Its live/manual future, if any, belongs to a later explicit ownership decision.
+REPORT
+}
+
+if (( dry_run )); then
+    report_refusal
+    exit 0
+fi
+
+printf 'ERROR: no live execution mode is available for start_chief.sh in Slice 4.\n' >&2
+usage >&2
+exit 2
