@@ -51,6 +51,7 @@ This map provides a deterministic lookup for selecting the correct tests and har
 | `scripts/start_all.sh`, `start_chief.sh`, `start_openclaw_brains.sh` | `tests/test_legacy_launch_script_safety.py` | Verifies Slice 4 dry-run/refusal-only defaults, fail-closed flags, and no preserved live launch path |
 | Legacy ownership/disposition static contract | `tests/test_legacy_ownership_disposition_static_contract.py` | Verifies every Slice 8 legacy launch/process surface has a definitive static disposition without live service/runtime inspection |
 | `scripts/install_hermes_gateway_service.sh`, `systemd/user/hermes-gateway.service.in` | `tests/test_hermes_gateway_installer_safety.py` | Verifies Hermes gateway dry-run/apply/restart gates and no authority expansion beyond the sidecar gateway template |
+| `hermes_advisory_packet.py`, `docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md`, `docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md` | `tests/test_hermes_advisory_packet_contract.py` | Verifies Hermes packet-in/proposal-out advisory contract, withheld surfaces, non-canonical memo shape, and no live runtime/provider/service/private-state dependency |
 | `chief_llm.py` model routing and external packet policy | `tests/test_chief_llm_router.py` | Verifies local routing, mocked provider behavior, and external packet guardrails |
 
 ## 6. Global Readiness (Full Suite)
