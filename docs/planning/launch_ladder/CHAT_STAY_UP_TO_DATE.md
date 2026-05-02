@@ -14,9 +14,9 @@ The baseline remains the numbered source-set folder. This bridge is adjacent to 
 | --- | --- |
 | Current source-set folder | `01_CURRENT_PRODUCT_SPEC` |
 | Source-set ladder position | `01_CURRENT_PRODUCT_SPEC` of the current `01 -> 02 -> 03` ladder. |
-| Source commit from latest `MANIFEST.md` | `f364a83b604bb1b2f251caddbbf8dfbcc2dee055` |
-| Latest repo changes since upload | `005a408 test(planning): align launch ladder freshness contract`; update this section before each bridge upload. |
-| Current chat focus | Operator Harness source-set ladder plus delta bridge design. |
+| Source commit from latest audited `MANIFEST.md` | `005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2` |
+| Latest repo changes since upload | `cb1f5a1 docs(planning): add operator harness delta bridge`; update this row before each bridge upload. |
+| Current chat focus | OpenClaw Watch readiness verification, prior-art review, and Operator Harness delta-bridge canonicalization. |
 | Next likely source-set folder | `02_MAC_IOS_APP_BUILD`, after the current product/spec session has extracted stable app-facing requirements. |
 | Full 24-file refresh needed? | No, if the only change is a small docs/test clarification that does not alter included file count, withheld surfaces, or source-set purpose. |
 | Bridge-only upload enough? | Yes, for small current-context updates that explain what changed since the latest `MANIFEST.md`. |
@@ -28,6 +28,7 @@ The baseline remains the numbered source-set folder. This bridge is adjacent to 
 - Source-set folders are not Launch Ladder steps. They are staged context packets that squeeze a specific type of planning or build value before the chat moves to the next source set.
 - `CHAT_STAY_UP_TO_DATE.md` is adjacent to `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/` and should not be copied into any numbered source-set folder.
 - Each numbered folder remains exactly 23 content files plus `MANIFEST.md`, 24 upload files total.
+- The Mac-audited Operator Harness baseline uses per-source-set `MANIFEST.md` files. The audit-build and law-program flows are legacy-but-usable prior art and should be upgraded later, not in this bridge slice.
 
 ## Source-Set Ladder Movement Criteria
 
@@ -49,6 +50,7 @@ By `03_BACKEND_AND_DATA_MODEL`, the chat should propose what folder `04` should 
 ## Stale And Drift Warnings
 
 - If any included source file changed materially after the latest `MANIFEST.md`, prefer a full 24-file refresh.
+- If repo `HEAD` has advanced beyond the source commit named in the latest `MANIFEST.md`, list the delta commits here before upload.
 - If withheld surfaces, authority rules, security posture, source-set purpose, or folder membership changed, use a full 24-file refresh.
 - If only a narrow docs/test alignment changed, a bridge-only upload is enough.
 - If the chat cannot tell whether it is using baseline files or this bridge, stop and ask the operator to restate the active source-set folder and manifest commit.
@@ -64,4 +66,3 @@ By `03_BACKEND_AND_DATA_MODEL`, the chat should propose what folder `04` should 
 ## Refresh Rule
 
 Use bridge-only upload when the baseline folder remains structurally valid and the delta can be explained in this one file. Use full 24-file refresh when the baseline source set, folder purpose, file membership, manifest authority, withheld surfaces, or source commit basis must change.
-

@@ -35,6 +35,19 @@ Build the future generic multi-build version only after the Operator Harness ver
 
 Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat reaches folder 03, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
 
+## Prior-Art Upgrade Candidates
+
+Operator Harness now has the current best source-set pattern: three numbered 24-file source sets, one `MANIFEST.md` per source set, and an adjacent `CHAT_STAY_UP_TO_DATE.md` delta bridge at the readiness root.
+
+Defer these upgrade candidates to later lanes:
+
+- `openclaw_audit_build_readiness`: upgrade the legacy three-folder flow to per-source-set `MANIFEST.md` files plus an adjacent delta bridge. Do not change it in the Operator Harness bridge slice.
+- `law_program`: upgrade the legal planning ingest flow to per-source-set `MANIFEST.md` files plus an adjacent delta bridge only after a Legal-specific boundary review. Do not change it in the Operator Harness bridge slice.
+- Mac Local AI Watch dashboard prior art: review `Mirror Freshness.md`, `Live Watch.md`, `Right now.md`, and related dashboard files as dashboard/runtime-watch design inputs, not as hidden authority.
+- `.claude/Chat_Stay Up To Date.md`: treat as prototype wording only. Do not promote hidden `.claude` files as canonical source-set authority.
+
+Any future generic multi-build bridge/manifest upgrade must preserve deployment boundaries, withheld surfaces, source commits, source-set ladder position, and operator authority per build.
+
 ## Recommended Direct Route
 
 Use when the operator wants the smallest safe next move after this package.

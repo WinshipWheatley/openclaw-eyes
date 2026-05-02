@@ -28,7 +28,7 @@ REFRESH_OPERATOR_HARNESS = (
 UPLOADED_CURRENT_PRODUCT_SPEC = (
     "CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC"
 )
-UPLOAD_AUTHORITY_COMMIT = "f364a83b604bb1b2f251caddbbf8dfbcc2dee055"
+UPLOAD_AUTHORITY_COMMIT = "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2"
 OMITTED_CURRENT_PRODUCT_SPEC_FILES = (
     "docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md",
 )
@@ -283,6 +283,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "01_CURRENT_PRODUCT_SPEC",
             "02_MAC_IOS_APP_BUILD",
             "03_BACKEND_AND_DATA_MODEL",
+            "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2",
             "source-set folders are not Launch Ladder steps",
             "When folder 01 is exhausted, move to folder 02",
             "When folder 02 is exhausted, move to folder 03",
@@ -294,6 +295,10 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "current source-set folder",
             "latest repo changes since upload",
             "next likely source-set folder",
+            "openclaw_audit_build_readiness",
+            "law_program",
+            "later lanes",
+            "prototype wording only",
         ),
     )
 

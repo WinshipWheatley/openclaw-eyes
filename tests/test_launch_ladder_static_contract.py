@@ -34,6 +34,9 @@ def test_source_set_ladder_delta_bridge_contract_is_present():
 
     assert "CHAT_STAY_UP_TO_DATE.md" in corpus.launch_ladder_text
     assert "Source-Set Ladder" in corpus.launch_ladder_text
+    assert "005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2" in corpus.launch_ladder_text
     assert "source-set folders are not launch ladder steps" in launch_text
+    assert "openclaw_audit_build_readiness" in corpus.launch_ladder_text
+    assert "law_program" in corpus.launch_ladder_text
     assert "DELTA_BRIDGE_NAME" in corpus.script_text
     assert "counted_in_24=false" in corpus.script_text
