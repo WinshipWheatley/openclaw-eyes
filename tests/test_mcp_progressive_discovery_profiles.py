@@ -20,6 +20,19 @@ ALLOWED_DEFAULT_FILESYSTEM_ROOTS = {
     "/home/openclaw/docs/specs",
 }
 
+FORBIDDEN_DEFAULT_FILESYSTEM_TARGETS = {
+    "repo root": "/home/openclaw",
+    "repo source": "/home/openclaw/chief_llm.py",
+    "repo tests": "/home/openclaw/tests",
+    "shared vault": "/mnt/c/OpenClawShared/openclaw-vault",
+    "log root": "/mnt/c/OpenClaw/logs",
+    "legal private root": "/mnt/c/OpenClawLegalPrivate",
+    "hermes runtime home": "/home/openclaw/sidecars/hermes_home",
+    "hermes sessions": "/home/openclaw/sidecars/hermes_home/sessions",
+    "hermes state database": "/home/openclaw/sidecars/hermes_home/state.db",
+    "hermes state directory": "/home/openclaw/sidecars/hermes_home/state",
+}
+
 REQUIRED_CONTRACT_FIELDS = {
     "allowed roots/tools",
     "withheld surfaces",
@@ -29,20 +42,34 @@ REQUIRED_CONTRACT_FIELDS = {
 }
 
 FORBIDDEN_TOOL_DISCLOSURE_TOKENS = {
-    "write_file",
-    "write-file",
-    "patch",
-    "send_message",
-    "messages_send",
-    "terminal",
-    "process",
-    "provider",
-    "openrouter",
-    "kimi",
+    "apply_patch",
     "codex",
+    "drive",
+    "exec",
     "gemini",
+    "gmail",
+    "kimi",
+    "messages_send",
+    "openai",
+    "openrouter",
+    "patch",
     "plugin",
     "plugins",
+    "process",
+    "provider",
+    "send_message",
+    "shell",
+    "skill_view",
+    "skills_list",
+    "sms",
+    "smtp",
+    "subprocess",
+    "telegram",
+    "terminal",
+    "tool_discovery",
+    "write",
+    "write_file",
+    "write-file",
     "mcp_tool",
 }
 
@@ -79,6 +106,16 @@ def _configured_filesystem_roots() -> list[str]:
     return roots
 
 
+def _configured_server_names() -> set[str]:
+    config = _load_mcp_config()
+    servers = config.get("mcpServers", {})
+    return set(servers)
+
+
+def _flattened_config_text() -> str:
+    return "\n".join(_all_strings(_load_mcp_config())).lower()
+
+
 def _normalize(path: str) -> str:
     return path.rstrip("/") or "/"
 
@@ -107,6 +144,20 @@ def test_default_filesystem_roots_are_docs_only():
     assert set(_configured_filesystem_roots()) == ALLOWED_DEFAULT_FILESYSTEM_ROOTS
 
 
+def test_default_profile_only_configures_filesystem_server():
+    assert _configured_server_names() == {"filesystem"}
+
+
+def test_default_profile_does_not_expose_forbidden_filesystem_targets():
+    exposed = {
+        label: target
+        for label, target in FORBIDDEN_DEFAULT_FILESYSTEM_TARGETS.items()
+        if _any_configured_root_exposes(target)
+    }
+
+    assert exposed == {}
+
+
 def test_default_profile_does_not_include_shared_vault_root():
     assert not _any_configured_root_exposes("/mnt/c/OpenClawShared/openclaw-vault")
 
@@ -133,7 +184,7 @@ def test_default_profile_does_not_expose_hermes_session_or_state_homes():
 
 
 def test_default_profile_does_not_disclose_side_effect_or_provider_tools():
-    flattened_config = "\n".join(_all_strings(_load_mcp_config())).lower()
+    flattened_config = _flattened_config_text()
 
     disclosed = sorted(
         token for token in FORBIDDEN_TOOL_DISCLOSURE_TOKENS
