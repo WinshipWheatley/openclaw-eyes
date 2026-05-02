@@ -11,6 +11,19 @@ SYSTEMD_USER_RELATIVE_PATH = Path("systemd/user")
 SERVICE_INVENTORY_AUDIT_TYPE = "openclaw.service_inventory_audit"
 SERVICE_INVENTORY_AUDIT_SCHEMA_VERSION = 1
 
+DRIFT_CONTROL_SCHEDULER_ID = "drift-control-scan"
+DRIFT_CONTROL_SCHEDULER_CLASSIFICATIONS = (
+    "canonical_scheduler_owner",
+    "disabled_deprecated_scheduler_path",
+    "frozen_pending_owner_decision",
+    "unknown_unowned_finding",
+)
+DRIFT_CONTROL_SCHEDULER_PATHS = (
+    ("installed_systemd_timer", "openclaw-drift-control-scan.timer"),
+    ("installed_systemd_service", "openclaw-drift-control-scan.service"),
+    ("dashboard_cron_jobs_json", "dashboard_gen.py"),
+)
+
 
 def _section(text: str, heading: str) -> str:
     marker = f"## {heading}"
@@ -160,6 +173,53 @@ def _owner_classifications(
     return classifications
 
 
+def _scheduler_path_classification(row_text: str) -> str:
+    normalized = row_text.lower()
+    if "disabled_deprecated_scheduler_path" in normalized or "disabled deprecated scheduler path" in normalized:
+        return "disabled_deprecated_scheduler_path"
+    if "canonical_scheduler_owner" in normalized and "none" not in normalized:
+        return "canonical_scheduler_owner"
+    if "frozen" in normalized or "pending" in normalized or "no canonical scheduler owner" in normalized:
+        return "frozen_pending_owner_decision"
+    return "unknown_unowned_finding"
+
+
+def _drift_control_scheduler_classification(rows: list[dict[str, str]]) -> dict[str, Any]:
+    rows_by_item = {row["item"]: row for row in rows}
+    combined_row_text = "\n".join(" ".join(str(value) for value in row.values()) for row in rows).lower()
+    paths: list[dict[str, Any]] = []
+
+    for path_id, item in DRIFT_CONTROL_SCHEDULER_PATHS:
+        row = rows_by_item.get(item)
+        row_text = " ".join(str(value) for value in row.values()) if row else ""
+        paths.append({
+            "path": path_id,
+            "item": item,
+            "classification": _scheduler_path_classification(row_text),
+            "cleanup_status": row["cleanup_status"] if row else "",
+        })
+
+    dual_scheduler_risk = (
+        "running both drift-control cron and timer scheduling paths" in combined_row_text
+        or (
+            "drift-control" in combined_row_text
+            and "running both" in combined_row_text
+            and "cron" in combined_row_text
+            and "timer" in combined_row_text
+        )
+    )
+
+    return {
+        "scheduler_id": DRIFT_CONTROL_SCHEDULER_ID,
+        "canonical_scheduler_owner": None,
+        "classification_values": list(DRIFT_CONTROL_SCHEDULER_CLASSIFICATIONS),
+        "paths": paths,
+        "dual_scheduler_risk": dual_scheduler_risk,
+        "live_scheduler_inspection_allowed": False,
+        "scheduler_mutation_allowed": False,
+    }
+
+
 def build_service_inventory_audit(
     *,
     freeze_text: str | None = None,
@@ -203,6 +263,7 @@ def build_service_inventory_audit(
         "cleanup_slice_order": _cleanup_slice_order(cleanup_section),
         "source_of_truth_rows": source_rows,
         "owner_classifications": _owner_classifications(source_rows, template_filenames),
+        "drift_control_scheduler": _drift_control_scheduler_classification(source_rows),
         "findings": _pending_template_findings(source_rows, template_filenames),
         "runtime_neutral_rule_present": "Any future service operation" in runtime_section,
     }

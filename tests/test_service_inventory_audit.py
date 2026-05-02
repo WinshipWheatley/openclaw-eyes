@@ -82,6 +82,7 @@ def test_pending_template_findings_are_advisory_only():
 def test_repo_root_mode_reads_freeze_doc_and_template_filenames_only():
     report = build_service_inventory_audit(repo_root=REPO_ROOT)
     classifications = {item["item"]: item for item in report["owner_classifications"]}
+    scheduler_paths = {item["path"]: item for item in report["drift_control_scheduler"]["paths"]}
 
     assert report["source"] == "docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md"
     assert "hermes-gateway.service" in report["systemd_owned"]
@@ -95,6 +96,11 @@ def test_repo_root_mode_reads_freeze_doc_and_template_filenames_only():
         "unknown_unowned": False,
         "cleanup_status": "Frozen pending documented external owner or future repo template decision",
     }
+    assert report["drift_control_scheduler"]["canonical_scheduler_owner"] is None
+    assert report["drift_control_scheduler"]["dual_scheduler_risk"] is True
+    assert scheduler_paths["installed_systemd_timer"]["classification"] == "frozen_pending_owner_decision"
+    assert scheduler_paths["installed_systemd_service"]["classification"] == "frozen_pending_owner_decision"
+    assert scheduler_paths["dashboard_cron_jobs_json"]["classification"] == "frozen_pending_owner_decision"
     assert report["live_service_inspection_allowed"] is False
     assert report["service_mutation_allowed"] is False
 

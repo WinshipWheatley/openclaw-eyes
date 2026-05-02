@@ -20,7 +20,7 @@ The following units are currently treated as systemd-owned. Control should remai
 - `chief-guardian-listener.service`
 - `hermes-gateway.service` - systemd-owned, with a narrow repo-supported reconciliation path in `scripts/install_hermes_gateway_service.sh`; do not use the broad stack installer for this unit.
 - `openclaw-gateway.service` - systemd-owned as an installed unit, with no repo template in this source set. Slice 6 records this as frozen pending a documented external owner or future repo template decision; installed somewhere is not sufficient ownership evidence.
-- `openclaw-drift-control-scan.timer` and `openclaw-drift-control-scan.service` - systemd-owned as installed units, with no repo templates in this source set. Slice 6 records these as frozen pending documented external owners or future repo template decisions; installed somewhere is not sufficient ownership evidence. Scheduler unification remains Slice 7.
+- `openclaw-drift-control-scan.timer` and `openclaw-drift-control-scan.service` - systemd-owned as installed units, with no repo templates in this source set. Slice 6 records these as frozen pending documented external owners or future repo template decisions; installed somewhere is not sufficient ownership evidence. Slice 7 records static scheduler-owner classification only; no canonical scheduler owner is selected here.
 
 ## Legacy/Manual-Owned Processes
 
@@ -76,6 +76,18 @@ Do not expand any of these controls in this slice. Existing references are histo
 | `dashboard_gen.py` | legacy/manual dashboard/cron participant | Legacy/manual ownership only until drift-control scheduler is unified | Running drift-control cron path alongside the systemd timer | Frozen; unify scheduler in Slice 7 |
 | `loop_dashboard_watchdog.sh` | legacy/manual watchdog | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate dashboard supervision | Frozen; decide ownership in Slice 8 |
 | `ceo_briefing_worker.py` | legacy/manual worker | Legacy/manual ownership only until ownership is decided | systemd promotion without a slice or duplicate worker supervision | Frozen; decide ownership in Slice 8 |
+
+## Drift-Control Scheduler Classification
+
+Slice 7 records scheduler-owner classification only. It does not choose a canonical scheduler owner, add a systemd timer/service template, enable or disable any scheduler, or change runtime behavior.
+
+- Canonical scheduler owner: none selected in this source set.
+- `installed_systemd_timer`: `openclaw-drift-control-scan.timer` is an installed-only timer reference with no repo template; classification `frozen_pending_owner_decision`.
+- `installed_systemd_service`: `openclaw-drift-control-scan.service` is an installed-only service reference with no repo template; classification `frozen_pending_owner_decision`.
+- `dashboard_cron_jobs_json`: repo source shows `dashboard_gen.py` can read `.openclaw/cron/jobs.json`, and `drift_control_scanner.py` can register `drift-control-scan`; classification `frozen_pending_owner_decision`.
+- Dual scheduler risk remains advisory and forbidden: do not run both the drift-control dashboard cron path and the drift-control systemd timer path.
+
+Installed somewhere is not sufficient scheduler ownership evidence. Future unification must explicitly decide whether the canonical scheduler is a repo-supported systemd timer, a repo-supported dashboard/cron jobs path, or a retired scheduler path.
 
 ## Cleanup Slice Order
 
