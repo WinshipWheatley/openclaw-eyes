@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# One-way curated mirror: PC/WSL canonical Operator Harness files -> Mac review copy.
+# This helper copies only the explicit manifest below. It never uses --delete.
+
+SSH_HOST="${SSH_HOST:-mac}"
+REPO_ROOT="${REPO_ROOT:-/home/openclaw}"
+MAC_MIRROR_REL="${MAC_MIRROR_REL:-OpenClaw_Watch/operator_harness_readiness}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  sync_operator_harness_to_mac.sh            # copy manifest to Mac mirror
+  sync_operator_harness_to_mac.sh --dry-run  # local source/count check only
+  sync_operator_harness_to_mac.sh --list     # print source|mirror manifest
+
+Copies only the explicit Operator Harness / Launch Ladder readiness source set
+from /home/openclaw to ~/OpenClaw_Watch/operator_harness_readiness on the Mac
+SSH host. No secrets, runtime vaults, logs, generated artifacts, installed
+units, provider/model calls, Gmail bodies, LegalPrivate, or broad repo folders
+are copied. This script never deletes Mac files.
+EOF
+}
+
+mode="apply"
+case "${1:-}" in
+  "") ;;
+  --dry-run) mode="dry-run" ;;
+  --list) mode="list" ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+MANIFEST=(
+  'docs/planning/launch_ladder/LAUNCH_LADDER_INDEX.md|00_launch_ladder/LAUNCH_LADDER_INDEX.md'
+  'docs/planning/launch_ladder/00_NORTH_STAR.md|00_launch_ladder/00_NORTH_STAR.md'
+  'docs/planning/launch_ladder/01_RUNTIME_MAP.md|00_launch_ladder/01_RUNTIME_MAP.md'
+  'docs/planning/launch_ladder/02_CAPABILITY_AUTHORITY_AND_READINESS.md|00_launch_ladder/02_CAPABILITY_AUTHORITY_AND_READINESS.md'
+  'docs/planning/launch_ladder/03_GOAL_HORIZONS.md|00_launch_ladder/03_GOAL_HORIZONS.md'
+  'docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md|00_launch_ladder/04_LAUNCH_LADDER_MODEL.md'
+  'docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md|00_launch_ladder/05_EVIDENCE_AND_FRESHNESS.md'
+  'docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md|00_launch_ladder/06_ROUTING_AND_WORKSPACES.md'
+  'docs/planning/launch_ladder/07_SECURITY_AND_AUTHORITY.md|00_launch_ladder/07_SECURITY_AND_AUTHORITY.md'
+  'docs/planning/launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md|00_launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md'
+  'docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|00_launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md'
+  'docs/planning/launch_ladder/10_PRODUCTIZATION_PROFILES.md|00_launch_ladder/10_PRODUCTIZATION_PROFILES.md'
+  'docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|00_launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md'
+  'docs/planning/launch_ladder/operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md|01_operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md'
+  'docs/planning/launch_ladder/operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md|01_operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md'
+  'docs/planning/launch_ladder/operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md|01_operator_harness_research/HUMAN_OPERATOR_UX_PATTERNS.md'
+  'docs/planning/launch_ladder/operator_harness_research/MULTI_DEPLOYMENT_CONTROL_PLANE.md|01_operator_harness_research/MULTI_DEPLOYMENT_CONTROL_PLANE.md'
+  'docs/planning/launch_ladder/operator_harness_research/SECURITY_AND_APPROVAL_ARCHITECTURE.md|01_operator_harness_research/SECURITY_AND_APPROVAL_ARCHITECTURE.md'
+  'docs/planning/launch_ladder/operator_harness_research/CROSS_PLATFORM_ARCHITECTURE.md|01_operator_harness_research/CROSS_PLATFORM_ARCHITECTURE.md'
+  'docs/planning/launch_ladder/operator_harness_research/EVIDENCE_FRESHNESS_AND_DRIFT_DETECTION.md|01_operator_harness_research/EVIDENCE_FRESHNESS_AND_DRIFT_DETECTION.md'
+  'docs/planning/launch_ladder/operator_harness_research/PARALLEL_WORK_ORCHESTRATION.md|01_operator_harness_research/PARALLEL_WORK_ORCHESTRATION.md'
+  'docs/planning/launch_ladder/operator_harness_research/PRODUCTIZATION_NOTES.md|01_operator_harness_research/PRODUCTIZATION_NOTES.md'
+  'docs/planning/launch_ladder/operator_harness_research/RECOMMENDED_V1_ARCHITECTURE.md|01_operator_harness_research/RECOMMENDED_V1_ARCHITECTURE.md'
+  'docs/planning/launch_ladder/operator_harness_research/FEYNMAN_RESEARCH_INDEX.md|01_operator_harness_research/FEYNMAN_RESEARCH_INDEX.md'
+  'docs/planning/OPENCLAW_MODULAR_READINESS_LEDGER.md|02_planning_context/OPENCLAW_MODULAR_READINESS_LEDGER.md'
+  'docs/planning/OPENCLAW_PERSONAL_AI_SUBSTRATE_NORTH_STAR.md|02_planning_context/OPENCLAW_PERSONAL_AI_SUBSTRATE_NORTH_STAR.md'
+  'docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md|03_hermes_advisory/HERMES_ADVISORY_PACKET_CONTRACT.md'
+  'docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md|03_hermes_advisory/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md'
+  'hermes_advisory_packet.py|03_hermes_advisory/hermes_advisory_packet.py'
+  'tests/test_hermes_advisory_packet_contract.py|03_hermes_advisory/test_hermes_advisory_packet_contract.py'
+  'tests/test_hermes_launch_ladder_review_packet.py|03_hermes_advisory/test_hermes_launch_ladder_review_packet.py'
+  'tests/fixtures/hermes_launch_ladder_review_packet.json|03_hermes_advisory/hermes_launch_ladder_review_packet.json'
+  'tests/fixtures/hermes_launch_ladder_review_expected_memo_shape.json|03_hermes_advisory/hermes_launch_ladder_review_expected_memo_shape.json'
+  'mac_eyes/Launchers/sync_operator_harness_to_mac.sh|helpers/sync_operator_harness_to_mac.sh'
+  'mac_eyes/Launchers/refresh_operator_harness_ingest.sh|helpers/refresh_operator_harness_ingest.sh'
+)
+
+FORBIDDEN_PATTERNS=(
+  '.chief.env'
+  '.google-secrets/'
+  'LegalPrivate'
+  'vault'
+  'logs/'
+  'gmail'
+  'Gmail'
+  'systemd/user/'
+  '.service'
+  '_token.json'
+  '_credentials.json'
+)
+
+validate_entry() {
+  local source_rel="$1"
+  local dest_rel="$2"
+  local pattern
+
+  case "$source_rel" in
+    /*|../*|*/../*) printf 'ERROR: unsafe source path: %s\n' "$source_rel" >&2; return 1 ;;
+  esac
+
+  case "$dest_rel" in
+    /*|../*|*/../*) printf 'ERROR: unsafe mirror path: %s\n' "$dest_rel" >&2; return 1 ;;
+  esac
+
+  for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+    if [[ "$source_rel" == *"$pattern"* || "$dest_rel" == *"$pattern"* ]]; then
+      printf 'ERROR: forbidden surface in manifest: %s -> %s\n' "$source_rel" "$dest_rel" >&2
+      return 1
+    fi
+  done
+}
+
+if [[ "$mode" == "list" ]]; then
+  for entry in "${MANIFEST[@]}"; do
+    printf '%s\n' "$entry"
+  done
+  exit 0
+fi
+
+if [[ ! -d "$REPO_ROOT" ]]; then
+  printf 'ERROR: repository root is missing: %s\n' "$REPO_ROOT" >&2
+  exit 1
+fi
+
+SOURCE_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+printf 'operator-harness-sync: mode=%s\n' "$mode"
+printf 'operator-harness-sync: source=%s\n' "$REPO_ROOT"
+printf 'operator-harness-sync: source_commit=%s\n' "$SOURCE_COMMIT"
+printf 'operator-harness-sync: generated_at=%s\n' "$GENERATED_AT"
+printf 'operator-harness-sync: destination=%s:%s\n' "$SSH_HOST" "~/$MAC_MIRROR_REL"
+printf 'operator-harness-sync: manifest_entries=%s\n' "${#MANIFEST[@]}"
+
+missing=0
+for entry in "${MANIFEST[@]}"; do
+  IFS='|' read -r source_rel dest_rel <<< "$entry"
+  validate_entry "$source_rel" "$dest_rel" || exit 1
+
+  source_path="$REPO_ROOT/$source_rel"
+  if [[ ! -f "$source_path" ]]; then
+    printf 'ERROR: required source missing: %s\n' "$source_rel" >&2
+    missing=$((missing + 1))
+  fi
+done
+
+if (( missing > 0 )); then
+  printf 'operator-harness-sync: FAILED missing=%s\n' "$missing" >&2
+  exit 1
+fi
+
+if [[ "$mode" == "dry-run" ]]; then
+  for entry in "${MANIFEST[@]}"; do
+    IFS='|' read -r source_rel dest_rel <<< "$entry"
+    printf 'would copy: %s -> %s:%s/%s\n' "$source_rel" "$SSH_HOST" "~/$MAC_MIRROR_REL" "$dest_rel"
+  done
+  printf 'would write metadata: .operator_harness_source_repo_path .operator_harness_source_commit .operator_harness_generated_at\n'
+  printf 'operator-harness-sync: dry_run_entries=%s missing=0\n' "${#MANIFEST[@]}"
+  exit 0
+fi
+
+command -v ssh >/dev/null 2>&1 || { echo 'ERROR: ssh is required' >&2; exit 127; }
+command -v rsync >/dev/null 2>&1 || { echo 'ERROR: rsync is required' >&2; exit 127; }
+
+copied=0
+verified=0
+
+ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL\""
+
+for entry in "${MANIFEST[@]}"; do
+  IFS='|' read -r source_rel dest_rel <<< "$entry"
+  source_path="$REPO_ROOT/$source_rel"
+  dest_dir="${dest_rel%/*}"
+
+  ssh "$SSH_HOST" "mkdir -p \"\$HOME/$MAC_MIRROR_REL/$dest_dir\""
+  rsync -az --timeout=10 "$source_path" "$SSH_HOST:$MAC_MIRROR_REL/$dest_rel"
+  ssh "$SSH_HOST" "test -f \"\$HOME/$MAC_MIRROR_REL/$dest_rel\""
+  copied=$((copied + 1))
+  verified=$((verified + 1))
+done
+
+ssh "$SSH_HOST" "cat > \"\$HOME/$MAC_MIRROR_REL/.operator_harness_source_repo_path\"" <<< "$REPO_ROOT"
+ssh "$SSH_HOST" "cat > \"\$HOME/$MAC_MIRROR_REL/.operator_harness_source_commit\"" <<< "$SOURCE_COMMIT"
+ssh "$SSH_HOST" "cat > \"\$HOME/$MAC_MIRROR_REL/.operator_harness_generated_at\"" <<< "$GENERATED_AT"
+
+printf 'operator-harness-sync: copied=%s verified=%s missing=0\n' "$copied" "$verified"

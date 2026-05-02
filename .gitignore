@@ -117,6 +117,8 @@
 !mac_eyes/Launchers/scaffold_mac_legal_vault.sh
 !mac_eyes/Launchers/start_legal_planning_sync_window.sh
 !mac_eyes/Launchers/watch_legal_planning_to_mac.sh
+!mac_eyes/Launchers/sync_operator_harness_to_mac.sh
+!mac_eyes/Launchers/refresh_operator_harness_ingest.sh
 !mac_eyes/Winship/
 !mac_eyes/Winship/AGENTS.md
 !mac_eyes/Winship/Mac Local AI Watch — READ ME.md
