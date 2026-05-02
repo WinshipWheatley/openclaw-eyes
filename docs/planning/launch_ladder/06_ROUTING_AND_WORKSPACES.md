@@ -43,37 +43,90 @@ Every routing entry must include:
 
 ## Workspace Launch Profiles
 
-A Workspace Launch Profile is a named, evidence-backed view/navigation route that helps the operator open the right working surface for the reason work is happening. It can name the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task. It is a creature-comfort/navigation feature, not hidden execution.
+A Workspace Launch Profile is a named, evidence-backed view/navigation route that helps the operator open the right working surface for the reason work is happening. It opens the right machine, folder, workspace, files, tabs, and optional prompt only. It is a creature-comfort/navigation primitive, not hidden execution.
 
-A Workspace Launch Profile does not imply permission to mutate repo/runtime state. Opening VS Code/workspace/files is safe navigation. Running tests, syncing, committing, service commands, provider/model calls, or runtime work is a separate Launch Packet / Launch Ladder action.
+A Workspace Launch Profile does not imply permission to mutate repo/runtime state. Opening VS Code/workspace/files is safe navigation. Any execution must be a separate Launch Packet / Launch Ladder action.
 
-Every profile should include:
+Workspace Launch Profiles must never authorize tests, sync, commits, service commands, provider/model calls, app execution, runtime mutation, private-data inspection, secrets, logs, vault access, Gmail/Telegram behavior, Hermes runtime expansion, LegalPrivate work, or installed-unit checks.
+
+Record shape:
 
 - `profile_id`
 - `display_name`
 - `purpose`
-- `machine`
-- `workspace_path`
-- `workspace_layout`
-- `files_or_tabs`
-- `optional_copied_prompt`
-- `evidence_basis`
-- `linked_source_set`
-- `linked_launch_ladder_or_packet`
-- `authority_warning`
-- `separate_execution_required`
-- `stale_conditions`
+- `owner_lane` or `domain`
+- `target_machine` or `context`
+- `target_root` or `path`
+- `workspace_file` or `workspace_hint`
+- `recommended_files` or `tabs`
+- `optional_prompt_path` or `prompt_hint`
+- `evidence_sources`
+- `freshness_fields`
+- `allowed_navigation_actions`
+- `explicitly_forbidden_execution_actions`
+- `required_next_launch_packet_for_execution`
 
-Initial examples:
+YAML-style contract:
 
-| Profile | Machine/surface | Purpose | Boundary |
-| --- | --- | --- | --- |
-| `Operator Harness - Upload Prep View` | PC/WSL or Mac mirror | Open source-set docs, manifests, and bridge notes for upload prep. | Navigation only; upload/sync/refresh remain separate approved actions. |
-| `Operator Harness - Backend/Data Model View` | PC/WSL repo | Open data-model planning docs, Hermes advisory packet references, and static tests. | Navigation only; tests or code edits require a Launch Packet. |
-| `Operator Harness - Mac/iOS App Planning View` | Mac/Codex Desktop future workspace | Open app brief, source-set rules, UX/security research, and read-only fixture plans. | Navigation only; app build commands require a separate Launch Packet. |
-| `Legal - Visual Polish View` | Legal planning workspace | Open visual polish planning surfaces after a Legal-specific boundary review. | Navigation only; Legal/private data is withheld unless separately authorized. |
-| `Audit - Runtime Review View` | Audit-build readiness mirror | Open runtime review source sets and manifests when that flow is upgraded. | Navigation only; runtime inspection or service commands are separate actions. |
-| `Hermes - Advisory Packet View` | PC/WSL repo | Open advisory contract, packet fixtures, and memo-shape tests. | Navigation only; Hermes runtime expansion remains withheld. |
+```yaml
+workspace_launch_profile:
+  profile_id: "string-stable-id"
+  display_name: "Operator-facing profile name"
+  purpose: "Why this view exists"
+  owner_lane: "operator_harness | legal | audit | hermes | other"
+  domain: "Optional domain alias when owner_lane is not enough"
+  target_machine: "PC_WSL | Mac | ChatGPT_Project | Codex_Desktop | future"
+  context: "Human-readable context for the target"
+  target_root: "Exact root/path or TBD placeholder"
+  path: "Optional narrower path"
+  workspace_file: "Optional .code-workspace path"
+  workspace_hint: "Optional layout hint when no workspace file exists yet"
+  recommended_files:
+    - "Exact non-private docs/code/planning file"
+  tabs:
+    - "Optional tab or view label"
+  optional_prompt_path: "Optional repo-side prompt file"
+  prompt_hint: "Optional short prompt to copy manually"
+  evidence_sources:
+    - "Docs, manifests, commits, tests, or prior-art decision records"
+  freshness_fields:
+    source_commit: "commit or manifest basis"
+    generated_or_reviewed: "timestamp or TBD"
+    stale_conditions:
+      - "What makes this profile stale"
+  allowed_navigation_actions:
+    - "open_machine"
+    - "open_folder"
+    - "open_workspace"
+    - "open_files"
+    - "copy_prompt_text"
+  explicitly_forbidden_execution_actions:
+    - "run_tests"
+    - "sync_files"
+    - "commit_or_push"
+    - "service_commands"
+    - "provider_or_model_calls"
+    - "app_execution"
+    - "runtime_mutation"
+    - "private_data_inspection"
+    - "secrets_logs_vaults"
+    - "gmail_or_telegram_behavior"
+    - "hermes_runtime_expansion"
+    - "legalprivate_work"
+    - "installed_unit_checks"
+  required_next_launch_packet_for_execution: "Exact Launch Packet / Launch Ladder action required before any execution"
+```
+
+Example/fixture profiles:
+
+| `profile_id` | Display name | Target machine/context | Target root/path | Recommended files/tabs | Boundary |
+| --- | --- | --- | --- | --- | --- |
+| `pc_wsl_repo_view` | PC WSL repo view | PC/WSL local repo | `/home/openclaw` | `LAUNCH_LADDER_INDEX.md`, `06_ROUTING_AND_WORKSPACES.md`, `CHAT_STAY_UP_TO_DATE.md`, static checker/test | Navigation only; docs/test execution requires a separate Launch Packet. |
+| `mac_upload_prep_view` | Mac upload-prep view | Mac readiness mirror | `~/OpenClaw_Watch/operator_harness_readiness` | `CHAT_STAY_UP_TO_DATE.md`, `00_launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md`, `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/01_CURRENT_PRODUCT_SPEC/MANIFEST.md` | Navigation only; sync, refresh, upload, or cleanup require a separate Launch Packet. |
+| `mac_desktop_app_planning_view` | Mac desktop app planning view | Mac/Codex Desktop future app workspace | `TBD_MAC_APP_WORKSPACE` | `09_MAC_IOS_APP_BUILD_BRIEF.md`, source-set rules, UX/security research, read-only fixture plan | Navigation only; app build or app execution requires a separate Launch Packet. |
+| `legal_visual_polish_view` | Legal visual-polish view | Legal planning workspace | `docs/planning/openclaw_legal/law_program/` or Legal-specific Mac mirror after boundary review | Legal visual polish planning docs and handoff files | Navigation only; LegalPrivate and real-matter work remain forbidden unless separately authorized. |
+| `audit_runtime_review_view` | Audit runtime-review view | Audit-build readiness mirror | `~/OpenClaw_Watch/openclaw_audit_build_readiness` | audit-build source sets, future manifests, service-freeze docs | Navigation only; runtime inspection, service commands, logs, or installed-unit checks require a separate approved Launch Packet. |
+| `hermes_advisory_packet_view` | Hermes advisory-packet view | PC/WSL repo | `/home/openclaw` | `docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md`, `docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md`, Hermes packet fixtures/tests | Navigation only; Hermes runtime expansion, provider fallback, or advisory execution requires a separate Launch Packet. |
 
 ## Delta Bridge Routing Rule
 

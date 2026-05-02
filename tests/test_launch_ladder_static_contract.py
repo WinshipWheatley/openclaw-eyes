@@ -49,13 +49,41 @@ def test_workspace_launch_profiles_and_prototype_bridge_retirement_are_documente
     assert "Workspace Launch Profile" in launch_text
     assert "named, evidence-backed view/navigation route" in launch_text
     assert "Opening VS Code/workspace/files is safe navigation" in launch_text
-    assert "separate Launch Packet / Launch Ladder action" in launch_text
-    assert "Operator Harness - Upload Prep View" in launch_text
-    assert "Operator Harness - Backend/Data Model View" in launch_text
-    assert "Operator Harness - Mac/iOS App Planning View" in launch_text
-    assert "Legal - Visual Polish View" in launch_text
-    assert "Audit - Runtime Review View" in launch_text
-    assert "Hermes - Advisory Packet View" in launch_text
+    assert "Any execution must be a separate Launch Packet / Launch Ladder action" in launch_text
+
+    for field in (
+        "profile_id",
+        "display_name",
+        "purpose",
+        "owner_lane",
+        "domain",
+        "target_machine",
+        "context",
+        "target_root",
+        "path",
+        "workspace_file",
+        "workspace_hint",
+        "recommended_files",
+        "tabs",
+        "optional_prompt_path",
+        "prompt_hint",
+        "evidence_sources",
+        "freshness_fields",
+        "allowed_navigation_actions",
+        "explicitly_forbidden_execution_actions",
+        "required_next_launch_packet_for_execution",
+    ):
+        assert field in launch_text
+
+    assert "pc_wsl_repo_view" in launch_text
+    assert "mac_upload_prep_view" in launch_text
+    assert "mac_desktop_app_planning_view" in launch_text
+    assert "legal_visual_polish_view" in launch_text
+    assert "audit_runtime_review_view" in launch_text
+    assert "hermes_advisory_packet_view" in launch_text
+    assert "run_tests" in launch_text
+    assert "provider_or_model_calls" in launch_text
+    assert "installed_unit_checks" in launch_text
     assert (
         "/Users/hwinshipwheatley/OpenClaw_Watch/.claude/Chat_Stay Up To Date.md"
         in launch_text
@@ -63,3 +91,17 @@ def test_workspace_launch_profiles_and_prototype_bridge_retirement_are_documente
     assert "prototype/example only" in launch_text
     assert "not canonical" in launch_text
     assert "explicit Mac cleanup step" in launch_text
+
+
+def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_documented():
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "This Workspace Launch Profile contract slice stays in `01_CURRENT_PRODUCT_SPEC`" in launch_text
+    assert "does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`" in launch_text
+    assert "does not create source-set folder `04`" in launch_text
+    assert "does not create generated source-set scripts" in launch_text
+    assert "does not edit generated source-set folders" in launch_text
+    assert "`Mac/iOS` is Apple-platform planning shorthand" in launch_text
+    assert "Mac desktop app first, iOS companion later" in launch_text
+    assert "Do not read this brief as iOS-first implementation" in launch_text

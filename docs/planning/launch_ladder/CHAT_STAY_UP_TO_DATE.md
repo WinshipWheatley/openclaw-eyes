@@ -17,8 +17,8 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 | Current source-set folder | `01_CURRENT_PRODUCT_SPEC` |
 | Source-set ladder position | `01_CURRENT_PRODUCT_SPEC` of the current `01 -> 02 -> 03` ladder. |
 | Source commit from latest audited `MANIFEST.md` | `005a4081d6fa78d36a22c1e26d7f6731f8e2dbb2` |
-| Latest repo changes since upload | `cb1f5a1 docs(planning): add operator harness delta bridge`; update this row before each bridge upload. |
-| Current chat focus | OpenClaw Watch readiness verification, prior-art review, and Operator Harness delta-bridge canonicalization. |
+| Latest repo changes since upload | Repo HEAD checked at slice start: `ed70557 fix(operator-harness): mirror watch prior-art decision`; changes since the uploaded manifest include the delta bridge, freshness/static contract alignment, Workspace Launch Profile seed, prior-art decision record, and mirror inclusion. This uncommitted slice adds the Workspace Launch Profile record-shape contract. |
+| Current chat focus | Workspace Launch Profile product-contract slice inside `01_CURRENT_PRODUCT_SPEC`. |
 | Next likely source-set folder | `02_MAC_IOS_APP_BUILD`, after the current product/spec session has extracted stable app-facing requirements. |
 | Full 24-file refresh needed? | No, if the only change is a small docs/test clarification that does not alter included file count, withheld surfaces, or source-set purpose. |
 | Bridge-only upload enough? | Yes, for small current-context updates that explain what changed since the latest `MANIFEST.md`. |
@@ -32,6 +32,8 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - Each numbered folder remains exactly 23 content files plus `MANIFEST.md`, 24 upload files total.
 - The Mac-audited Operator Harness baseline uses per-source-set `MANIFEST.md` files. The audit-build and law-program flows are legacy-but-usable prior art and should be upgraded later, not in this bridge slice.
 - Workspace Launch Profiles are navigation helpers only: opening VS Code/workspace/files does not authorize tests, sync, commits, service commands, provider/model calls, or runtime work.
+- This slice stays in `01_CURRENT_PRODUCT_SPEC`, does not move to `02_MAC_IOS_APP_BUILD`, does not create source-set folder `04`, does not create generated source-set scripts, and does not edit generated source-set folders.
+- `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.
 
 ## Source-Set Ladder Movement Criteria
 

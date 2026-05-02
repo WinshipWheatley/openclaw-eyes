@@ -15,6 +15,8 @@ Freshness:
 
 The first macOS/iOS app is a read-only control console. It displays Launch Ladder state, module readiness, routes, freshness, evidence, and withheld surfaces. It must not control services, mutate runtime state, send messages, call providers/models, inspect private data, or become canonical memory.
 
+`Mac/iOS` is Apple-platform planning shorthand in this package. The intended build order is Mac desktop app first, iOS companion later. Do not read this brief as iOS-first implementation.
+
 Long range, that console can become a client for the Multi-OpenClaw Command Atlas: a zoomable map across personal OpenClaw and future client/company deployments. The first app must not try to build the whole atlas. It should prove read-only presentation of Launch Ladders, evidence, freshness, blockers, and next safe actions first.
 
 ## Initial App Goals
@@ -35,7 +37,7 @@ First app-facing examples:
 
 - `Operator Harness - Upload Prep View`
 - `Operator Harness - Backend/Data Model View`
-- `Operator Harness - Mac/iOS App Planning View`
+- `Operator Harness - Mac Desktop App Planning View`
 - `Hermes - Advisory Packet View`
 
 If the operator selects an action from a profile, the app should route to a separate Launch Packet / Launch Ladder action with explicit command, machine, workspace, validation, evidence, authority, and stop condition fields. Opening VS Code/workspace/files is safe navigation; execution is a separate approval surface.

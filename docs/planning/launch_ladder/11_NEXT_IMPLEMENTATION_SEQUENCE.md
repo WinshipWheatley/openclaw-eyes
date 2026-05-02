@@ -36,6 +36,10 @@ Build the future generic multi-build version only after the Operator Harness ver
 
 Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat reaches folder 03, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
 
+## Current Slice Source-Set Posture
+
+This Workspace Launch Profile contract slice stays in `01_CURRENT_PRODUCT_SPEC`. It does not move the active ChatGPT Project source-set posture to `02_MAC_IOS_APP_BUILD`, does not create source-set folder 04, does not create generated source-set scripts, and does not edit generated source-set folders. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
+
 ## Workspace Launch Profile Primitive
 
 Workspace Launch Profiles should become an Operator Harness primitive after the source-set and data-contract rules are stable. They are named, evidence-backed view/navigation routes that open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task.
