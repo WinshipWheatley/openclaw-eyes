@@ -315,7 +315,7 @@ def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_docu
     assert MAC_APP_KNOWLEDGE_SOURCE_SET in launch_text
     assert "The `04_BACKEND_DATA_CONTRACT_READINESS` source set is the next generated ChatGPT Project planning packet" in launch_text
     assert "It is not backend/schema implementation" in launch_text
-    assert "does not create source-set folder `04`" in launch_text
+    assert "does not create source-set folder `05`" in launch_text
     assert "does not create app/backend/runtime implementation" in launch_text
     assert "does not authorize ingestion" in launch_text
     assert "`Mac/iOS` is Apple-platform planning shorthand" in launch_text

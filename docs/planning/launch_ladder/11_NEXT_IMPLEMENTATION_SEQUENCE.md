@@ -34,11 +34,11 @@ The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUIL
 
 Build the future generic multi-build version only after the Operator Harness version proves the rule. The generic form should support personal systems, client/company systems, and future deployment-specific source-set ladders without mixing source commits, withheld surfaces, authority, or evidence.
 
-Do not create folder 04 until folder 03 evidence shows what it should contain and a separate source-set generation lane is authorized. The next folder name is planned as `04_BACKEND_DATA_CONTRACT_READINESS`, but this remains source-set planning until generation is explicitly requested.
+Do not create folder 05 until folder 04 evidence shows what it should contain and a separate source-set generation lane is authorized. The next folder name is planned as a future 05 source set, but this remains source-set planning until generation is explicitly requested.
 
 ## Current Slice Source-Set Posture
 
-The active app-planning posture is `03_MAC_APP_KNOWLEDGE_SUBSTRATE`. The read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`; it does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder 04, does not create generated source-set scripts, does not edit generated source-set folders, and does not start app/backend/runtime implementation. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
+The active app-planning posture is `03_MAC_APP_KNOWLEDGE_SUBSTRATE`. The read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`; it does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`, does not create source-set folder `05`, does not create generated source-set scripts, does not edit generated source-set folders, does not create app/backend/runtime implementation, and does not authorize ingestion. Use `CHAT_STAY_UP_TO_DATE.md` as a bridge-only freshness note if the current chat needs to understand this docs/test-only delta.
 
 The SQLite-backed Compiled Knowledge Substrate package also stays in `02_MAC_IOS_APP_BUILD` as app-planning context. It prepares future backend/data-model work but does not move the project to `03_BACKEND_AND_DATA_MODEL`, create a database, create ingestion scripts, scan old business files, call providers/models, or start app/backend/runtime implementation.
 

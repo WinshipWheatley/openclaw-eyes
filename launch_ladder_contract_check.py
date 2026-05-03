@@ -2012,7 +2012,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             MAC_APP_KNOWLEDGE_SOURCE_SET,
             "The 04_BACKEND_DATA_CONTRACT_READINESS source set is the next generated ChatGPT Project planning packet",
             "It is not backend/schema implementation",
-            "does not create source-set folder 04",
+            "does not create source-set folder 05",
             "does not create app/backend/runtime implementation",
             "does not authorize ingestion",
         ),
