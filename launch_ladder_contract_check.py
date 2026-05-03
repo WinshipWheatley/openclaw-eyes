@@ -1675,6 +1675,194 @@ def storage_and_source_registry_readiness_plan_failures(
     return tuple(failures)
 
 
+def pc_storage_relief_launch_packet_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"pc storage relief launch packet plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    required_sections = (
+        "Purpose",
+        "Current Evidence",
+        "Risk Posture",
+        "No-Touch Zones",
+        "Phase 0: Backup/Verification Before Any Change",
+        "Phase 1: Low-Risk Immediate Relief Packet",
+        "Phase 2: WSL Export/Import Relocation Packet",
+        "Phase 3: .wslconfig Memory Policy",
+        "Phase 4: External 2TB Bridge Drive Triage",
+        "Phase 5: Sensitive Data Relocation Later",
+        "Verification Checklist",
+        "Operator Approval Gates",
+        "Failure/Rollback Plan",
+        "Recommended Next Move",
+    )
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief required sections",
+        required_sections,
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief current evidence",
+        (
+            "PC C: is critically full: 246G total, 244G used, about 2.5G available, 99% full",
+            "PC D: has 229G total, 103G used, and 127G available",
+            "PC E: has 932G total, 521G used, and 412G available",
+            "WSL root reports 1007G total, 190G used, and 767G available",
+            "WSL VHD on C: appears to be the largest C: pressure source, roughly 190GB",
+            "Intel i7-6700",
+            "memory=28GB",
+            "swap=8GB",
+            "processors=8",
+            "memory=24GB",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief risk posture",
+        (
+            "C: at 99% is a system stability risk",
+            "WSL VHD relocation is likely the largest relief path",
+            "highest-risk operation",
+            "Cache cleanup is lower risk and should come before WSL export/import",
+            "Windows 11 upgrade should not be attempted during the storage crisis",
+            "Windows 11 official support is unlikely on the i7-6700",
+            "bypass upgrade is a separate future risk review",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief no-touch zones",
+        (
+            "tax/CPA/legal/client/private data",
+            "C:\\OpenClawLegalPrivate",
+            "Mac drives and Mac external drives",
+            "8TB BU",
+            "Orange/Green",
+            "2TB external drive contents until triaged",
+            "cloud drives",
+            "secrets/vaults/logs/runtime state",
+            "OpenClaw runtime mutation surfaces",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief plan-only approval boundaries",
+        (
+            "not execution authority",
+            "not executed in this slice",
+            "requires explicit operator approval before execution",
+            "Plan commands only",
+            "wsl --export",
+            "wsl --import",
+            "Windows Terminal/PowerShell, not inside WSL",
+            "Do not unregister the original distro until the imported distro is verified",
+            "final cleanup of the old distro/VHD happens only after explicit approval",
+            "E: destination should not be compressed or encrypted",
+            "account for low C: space and possible temp usage",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief cleanup packet",
+        (
+            "python3 -m pip cache purge",
+            "npm cache clean --force",
+            "optional Gemini tmp cleanup",
+            "Windows Downloads should be handled by manual review only",
+            "Chrome cache should be cleared through browser settings",
+            "df -h /",
+            "Get-PSDrive -PSProvider FileSystem",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief bridge drive and sensitive boundary",
+        (
+            "2TB bridge drive triage",
+            "inventory remaining data by path/size only",
+            "Do not open sensitive contents",
+            "copy and verify preserved data before deletion is considered",
+            "Reformat only after explicit operator approval",
+            "exFAT",
+            "protected local-only storage boundaries",
+            "Local models only by default",
+            "Cloud models may only receive sanitized/tokenized data",
+            "future separate high-security design lane",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "pc storage relief approval gates",
+        (
+            "approve cache cleanup",
+            "approve WSL export",
+            "approve WSL import",
+            "approve default distro switch",
+            "approve old distro removal",
+            "approve 2TB drive triage",
+            "approve 2TB reformat",
+            "approve sensitive data relocation",
+        ),
+    )
+
+    forbidden_authorizing_phrases = (
+        "This plan is execution authority",
+        "Execute cleanup now",
+        "Delete files now",
+        "Move files now",
+        "Export WSL now",
+        "Import WSL now",
+        "Unregister WSL now",
+        "Reformat drives now",
+        "Clean caches now",
+        "Install software now",
+        "Update software now",
+        "Inspect private file contents now",
+        "Inspect tax/CPA/legal/client/private documents now",
+        "Call providers/models now",
+        "Mutate runtime now",
+        "Generate source-set 05 now",
+        "Create source-set folder 05 now",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "pc storage relief launch packet plan: forbidden authorizing phrase "
+                f"{phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
@@ -2337,6 +2525,8 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             BACKEND_DATA_CONTRACT_SOURCE_SET,
             "backend data-contract record topics",
             "backend data-contract shape plan conceptual records and relationship rules",
+            "20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md",
+            "PC storage relief launch-packet plan",
         ),
     )
 
@@ -2347,6 +2537,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(backend_data_contract_readiness_plan_failures())
     failures.extend(backend_data_contract_shape_plan_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
+    failures.extend(pc_storage_relief_launch_packet_plan_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(

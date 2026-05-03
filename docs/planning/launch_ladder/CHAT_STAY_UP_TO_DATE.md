@@ -25,6 +25,11 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 
 ## Small Updates The Chat Should Know
 
+### PC Storage Relief Launch Packet
+
+- `20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md` now defines a docs/test-only, operator-approved PC storage relief packet for the `C:` crisis, low-risk cache cleanup planning, WSL relocation planning, `.wslconfig` memory policy planning, 2TB bridge-drive triage, and later sensitive-data relocation boundaries.
+- The packet does not authorize cleanup, file deletion/movement, WSL export/import/unregister, drive reformatting, `.wslconfig` edits, private-content inspection, provider/model calls, OpenClaw runtime mutation, or source-set `05` generation. Proposed commands in it are inert future examples only and require explicit operator approval before execution.
+
 ### Locally Confirmed OpenClaw 2026.4.24 Surfaces
 
 - Backend/data-contract shape planning now distinguishes March/April 2026 public OpenClaw release prior art from locally confirmed CLI help entries for `OpenClaw 2026.4.24 (cbcfdf6)` at `/home/openclaw/.nvm/versions/node/v24.14.0/bin/openclaw`.
