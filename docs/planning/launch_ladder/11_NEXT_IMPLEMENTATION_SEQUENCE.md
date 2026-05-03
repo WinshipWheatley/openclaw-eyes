@@ -15,8 +15,8 @@ Freshness:
 
 1. Commit this docs-only Launch Ladder package.
 2. Add `.gitignore` allowlist entries for `docs/planning/launch_ladder/**/*.md` only if the operator wants normal tracked adds instead of `git add -f`.
-3. Add static Launch Ladder data-contract docs or schemas for records named in the app brief.
-4. Add static tests/checker for Launch Ladder docs and future source-set counts.
+3. Add a backend/data-contract readiness planning artifact for records named in the app brief and knowledge-substrate package.
+4. Add static tests/checker coverage for that readiness artifact and future source-set counts.
 5. Add generator spec before generator code.
 6. Add generator code only after the spec and tests exist.
 7. Generate source sets only after the generator is validated.
@@ -30,11 +30,11 @@ The Multi-OpenClaw Command Atlas should stay a long-range horizon until the v1 L
 
 Treat the Source-Set Ladder as an Operator Harness primitive adjacent to Launch Ladders. Launch Ladders move work toward a North Star; Source-Set Ladders move ChatGPT Project context through slower planning/build packets.
 
-The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> future backend/data-model source set -> future 04/05/etc.`. Do not over-refresh source sets. Use `CHAT_STAY_UP_TO_DATE.md` as the adjacent bridge when the baseline 24-file folder is still valid and the chat only needs small repo deltas.
+The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> 04_BACKEND_DATA_CONTRACT_READINESS -> future 05/etc.`. Do not over-refresh source sets. Use `CHAT_STAY_UP_TO_DATE.md` as the adjacent bridge when the baseline 24-file folder is still valid and the chat only needs small repo deltas.
 
 Build the future generic multi-build version only after the Operator Harness version proves the rule. The generic form should support personal systems, client/company systems, and future deployment-specific source-set ladders without mixing source commits, withheld surfaces, authority, or evidence.
 
-Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat finishes `03_MAC_APP_KNOWLEDGE_SUBSTRATE`, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
+Do not create folder 04 until folder 03 evidence shows what it should contain and a separate source-set generation lane is authorized. The next folder name is planned as `04_BACKEND_DATA_CONTRACT_READINESS`, but this remains source-set planning until generation is explicitly requested.
 
 ## Current Slice Source-Set Posture
 
@@ -48,7 +48,7 @@ The taste/atmosphere spec and quiet feedback addendum are the final docs/test ap
 
 The combined `03_MAC_APP_KNOWLEDGE_SUBSTRATE` source set is the next generated ChatGPT Project planning packet. It combines the Mission Control fixture contract, first-screen composition, taste/atmosphere spec, quiet feedback addendum, and Compiled Knowledge Substrate package. It is not backend/schema implementation, Mac UI implementation, SQLite DB creation, ingestion, provider/model work, runtime mutation, private-data review, audio/haptic/notification implementation, or app naming.
 
-Before moving this lane from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to a future backend/data-model source set, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
+Before moving this lane from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to `04_BACKEND_DATA_CONTRACT_READINESS`, use `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md` to decide which records and contract boundaries must be formalized. That lane should still be readiness/planning: it should not create backend/API/schema files, SQL DDL, a SQLite DB, ingestion scripts, fixtures, provider/model calls, private-data inspection, runtime mutation, app naming, or audio/haptic/notification implementation.
 
 ## Workspace Launch Profile Primitive
 
@@ -89,8 +89,8 @@ Use when the operator wants the smallest safe next move after this package.
 | --- | --- |
 | `steps_to_launch` | 3 |
 | `estimated_true_steps` | 7 |
-| `includes` | commit docs package, define data-contract/schema slice, add static checker/tests. |
-| `defers` | app fixtures, generator, backend schema. |
+| `includes` | commit docs package, define backend/data-contract readiness slice, add static checker/tests. |
+| `defers` | app fixtures, generator, backend schema, SQLite, ingestion. |
 | `risk` | low |
 | `confidence` | high |
 | `freshness` | stale when package commit changes or validation map changes. |
@@ -103,8 +103,8 @@ Use when the operator wants source-set discipline and app/backend prep before UI
 | --- | --- |
 | `steps_to_launch` | 5 |
 | `estimated_true_steps` | 10 |
-| `includes` | docs package, data contracts, source-set generator spec, static checker/tests, mock fixture plan. |
-| `defers` | actual generated ingest folders, Mac app build, live/runtime routes. |
+| `includes` | docs package, backend/data-contract readiness plan, source-set generator spec, static checker/tests, mock fixture plan. |
+| `defers` | actual generated ingest folders, backend/schema/SQLite implementation, Mac app build, live/runtime routes. |
 | `risk` | medium |
 | `confidence` | medium |
 | `freshness` | stale when source-set files or route fields change. |
@@ -117,7 +117,7 @@ Use when the operator wants a robust productization foundation before app work.
 | --- | --- |
 | `steps_to_launch` | 8 |
 | `estimated_true_steps` | 14 |
-| `includes` | docs package, data contracts, source-set generator spec/tests, app fixture plan, backend data-model plan, validation map entry, operator-trail spec, productization checklist. |
+| `includes` | docs package, backend/data-contract readiness plan, source-set generator spec/tests, app fixture plan, validation map entry, operator-trail spec, productization checklist. |
 | `defers` | live service verification, provider/model execution, private-data workflows, app runtime integration, full Multi-OpenClaw Command Atlas registry/app. |
 | `risk` | medium |
 | `confidence` | medium |

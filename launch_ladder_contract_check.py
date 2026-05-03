@@ -90,6 +90,53 @@ MAC_APP_KNOWLEDGE_SOURCE_SET = "03_MAC_APP_KNOWLEDGE_SUBSTRATE"
 MAC_APP_KNOWLEDGE_SOURCE_SET_BRIEF = (
     LAUNCH_LADDER_DIR / "16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md"
 )
+BACKEND_DATA_CONTRACT_SOURCE_SET = "04_BACKEND_DATA_CONTRACT_READINESS"
+BACKEND_DATA_CONTRACT_PLAN = (
+    LAUNCH_LADDER_DIR / "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md"
+)
+BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
+    "source file record",
+    "extracted text record",
+    "rendered fragment record",
+    "artifact classification record",
+    "claim record",
+    "contradiction record",
+    "compiled note record",
+    "freshness record",
+    "operator promotion record",
+    "conversation packet record",
+    "blocked sensitive source record",
+    "unknown/unclassified artifact record",
+    "audit/substrate event record",
+    "Launch Packet / Approval Receipt linkage record",
+)
+BACKEND_DATA_CONTRACT_REQUIRED_SECTIONS = (
+    "Recommended Next Source-Set Folder Name",
+    "Why This Should Be The Next Source Set",
+    "What 03_MAC_APP_KNOWLEDGE_SUBSTRATE Answered",
+    "What Remains Unresolved Before Backend/Schema Work",
+    "Minimum File List The Next Source Set Should Include",
+    "Synthetic Fixture/Data-Contract Topics To Cover Later",
+    "Static Validation Expectations To Require Later",
+    "Boundaries That Remain In Force",
+    "Recommended Next Move",
+)
+BACKEND_DATA_CONTRACT_BOUNDARIES = (
+    "Do not implement anything",
+    "Do not create source-set folder 04 yet",
+    "Do not create SwiftUI/AppKit files",
+    "Do not create backend/API/schema files",
+    "Do not create SQL DDL",
+    "Do not create a SQLite DB",
+    "Do not create ingestion scripts",
+    "Do not create fixtures yet",
+    "Do not scan old business files",
+    "Do not inspect private data, vaults, logs, LegalPrivate, secrets, Gmail, cloud drives, or runtime state",
+    "Do not call providers/models",
+    "Do not mutate runtime, services, approvals, Guardian, Hermes, Telegram, or Gmail",
+    "Do not create audio assets, haptics, notifications, sound behavior, or sound settings UI",
+    "Do not name the app or invent product names, codenames, mascots, slogans, logos, or brand identity",
+)
 TASTE_REQUIRED_SECTIONS = (
     "Taste thesis",
     "Visual reference vocabulary",
@@ -1214,6 +1261,222 @@ def mac_app_knowledge_source_set_failures(repo_root: Path = REPO_ROOT) -> tuple[
     return tuple(failures)
 
 
+def backend_data_contract_readiness_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"backend data contract readiness plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness required sections",
+        BACKEND_DATA_CONTRACT_REQUIRED_SECTIONS,
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness folder recommendation",
+        (
+            BACKEND_DATA_CONTRACT_SOURCE_SET,
+            "safer than 04_BACKEND_AND_DATA_MODEL",
+            "Backend/data-model sounds implementation-adjacent",
+            "Backend/data-contract readiness keeps the lane focused on records, contract boundaries, synthetic fixture intent, and validation expectations",
+            "before actual backend/schema/SQLite work starts",
+            "planning, not source-set generation",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness rationale",
+        (
+            "03_MAC_APP_KNOWLEDGE_SUBSTRATE answered the app and knowledge direction",
+            "next bottleneck is data-contract readiness",
+            "records and contract boundaries must exist",
+            "knowledge, evidence, freshness, blocked/unknown states, promotions, and packets without lying",
+            "not backend implementation",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness 03 answers",
+        (
+            "Mac desktop first",
+            "iOS companion later",
+            "read-only Mission Control surface",
+            "personal operator console",
+            "not a chatbot, SaaS admin panel, or agent theater",
+            "compile-first",
+            "not vanilla RAG",
+            "SQLite is the future canonical local memory concept",
+            "Markdown is an export and handoff surface",
+            "HTML/rich fragments preserve source shape",
+            "FTS/search finds records",
+            "Raw files are evidence, not truth",
+            "Extracted text is parsed evidence, not truth",
+            "Rendered fragments preserve source shape, not authority",
+            "Artifact classifications are reviewed interpretations, not safety guarantees",
+            "Claims are evidence-backed and confidence-bounded",
+            "Compiled notes are interpretation, not truth",
+            "Operator promotions are explicit accept/reject/historical/sensitive/excluded decisions",
+            "Freshness must be target-scoped",
+            "Conversation packets must be sanitized and non-authorizing",
+            "Unknown defaults restricted",
+            "Sensitive content is local-only by default",
+            "Evidence/freshness must exist before UI or app state claims",
+            "Sound/haptics are quiet, optional, and non-authoritative",
+            "No app naming yet",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness unresolved questions",
+        (
+            "Markdown table contracts vs JSON Schema vs SQL DDL vs staged progression",
+            "which conceptual records become first-class contract objects",
+            "which synthetic fixture topics become actual JSON fixtures later",
+            "where backend/data-contract docs should live",
+            "whether operator promotions belong inside the knowledge substrate contract, broader Launch Ladder authority contract, or both",
+            "conversation packets are sanitized without accidentally authorizing provider/model use",
+            "blocked/unknown/sensitive records are represented to the app without exposing private content",
+            "Freshness scoping: source, extraction, rendered fragment, classification, claim, compiled note, packet, promotion, or all",
+            "whether Knowledge Atlas remains app-facing language only or becomes backend aggregate contract language",
+            "audit events/substrate events relate to Launch Packets, Approval Receipts, and evidence/freshness receipts",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness candidate files",
+        (
+            "23 content files plus MANIFEST.md",
+            "MANIFEST.md",
+            "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md",
+            "16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md",
+            "11_NEXT_IMPLEMENTATION_SEQUENCE.md",
+            "04_LAUNCH_LADDER_MODEL.md",
+            "05_EVIDENCE_AND_FRESHNESS.md",
+            "06_ROUTING_AND_WORKSPACES.md",
+            "07_SECURITY_AND_AUTHORITY.md",
+            "08_SOURCE_SET_REFRESH_SYSTEM.md",
+            "09_MAC_IOS_APP_BUILD_BRIEF.md",
+            "12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md",
+            "13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+            "KNOWLEDGE_SUBSTRATE_README.md",
+            "KNOWLEDGE_SUBSTRATE_INDEX.md",
+            "KNOWLEDGE_SUBSTRATE_01_NORTH_STAR.md",
+            "KNOWLEDGE_SUBSTRATE_02_SQLITE_LAYER_MODEL.md",
+            "KNOWLEDGE_SUBSTRATE_03_SAFETY_AND_SENSITIVITY_LEVELS.md",
+            "KNOWLEDGE_SUBSTRATE_04_APP_CARDS_AND_UI_STATES.md",
+            "KNOWLEDGE_SUBSTRATE_05_FIXTURE_PLAN.md",
+            "KNOWLEDGE_SUBSTRATE_06_STATIC_VALIDATION_EXPECTATIONS.md",
+            "VALIDATION_MAP.md",
+            "launch_ladder_contract_check.py",
+            "test_launch_ladder_static_contract.py",
+            "lower-priority for 04 because 03 already preserved taste, sound, and app feel",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness record topics",
+        BACKEND_DATA_CONTRACT_RECORD_TOPICS,
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness validation expectations",
+        (
+            "Exact 24-file source set",
+            "Manifest commit/timestamps/purpose/stale conditions",
+            "No backend/schema/SQLite implementation claims",
+            "No ingestion/scanning/provider/private/runtime authorization",
+            "Record-state separation",
+            "Raw/extracted/rendered/classified/claim/compiled/promoted/freshness/packet/audit separation",
+            "Unknown restricted",
+            "Sensitive local-only",
+            "Conversation packets not implying external-model safety",
+            "Promotions target/scope limits",
+            "Freshness target-scoping, not whole-system health",
+            "Workspace Launch Profiles navigation-only",
+            "Launch Packets separate from Approval Receipts",
+            "UI/app claims needing evidence/freshness proof",
+            "Future fixtures synthetic only",
+            "No app naming",
+            "No audio/haptic/notification implementation",
+        ),
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness boundaries",
+        BACKEND_DATA_CONTRACT_BOUNDARIES,
+    )
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract readiness next move",
+        (
+            "After this artifact is committed, the next move should be source-set generation",
+            BACKEND_DATA_CONTRACT_SOURCE_SET,
+            "should still be readiness/planning, not backend implementation",
+            "Do not generate the 04 source set in this slice",
+        ),
+    )
+
+    forbidden_assignment = _text_contains_forbidden_naming_assignment(plan_text)
+    if forbidden_assignment:
+        failures.append(
+            "backend data contract readiness plan: "
+            f"must not introduce naming assignment {forbidden_assignment}"
+        )
+
+    forbidden_authorizing_phrases = (
+        "This slice implements backend",
+        "This plan implements backend",
+        "Generate 04_BACKEND_DATA_CONTRACT_READINESS now",
+        "Create 04_BACKEND_DATA_CONTRACT_READINESS now",
+        "Create SQL DDL now",
+        "Create a SQLite DB now",
+        "Create ingestion scripts now",
+        "Create fixtures now",
+        "Call providers/models now",
+        "Name the app now",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "backend data contract readiness plan: forbidden authorizing phrase "
+                f"{phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
@@ -1872,6 +2135,9 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "taste atmosphere",
             "quiet feedback",
             "03_MAC_APP_KNOWLEDGE_SUBSTRATE",
+            "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md",
+            BACKEND_DATA_CONTRACT_SOURCE_SET,
+            "backend data-contract record topics",
         ),
     )
 
@@ -1879,6 +2145,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(first_screen_composition_failures())
     failures.extend(taste_and_quiet_feedback_failures())
     failures.extend(mac_app_knowledge_source_set_failures())
+    failures.extend(backend_data_contract_readiness_plan_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(

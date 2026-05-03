@@ -1,5 +1,7 @@
 from launch_ladder_contract_check import (
     ACTIVE_SOURCE_SET,
+    BACKEND_DATA_CONTRACT_RECORD_TOPICS,
+    BACKEND_DATA_CONTRACT_SOURCE_SET,
     FIRST_SCREEN_ALLOWED_APP_PHRASES,
     FIRST_SCREEN_EXTRA_HARD_BOUNDARIES,
     FIRST_SCREEN_ZONES,
@@ -22,6 +24,7 @@ from launch_ladder_contract_check import (
     TASTE_REQUIRED_SECTIONS,
     TASTE_VIBE_TESTS,
     UPLOAD_AUTHORITY_COMMIT,
+    backend_data_contract_readiness_plan_failures,
     check_contract,
     first_screen_composition_failures,
     freshness_warnings,
@@ -667,3 +670,56 @@ def test_mac_app_knowledge_source_set_generation_contract_is_documented():
     assert 'FOLDER_3="03_MAC_APP_KNOWLEDGE_SUBSTRATE"' in script_text
     for filename in MAC_APP_KNOWLEDGE_SOURCE_SET_FILES:
         assert filename in script_text
+
+
+def test_backend_data_contract_readiness_plan_is_documented():
+    failures = backend_data_contract_readiness_plan_failures()
+    assert failures == ()
+
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+
+    assert "Backend Data Contract Readiness Plan" in launch_text
+    assert BACKEND_DATA_CONTRACT_SOURCE_SET in launch_text
+    assert "04_BACKEND_AND_DATA_MODEL" in launch_text
+    assert "Backend/data-model" in launch_text
+    assert "implementation-adjacent" in launch_text
+    assert "records, contract boundaries, synthetic fixture intent, and validation expectations" in launch_text
+    assert "next bottleneck is data-contract readiness" in launch_text
+    assert "without lying" in launch_text
+    assert "source-set planning, not source-set generation" in launch_text
+    assert "readiness/planning, not backend implementation" in launch_text
+
+    for topic in BACKEND_DATA_CONTRACT_RECORD_TOPICS:
+        assert topic in launch_text
+
+    for boundary in (
+        "Do not implement anything",
+        "Do not create source-set folder 04 yet",
+        "Do not create SwiftUI/AppKit files",
+        "Do not create backend/API/schema files",
+        "Do not create SQL DDL",
+        "Do not create a SQLite DB",
+        "Do not create ingestion scripts",
+        "Do not create fixtures yet",
+        "Do not scan old business files",
+        "Do not inspect private data, vaults, logs, LegalPrivate, secrets, Gmail, cloud drives, or runtime state",
+        "Do not call providers/models",
+        "Do not mutate runtime, services, approvals, Guardian, Hermes, Telegram, or Gmail",
+        "Do not create audio assets, haptics, notifications, sound behavior, or sound settings UI",
+        "Do not name the app",
+    ):
+        assert boundary in launch_text
+
+    assert "No backend/schema/SQLite implementation claims" in launch_text
+    assert "No ingestion/scanning/provider/private/runtime authorization" in launch_text
+    assert "Record-state separation" in launch_text
+    assert "Raw/extracted/rendered/classified/claim/compiled/promoted/freshness/packet/audit separation" in launch_text
+    assert "Conversation packets not implying external-model safety" in launch_text
+    assert "Promotions target/scope limits" in launch_text
+    assert "Freshness target-scoping, not whole-system health" in launch_text
+    assert "Workspace Launch Profiles navigation-only" in launch_text
+    assert "Launch Packets separate from Approval Receipts" in launch_text
+    assert "Future fixtures synthetic only" in launch_text
+    assert "No audio/haptic/notification implementation" in launch_text
+    assert "Do not generate the 04 source set in this slice" in launch_text
