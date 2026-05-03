@@ -1,104 +1,60 @@
 # Backend Data Contract Shape Plan
 
-Status: docs/test-only planning artifact. This plan does not authorize implementation, backend/API/schema files, SQL DDL, SQLite DB creation, ingestion, fixture generation, provider/model calls, private-data inspection, runtime mutation, app implementation, app naming, or audio/haptic/notification implementation.
+Status: docs/test-only planning.
 
 ## 1. Purpose
 
-This plan defines the first conceptual backend/data-contract shapes needed before any backend/schema/SQLite/ingestion/fixture work begins.
+Define conceptual backend/data-contract shapes needed before backend/schema/SQLite/ingestion/fixture work.
 
 ## 2. Non-goals
 
-This artifact does not authorize implementation, backend/API/schema files, SQL DDL, SQLite DB creation, ingestion, fixture generation, provider/model calls, private-data inspection, runtime/service/approval mutation, app implementation, app naming, or audio/haptic/notification implementation. It does not create source-set folder 05 or authorize source-set 05 generation.
+This slice does not authorize implementation. Explicitly, do not authorize implementation, backend/API/schema files, SQL DDL, SQLite DB creation, ingestion, fixture generation, provider/model calls, private-data inspection, runtime mutation, app implementation, app naming, audio/haptic/notification work, or source-set 05 generation.
 
-## 3. Contract Shape Principles
+## 3. March/April 2026 OpenClaw Prior-Art / Upstream Alignment
 
-- records must separate raw source, extraction, rendering, classification, claim, compiled note, freshness, promotion, and conversation packet states
-- discovered does not mean read
-- extracted does not mean true
-- classified does not mean safe
-- compiled does not mean accepted
-- promoted does not mean general authority
-- unknown remains restricted
-- sensitive/local-only must be representable without exposing content
-- app-visible state must have evidence/freshness basis
+Important researched context to include as planning input:
 
-## 4. First Conceptual Record Shapes
+- March 2026 OpenClaw introduced/expanded gateway-daemon architecture, Control UI v2 / gateway dashboard views, command palette/search/export/pinned-message-style surfaces, ACP / Agent Communication Protocol, inter-agent messaging, task delegation/context sharing, thread-bound persistent sessions, sub-agent spawning, session_status-style tracking, health checks, backup CLI, recovery/session persistence, provider/plugin architecture, and security hardening around gateway auth, WebSocket origin validation, SSRF/tar traversal, device-pairing credentials, workspace/plugin trust gates, and approval-prompt hardening.
+- April 2026 OpenClaw introduced/expanded /tasks, SQLite-backed background task/task-flow ledger concepts, durable task-flow orchestration, Memory Wiki claim/evidence/freshness semantics, freshness-weighted search, Active Memory as an optional pre-reply memory sub-agent, bundled Codex provider support, provider-backed inference surfaces such as openclaw infer, exec-policy / owner-only command safety surfaces, and other SQL/SQLite-backed task/memory primitives.
 
-### source file record
-- Represents: The existence and metadata of a discovered file.
-- Minimum conceptual fields: id, uri, kind, discovered_timestamp, sensitivity.
-- Must not imply: Permission to read, summarize, or export.
-- App-facing use: To show existence in scope without proving analysis.
+Treat these as upstream prior art / alignment constraints, not as implementation authority.
+Do not bind to upstream schemas in this slice.
+Do not claim our local installed OpenClaw definitely has every feature unless verified later.
+Before implementation we must inspect the actual installed/local OpenClaw version and repo surfaces.
 
-### extracted text record
-- Represents: Parsed text derived from a source file.
-- Minimum conceptual fields: id, source_id, parsed_text, warnings.
-- Must not imply: Correctness, completeness, or safe export.
-- App-facing use: To prove text was parsed.
+Operator Harness / Mission Control should define operator-facing semantic contracts over upstream primitives, not blindly duplicate upstream task ledgers, task flows, memory wiki, active memory, provider inference, exec-policy, gateway dashboard, or Control UI concepts. Future implementation must first inspect actual local installed OpenClaw version/surfaces before binding to any upstream schema or CLI.
 
-### rendered fragment record
-- Represents: A preserved structural representation of a source file.
-- Minimum conceptual fields: id, source_id, html_ref, page_region.
-- Must not imply: Claim or truth.
-- App-facing use: Displaying original shapes for reference.
+## 4. Contract Shape Principles
 
-### artifact classification record
-- Represents: Labels applied to a source regarding type and sensitivity.
-- Minimum conceptual fields: id, source_id, artifact_type, sensitivity, confidence.
-- Must not imply: Absolute safety.
-- App-facing use: Filtering and warning operators about sensitivity.
+- Treat readiness layer as a directed typed evidence graph.
+- Edges represent dependency only; they do not imply truth, safety, freshness, visibility, or authority.
+- Preserve: visibility != truth != safety != freshness != authority.
+- Discovered does not mean read.
+- Extracted does not mean true.
+- Classified does not mean safe.
+- Compiled does not mean accepted.
+- Promoted does not mean general authority.
+- Unknown remains restricted.
+- Sensitive/local-only must be representable without exposing content.
+- App-visible state must have evidence/freshness basis.
 
-### claim record
-- Represents: A bounded statement with evidence and confidence.
-- Minimum conceptual fields: id, statement, evidence_refs, confidence.
-- Must not imply: Absolute truth or current state without freshness.
-- App-facing use: Presenting verifiable information.
+## 5. First Conceptual Record Shapes
 
-### contradiction record
-- Represents: Conflicting evidence or claims.
-- Minimum conceptual fields: id, conflicting_claim_refs, evidence_refs, status.
-- Must not imply: Automatic adjudication or resolution.
-- App-facing use: Flagging areas requiring operator review.
+- **source file record**: Represents the discovered file entity. Minimum conceptual fields: id, path, discovery timestamp, hash. Must not imply read or safe. App-facing use: discovery card.
+- **extracted text record**: Represents parsed text. Minimum conceptual fields: id, text blob, source ref, extracted timestamp. Must not imply true or semantic meaning. App-facing use: detail view.
+- **rendered fragment record**: Represents visual or rich rendering. Minimum conceptual fields: id, visual blob, source/extracted ref. Must not imply authority. App-facing use: rich preview.
+- **artifact classification record**: Represents sensitivity label. Minimum conceptual fields: id, source ref, label, reviewer. Must not imply safe. App-facing use: security badge.
+- **claim record**: Represents confidence-bounded proposition. Minimum conceptual fields: id, proposition, evidence refs, confidence. Must not imply truth. App-facing use: claim detail.
+- **contradiction record**: Represents detected conflict. Minimum conceptual fields: id, claim refs, desc. Must not imply resolution. App-facing use: operator alert.
+- **compiled note record**: Represents synthesized interpretation. Minimum conceptual fields: id, summary, claim/evidence refs. Must not imply accepted truth. App-facing use: note card.
+- **freshness record**: Represents recency of a specific target. Minimum conceptual fields: id, target ref, reviewed at, source basis. Must not imply global system freshness. App-facing use: staleness indicator.
+- **operator promotion record**: Represents explicit operator acceptance. Minimum conceptual fields: id, target ref, action (accept/reject), timestamp. Must not imply general authority. App-facing use: approval state.
+- **conversation packet record**: Represents sanitized conversation summary. Minimum conceptual fields: id, sanitized text, source refs. Must not imply full context or external-model safety. App-facing use: chat history card.
+- **blocked sensitive source record**: Represents withheld content. Minimum conceptual fields: id, source ref, block reason. Can prove blocked existence without exposing content. App-facing use: block notice.
+- **unknown/unclassified artifact record**: Represents unsorted item. Minimum conceptual fields: id, item ref. Must not soften into confidence. App-facing use: unknown boundary warning.
 
-### compiled note record
-- Represents: Durable operator-readable interpretation.
-- Minimum conceptual fields: id, markdown_body, claim_refs, limitations.
-- Must not imply: Fact without evidence, or operator acceptance.
-- App-facing use: Structured knowledge display.
+## 6. Relationship Rules
 
-### freshness record
-- Represents: The temporal validity of a target.
-- Minimum conceptual fields: id, target_id, timestamp, stale_conditions, refresh_trigger.
-- Must not imply: System-wide health or live status.
-- App-facing use: Decorating UI components with current/stale badges.
-
-### operator promotion record
-- Represents: Explicit operator decisions (accept, reject, mark historical, mark sensitive, exclude).
-- Minimum conceptual fields: id, target_id, decision, operator, scope.
-- Must not imply: Broadened authority beyond the named scope.
-- App-facing use: Reflecting human-in-the-loop decisions.
-
-### conversation packet record
-- Represents: A sanitized context object for handoff.
-- Minimum conceptual fields: id, included_refs, withheld_surfaces, sensitivity_summary.
-- Must not imply: Execution authorization or external model use.
-- App-facing use: Presenting safe context bundles for review.
-
-### blocked sensitive source record
-- Represents: A source restricted due to policy.
-- Minimum conceptual fields: id, reason, required_path.
-- Must not imply: Content has been read or parsed.
-- App-facing use: Showing a source exists but is intentionally restricted.
-
-### unknown/unclassified artifact record
-- Represents: An artifact lacking required evidence or classification.
-- Minimum conceptual fields: id, missing_fields.
-- Must not imply: Safety or confidence.
-- App-facing use: Prompting operator intervention.
-
-## 5. Relationship Rules
-
-Records reference each other without collapsing states:
 - extracted text references source file
 - rendered fragment references source file or extracted text
 - claim references evidence
@@ -107,46 +63,67 @@ Records reference each other without collapsing states:
 - promotion references explicit target/scope
 - conversation packet references sanitized records only
 - blocked sensitive source can prove blocked existence without exposing content
+- BlockedSensitiveSource may only be referenced through opaque or sanitized references; blocked content must not be exposed
+- UnknownArtifact must not flow directly into claims, promotions, or conversation packets
 
-## 6. App-Facing State Mapping
+## 7. App-Facing State Mapping
 
-- ready: packet prepared and approved
-- blocked: sensitive/local-only constraints hit
-- stale: freshness conditions violated
-- unknown: missing evidence
-- sensitive/local-only: restricted display
-- evidence available: related evidence_refs exist
-- approval/promotion available: valid target ready for decision
-- contradiction present: conflicting claims detected
-- packet prepared: conversation packet generated
+Map records to future Mission Control/app states. This is state semantics only, not UI implementation.
+- ready: Preconditions met for review.
+- blocked: Action or data withheld.
+- stale: Freshness constraint failed.
+- unknown: Lacks classification or evidence.
+- sensitive/local-only: Constrained visibility.
+- evidence available: References present.
+- approval/promotion available: Action pending operator.
+- contradiction present: Requires resolution.
+- packet prepared: Ready for transmission.
 
-This defines state semantics only, not UI implementation.
+## 8. Upstream Update Monitor / OpenClaw Update Review Card
 
-## 7. Future Fixture Topics
+Operator Harness should monitor OpenClaw releases, changelogs, security advisories, and relevant ecosystem updates.
+New updates should appear as evidence-backed update cards.
+Each card should include: what changed, why it matters, how it maps to our system, risk/security impact, overlap with current Operator Harness plans, recommended action, and operator-approved next step.
+Recommended card actions: Ignore, Monitor, Research, Create sandbox test packet, Prepare implementation plan, Apply after approval.
+“OpenClaw upstream updates should be represented as evidence-backed update cards with impact analysis and operator-approved Launch Packets, not silent background changes.”
+The card can recommend, the operator approves, the system prepares a Launch Packet, and execution remains separate.
 
-Future synthetic fixtures should eventually be created for these topics:
-- A stale compiled note
-- A blocked sensitive source
-- A contradiction between claims
-- A sanitized conversation packet
+## 9. Failure Modes / Laundering Risks
 
-This artifact does not create fixtures.
+- classification laundering
+- compilation laundering
+- promotion leakage
+- freshness overreach
+- sanitization ambiguity
+- unknown downgrade
+- contradiction-resolution-by-presentation
+- source-existence bias
+- local-only leakage
+- packet authority illusion
 
-## 8. Future Static Validation Expectations
+## 10. Future Fixture Topics
+
+Synthetic fixture topics for the future (this artifact does not create fixtures):
+- valid synthetic source
+- contradiction scenario
+- stale freshness record
+
+## 11. Future Static Validation Expectations
 
 Future static validation should prove:
 - 18 plan exists
 - required record shapes are named
 - forbidden implementation authorizations are absent
 - state-separation phrases are preserved
+- upstream prior-art alignment is present
+- update monitor/review card concept is present
 - unknown restricted and sensitive local-only are preserved
 - app-facing states require evidence/freshness basis
 - no source-set 05 generation occurs in this slice
 
-## 9. Recommended Next Move
+## 12. Recommended Next Move
 
-The next move after this artifact is:
-- either one more docs/test planning slice for synthetic fixture design, or
-- source-set generation for a future 05 only after the 18 plan is committed and audited
-
+Recommend either:
+- one more docs/test planning slice for synthetic fixture design, or
+- source-set generation for future 05 only after the 18 plan is committed and audited
 Do not recommend implementation yet.
