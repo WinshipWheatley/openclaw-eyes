@@ -1,0 +1,59 @@
+{
+  "fixture_id": "malformed_first_screen_profile_executes_work",
+  "fixture_type": "first_screen_composition",
+  "app_surface": "mac_desktop_mission_control_read_only",
+  "source_set_baseline": "02_MAC_IOS_APP_BUILD",
+  "source_manifest_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+  "screen_state": "malformed",
+  "profile_card": {
+    "profile_id": "mac_desktop_app_planning_view",
+    "label": "Open and run planning work",
+    "allowed_navigation_actions": [
+      "open workspace",
+      "open files"
+    ],
+    "on_open_execution": [
+      "run_tests",
+      "sync_mirror",
+      "commit_changes"
+    ],
+    "required_next_launch_packet_for_execution": "missing"
+  },
+  "hard_boundaries": {
+    "no_swiftui_appkit_implementation": true,
+    "no_backend_api_schema_implementation": true,
+    "no_runtime_calls": true,
+    "no_service_control": true,
+    "no_provider_model_calls": true,
+    "no_gmail_telegram_actions": true,
+    "no_hermes_runtime_expansion": true,
+    "no_private_data_vault_log_legalprivate_secrets_inspection": true,
+    "no_approval_mutation_guardian_control": true,
+    "no_app_execution": true,
+    "no_sqlite_db_created": true,
+    "no_ingestion": true,
+    "no_real_business_file_scanning": true,
+    "no_app_naming": true
+  },
+  "evidence_refs": [],
+  "freshness": {
+    "state": "invalid",
+    "source_basis": [
+      "Intentionally malformed negative fixture"
+    ],
+    "source_commit": "df52ff4687d7dd8a32990658d557cb2b4d1371d9",
+    "generated_at": "2026-05-02T12:00:00-04:00",
+    "reviewed_at": "2026-05-02T12:00:00-04:00",
+    "stale_conditions": [
+      "Workspace Launch Profile execution boundary changes"
+    ],
+    "refresh_trigger": "Refresh if profile-to-packet handoff rules change"
+  },
+  "expected_validation": {
+    "fixture_valid": false,
+    "expected_invalid_reason": "profile opening executes work instead of navigation-only context",
+    "rejects_profile_execution": true,
+    "requires_separate_launch_packet_for_execution": true,
+    "app_can_execute": false
+  }
+}

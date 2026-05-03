@@ -42,6 +42,8 @@ The active app-planning posture is `02_MAC_IOS_APP_BUILD`. The read-only Mac des
 
 The SQLite-backed Compiled Knowledge Substrate package also stays in `02_MAC_IOS_APP_BUILD` as app-planning context. It prepares future backend/data-model work but does not move the project to `03_BACKEND_AND_DATA_MODEL`, create a database, create ingestion scripts, scan old business files, call providers/models, or start app/backend/runtime implementation.
 
+The static first-screen composition contract for the Mac desktop Mission Control surface also stays in `02_MAC_IOS_APP_BUILD` as docs/test-only app planning. It defines first-screen zones, default visible copy, density/hierarchy rules, golden/malformed first-screen fixtures, and implementation boundaries. It does not name the app, implement UI, create SwiftUI/AppKit files, create source-set folders, start backend/schema/SQLite work, ingest files, scan business archives, call providers/models, inspect private data, or mutate runtime/services/approvals.
+
 Before moving this lane to `03_BACKEND_AND_DATA_MODEL`, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
 
 ## Workspace Launch Profile Primitive

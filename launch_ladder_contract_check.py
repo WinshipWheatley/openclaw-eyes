@@ -44,6 +44,44 @@ REQUIRED_MISSION_CONTROL_FIXTURES = (
     "fixture_ui_claim_without_evidence.json",
     "fixture_operator_experience_golden_overview.json",
 )
+REQUIRED_FIRST_SCREEN_FIXTURES = (
+    "golden_first_screen_default.json",
+    "golden_first_screen_local_ahead_of_origin.json",
+    "golden_first_screen_knowledge_context_non_ingestive.json",
+    "golden_first_screen_unknown_preserved.json",
+    "malformed_first_screen_ai_command_center.json",
+    "malformed_first_screen_profile_executes_work.json",
+    "malformed_first_screen_synced_after_push_failure.json",
+)
+FIRST_SCREEN_SPEC = LAUNCH_LADDER_DIR / "13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md"
+FIRST_SCREEN_ZONES = (
+    "top_operating_context_band",
+    "left_active_lanes_column",
+    "center_current_focus_selected_lane",
+    "right_next_safe_move_panel",
+    "lower_evidence_freshness_drawer",
+    "quiet_recent_changes_strip",
+    "future_knowledge_context_strip",
+)
+FIRST_SCREEN_EXTRA_HARD_BOUNDARIES = (
+    "no_sqlite_db_created",
+    "no_ingestion",
+    "no_real_business_file_scanning",
+    "no_app_naming",
+)
+FIRST_SCREEN_ALLOWED_APP_PHRASES = (
+    "Mac desktop app",
+    "Operator Harness app",
+    "personal operator console",
+    "Mission Control surface",
+)
+FIRST_SCREEN_FORBIDDEN_NAMING_FIELDS = (
+    "app_name",
+    "product_name",
+    "brand_name",
+    "codename",
+    "marketing_name",
+)
 MISSION_CONTROL_UI_STATES = (
     "profile_available",
     "packet_available",
@@ -250,6 +288,15 @@ def load_mission_control_fixtures(repo_root: Path = REPO_ROOT) -> dict[str, dict
     return fixtures
 
 
+def load_first_screen_fixtures(repo_root: Path = REPO_ROOT) -> dict[str, dict]:
+    fixture_dir = _fixture_dir(repo_root)
+    fixtures: dict[str, dict] = {}
+    for filename in REQUIRED_FIRST_SCREEN_FIXTURES:
+        path = fixture_dir / filename
+        fixtures[filename] = json.loads(_read_text(path))
+    return fixtures
+
+
 def _profile_contains_executable_command_field(profile: object) -> bool:
     if not isinstance(profile, dict):
         return False
@@ -450,6 +497,251 @@ def mission_control_fixture_failures(repo_root: Path = REPO_ROOT) -> tuple[str, 
             for visible in ("north_star", "current_route", "authority", "freshness", "evidence", "next_safe_action"):
                 if visible not in overview.get("visible_sections", []):
                     failures.append(f"{section}: golden overview must expose {visible}")
+
+    return tuple(failures)
+
+
+def _fixture_contains_forbidden_naming_field(value: object) -> bool:
+    if isinstance(value, dict):
+        return any(
+            key in FIRST_SCREEN_FORBIDDEN_NAMING_FIELDS
+            or _fixture_contains_forbidden_naming_field(nested)
+            for key, nested in value.items()
+        )
+    if isinstance(value, list):
+        return any(_fixture_contains_forbidden_naming_field(item) for item in value)
+    return False
+
+
+def first_screen_composition_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
+    failures: list[str] = []
+    spec_path = repo_root / "docs" / "planning" / "launch_ladder" / "13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md"
+    fixture_dir = _fixture_dir(repo_root)
+
+    if not spec_path.is_file():
+        failures.append(f"first screen composition: missing {spec_path}")
+        spec_text = ""
+    else:
+        spec_text = _read_text(spec_path)
+        spec_normalized = normalize(spec_text)
+        _require_all(
+            failures,
+            spec_normalized,
+            "first screen composition spec",
+            (
+                "first-screen layout thesis",
+                "top operating context band",
+                "left active lanes column",
+                "center current focus selected lane",
+                "right next safe move panel",
+                "lower evidence freshness drawer",
+                "quiet recent changes strip",
+                "future knowledge context strip",
+                "default visible copy for current project state",
+                "card density and hierarchy rules",
+                "state color emphasis guidance",
+                "what must be tucked away",
+                "first-screen golden examples",
+                "first-screen malformed examples",
+                "boundaries before implementation",
+                "calm cockpit personal command desk",
+                "evidence-backed, not bureaucratic",
+                "personal/operator-specific, not generic SaaS",
+                "next safe move, not task-manager sprawl",
+                "knowledge context, not a RAG search box",
+                "Unknown means unknown",
+                "Blocked means protected boundary, not panic",
+                "Nothing moves just because it is visible",
+                "Do not name the app",
+                "No UI implementation",
+                "No SwiftUI/AppKit files",
+                "No backend/schema/SQLite work",
+                "No SQLite database",
+                "No ingestion scripts",
+                "No old business-file scanning",
+                "No private-data inspection",
+                "No provider/model calls",
+                "No runtime/service/approval mutation",
+            ),
+        )
+        _require_all(
+            failures,
+            spec_normalized,
+            "first screen neutral naming phrases",
+            FIRST_SCREEN_ALLOWED_APP_PHRASES,
+        )
+        _require_all(
+            failures,
+            spec_normalized,
+            "first screen example cards",
+            (
+                "Active Lane Card",
+                "Next Safe Move Card",
+                "Evidence/Freshness Card",
+                "Recent Commit / Source-Set Card",
+                "Knowledge Context Card",
+                "Blocked Without Panic Card",
+                "Unknown Without Fake Confidence Card",
+            ),
+        )
+        _require_all(
+            failures,
+            spec_normalized,
+            "first screen fixture names",
+            REQUIRED_FIRST_SCREEN_FIXTURES,
+        )
+
+    loaded: dict[str, dict] = {}
+    for filename in REQUIRED_FIRST_SCREEN_FIXTURES:
+        path = fixture_dir / filename
+        if not path.is_file():
+            failures.append(f"first screen fixture: missing {path}")
+            continue
+        try:
+            loaded[filename] = json.loads(_read_text(path))
+        except json.JSONDecodeError as exc:
+            failures.append(f"first screen fixture: invalid JSON in {path}: {exc}")
+
+    for filename, fixture in loaded.items():
+        section = f"first screen fixture {filename}"
+        expected_id = filename.removesuffix(".json")
+        if fixture.get("fixture_id") != expected_id:
+            failures.append(f"{section}: fixture_id must be {expected_id}")
+        if fixture.get("fixture_type") != "first_screen_composition":
+            failures.append(f"{section}: fixture_type must be first_screen_composition")
+        if fixture.get("app_surface") != MISSION_CONTROL_APP_SURFACE:
+            failures.append(f"{section}: app_surface must be {MISSION_CONTROL_APP_SURFACE}")
+        if fixture.get("source_set_baseline") != MISSION_CONTROL_SOURCE_SET_BASELINE:
+            failures.append(
+                f"{section}: source_set_baseline must be {MISSION_CONTROL_SOURCE_SET_BASELINE}"
+            )
+        if fixture.get("source_manifest_commit") != UPLOAD_AUTHORITY_COMMIT:
+            failures.append(f"{section}: source_manifest_commit must be {UPLOAD_AUTHORITY_COMMIT}")
+        if _fixture_contains_forbidden_naming_field(fixture):
+            failures.append(f"{section}: fixture must not introduce app/product/brand/codename fields")
+
+        expected_validation = fixture.get("expected_validation")
+        if not isinstance(expected_validation, dict):
+            failures.append(f"{section}: expected_validation must be an object")
+            continue
+        if expected_validation.get("app_can_execute") is not False:
+            failures.append(f"{section}: first-screen fixture must set app_can_execute false")
+
+        hard_boundaries = fixture.get("hard_boundaries")
+        if not isinstance(hard_boundaries, dict):
+            failures.append(f"{section}: hard_boundaries must be an object")
+        else:
+            required_boundaries = MISSION_CONTROL_REQUIRED_HARD_BOUNDARIES + FIRST_SCREEN_EXTRA_HARD_BOUNDARIES
+            missing_boundaries = [
+                boundary
+                for boundary in required_boundaries
+                if hard_boundaries.get(boundary) is not True
+            ]
+            if missing_boundaries:
+                failures.append(f"{section}: missing true hard boundaries {', '.join(missing_boundaries)}")
+
+        freshness = fixture.get("freshness")
+        if not isinstance(freshness, dict):
+            failures.append(f"{section}: freshness must be an object")
+        else:
+            for key in ("source_basis", "generated_at", "reviewed_at", "stale_conditions", "refresh_trigger"):
+                if not freshness.get(key):
+                    failures.append(f"{section}: freshness missing {key}")
+            if freshness.get("source_commit") != UPLOAD_AUTHORITY_COMMIT:
+                failures.append(f"{section}: freshness.source_commit must be {UPLOAD_AUTHORITY_COMMIT}")
+
+        fixture_valid = expected_validation.get("fixture_valid")
+        if filename.startswith("golden_"):
+            if fixture_valid is not True:
+                failures.append(f"{section}: golden fixture must be valid")
+            if expected_validation.get("read_only_app_planning_posture") is not True:
+                failures.append(f"{section}: golden fixture must preserve read-only app-planning posture")
+            if not fixture.get("evidence_refs"):
+                failures.append(f"{section}: golden fixture must include evidence_refs")
+            zones = fixture.get("zones")
+            if not isinstance(zones, list):
+                failures.append(f"{section}: golden fixture must include zones list")
+            else:
+                missing_zones = [zone for zone in FIRST_SCREEN_ZONES if zone not in zones]
+                if missing_zones:
+                    failures.append(f"{section}: missing zones {', '.join(missing_zones)}")
+
+        if filename.startswith("malformed_"):
+            if fixture_valid is not False:
+                failures.append(f"{section}: malformed fixture must be invalid")
+            if not expected_validation.get("expected_invalid_reason"):
+                failures.append(f"{section}: malformed fixture must include expected_invalid_reason")
+
+        if filename == "golden_first_screen_local_ahead_of_origin.json":
+            source_state = fixture.get("source_control_state", {})
+            if source_state.get("local_ahead_of_origin") is not True:
+                failures.append(f"{section}: must represent local ahead of origin")
+            if source_state.get("origin_sync_verified") is not False:
+                failures.append(f"{section}: origin sync must not be verified")
+            if source_state.get("push_evidence_present") is not False:
+                failures.append(f"{section}: push evidence must be absent")
+            if expected_validation.get("must_not_claim_synced_or_current") is not True:
+                failures.append(f"{section}: must reject synced/current copy")
+
+        if filename == "golden_first_screen_knowledge_context_non_ingestive.json":
+            knowledge_context = fixture.get("knowledge_context", {})
+            required_false = (
+                "active_ingestion",
+                "sqlite_database_exists",
+                "business_archive_scanned",
+                "claims_promoted",
+                "business_file_truth_claims",
+            )
+            false_violations = [key for key in required_false if knowledge_context.get(key) is not False]
+            if false_violations:
+                failures.append(f"{section}: knowledge context must keep false {', '.join(false_violations)}")
+            if knowledge_context.get("future_context_only") is not True:
+                failures.append(f"{section}: knowledge context must be future_context_only")
+            if knowledge_context.get("knowledge_context_not_rag_search_box") is not True:
+                failures.append(f"{section}: knowledge context must not become a RAG search box")
+            if expected_validation.get("must_preserve_knowledge_context_non_ingestive") is not True:
+                failures.append(f"{section}: expected_validation must preserve non-ingestive posture")
+
+        if filename == "golden_first_screen_unknown_preserved.json":
+            unknown_card = fixture.get("unknown_card", {})
+            if "unknown" not in str(unknown_card.get("display_rule", "")).lower():
+                failures.append(f"{section}: unknown display rule must say unknown")
+            if expected_validation.get("must_not_soften_unknown_into_confidence") is not True:
+                failures.append(f"{section}: unknown must not soften into confidence")
+
+        if filename == "malformed_first_screen_ai_command_center.json":
+            bad_copy = json.dumps(fixture.get("bad_copy", {}), sort_keys=True)
+            if "AI Command Center" not in bad_copy:
+                failures.append(f"{section}: malformed copy must include AI Command Center anti-pattern")
+            for key in (
+                "rejects_chatbot_home",
+                "rejects_ai_command_center",
+                "rejects_business_file_truth_claims",
+                "rejects_hidden_intelligence",
+            ):
+                if expected_validation.get(key) is not True:
+                    failures.append(f"{section}: expected_validation missing {key}")
+
+        if filename == "malformed_first_screen_profile_executes_work.json":
+            profile_card = fixture.get("profile_card", {})
+            if not profile_card.get("on_open_execution"):
+                failures.append(f"{section}: malformed profile must include on_open_execution")
+            if expected_validation.get("rejects_profile_execution") is not True:
+                failures.append(f"{section}: expected_validation must reject profile execution")
+            if expected_validation.get("requires_separate_launch_packet_for_execution") is not True:
+                failures.append(f"{section}: expected_validation must require separate launch packet")
+
+        if filename == "malformed_first_screen_synced_after_push_failure.json":
+            source_state = fixture.get("source_control_state", {})
+            if source_state.get("local_ahead_of_origin") is not True:
+                failures.append(f"{section}: malformed fixture must model local ahead")
+            if source_state.get("push_evidence_present") is not False:
+                failures.append(f"{section}: malformed fixture must lack push evidence")
+            bad_copy = str(source_state.get("bad_visible_copy", "")).lower()
+            if "synced" not in bad_copy or "current" not in bad_copy:
+                failures.append(f"{section}: malformed fixture must claim synced/current")
+            if expected_validation.get("rejects_fake_synced_current_claims") is not True:
+                failures.append(f"{section}: expected_validation must reject fake synced/current claims")
 
     return tuple(failures)
 
@@ -1106,10 +1398,12 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "test_launch_ladder_static_contract.py",
             "fixtures mission control",
             "knowledge_substrate",
+            "first screen composition",
         ),
     )
 
     failures.extend(mission_control_fixture_failures())
+    failures.extend(first_screen_composition_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(

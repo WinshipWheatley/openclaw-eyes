@@ -1,5 +1,8 @@
 from launch_ladder_contract_check import (
     ACTIVE_SOURCE_SET,
+    FIRST_SCREEN_ALLOWED_APP_PHRASES,
+    FIRST_SCREEN_EXTRA_HARD_BOUNDARIES,
+    FIRST_SCREEN_ZONES,
     KNOWLEDGE_SUBSTRATE_APP_CARDS,
     KNOWLEDGE_SUBSTRATE_FIXTURE_NAMES,
     KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS,
@@ -7,13 +10,16 @@ from launch_ladder_contract_check import (
     KNOWLEDGE_SUBSTRATE_UI_STATES,
     MISSION_CONTROL_APP_SURFACE,
     MISSION_CONTROL_SOURCE_SET_BASELINE,
+    REQUIRED_FIRST_SCREEN_FIXTURES,
     REQUIRED_MISSION_CONTROL_FIXTURES,
     REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS,
     UPLOAD_AUTHORITY_COMMIT,
     check_contract,
+    first_screen_composition_failures,
     freshness_warnings,
     knowledge_substrate_package_failures,
     load_corpus,
+    load_first_screen_fixtures,
     load_mission_control_fixtures,
     mission_control_fixture_failures,
 )
@@ -420,3 +426,127 @@ def test_knowledge_substrate_planning_package_is_documented():
     assert "Secrets/credentials must never be summarized into prompts" in knowledge_text
     assert "no language collapses raw/extracted/compiled/promoted into one truth state" in knowledge_text
     assert "no private/vault/legal/business files are inspected" in knowledge_text
+
+
+def test_first_screen_composition_spec_is_documented():
+    failures = first_screen_composition_failures()
+    assert failures == ()
+
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+    launch_lower = launch_text.lower()
+
+    assert "Mac Desktop First Screen Composition Spec" in launch_text
+    assert "first-screen layout thesis" in launch_lower
+    assert "top operating context band" in launch_lower
+    assert "left active lanes column" in launch_lower
+    assert "center current focus / selected lane" in launch_lower
+    assert "right next safe move panel" in launch_lower
+    assert "lower evidence/freshness drawer" in launch_lower
+    assert "quiet recent changes strip" in launch_lower
+    assert "future knowledge/context strip" in launch_lower
+    assert "default visible copy for current project state" in launch_lower
+    assert "card density and hierarchy rules" in launch_lower
+    assert "state color/emphasis guidance" in launch_lower
+    assert "what must be tucked away" in launch_lower
+    assert "first-screen golden examples" in launch_lower
+    assert "first-screen malformed examples" in launch_lower
+    assert "boundaries before implementation" in launch_lower
+
+    for phrase in FIRST_SCREEN_ALLOWED_APP_PHRASES:
+        assert phrase in launch_text
+    assert "Do not name the app" in launch_text
+    assert "Do not invent product names" in launch_text
+
+    for card in (
+        "Active Lane Card",
+        "Next Safe Move Card",
+        "Evidence/Freshness Card",
+        "Recent Commit / Source-Set Card",
+        "Knowledge Context Card",
+        "Blocked Without Panic Card",
+        "Unknown Without Fake Confidence Card",
+    ):
+        assert card in launch_text
+
+    for fixture_name in REQUIRED_FIRST_SCREEN_FIXTURES:
+        assert fixture_name in launch_text
+
+    assert "Calm cockpit / personal command desk" in launch_text or "calm cockpit / personal command desk" in launch_text
+    assert "Evidence-backed, not bureaucratic" in launch_text or "evidence-backed, not bureaucratic" in launch_text
+    assert "Personal/operator-specific, not generic SaaS" in launch_text or "personal/operator-specific, not generic SaaS" in launch_text
+    assert "Next safe move, not task-manager sprawl" in launch_text or "next safe move, not task-manager sprawl" in launch_text
+    assert "Knowledge context, not a RAG search box" in launch_text or "knowledge context, not a RAG search box" in launch_text
+    assert "Unknown means unknown" in launch_text
+    assert "Blocked means protected boundary, not panic" in launch_text
+    assert "Nothing moves just because it is visible" in launch_text
+    assert "do not show synced/current until push evidence exists" in launch_text
+    assert "No SQLite database" in launch_text
+    assert "No ingestion scripts" in launch_text
+    assert "No old business-file scanning" in launch_text
+    assert "No provider/model calls" in launch_text
+
+
+def test_first_screen_composition_fixtures_validate_static_boundaries():
+    failures = first_screen_composition_failures()
+    assert failures == ()
+
+    fixtures = load_first_screen_fixtures()
+    assert set(fixtures) == set(REQUIRED_FIRST_SCREEN_FIXTURES)
+
+    for filename, fixture in fixtures.items():
+        assert fixture["fixture_id"] == filename.removesuffix(".json")
+        assert fixture["fixture_type"] == "first_screen_composition"
+        assert fixture["app_surface"] == MISSION_CONTROL_APP_SURFACE
+        assert fixture["source_set_baseline"] == MISSION_CONTROL_SOURCE_SET_BASELINE
+        assert fixture["source_manifest_commit"] == UPLOAD_AUTHORITY_COMMIT
+        assert fixture["expected_validation"]["app_can_execute"] is False
+        assert fixture["hard_boundaries"]["no_swiftui_appkit_implementation"] is True
+        assert fixture["hard_boundaries"]["no_backend_api_schema_implementation"] is True
+        assert fixture["hard_boundaries"]["no_provider_model_calls"] is True
+        assert fixture["hard_boundaries"]["no_private_data_vault_log_legalprivate_secrets_inspection"] is True
+        assert fixture["hard_boundaries"]["no_app_execution"] is True
+        for boundary in FIRST_SCREEN_EXTRA_HARD_BOUNDARIES:
+            assert fixture["hard_boundaries"][boundary] is True
+
+        if filename.startswith("golden_"):
+            assert fixture["expected_validation"]["fixture_valid"] is True
+            assert fixture["expected_validation"]["read_only_app_planning_posture"] is True
+            for zone in FIRST_SCREEN_ZONES:
+                assert zone in fixture["zones"]
+
+        if filename.startswith("malformed_"):
+            assert fixture["expected_validation"]["fixture_valid"] is False
+            assert fixture["expected_validation"]["expected_invalid_reason"]
+
+    local_ahead = fixtures["golden_first_screen_local_ahead_of_origin.json"]
+    assert local_ahead["source_control_state"]["local_ahead_of_origin"] is True
+    assert local_ahead["source_control_state"]["origin_sync_verified"] is False
+    assert local_ahead["source_control_state"]["push_evidence_present"] is False
+    assert local_ahead["expected_validation"]["must_not_claim_synced_or_current"] is True
+
+    knowledge = fixtures["golden_first_screen_knowledge_context_non_ingestive.json"]
+    assert knowledge["knowledge_context"]["future_context_only"] is True
+    assert knowledge["knowledge_context"]["knowledge_context_not_rag_search_box"] is True
+    assert knowledge["knowledge_context"]["active_ingestion"] is False
+    assert knowledge["knowledge_context"]["sqlite_database_exists"] is False
+    assert knowledge["knowledge_context"]["business_archive_scanned"] is False
+    assert knowledge["knowledge_context"]["business_file_truth_claims"] is False
+
+    unknown = fixtures["golden_first_screen_unknown_preserved.json"]
+    assert unknown["expected_validation"]["must_not_soften_unknown_into_confidence"] is True
+
+    ai_command_center = fixtures["malformed_first_screen_ai_command_center.json"]
+    assert ai_command_center["expected_validation"]["rejects_chatbot_home"] is True
+    assert ai_command_center["expected_validation"]["rejects_ai_command_center"] is True
+    assert ai_command_center["expected_validation"]["rejects_business_file_truth_claims"] is True
+
+    profile_executes = fixtures["malformed_first_screen_profile_executes_work.json"]
+    assert profile_executes["profile_card"]["on_open_execution"]
+    assert profile_executes["expected_validation"]["rejects_profile_execution"] is True
+    assert profile_executes["expected_validation"]["requires_separate_launch_packet_for_execution"] is True
+
+    synced_after_failure = fixtures["malformed_first_screen_synced_after_push_failure.json"]
+    assert synced_after_failure["source_control_state"]["local_ahead_of_origin"] is True
+    assert synced_after_failure["source_control_state"]["push_evidence_present"] is False
+    assert synced_after_failure["expected_validation"]["rejects_fake_synced_current_claims"] is True
