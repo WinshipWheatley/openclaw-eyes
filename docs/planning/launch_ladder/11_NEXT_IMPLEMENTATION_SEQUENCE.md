@@ -44,6 +44,8 @@ The SQLite-backed Compiled Knowledge Substrate package also stays in `02_MAC_IOS
 
 The static first-screen composition contract for the Mac desktop Mission Control surface also stays in `02_MAC_IOS_APP_BUILD` as docs/test-only app planning. It defines first-screen zones, default visible copy, density/hierarchy rules, golden/malformed first-screen fixtures, and implementation boundaries. It does not name the app, implement UI, create SwiftUI/AppKit files, create source-set folders, start backend/schema/SQLite work, ingest files, scan business archives, call providers/models, inspect private data, or mutate runtime/services/approvals.
 
+The taste/atmosphere spec and quiet feedback addendum are the final docs/test app-planning artifacts before combined source-set generation. They preserve the personal operator console atmosphere, studio-console/cockpit discipline, optional quiet feedback posture, no-app-name boundary, and no-implementation boundary. They do not create audio assets, haptic implementation, notification behavior, sound settings UI, UI code, source-set folders, backend/schema files, SQLite DBs, ingestion scripts, runtime/provider behavior, approval mutation, or private-data access.
+
 Before moving this lane to `03_BACKEND_AND_DATA_MODEL`, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
 
 ## Workspace Launch Profile Primitive

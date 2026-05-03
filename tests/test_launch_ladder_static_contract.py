@@ -13,6 +13,12 @@ from launch_ladder_contract_check import (
     REQUIRED_FIRST_SCREEN_FIXTURES,
     REQUIRED_MISSION_CONTROL_FIXTURES,
     REQUIRED_KNOWLEDGE_SUBSTRATE_DOCS,
+    SOUND_ANTI_VIBE_TESTS,
+    SOUND_REQUIRED_SECTIONS,
+    SOUND_VIBE_TESTS,
+    TASTE_ANTI_VIBE_TESTS,
+    TASTE_REQUIRED_SECTIONS,
+    TASTE_VIBE_TESTS,
     UPLOAD_AUTHORITY_COMMIT,
     check_contract,
     first_screen_composition_failures,
@@ -22,6 +28,7 @@ from launch_ladder_contract_check import (
     load_first_screen_fixtures,
     load_mission_control_fixtures,
     mission_control_fixture_failures,
+    taste_and_quiet_feedback_failures,
 )
 
 
@@ -550,3 +557,74 @@ def test_first_screen_composition_fixtures_validate_static_boundaries():
     assert synced_after_failure["source_control_state"]["local_ahead_of_origin"] is True
     assert synced_after_failure["source_control_state"]["push_evidence_present"] is False
     assert synced_after_failure["expected_validation"]["rejects_fake_synced_current_claims"] is True
+
+
+def test_taste_and_quiet_feedback_specs_are_documented():
+    failures = taste_and_quiet_feedback_failures()
+    assert failures == ()
+
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+    launch_lower = launch_text.lower()
+
+    assert "Mac Desktop Taste And Atmosphere Spec" in launch_text
+    assert "Mac Desktop Sound Haptics Quiet Feedback Addendum" in launch_text
+
+    for section in TASTE_REQUIRED_SECTIONS:
+        assert section.lower() in launch_lower
+    for section in SOUND_REQUIRED_SECTIONS:
+        assert section.lower() in launch_lower
+
+    for vibe_test in TASTE_VIBE_TESTS:
+        assert vibe_test in launch_text
+    for anti_vibe_test in TASTE_ANTI_VIBE_TESTS:
+        assert anti_vibe_test in launch_text
+    for vibe_test in SOUND_VIBE_TESTS:
+        assert vibe_test in launch_text
+    for anti_vibe_test in SOUND_ANTI_VIBE_TESTS:
+        assert anti_vibe_test in launch_text
+
+    for phrase in FIRST_SCREEN_ALLOWED_APP_PHRASES:
+        assert phrase in launch_text
+
+    assert "Opening the Mac desktop app should feel like sitting down at a trusted personal command surface" in launch_text
+    assert "well-built studio console before a session" in launch_text
+    assert "Target emotional state: centered operational clarity" in launch_text
+    assert "I know where things stand. I know what is safe. I know what is blocked. I know what deserves my attention." in launch_text
+    assert "Dominant blend: quiet instrument panel + studio console + evidence drawer + chart table" in launch_text
+    assert "Cockpit guides discipline, not decoration" in launch_text
+    assert "Studio console is the strongest personal metaphor" in launch_text
+    assert "Tactile but not skeuomorphic" in launch_text
+    assert "Dimensional but not flashy" in launch_text
+    assert "Evidence-backed but not bureaucratic" in launch_text
+    assert "Personal but not cute" in launch_text
+    assert "Creative but not whimsical slop" in launch_text
+    assert "Minimal purposeful motion only" in launch_text
+    assert "fake AI thinking animation" in launch_text
+    assert "hidden-worker theatre" in launch_text
+    assert "Knowledge substrate must not default to RAG search/chat-with-files UX" in launch_text
+    assert "Taste comes from structure, not branding" in launch_text
+    assert "personal and daily-use-worthy, not merely correct" in launch_text
+
+    assert "Recommended next artifact: combined source-set generation for the app-planning package" in launch_text
+    assert "Do not do another broad design pass" in launch_text
+    assert "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md" in launch_text
+    assert "separate addendum" in launch_text
+    assert "This recommendation does not create source-set folders" in launch_text
+
+    assert "Sound should play a minor, disciplined role" in launch_text
+    assert "soft relay, settled switch, quiet indication that a visible state transition completed" in launch_text
+    assert "Emotional target: settled confidence, not excitement" in launch_text
+    assert "Sound should be off by default for v1" in launch_text
+    assert "Quiet feedback mode should be opt-in" in launch_text
+    assert "Critical information must never be sound-only" in launch_text
+    assert "Brand/audio identity is deferred" in launch_text
+    assert "separate addendum to `14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md`" in launch_text
+
+    assert "does not create audio assets" in launch_text
+    assert "sound asset folders" in launch_text
+    assert "haptic implementation" in launch_text
+    assert "notification behavior" in launch_text
+    assert "sound settings UI" in launch_text
+    assert "Do not generate audio assets" in launch_text
+    assert "app/product/brand/codename/mascot/logo/slogan" in launch_text

@@ -82,6 +82,77 @@ FIRST_SCREEN_FORBIDDEN_NAMING_FIELDS = (
     "codename",
     "marketing_name",
 )
+TASTE_SPEC = LAUNCH_LADDER_DIR / "14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+SOUND_HAPTICS_ADDENDUM = (
+    LAUNCH_LADDER_DIR / "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md"
+)
+TASTE_REQUIRED_SECTIONS = (
+    "Taste thesis",
+    "Visual reference vocabulary",
+    "Material and surface language",
+    "Typography and density",
+    "Motion and interaction feel",
+    "Personal-to-Winship signals",
+    "Empty states and quiet states",
+    "Vibe tests",
+    "Anti-vibe tests",
+    "Implementation risk warnings for future Codex/Mac work",
+    "Next artifact recommendation",
+)
+TASTE_VIBE_TESTS = (
+    "would_open_this_every_morning",
+    "cockpit_not_chatbot",
+    "studio_console_not_saas",
+    "evidence_without_paperwork",
+    "blocked_without_panic",
+    "personal_without_branding",
+    "creative_without_whimsy",
+    "knowledge_without_rag_search_box",
+    "approval_visible_not_dominant",
+    "daily_control_not_project_management",
+)
+TASTE_ANTI_VIBE_TESTS = (
+    "jira_cosplay",
+    "ai_orb_centerpiece",
+    "startup_dashboard",
+    "compliance_portal_mood",
+    "neon_command_center",
+    "wall_of_status_chips",
+    "fake_product_name_energy",
+    "overexplained_receipt_drawer",
+    "agent_theatre",
+    "rag_search_default",
+)
+SOUND_REQUIRED_SECTIONS = (
+    "Sound thesis",
+    "Default policy",
+    "Allowed sound moments",
+    "Forbidden sound patterns",
+    "Sonic reference vocabulary",
+    "Haptics / tactile feedback posture",
+    "Accessibility and operator control",
+    "Vibe tests",
+    "Anti-vibe tests",
+    "Recommendation for Codex artifact",
+)
+SOUND_VIBE_TESTS = (
+    "sound_confirms_visible_state",
+    "studio_console_not_notification_pack",
+    "blocked_without_alarm",
+    "no_hidden_worker_audio",
+    "quiet_by_default",
+    "daily_use_no_fatigue",
+    "sound_optional_not_identity",
+)
+SOUND_ANTI_VIBE_TESTS = (
+    "ai_thinking_blips",
+    "sci_fi_sweep",
+    "jira_notification_ping",
+    "casino_success_chime",
+    "dramatic_error_alarm",
+    "ambient_agent_hum",
+    "startup_brand_sting",
+)
 MISSION_CONTROL_UI_STATES = (
     "profile_available",
     "packet_available",
@@ -513,6 +584,13 @@ def _fixture_contains_forbidden_naming_field(value: object) -> bool:
     return False
 
 
+def _text_contains_forbidden_naming_assignment(text: str) -> str | None:
+    for forbidden in FIRST_SCREEN_FORBIDDEN_NAMING_FIELDS:
+        if re.search(rf"\b{re.escape(forbidden)}\s*[:=]", text):
+            return forbidden
+    return None
+
+
 def first_screen_composition_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     spec_path = repo_root / "docs" / "planning" / "launch_ladder" / "13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md"
@@ -742,6 +820,247 @@ def first_screen_composition_failures(repo_root: Path = REPO_ROOT) -> tuple[str,
                 failures.append(f"{section}: malformed fixture must claim synced/current")
             if expected_validation.get("rejects_fake_synced_current_claims") is not True:
                 failures.append(f"{section}: expected_validation must reject fake synced/current claims")
+
+    return tuple(failures)
+
+
+def taste_and_quiet_feedback_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
+    failures: list[str] = []
+    taste_path = repo_root / "docs" / "planning" / "launch_ladder" / "14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+    sound_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md"
+    )
+
+    if not taste_path.is_file():
+        failures.append(f"taste and atmosphere: missing {taste_path}")
+        taste_text = ""
+    else:
+        taste_text = _read_text(taste_path)
+        taste_normalized = normalize(taste_text)
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec required sections",
+            TASTE_REQUIRED_SECTIONS,
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec doctrine",
+            (
+                "Opening the Mac desktop app should feel like sitting down at a trusted personal command surface",
+                "closer to powering on a well-built studio console before a session than launching a productivity app",
+                "Target emotional state: centered operational clarity",
+                "I know where things stand. I know what is safe. I know what is blocked. I know what deserves my attention.",
+                "Dominant blend: quiet instrument panel + studio console + evidence drawer + chart table",
+                "Cockpit guides discipline, not decoration",
+                "Studio console is the strongest personal metaphor, but do not literalize knobs/faders everywhere",
+                "Tactile but not skeuomorphic",
+                "Dimensional but not flashy",
+                "Evidence-backed but not bureaucratic",
+                "Personal but not cute",
+                "Creative but not whimsical slop",
+                "Minimal purposeful motion only",
+                "fake AI thinking animation",
+                "hidden-worker theatre",
+                "Knowledge substrate must not default to RAG search/chat-with-files UX",
+                "No app naming",
+                "No implementation authorization",
+                "Taste comes from structure, not branding",
+                "personal and daily-use-worthy, not merely correct",
+            ),
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec vibe tests",
+            TASTE_VIBE_TESTS,
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec anti-vibe tests",
+            TASTE_ANTI_VIBE_TESTS,
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec no-implementation boundary",
+            (
+                "Do not",
+                "implement UI",
+                "create SwiftUI/AppKit files",
+                "create source-set folders",
+                "create backend/schema files",
+                "create SQLite DBs",
+                "create ingestion scripts",
+                "scan old business files",
+                "inspect private data",
+                "call providers/models",
+                "mutate runtime/services/approvals",
+                "create audio assets, haptic implementation, notification behavior, or sound settings UI",
+                "introduce app/product/brand/codename/mascot/logo/slogan",
+            ),
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec next artifact",
+            (
+                "Recommended next artifact: combined source-set generation for the app-planning package",
+                "Do not do another broad design pass",
+                "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md as a separate addendum",
+                "This recommendation does not create source-set folders",
+            ),
+        )
+        _require_all(
+            failures,
+            taste_normalized,
+            "taste spec neutral phrases",
+            FIRST_SCREEN_ALLOWED_APP_PHRASES,
+        )
+        forbidden_assignment = _text_contains_forbidden_naming_assignment(taste_text)
+        if forbidden_assignment:
+            failures.append(f"taste spec: must not introduce naming assignment {forbidden_assignment}")
+
+    if not sound_path.is_file():
+        failures.append(f"sound haptics addendum: missing {sound_path}")
+        sound_text = ""
+    else:
+        sound_text = _read_text(sound_path)
+        sound_normalized = normalize(sound_text)
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics required sections",
+            SOUND_REQUIRED_SECTIONS,
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics doctrine",
+            (
+                "Sound should play a minor, disciplined role",
+                "tactile confirmation from a well-built studio surface",
+                "soft relay, settled switch, quiet indication that a visible state transition completed",
+                "Emotional target: settled confidence, not excitement",
+                "should not create anticipation, urgency, mystery",
+                "hidden agents are working somewhere offscreen",
+                "best sound design is almost forgettable",
+                "Sound should be off by default for v1",
+                "Quiet feedback mode should be opt-in",
+                "Critical information must never be sound-only",
+                "short",
+                "low-volume",
+                "low-frequency",
+                "non-melodic",
+                "tied only to visible state transitions",
+                "Brand/audio identity is deferred",
+            ),
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "allowed sound moments",
+            (
+                "app opened",
+                "source-set changed",
+                "evidence/proof completed",
+                "blocked boundary",
+                "unknown/evidence missing",
+                "approval needed",
+                "local checkpoint committed",
+                "push/sync failed",
+                "lane selected",
+                "drawer opened",
+            ),
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "forbidden sound patterns",
+            (
+                "AI thinking sounds",
+                "sci-fi sweeps",
+                "startup chimes",
+                "notification spam",
+                "casino/game pings",
+                "dramatic warning alarms",
+                "hidden-worker sounds",
+                "chatbot message sounds",
+                "ambient system is alive hum",
+                "anything implying background action without visible evidence",
+            ),
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sonic reference vocabulary",
+            (
+                "soft relay",
+                "muted tape transport",
+                "console click",
+                "felt switch",
+                "low meter tick",
+                "subdued room tone as dangerous if continuous",
+                "quiet confirmation",
+                "boundary thud",
+            ),
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics vibe tests",
+            SOUND_VIBE_TESTS,
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics anti-vibe tests",
+            SOUND_ANTI_VIBE_TESTS,
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics no-implementation boundary",
+            (
+                "does not create audio assets",
+                "sound asset folders",
+                "haptic implementation",
+                "notification behavior",
+                "sound settings UI",
+                "Do not generate audio assets",
+                "haptic code",
+                "notification behavior",
+                "sound settings UI",
+                "source-set folders",
+                "backend/schema files",
+                "SQLite DBs",
+                "ingestion scripts",
+                "runtime hooks",
+                "provider/model calls",
+                "approval behavior",
+                "private-data access",
+                "app names",
+            ),
+        )
+        _require_all(
+            failures,
+            sound_normalized,
+            "sound haptics addendum linkage",
+            (
+                "separate addendum",
+                "14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+                "include it in the next combined source-set generation package",
+            ),
+        )
+        forbidden_assignment = _text_contains_forbidden_naming_assignment(sound_text)
+        if forbidden_assignment:
+            failures.append(f"sound haptics addendum: must not introduce naming assignment {forbidden_assignment}")
 
     return tuple(failures)
 
@@ -1399,11 +1718,14 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "fixtures mission control",
             "knowledge_substrate",
             "first screen composition",
+            "taste atmosphere",
+            "quiet feedback",
         ),
     )
 
     failures.extend(mission_control_fixture_failures())
     failures.extend(first_screen_composition_failures())
+    failures.extend(taste_and_quiet_feedback_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(
