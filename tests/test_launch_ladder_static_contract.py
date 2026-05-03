@@ -8,6 +8,8 @@ from launch_ladder_contract_check import (
     KNOWLEDGE_SUBSTRATE_SENSITIVITY_LEVELS,
     KNOWLEDGE_SUBSTRATE_TABLES,
     KNOWLEDGE_SUBSTRATE_UI_STATES,
+    MAC_APP_KNOWLEDGE_SOURCE_SET,
+    MAC_APP_KNOWLEDGE_SOURCE_SET_FILES,
     MISSION_CONTROL_APP_SURFACE,
     MISSION_CONTROL_SOURCE_SET_BASELINE,
     REQUIRED_FIRST_SCREEN_FIXTURES,
@@ -27,6 +29,7 @@ from launch_ladder_contract_check import (
     load_corpus,
     load_first_screen_fixtures,
     load_mission_control_fixtures,
+    mac_app_knowledge_source_set_failures,
     mission_control_fixture_failures,
     taste_and_quiet_feedback_failures,
 )
@@ -306,11 +309,12 @@ def test_workspace_launch_profile_source_set_and_apple_platform_posture_are_docu
 
     assert "active app-planning posture is `02_MAC_IOS_APP_BUILD`" in launch_text
     assert "read-only Mac desktop Mission Control fixture contract stays in `02_MAC_IOS_APP_BUILD`" in launch_text
-    assert "does not move the active ChatGPT Project source-set posture to `03_BACKEND_AND_DATA_MODEL`" in launch_text
+    assert MAC_APP_KNOWLEDGE_SOURCE_SET in launch_text
+    assert "The combined `03_MAC_APP_KNOWLEDGE_SUBSTRATE` source set is the next generated ChatGPT Project planning packet" in launch_text
+    assert "It is not backend/schema implementation" in launch_text
     assert "does not create source-set folder `04`" in launch_text
-    assert "does not create generated source-set scripts" in launch_text
-    assert "does not edit generated source-set folders" in launch_text
-    assert "does not start app/backend/runtime implementation" in launch_text
+    assert "does not create app/backend/runtime implementation" in launch_text
+    assert "does not authorize ingestion" in launch_text
     assert "`Mac/iOS` is Apple-platform planning shorthand" in launch_text
     assert "Mac desktop app first, iOS companion later" in launch_text
     assert "Do not read this brief as iOS-first implementation" in launch_text
@@ -628,3 +632,38 @@ def test_taste_and_quiet_feedback_specs_are_documented():
     assert "sound settings UI" in launch_text
     assert "Do not generate audio assets" in launch_text
     assert "app/product/brand/codename/mascot/logo/slogan" in launch_text
+
+
+def test_mac_app_knowledge_source_set_generation_contract_is_documented():
+    failures = mac_app_knowledge_source_set_failures()
+    assert failures == ()
+
+    corpus = load_corpus()
+    launch_text = corpus.launch_ladder_text
+    script_text = corpus.script_text
+
+    assert MAC_APP_KNOWLEDGE_SOURCE_SET in launch_text
+    assert "combined ChatGPT Project source set" in launch_text
+    assert "not an implementation source set" in launch_text
+    assert "Mac desktop Mission Control app planning" in launch_text
+    assert "SQLite-backed Compiled Knowledge Substrate planning" in launch_text
+    assert "Mac desktop app first; iOS companion later" in launch_text
+    assert "personal/custom operator console for Winship/operator first" in launch_text
+    assert "Do not name the app" in launch_text
+    assert "Do not invent product names" in launch_text
+    assert "No SwiftUI/AppKit implementation" in launch_text
+    assert "No backend/API/schema implementation" in launch_text
+    assert "No SQLite DB creation" in launch_text
+    assert "No ingestion scripts" in launch_text
+    assert "No real business-file scanning" in launch_text
+    assert "No provider/model calls" in launch_text
+    assert "No runtime mutation" in launch_text
+    assert "No audio assets, haptic implementation, notification behavior, or sound settings UI" in launch_text
+    assert "SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful" in launch_text
+    assert "`CHAT_STAY_UP_TO_DATE.md` remains adjacent bridge context" in launch_text
+    assert "must not be copied into `03_MAC_APP_KNOWLEDGE_SUBSTRATE`" in launch_text
+    assert "must not be counted inside the 24 files" in launch_text
+
+    assert 'FOLDER_3="03_MAC_APP_KNOWLEDGE_SUBSTRATE"' in script_text
+    for filename in MAC_APP_KNOWLEDGE_SOURCE_SET_FILES:
+        assert filename in script_text

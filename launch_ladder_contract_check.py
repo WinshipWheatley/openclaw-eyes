@@ -86,6 +86,10 @@ TASTE_SPEC = LAUNCH_LADDER_DIR / "14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
 SOUND_HAPTICS_ADDENDUM = (
     LAUNCH_LADDER_DIR / "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md"
 )
+MAC_APP_KNOWLEDGE_SOURCE_SET = "03_MAC_APP_KNOWLEDGE_SUBSTRATE"
+MAC_APP_KNOWLEDGE_SOURCE_SET_BRIEF = (
+    LAUNCH_LADDER_DIR / "16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md"
+)
 TASTE_REQUIRED_SECTIONS = (
     "Taste thesis",
     "Visual reference vocabulary",
@@ -251,6 +255,31 @@ KNOWLEDGE_SUBSTRATE_UI_STATES = (
     "blocked",
     "unknown",
     "excluded",
+)
+MAC_APP_KNOWLEDGE_SOURCE_SET_FILES = (
+    "16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md",
+    "09_MAC_IOS_APP_BUILD_BRIEF.md",
+    "12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md",
+    "13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+    "14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+    "15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md",
+    "04_LAUNCH_LADDER_MODEL.md",
+    "05_EVIDENCE_AND_FRESHNESS.md",
+    "06_ROUTING_AND_WORKSPACES.md",
+    "07_SECURITY_AND_AUTHORITY.md",
+    "08_SOURCE_SET_REFRESH_SYSTEM.md",
+    "11_NEXT_IMPLEMENTATION_SEQUENCE.md",
+    "KNOWLEDGE_SUBSTRATE_README.md",
+    "KNOWLEDGE_SUBSTRATE_01_NORTH_STAR.md",
+    "KNOWLEDGE_SUBSTRATE_02_SQLITE_LAYER_MODEL.md",
+    "KNOWLEDGE_SUBSTRATE_03_SAFETY_AND_SENSITIVITY_LEVELS.md",
+    "KNOWLEDGE_SUBSTRATE_04_APP_CARDS_AND_UI_STATES.md",
+    "KNOWLEDGE_SUBSTRATE_05_FIXTURE_PLAN.md",
+    "KNOWLEDGE_SUBSTRATE_06_STATIC_VALIDATION_EXPECTATIONS.md",
+    "KNOWLEDGE_SUBSTRATE_INDEX.md",
+    "VALIDATION_MAP.md",
+    "launch_ladder_contract_check.py",
+    "test_launch_ladder_static_contract.py",
 )
 
 
@@ -1065,6 +1094,126 @@ def taste_and_quiet_feedback_failures(repo_root: Path = REPO_ROOT) -> tuple[str,
     return tuple(failures)
 
 
+def mac_app_knowledge_source_set_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
+    failures: list[str] = []
+    brief_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md"
+    )
+    refresh_path = repo_root / "mac_eyes" / "Launchers" / "refresh_operator_harness_ingest.sh"
+
+    if not brief_path.is_file():
+        failures.append(f"mac app knowledge source set: missing {brief_path}")
+        brief_text = ""
+    else:
+        brief_text = _read_text(brief_path)
+        brief_normalized = normalize(brief_text)
+        _require_all(
+            failures,
+            brief_normalized,
+            "mac app knowledge source-set purpose",
+            (
+                MAC_APP_KNOWLEDGE_SOURCE_SET,
+                "combined ChatGPT Project source set",
+                "Mac desktop Mission Control app planning",
+                "read-only fixture contracts",
+                "first-screen composition",
+                "taste/atmosphere posture",
+                "sound/haptics/quiet feedback posture",
+                "SQLite-backed Compiled Knowledge Substrate planning",
+                "not an implementation source set",
+                "Mac desktop app first; iOS companion later",
+                "personal/custom operator console for Winship/operator first",
+            ),
+        )
+        _require_all(
+            failures,
+            brief_normalized,
+            "mac app knowledge source-set boundaries",
+            (
+                "Do not name the app",
+                "Do not invent product names",
+                "Mac desktop app",
+                "Operator Harness app",
+                "personal operator console",
+                "Mission Control surface",
+                "No SwiftUI/AppKit implementation",
+                "No backend/API/schema implementation",
+                "No SQLite DB creation",
+                "No ingestion scripts",
+                "No real business-file scanning",
+                "No provider/model calls",
+                "No runtime mutation",
+                "No approval mutation or Guardian control",
+                "No audio assets, haptic implementation, notification behavior, or sound settings UI",
+                "No app/product/brand/codename/mascot/logo/slogan",
+            ),
+        )
+        _require_all(
+            failures,
+            brief_normalized,
+            "mac app knowledge source-set doctrine",
+            (
+                "SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful",
+                "This is not vanilla RAG",
+                "Retrieval finds candidates",
+                "SQLite is the canonical future local memory substrate concept",
+                "Markdown is an export/handoff surface, not the database authority",
+                "HTML/rich fragments preserve source shape",
+                "FTS5/search finds records quickly",
+                "Raw files are evidence, not truth",
+                "Extracted text is parsed evidence, not truth",
+                "Compiled notes are interpretation, not truth",
+                "Claims are evidence-backed and confidence-bounded",
+                "Operator promotions are explicit acceptance",
+                "Unknown means unknown and defaults restricted",
+                "Sensitive content is local-only by default",
+                "No external model access to raw/extracted sensitive content is authorized",
+            ),
+        )
+        _require_all(
+            failures,
+            brief_normalized,
+            "mac app knowledge source-set upload rule",
+            (
+                "23 content files",
+                "1 MANIFEST.md",
+                "CHAT_STAY_UP_TO_DATE.md remains adjacent bridge context",
+                "must not be copied into 03_MAC_APP_KNOWLEDGE_SUBSTRATE",
+                "must not be counted inside the 24 files",
+            ),
+        )
+        forbidden_assignment = _text_contains_forbidden_naming_assignment(brief_text)
+        if forbidden_assignment:
+            failures.append(
+                f"mac app knowledge source set: must not introduce naming assignment {forbidden_assignment}"
+            )
+
+    if not refresh_path.is_file():
+        failures.append(f"mac app knowledge source set: missing {refresh_path}")
+    else:
+        refresh_text = _read_text(refresh_path)
+        for filename in MAC_APP_KNOWLEDGE_SOURCE_SET_FILES:
+            if filename not in refresh_text:
+                failures.append(f"mac app knowledge source set: refresh script missing {filename}")
+        _require_all(
+            failures,
+            normalize(refresh_text),
+            "mac app knowledge source-set script",
+            (
+                'FOLDER_3="03_MAC_APP_KNOWLEDGE_SUBSTRATE"',
+                "Combined Mac desktop Mission Control and Compiled Knowledge Substrate planning",
+                "CONTENT_FILES_PER_FOLDER=23",
+                "EXPECTED_FILES_PER_FOLDER=24",
+            ),
+        )
+
+    return tuple(failures)
+
+
 def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
@@ -1327,7 +1476,8 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "Source-Set Ladder",
             "01_CURRENT_PRODUCT_SPEC",
             "02_MAC_IOS_APP_BUILD",
-            "03_BACKEND_AND_DATA_MODEL",
+            MAC_APP_KNOWLEDGE_SOURCE_SET,
+            "future backend/data-model source set",
             UPLOAD_AUTHORITY_COMMIT,
             "source-set folders are not Launch Ladder steps",
             "When folder 01 is exhausted, move to folder 02",
@@ -1596,11 +1746,12 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
         (
             "active app-planning posture is 02_MAC_IOS_APP_BUILD",
             "read-only Mac desktop Mission Control fixture contract stays in 02_MAC_IOS_APP_BUILD",
-            "does not move the active ChatGPT Project source-set posture to 03_BACKEND_AND_DATA_MODEL",
+            MAC_APP_KNOWLEDGE_SOURCE_SET,
+            "The combined 03_MAC_APP_KNOWLEDGE_SUBSTRATE source set is the next generated ChatGPT Project planning packet",
+            "It is not backend/schema implementation",
             "does not create source-set folder 04",
-            "does not create generated source-set scripts",
-            "does not edit generated source-set folders",
-            "does not start app/backend/runtime implementation",
+            "does not create app/backend/runtime implementation",
+            "does not authorize ingestion",
         ),
     )
 
@@ -1720,12 +1871,14 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "first screen composition",
             "taste atmosphere",
             "quiet feedback",
+            "03_MAC_APP_KNOWLEDGE_SUBSTRATE",
         ),
     )
 
     failures.extend(mission_control_fixture_failures())
     failures.extend(first_screen_composition_failures())
     failures.extend(taste_and_quiet_feedback_failures())
+    failures.extend(mac_app_knowledge_source_set_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(

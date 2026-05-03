@@ -32,7 +32,7 @@ This slice does not create:
   CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/
     01_CURRENT_PRODUCT_SPEC/
     02_MAC_IOS_APP_BUILD/
-    03_BACKEND_AND_DATA_MODEL/
+    03_MAC_APP_KNOWLEDGE_SUBSTRATE/
 ```
 
 Each numbered folder should contain exactly 24 upload files total:
@@ -49,14 +49,16 @@ Do not use 24 content files plus a manifest. The manifest counts as one upload f
 The current Source-Set Ladder is:
 
 ```text
-01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_BACKEND_AND_DATA_MODEL -> future 04/05/etc.
+01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> future backend/data-model source set -> future 04/05/etc.
 ```
 
 Folder movement should be deliberate:
 
 - When folder 01 is exhausted, move to folder 02. Exhausted means the chat has extracted stable product requirements, authority boundaries, evidence/freshness rules, route-compression semantics, and current unresolved questions are app-facing rather than product/spec-facing.
-- When folder 02 is exhausted, move to folder 03. Exhausted means app view states, read-only client behavior, and platform constraints are clear enough that the next useful work is schemas, fixtures, backend records, validation, or ingest/generator contracts.
+- When folder 02 is exhausted, move to folder 03. Exhausted means app view states, read-only client behavior, taste/atmosphere posture, quiet feedback posture, and knowledge-substrate direction are clear enough that the next useful work is a combined app/knowledge planning pass.
 - By folder 03, the system should already propose what folder 04 should contain. Folder 04 should not be created automatically; its purpose should be justified by evidence from folders 01 through 03.
+
+`03_MAC_APP_KNOWLEDGE_SUBSTRATE` is still a planning source set. It combines Mac desktop Mission Control planning with the Compiled Knowledge Substrate package before backend/data-model or Mac UI implementation starts. The likely next source set after it is a backend/data-model packet, but only after the 03 planning pass decides which schema style, synthetic fixtures, operator-promotion contracts, and evidence/freshness boundaries are stable.
 
 Every folder should preserve North Star, route, evidence, freshness, withheld surfaces, and next-folder estimate. The source-set folder name is context position, not launch authorization.
 
@@ -101,7 +103,8 @@ Every future `MANIFEST.md` must include:
 | --- | --- | --- | --- |
 | `1_CURRENT_PRODUCT_SPEC` | Let ChatGPT review current product/spec shape. | Launch Ladder docs, runtime law, north star, modular ledger, control maps. | Runtime code unless explicitly needed, logs, secrets, private data, generated state. |
 | `2_MAC_IOS_APP_BUILD` | Let Codex/ChatGPT help with read-only Mac/iOS app build planning. | App build brief, data contract docs, mock payload specs, routing/workspace docs. | Live services, private data, provider/model execution, credentials. |
-| `3_BACKEND_AND_DATA_MODEL` | Let backend/data-model work consume schemas and freshness/evidence rules. | Evidence/freshness, routing, readiness record shapes, validation map. | Runtime mutation, live service checks, private data, broad logs. |
+| `3_MAC_APP_KNOWLEDGE_SUBSTRATE` | Let ChatGPT plan the Mac desktop Mission Control surface and SQLite-backed Compiled Knowledge Substrate together before implementation. | Mission Control fixture contract, first-screen composition, taste/atmosphere, quiet feedback, knowledge-substrate docs, authority/evidence boundaries, validation map. | UI implementation, backend/schema files, SQLite DBs, ingestion, real business files, runtime mutation, provider/model calls, private data, app naming. |
+| Future backend/data-model source set | Let backend/data-model work consume schemas and freshness/evidence rules after 03 planning is exhausted. | Evidence/freshness, routing, readiness record shapes, operator promotions, SQLite schema contracts, validation map. | Runtime mutation, live service checks, private data, broad logs, provider/model calls. |
 
 ## Source-Set Freshness Rules
 

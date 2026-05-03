@@ -12,7 +12,7 @@ DELTA_BRIDGE_NAME="CHAT_STAY_UP_TO_DATE.md"
 
 FOLDER_1="01_CURRENT_PRODUCT_SPEC"
 FOLDER_2="02_MAC_IOS_APP_BUILD"
-FOLDER_3="03_BACKEND_AND_DATA_MODEL"
+FOLDER_3="03_MAC_APP_KNOWLEDGE_SUBSTRATE"
 CONTENT_FILES_PER_FOLDER=23
 EXPECTED_FILES_PER_FOLDER=24
 
@@ -48,7 +48,7 @@ esac
 
 FOLDER_1_PURPOSE="Current Operator Harness product/spec review: Launch Ladder model, authority, readiness, route compression, evidence/freshness, productization posture, and source-set rules."
 FOLDER_2_PURPOSE="Mac/iOS app build planning: read-only app brief, cross-platform architecture, UX, security, evidence/freshness, routing, and v1 architecture constraints."
-FOLDER_3_PURPOSE="Backend and data-model planning: Launch Packet/Evidence/SourceSet/Deployment records, source refresh rules, Hermes advisory fixtures, and parallel/data orchestration boundaries."
+FOLDER_3_PURPOSE="Combined Mac desktop Mission Control and Compiled Knowledge Substrate planning: read-only app fixture contracts, first-screen composition, taste/atmosphere, quiet feedback, SQLite-backed local memory doctrine, evidence/freshness, authority, validation, and no-implementation/no-ingestion boundaries."
 
 FOLDER_1_FILES=(
   'docs/planning/launch_ladder/LAUNCH_LADDER_INDEX.md|00_launch_ladder/LAUNCH_LADDER_INDEX.md|LAUNCH_LADDER_INDEX.md'
@@ -103,29 +103,29 @@ FOLDER_2_FILES=(
 )
 
 FOLDER_3_FILES=(
+  'docs/planning/launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md|00_launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md|16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md'
+  'docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|00_launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|09_MAC_IOS_APP_BUILD_BRIEF.md'
+  'docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md|00_launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md|12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md'
+  'docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md|00_launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md|13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md'
+  'docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md|00_launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md|14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md'
+  'docs/planning/launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md|00_launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md|15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md'
   'docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md|00_launch_ladder/04_LAUNCH_LADDER_MODEL.md|04_LAUNCH_LADDER_MODEL.md'
   'docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md|00_launch_ladder/05_EVIDENCE_AND_FRESHNESS.md|05_EVIDENCE_AND_FRESHNESS.md'
   'docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md|00_launch_ladder/06_ROUTING_AND_WORKSPACES.md|06_ROUTING_AND_WORKSPACES.md'
+  'docs/planning/launch_ladder/07_SECURITY_AND_AUTHORITY.md|00_launch_ladder/07_SECURITY_AND_AUTHORITY.md|07_SECURITY_AND_AUTHORITY.md'
   'docs/planning/launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md|00_launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md|08_SOURCE_SET_REFRESH_SYSTEM.md'
   'docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|00_launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|11_NEXT_IMPLEMENTATION_SEQUENCE.md'
-  'docs/planning/launch_ladder/operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md|01_operator_harness_research/OPERATOR_HARNESS_FIRST_PRINCIPLES.md|OPERATOR_HARNESS_FIRST_PRINCIPLES.md'
-  'docs/planning/launch_ladder/operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md|01_operator_harness_research/LAUNCH_LADDER_BEST_PRACTICES.md|LAUNCH_LADDER_BEST_PRACTICES.md'
-  'docs/planning/launch_ladder/operator_harness_research/PARALLEL_WORK_ORCHESTRATION.md|01_operator_harness_research/PARALLEL_WORK_ORCHESTRATION.md|PARALLEL_WORK_ORCHESTRATION.md'
-  'docs/planning/launch_ladder/operator_harness_research/MULTI_DEPLOYMENT_CONTROL_PLANE.md|01_operator_harness_research/MULTI_DEPLOYMENT_CONTROL_PLANE.md|MULTI_DEPLOYMENT_CONTROL_PLANE.md'
-  'docs/planning/launch_ladder/operator_harness_research/EVIDENCE_FRESHNESS_AND_DRIFT_DETECTION.md|01_operator_harness_research/EVIDENCE_FRESHNESS_AND_DRIFT_DETECTION.md|EVIDENCE_FRESHNESS_AND_DRIFT_DETECTION.md'
-  'docs/planning/launch_ladder/operator_harness_research/SECURITY_AND_APPROVAL_ARCHITECTURE.md|01_operator_harness_research/SECURITY_AND_APPROVAL_ARCHITECTURE.md|SECURITY_AND_APPROVAL_ARCHITECTURE.md'
-  'docs/planning/launch_ladder/operator_harness_research/RECOMMENDED_V1_ARCHITECTURE.md|01_operator_harness_research/RECOMMENDED_V1_ARCHITECTURE.md|RECOMMENDED_V1_ARCHITECTURE.md'
-  'docs/planning/launch_ladder/operator_harness_research/CROSS_PLATFORM_ARCHITECTURE.md|01_operator_harness_research/CROSS_PLATFORM_ARCHITECTURE.md|CROSS_PLATFORM_ARCHITECTURE.md'
-  'docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md|03_hermes_advisory/HERMES_ADVISORY_PACKET_CONTRACT.md|HERMES_ADVISORY_PACKET_CONTRACT.md'
-  'docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md|03_hermes_advisory/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md|HERMES_FIRST_ADVISORY_TRIAL_PLAN.md'
-  'hermes_advisory_packet.py|03_hermes_advisory/hermes_advisory_packet.py|hermes_advisory_packet.py'
-  'tests/test_hermes_advisory_packet_contract.py|03_hermes_advisory/test_hermes_advisory_packet_contract.py|test_hermes_advisory_packet_contract.py'
-  'tests/test_hermes_launch_ladder_review_packet.py|03_hermes_advisory/test_hermes_launch_ladder_review_packet.py|test_hermes_launch_ladder_review_packet.py'
-  'tests/fixtures/hermes_launch_ladder_review_packet.json|03_hermes_advisory/hermes_launch_ladder_review_packet.json|hermes_launch_ladder_review_packet.json'
-  'tests/fixtures/hermes_launch_ladder_review_expected_memo_shape.json|03_hermes_advisory/hermes_launch_ladder_review_expected_memo_shape.json|hermes_launch_ladder_review_expected_memo_shape.json'
-  'docs/planning/OPENCLAW_MODULAR_READINESS_LEDGER.md|02_planning_context/OPENCLAW_MODULAR_READINESS_LEDGER.md|OPENCLAW_MODULAR_READINESS_LEDGER.md'
-  'docs/planning/launch_ladder/operator_harness_research/FEYNMAN_RESEARCH_INDEX.md|01_operator_harness_research/FEYNMAN_RESEARCH_INDEX.md|FEYNMAN_RESEARCH_INDEX.md'
-  'docs/planning/launch_ladder/02_CAPABILITY_AUTHORITY_AND_READINESS.md|00_launch_ladder/02_CAPABILITY_AUTHORITY_AND_READINESS.md|02_CAPABILITY_AUTHORITY_AND_READINESS.md'
+  'docs/planning/launch_ladder/knowledge_substrate/README.md|04_knowledge_substrate/README.md|KNOWLEDGE_SUBSTRATE_README.md'
+  'docs/planning/launch_ladder/knowledge_substrate/01_NORTH_STAR.md|04_knowledge_substrate/01_NORTH_STAR.md|KNOWLEDGE_SUBSTRATE_01_NORTH_STAR.md'
+  'docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md|04_knowledge_substrate/02_SQLITE_LAYER_MODEL.md|KNOWLEDGE_SUBSTRATE_02_SQLITE_LAYER_MODEL.md'
+  'docs/planning/launch_ladder/knowledge_substrate/03_SAFETY_AND_SENSITIVITY_LEVELS.md|04_knowledge_substrate/03_SAFETY_AND_SENSITIVITY_LEVELS.md|KNOWLEDGE_SUBSTRATE_03_SAFETY_AND_SENSITIVITY_LEVELS.md'
+  'docs/planning/launch_ladder/knowledge_substrate/04_APP_CARDS_AND_UI_STATES.md|04_knowledge_substrate/04_APP_CARDS_AND_UI_STATES.md|KNOWLEDGE_SUBSTRATE_04_APP_CARDS_AND_UI_STATES.md'
+  'docs/planning/launch_ladder/knowledge_substrate/05_FIXTURE_PLAN.md|04_knowledge_substrate/05_FIXTURE_PLAN.md|KNOWLEDGE_SUBSTRATE_05_FIXTURE_PLAN.md'
+  'docs/planning/launch_ladder/knowledge_substrate/06_STATIC_VALIDATION_EXPECTATIONS.md|04_knowledge_substrate/06_STATIC_VALIDATION_EXPECTATIONS.md|KNOWLEDGE_SUBSTRATE_06_STATIC_VALIDATION_EXPECTATIONS.md'
+  'docs/planning/launch_ladder/knowledge_substrate/INDEX.md|04_knowledge_substrate/INDEX.md|KNOWLEDGE_SUBSTRATE_INDEX.md'
+  'docs/testing/VALIDATION_MAP.md|05_static_validation/VALIDATION_MAP.md|VALIDATION_MAP.md'
+  'launch_ladder_contract_check.py|05_static_validation/launch_ladder_contract_check.py|launch_ladder_contract_check.py'
+  'tests/test_launch_ladder_static_contract.py|05_static_validation/test_launch_ladder_static_contract.py|test_launch_ladder_static_contract.py'
 )
 
 print_folder_design() {

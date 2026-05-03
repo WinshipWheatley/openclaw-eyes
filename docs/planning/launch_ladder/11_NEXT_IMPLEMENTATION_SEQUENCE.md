@@ -30,11 +30,11 @@ The Multi-OpenClaw Command Atlas should stay a long-range horizon until the v1 L
 
 Treat the Source-Set Ladder as an Operator Harness primitive adjacent to Launch Ladders. Launch Ladders move work toward a North Star; Source-Set Ladders move ChatGPT Project context through slower planning/build packets.
 
-The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_BACKEND_AND_DATA_MODEL -> future 04/05/etc.`. Do not over-refresh source sets. Use `CHAT_STAY_UP_TO_DATE.md` as the adjacent bridge when the baseline 24-file folder is still valid and the chat only needs small repo deltas.
+The current Source-Set Ladder is `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> future backend/data-model source set -> future 04/05/etc.`. Do not over-refresh source sets. Use `CHAT_STAY_UP_TO_DATE.md` as the adjacent bridge when the baseline 24-file folder is still valid and the chat only needs small repo deltas.
 
 Build the future generic multi-build version only after the Operator Harness version proves the rule. The generic form should support personal systems, client/company systems, and future deployment-specific source-set ladders without mixing source commits, withheld surfaces, authority, or evidence.
 
-Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat reaches folder 03, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
+Do not create folder 04 until folder 03 evidence shows what it should contain. By the time a chat finishes `03_MAC_APP_KNOWLEDGE_SUBSTRATE`, it should be able to propose the next folder's purpose, inclusion bias, omitted surfaces, stale conditions, and validation rule.
 
 ## Current Slice Source-Set Posture
 
@@ -46,7 +46,9 @@ The static first-screen composition contract for the Mac desktop Mission Control
 
 The taste/atmosphere spec and quiet feedback addendum are the final docs/test app-planning artifacts before combined source-set generation. They preserve the personal operator console atmosphere, studio-console/cockpit discipline, optional quiet feedback posture, no-app-name boundary, and no-implementation boundary. They do not create audio assets, haptic implementation, notification behavior, sound settings UI, UI code, source-set folders, backend/schema files, SQLite DBs, ingestion scripts, runtime/provider behavior, approval mutation, or private-data access.
 
-Before moving this lane to `03_BACKEND_AND_DATA_MODEL`, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
+The combined `03_MAC_APP_KNOWLEDGE_SUBSTRATE` source set is the next generated ChatGPT Project planning packet. It combines the Mission Control fixture contract, first-screen composition, taste/atmosphere spec, quiet feedback addendum, and Compiled Knowledge Substrate package. It is not backend/schema implementation, Mac UI implementation, SQLite DB creation, ingestion, provider/model work, runtime mutation, private-data review, audio/haptic/notification implementation, or app naming.
+
+Before moving this lane from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to a future backend/data-model source set, decide which synthetic knowledge-substrate fixtures become JSON contract fixtures, whether schema work starts as SQL DDL, JSON schema, or Markdown table contracts, and how operator promotions fit into the broader authority model.
 
 ## Workspace Launch Profile Primitive
 
