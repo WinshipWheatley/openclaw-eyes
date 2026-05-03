@@ -70,6 +70,17 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.
 - Do not refresh the Mac mirror after every small docs/test slice; batch mirror refreshes at meaningful checkpoints unless source-set membership, withheld surfaces, manifest basis, or operator upload needs change.
 
+### Future Lane: Local-Only Ledger Workflow Capture
+
+- The operator wants to capture the manual ledger workflow now so it can become a future local-only Ledger Assistant workflow.
+- Capture should use screenshots and notes only as workflow/process evidence, not as ingestion approval.
+- Prefer redacted screenshots or fake/example data.
+- Raw financial screenshots, if ever captured, must be stored only in a protected local-only folder and must not be processed by cloud models.
+- Candidate temporary folder to evaluate during storage/source registry work: `E:\OpenClawSensitive\ledger_workflow_capture` / `/mnt/e/OpenClawSensitive/ledger_workflow_capture`.
+- Suggested structure: `screenshots_redacted/`, `notes/`, `examples_fake_data/`, `LOCAL_ONLY_RAW/`, and `do_not_ingest_until_approved.txt`.
+- Final location should be decided by the storage/source registry architecture, not casually.
+- Future Ledger Assistant boundaries: no bank login, no bank scraping, no cloud model access to sensitive financial data by default, operator approval before any ledger mutation.
+
 ## Source-Set Ladder Movement Criteria
 
 Move from `01_CURRENT_PRODUCT_SPEC` to `02_MAC_IOS_APP_BUILD` when:
