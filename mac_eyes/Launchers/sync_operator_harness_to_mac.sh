@@ -54,6 +54,7 @@ MANIFEST=(
   'docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md|00_launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md'
   'docs/planning/launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md|00_launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md'
   'docs/planning/launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md|00_launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md'
+  'docs/planning/launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md|00_launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md'
   'docs/planning/launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md|00_launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md'
   'docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md|CHAT_STAY_UP_TO_DATE.md'
   'docs/planning/launch_ladder/fixtures/mission_control/fixture_fresh_navigation_profile.json|00_launch_ladder/fixtures/mission_control/fixture_fresh_navigation_profile.json'

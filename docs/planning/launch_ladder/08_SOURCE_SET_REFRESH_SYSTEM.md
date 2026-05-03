@@ -49,7 +49,7 @@ Do not use 24 content files plus a manifest. The manifest counts as one upload f
 The current Source-Set Ladder is:
 
 ```text
-01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> future backend/data-model source set -> future 04/05/etc.
+01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> 04_BACKEND_DATA_CONTRACT_READINESS -> future 05/etc.
 ```
 
 Folder movement should be deliberate:

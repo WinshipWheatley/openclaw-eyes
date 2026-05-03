@@ -2007,10 +2007,10 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
         launch,
         "current source-set posture",
         (
-            "active app-planning posture is 02_MAC_IOS_APP_BUILD",
+            "active app-planning posture is 03_MAC_APP_KNOWLEDGE_SUBSTRATE",
             "read-only Mac desktop Mission Control fixture contract stays in 02_MAC_IOS_APP_BUILD",
             MAC_APP_KNOWLEDGE_SOURCE_SET,
-            "The combined 03_MAC_APP_KNOWLEDGE_SUBSTRATE source set is the next generated ChatGPT Project planning packet",
+            "The 04_BACKEND_DATA_CONTRACT_READINESS source set is the next generated ChatGPT Project planning packet",
             "It is not backend/schema implementation",
             "does not create source-set folder 04",
             "does not create app/backend/runtime implementation",

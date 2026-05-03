@@ -13,6 +13,7 @@ DELTA_BRIDGE_NAME="CHAT_STAY_UP_TO_DATE.md"
 FOLDER_1="01_CURRENT_PRODUCT_SPEC"
 FOLDER_2="02_MAC_IOS_APP_BUILD"
 FOLDER_3="03_MAC_APP_KNOWLEDGE_SUBSTRATE"
+FOLDER_4="04_BACKEND_DATA_CONTRACT_READINESS"
 CONTENT_FILES_PER_FOLDER=23
 EXPECTED_FILES_PER_FOLDER=24
 
@@ -23,7 +24,7 @@ Usage:
   refresh_operator_harness_ingest.sh --dry-run  # local folder/count design only
   refresh_operator_harness_ingest.sh --list     # print folder source manifests
 
-Rebuilds exactly three ChatGPT Project ingest upload folders from files already
+Rebuilds exactly four ChatGPT Project ingest upload folders from files already
 present in ~/OpenClaw_Watch/operator_harness_readiness on the Mac.
 It deletes/recreates only those three upload folders and writes one
 README_DO_NOT_UPLOAD.md outside them. Each numbered upload folder is curated
@@ -48,6 +49,7 @@ esac
 
 FOLDER_1_PURPOSE="Current Operator Harness product/spec review: Launch Ladder model, authority, readiness, route compression, evidence/freshness, productization posture, and source-set rules."
 FOLDER_2_PURPOSE="Mac/iOS app build planning: read-only app brief, cross-platform architecture, UX, security, evidence/freshness, routing, and v1 architecture constraints."
+FOLDER_4_PURPOSE="Backend data-contract readiness planning: records, contract boundaries, synthetic fixture intent, and validation expectations before actual backend/schema/SQLite work starts."
 FOLDER_3_PURPOSE="Combined Mac desktop Mission Control and Compiled Knowledge Substrate planning: read-only app fixture contracts, first-screen composition, taste/atmosphere, quiet feedback, SQLite-backed local memory doctrine, evidence/freshness, authority, validation, and no-implementation/no-ingestion boundaries."
 
 FOLDER_1_FILES=(
@@ -155,6 +157,34 @@ validate_folder_design "$FOLDER_1" "${FOLDER_1_FILES[@]}"
 validate_folder_design "$FOLDER_2" "${FOLDER_2_FILES[@]}"
 validate_folder_design "$FOLDER_3" "${FOLDER_3_FILES[@]}"
 
+FOLDER_4_FILES=(
+  'docs/planning/launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md|00_launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md|17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md'
+  'docs/planning/launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md|00_launch_ladder/16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md|16_MAC_APP_KNOWLEDGE_SUBSTRATE_SOURCE_SET_BRIEF.md'
+  'docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|00_launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md|11_NEXT_IMPLEMENTATION_SEQUENCE.md'
+  'docs/planning/launch_ladder/04_LAUNCH_LADDER_MODEL.md|00_launch_ladder/04_LAUNCH_LADDER_MODEL.md|04_LAUNCH_LADDER_MODEL.md'
+  'docs/planning/launch_ladder/05_EVIDENCE_AND_FRESHNESS.md|00_launch_ladder/05_EVIDENCE_AND_FRESHNESS.md|05_EVIDENCE_AND_FRESHNESS.md'
+  'docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md|00_launch_ladder/06_ROUTING_AND_WORKSPACES.md|06_ROUTING_AND_WORKSPACES.md'
+  'docs/planning/launch_ladder/07_SECURITY_AND_AUTHORITY.md|00_launch_ladder/07_SECURITY_AND_AUTHORITY.md|07_SECURITY_AND_AUTHORITY.md'
+  'docs/planning/launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md|00_launch_ladder/08_SOURCE_SET_REFRESH_SYSTEM.md|08_SOURCE_SET_REFRESH_SYSTEM.md'
+  'docs/planning/launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|00_launch_ladder/09_MAC_IOS_APP_BUILD_BRIEF.md|09_MAC_IOS_APP_BUILD_BRIEF.md'
+  'docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md|00_launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md|12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md'
+  'docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md|00_launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md|13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md'
+  'docs/planning/launch_ladder/knowledge_substrate/README.md|04_knowledge_substrate/README.md|KNOWLEDGE_SUBSTRATE_README.md'
+  'docs/planning/launch_ladder/knowledge_substrate/INDEX.md|04_knowledge_substrate/INDEX.md|KNOWLEDGE_SUBSTRATE_INDEX.md'
+  'docs/planning/launch_ladder/knowledge_substrate/01_NORTH_STAR.md|04_knowledge_substrate/01_NORTH_STAR.md|KNOWLEDGE_SUBSTRATE_01_NORTH_STAR.md'
+  'docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md|04_knowledge_substrate/02_SQLITE_LAYER_MODEL.md|KNOWLEDGE_SUBSTRATE_02_SQLITE_LAYER_MODEL.md'
+  'docs/planning/launch_ladder/knowledge_substrate/03_SAFETY_AND_SENSITIVITY_LEVELS.md|04_knowledge_substrate/03_SAFETY_AND_SENSITIVITY_LEVELS.md|KNOWLEDGE_SUBSTRATE_03_SAFETY_AND_SENSITIVITY_LEVELS.md'
+  'docs/planning/launch_ladder/knowledge_substrate/04_APP_CARDS_AND_UI_STATES.md|04_knowledge_substrate/04_APP_CARDS_AND_UI_STATES.md|KNOWLEDGE_SUBSTRATE_04_APP_CARDS_AND_UI_STATES.md'
+  'docs/planning/launch_ladder/knowledge_substrate/05_FIXTURE_PLAN.md|04_knowledge_substrate/05_FIXTURE_PLAN.md|KNOWLEDGE_SUBSTRATE_05_FIXTURE_PLAN.md'
+  'docs/planning/launch_ladder/knowledge_substrate/06_STATIC_VALIDATION_EXPECTATIONS.md|04_knowledge_substrate/06_STATIC_VALIDATION_EXPECTATIONS.md|KNOWLEDGE_SUBSTRATE_06_STATIC_VALIDATION_EXPECTATIONS.md'
+  'docs/testing/VALIDATION_MAP.md|05_static_validation/VALIDATION_MAP.md|VALIDATION_MAP.md'
+  'launch_ladder_contract_check.py|05_static_validation/launch_ladder_contract_check.py|launch_ladder_contract_check.py'
+  'tests/test_launch_ladder_static_contract.py|05_static_validation/test_launch_ladder_static_contract.py|test_launch_ladder_static_contract.py'
+  'docs/planning/OPENCLAW_MODULAR_READINESS_LEDGER.md|02_planning_context/OPENCLAW_MODULAR_READINESS_LEDGER.md|OPENCLAW_MODULAR_READINESS_LEDGER.md'
+)
+
+validate_folder_design "$FOLDER_4" "${FOLDER_4_FILES[@]}"
+
 if [[ "$mode" == "list" || "$mode" == "dry-run" ]]; then
   printf 'operator-harness-ingest: mode=%s\n' "$mode"
   if [[ "$mode" == "dry-run" ]]; then
@@ -168,6 +198,7 @@ if [[ "$mode" == "list" || "$mode" == "dry-run" ]]; then
   print_folder_design "$FOLDER_1" "$FOLDER_1_PURPOSE" "${FOLDER_1_FILES[@]}"
   print_folder_design "$FOLDER_2" "$FOLDER_2_PURPOSE" "${FOLDER_2_FILES[@]}"
   print_folder_design "$FOLDER_3" "$FOLDER_3_PURPOSE" "${FOLDER_3_FILES[@]}"
+  print_folder_design "$FOLDER_4" "$FOLDER_4_PURPOSE" "${FOLDER_4_FILES[@]}"
   printf 'operator-harness-ingest: dry_run_mutates_mac=false\n'
   exit 0
 fi
@@ -207,8 +238,8 @@ esac
 test -d \"\$root\"
 test -f \"\$root/$DELTA_BRIDGE_NAME\" || { echo 'ERROR: missing adjacent delta bridge at readiness root' >&2; exit 1; }
 mkdir -p \"\$ingest\"
-rm -rf \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\"
-mkdir -p \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\"
+rm -rf \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\" \"\$ingest/$FOLDER_4\"
+mkdir -p \"\$ingest/$FOLDER_1\" \"\$ingest/$FOLDER_2\" \"\$ingest/$FOLDER_3\" \"\$ingest/$FOLDER_4\"
 "
 
   ssh "$SSH_HOST" "cat > \"\$HOME/$MAC_MIRROR_REL/$INGEST_DIR_NAME/README_DO_NOT_UPLOAD.md\"" <<EOF
@@ -341,5 +372,6 @@ prepare_ingest
 populate_folder "$FOLDER_1" "$FOLDER_1_PURPOSE" "${FOLDER_1_FILES[@]}"
 populate_folder "$FOLDER_2" "$FOLDER_2_PURPOSE" "${FOLDER_2_FILES[@]}"
 populate_folder "$FOLDER_3" "$FOLDER_3_PURPOSE" "${FOLDER_3_FILES[@]}"
+populate_folder "$FOLDER_4" "$FOLDER_4_PURPOSE" "${FOLDER_4_FILES[@]}"
 
-printf 'operator-harness-ingest: refreshed 3 folders under %s/%s\n' "~/$MAC_MIRROR_REL" "$INGEST_DIR_NAME"
+printf 'operator-harness-ingest: refreshed 4 folders under %s/%s\n' "~/$MAC_MIRROR_REL" "$INGEST_DIR_NAME"
