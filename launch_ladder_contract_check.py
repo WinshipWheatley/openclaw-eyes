@@ -1504,6 +1504,9 @@ def backend_data_contract_shape_plan_failures(
             "required record shapes are named",
             "forbidden implementation authorizations are absent",
             "state-separation phrases are preserved",
+            "locally confirmed OpenClaw 2026.4.24 CLI help surfaces are present",
+            "CLI help caveat is preserved: surfaces only, not audited internal behavior or runtime state",
+            "local OpenClaw surfaces are evidence sources for future Mission Control cards, not direct authority to execute actions",
             "unknown restricted and sensitive local-only are preserved",
             "app-facing states require evidence/freshness basis",
             "no source-set 05 generation occurs in this slice",
@@ -1526,16 +1529,78 @@ def backend_data_contract_shape_plan_failures(
     )
     _require_all(failures, plan_normalized, "backend data contract shape record shapes", record_shapes)
 
+    local_openclaw_surfaces = (
+        "Locally Confirmed OpenClaw 2026.4.24 Surfaces",
+        "local CLI path",
+        "/home/openclaw/.nvm/versions/node/v24.14.0/bin/openclaw",
+        "OpenClaw 2026.4.24",
+        "acp",
+        "tasks",
+        "memory",
+        "infer",
+        "capability",
+        "exec-policy",
+        "approvals",
+        "sessions",
+        "status",
+    )
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract shape local OpenClaw surfaces",
+        local_openclaw_surfaces,
+    )
+
+    local_openclaw_caveat = (
+        "CLI help-visible local surfaces only",
+        "does not confirm audited internal behavior",
+        "runtime state",
+        "not as direct authority to execute actions",
+    )
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract shape local OpenClaw caveat",
+        local_openclaw_caveat,
+    )
+
+    local_openclaw_mapping = (
+        "tasks -> future task/worker/flow state cards",
+        "sessions -> future conversation/session continuity cards",
+        "memory -> future knowledge/evidence/freshness surface, but not truth by itself",
+        "infer / capability -> provider-call authority boundary",
+        "exec-policy / approvals -> policy/approval state cards",
+        "acp -> agent/crew communication lane visibility",
+        "status -> system health/status evidence, without overclaiming",
+        "Local OpenClaw CLI surfaces should be treated as upstream evidence sources for future Mission Control cards, not as direct authority to execute actions",
+    )
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract shape local OpenClaw mapping",
+        local_openclaw_mapping,
+    )
+
     forbidden_authorizing_phrases = (
         "This slice implements backend",
         "This plan implements backend",
+        "Create backend/API/schema files now",
         "Create SQL DDL now",
         "Create a SQLite DB now",
         "Create ingestion scripts now",
         "Create fixtures now",
         "Call providers/models now",
+        "Run provider calls now",
+        "Inspect private data now",
+        "Inspect runtime state now",
+        "Mutate runtime now",
+        "Create SwiftUI/AppKit files now",
+        "Create audio assets now",
+        "Create haptics now",
+        "Create notifications now",
         "Name the app now",
         "Create source-set folder 05 now",
+        "Generate source-set 05 now",
         "Generate 05_ now",
     )
     for phrase in forbidden_authorizing_phrases:

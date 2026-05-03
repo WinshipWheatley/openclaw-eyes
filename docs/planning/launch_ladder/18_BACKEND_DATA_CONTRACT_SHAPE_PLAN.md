@@ -24,6 +24,37 @@ Before implementation we must inspect the actual installed/local OpenClaw versio
 
 Operator Harness / Mission Control should define operator-facing semantic contracts over upstream primitives, not blindly duplicate upstream task ledgers, task flows, memory wiki, active memory, provider inference, exec-policy, gateway dashboard, or Control UI concepts. Future implementation must first inspect actual local installed OpenClaw version/surfaces before binding to any upstream schema or CLI.
 
+### Locally Confirmed OpenClaw 2026.4.24 Surfaces
+
+Local CLI facts confirmed for this planning slice:
+
+- local CLI path: `/home/openclaw/.nvm/versions/node/v24.14.0/bin/openclaw`
+- local version string: `OpenClaw 2026.4.24 (cbcfdf6)`
+- help-visible command surfaces:
+  - `acp`: Agent Control Protocol tools
+  - `approvals`: manage exec approvals
+  - `capability`: provider-backed inference commands, fallback alias infer
+  - `exec-policy`: show or synchronize requested exec policy with host
+  - `infer`: provider-backed inference commands
+  - `memory`: search, inspect, and reindex memory files
+  - `sessions`: list stored conversation sessions
+  - `status`: show channel health and recent session recipients
+  - `tasks`: inspect durable background task state
+
+Caveat: this confirms CLI help-visible local surfaces only. It does not confirm audited internal behavior, schemas, data models, storage, security behavior, runtime state, services, private data, or whether any command is safe for a future Operator Harness to call.
+
+Planning implication: Operator Harness / Mission Control should eventually surface, interpret, gate, and explain these upstream primitives rather than duplicating them blindly. Local OpenClaw CLI surfaces should be treated as upstream evidence sources for future Mission Control cards, not as direct authority to execute actions.
+
+Future mapping language:
+
+- `tasks` -> future task/worker/flow state cards
+- `sessions` -> future conversation/session continuity cards
+- `memory` -> future knowledge/evidence/freshness surface, but not truth by itself
+- `infer` / `capability` -> provider-call authority boundary
+- `exec-policy` / `approvals` -> policy/approval state cards
+- `acp` -> agent/crew communication lane visibility
+- `status` -> system health/status evidence, without overclaiming
+
 ## 4. Contract Shape Principles
 
 - Treat readiness layer as a directed typed evidence graph.
@@ -116,6 +147,9 @@ Future static validation should prove:
 - forbidden implementation authorizations are absent
 - state-separation phrases are preserved
 - upstream prior-art alignment is present
+- locally confirmed OpenClaw 2026.4.24 CLI help surfaces are present
+- CLI help caveat is preserved: surfaces only, not audited internal behavior or runtime state
+- local OpenClaw surfaces are evidence sources for future Mission Control cards, not direct authority to execute actions
 - update monitor/review card concept is present
 - unknown restricted and sensitive local-only are preserved
 - app-facing states require evidence/freshness basis

@@ -25,6 +25,13 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 
 ## Small Updates The Chat Should Know
 
+### Locally Confirmed OpenClaw 2026.4.24 Surfaces
+
+- Backend/data-contract shape planning now distinguishes March/April 2026 public OpenClaw release prior art from locally confirmed CLI help entries for `OpenClaw 2026.4.24 (cbcfdf6)` at `/home/openclaw/.nvm/versions/node/v24.14.0/bin/openclaw`.
+- Confirmed help-visible local surfaces are `acp`, `approvals`, `capability`, `exec-policy`, `infer`, `memory`, `sessions`, `status`, and `tasks`. This confirms CLI help-visible local surfaces only, not audited internal behavior, schemas, data models, storage, security behavior, runtime state, services, or private data.
+- Mapping posture: `tasks` -> future task/worker/flow state cards; `sessions` -> future conversation/session continuity cards; `memory` -> future knowledge/evidence/freshness surface, but not truth by itself; `infer` / `capability` -> provider-call authority boundary; `exec-policy` / `approvals` -> policy/approval state cards; `acp` -> agent/crew communication lane visibility; `status` -> system health/status evidence, without overclaiming.
+- Local OpenClaw CLI surfaces should be treated as upstream evidence sources for future Mission Control cards, not as direct authority to execute actions. Operator Harness / Mission Control should eventually surface, interpret, gate, and explain these upstream primitives rather than duplicating them blindly.
+
 - Launch Ladder is the operator-facing work progression toward a North Star.
 - Source-Set Ladder is the slower ChatGPT Project context progression: `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> 04_BACKEND_DATA_CONTRACT_READINESS -> future 05/etc.`.
 - Source-set folders are not Launch Ladder steps. They are staged context packets that squeeze a specific type of planning or build value before the chat moves to the next source set.
