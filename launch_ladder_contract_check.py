@@ -1613,6 +1613,68 @@ def backend_data_contract_shape_plan_failures(
     return tuple(failures)
 
 
+def storage_and_source_registry_readiness_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "19_STORAGE_AND_SOURCE_REGISTRY_READINESS_PLAN.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"storage and source registry readiness plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "storage and source registry required elements",
+        (
+            "inventory before extraction",
+            "backup before movement",
+            "sensitive/local-only before model access",
+            "source registry before sqlite ingestion",
+            "operator approval before cleanup",
+            "no cloud model access to sensitive data by default",
+            "pc c: 246g total, 244g used",
+            "c:/openclawlegalprivate",
+            "taxes/cpa paths",
+            "pip cache",
+            "npm cache",
+            "gemini tmp",
+            "openclaw backup",
+            "windows downloads",
+            "chrome cache",
+        ),
+    )
+
+    forbidden_authorizing_phrases = (
+        "Do move",
+        "Do delete",
+        "Do rename",
+        "Do install",
+        "Do update",
+        "Do sync",
+        "Do ingest",
+        "Do scan contents",
+        "Do restructure",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "storage and source registry plan: forbidden authorizing phrase "
+                f"{phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
@@ -2284,6 +2346,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(mac_app_knowledge_source_set_failures())
     failures.extend(backend_data_contract_readiness_plan_failures())
     failures.extend(backend_data_contract_shape_plan_failures())
+    failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(

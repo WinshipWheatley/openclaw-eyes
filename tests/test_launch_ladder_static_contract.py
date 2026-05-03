@@ -26,6 +26,7 @@ from launch_ladder_contract_check import (
     UPLOAD_AUTHORITY_COMMIT,
     backend_data_contract_readiness_plan_failures,
     backend_data_contract_shape_plan_failures,
+    storage_and_source_registry_readiness_plan_failures,
     check_contract,
     first_screen_composition_failures,
     freshness_warnings,
@@ -727,4 +728,9 @@ def test_backend_data_contract_readiness_plan_is_documented():
 
 def test_backend_data_contract_shape_plan_is_documented():
     failures = backend_data_contract_shape_plan_failures()
+    assert failures == ()
+
+
+def test_storage_and_source_registry_readiness_plan_is_documented():
+    failures = storage_and_source_registry_readiness_plan_failures()
     assert failures == ()
