@@ -14,19 +14,19 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 
 | Field | Current value |
 | --- | --- |
-| Current source-set folder | `03_MAC_APP_KNOWLEDGE_SUBSTRATE` |
-| Source-set ladder position | `03_MAC_APP_KNOWLEDGE_SUBSTRATE` of the current `01 -> 02 -> 03` ladder. |
-| Source commit from latest audited `MANIFEST.md` | The generated `03_MAC_APP_KNOWLEDGE_SUBSTRATE/MANIFEST.md` is upload authority after refresh. Do not hardcode a fast-changing generation commit in this bridge. |
-| Latest repo changes since upload | Repo HEAD checked at source-set generation start: `3356656 docs(app): add mission control taste and quiet feedback specs`. The current slice generates the combined 03 ChatGPT Project source set from the Mission Control fixture contract, first-screen composition spec, taste/atmosphere spec, sound/haptics quiet feedback addendum, and Compiled Knowledge Substrate planning package. |
-| Current chat focus | Combined Mac desktop Mission Control app planning plus SQLite-backed Compiled Knowledge Substrate planning inside `03_MAC_APP_KNOWLEDGE_SUBSTRATE`. |
-| Next likely source-set folder | Future backend/data-model source set, after the 03 planning pass decides schema style, synthetic fixture promotion, operator-promotion contracts, and evidence/freshness boundaries. |
-| Full 24-file refresh needed? | Yes for the move from `02_MAC_IOS_APP_BUILD` to `03_MAC_APP_KNOWLEDGE_SUBSTRATE`; the generated 03 folder should be the baseline. |
-| Bridge-only upload enough? | No for the 03 transition itself. Bridge-only upload remains enough for small later context deltas that do not change folder purpose, membership, withheld surfaces, or manifest authority. |
+| Current source-set folder | `04_BACKEND_DATA_CONTRACT_READINESS` |
+| Source-set ladder position | `04_BACKEND_DATA_CONTRACT_READINESS` of the current `01 -> 02 -> 03 -> 04` ladder. |
+| Source commit from latest audited `MANIFEST.md` | The generated `04_BACKEND_DATA_CONTRACT_READINESS/MANIFEST.md` is upload authority after refresh. Do not hardcode a fast-changing generation commit in this bridge. |
+| Latest repo changes since upload | Repo HEAD checked at source-set generation start: `a07e98f`. Repo clean, main ahead of origin/main by 7. Proof passed: py_compile, launch_ladder_contract_check.py with known freshness warning, pytest 17 passed, git diff --check, sync apply, ingest apply. 04 file count: 24 files, 23 content files plus MANIFEST.md. 04 includes 17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md. |
+| Current chat focus | Audit 04 before using it as the next ChatGPT Project baseline. |
+| Next likely source-set folder | Next likely lane after audit: backend/data-contract shape planning, not backend implementation, schema, SQL DDL, SQLite DB creation, ingestion, fixtures, app implementation, app naming, runtime/service/approval mutation, private-data inspection, provider/model calls, or audio/haptic/notification implementation. |
+| Full 24-file refresh needed? | Yes for the move from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to `04_BACKEND_DATA_CONTRACT_READINESS`; the generated 04 folder should be the baseline. |
+| Bridge-only upload enough? | No for the 04 transition itself. Bridge-only upload remains enough for small later context deltas that do not change folder purpose, membership, withheld surfaces, or manifest authority. |
 
 ## Small Updates The Chat Should Know
 
 - Launch Ladder is the operator-facing work progression toward a North Star.
-- Source-Set Ladder is the slower ChatGPT Project context progression: `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> future backend/data-model source set -> future 04/05/etc.`.
+- Source-Set Ladder is the slower ChatGPT Project context progression: `01_CURRENT_PRODUCT_SPEC -> 02_MAC_IOS_APP_BUILD -> 03_MAC_APP_KNOWLEDGE_SUBSTRATE -> 04_BACKEND_DATA_CONTRACT_READINESS -> future 05/etc.`.
 - Source-set folders are not Launch Ladder steps. They are staged context packets that squeeze a specific type of planning or build value before the chat moves to the next source set.
 - `CHAT_STAY_UP_TO_DATE.md` is adjacent to `CHATGPT_PROJECT_INGEST_OPERATOR_HARNESS/` and should not be copied into any numbered source-set folder.
 - Each numbered folder remains exactly 23 content files plus `MANIFEST.md`, 24 upload files total.
@@ -37,7 +37,7 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - UI State Claim rules must keep profile available, packet available, approved, executed, succeeded, current/fresh, synced/tested/healthy/running, configured, observed, requested, and stale copy tied to explicit evidence.
 - Product Taste / Operator Experience Eval Spine is part of the product contract before app planning. Taste means operator trust, calm control, clear authority hierarchy, legible evidence, sparse high-confidence actions, and zero fake intelligence.
 - App planning must preserve anti-slop checks: no vague agent status, no fake intelligence language, no hidden authority/execution, no generic admin-panel energy, no chatbot slop, and no evidence-backed status copy buried too deeply to trust.
-- Active source-set baseline is now `03_MAC_APP_KNOWLEDGE_SUBSTRATE` for the combined Mac desktop Mission Control and knowledge-substrate planning pass.
+- Active source-set baseline is now `04_BACKEND_DATA_CONTRACT_READINESS` for backend/data-contract shape planning.
 - Mission Control fixture states must preserve the exact meanings of `profile_available`, `packet_available`, `launch_ready`, `approved`, `executed`, `succeeded`, `stale`, `blocked`, and `unknown`.
 - The future app may display fixture records, but it must not execute from them.
 - The knowledge-substrate planning package lives at `docs/planning/launch_ladder/knowledge_substrate/`. It is docs/test-only and prepares future SQLite-backed local memory thinking without creating a database, ingestion scripts, real file scanning, provider/model calls, app implementation, or backend/runtime implementation.
@@ -46,7 +46,7 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - Unknown means unknown; do not soften it into confidence. Sensitive and unknown content remains local-only/restricted by default.
 - The Mac mirror for this planning package should be adjacent to Operator Harness readiness at `~/OpenClaw_Watch/operator_harness_knowledge_substrate/`, not inside `~/OpenClaw_Watch/operator_harness_readiness/` and not inside any numbered 24-file source-set folder.
 - A Workspace Launch Profile that contains executable commands is malformed. Executable commands belong only in a Launch Packet or higher Launch Ladder action.
-- This transition creates the `03_MAC_APP_KNOWLEDGE_SUBSTRATE` generated source set. It does not move to backend/data-model implementation, does not create source-set folder `04`, does not create app/backend/runtime implementation, and does not authorize ingestion.
+- This transition creates the `04_BACKEND_DATA_CONTRACT_READINESS` generated source set. It does not move to backend implementation, schema, SQL DDL, SQLite DB creation, ingestion, fixtures, app implementation, app naming, runtime/service/approval mutation, private-data inspection, provider/model calls, or audio/haptic/notification implementation.
 - `Mac/iOS` is Apple-platform planning shorthand: Mac desktop app first, iOS companion later.
 - Do not refresh the Mac mirror after every small docs/test slice; batch mirror refreshes at meaningful checkpoints unless source-set membership, withheld surfaces, manifest basis, or operator upload needs change.
 
@@ -65,13 +65,18 @@ Move from `02_MAC_IOS_APP_BUILD` to `03_MAC_APP_KNOWLEDGE_SUBSTRATE` when:
 - Mission Control fixture contract, first-screen composition, taste/atmosphere, quiet feedback, and knowledge-substrate concepts are ready to combine;
 - the next useful work is a source-set planning pass that aligns app posture with compiled knowledge direction before backend/data-model or UI implementation begins.
 
-Move from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to a future backend/data-model source set when:
+Move from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to `04_BACKEND_DATA_CONTRACT_READINESS` when:
 
 - the combined 03 planning chat has decided schema style, synthetic fixture promotion, operator-promotion contracts, and evidence/freshness boundaries;
 - backend/data-model work is no longer premature;
 - app planning is blocked on formal records rather than taste, posture, or source-set context.
 
-By the end of `03_MAC_APP_KNOWLEDGE_SUBSTRATE`, the chat should propose what the next folder should contain. Candidate future folders should be justified by evidence from the first three stages, not created automatically.
+Move from `04_BACKEND_DATA_CONTRACT_READINESS` to a future source set when:
+
+- the backend/data-contract shape planning is complete;
+- the next safe step requires new implementation or schema definitions beyond planning.
+
+By the end of `04_BACKEND_DATA_CONTRACT_READINESS`, the chat should propose what the next folder should contain. Candidate future folders should be justified by evidence from the first four stages, not created automatically.
 
 ## Stale And Drift Warnings
 
@@ -86,7 +91,7 @@ By the end of `03_MAC_APP_KNOWLEDGE_SUBSTRATE`, the chat should propose what the
 
 - Do not treat the bridge as canonical authority.
 - Do not use the bridge to authorize runtime mutation, service control, provider/model calls, private-data inspection, Gmail/Telegram behavior, Hermes runtime expansion, secrets handling, vault access, logs, LegalPrivate, or installed-unit checks.
-- Do not create source-set folder `04` from this file.
+- Do not create source-set folder `05` from this file.
 - Do not replace a stale or malformed 24-file baseline with bridge text.
 
 ## Refresh Rule
