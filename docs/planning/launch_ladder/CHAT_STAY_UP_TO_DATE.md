@@ -30,6 +30,14 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - `20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md` now defines a docs/test-only, operator-approved PC storage relief packet for the `C:` crisis, low-risk cache cleanup planning, WSL relocation planning, `.wslconfig` memory policy planning, 2TB bridge-drive triage, and later sensitive-data relocation boundaries.
 - The packet does not authorize cleanup, file deletion/movement, WSL export/import/unregister, drive reformatting, `.wslconfig` edits, private-content inspection, provider/model calls, OpenClaw runtime mutation, or source-set `05` generation. Proposed commands in it are inert future examples only and require explicit operator approval before execution.
 
+### Future Lane: Receivables & Obligations Control
+
+- Future Operator Harness module: weekly upcoming auto-pulls and expected receivables. This is not the current lane; current priority remains PC storage relief execution planning / storage-source registry stabilization.
+- Receivables should have confidence scoring based on evidence: work completed, invoice created, invoice sent, delivery evidence, payment terms, expected date, and blockers.
+- The operator action should be `Raise confidence`, not a hardcoded `Make invoice` button. Later, `Raise confidence` should prepare a bounded Launch Packet: identify blocker, gather evidence, draft invoice if needed, store invoice, prepare/send email only after operator approval, file/categorize sent email, and update receivable confidence.
+- Gmail vs Apple Mail must be audited later as a Mail Dispatch Surface decision; do not hardcode either provider yet.
+- Strong boundaries: no bank login, no bank scraping, no automatic invoice sending, no Gmail/Apple Mail mutation without explicit approval, no cloud model access to sensitive financial contents by default, and no CPA/tax data access unless local-only and explicitly authorized.
+
 ### Locally Confirmed OpenClaw 2026.4.24 Surfaces
 
 - Backend/data-contract shape planning now distinguishes March/April 2026 public OpenClaw release prior art from locally confirmed CLI help entries for `OpenClaw 2026.4.24 (cbcfdf6)` at `/home/openclaw/.nvm/versions/node/v24.14.0/bin/openclaw`.
