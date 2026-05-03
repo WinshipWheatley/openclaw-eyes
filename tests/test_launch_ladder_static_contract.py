@@ -25,6 +25,7 @@ from launch_ladder_contract_check import (
     TASTE_VIBE_TESTS,
     UPLOAD_AUTHORITY_COMMIT,
     backend_data_contract_readiness_plan_failures,
+    backend_data_contract_shape_plan_failures,
     check_contract,
     first_screen_composition_failures,
     freshness_warnings,
@@ -723,3 +724,7 @@ def test_backend_data_contract_readiness_plan_is_documented():
     assert "Future fixtures synthetic only" in launch_text
     assert "No audio/haptic/notification implementation" in launch_text
     assert "Do not generate the 04 source set in this slice" in launch_text
+
+def test_backend_data_contract_shape_plan_is_documented():
+    failures = backend_data_contract_shape_plan_failures()
+    assert failures == ()

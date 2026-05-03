@@ -50,6 +50,8 @@ The `04_BACKEND_DATA_CONTRACT_READINESS` source set is the next generated ChatGP
 
 Before moving this lane from `03_MAC_APP_KNOWLEDGE_SUBSTRATE` to `04_BACKEND_DATA_CONTRACT_READINESS`, use `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md` to decide which records and contract boundaries must be formalized. That lane should still be readiness/planning: it should not create backend/API/schema files, SQL DDL, a SQLite DB, ingestion scripts, fixtures, provider/model calls, private-data inspection, runtime mutation, app naming, or audio/haptic/notification implementation.
 
+Before any schema or database implementation begins, use `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md` to define the conceptual record shapes and relationships. That lane must remain readiness/planning: it should not create backend/API/schema files, SQL DDL, a SQLite DB, ingestion scripts, fixtures, provider/model calls, private-data inspection, runtime mutation, app naming, or audio/haptic/notification implementation.
+
 ## Workspace Launch Profile Primitive
 
 Workspace Launch Profiles should become an Operator Harness primitive after the source-set and data-contract rules are stable. They are named, evidence-backed view/navigation routes that open the correct machine, folder, VS Code workspace/layout, files/tabs, and optional copied prompt for a task.

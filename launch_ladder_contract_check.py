@@ -1477,6 +1477,77 @@ def backend_data_contract_readiness_plan_failures(
     return tuple(failures)
 
 
+def backend_data_contract_shape_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"backend data contract shape plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend data contract shape required elements",
+        (
+            "18 plan exists",
+            "required record shapes are named",
+            "forbidden implementation authorizations are absent",
+            "state-separation phrases are preserved",
+            "unknown restricted and sensitive local-only are preserved",
+            "app-facing states require evidence/freshness basis",
+            "no source-set 05 generation occurs in this slice",
+        ),
+    )
+
+    record_shapes = (
+        "source file record",
+        "extracted text record",
+        "rendered fragment record",
+        "artifact classification record",
+        "claim record",
+        "contradiction record",
+        "compiled note record",
+        "freshness record",
+        "operator promotion record",
+        "conversation packet record",
+        "blocked sensitive source record",
+        "unknown/unclassified artifact record",
+    )
+    _require_all(failures, plan_normalized, "backend data contract shape record shapes", record_shapes)
+
+    forbidden_authorizing_phrases = (
+        "This slice implements backend",
+        "This plan implements backend",
+        "Create SQL DDL now",
+        "Create a SQLite DB now",
+        "Create ingestion scripts now",
+        "Create fixtures now",
+        "Call providers/models now",
+        "Name the app now",
+        "Create source-set folder 05 now",
+        "Generate 05_ now",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "backend data contract shape plan: forbidden authorizing phrase "
+                f"{phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def knowledge_substrate_package_failures(repo_root: Path = REPO_ROOT) -> tuple[str, ...]:
     failures: list[str] = []
     package_dir = repo_root / "docs" / "planning" / "launch_ladder" / "knowledge_substrate"
@@ -2138,6 +2209,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md",
             BACKEND_DATA_CONTRACT_SOURCE_SET,
             "backend data-contract record topics",
+            "backend data-contract shape plan conceptual records and relationship rules",
         ),
     )
 
@@ -2146,6 +2218,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(taste_and_quiet_feedback_failures())
     failures.extend(mac_app_knowledge_source_set_failures())
     failures.extend(backend_data_contract_readiness_plan_failures())
+    failures.extend(backend_data_contract_shape_plan_failures())
     failures.extend(knowledge_substrate_package_failures())
 
     return StaticContractReport(
