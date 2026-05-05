@@ -30,6 +30,16 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - `20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md` now defines a docs/test-only, operator-approved PC storage relief packet for the `C:` crisis, low-risk cache cleanup planning, WSL relocation planning, `.wslconfig` memory policy planning, 2TB bridge-drive triage, and later sensitive-data relocation boundaries.
 - The packet does not authorize cleanup, file deletion/movement, WSL export/import/unregister, drive reformatting, `.wslconfig` edits, private-content inspection, provider/model calls, OpenClaw runtime mutation, or source-set `05` generation. Proposed commands in it are inert future examples only and require explicit operator approval before execution.
 
+### WSL Relocation / C Drive Relief Breadcrumb
+
+- `21_WSL_RELOCATION_AND_C_DRIVE_RELIEF_BREADCRUMB.md` records the completed WSL relocation and bounded `C:` relief outcome: active runtime is now `Ubuntu-E` at `E:\WSL_Distros\Ubuntu-E\ext4.vhdx`, the temporary rollback tar is `E:\WSL_Backup\Ubuntu-before-move.tar`, `C:` free space after relief was `22.18 GB`, and `E:` free space after relocation/import was `258.14 GB`.
+- The breadcrumb is docs-only historical context. It does not authorize deleting the rollback tar, touching `E:\WSL_Distros\Ubuntu-E`, unregistering WSL distros, further Windows cleanup, cache cleanup, private-data inspection, provider/model calls, OpenClaw runtime/service changes, or broad filesystem scans.
+
+### Root Cleanup Triage Packet
+
+- `docs/planning/root_cleanup_triage/` records the completed read-only top-level root cleanup triage after WSL relocation. It classifies active-current, authority/orientation, sensitive/do-not-touch, runtime/config trace, duplicate/historical, cache/build, accidental command-fragment, and unknown paths from path names and limited metadata only.
+- The packet is docs-only and does not authorize cleanup, deletion, movement, archiving, private-data inspection, runtime/service changes, provider/model calls, Git operations, or broad filesystem scans. Any future cleanup requires metadata-only verification, a rollback plan, and explicit operator approval.
+
 ### Future Lane: Receivables & Obligations Control
 
 - Future Operator Harness module: weekly upcoming auto-pulls and expected receivables. This is not the current lane; current priority remains PC storage relief execution planning / storage-source registry stabilization.
