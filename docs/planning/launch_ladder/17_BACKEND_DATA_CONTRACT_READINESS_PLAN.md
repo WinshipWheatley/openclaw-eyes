@@ -89,7 +89,27 @@ The next readiness lane should resolve these questions before backend/schema wor
 
 If these are skipped, backend/schema/SQLite work could harden the wrong product shape.
 
-## 5. Minimum File List The Next Source Set Should Include
+## 5. World-Model / Mode-Authority Readiness
+
+Backend/data-contract readiness must now absorb `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md` before backend/schema/SQLite/UI implementation begins. This file remains the readiness plan, `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md` remains the shape-plan companion, and `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md` is the world-model addendum that updates the readiness assumptions for Operator Harness places and modes.
+
+Operator Harness places such as Bridge / Captain's View, Helm, Chart Room, Engine Room, Cargo Hold, Radio Room, Treasury / Purser's Office, Studio Bay, and Ports are not decorative UI metaphors. They imply authority scopes, allowed surfaces, context boundaries, evidence obligations, and action limits.
+
+Readiness must preserve these rules:
+
+- UI-visible does not mean actionable.
+- Mirrored does not mean canonical.
+- Synced does not mean fresh.
+- Displaying a thing in Harness does not grant Chief/Cassandra/Hermes/PI permission to act on it.
+- Records should eventually know where they may be surfaced and what authority, freshness, and evidence basis is required before display.
+
+This is conceptual readiness only. Do not define schema, SQL, APIs, migrations, ingestion code, SwiftUI/AppKit code, fixtures, or runtime behavior in this readiness plan.
+
+### Before Source-Set Generation
+
+Before generating the next backend/data-contract source set, confirm that `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`, `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`, `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`, and `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md` are included or bridged so future implementation does not build from stale backend-only assumptions.
+
+## 6. Minimum File List The Next Source Set Should Include
 
 The next source-set generation should stay 24-file-oriented: exactly 23 content files plus `MANIFEST.md` when it is actually generated.
 
@@ -121,11 +141,11 @@ Candidate minimum set:
 | `launch_ladder_contract_check.py` | Provides static contract checks. |
 | `test_launch_ladder_static_contract.py` | Provides pytest coverage for the static contract. |
 
-This candidate is 22 content files plus `MANIFEST.md`, leaving one content slot available if the generated 04 package must be exactly 23 content files. If later generation tries to include both `14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md` and `15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md`, those are lower-priority for 04 because 03 already preserved taste, sound, and app feel. Keep 04 focused on backend/data-contract readiness.
+This candidate is 22 content files plus `MANIFEST.md`, leaving one content slot available if the generated 04 package must be exactly 23 content files. After absorbing the world-model / mode-authority addendum, the first candidate for that open slot is `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, unless a later bridge includes it with Command Atlas and the PC root boundary doc. If later generation tries to include both `14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md` and `15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md`, those are lower-priority for 04 because 03 already preserved taste, sound, and app feel. Keep 04 focused on backend/data-contract readiness.
 
 This is source-set planning, not source-set generation. Do not create `04_BACKEND_DATA_CONTRACT_READINESS` in this slice.
 
-## 6. Synthetic Fixture/Data-Contract Topics To Cover Later
+## 7. Synthetic Fixture/Data-Contract Topics To Cover Later
 
 Later readiness work should cover these synthetic fixture and data-contract topics:
 
@@ -146,7 +166,7 @@ Later readiness work should cover these synthetic fixture and data-contract topi
 
 These are topics for later contracts and synthetic fixtures. This slice does not create fixture files.
 
-## 7. Static Validation Expectations To Require Later
+## 8. Static Validation Expectations To Require Later
 
 Future static validation for `04_BACKEND_DATA_CONTRACT_READINESS` should require:
 
@@ -170,7 +190,7 @@ Future static validation for `04_BACKEND_DATA_CONTRACT_READINESS` should require
 
 The current docs/test slice should validate that this plan exists, contains the required sections, names the required record topics, repeats the boundaries, recommends `04_BACKEND_DATA_CONTRACT_READINESS` next, and does not authorize implementation or source-set generation.
 
-## 8. Boundaries That Remain In Force
+## 9. Boundaries That Remain In Force
 
 Hard prohibitions for this planning slice:
 
@@ -191,7 +211,7 @@ Hard prohibitions for this planning slice:
 
 These boundaries remain in force for the plan and for any later generation prompt unless the operator explicitly authorizes a narrower next slice.
 
-## 9. Recommended Next Move
+## 10. Recommended Next Move
 
 After this artifact is committed, the next move should be source-set generation for:
 
