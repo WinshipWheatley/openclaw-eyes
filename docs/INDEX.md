@@ -41,5 +41,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [AI Working Context](./_ai/AI_WORKING_CONTEXT.md) — High-density context for agentic loading.
 
 ### Planning Packages
+- [Command Atlas / OpenClaw System Program Map](./planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md) — Top-level system-of-systems planning layer; Operator Harness is a lane/view/cockpit beneath it, not the whole system.
+- [Hermes Systems Engineering Run Mode Spec](./planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md) — Non-authoritative coherence-tuning lane with Level 1 docs-only, Level 2 metadata topology, and Level 3 approved external scout packet boundaries; not runtime, provider, MCP, messaging, private-data, source-set, or migration authority.
 - [Lane A OpenRouter Scout Backlog](./planning/OPENCLAW_LANE_A_OPENROUTER_SCOUT_BACKLOG.md) — Future-only cloud scout/overflow note for public/synthetic work; not runtime doctrine.
 - [OpenClaw Legal Planning Package](./planning/openclaw_legal/law_program/LEGAL_V1_CONTRACT_INDEX.md) — Imported planning-only material; not canonical implementation doctrine.
