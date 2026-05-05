@@ -56,6 +56,16 @@ This index should reduce context load. It should not become a place to restate e
 
 This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, or commits.
 
+### Windows Root Dependency-Map Prep
+
+1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
+2. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
+3. `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md`
+4. `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md`
+5. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+
+This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` defines the future triage/dependency-map plan, and `28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` is a template only, not the actual audit and not cleanup, migration, source-set, backend, bridge, or Operator Harness ingestion authority. Windows cleanup, migration, source-set inclusion, Operator Harness ingestion, bridge changes, and backend build-prep remain blocked until dependency mapping, private-root exclusions, owner review, and an approved move manifest exist; private roots must not enter source sets, agent browsing, provider/model context, or Operator Harness ingestion unless explicitly approved.
+
 ### Visual/UI Continuation
 
 1. `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
@@ -111,6 +121,14 @@ Use these before resuming Operator Harness implementation or broader systems-eng
 
 - `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md` - top-level Command Atlas / OpenClaw System Program map, root/data-boundary sequencing gate, lane inventory, and final calibration gate.
 - `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` - Hermes run-mode boundary with Level 1 docs-only, Level 2 metadata topology, and Level 3 approved external scout packet modes; not provider/model, MCP, messaging, runtime, queue, source-set, private-data, or migration authority.
+
+### Windows Root Boundary / Dependency Mapping
+
+Use these before preparing any Windows metadata-only audit prompt, cleanup plan, migration plan, source-set inclusion, Operator Harness ingestion, bridge change, or backend build-prep. `/home/openclaw` remains the canonical code/docs/planning repo, and Command Atlas remains the top-layer system map.
+
+- `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md` - PC/Windows private-data boundary breadcrumb.
+- `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` - future metadata-only Windows root triage/dependency-map plan.
+- `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` - dependency-map template only; not actual audit, cleanup, migration, source-set, backend, bridge, or Operator Harness ingestion authority.
 
 ### Canonical Baseline
 
