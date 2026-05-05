@@ -91,6 +91,15 @@ The real bridge is this repo-side template plus the Mac readiness-root copy at `
 - Final location should be decided by the storage/source registry architecture, not casually.
 - Future Ledger Assistant boundaries: no bank login, no bank scraping, no cloud model access to sensitive financial data by default, operator approval before any ledger mutation.
 
+### Mac-to-PC Operator Harness Import Planning
+
+- `docs/planning/launch_ladder/mac_import_planning/` contains the docs-only planning for migrating Operator Harness materials from the Mac environment (`OpenClaw_Watch`) to this repo.
+- This phase is strictly for mapping source candidates to repository destinations and establishing import priorities.
+- No files have been imported from the Mac environment during this planning phase.
+- The plan includes source/destination maps, priority sequences, and explicit "do-not-import" boundaries for sensitive/private materials.
+- A handoff prompt for the actual (authorized) import phase is located at `docs/planning/launch_ladder/mac_import_planning/06_HANDOFF_PROMPT_FOR_ACTUAL_IMPORT.md`.
+- This documentation does not authorize the actual import. Actual import requires explicit operator approval following the sequence in the planning docs.
+
 ## Source-Set Ladder Movement Criteria
 
 Move from `01_CURRENT_PRODUCT_SPEC` to `02_MAC_IOS_APP_BUILD` when:
