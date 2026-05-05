@@ -69,7 +69,33 @@ Future mapping language:
 - Sensitive/local-only must be representable without exposing content.
 - App-visible state must have evidence/freshness basis.
 
-## 5. First Conceptual Record Shapes
+## 5. Operator World / Mode-Authority Shape Guidance
+
+This plan remains a conceptual shape plan, not implementation authority. It does not define schema, SQL, migrations, APIs, fixtures, ingestion, runtime behavior, or UI code.
+
+Future backend/data-contract shapes must be able to represent the Operator Harness world-model constraints from `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, Command Atlas, and the PC root boundary breadcrumb before backend build-prep begins. The goal is to keep future builders from flattening Operator Harness into a generic task ledger when the product needs an authority-scoped operator world model.
+
+Conceptual dimensions to preserve:
+
+- `operator_place`: Bridge / Captain's View, Helm, Chart Room, Engine Room, Cargo Hold, Radio Room, Treasury / Purser's Office, Studio Bay, Ports, and Offices / Client Sites.
+- `authority_scope`: display-only, draft-only, approval-required, blocked, local-only, private-root-excluded, external-action-required, or unknown.
+- `sensitive_boundary`: public/generated, repo-docs, shared-report, legal-private, finance-private, music-law-private, or unknown/quarantine.
+- `evidence_freshness_basis`: target-scoped evidence and freshness requirements that must exist before display or action, without implying global freshness or private-content access.
+
+Non-equivalence rules to preserve:
+
+- UI-visible does not mean actionable.
+- Mirrored does not mean canonical.
+- Synced does not mean fresh.
+- Radio Room does not mean auto-send.
+- Treasury / Purser's Office does not mean bank or CPA access.
+- Engine Room does not mean service mutation.
+- Chart Room evidence display does not mean private-root browsing.
+- Displaying a record in Operator Harness does not grant Chief, Cassandra, Hermes, or PI permission to act on it.
+
+The next source set must include or bridge `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`, `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`, `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`, and `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md` before backend build-prep.
+
+## 6. First Conceptual Record Shapes
 
 - **source file record**: Represents the discovered file entity. Minimum conceptual fields: id, path, discovery timestamp, hash. Must not imply read or safe. App-facing use: discovery card.
 - **extracted text record**: Represents parsed text. Minimum conceptual fields: id, text blob, source ref, extracted timestamp. Must not imply true or semantic meaning. App-facing use: detail view.
@@ -84,7 +110,7 @@ Future mapping language:
 - **blocked sensitive source record**: Represents withheld content. Minimum conceptual fields: id, source ref, block reason. Can prove blocked existence without exposing content. App-facing use: block notice.
 - **unknown/unclassified artifact record**: Represents unsorted item. Minimum conceptual fields: id, item ref. Must not soften into confidence. App-facing use: unknown boundary warning.
 
-## 6. Relationship Rules
+## 7. Relationship Rules
 
 - extracted text references source file
 - rendered fragment references source file or extracted text
@@ -97,9 +123,10 @@ Future mapping language:
 - BlockedSensitiveSource may only be referenced through opaque or sanitized references; blocked content must not be exposed
 - UnknownArtifact must not flow directly into claims, promotions, or conversation packets
 
-## 7. App-Facing State Mapping
+## 8. App-Facing State Mapping
 
 Map records to future Mission Control/app states. This is state semantics only, not UI implementation.
+
 - ready: Preconditions met for review.
 - blocked: Action or data withheld.
 - stale: Freshness constraint failed.
@@ -110,7 +137,7 @@ Map records to future Mission Control/app states. This is state semantics only, 
 - contradiction present: Requires resolution.
 - packet prepared: Ready for transmission.
 
-## 8. Upstream Update Monitor / OpenClaw Update Review Card
+## 9. Upstream Update Monitor / OpenClaw Update Review Card
 
 Operator Harness should monitor OpenClaw releases, changelogs, security advisories, and relevant ecosystem updates.
 New updates should appear as evidence-backed update cards.
@@ -119,7 +146,7 @@ Recommended card actions: Ignore, Monitor, Research, Create sandbox test packet,
 “OpenClaw upstream updates should be represented as evidence-backed update cards with impact analysis and operator-approved Launch Packets, not silent background changes.”
 The card can recommend, the operator approves, the system prepares a Launch Packet, and execution remains separate.
 
-## 9. Failure Modes / Laundering Risks
+## 10. Failure Modes / Laundering Risks
 
 - classification laundering
 - compilation laundering
@@ -131,17 +158,20 @@ The card can recommend, the operator approves, the system prepares a Launch Pack
 - source-existence bias
 - local-only leakage
 - packet authority illusion
+- generic task ledger replacing authority-scoped operator-world modeling
 
-## 10. Future Fixture Topics
+## 11. Future Fixture Topics
 
 Synthetic fixture topics for the future (this artifact does not create fixtures):
+
 - valid synthetic source
 - contradiction scenario
 - stale freshness record
 
-## 11. Future Static Validation Expectations
+## 12. Future Static Validation Expectations
 
 Future static validation should prove:
+
 - 18 plan exists
 - required record shapes are named
 - forbidden implementation authorizations are absent
@@ -151,13 +181,16 @@ Future static validation should prove:
 - CLI help caveat is preserved: surfaces only, not audited internal behavior or runtime state
 - local OpenClaw surfaces are evidence sources for future Mission Control cards, not direct authority to execute actions
 - update monitor/review card concept is present
+- operator_place, authority_scope, sensitive_boundary, and evidence/freshness basis concepts are preserved as conceptual shape guidance only
 - unknown restricted and sensitive local-only are preserved
 - app-facing states require evidence/freshness basis
 - no source-set 05 generation occurs in this slice
 
-## 12. Recommended Next Move
+## 13. Recommended Next Move
 
 Recommend either:
+
 - one more docs/test planning slice for synthetic fixture design, or
 - source-set generation for future 05 only after the 18 plan is committed and audited
+
 Do not recommend implementation yet.
