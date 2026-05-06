@@ -35,7 +35,7 @@ Current canonical posture:
 - Mac mirror surfaces may contain valuable imported planning packets, but they do not override PC WSL repo state.
 - Deployment/bridge docs constrain future implementation but do not authorize runtime changes.
 - Agentic hardening docs constrain process but do not authorize implementation.
-- Command Atlas docs frame the system program layer and Hermes systems-engineering prep, but do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, or commits.
+- Command Atlas docs frame the system program layer, external communication judgment lane, and Hermes systems-engineering prep, but do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, external sending, relationship automation, or commits.
 - `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md` updates earlier generic dashboard/card assumptions toward Bridge/Captain's View, Helm, Chart Room, Engine Room, and authority-scope/place language.
 - If another local planning artifact shares a numeric prefix, do not renumber files from this index. Use filenames and categories, not numeric prefix alone, as authority.
 
@@ -49,12 +49,22 @@ This index should reduce context load. It should not become a place to restate e
 
 1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
 2. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md`
-3. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
-4. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
-5. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
-6. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+3. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md`
+4. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
+5. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
+6. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
+7. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
 
-This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, or commits.
+This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, external sending, relationship automation, or commits.
+
+### External Communications / Relationship Judgment Prep
+
+1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
+2. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md`
+3. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` if signal-transfer or tone/phase critique is needed.
+4. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+
+This read order is for external-facing communication judgment planning only. It may support drafts, summaries, risk notes, recommended response posture, and escalation recommendations; it does not authorize sending, legal or financial advice, private-data disclosure, authority transfer, automatic relationship decisions, provider/model calls, MCP invocation, Hermes runs, messaging bridge activation, runtime work, or commits.
 
 ### Windows Root Dependency-Map Prep
 
@@ -124,6 +134,7 @@ Use these before resuming Operator Harness implementation or broader systems-eng
 
 - `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md` - top-level Command Atlas / OpenClaw System Program map, root/data-boundary sequencing gate, lane inventory, and final calibration gate.
 - `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` - Hermes run-mode boundary with Level 1 docs-only, Level 2 metadata topology, and Level 3 approved external scout packet modes; not provider/model, MCP, messaging, runtime, queue, source-set, private-data, or migration authority.
+- `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md` - external-facing communication judgment lane for customer, client, venue, contractor, friend-of-system, outside-circle, and relationship-risk interactions; defines tone-reading, bounded promises, disclosure restraint, escalation, reputation, and role-separation criteria without granting send, legal/financial advice, private-data disclosure, authority-transfer, or relationship-automation authority.
 
 ### Windows Root Boundary / Dependency Mapping
 
@@ -227,7 +238,7 @@ Do not treat mirror paths as runtime truth, live bridge state, source of authori
 - Visual packets can guide taste, metaphor, and source-set planning, but they do not authorize SwiftUI/AppKit, backend, schema, ingestion, bridge, or runtime changes.
 - Deployment docs can define constraints and future specs, but they do not authorize moving nodes, starting services, editing launchers, changing storage, or modifying bridge behavior.
 - Agentic hardening docs can constrain process, but they do not authorize package/build configuration work or tool implementation.
-- Command Atlas and Hermes systems-engineering docs can guide calibration, critique, and sequencing, but they do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, or commits.
+- Command Atlas, external communication judgment, and Hermes systems-engineering docs can guide calibration, critique, sequencing, drafts, risk notes, and escalation recommendations, but they do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, external sending, relationship automation, or commits.
 - Local-model benchmark docs can inform Hardware Fit Analyzer and PI Local experiment planning only; they do not authorize model install, llama.cpp/Ollama/LM Studio runtime changes, Chief/Cassandra/PI production routing, service changes, or sensitive-data processing.
 
 When in doubt, read the narrow task-specific stack first, then stop and ask what implementation authority is actually present.

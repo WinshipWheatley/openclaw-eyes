@@ -56,6 +56,7 @@ Current Command Atlas lanes include:
 - Legal discovery app: a legal-workflow lane with its own private-root implications and app-surface needs.
 - Chief: the command, approval, routing, and executive synthesis lane, bounded by existing OpenClaw authority policy.
 - Cassandra: the briefing, outreach, context, and relationship-intelligence lane, bounded by contact and data policies.
+- External Communications / Relationship Judgment: the external-facing judgment lane for customer, client, venue, contractor, friend-of-system, outside-circle, and other relationship-sensitive interactions; it handles tone-reading, reputation, boundary, escalation, and promise-control doctrine without granting send or execution authority.
 - Guardian: the safety, policy, and protective oversight lane.
 - Hermes: the messaging, delivery, bridge, or transport-adjacent lane where applicable, without making transport equal authority.
 - Future PI / local-private assistant lane: a privacy-sensitive personal-intelligence lane that may use local models only after separate fit, data, and routing approval.
@@ -98,6 +99,7 @@ Known distortions that can mislead future work:
 - Treating runtime, log, state, bin, and config folders as cleanup candidates before dependency mapping.
 - Treating Mac private roots as mirror or staging surfaces without documenting their distinct legal, finance, and music-law roles.
 - Treating an enabled SSH account as either approved infrastructure or disposable residue without a separate audit.
+- Treating Cassandra voice styling as sufficient external-communication judgment without separate risk, evidence, escalation, reputation, and promise-control checks.
 - Treating local model benchmark planning as production PI routing authority.
 - Treating bridge visibility, mirrored files, or UI display as proof of freshness, canon, or authority.
 
@@ -180,6 +182,7 @@ This artifact does not authorize:
 - treating `C:\OpenClawShared` as safe shared storage;
 - treating `C:\OpenClaw` as canonical;
 - treating local model benchmark docs as production routing authority;
+- sending external communications or automating relationship decisions;
 - committing changes.
 
 It only records the current system-program map and the corrected sequencing boundary.

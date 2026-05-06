@@ -90,6 +90,7 @@
 !docs/planning/command_atlas/
 !docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md
 !docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md
+!docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md
 !docs/planning/openclaw_legal/
 !docs/planning/openclaw_legal/law_program/
 !docs/planning/openclaw_legal/law_program/**/*.md
