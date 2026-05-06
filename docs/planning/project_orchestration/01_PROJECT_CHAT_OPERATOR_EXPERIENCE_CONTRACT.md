@@ -286,7 +286,19 @@ Say when the work is safe to commit, not ready, or should stop and hand off.
 
 Give serial instructions one clear step at a time.
 
-Avoid "if you want X, do X" as the default. Recommend the best next move. Present options only when the operator truly needs to choose, with concise ELI5.
+**Best-Practice Framing Rule:** When the best-practice next step is clear and already inside the established authority boundary, recommend it directly. Do not hedge with "if you want" or ask the operator to choose unless the decision is genuinely governance-sensitive, irreversible, broad-scope, costly, private-data-related, external-facing, or otherwise requires operator authority.
+
+**Hardening -> Polish -> Taste Cadence:**
+- Continue hardening until there are no concrete safety, correctness, boundary, schema, or validation gaps left in the lane.
+- When the hardening road is visibly ending, shift directly into polish mode without asking permission, as long as the work remains inside the established scope and authority boundary.
+- After polish, perform up to 3 taste passes maximum. Taste passes may improve naming, clarity, doc phrasing, test readability, and operator comprehension only; they must not broaden scope, add new authority, or introduce new implementation lanes.
+
+**Productive-Next-Step Rule:**
+- If the next step produces code, tests, a real planning boundary, or a decision that unlocks the next build phase, do it.
+- If the next step mainly makes docs feel tidier, skip it unless a new chat would be materially misled.
+- Do not stop active build progress merely to encode every operating preference immediately.
+- Capture only rules that prevent real failure, confusion, authority drift, or materially bad next-chat handoff.
+- Cosmetic doc tidying should wait for packet regeneration, archive/regeneration, or a dedicated doctrine/pass.
 
 ## 12. Prompt Hygiene
 

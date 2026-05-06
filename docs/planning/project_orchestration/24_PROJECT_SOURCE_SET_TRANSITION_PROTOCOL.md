@@ -138,6 +138,8 @@ The section must explicitly distinguish:
 
 The ledger must be updated after each completed slice so stale 'cleared for implementation' language does not survive after the implementation has already landed.
 
+**Handoff Update Cadence:** Update active handoff files only for important milestones: completed/pushed implementation slices, test-hardening clusters, phase transitions, changed next baselines, or new-chat handoff needs. Do not churn handoffs for micro-steps.
+
 Update the handoff when chat context gets long, then generate the next-chat prompt.
 
 ## 5. Repo Truth Rule
@@ -291,6 +293,8 @@ Before repo-side reorganization:
 - run tests;
 - inspect diffs;
 - commit only if clean.
+
+**Batch Checkpoint Cadence:** Do not commit/push after every tiny slice by default. Prefer batching related hardening steps into a bounded cluster, reviewing the combined diff, running validation once, then committing/pushing once as a meaningful checkpoint. Commit/push immediately only when the work reaches a real rollback point, phase boundary, external handoff point, or safety/governance boundary.
 
 No broad cleanup.
 
