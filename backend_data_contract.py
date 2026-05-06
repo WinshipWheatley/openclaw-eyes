@@ -1,4 +1,4 @@
-"""Pure semantic vocabulary for the first backend/data-contract slice.
+"""Pure semantic contract spine for backend/data-contract slices.
 
 This module defines contract labels and guards only. It contains no CLI, DB,
 SQLite, API, MCP, provider/model, ingestion, indexing, embedding, source-set,
@@ -774,6 +774,12 @@ def classify_semantic_record(record: SemanticRecordProposal) -> ContractDecision
         return ContractDecision.UNKNOWN
     if layer is KnowledgeLayer.WRITE_BACK_CAPTURE and missing_write_back_capture_labels(
         record.labels
+    ):
+        return ContractDecision.UNKNOWN
+    if (
+        layer is KnowledgeLayer.WRITE_BACK_CAPTURE
+        and state is ContractState.CONFIRMED_WITH_RECEIPT
+        and not record.promoted_by_operator
     ):
         return ContractDecision.UNKNOWN
     return ContractDecision.ALLOWED

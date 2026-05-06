@@ -128,7 +128,7 @@ def test_record_state_classifier_preserves_allowed_unknown_and_excluded_results(
     assert classify_record_state("new mystery layer", "confirmed") is ContractDecision.UNKNOWN
 
 
-def test_write_back_capture_requires_contract_labels_before_allowed():
+def test_write_back_capture_requires_labels_and_promotion_before_allowed():
     partial_labels = {
         ContractLabel.PROVENANCE,
         ContractLabel.FRESHNESS,
@@ -148,6 +148,15 @@ def test_write_back_capture_requires_contract_labels_before_allowed():
             ContractState.CONFIRMED_WITH_RECEIPT,
             labels=partial_labels,
             promoted_by_operator=True,
+        )
+        is ContractDecision.UNKNOWN
+    )
+
+    assert (
+        classify_record_state(
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+            labels=REQUIRED_WRITE_BACK_CAPTURE_LABELS,
         )
         is ContractDecision.UNKNOWN
     )
@@ -554,6 +563,47 @@ def test_legal_tax_and_music_families_do_not_authorize_private_or_provider_use()
     assert legal_private.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
     assert tax_private.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
     assert music_provider.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+
+
+def test_operator_life_families_stay_bounded_by_authority():
+    project = validate_entity_family_record(
+        EntityFamily.PROJECT,
+        KnowledgeLayer.RAW,
+        ContractState.CONFIRMED,
+        labels=FULL_LABELS,
+        proposed_use="track travel logistics and ordinary-life admin for operator review",
+    )
+    follow_up = validate_entity_family_record(
+        EntityFamily.FOLLOW_UP_ACTION,
+        KnowledgeLayer.COMPILED_WIKI,
+        ContractState.DRAFT,
+        labels=FULL_LABELS,
+        proposed_use="prepare a next safe action for operator review",
+    )
+    blocker = validate_entity_family_record(
+        EntityFamily.BLOCKER,
+        KnowledgeLayer.RELATIONSHIP,
+        ContractState.BLOCKED,
+        labels=FULL_LABELS,
+    )
+    forbidden_project = validate_entity_family_record(
+        EntityFamily.PROJECT,
+        KnowledgeLayer.RAW,
+        ContractState.CONFIRMED,
+        labels=FULL_LABELS,
+        proposed_use="provider model call for private-root inspection",
+    )
+
+    assert project.ok is True
+    assert follow_up.ok is True
+    assert blocker.decision is ContractDecision.EXCLUDED
+    assert is_entity_record_accepted_knowledge(
+        EntityFamily.BLOCKER,
+        KnowledgeLayer.RELATIONSHIP,
+        ContractState.BLOCKED,
+        labels=FULL_LABELS,
+    ) is False
+    assert forbidden_project.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
 
 
 def test_synthesis_family_is_not_accepted_truth_by_default():
