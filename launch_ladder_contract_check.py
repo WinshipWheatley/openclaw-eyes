@@ -94,6 +94,20 @@ BACKEND_DATA_CONTRACT_SOURCE_SET = "04_BACKEND_DATA_CONTRACT_READINESS"
 BACKEND_DATA_CONTRACT_PLAN = (
     LAUNCH_LADDER_DIR / "17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md"
 )
+SOURCE_SET_BRIDGE_DIR = LAUNCH_LADDER_DIR / "source_set_bridges"
+OPERATOR_NORTH_STAR_MACHINE_CONTRACT = (
+    SOURCE_SET_BRIDGE_DIR / "operator_north_star_machine_contract_20260505.md"
+)
+BACKEND_DATA_CONTRACT_SEMANTIC_CONTRACT_MATRIX = (
+    SOURCE_SET_BRIDGE_DIR / "backend_data_contract_semantic_contract_matrix_20260505.md"
+)
+BACKEND_DATA_CONTRACT_IMPLEMENTATION_READINESS_CHECKLIST = (
+    SOURCE_SET_BRIDGE_DIR / "backend_data_contract_implementation_readiness_checklist_20260505.md"
+)
+BACKEND_DATA_CONTRACT_FIRST_IMPLEMENTATION_SLICE_READINESS = (
+    SOURCE_SET_BRIDGE_DIR
+    / "backend_data_contract_first_implementation_slice_readiness_20260505.md"
+)
 BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
     "source file record",
     "extracted text record",
@@ -136,6 +150,33 @@ BACKEND_DATA_CONTRACT_BOUNDARIES = (
     "Do not mutate runtime, services, approvals, Guardian, Hermes, Telegram, or Gmail",
     "Do not create audio assets, haptics, notifications, sound behavior, or sound settings UI",
     "Do not name the app or invent product names, codenames, mascots, slogans, logos, or brand identity",
+)
+BACKEND_DATA_CONTRACT_BOUNCE_CLASSIFICATIONS = (
+    "Confirmed",
+    "Additive",
+    "Corrective",
+    "Conflicting",
+    "Out of scope",
+)
+BACKEND_DATA_CONTRACT_FIELD_BUNDLES = (
+    "Identity",
+    "Evidence",
+    "Freshness",
+    "Provenance",
+    "Authority",
+    "Sensitivity",
+    "Operator surface",
+    "State",
+    "Context filter",
+)
+BACKEND_DATA_CONTRACT_STATIC_GATE_DOCS = (
+    "operator_north_star_machine_contract_20260505.md",
+    "backend_data_contract_semantic_contract_matrix_20260505.md",
+    "backend_data_contract_implementation_readiness_checklist_20260505.md",
+    "backend_data_contract_first_implementation_slice_readiness_20260505.md",
+    "04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md",
+    "04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md",
+    "30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md",
 )
 TASTE_REQUIRED_SECTIONS = (
     "Taste thesis",
@@ -1613,6 +1654,168 @@ def backend_data_contract_shape_plan_failures(
     return tuple(failures)
 
 
+def backend_data_contract_first_implementation_slice_readiness_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    bridge_dir = repo_root / "docs" / "planning" / "launch_ladder" / "source_set_bridges"
+    plan_path = (
+        bridge_dir / "backend_data_contract_first_implementation_slice_readiness_20260505.md"
+    )
+    north_star_path = bridge_dir / "operator_north_star_machine_contract_20260505.md"
+
+    if not plan_path.is_file():
+        return (f"backend first implementation slice readiness: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend first implementation slice readiness required gates",
+        (
+            "Backend Data Contract First Implementation Slice Readiness",
+            "first safe future backend/data-contract implementation slice is static semantic-contract enforcement",
+            "durable semantic contract matrix",
+            "implementation-readiness checklist",
+            "source-set 04 bridge",
+            "source-set 04 manifest",
+            "Command Atlas context-filter doctrine",
+            "doc 30's exclusion/classification-only rule for docs 26/27/28/29",
+            "Private roots and private-data surfaces",
+            "separate future implementation prompt",
+            "Exact Future Allowed Edit Paths",
+            "launch_ladder_contract_check.py",
+            "tests/test_launch_ladder_static_contract.py",
+            "docs/testing/VALIDATION_MAP.md",
+            "Forbidden actions remain",
+            "Required Future Validation Receipts",
+            "python3 launch_ladder_contract_check.py",
+            "pytest tests/test_launch_ladder_static_contract.py",
+            "python3 -m py_compile launch_ladder_contract_check.py",
+        ),
+    )
+
+    if not north_star_path.is_file():
+        failures.append(
+            f"backend first implementation slice North Star alignment: missing {north_star_path}"
+        )
+    else:
+        north_star_normalized = normalize(f"{plan_text}\n\n{_read_text(north_star_path)}")
+        _require_all(
+            failures,
+            north_star_normalized,
+            "backend first implementation slice North Star alignment",
+            (
+                "Operator North Star Machine Contract",
+                "Backend/Data-Contract Gates Preserved",
+                "receivables/chase-money steel thread",
+                "durable backend/data-contract semantic contract matrix remains the semantic gate",
+                "implementation-readiness checklist remains the gate before any separate backend/data-contract implementation prompt",
+                "Command Atlas context-filter doctrine remains required",
+                "docs 26/27/28/29 remain exclusion/classification-only through doc 30",
+            ),
+        )
+
+    return tuple(failures)
+
+
+def backend_data_contract_semantic_contract_matrix_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    matrix_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "source_set_bridges"
+        / "backend_data_contract_semantic_contract_matrix_20260505.md"
+    )
+
+    if not matrix_path.is_file():
+        return (f"backend semantic contract matrix: missing {matrix_path}",)
+
+    matrix_text = _read_text(matrix_path)
+    matrix_normalized = normalize(matrix_text)
+
+    _require_all(
+        failures,
+        matrix_normalized,
+        "backend semantic contract matrix required gates",
+        (
+            "Backend Data Contract Semantic Contract Matrix",
+            "Conceptual Field Bundles",
+            "Semantic Entity Matrix",
+            "Allowed State Vocabulary",
+            "confirmed",
+            "inferred",
+            "excluded",
+            "unknown",
+            "Authority And Sensitivity Boundaries",
+            "evidence/freshness/provenance",
+            "Source Category Matrix",
+            "Future Implementation Handoff Requirements",
+            "Bounce-Rule Classification",
+            "does not implement backend/API/schema/SQLite/ingestion/fixtures/runtime/app code",
+        ),
+    )
+    _require_all(
+        failures,
+        matrix_normalized,
+        "backend semantic contract matrix field bundles",
+        BACKEND_DATA_CONTRACT_FIELD_BUNDLES,
+    )
+
+    return tuple(failures)
+
+
+def backend_data_contract_implementation_readiness_checklist_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    checklist_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "source_set_bridges"
+        / "backend_data_contract_implementation_readiness_checklist_20260505.md"
+    )
+
+    if not checklist_path.is_file():
+        return (f"backend implementation-readiness checklist: missing {checklist_path}",)
+
+    checklist_text = _read_text(checklist_path)
+    checklist_normalized = normalize(checklist_text)
+
+    _require_all(
+        failures,
+        checklist_normalized,
+        "backend implementation-readiness checklist required gates",
+        (
+            "Backend Data Contract Implementation-Readiness Checklist",
+            "Durable Bounce Rule",
+            "The comparison must classify the new idea as one of",
+            "A future backend/data-contract implementation prompt may be drafted only after every gate",
+            "separate prompt explicitly authorizes implementation scope",
+            "Source-set 04 bridge",
+            "Context-filter receipt",
+            "Sensitivity/private-data",
+            "26/27/28/29 handling",
+        ),
+    )
+    _require_all(
+        failures,
+        checklist_normalized,
+        "backend implementation-readiness checklist classifications",
+        BACKEND_DATA_CONTRACT_BOUNCE_CLASSIFICATIONS,
+    )
+
+    return tuple(failures)
+
+
 def storage_and_source_registry_readiness_plan_failures(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[str, ...]:
@@ -2525,6 +2728,11 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             BACKEND_DATA_CONTRACT_SOURCE_SET,
             "backend data-contract record topics",
             "backend data-contract shape plan conceptual records and relationship rules",
+            "backend semantic contract matrix",
+            "backend implementation-readiness checklist",
+            "backend first implementation slice readiness",
+            "source-set 04 context-filter freshness bridge",
+            "doc 30 exclusion/classification-only handling",
             "20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md",
             "PC storage relief launch-packet plan",
         ),
@@ -2536,6 +2744,9 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(mac_app_knowledge_source_set_failures())
     failures.extend(backend_data_contract_readiness_plan_failures())
     failures.extend(backend_data_contract_shape_plan_failures())
+    failures.extend(backend_data_contract_first_implementation_slice_readiness_failures())
+    failures.extend(backend_data_contract_semantic_contract_matrix_failures())
+    failures.extend(backend_data_contract_implementation_readiness_checklist_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(pc_storage_relief_launch_packet_plan_failures())
     failures.extend(knowledge_substrate_package_failures())

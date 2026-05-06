@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from launch_ladder_contract_check import (
     ACTIVE_SOURCE_SET,
     BACKEND_DATA_CONTRACT_RECORD_TOPICS,
@@ -24,7 +29,10 @@ from launch_ladder_contract_check import (
     TASTE_REQUIRED_SECTIONS,
     TASTE_VIBE_TESTS,
     UPLOAD_AUTHORITY_COMMIT,
+    backend_data_contract_first_implementation_slice_readiness_failures,
+    backend_data_contract_implementation_readiness_checklist_failures,
     backend_data_contract_readiness_plan_failures,
+    backend_data_contract_semantic_contract_matrix_failures,
     backend_data_contract_shape_plan_failures,
     pc_storage_relief_launch_packet_plan_failures,
     storage_and_source_registry_readiness_plan_failures,
@@ -726,6 +734,48 @@ def test_backend_data_contract_readiness_plan_is_documented():
     assert "Future fixtures synthetic only" in launch_text
     assert "No audio/haptic/notification implementation" in launch_text
     assert "Do not generate the 04 source set in this slice" in launch_text
+
+
+def test_backend_data_contract_static_gate_artifacts_are_documented():
+    assert backend_data_contract_first_implementation_slice_readiness_failures() == ()
+    assert backend_data_contract_semantic_contract_matrix_failures() == ()
+    assert backend_data_contract_implementation_readiness_checklist_failures() == ()
+
+    corpus = load_corpus()
+    validation_text = corpus.validation_map_text
+    for phrase in (
+        "backend semantic contract matrix",
+        "backend implementation-readiness checklist",
+        "backend first implementation slice readiness",
+        "source-set 04 context-filter freshness bridge",
+        "doc 30 exclusion/classification-only handling",
+    ):
+        assert phrase in validation_text
+
+
+def test_backend_data_contract_static_gate_checks_fail_closed_when_artifacts_missing(tmp_path):
+    for checker in (
+        backend_data_contract_first_implementation_slice_readiness_failures,
+        backend_data_contract_semantic_contract_matrix_failures,
+        backend_data_contract_implementation_readiness_checklist_failures,
+    ):
+        failures = checker(tmp_path)
+        assert failures
+        assert "missing" in failures[0]
+
+
+def test_backend_data_contract_static_gate_checks_are_part_of_main_contract(monkeypatch):
+    sentinel = "backend semantic gate sentinel failure"
+
+    monkeypatch.setitem(
+        check_contract.__globals__,
+        "backend_data_contract_semantic_contract_matrix_failures",
+        lambda: (sentinel,),
+    )
+
+    report = check_contract()
+    assert sentinel in report.failures
+
 
 def test_backend_data_contract_shape_plan_is_documented():
     failures = backend_data_contract_shape_plan_failures()
