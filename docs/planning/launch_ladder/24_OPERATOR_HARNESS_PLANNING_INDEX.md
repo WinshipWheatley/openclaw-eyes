@@ -91,9 +91,13 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 1. `docs/planning/launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`
 2. `docs/planning/launch_ladder/18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`
 3. `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
-4. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
-5. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
-6. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
+4. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
+5. `docs/planning/launch_ladder/source_set_bridges/04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md` before using `04_BACKEND_DATA_CONTRACT_READINESS` for backend implementation readiness, source-set use, agent/build-loop packets, or context-package generation.
+6. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
+7. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
+8. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
+
+This read order is planning/readiness only. The committed `04_BACKEND_DATA_CONTRACT_READINESS` source set remains useful, but it is not enough by itself after `38294f9`; consuming contexts must include or explicitly bridge the Context Development Lifecycle / Context Filter doctrine and must not authorize backend implementation, ingestion, SQLite, indexing, embeddings, extraction, chunking, provider/model calls, Hermes, MCPs, source-set regeneration, private-root browsing, or runtime work.
 
 ### Deployment/Portability Continuation
 
@@ -193,6 +197,7 @@ Use these as the baseline planning package. Do not heavily rewrite them unless a
 Use these when baseline docs are too generic, stale, or missing the bridge/source-set nuance.
 
 - `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
+- `docs/planning/launch_ladder/source_set_bridges/04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md` - freshness bridge requiring the post-`38294f9` Context Development Lifecycle / Context Filter doctrine before `04_BACKEND_DATA_CONTRACT_READINESS` is used for backend implementation readiness, source-set use, agent/build-loop packets, or context-package generation.
 - `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
 - `docs/planning/launch_ladder/source_set_bridges/operator_harness_visual_import_freshness_bridge_20260505.md`
 

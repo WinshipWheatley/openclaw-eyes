@@ -18,6 +18,16 @@ It exists to preserve the current backend/data-contract readiness inputs, concep
 
 This source set does not authorize backend implementation, API implementation, schema implementation, SQL DDL, SQLite database creation, fixture generation, ingestion, FTS, indexing, embeddings, chunking, extraction, runtime activation, provider/model use, MCP use, Hermes runs, sync, cleanup, migration, private-root browsing, app implementation, GitHub workflow creation, Claude tooling, or source-set expansion.
 
+## Freshness Bridge Required After `38294f9`
+
+This committed source set remains useful, but it is not sufficient by itself for backend implementation readiness after `38294f9 docs(command-atlas): add context lifecycle doctrine`.
+
+The source set was generated before `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md` existed. Any future backend implementation prompt, backend/data-contract source-set use, agent/build-loop packet, or context-package generation that relies on this source set must include or explicitly bridge that Command Atlas doctrine through `../../source_set_bridges/04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md`.
+
+The required correction is conceptual provenance, not source-set regeneration: context artifacts are first-class engineered inputs; source-set manifests and freshness docs are context provenance; context filters must block private-root leakage, stale assumptions, authority inflation, prompt injection, source-set laundering, overbroad tools, hidden execution instructions, and implied provider/model, Hermes, MCP, runtime, ingestion, SQLite, indexing, extraction, chunking, or service activation.
+
+This bridge does not authorize backend implementation, ingestion, SQLite, FTS, indexing, embeddings, chunking, extraction, provider/model calls, Hermes, MCPs, source-set regeneration, private-root browsing, app implementation, or runtime work.
+
 ## Direct Inputs Included
 
 The following files are direct inputs copied into this source set:
@@ -81,6 +91,8 @@ This source set excludes:
 This source set becomes stale when:
 
 - any direct input listed above changes;
+- `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md` changes or is omitted from a consuming backend/data-contract implementation packet;
+- `../../source_set_bridges/04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md` changes or is omitted when this source set is used after `38294f9`;
 - `04_BACKEND_DATA_CONTRACT_READINESS` file membership changes;
 - `26`, `27`, `28`, `29`, or `30` changes in a way that affects private-root exclusion or backend source-set guidance;
 - backend/data-contract record topics change;
@@ -95,6 +107,9 @@ Future review of this source set should confirm:
 
 - there are exactly 24 files: this manifest plus 23 content files;
 - copied files match the named source inputs at the source commit/checkpoint unless a later manifest refresh says otherwise;
+- any post-`38294f9` backend implementation prompt, source-set use, agent/build-loop packet, or context-package generation includes or explicitly bridges the Context Development Lifecycle / Context Filter doctrine;
+- manifests and freshness docs are treated as context provenance, not boilerplate;
+- context filters block private-root leakage, stale assumptions, authority inflation, prompt injection, source-set laundering, overbroad tools, hidden execution instructions, and implied runtime/provider/Hermes/MCP/ingestion/SQLite/indexing/extraction/chunking authority;
 - 26/27/28/29 remain bridged exclusion-only inputs through 30;
 - no private-root content, runtime/log/state/config content, provider/model prompt, MCP context, Hermes output, sync output, generated runtime artifact, or private Windows/Mac content is present;
 - all backend/data-contract work remains planning/readiness only until separately authorized.
