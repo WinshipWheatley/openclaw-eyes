@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import backend_sqlite_runtime as runtime
 from backend_sqlite_runtime import (
     create_in_memory_connection,
     sqlite_runtime_table_columns,
@@ -106,6 +107,40 @@ def test_create_in_memory_connection_creates_no_database_file(tmp_path, monkeypa
         connection.close()
 
     assert tuple(tmp_path.iterdir()) == ()
+
+
+def test_create_in_memory_connection_uses_memory_database_only():
+    connection = create_in_memory_connection()
+    try:
+        database_rows = connection.execute("PRAGMA database_list").fetchall()
+    finally:
+        connection.close()
+
+    assert database_rows == [(0, "main", "")]
+
+
+def test_create_in_memory_connection_closes_connection_on_schema_failure(monkeypatch):
+    real_connect = runtime.sqlite3.connect
+    connections = []
+
+    def tracking_connect(database_name):
+        connection = real_connect(database_name)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(runtime.sqlite3, "connect", tracking_connect)
+    monkeypatch.setattr(
+        runtime,
+        "sqlite_schema_sql_definitions",
+        lambda: ("CREATE TABLE ok_table (id TEXT PRIMARY KEY);", "BROKEN SQL"),
+    )
+
+    with pytest.raises(Exception):
+        create_in_memory_connection()
+
+    assert len(connections) == 1
+    with pytest.raises(runtime.sqlite3.ProgrammingError):
+        connections[0].execute("SELECT 1")
 
 
 def test_all_static_schema_tables_exist_in_runtime_connection():
