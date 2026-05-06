@@ -64,6 +64,11 @@
 !docs/planning/
 !docs/planning/project_orchestration/
 !docs/planning/project_orchestration/*.md
+!docs/planning/project_packets/
+!docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/
+!docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/*.md
+!docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/
+!docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/*.md
 !docs/planning/launch_ladder/
 !docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md
 !docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md
@@ -344,6 +349,7 @@
 !scripts/install_openclaw_stack.sh
 !scripts/run_legal_pipeline_v0.sh
 !scripts/demo_legal_synthetic_stress_pack.py
+!scripts/sync_project_packets_to_mac.sh
 !legal/
 !legal/alternative_methods.py
 !legal/local_capability_policy.py
