@@ -311,6 +311,24 @@ Give serial instructions one clear step at a time.
 - Agents should finish the bounded lane when appropriate: build, harden, polish, taste-pass up to 3, validate, and report.
 - Handoffs/commits should happen at meaningful checkpoints, not every micro-step.
 
+## 11B. Audit-to-Execution Rule
+
+When a coder/agent is asked to audit a lane and determine the next move, do not stop at recommendation when the next move is clear and authorized. It must execute the chosen move in the same pass if:
+- the next move is clear,
+- it is inside the established authority boundary,
+- tests/rollback points exist,
+- and it does not require operator governance.
+
+Stop at recommendation only for real blockers or governance decisions:
+- the next move crosses a new governance/authority boundary,
+- private/sensitive data is involved,
+- external/provider/app/customer-facing action is needed,
+- tests reveal a design contradiction requiring operator judgment,
+- requirements are ambiguous enough that proceeding would create slop,
+- or the next step would require broad scope expansion.
+
+If execution is allowed, audit, choose, execute, harden, polish/taste, validate, and report once. ChatGPT reviews the completed lane and decides whether it is good to commit. This reduces operator tax and prevents unfinished work from being left for the next chat.
+
 ## 12. Prompt Hygiene
 
 Prompts must be:
