@@ -26,3 +26,13 @@ Future ChatGPT Project packets should use this same structure:
   00_ACTIVE_HANDOFF.md
   README.md
 ```
+
+## Faster Workflow / Batch Checkpoint Rule
+
+- If a bounded lane is clear, complete implementation + hardening + polish/taste in one batch.
+- ChatGPT should not ask for diff review after every micro-step.
+- One combined diff/status review is enough unless there is risk.
+- Commit/push at meaningful checkpoints, not after every small edit.
+- Deep diff review is reserved for authority boundary changes, runtime/persistence/private-data behavior, failed tests, unexpected files, or ambiguity.
+- `00_ACTIVE_HANDOFF.md` is milestone-based, not micro-step-based.
+- `24_files/` is stable/archive-like during an active lane.
