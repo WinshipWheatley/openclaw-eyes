@@ -10,10 +10,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import backend_sqlite_repository as repository
 import backend_sqlite_runtime as runtime
 from backend_sqlite_repository import (
+    OperatorPromotion,
+    ProvenanceRef,
+    SemanticLabel,
     SemanticRecord,
+    SemanticRelationship,
+    ValidationReceipt,
+    read_operator_promotion,
+    read_provenance_ref,
+    read_record_labels,
+    read_record_operator_promotions,
+    read_record_provenance_refs,
+    read_record_relationships,
+    read_record_validation_receipts,
+    read_semantic_label,
     read_semantic_record,
+    read_semantic_relationship,
+    read_validation_receipt,
+    record_has_explicit_operator_promotion,
     semantic_record_column_names,
+    table_column_names,
+    write_operator_promotion,
+    write_provenance_ref,
+    write_semantic_label,
     write_semantic_record,
+    write_semantic_relationship,
+    write_validation_receipt,
 )
 from backend_sqlite_runtime import create_file_backed_connection, create_in_memory_connection
 from backend_sqlite_schema import sqlite_schema_table
@@ -72,6 +94,77 @@ def sample_semantic_record(record_id: str = "record-1") -> SemanticRecord:
     )
 
 
+def sample_semantic_label(label_id: str = "label-1") -> SemanticLabel:
+    return SemanticLabel(
+        label_id=label_id,
+        target_record_id="record-1",
+        label_name="confidence",
+        label_value="test-confidence",
+        label_basis="static test",
+        review_status="needs review",
+        source_label_ref=None,
+    )
+
+
+def sample_provenance_ref(provenance_ref_id: str = "prov-1") -> ProvenanceRef:
+    return ProvenanceRef(
+        provenance_ref_id=provenance_ref_id,
+        target_record_id="record-1",
+        source_basis="test source",
+        source_set_ref="source-set-1",
+        manifest_ref="manifest-1",
+        bridge_ref="bridge-1",
+        packet_ref="packet-1",
+        receipt_ref="receipt-1",
+        document_id="doc-1",
+        section_path="1. sample",
+        page_ref=None,
+    )
+
+
+def sample_semantic_relationship(
+    relationship_id: str = "rel-1",
+) -> SemanticRelationship:
+    return SemanticRelationship(
+        relationship_id=relationship_id,
+        from_record_id="record-1",
+        to_record_id="record-2",
+        relationship_kind="supports",
+        relationship_state="draft",
+        provenance_refs="prov-1",
+        freshness_refs="static-test",
+        authority_label="repository-proof",
+        sensitivity_label="local-test-only",
+        relationship_scope="direct",
+    )
+
+
+def sample_validation_receipt(receipt_id: str = "receipt-1") -> ValidationReceipt:
+    return ValidationReceipt(
+        receipt_id=receipt_id,
+        validated_target="record-1",
+        validator_name="static-test",
+        validation_result="passed",
+        failure_reasons="",
+        checked_at="2026-05-06T00:00:00Z",
+        source_basis="pytest",
+        authority_boundary="repository-proof",
+    )
+
+
+def sample_operator_promotion(promotion_id: str = "promotion-1") -> OperatorPromotion:
+    return OperatorPromotion(
+        promotion_id=promotion_id,
+        target_record_id="record-1",
+        operator_decision="accepted for review",
+        receipt_ref="receipt-1",
+        promotion_scope="test scope",
+        promoted_by_operator=1,
+        complete_label_set="confidence,sensitivity,authority,review",
+        authority_boundary="operator explicit",
+    )
+
+
 def test_repository_module_does_not_import_sqlite3_or_create_connections():
     tree = module_ast()
     source = REPOSITORY_PATH.read_text(encoding="utf-8").lower()
@@ -90,6 +183,25 @@ def test_semantic_record_column_names_match_schema_contract():
     assert table is not None
     assert semantic_record_column_names() == table.column_names
     assert SemanticRecord.__dataclass_fields__.keys() == set(table.column_names)
+
+
+def test_repository_table_column_names_match_schema_contracts():
+    expected_tables = {
+        "semantic_records",
+        "semantic_labels",
+        "semantic_relationships",
+        "provenance_refs",
+        "validation_receipts",
+        "operator_promotions",
+    }
+
+    for table_name in expected_tables:
+        table = sqlite_schema_table(table_name)
+        assert table is not None
+        assert table_column_names(table_name) == table.column_names
+
+    with pytest.raises(ValueError):
+        table_column_names("context_filter_receipts")
 
 
 def test_semantic_record_can_be_inserted_and_read_back_in_memory():
@@ -135,6 +247,147 @@ def test_semantic_record_can_be_inserted_and_read_back_file_backed(tmp_path):
         assert read_semantic_record(connection, "file-backed-record")["record_id"] == (
             "file-backed-record"
         )
+    finally:
+        connection.close()
+
+
+def test_label_provenance_relationship_receipt_and_promotion_round_trip():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        write_semantic_record(connection, sample_semantic_record("record-2"))
+
+        label = sample_semantic_label()
+        provenance_ref = sample_provenance_ref()
+        relationship = sample_semantic_relationship()
+        receipt = sample_validation_receipt()
+        promotion = sample_operator_promotion()
+
+        write_semantic_label(connection, label)
+        write_provenance_ref(connection, provenance_ref)
+        write_semantic_relationship(connection, relationship)
+        write_validation_receipt(connection, receipt)
+        write_operator_promotion(connection, promotion)
+
+        assert read_semantic_label(connection, "label-1") == label.__dict__
+        assert read_provenance_ref(connection, "prov-1") == provenance_ref.__dict__
+        assert read_semantic_relationship(connection, "rel-1") == relationship.__dict__
+        assert read_validation_receipt(connection, "receipt-1") == receipt.__dict__
+        assert read_operator_promotion(connection, "promotion-1") == promotion.__dict__
+    finally:
+        connection.close()
+
+
+def test_record_query_helpers_return_stable_ordered_rows():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        write_semantic_record(connection, sample_semantic_record("record-2"))
+        write_semantic_label(connection, sample_semantic_label("label-b"))
+        write_semantic_label(connection, sample_semantic_label("label-a"))
+        write_provenance_ref(connection, sample_provenance_ref("prov-b"))
+        write_provenance_ref(connection, sample_provenance_ref("prov-a"))
+        write_semantic_relationship(connection, sample_semantic_relationship("rel-b"))
+        write_semantic_relationship(connection, sample_semantic_relationship("rel-a"))
+        write_validation_receipt(connection, sample_validation_receipt("receipt-b"))
+        write_validation_receipt(connection, sample_validation_receipt("receipt-a"))
+        write_operator_promotion(connection, sample_operator_promotion("promotion-b"))
+        write_operator_promotion(connection, sample_operator_promotion("promotion-a"))
+
+        assert [row["label_id"] for row in read_record_labels(connection, "record-1")] == [
+            "label-a",
+            "label-b",
+        ]
+        assert [
+            row["provenance_ref_id"]
+            for row in read_record_provenance_refs(connection, "record-1")
+        ] == ["prov-a", "prov-b"]
+        assert [
+            row["relationship_id"]
+            for row in read_record_relationships(connection, "record-1")
+        ] == ["rel-a", "rel-b"]
+        assert [
+            row["receipt_id"]
+            for row in read_record_validation_receipts(connection, "record-1")
+        ] == ["receipt-a", "receipt-b"]
+        assert [
+            row["promotion_id"]
+            for row in read_record_operator_promotions(connection, "record-1")
+        ] == ["promotion-a", "promotion-b"]
+    finally:
+        connection.close()
+
+
+def test_missing_related_rows_return_empty_deterministic_tuples():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+
+        assert read_record_labels(connection, "record-1") == ()
+        assert read_record_provenance_refs(connection, "record-1") == ()
+        assert read_record_relationships(connection, "record-1") == ()
+        assert read_record_validation_receipts(connection, "record-1") == ()
+        assert read_record_operator_promotions(connection, "record-1") == ()
+    finally:
+        connection.close()
+
+
+def test_related_writes_fail_closed_for_unknown_semantic_record_references():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+
+        with pytest.raises(ValueError):
+            write_semantic_label(
+                connection,
+                {**sample_semantic_label().__dict__, "target_record_id": "missing"},
+            )
+        with pytest.raises(ValueError):
+            write_provenance_ref(
+                connection,
+                {**sample_provenance_ref().__dict__, "target_record_id": "missing"},
+            )
+        with pytest.raises(ValueError):
+            write_validation_receipt(
+                connection,
+                {**sample_validation_receipt().__dict__, "validated_target": "missing"},
+            )
+        with pytest.raises(ValueError):
+            write_operator_promotion(
+                connection,
+                {**sample_operator_promotion().__dict__, "target_record_id": "missing"},
+            )
+        with pytest.raises(ValueError):
+            write_semantic_relationship(connection, sample_semantic_relationship())
+    finally:
+        connection.close()
+
+
+def test_related_duplicate_primary_keys_fail_closed():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        write_semantic_record(connection, sample_semantic_record("record-2"))
+
+        write_semantic_label(connection, sample_semantic_label())
+        with pytest.raises(runtime.sqlite3.IntegrityError):
+            write_semantic_label(connection, sample_semantic_label())
+
+        write_provenance_ref(connection, sample_provenance_ref())
+        with pytest.raises(runtime.sqlite3.IntegrityError):
+            write_provenance_ref(connection, sample_provenance_ref())
+
+        write_semantic_relationship(connection, sample_semantic_relationship())
+        with pytest.raises(runtime.sqlite3.IntegrityError):
+            write_semantic_relationship(connection, sample_semantic_relationship())
+
+        write_validation_receipt(connection, sample_validation_receipt())
+        with pytest.raises(runtime.sqlite3.IntegrityError):
+            write_validation_receipt(connection, sample_validation_receipt())
+
+        write_operator_promotion(connection, sample_operator_promotion())
+        with pytest.raises(runtime.sqlite3.IntegrityError):
+            write_operator_promotion(connection, sample_operator_promotion())
     finally:
         connection.close()
 
@@ -203,6 +456,22 @@ def test_semantic_record_write_does_not_magically_promote_accepted_knowledge():
         assert stored is not None
         assert stored["synthesis_not_truth"] == 1
         assert stored["accepted_knowledge_derived"] == 0
+    finally:
+        connection.close()
+
+
+def test_operator_promotion_is_explicit_and_does_not_rewrite_record_truth_flags():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        assert record_has_explicit_operator_promotion(connection, "record-1") is False
+
+        write_operator_promotion(connection, sample_operator_promotion())
+        stored_record = read_semantic_record(connection, "record-1")
+
+        assert record_has_explicit_operator_promotion(connection, "record-1") is True
+        assert stored_record is not None
+        assert stored_record["accepted_knowledge_derived"] == 0
     finally:
         connection.close()
 
