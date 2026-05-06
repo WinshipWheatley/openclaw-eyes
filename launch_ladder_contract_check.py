@@ -108,6 +108,8 @@ BACKEND_DATA_CONTRACT_FIRST_IMPLEMENTATION_SLICE_READINESS = (
     SOURCE_SET_BRIDGE_DIR
     / "backend_data_contract_first_implementation_slice_readiness_20260505.md"
 )
+BACKEND_DATA_CONTRACT_MODULE = REPO_ROOT / "backend_data_contract.py"
+BACKEND_DATA_CONTRACT_TEST = REPO_ROOT / "tests" / "test_backend_data_contract.py"
 BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
     "source file record",
     "extracted text record",
@@ -177,6 +179,74 @@ BACKEND_DATA_CONTRACT_STATIC_GATE_DOCS = (
     "04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md",
     "04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md",
     "30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md",
+)
+BACKEND_DATA_CONTRACT_MODULE_REQUIRED_TERMS = (
+    "KnowledgeLayer",
+    "raw layer",
+    "compiled/wiki layer",
+    "relationship layer",
+    "synthesis layer",
+    "write-back/capture layer",
+    "ContractLabel",
+    "provenance",
+    "freshness",
+    "confidence",
+    "sensitivity",
+    "authority",
+    "review status",
+    "ContractState",
+    "confirmed",
+    "inferred",
+    "excluded",
+    "unknown",
+    "blocked",
+    "stale",
+    "confirmed-as-interpretation",
+    "ContractDecision",
+    "allowed",
+    "implementation-forbidden",
+    "REQUIRED_WRITE_BACK_CAPTURE_LABELS",
+    "IMPLEMENTATION_FORBIDDEN_CONCEPTS",
+    "UNKNOWN_STYLE_STATES",
+    "EXCLUDED_STYLE_STATES",
+    "ALLOWED_STATES_BY_LAYER",
+    "SemanticRecordProposal",
+    "classify_semantic_record",
+    "classify_record_state",
+    "missing_write_back_capture_labels",
+    "is_accepted_knowledge",
+    "is_implementation_forbidden",
+)
+BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS = (
+    "test_core_vocabulary_preserves_knowledge_compiler_layers_and_labels",
+    "test_forbidden_implementation_concepts_are_not_authorized",
+    "test_write_back_capture_requires_contract_labels_before_allowed",
+    "test_synthesis_is_not_confirmed_truth_by_default",
+    "SQLite persistence",
+    "provider model call",
+    "runtime services",
+    "promoted_by_operator=True",
+)
+BACKEND_DATA_CONTRACT_FORBIDDEN_MODULE_IMPORTS = (
+    "import sqlite3",
+    "from sqlite3",
+    "import argparse",
+    "import click",
+    "import requests",
+    "import httpx",
+    "from fastapi",
+    "import fastapi",
+    "from flask",
+    "import flask",
+    "import subprocess",
+    "from subprocess",
+    "import socket",
+    "from socket",
+    "import openai",
+    "from openai",
+    "import anthropic",
+    "from anthropic",
+    "if __name__ == \"__main__\"",
 )
 TASTE_REQUIRED_SECTIONS = (
     "Taste thesis",
@@ -1816,6 +1886,46 @@ def backend_data_contract_implementation_readiness_checklist_failures(
     return tuple(failures)
 
 
+def backend_data_contract_module_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    module_path = repo_root / "backend_data_contract.py"
+    test_path = repo_root / "tests" / "test_backend_data_contract.py"
+
+    if not module_path.is_file():
+        return (f"backend data contract module: missing {module_path}",)
+
+    module_text = _read_text(module_path)
+    module_normalized = normalize(module_text)
+    _require_all(
+        failures,
+        module_normalized,
+        "backend data contract module required vocabulary",
+        BACKEND_DATA_CONTRACT_MODULE_REQUIRED_TERMS,
+    )
+
+    for forbidden_import in BACKEND_DATA_CONTRACT_FORBIDDEN_MODULE_IMPORTS:
+        if forbidden_import in module_text.lower():
+            failures.append(
+                "backend data contract module: forbidden implementation import or entry "
+                f"{forbidden_import!r}"
+            )
+
+    if not test_path.is_file():
+        failures.append(f"backend data contract module tests: missing {test_path}")
+    else:
+        test_text = _read_text(test_path)
+        _require_all(
+            failures,
+            normalize(test_text),
+            "backend data contract module tests required coverage",
+            BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS,
+        )
+
+    return tuple(failures)
+
+
 def storage_and_source_registry_readiness_plan_failures(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[str, ...]:
@@ -2731,6 +2841,9 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "backend semantic contract matrix",
             "backend implementation-readiness checklist",
             "backend first implementation slice readiness",
+            "backend_data_contract.py",
+            "test_backend_data_contract.py",
+            "backend data-contract semantic vocabulary and guard helpers",
             "source-set 04 context-filter freshness bridge",
             "doc 30 exclusion/classification-only handling",
             "20_PC_STORAGE_RELIEF_LAUNCH_PACKET_PLAN.md",
@@ -2747,6 +2860,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(backend_data_contract_first_implementation_slice_readiness_failures())
     failures.extend(backend_data_contract_semantic_contract_matrix_failures())
     failures.extend(backend_data_contract_implementation_readiness_checklist_failures())
+    failures.extend(backend_data_contract_module_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(pc_storage_relief_launch_packet_plan_failures())
     failures.extend(knowledge_substrate_package_failures())

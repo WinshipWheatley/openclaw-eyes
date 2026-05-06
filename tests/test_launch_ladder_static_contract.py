@@ -31,6 +31,7 @@ from launch_ladder_contract_check import (
     UPLOAD_AUTHORITY_COMMIT,
     backend_data_contract_first_implementation_slice_readiness_failures,
     backend_data_contract_implementation_readiness_checklist_failures,
+    backend_data_contract_module_failures,
     backend_data_contract_readiness_plan_failures,
     backend_data_contract_semantic_contract_matrix_failures,
     backend_data_contract_shape_plan_failures,
@@ -740,6 +741,7 @@ def test_backend_data_contract_static_gate_artifacts_are_documented():
     assert backend_data_contract_first_implementation_slice_readiness_failures() == ()
     assert backend_data_contract_semantic_contract_matrix_failures() == ()
     assert backend_data_contract_implementation_readiness_checklist_failures() == ()
+    assert backend_data_contract_module_failures() == ()
 
     corpus = load_corpus()
     validation_text = corpus.validation_map_text
@@ -747,6 +749,9 @@ def test_backend_data_contract_static_gate_artifacts_are_documented():
         "backend semantic contract matrix",
         "backend implementation-readiness checklist",
         "backend first implementation slice readiness",
+        "backend_data_contract.py",
+        "test_backend_data_contract.py",
+        "backend data-contract semantic vocabulary and guard helpers",
         "source-set 04 context-filter freshness bridge",
         "doc 30 exclusion/classification-only handling",
     ):
@@ -758,6 +763,7 @@ def test_backend_data_contract_static_gate_checks_fail_closed_when_artifacts_mis
         backend_data_contract_first_implementation_slice_readiness_failures,
         backend_data_contract_semantic_contract_matrix_failures,
         backend_data_contract_implementation_readiness_checklist_failures,
+        backend_data_contract_module_failures,
     ):
         failures = checker(tmp_path)
         assert failures
@@ -770,6 +776,19 @@ def test_backend_data_contract_static_gate_checks_are_part_of_main_contract(monk
     monkeypatch.setitem(
         check_contract.__globals__,
         "backend_data_contract_semantic_contract_matrix_failures",
+        lambda: (sentinel,),
+    )
+
+    report = check_contract()
+    assert sentinel in report.failures
+
+
+def test_backend_data_contract_module_check_is_part_of_main_contract(monkeypatch):
+    sentinel = "backend data contract module sentinel failure"
+
+    monkeypatch.setitem(
+        check_contract.__globals__,
+        "backend_data_contract_module_failures",
         lambda: (sentinel,),
     )
 
