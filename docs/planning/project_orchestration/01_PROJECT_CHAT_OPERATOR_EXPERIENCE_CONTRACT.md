@@ -329,6 +329,36 @@ Stop at recommendation only for real blockers or governance decisions:
 
 If execution is allowed, audit, choose, execute, harden, polish/taste, validate, and report once. ChatGPT reviews the completed lane and decides whether it is good to commit. This reduces operator tax and prevents unfinished work from being left for the next chat.
 
+## 11C. Visible-Road Rule
+
+When the next several steps are visible, include the whole visible sequence in one coder prompt. The coder should execute through the visible road, choosing the right stride length for each segment.
+- When the road is visible, prompt the agent with the road, not a crumb.
+- If A–E are clear, include A–E in one prompt.
+- If F branches, the agent should evaluate the branch, choose the better path using stated criteria, and continue if clear.
+- The agent should stop only at real review points.
+- Keep building while the road is visible; stop when the road is not visible.
+- The active handoff/README should carry this rule into future 24-file project folders.
+
+If a later step branches, the coder should:
+1. reach the branch,
+2. evaluate the options using the lane goal, tests, contracts, and safety boundaries,
+3. choose the better path,
+4. continue down that path if the next steps are clear,
+5. optionally return to the other branch only if it is clearly needed and still inside scope,
+6. stop only when it reaches a real review point.
+
+Real review points include:
+- unclear requirements,
+- conflicting contracts,
+- failing tests requiring judgment,
+- authority/safety boundary,
+- private/sensitive data,
+- external-facing action,
+- provider/model/app/API/Hermes/MCP/sync integration not already authorized,
+- irreversible behavior,
+- unclear rollback,
+- or a choice that materially changes product direction.
+
 ## 12. Prompt Hygiene
 
 Prompts must be:
