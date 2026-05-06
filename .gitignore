@@ -118,6 +118,7 @@
 !docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md
 !docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md
 !docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md
+!docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md
 !docs/planning/openclaw_legal/
 !docs/planning/openclaw_legal/law_program/
 !docs/planning/openclaw_legal/law_program/**/*.md

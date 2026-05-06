@@ -66,6 +66,7 @@ Current Command Atlas lanes include:
 - Local model benchmark / Hardware Fit Analyzer: the experiment lane for hardware fit, model/runtime feasibility, and local benchmark evidence only.
 - Source-set / validation / taste-polish discipline: the lane that keeps source freshness, UI taste, validation gates, and planning inputs from drifting.
 - Agentic build-loop / GitHub Action pattern without Claude: the planning lane for borrowing headless job packets, explicit tool allowlists, structured receipts, resumable state handles, and CI/PR feedback loops while keeping execution local-first, approval-gated, non-Claude, and explicit-authority-only.
+- Context Development Lifecycle / Context Filter: the Command Atlas doctrine lane for treating source sets, manifests, prompts, skills, handoffs, job packets, receipts, eval notes, and planning docs as engineered context packages that need provenance, linting/evals, observability, regeneration, and filtering before agent execution.
 - Windows root triage: the path/dependency classification lane for `C:\OpenClaw`, `C:\OpenClawShared`, `C:\OpenClawLegalPrivate`, `openclawssh`, and related residue.
 
 ## 6. Operator Harness Position
@@ -102,6 +103,7 @@ Known distortions that can mislead future work:
 - Treating an enabled SSH account as either approved infrastructure or disposable residue without a separate audit.
 - Treating Cassandra voice styling as sufficient external-communication judgment without separate risk, evidence, escalation, reputation, and promise-control checks.
 - Treating a Claude Code SDK / GitHub Action pattern as permission to install Claude tooling, create workflow automation, run cloud agents, or let CI become hidden execution authority.
+- Treating context packages as casual prompt prose instead of engineered artifacts that can leak private data, inflate authority, carry prompt injection, or smuggle hidden execution instructions.
 - Treating local model benchmark planning as production PI routing authority.
 - Treating bridge visibility, mirrored files, or UI display as proof of freshness, canon, or authority.
 
@@ -187,6 +189,7 @@ This artifact does not authorize:
 - sending external communications or automating relationship decisions;
 - installing Claude Code, Claude GitHub Actions, SDKs, runners, dependencies, or GitHub Actions workflows;
 - allowing GitHub issues, PRs, comments, checks, or CI to become hidden execution authority;
+- treating context packages, prompts, manifests, skills, handoffs, job packets, receipts, eval notes, or planning docs as execution authority without filtering and approval;
 - committing changes.
 
 It only records the current system-program map and the corrected sequencing boundary.

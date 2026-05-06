@@ -35,7 +35,7 @@ Current canonical posture:
 - Mac mirror surfaces may contain valuable imported planning packets, but they do not override PC WSL repo state.
 - Deployment/bridge docs constrain future implementation but do not authorize runtime changes.
 - Agentic hardening docs constrain process but do not authorize implementation.
-- Command Atlas docs frame the system program layer, external communication judgment lane, agentic build-loop / GitHub Action pattern without Claude, and Hermes systems-engineering prep, but do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, cloud-agent commits, or commits.
+- Command Atlas docs frame the system program layer, external communication judgment lane, agentic build-loop / GitHub Action pattern without Claude, Context Development Lifecycle / Context Filter doctrine, and Hermes systems-engineering prep, but do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, cloud-agent commits, source-set generation, or commits.
 - `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md` updates earlier generic dashboard/card assumptions toward Bridge/Captain's View, Helm, Chart Room, Engine Room, and authority-scope/place language.
 - If another local planning artifact shares a numeric prefix, do not renumber files from this index. Use filenames and categories, not numeric prefix alone, as authority.
 
@@ -51,12 +51,13 @@ This index should reduce context load. It should not become a place to restate e
 2. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md`
 3. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md`
 4. `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md`
-5. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
-6. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
-7. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
-8. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+5. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
+6. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
+7. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
+8. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
+9. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
 
-This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, cloud-agent commits, or commits.
+This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, cloud-agent commits, source-set generation, or commits.
 
 ### External Communications / Relationship Judgment Prep
 
@@ -113,12 +114,25 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 
 1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
 2. `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md`
-3. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` if coherence or phase critique is needed.
-4. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md` if issue/PR/comment wording or external-facing summaries are involved.
-5. `docs/planning/launch_ladder/23_AGENTIC_WORKFLOW_HARDENING_BREADCRUMB.md`
-6. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+3. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
+4. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` if coherence or phase critique is needed.
+5. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md` if issue/PR/comment wording or external-facing summaries are involved.
+6. `docs/planning/launch_ladder/23_AGENTIC_WORKFLOW_HARDENING_BREADCRUMB.md`
+7. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
 
 This read order is for planning a local-first, approval-gated build-loop pattern only. It may support job packets, patch proposals, test reports, validation receipts, PR/check summaries, and escalation recommendations; it does not authorize Claude Code, Claude GitHub Actions, SDKs, runners, workflow files, provider/model calls, MCP invocation, Hermes runs, private-root traversal, autonomous cloud-agent commits, unapproved branch/PR mutation, runtime/service activation, broad repo mutation, or commits.
+
+### Context Development Lifecycle / Context Filter Prep
+
+1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
+2. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
+3. `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md`
+4. `docs/planning/launch_ladder/knowledge_substrate/README.md`
+5. `docs/planning/launch_ladder/knowledge_substrate/01_NORTH_STAR.md`
+6. `docs/planning/launch_ladder/knowledge_substrate/06_STATIC_VALIDATION_EXPECTATIONS.md`
+7. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+
+This read order is for context lifecycle and filter doctrine only. It may guide source-set, manifest, prompt, skill, handoff, job-packet, receipt, eval-note, and planning-doc review; it does not authorize provider/model calls, MCP invocation, Hermes runs, source-set generation, ingestion, indexing, embeddings, SQLite, FTS, extraction, chunking, runtime automation, implementation, private-root browsing, or commits.
 
 ### Local Model Benchmark / PI Local Experiment Continuation
 
@@ -148,6 +162,7 @@ Use these before resuming Operator Harness implementation or broader systems-eng
 - `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` - Hermes run-mode boundary with Level 1 docs-only, Level 2 metadata topology, and Level 3 approved external scout packet modes; not provider/model, MCP, messaging, runtime, queue, source-set, private-data, or migration authority.
 - `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md` - external-facing communication judgment lane for customer, client, venue, contractor, friend-of-system, outside-circle, and relationship-risk interactions; defines tone-reading, bounded promises, disclosure restraint, escalation, reputation, and role-separation criteria without granting send, legal/financial advice, private-data disclosure, authority-transfer, or relationship-automation authority.
 - `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md` - architectural planning lane for borrowing headless agent job packets, explicit tool/path allowlists, receipts, resumable state handles, and CI/PR feedback loops while keeping OpenClaw execution local-first, approval-gated, non-Claude, sensitive-data-safe, and explicit-authority-only.
+- `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md` - Command Atlas doctrine for treating source sets, manifests, prompts, skills, handoffs, job packets, receipts, eval notes, and planning docs as engineered context packages that need provenance, linting/evals, observability, regeneration, and filtering before agent execution.
 
 ### Windows Root Boundary / Dependency Mapping
 
@@ -251,7 +266,7 @@ Do not treat mirror paths as runtime truth, live bridge state, source of authori
 - Visual packets can guide taste, metaphor, and source-set planning, but they do not authorize SwiftUI/AppKit, backend, schema, ingestion, bridge, or runtime changes.
 - Deployment docs can define constraints and future specs, but they do not authorize moving nodes, starting services, editing launchers, changing storage, or modifying bridge behavior.
 - Agentic hardening docs can constrain process, but they do not authorize package/build configuration work or tool implementation.
-- Command Atlas, external communication judgment, agentic build-loop pattern, and Hermes systems-engineering docs can guide calibration, critique, sequencing, job packets, patch proposals, drafts, risk notes, receipts, PR/check summaries, and escalation recommendations, but they do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, autonomous cloud-agent commits, or commits.
+- Command Atlas, external communication judgment, agentic build-loop pattern, Context Development Lifecycle / Context Filter, and Hermes systems-engineering docs can guide calibration, critique, sequencing, job packets, patch proposals, drafts, risk notes, receipts, PR/check summaries, context lifecycle checks, and escalation recommendations, but they do not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, source-set generation, root migration, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, autonomous cloud-agent commits, or commits.
 - Local-model benchmark docs can inform Hardware Fit Analyzer and PI Local experiment planning only; they do not authorize model install, llama.cpp/Ollama/LM Studio runtime changes, Chief/Cassandra/PI production routing, service changes, or sensitive-data processing.
 
 When in doubt, read the narrow task-specific stack first, then stop and ask what implementation authority is actually present.
