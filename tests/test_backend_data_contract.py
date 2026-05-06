@@ -12,7 +12,9 @@ from backend_data_contract import (
     ALLOWED_LAYERS_BY_ENTITY_FAMILY,
     ALLOWED_STATES_BY_ENTITY_FAMILY,
     REQUIRED_LABEL_BUNDLES_BY_LAYER,
+    REQUIRED_SCHEMA_CONTRACT_SURFACES,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
+    SchemaContractSurface,
     SemanticRecordProposal,
     allowed_layers_for_entity_family,
     allowed_states_for_entity_family,
@@ -24,10 +26,17 @@ from backend_data_contract import (
     is_entity_family_known,
     is_entity_record_accepted_knowledge,
     is_implementation_forbidden,
+    is_schema_surface_known,
     normalize_entity_family,
+    normalize_schema_surface_name,
     missing_required_labels,
     missing_write_back_capture_labels,
     required_labels_for_layer,
+    required_schema_surface_fields,
+    schema_contract_surface,
+    schema_contract_surfaces,
+    schema_surface_names,
+    validate_schema_surface_definition,
     validate_entity_family_record,
     validate_field_bundle,
 )
@@ -660,3 +669,193 @@ def test_entity_write_back_capture_requires_labels_and_operator_promotion():
         )
         is True
     )
+
+
+def test_required_schema_contract_surfaces_exist():
+    assert schema_surface_names() == REQUIRED_SCHEMA_CONTRACT_SURFACES
+    assert schema_surface_names() == (
+        "semantic_record",
+        "semantic_label",
+        "semantic_relationship",
+        "provenance_ref",
+        "validation_receipt",
+        "operator_promotion",
+        "context_filter_receipt",
+    )
+
+    surfaces = schema_contract_surfaces()
+    assert all(isinstance(surface, SchemaContractSurface) for surface in surfaces)
+    assert tuple(surface.name for surface in surfaces) == REQUIRED_SCHEMA_CONTRACT_SURFACES
+
+
+def test_schema_surface_names_normalize_correctly():
+    assert normalize_schema_surface_name(" Semantic Record ") == "semantic_record"
+    assert normalize_schema_surface_name("semantic-record") == "semantic_record"
+    assert normalize_schema_surface_name("semantic record") == "semantic_record"
+    assert normalize_schema_surface_name("record labels") == "semantic_label"
+    assert normalize_schema_surface_name("operator promotions") == "operator_promotion"
+    assert normalize_schema_surface_name("context filter receipts") == (
+        "context_filter_receipt"
+    )
+    assert normalize_schema_surface_name("unknown table") is None
+    assert is_schema_surface_known("semantic records") is True
+    assert is_schema_surface_known("runtime table") is False
+
+
+def test_schema_surfaces_expose_required_conceptual_fields():
+    assert required_schema_surface_fields("semantic_record") >= frozenset(
+        {
+            "record_id",
+            "entity_family",
+            "knowledge_layer",
+            "contract_state",
+            "provenance_refs",
+            "freshness_refs",
+            "confidence_label",
+            "sensitivity_label",
+            "authority_label",
+            "review_status_label",
+            "validator_decision",
+        }
+    )
+    assert required_schema_surface_fields("operator promotion") >= frozenset(
+        {
+            "promotion_id",
+            "target_record_id",
+            "operator_decision",
+            "receipt_ref",
+            "promotion_scope",
+            "promoted_by_operator",
+        }
+    )
+    assert required_schema_surface_fields("validation_receipt") >= frozenset(
+        {
+            "receipt_id",
+            "validated_target",
+            "validator_name",
+            "validation_result",
+            "failure_reasons",
+        }
+    )
+
+
+def test_missing_schema_surface_fields_fail_with_useful_reasons():
+    result = validate_schema_surface_definition(
+        "semantic record",
+        {
+            "record_id",
+            "entity_family",
+            "knowledge_layer",
+            "contract_state",
+        },
+    )
+
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "schema surface semantic_record missing conceptual fields: "
+        "accepted_knowledge_derived, authority_label, confidence_label, "
+        "freshness_refs, provenance_refs, review_status_label, sensitivity_label, "
+        "synthesis_not_truth, validator_decision",
+    )
+
+
+def test_schema_contract_layer_does_not_authorize_forbidden_implementation_terms():
+    forbidden_uses = (
+        "SQLite implementation",
+        "SQL DDL",
+        "migration",
+        "persistence",
+        "API route",
+        "ingestion",
+        "embedding",
+        "runtime service",
+        "fixture",
+        "provider/model call",
+        "Hermes",
+        "MCP",
+        "private-root inspection",
+    )
+
+    combined_forbidden = " ".join(
+        " ".join(surface.forbidden_implementation_behavior)
+        for surface in schema_contract_surfaces()
+    ).lower()
+
+    for forbidden_use in forbidden_uses:
+        assert is_implementation_forbidden(forbidden_use) is True
+        assert forbidden_use.lower() in combined_forbidden
+
+
+def test_semantic_record_surface_preserves_layers_and_families_without_truth_flattening():
+    surface = schema_contract_surface("semantic_record")
+
+    assert surface is not None
+    assert surface.knowledge_layers == frozenset(KnowledgeLayer)
+    assert set(surface.entity_families) == set(EntityFamily)
+    assert "synthesis_not_truth" in surface.required_conceptual_fields
+    assert "accepted_knowledge_derived" in surface.required_conceptual_fields
+
+    synthesis_record = SemanticRecordProposal(
+        layer=KnowledgeLayer.SYNTHESIS,
+        state=ContractState.INFERRED,
+        labels=FULL_LABELS,
+    )
+    assert validate_field_bundle(synthesis_record).ok is True
+    assert is_accepted_knowledge(synthesis_record) is False
+
+
+def test_operator_promotion_and_validation_receipt_remain_separate_schema_surfaces():
+    promotion = schema_contract_surface("operator_promotion")
+    receipt = schema_contract_surface("validation_receipt")
+
+    assert promotion is not None
+    assert receipt is not None
+    assert promotion.name != receipt.name
+    assert "operator_decision" in promotion.required_conceptual_fields
+    assert "validator_name" in receipt.required_conceptual_fields
+    assert "validation_result" in receipt.required_conceptual_fields
+    assert "operator_decision" not in receipt.required_conceptual_fields
+
+
+def test_schema_contract_helpers_are_pure_lookup_and_validation_only():
+    for surface_name in schema_surface_names():
+        result = validate_schema_surface_definition(
+            surface_name,
+            required_schema_surface_fields(surface_name),
+        )
+        assert result.ok is True
+        assert result.reasons == ()
+
+    unknown = validate_schema_surface_definition("runtime table", {"id"})
+    assert unknown.decision is ContractDecision.UNKNOWN
+    assert unknown.reasons == ("unknown schema surface: runtime table",)
+
+    forbidden_helper_names = {
+        "open",
+        "read",
+        "read_text",
+        "write",
+        "write_text",
+        "sqlite3",
+        "connect",
+        "request",
+        "requests",
+        "httpx",
+        "openai",
+        "anthropic",
+        "subprocess",
+        "socket",
+    }
+    helpers = (
+        normalize_schema_surface_name,
+        is_schema_surface_known,
+        schema_contract_surface,
+        schema_contract_surfaces,
+        schema_surface_names,
+        required_schema_surface_fields,
+        validate_schema_surface_definition,
+    )
+
+    for helper in helpers:
+        assert forbidden_helper_names.isdisjoint(helper.__code__.co_names)

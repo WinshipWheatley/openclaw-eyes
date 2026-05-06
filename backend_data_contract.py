@@ -103,6 +103,16 @@ class ContractValidationResult:
         return self.decision is ContractDecision.ALLOWED and not self.reasons
 
 
+@dataclass(frozen=True)
+class SchemaContractSurface:
+    name: str
+    purpose: str
+    required_conceptual_fields: frozenset[str]
+    forbidden_implementation_behavior: tuple[str, ...]
+    knowledge_layers: frozenset[KnowledgeLayer] = field(default_factory=frozenset)
+    entity_families: frozenset[EntityFamily] = field(default_factory=frozenset)
+
+
 REQUIRED_CONTRACT_LABELS = frozenset(
     {
         ContractLabel.PROVENANCE,
@@ -218,10 +228,17 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "db",
         "database",
         "sqlite",
+        "sql ddl",
+        "migration",
+        "migrations",
+        "persistence",
         "api",
+        "api route",
+        "api routes",
         "mcp",
         "model",
         "provider",
+        "provider/model",
         "ingestion",
         "runtime",
         "runtime service",
@@ -253,6 +270,177 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "private root",
         "private root inspection",
     }
+)
+
+REQUIRED_SCHEMA_CONTRACT_SURFACES = (
+    "semantic_record",
+    "semantic_label",
+    "semantic_relationship",
+    "provenance_ref",
+    "validation_receipt",
+    "operator_promotion",
+    "context_filter_receipt",
+)
+
+SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
+    "SQLite implementation",
+    "SQL DDL",
+    "migration",
+    "persistence",
+    "API route",
+    "ingestion",
+    "indexing",
+    "embedding",
+    "runtime service",
+    "fixture",
+    "provider/model call",
+    "Hermes",
+    "MCP",
+    "private-root inspection",
+    "file I/O",
+    "database connection",
+)
+
+_ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
+_ALL_ENTITY_FAMILIES = frozenset(EntityFamily)
+
+SCHEMA_CONTRACT_SURFACES = (
+    SchemaContractSurface(
+        name="semantic_record",
+        purpose=(
+            "No-runtime semantic record envelope for future normalized semantic core "
+            "storage planning."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "record_id",
+                "entity_family",
+                "knowledge_layer",
+                "contract_state",
+                "provenance_refs",
+                "freshness_refs",
+                "confidence_label",
+                "sensitivity_label",
+                "authority_label",
+                "review_status_label",
+                "validator_decision",
+                "synthesis_not_truth",
+                "accepted_knowledge_derived",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+        entity_families=_ALL_ENTITY_FAMILIES,
+    ),
+    SchemaContractSurface(
+        name="semantic_label",
+        purpose="Explicit label boundary for provenance/freshness/confidence/sensitivity/authority/review status.",
+        required_conceptual_fields=frozenset(
+            {
+                "label_id",
+                "target_record_id",
+                "label_name",
+                "label_value",
+                "label_basis",
+                "review_status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+    ),
+    SchemaContractSurface(
+        name="semantic_relationship",
+        purpose="Directional semantic link surface that preserves relationship meaning without making it truth.",
+        required_conceptual_fields=frozenset(
+            {
+                "relationship_id",
+                "from_record_id",
+                "to_record_id",
+                "relationship_kind",
+                "relationship_state",
+                "provenance_refs",
+                "freshness_refs",
+                "authority_label",
+                "sensitivity_label",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=frozenset(
+            {
+                KnowledgeLayer.RELATIONSHIP,
+                KnowledgeLayer.SYNTHESIS,
+                KnowledgeLayer.WRITE_BACK_CAPTURE,
+            }
+        ),
+    ),
+    SchemaContractSurface(
+        name="provenance_ref",
+        purpose="Source-basis reference surface for approved context, manifests, bridges, packets, and receipts.",
+        required_conceptual_fields=frozenset(
+            {
+                "provenance_ref_id",
+                "target_record_id",
+                "source_basis",
+                "source_set_ref",
+                "manifest_ref",
+                "bridge_ref",
+                "packet_ref",
+                "receipt_ref",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+    ),
+    SchemaContractSurface(
+        name="validation_receipt",
+        purpose="Static validation evidence surface; receipts do not create runtime, provider, or approval authority.",
+        required_conceptual_fields=frozenset(
+            {
+                "receipt_id",
+                "validated_target",
+                "validator_name",
+                "validation_result",
+                "failure_reasons",
+                "checked_at",
+                "source_basis",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="operator_promotion",
+        purpose="Scope-bound operator write-back/capture decision surface for accepted knowledge derivation.",
+        required_conceptual_fields=frozenset(
+            {
+                "promotion_id",
+                "target_record_id",
+                "operator_decision",
+                "receipt_ref",
+                "promotion_scope",
+                "promoted_by_operator",
+                "complete_label_set",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=frozenset({KnowledgeLayer.WRITE_BACK_CAPTURE}),
+    ),
+    SchemaContractSurface(
+        name="context_filter_receipt",
+        purpose="Context package pass/warn/block/needs-review receipt surface before execution influence.",
+        required_conceptual_fields=frozenset(
+            {
+                "context_filter_receipt_id",
+                "context_package_ref",
+                "filter_scope",
+                "checked_inputs",
+                "withheld_surfaces",
+                "filter_outcome",
+                "finding_summary",
+                "review_route",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
 )
 
 EXCLUDED_ENTITY_FAMILY_NAMES = frozenset(
@@ -527,6 +715,31 @@ _LABEL_ALIASES = {_normalize_phrase(label.value): label for label in ContractLab
 _FORBIDDEN_CONCEPT_ALIASES = {
     _normalize_phrase(concept) for concept in IMPLEMENTATION_FORBIDDEN_CONCEPTS
 }
+_SCHEMA_SURFACES_BY_NAME = {
+    surface.name: surface for surface in SCHEMA_CONTRACT_SURFACES
+}
+_SCHEMA_SURFACE_ALIASES = {
+    _normalize_phrase(surface.name): surface.name for surface in SCHEMA_CONTRACT_SURFACES
+} | {
+    "semantic record": "semantic_record",
+    "semantic records": "semantic_record",
+    "record label": "semantic_label",
+    "record labels": "semantic_label",
+    "semantic label": "semantic_label",
+    "semantic labels": "semantic_label",
+    "semantic relationship": "semantic_relationship",
+    "semantic relationships": "semantic_relationship",
+    "provenance ref": "provenance_ref",
+    "provenance refs": "provenance_ref",
+    "provenance reference": "provenance_ref",
+    "provenance references": "provenance_ref",
+    "validation receipt": "validation_receipt",
+    "validation receipts": "validation_receipt",
+    "operator promotion": "operator_promotion",
+    "operator promotions": "operator_promotion",
+    "context filter receipt": "context_filter_receipt",
+    "context filter receipts": "context_filter_receipt",
+}
 
 
 def normalize_layer(layer: KnowledgeLayer | str) -> KnowledgeLayer | None:
@@ -539,6 +752,80 @@ def normalize_entity_family(family: EntityFamily | str) -> EntityFamily | None:
     if isinstance(family, EntityFamily):
         return family
     return _ENTITY_FAMILY_ALIASES.get(_normalize_phrase(family))
+
+
+def normalize_schema_surface_name(surface_name: str) -> str | None:
+    return _SCHEMA_SURFACE_ALIASES.get(_normalize_phrase(surface_name))
+
+
+def schema_surface_names() -> tuple[str, ...]:
+    return REQUIRED_SCHEMA_CONTRACT_SURFACES
+
+
+def schema_contract_surfaces() -> tuple[SchemaContractSurface, ...]:
+    return SCHEMA_CONTRACT_SURFACES
+
+
+def schema_contract_surface(surface_name: str) -> SchemaContractSurface | None:
+    normalized_name = normalize_schema_surface_name(surface_name)
+    if normalized_name is None:
+        return None
+    return _SCHEMA_SURFACES_BY_NAME[normalized_name]
+
+
+def is_schema_surface_known(surface_name: str) -> bool:
+    return schema_contract_surface(surface_name) is not None
+
+
+def required_schema_surface_fields(surface_name: str) -> frozenset[str]:
+    surface = schema_contract_surface(surface_name)
+    if surface is None:
+        return frozenset()
+    return surface.required_conceptual_fields
+
+
+def _normalize_schema_field_name(field_name: object) -> str:
+    return _normalize_phrase(field_name).replace(" ", "_")
+
+
+def _format_schema_fields(field_names: Iterable[str]) -> str:
+    return ", ".join(sorted(field_names))
+
+
+def validate_schema_surface_definition(
+    surface_name: str,
+    conceptual_fields: Iterable[str],
+    *,
+    forbidden_implementation_behavior: Iterable[str] = (),
+) -> ContractValidationResult:
+    surface = schema_contract_surface(surface_name)
+    if surface is None:
+        return ContractValidationResult(
+            ContractDecision.UNKNOWN,
+            (f"unknown schema surface: {surface_name}",),
+        )
+
+    supplied_fields = frozenset(
+        _normalize_schema_field_name(field) for field in conceptual_fields
+    )
+    missing_fields = surface.required_conceptual_fields - supplied_fields
+    reasons: list[str] = []
+
+    if missing_fields:
+        reasons.append(
+            f"schema surface {surface.name} missing conceptual fields: "
+            f"{_format_schema_fields(missing_fields)}"
+        )
+
+    forbidden_text = " ".join(forbidden_implementation_behavior)
+    if forbidden_text and not is_implementation_forbidden(forbidden_text):
+        reasons.append(
+            f"schema surface {surface.name} missing forbidden implementation boundary"
+        )
+
+    if reasons:
+        return ContractValidationResult(ContractDecision.UNKNOWN, tuple(reasons))
+    return ContractValidationResult(ContractDecision.ALLOWED)
 
 
 def entity_family_decision(family: EntityFamily | str) -> ContractDecision:
@@ -860,8 +1147,12 @@ __all__ = [
     "KnowledgeLayer",
     "REQUIRED_CONTRACT_LABELS",
     "REQUIRED_LABEL_BUNDLES_BY_LAYER",
+    "REQUIRED_SCHEMA_CONTRACT_SURFACES",
     "REQUIRED_WRITE_BACK_CAPTURE_LABELS",
+    "SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR",
+    "SCHEMA_CONTRACT_SURFACES",
     "SENSITIVE_OR_PRIVATE_STATES",
+    "SchemaContractSurface",
     "SemanticRecordProposal",
     "UNKNOWN_STYLE_STATES",
     "allowed_layers_for_entity_family",
@@ -874,14 +1165,21 @@ __all__ = [
     "is_entity_family_known",
     "is_entity_record_accepted_knowledge",
     "is_implementation_forbidden",
+    "is_schema_surface_known",
     "missing_required_labels",
     "missing_write_back_capture_labels",
     "normalize_entity_family",
     "normalize_label",
     "normalize_layer",
+    "normalize_schema_surface_name",
     "normalize_state",
     "normalized_labels",
     "required_labels_for_layer",
+    "required_schema_surface_fields",
+    "schema_contract_surface",
+    "schema_contract_surfaces",
+    "schema_surface_names",
     "validate_entity_family_record",
     "validate_field_bundle",
+    "validate_schema_surface_definition",
 ]
