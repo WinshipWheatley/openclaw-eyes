@@ -8,13 +8,29 @@ from backend_data_contract import (
     ContractLabel,
     ContractState,
     KnowledgeLayer,
+    REQUIRED_LABEL_BUNDLES_BY_LAYER,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
     SemanticRecordProposal,
     classify_record_state,
     classify_semantic_record,
     is_accepted_knowledge,
     is_implementation_forbidden,
+    missing_required_labels,
     missing_write_back_capture_labels,
+    required_labels_for_layer,
+    validate_field_bundle,
+)
+
+
+FULL_LABELS = frozenset(
+    {
+        ContractLabel.PROVENANCE,
+        ContractLabel.FRESHNESS,
+        ContractLabel.CONFIDENCE,
+        ContractLabel.SENSITIVITY,
+        ContractLabel.AUTHORITY,
+        ContractLabel.REVIEW_STATUS,
+    }
 )
 
 
@@ -37,6 +53,7 @@ def test_core_vocabulary_preserves_knowledge_compiler_layers_and_labels():
             ContractLabel.REVIEW_STATUS,
         }
     )
+    assert REQUIRED_WRITE_BACK_CAPTURE_LABELS == FULL_LABELS
 
     assert {state.value for state in ContractState} >= {
         "confirmed",
@@ -49,6 +66,14 @@ def test_core_vocabulary_preserves_knowledge_compiler_layers_and_labels():
         "draft",
         "needs review",
     }
+
+
+def test_each_layer_has_required_field_bundle_labels():
+    assert set(REQUIRED_LABEL_BUNDLES_BY_LAYER) == set(KnowledgeLayer)
+
+    for layer in KnowledgeLayer:
+        assert required_labels_for_layer(layer) == FULL_LABELS
+        assert REQUIRED_LABEL_BUNDLES_BY_LAYER[layer] == FULL_LABELS
 
 
 def test_forbidden_implementation_concepts_are_not_authorized():
@@ -127,13 +152,74 @@ def test_write_back_capture_requires_contract_labels_before_allowed():
     )
 
 
+def test_valid_minimal_records_pass_field_bundle_validation():
+    records = (
+        SemanticRecordProposal(
+            layer=KnowledgeLayer.RAW,
+            state=ContractState.CONFIRMED,
+            labels=FULL_LABELS,
+        ),
+        SemanticRecordProposal(
+            layer=KnowledgeLayer.COMPILED_WIKI,
+            state=ContractState.CONFIRMED_AS_INTERPRETATION,
+            labels=FULL_LABELS,
+        ),
+        SemanticRecordProposal(
+            layer=KnowledgeLayer.RELATIONSHIP,
+            state=ContractState.CONFIRMED,
+            labels=FULL_LABELS,
+        ),
+        SemanticRecordProposal(
+            layer=KnowledgeLayer.SYNTHESIS,
+            state=ContractState.INFERRED,
+            labels=FULL_LABELS,
+        ),
+        SemanticRecordProposal(
+            layer=KnowledgeLayer.WRITE_BACK_CAPTURE,
+            state=ContractState.CONFIRMED_WITH_RECEIPT,
+            labels=FULL_LABELS,
+            promoted_by_operator=True,
+        ),
+    )
+
+    for record in records:
+        result = validate_field_bundle(record)
+        assert result.ok is True
+        assert result.reasons == ()
+
+
+def test_missing_layer_labels_fail_with_useful_reasons():
+    partial_labels = FULL_LABELS - {
+        ContractLabel.CONFIDENCE,
+        ContractLabel.REVIEW_STATUS,
+    }
+    record = SemanticRecordProposal(
+        layer=KnowledgeLayer.RAW,
+        state=ContractState.CONFIRMED,
+        labels=partial_labels,
+    )
+
+    assert missing_required_labels(KnowledgeLayer.RAW, partial_labels) == frozenset(
+        {ContractLabel.CONFIDENCE, ContractLabel.REVIEW_STATUS}
+    )
+
+    result = validate_field_bundle(record)
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "missing required labels for raw layer: confidence, review status",
+    )
+
+
 def test_synthesis_is_not_confirmed_truth_by_default():
     synthesis = SemanticRecordProposal(
         layer=KnowledgeLayer.SYNTHESIS,
         state=ContractState.INFERRED,
+        labels=FULL_LABELS,
     )
 
     assert classify_semantic_record(synthesis) is ContractDecision.ALLOWED
+    assert validate_field_bundle(synthesis).ok is True
     assert is_accepted_knowledge(synthesis) is False
 
     overstated_synthesis = SemanticRecordProposal(
@@ -153,3 +239,76 @@ def test_synthesis_is_not_confirmed_truth_by_default():
     )
     assert classify_semantic_record(captured) is ContractDecision.ALLOWED
     assert is_accepted_knowledge(captured) is True
+
+
+def test_write_back_capture_needs_promotion_for_valid_record_and_acceptance():
+    unpromoted = SemanticRecordProposal(
+        layer=KnowledgeLayer.WRITE_BACK_CAPTURE,
+        state=ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+    )
+
+    result = validate_field_bundle(unpromoted)
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "write-back/capture confirmed receipt requires operator promotion",
+    )
+    assert is_accepted_knowledge(unpromoted) is False
+
+
+def test_forbidden_implementation_concepts_fail_field_bundle_validation():
+    record = SemanticRecordProposal(
+        layer=KnowledgeLayer.WRITE_BACK_CAPTURE,
+        state=ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+        proposed_use="define API routes for a runtime service",
+        promoted_by_operator=True,
+    )
+
+    result = validate_field_bundle(record)
+    assert result.ok is False
+    assert result.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+    assert result.reasons == (
+        "implementation-forbidden proposed use cannot be accepted",
+    )
+    assert is_accepted_knowledge(record) is False
+
+
+def test_unknown_and_excluded_states_cannot_confirm_accidentally():
+    unknown = SemanticRecordProposal(
+        layer=KnowledgeLayer.RAW,
+        state=ContractState.UNKNOWN,
+        labels=FULL_LABELS,
+        promoted_by_operator=True,
+    )
+    excluded = SemanticRecordProposal(
+        layer=KnowledgeLayer.RAW,
+        state=ContractState.EXCLUDED,
+        labels=FULL_LABELS,
+        promoted_by_operator=True,
+    )
+
+    unknown_result = validate_field_bundle(unknown)
+    assert unknown_result.ok is False
+    assert unknown_result.decision is ContractDecision.UNKNOWN
+    assert "unknown-style state cannot be treated as confirmed" in unknown_result.reasons
+
+    excluded_result = validate_field_bundle(excluded)
+    assert excluded_result.ok is False
+    assert excluded_result.decision is ContractDecision.EXCLUDED
+    assert "excluded-style state cannot be treated as confirmed" in excluded_result.reasons
+
+
+def test_private_sensitive_promotion_requires_sensitivity_and_authority_labels():
+    record = SemanticRecordProposal(
+        layer=KnowledgeLayer.COMPILED_WIKI,
+        state=ContractState.SENSITIVE_LOCAL_ONLY,
+        labels=FULL_LABELS - {ContractLabel.SENSITIVITY, ContractLabel.AUTHORITY},
+        promoted_by_operator=True,
+    )
+
+    result = validate_field_bundle(record)
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert "private/sensitive promotion requires labels: authority, sensitivity" in result.reasons

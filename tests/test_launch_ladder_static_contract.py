@@ -752,6 +752,7 @@ def test_backend_data_contract_static_gate_artifacts_are_documented():
         "backend_data_contract.py",
         "test_backend_data_contract.py",
         "backend data-contract semantic vocabulary and guard helpers",
+        "field-bundle validator",
         "source-set 04 context-filter freshness bridge",
         "doc 30 exclusion/classification-only handling",
     ):

@@ -72,7 +72,17 @@ class SemanticRecordProposal:
     promoted_by_operator: bool = False
 
 
-REQUIRED_WRITE_BACK_CAPTURE_LABELS = frozenset(
+@dataclass(frozen=True)
+class ContractValidationResult:
+    decision: ContractDecision
+    reasons: tuple[str, ...] = ()
+
+    @property
+    def ok(self) -> bool:
+        return self.decision is ContractDecision.ALLOWED and not self.reasons
+
+
+REQUIRED_CONTRACT_LABELS = frozenset(
     {
         ContractLabel.PROVENANCE,
         ContractLabel.FRESHNESS,
@@ -82,6 +92,15 @@ REQUIRED_WRITE_BACK_CAPTURE_LABELS = frozenset(
         ContractLabel.REVIEW_STATUS,
     }
 )
+REQUIRED_WRITE_BACK_CAPTURE_LABELS = REQUIRED_CONTRACT_LABELS
+
+REQUIRED_LABEL_BUNDLES_BY_LAYER = {
+    KnowledgeLayer.RAW: REQUIRED_CONTRACT_LABELS,
+    KnowledgeLayer.COMPILED_WIKI: REQUIRED_CONTRACT_LABELS,
+    KnowledgeLayer.RELATIONSHIP: REQUIRED_CONTRACT_LABELS,
+    KnowledgeLayer.SYNTHESIS: REQUIRED_CONTRACT_LABELS,
+    KnowledgeLayer.WRITE_BACK_CAPTURE: REQUIRED_CONTRACT_LABELS,
+}
 
 UNKNOWN_STYLE_STATES = frozenset(
     {
@@ -96,6 +115,16 @@ EXCLUDED_STYLE_STATES = frozenset(
         ContractState.EXCLUDED,
         ContractState.BLOCKED,
         ContractState.CONTEXT_FILTER_BLOCKED,
+        ContractState.PRIVATE_ROOT_EXCLUDED,
+        ContractState.LOCAL_ONLY,
+        ContractState.OWNER_REVIEW_REQUIRED,
+    }
+)
+
+SENSITIVE_OR_PRIVATE_STATES = frozenset(
+    {
+        ContractState.SENSITIVE,
+        ContractState.SENSITIVE_LOCAL_ONLY,
         ContractState.PRIVATE_ROOT_EXCLUDED,
         ContractState.LOCAL_ONLY,
         ContractState.OWNER_REVIEW_REQUIRED,
@@ -253,6 +282,24 @@ def normalized_labels(labels: Iterable[ContractLabel | str]) -> frozenset[Contra
     )
 
 
+def _format_labels(labels: Iterable[ContractLabel]) -> str:
+    return ", ".join(sorted(label.value for label in labels))
+
+
+def required_labels_for_layer(layer: KnowledgeLayer | str) -> frozenset[ContractLabel]:
+    normalized_layer = normalize_layer(layer)
+    if normalized_layer is None:
+        return frozenset()
+    return REQUIRED_LABEL_BUNDLES_BY_LAYER[normalized_layer]
+
+
+def missing_required_labels(
+    layer: KnowledgeLayer | str,
+    labels: Iterable[ContractLabel | str],
+) -> frozenset[ContractLabel]:
+    return required_labels_for_layer(layer) - normalized_labels(labels)
+
+
 def is_implementation_forbidden(proposed_use: str | None) -> bool:
     if not proposed_use:
         return False
@@ -267,6 +314,68 @@ def missing_write_back_capture_labels(
     labels: Iterable[ContractLabel | str],
 ) -> frozenset[ContractLabel]:
     return REQUIRED_WRITE_BACK_CAPTURE_LABELS - normalized_labels(labels)
+
+
+def validate_field_bundle(record: SemanticRecordProposal) -> ContractValidationResult:
+    if is_implementation_forbidden(record.proposed_use):
+        return ContractValidationResult(
+            ContractDecision.IMPLEMENTATION_FORBIDDEN,
+            ("implementation-forbidden proposed use cannot be accepted",),
+        )
+
+    layer = normalize_layer(record.layer)
+    state = normalize_state(record.state)
+    labels = normalized_labels(record.labels)
+    reasons: list[str] = []
+
+    if layer is None:
+        reasons.append(f"unknown knowledge layer: {record.layer}")
+    if state is None:
+        reasons.append(f"unknown contract state: {record.state}")
+
+    if layer is not None:
+        missing_labels = REQUIRED_LABEL_BUNDLES_BY_LAYER[layer] - labels
+        if missing_labels:
+            reasons.append(
+                f"missing required labels for {layer.value}: {_format_labels(missing_labels)}"
+            )
+
+    if layer is not None and state is not None:
+        if state in UNKNOWN_STYLE_STATES:
+            reasons.append("unknown-style state cannot be treated as confirmed")
+        if state in EXCLUDED_STYLE_STATES:
+            reasons.append("excluded-style state cannot be treated as confirmed")
+        if state not in ALLOWED_STATES_BY_LAYER[layer]:
+            reasons.append(f"state {state.value} is not allowed for {layer.value}")
+        if layer is KnowledgeLayer.SYNTHESIS and state is ContractState.CONFIRMED:
+            reasons.append("synthesis layer is not confirmed truth by default")
+        if (
+            layer is KnowledgeLayer.WRITE_BACK_CAPTURE
+            and state is ContractState.CONFIRMED_WITH_RECEIPT
+            and not record.promoted_by_operator
+        ):
+            reasons.append(
+                "write-back/capture confirmed receipt requires operator promotion"
+            )
+        if record.promoted_by_operator and state in SENSITIVE_OR_PRIVATE_STATES:
+            missing_promotion_labels = {
+                ContractLabel.SENSITIVITY,
+                ContractLabel.AUTHORITY,
+            } - labels
+            if missing_promotion_labels:
+                reasons.append(
+                    "private/sensitive promotion requires labels: "
+                    f"{_format_labels(missing_promotion_labels)}"
+                )
+
+    if reasons:
+        if state in EXCLUDED_STYLE_STATES:
+            decision = ContractDecision.EXCLUDED
+        else:
+            decision = ContractDecision.UNKNOWN
+        return ContractValidationResult(decision, tuple(reasons))
+
+    return ContractValidationResult(ContractDecision.ALLOWED)
 
 
 def classify_semantic_record(record: SemanticRecordProposal) -> ContractDecision:
@@ -315,11 +424,10 @@ def is_accepted_knowledge(record: SemanticRecordProposal) -> bool:
     if layer is KnowledgeLayer.SYNTHESIS:
         return False
     return (
-        layer is KnowledgeLayer.WRITE_BACK_CAPTURE
+        validate_field_bundle(record).ok
+        and layer is KnowledgeLayer.WRITE_BACK_CAPTURE
         and state is ContractState.CONFIRMED_WITH_RECEIPT
         and record.promoted_by_operator
-        and not missing_write_back_capture_labels(record.labels)
-        and classify_semantic_record(record) is ContractDecision.ALLOWED
     )
 
 
@@ -328,19 +436,26 @@ __all__ = [
     "ContractDecision",
     "ContractLabel",
     "ContractState",
+    "ContractValidationResult",
     "EXCLUDED_STYLE_STATES",
     "IMPLEMENTATION_FORBIDDEN_CONCEPTS",
     "KnowledgeLayer",
+    "REQUIRED_CONTRACT_LABELS",
+    "REQUIRED_LABEL_BUNDLES_BY_LAYER",
     "REQUIRED_WRITE_BACK_CAPTURE_LABELS",
+    "SENSITIVE_OR_PRIVATE_STATES",
     "SemanticRecordProposal",
     "UNKNOWN_STYLE_STATES",
     "classify_record_state",
     "classify_semantic_record",
     "is_accepted_knowledge",
     "is_implementation_forbidden",
+    "missing_required_labels",
     "missing_write_back_capture_labels",
     "normalize_label",
     "normalize_layer",
     "normalize_state",
     "normalized_labels",
+    "required_labels_for_layer",
+    "validate_field_bundle",
 ]
