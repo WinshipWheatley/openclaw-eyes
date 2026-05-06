@@ -35,6 +35,7 @@ from launch_ladder_contract_check import (
     backend_data_contract_readiness_plan_failures,
     backend_data_contract_semantic_contract_matrix_failures,
     backend_data_contract_shape_plan_failures,
+    backend_data_contract_sqlite_plan_failures,
     backend_data_contract_storage_schema_plan_failures,
     pc_storage_relief_launch_packet_plan_failures,
     storage_and_source_registry_readiness_plan_failures,
@@ -743,6 +744,7 @@ def test_backend_data_contract_static_gate_artifacts_are_documented():
     assert backend_data_contract_semantic_contract_matrix_failures() == ()
     assert backend_data_contract_implementation_readiness_checklist_failures() == ()
     assert backend_data_contract_storage_schema_plan_failures() == ()
+    assert backend_data_contract_sqlite_plan_failures() == ()
     assert backend_data_contract_module_failures() == ()
 
     corpus = load_corpus()
@@ -752,7 +754,9 @@ def test_backend_data_contract_static_gate_artifacts_are_documented():
         "backend implementation-readiness checklist",
         "backend first implementation slice readiness",
         "backend_data_contract_storage_schema_plan_20260505.md",
+        "backend_data_contract_sqlite_plan_20260505.md",
         "storage/schema planning bridge",
+        "SQLite planning bridge",
         "backend_data_contract.py",
         "test_backend_data_contract.py",
         "backend data-contract semantic vocabulary and guard helpers",
@@ -771,6 +775,7 @@ def test_backend_data_contract_static_gate_checks_fail_closed_when_artifacts_mis
         backend_data_contract_semantic_contract_matrix_failures,
         backend_data_contract_implementation_readiness_checklist_failures,
         backend_data_contract_storage_schema_plan_failures,
+        backend_data_contract_sqlite_plan_failures,
         backend_data_contract_module_failures,
     ):
         failures = checker(tmp_path)
@@ -810,6 +815,19 @@ def test_backend_storage_schema_plan_check_is_part_of_main_contract(monkeypatch)
     monkeypatch.setitem(
         check_contract.__globals__,
         "backend_data_contract_storage_schema_plan_failures",
+        lambda: (sentinel,),
+    )
+
+    report = check_contract()
+    assert sentinel in report.failures
+
+
+def test_backend_sqlite_plan_check_is_part_of_main_contract(monkeypatch):
+    sentinel = "backend SQLite plan sentinel failure"
+
+    monkeypatch.setitem(
+        check_contract.__globals__,
+        "backend_data_contract_sqlite_plan_failures",
         lambda: (sentinel,),
     )
 
