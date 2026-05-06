@@ -13,10 +13,13 @@ from backend_data_contract import (
     ALLOWED_STATES_BY_ENTITY_FAMILY,
     REQUIRED_LABEL_BUNDLES_BY_LAYER,
     REQUIRED_SCHEMA_CONTRACT_SURFACES,
+    REQUIRED_SQLITE_TABLE_CONCEPTS,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
     SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     SchemaContractSurface,
     SemanticRecordProposal,
+    SQLiteTableConcept,
     allowed_layers_for_entity_family,
     allowed_states_for_entity_family,
     classify_record_state,
@@ -28,15 +31,25 @@ from backend_data_contract import (
     is_entity_record_accepted_knowledge,
     is_implementation_forbidden,
     is_schema_surface_known,
+    is_sqlite_table_concept_known,
     normalize_entity_family,
     normalize_schema_surface_name,
+    normalize_sqlite_table_concept_name,
     missing_required_labels,
     missing_write_back_capture_labels,
     required_labels_for_layer,
     required_schema_surface_fields,
+    required_sqlite_table_concept_fields,
     schema_contract_surface,
     schema_contract_surfaces,
     schema_surface_names,
+    semantic_records_table_preserves_synthesis_not_truth,
+    sqlite_table_concept,
+    sqlite_table_concept_names,
+    sqlite_table_concepts,
+    sqlite_table_concepts_keep_receipts_and_promotion_separate,
+    table_concept_can_directly_imply_accepted_truth,
+    validate_sqlite_table_concept_definition,
     validate_schema_surface_definition,
     validate_entity_family_record,
     validate_field_bundle,
@@ -877,6 +890,281 @@ def test_schema_contract_helpers_are_pure_lookup_and_validation_only():
         schema_surface_names,
         required_schema_surface_fields,
         validate_schema_surface_definition,
+    )
+
+    for helper in helpers:
+        assert forbidden_helper_names.isdisjoint(helper.__code__.co_names)
+
+
+def test_required_sqlite_table_concepts_exist():
+    assert sqlite_table_concept_names() == REQUIRED_SQLITE_TABLE_CONCEPTS
+    assert sqlite_table_concept_names() == (
+        "semantic_records",
+        "semantic_labels",
+        "semantic_relationships",
+        "provenance_refs",
+        "validation_receipts",
+        "operator_promotions",
+        "context_filter_receipts",
+    )
+
+    table_concepts = sqlite_table_concepts()
+    assert all(isinstance(concept, SQLiteTableConcept) for concept in table_concepts)
+    assert tuple(concept.name for concept in table_concepts) == (
+        REQUIRED_SQLITE_TABLE_CONCEPTS
+    )
+
+
+def test_sqlite_table_concept_names_normalize_correctly():
+    assert normalize_sqlite_table_concept_name(" Semantic Records ") == (
+        "semantic_records"
+    )
+    assert normalize_sqlite_table_concept_name("semantic-record") == (
+        "semantic_records"
+    )
+    assert normalize_sqlite_table_concept_name("semantic record") == (
+        "semantic_records"
+    )
+    assert normalize_sqlite_table_concept_name("operator promotion") == (
+        "operator_promotions"
+    )
+    assert normalize_sqlite_table_concept_name("validation receipt") == (
+        "validation_receipts"
+    )
+    assert normalize_sqlite_table_concept_name("context-filter-receipts") == (
+        "context_filter_receipts"
+    )
+    assert normalize_sqlite_table_concept_name("runtime table") is None
+    assert is_sqlite_table_concept_known("provenance references") is True
+    assert is_sqlite_table_concept_known("sqlite runtime") is False
+
+
+def test_each_sqlite_table_concept_maps_to_expected_schema_surface():
+    expected = {
+        "semantic_records": "semantic_record",
+        "semantic_labels": "semantic_label",
+        "semantic_relationships": "semantic_relationship",
+        "provenance_refs": "provenance_ref",
+        "validation_receipts": "validation_receipt",
+        "operator_promotions": "operator_promotion",
+        "context_filter_receipts": "context_filter_receipt",
+    }
+
+    for table_name, surface_name in expected.items():
+        concept = sqlite_table_concept(table_name)
+        assert concept is not None
+        assert concept.related_schema_contract_surface == surface_name
+        assert is_schema_surface_known(surface_name) is True
+
+
+def test_sqlite_table_concepts_expose_required_conceptual_fields():
+    assert required_sqlite_table_concept_fields("semantic_records") >= frozenset(
+        {
+            "record_id",
+            "entity_family",
+            "knowledge_layer",
+            "contract_state",
+            "validator_decision",
+            "synthesis_not_truth",
+            "accepted_knowledge_derived",
+            "provenance_refs",
+            "freshness_refs",
+            "confidence_label",
+            "sensitivity_label",
+            "authority_label",
+            "review_status_label",
+        }
+    )
+    assert required_sqlite_table_concept_fields("operator_promotions") >= frozenset(
+        {
+            "promotion_id",
+            "target_record_id",
+            "operator_decision",
+            "receipt_ref",
+            "promotion_scope",
+            "promoted_by_operator",
+            "complete_label_set",
+        }
+    )
+    assert required_sqlite_table_concept_fields("context_filter_receipts") >= frozenset(
+        {
+            "context_filter_receipt_id",
+            "context_package_ref",
+            "filter_scope",
+            "checked_inputs",
+            "withheld_surfaces",
+            "filter_outcome",
+            "finding_summary",
+            "review_route",
+        }
+    )
+
+
+def test_missing_sqlite_table_concept_fields_fail_with_useful_reasons():
+    result = validate_sqlite_table_concept_definition(
+        "semantic records",
+        {
+            "record_id",
+            "entity_family",
+            "knowledge_layer",
+            "contract_state",
+        },
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    )
+
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "SQLite table concept semantic_records missing conceptual fields: "
+        "accepted_knowledge_derived, authority_label, confidence_label, "
+        "freshness_refs, provenance_refs, review_status_label, sensitivity_label, "
+        "synthesis_not_truth, validator_decision",
+    )
+
+
+def test_missing_sqlite_table_concept_forbidden_boundaries_fail_closed():
+    result = validate_sqlite_table_concept_definition(
+        "semantic_labels",
+        required_sqlite_table_concept_fields("semantic_labels"),
+    )
+
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "SQLite table concept semantic_labels missing forbidden implementation behavior: "
+        "API route, DB connections, Hermes, MCP, SQL DDL execution, SQLite runtime, "
+        "database connection, embedding, extraction, file I/O, fixture, indexing, "
+        "ingestion, migration, persistence, private-root inspection, provider/model call, "
+        "runtime service, source-set generation, sqlite3, sync",
+    )
+
+
+def test_sqlite_table_concepts_do_not_authorize_forbidden_implementation_terms():
+    forbidden_uses = (
+        "SQLite runtime",
+        "sqlite3",
+        "SQL DDL execution",
+        "migrations",
+        "persistence",
+        "DB connections",
+        "file I/O",
+        "API routes",
+        "ingestion",
+        "extraction",
+        "indexing",
+        "embeddings",
+        "fixtures",
+        "runtime services",
+        "provider/model calls",
+        "Hermes",
+        "MCPs",
+        "sync",
+        "source-set generation",
+        "private-root inspection",
+    )
+
+    combined_forbidden = " ".join(
+        " ".join(concept.forbidden_implementation_behavior)
+        for concept in sqlite_table_concepts()
+    ).lower()
+
+    for forbidden_use in forbidden_uses:
+        assert is_implementation_forbidden(forbidden_use) is True
+        assert forbidden_use.lower().removesuffix("s") in combined_forbidden
+
+
+def test_semantic_records_table_preserves_layer_separation_without_truth_flattening():
+    concept = sqlite_table_concept("semantic_records")
+
+    assert concept is not None
+    assert concept.knowledge_layers == frozenset(KnowledgeLayer)
+    assert "synthesis_not_truth" in concept.required_conceptual_fields
+    assert "accepted_knowledge_derived" in concept.required_conceptual_fields
+    assert semantic_records_table_preserves_synthesis_not_truth() is True
+    assert table_concept_can_directly_imply_accepted_truth("semantic_records") is False
+
+    synthesis_record = SemanticRecordProposal(
+        layer=KnowledgeLayer.SYNTHESIS,
+        state=ContractState.INFERRED,
+        labels=FULL_LABELS,
+    )
+    captured_record = SemanticRecordProposal(
+        layer=KnowledgeLayer.WRITE_BACK_CAPTURE,
+        state=ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+        promoted_by_operator=True,
+    )
+
+    assert validate_field_bundle(synthesis_record).ok is True
+    assert is_accepted_knowledge(synthesis_record) is False
+    assert is_accepted_knowledge(captured_record) is True
+
+
+def test_receipt_promotion_and_provenance_tables_remain_distinct():
+    promotion = sqlite_table_concept("operator_promotions")
+    validation = sqlite_table_concept("validation_receipts")
+    provenance = sqlite_table_concept("provenance_refs")
+    context_filter = sqlite_table_concept("context_filter_receipts")
+
+    assert promotion is not None
+    assert validation is not None
+    assert provenance is not None
+    assert context_filter is not None
+    assert sqlite_table_concepts_keep_receipts_and_promotion_separate() is True
+    assert {promotion.name, validation.name, provenance.name, context_filter.name} == {
+        "operator_promotions",
+        "validation_receipts",
+        "provenance_refs",
+        "context_filter_receipts",
+    }
+    assert "operator_decision" in promotion.required_conceptual_fields
+    assert "validation_result" in validation.required_conceptual_fields
+    assert "source_basis" in provenance.required_conceptual_fields
+    assert "filter_outcome" in context_filter.required_conceptual_fields
+    assert "operator_decision" not in validation.required_conceptual_fields
+
+
+def test_sqlite_table_concept_helpers_are_pure_lookup_and_validation_only():
+    for table_name in sqlite_table_concept_names():
+        result = validate_sqlite_table_concept_definition(
+            table_name,
+            required_sqlite_table_concept_fields(table_name),
+            forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        )
+        assert result.ok is True
+        assert result.reasons == ()
+
+    unknown = validate_sqlite_table_concept_definition("runtime table", {"id"})
+    assert unknown.decision is ContractDecision.UNKNOWN
+    assert unknown.reasons == ("unknown SQLite table concept: runtime table",)
+
+    forbidden_helper_names = {
+        "open",
+        "read",
+        "read_text",
+        "write",
+        "write_text",
+        "sqlite3",
+        "connect",
+        "request",
+        "requests",
+        "httpx",
+        "openai",
+        "anthropic",
+        "subprocess",
+        "socket",
+    }
+    helpers = (
+        normalize_sqlite_table_concept_name,
+        is_sqlite_table_concept_known,
+        sqlite_table_concept,
+        sqlite_table_concepts,
+        sqlite_table_concept_names,
+        required_sqlite_table_concept_fields,
+        validate_sqlite_table_concept_definition,
+        semantic_records_table_preserves_synthesis_not_truth,
+        table_concept_can_directly_imply_accepted_truth,
+        sqlite_table_concepts_keep_receipts_and_promotion_separate,
     )
 
     for helper in helpers:

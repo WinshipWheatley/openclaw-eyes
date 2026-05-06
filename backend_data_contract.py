@@ -113,6 +113,17 @@ class SchemaContractSurface:
     entity_families: frozenset[EntityFamily] = field(default_factory=frozenset)
 
 
+@dataclass(frozen=True)
+class SQLiteTableConcept:
+    name: str
+    purpose: str
+    required_conceptual_fields: frozenset[str]
+    related_schema_contract_surface: str
+    forbidden_implementation_behavior: tuple[str, ...]
+    knowledge_layers: frozenset[KnowledgeLayer] = field(default_factory=frozenset)
+    can_directly_imply_accepted_truth: bool = False
+
+
 REQUIRED_CONTRACT_LABELS = frozenset(
     {
         ContractLabel.PROVENANCE,
@@ -230,6 +241,7 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "database connection",
         "file i/o",
         "sqlite",
+        "sqlite3",
         "sql ddl",
         "migration",
         "migrations",
@@ -238,6 +250,7 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "api route",
         "api routes",
         "mcp",
+        "mcps",
         "model",
         "provider",
         "provider/model",
@@ -257,6 +270,8 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "hermes",
         "sync",
         "fixture",
+        "fixtures",
+        "extraction",
         "loader",
         "extractor",
         "chunking",
@@ -284,6 +299,16 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "context_filter_receipt",
 )
 
+REQUIRED_SQLITE_TABLE_CONCEPTS = (
+    "semantic_records",
+    "semantic_labels",
+    "semantic_relationships",
+    "provenance_refs",
+    "validation_receipts",
+    "operator_promotions",
+    "context_filter_receipts",
+)
+
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
     "SQLite implementation",
     "SQL DDL",
@@ -301,6 +326,30 @@ SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
     "private-root inspection",
     "file I/O",
     "database connection",
+)
+
+SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR = (
+    "SQLite runtime",
+    "sqlite3",
+    "SQL DDL execution",
+    "migration",
+    "persistence",
+    "database connection",
+    "DB connections",
+    "file I/O",
+    "API route",
+    "ingestion",
+    "extraction",
+    "indexing",
+    "embedding",
+    "fixture",
+    "runtime service",
+    "provider/model call",
+    "Hermes",
+    "MCP",
+    "sync",
+    "source-set generation",
+    "private-root inspection",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -442,6 +491,170 @@ SCHEMA_CONTRACT_SURFACES = (
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+)
+
+SQLITE_TABLE_CONCEPTS = (
+    SQLiteTableConcept(
+        name="semantic_records",
+        purpose=(
+            "No-runtime table concept for the central semantic record envelope; "
+            "it preserves layer, family, state, labels, and accepted-knowledge "
+            "derivation inputs without creating storage."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "record_id",
+                "entity_family",
+                "knowledge_layer",
+                "contract_state",
+                "validator_decision",
+                "synthesis_not_truth",
+                "accepted_knowledge_derived",
+                "provenance_refs",
+                "freshness_refs",
+                "confidence_label",
+                "sensitivity_label",
+                "authority_label",
+                "review_status_label",
+            }
+        ),
+        related_schema_contract_surface="semantic_record",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+    ),
+    SQLiteTableConcept(
+        name="semantic_labels",
+        purpose=(
+            "No-runtime table concept for explicit provenance, freshness, "
+            "confidence, sensitivity, authority, and review-status labels."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "label_id",
+                "target_record_id",
+                "label_name",
+                "label_value",
+                "label_basis",
+                "review_status",
+            }
+        ),
+        related_schema_contract_surface="semantic_label",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+    ),
+    SQLiteTableConcept(
+        name="semantic_relationships",
+        purpose=(
+            "No-runtime table concept for directional semantic, responsibility, "
+            "contradiction, provenance, freshness, authority, and sensitivity links."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "relationship_id",
+                "from_record_id",
+                "to_record_id",
+                "relationship_kind",
+                "relationship_state",
+                "provenance_refs",
+                "freshness_refs",
+                "authority_label",
+                "sensitivity_label",
+            }
+        ),
+        related_schema_contract_surface="semantic_relationship",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=frozenset(
+            {
+                KnowledgeLayer.RELATIONSHIP,
+                KnowledgeLayer.SYNTHESIS,
+                KnowledgeLayer.WRITE_BACK_CAPTURE,
+            }
+        ),
+    ),
+    SQLiteTableConcept(
+        name="provenance_refs",
+        purpose=(
+            "No-runtime table concept for source-basis, source-set, manifest, "
+            "bridge, packet, and receipt references without authority laundering."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "provenance_ref_id",
+                "target_record_id",
+                "source_basis",
+                "source_set_ref",
+                "manifest_ref",
+                "bridge_ref",
+                "packet_ref",
+                "receipt_ref",
+            }
+        ),
+        related_schema_contract_surface="provenance_ref",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=_ALL_KNOWLEDGE_LAYERS,
+    ),
+    SQLiteTableConcept(
+        name="validation_receipts",
+        purpose=(
+            "No-runtime table concept for static validation evidence; it does not "
+            "grant implementation, runtime, approval, or truth authority."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "receipt_id",
+                "validated_target",
+                "validator_name",
+                "validation_result",
+                "failure_reasons",
+                "checked_at",
+                "source_basis",
+            }
+        ),
+        related_schema_contract_surface="validation_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="operator_promotions",
+        purpose=(
+            "No-runtime table concept for scope-bound operator write-back/capture "
+            "decisions that can support accepted-knowledge derivation."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "promotion_id",
+                "target_record_id",
+                "operator_decision",
+                "receipt_ref",
+                "promotion_scope",
+                "promoted_by_operator",
+                "complete_label_set",
+            }
+        ),
+        related_schema_contract_surface="operator_promotion",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+        knowledge_layers=frozenset({KnowledgeLayer.WRITE_BACK_CAPTURE}),
+    ),
+    SQLiteTableConcept(
+        name="context_filter_receipts",
+        purpose=(
+            "No-runtime table concept for pass, warn, block, or needs-review "
+            "context-filter outcomes before execution influence."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "context_filter_receipt_id",
+                "context_package_ref",
+                "filter_scope",
+                "checked_inputs",
+                "withheld_surfaces",
+                "filter_outcome",
+                "finding_summary",
+                "review_route",
+            }
+        ),
+        related_schema_contract_surface="context_filter_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
 )
 
@@ -742,6 +955,32 @@ _SCHEMA_SURFACE_ALIASES = {
     "context filter receipt": "context_filter_receipt",
     "context filter receipts": "context_filter_receipt",
 }
+_SQLITE_TABLE_CONCEPTS_BY_NAME = {
+    concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
+}
+_SQLITE_TABLE_CONCEPT_ALIASES = {
+    _normalize_phrase(concept.name): concept.name for concept in SQLITE_TABLE_CONCEPTS
+} | {
+    "semantic record": "semantic_records",
+    "semantic records": "semantic_records",
+    "semantic table": "semantic_records",
+    "semantic label": "semantic_labels",
+    "semantic labels": "semantic_labels",
+    "record label": "semantic_labels",
+    "record labels": "semantic_labels",
+    "semantic relationship": "semantic_relationships",
+    "semantic relationships": "semantic_relationships",
+    "provenance ref": "provenance_refs",
+    "provenance refs": "provenance_refs",
+    "provenance reference": "provenance_refs",
+    "provenance references": "provenance_refs",
+    "validation receipt": "validation_receipts",
+    "validation receipts": "validation_receipts",
+    "operator promotion": "operator_promotions",
+    "operator promotions": "operator_promotions",
+    "context filter receipt": "context_filter_receipts",
+    "context filter receipts": "context_filter_receipts",
+}
 
 
 def normalize_layer(layer: KnowledgeLayer | str) -> KnowledgeLayer | None:
@@ -760,12 +999,24 @@ def normalize_schema_surface_name(surface_name: str) -> str | None:
     return _SCHEMA_SURFACE_ALIASES.get(_normalize_phrase(surface_name))
 
 
+def normalize_sqlite_table_concept_name(table_name: str) -> str | None:
+    return _SQLITE_TABLE_CONCEPT_ALIASES.get(_normalize_phrase(table_name))
+
+
 def schema_surface_names() -> tuple[str, ...]:
     return REQUIRED_SCHEMA_CONTRACT_SURFACES
 
 
+def sqlite_table_concept_names() -> tuple[str, ...]:
+    return REQUIRED_SQLITE_TABLE_CONCEPTS
+
+
 def schema_contract_surfaces() -> tuple[SchemaContractSurface, ...]:
     return SCHEMA_CONTRACT_SURFACES
+
+
+def sqlite_table_concepts() -> tuple[SQLiteTableConcept, ...]:
+    return SQLITE_TABLE_CONCEPTS
 
 
 def schema_contract_surface(surface_name: str) -> SchemaContractSurface | None:
@@ -775,8 +1026,19 @@ def schema_contract_surface(surface_name: str) -> SchemaContractSurface | None:
     return _SCHEMA_SURFACES_BY_NAME[normalized_name]
 
 
+def sqlite_table_concept(table_name: str) -> SQLiteTableConcept | None:
+    normalized_name = normalize_sqlite_table_concept_name(table_name)
+    if normalized_name is None:
+        return None
+    return _SQLITE_TABLE_CONCEPTS_BY_NAME[normalized_name]
+
+
 def is_schema_surface_known(surface_name: str) -> bool:
     return schema_contract_surface(surface_name) is not None
+
+
+def is_sqlite_table_concept_known(table_name: str) -> bool:
+    return sqlite_table_concept(table_name) is not None
 
 
 def required_schema_surface_fields(surface_name: str) -> frozenset[str]:
@@ -784,6 +1046,13 @@ def required_schema_surface_fields(surface_name: str) -> frozenset[str]:
     if surface is None:
         return frozenset()
     return surface.required_conceptual_fields
+
+
+def required_sqlite_table_concept_fields(table_name: str) -> frozenset[str]:
+    concept = sqlite_table_concept(table_name)
+    if concept is None:
+        return frozenset()
+    return concept.required_conceptual_fields
 
 
 def _normalize_schema_field_name(field_name: object) -> str:
@@ -845,6 +1114,94 @@ def validate_schema_surface_definition(
     if reasons:
         return ContractValidationResult(ContractDecision.UNKNOWN, tuple(reasons))
     return ContractValidationResult(ContractDecision.ALLOWED)
+
+
+def validate_sqlite_table_concept_definition(
+    table_name: str,
+    conceptual_fields: Iterable[str],
+    *,
+    forbidden_implementation_behavior: Iterable[str] = (),
+) -> ContractValidationResult:
+    concept = sqlite_table_concept(table_name)
+    if concept is None:
+        return ContractValidationResult(
+            ContractDecision.UNKNOWN,
+            (f"unknown SQLite table concept: {table_name}",),
+        )
+
+    supplied_fields = frozenset(
+        _normalize_schema_field_name(field) for field in conceptual_fields
+    )
+    missing_fields = concept.required_conceptual_fields - supplied_fields
+    reasons: list[str] = []
+
+    if missing_fields:
+        reasons.append(
+            f"SQLite table concept {concept.name} missing conceptual fields: "
+            f"{_format_schema_fields(missing_fields)}"
+        )
+
+    forbidden_text = " ".join(forbidden_implementation_behavior)
+    supplied_forbidden_boundaries = frozenset(
+        _normalize_phrase(boundary) for boundary in forbidden_implementation_behavior
+    )
+    missing_forbidden_boundaries = tuple(
+        boundary
+        for boundary in concept.forbidden_implementation_behavior
+        if _normalize_phrase(boundary) not in supplied_forbidden_boundaries
+    )
+    if missing_forbidden_boundaries:
+        reasons.append(
+            f"SQLite table concept {concept.name} missing forbidden implementation behavior: "
+            f"{_format_schema_boundaries(missing_forbidden_boundaries)}"
+        )
+    elif not is_implementation_forbidden(forbidden_text):
+        reasons.append(
+            f"SQLite table concept {concept.name} missing forbidden implementation boundary"
+        )
+
+    if concept.can_directly_imply_accepted_truth:
+        reasons.append(
+            f"SQLite table concept {concept.name} cannot directly imply accepted truth"
+        )
+
+    if reasons:
+        return ContractValidationResult(ContractDecision.UNKNOWN, tuple(reasons))
+    return ContractValidationResult(ContractDecision.ALLOWED)
+
+
+def table_concept_can_directly_imply_accepted_truth(table_name: str) -> bool:
+    concept = sqlite_table_concept(table_name)
+    return bool(concept and concept.can_directly_imply_accepted_truth)
+
+
+def semantic_records_table_preserves_synthesis_not_truth() -> bool:
+    concept = sqlite_table_concept("semantic_records")
+    if concept is None:
+        return False
+    return (
+        KnowledgeLayer.SYNTHESIS in concept.knowledge_layers
+        and "synthesis_not_truth" in concept.required_conceptual_fields
+        and "accepted_knowledge_derived" in concept.required_conceptual_fields
+        and not concept.can_directly_imply_accepted_truth
+    )
+
+
+def sqlite_table_concepts_keep_receipts_and_promotion_separate() -> bool:
+    required_separate = {
+        "operator_promotions",
+        "validation_receipts",
+        "provenance_refs",
+        "context_filter_receipts",
+    }
+    found = {concept.name for concept in SQLITE_TABLE_CONCEPTS}
+    return required_separate <= found and len(required_separate) == len(
+        {
+            sqlite_table_concept(name).related_schema_contract_surface
+            for name in required_separate
+            if sqlite_table_concept(name) is not None
+        }
+    )
 
 
 def entity_family_decision(family: EntityFamily | str) -> ContractDecision:
@@ -1167,12 +1524,16 @@ __all__ = [
     "REQUIRED_CONTRACT_LABELS",
     "REQUIRED_LABEL_BUNDLES_BY_LAYER",
     "REQUIRED_SCHEMA_CONTRACT_SURFACES",
+    "REQUIRED_SQLITE_TABLE_CONCEPTS",
     "REQUIRED_WRITE_BACK_CAPTURE_LABELS",
     "SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR",
     "SCHEMA_CONTRACT_SURFACES",
+    "SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR",
+    "SQLITE_TABLE_CONCEPTS",
     "SENSITIVE_OR_PRIVATE_STATES",
     "SchemaContractSurface",
     "SemanticRecordProposal",
+    "SQLiteTableConcept",
     "UNKNOWN_STYLE_STATES",
     "allowed_layers_for_entity_family",
     "allowed_states_for_entity_family",
@@ -1185,20 +1546,30 @@ __all__ = [
     "is_entity_record_accepted_knowledge",
     "is_implementation_forbidden",
     "is_schema_surface_known",
+    "is_sqlite_table_concept_known",
     "missing_required_labels",
     "missing_write_back_capture_labels",
     "normalize_entity_family",
     "normalize_label",
     "normalize_layer",
     "normalize_schema_surface_name",
+    "normalize_sqlite_table_concept_name",
     "normalize_state",
     "normalized_labels",
     "required_labels_for_layer",
     "required_schema_surface_fields",
+    "required_sqlite_table_concept_fields",
     "schema_contract_surface",
     "schema_contract_surfaces",
     "schema_surface_names",
+    "semantic_records_table_preserves_synthesis_not_truth",
+    "sqlite_table_concept",
+    "sqlite_table_concept_names",
+    "sqlite_table_concepts",
+    "sqlite_table_concepts_keep_receipts_and_promotion_separate",
+    "table_concept_can_directly_imply_accepted_truth",
     "validate_entity_family_record",
     "validate_field_bundle",
     "validate_schema_surface_definition",
+    "validate_sqlite_table_concept_definition",
 ]
