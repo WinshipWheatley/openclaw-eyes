@@ -3,9 +3,19 @@
 ## 1. Repo Verification Receipt
 
 - **Current Branch:** main
-- **Current Status:** Clean (no untracked or uncommitted changes)
+- **Latest Pushed Code Baseline:** `dd6c08f feat(backend): add inert sqlite schema definitions`
+- **Current Status Before This Docs Commit:** `main...origin/main` with three tracked docs/handoff hardening files modified and pending review/commit:
+  - `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_repo_truth_20260506.md`
+  - `docs/planning/project_orchestration/24_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md`
+  - `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/00_ACTIVE_HANDOFF.md`
+- **Post-Commit Rule:** after this docs/handoff hardening commit lands, terminal truth must be re-verified and this receipt updated if needed.
 - **Latest 12 Commits:**
 ```
+dd6c08f feat(backend): add inert sqlite schema definitions
+6f613a7 docs(planning): add backend retrieval strategy breadcrumb
+e7c5159 docs(project): clarify project packet transition protocol
+5eda217 docs(project): export sqlite schema project packet
+373750e docs(project): add sqlite schema orchestration source set
 67d2540 docs(planning): add first sqlite implementation plan
 a4ecd66 fix(backend): harden sqlite table concept boundaries
 30f2e59 feat(backend): add sqlite table concept contract
@@ -13,21 +23,32 @@ a4ecd66 fix(backend): harden sqlite table concept boundaries
 e0b539f test(planning): enforce backend sqlite plan gate
 7928786 docs(planning): add backend sqlite schema contract plan
 759e925 fix(backend): harden schema contract boundaries
-51a92c5 feat(backend): add schema contract surfaces
-a54e875 test(planning): enforce backend storage schema plan gate
-6f62b62 docs(planning): add backend storage schema plan
-f1fe5c5 fix(backend): harden write-back promotion gate
-f63cd72 feat(backend): add semantic entity family validator
 ```
 - **Validation Command Results:**
   - `python3 launch_ladder_contract_check.py`: OK
   - `pytest tests/test_launch_ladder_static_contract.py`: 28 passed
   - `pytest tests/test_backend_data_contract.py`: 41 passed
-  - `python3 -m py_compile backend_data_contract.py launch_ladder_contract_check.py`: OK
+  - `pytest tests/test_backend_sqlite_schema.py`: 8 passed
+  - `python3 -m py_compile backend_data_contract.py backend_sqlite_schema.py launch_ladder_contract_check.py`: OK
 
 ## 2. Current Cleared Verdict
 
-Cleared for separate actual inert SQLite schema-definition implementation prompt.
+The first inert SQLite schema-definition implementation slice has already been implemented, validated, committed, and pushed at `dd6c08f`. This handoff is now cleared for next-step planning from that code-level static schema baseline, not from a docs-only blueprint baseline.
+
+## Built-State Ledger / Where To Continue From
+
+- **Latest Pushed Commit:** `dd6c08f feat(backend): add inert sqlite schema definitions`
+- **Already Built:** Code-level static schema contract implementation baseline.
+- **Active Code/Tests:**
+  - `backend_sqlite_schema.py` exists and is built.
+  - `tests/test_backend_sqlite_schema.py` exists and passes.
+  - `backend_data_contract.py` and `tests/test_backend_data_contract.py` enforce the semantic contract.
+- **Validation Receipts:** `launch_ladder_contract_check.py` and pytest test suites are fully green.
+- **Phase Label:** SQLite Schema-Definition Orchestration Phase.
+- **Baseline Is:** An inert, code-level static schema contract implementation. It is not merely docs-only blueprint/planning anymore.
+- **Baseline Is NOT:** It is NOT a runtime SQLite implementation, nor retrieval/indexing/RAG, nor app/frontend behavior.
+- **Next Authorized Baseline:** Further orchestration or specific inert schema refinements. Runtime behavior and connections remain blocked.
+- **Mandatory Rule:** New chats must read the active handoff and this built-state ledger before generating implementation prompts.
 
 ## 3. Canonical Files For Next Lane
 

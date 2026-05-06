@@ -117,6 +117,27 @@ It must say:
 - what new chats do first;
 - what Codex/Gemini receive next.
 
+It must also include a mandatory section titled **`## Built-State Ledger / Where To Continue From`**.
+This section must state:
+1. the latest pushed commit,
+2. what is already built,
+3. changed/active code and test files,
+4. validation receipts,
+5. the exact phase label,
+6. what this baseline is,
+7. what this baseline is not,
+8. the next authorized baseline,
+9. the rule that new chats must read this before generating implementation prompts.
+
+The section must explicitly distinguish:
+- docs-only planning
+- code-level static contract
+- runtime/database implementation
+- retrieval/indexing implementation
+- app/frontend behavior
+
+The ledger must be updated after each completed slice so stale 'cleared for implementation' language does not survive after the implementation has already landed.
+
 Update the handoff when chat context gets long, then generate the next-chat prompt.
 
 ## 5. Repo Truth Rule
