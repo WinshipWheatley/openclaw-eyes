@@ -81,6 +81,7 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 3. `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
 4. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
 5. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
+6. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
 
 ### Deployment/Portability Continuation
 
@@ -132,6 +133,7 @@ Use these before preparing any Windows metadata-only audit prompt, cleanup plan,
 - `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` - future metadata-only Windows root triage/dependency-map plan.
 - `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` - dependency-map template only; not actual audit, cleanup, migration, source-set, backend, bridge, or Operator Harness ingestion authority.
 - `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` - current metadata-only active-dependency map; use before backend source-set generation as exclusion/classification guidance only, not as private-root content or authority for cleanup, migration, ingestion, backend build-prep, provider/model/MCP context, or Operator Harness display.
+- `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` - source-set bridge/exclusion plan for `04_BACKEND_DATA_CONTRACT_READINESS`; it may summarize 26/27/28/29 as exclusion/classification guidance only and must not carry private-root content, runtime/log/state/config contents, or backend authority.
 
 ### Canonical Baseline
 
