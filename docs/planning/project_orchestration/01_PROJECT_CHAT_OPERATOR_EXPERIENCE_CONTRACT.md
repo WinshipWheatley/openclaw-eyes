@@ -300,6 +300,17 @@ Give serial instructions one clear step at a time.
 - Capture only rules that prevent real failure, confusion, authority drift, or materially bad next-chat handoff.
 - Cosmetic doc tidying should wait for packet regeneration, archive/regeneration, or a dedicated doctrine/pass.
 
+## 11A. Right Stride Length Rule
+
+- The project should move at safe speed, not maximum caution.
+- Baby steps are for unclear/high-risk/high-authority work.
+- Solid strides are the default once tests, boundaries, and rollback points exist.
+- Running is allowed for repetitive, low-risk, well-tested work.
+- Future prompts should choose the stride length intentionally.
+- Constraints are guardrails, not a substitute for completing the lane.
+- Agents should finish the bounded lane when appropriate: build, harden, polish, taste-pass up to 3, validate, and report.
+- Handoffs/commits should happen at meaningful checkpoints, not every micro-step.
+
 ## 12. Prompt Hygiene
 
 Prompts must be:
