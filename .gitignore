@@ -62,6 +62,8 @@
 !docs/handoffs/
 !docs/handoffs/.gitkeep
 !docs/planning/
+!docs/planning/project_orchestration/
+!docs/planning/project_orchestration/*.md
 !docs/planning/launch_ladder/
 !docs/planning/launch_ladder/CHAT_STAY_UP_TO_DATE.md
 !docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md

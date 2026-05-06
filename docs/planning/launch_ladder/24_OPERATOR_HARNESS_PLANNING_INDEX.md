@@ -90,6 +90,7 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 
 ### Backend/Data-Contract Continuation
 
+0. `docs/planning/project_orchestration/01_PROJECT_CHAT_OPERATOR_EXPERIENCE_CONTRACT.md` and `docs/planning/project_orchestration/24_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md` when the work is happening inside a ChatGPT Project folder or preparing a Project source-set transition.
 1. `docs/planning/launch_ladder/17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`
 2. `docs/planning/launch_ladder/18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`
 3. `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
@@ -104,9 +105,11 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 12. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_sqlite_plan_20260505.md` before any SQLite implementation-readiness prompt.
 13. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_sqlite_implementation_readiness_20260505.md` before any no-runtime SQLite schema-contract implementation prompt.
 14. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_sqlite_implementation_plan_20260505.md` before any first actual SQLite schema-definition implementation prompt.
-15. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
-16. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
-17. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
+15. `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_repo_truth_20260506.md` before preparing an inert SQLite schema-definition implementation prompt.
+16. `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_project_source_set_20260506.md` before creating or refreshing the `05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION` ChatGPT Project packet.
+17. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
+18. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
+19. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
 
 This read order is planning/readiness only. The committed `04_BACKEND_DATA_CONTRACT_READINESS` source set remains useful, but it is not enough by itself after `38294f9`; consuming contexts must include or explicitly bridge the Context Development Lifecycle / Context Filter doctrine and must not authorize backend implementation, ingestion, SQLite, indexing, embeddings, extraction, chunking, provider/model calls, Hermes, MCPs, source-set regeneration, private-root browsing, or runtime work.
 
@@ -219,8 +222,17 @@ Use these when baseline docs are too generic, stale, or missing the bridge/sourc
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_sqlite_plan_20260505.md` - docs-only SQLite planning bridge selecting the smallest future SQLite schema-contract path, mapping semantic_record/semantic_label/semantic_relationship/provenance_ref/validation_receipt/operator_promotion/context_filter_receipt to first table concepts while keeping persistence, database connections, SQL DDL execution, migrations, file I/O, ingestion, indexing, embeddings, runtime services, provider/model calls, private-root inspection, and app behavior forbidden until separately authorized.
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_sqlite_implementation_readiness_20260505.md` - docs-only SQLite implementation-readiness bridge preparing a separately authorized no-runtime SQLite schema-contract code slice, with exact future allowed paths, first table concepts, conceptual fields, forbidden paths/tools, validation requirements, and stop conditions; not SQLite implementation, SQL DDL execution, migrations, persistence, database connections, file I/O, API routes, ingestion, extraction, indexing, embeddings, fixtures, runtime services, provider/model calls, Hermes, MCPs, sync, private-root/private-data inspection, or app behavior authority.
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_sqlite_implementation_plan_20260505.md` - planning-only bridge for the first actual SQLite schema-definition implementation path, allowing a future separately authorized `backend_sqlite_schema.py` and `tests/test_backend_sqlite_schema.py` slice with inert SQL schema constants only while keeping sqlite3, database connections, SQL DDL execution, migrations, persistence, file I/O runtime behavior, API routes, ingestion, extraction, indexing, embeddings, fixtures, runtime services, frontend/app behavior, provider/model calls, Hermes, MCPs, sync, source-set generation, private-root/private-data inspection, and app behavior forbidden.
+- `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_repo_truth_20260506.md` - repo-truth snapshot for the inert SQLite schema-definition lane, including current git status, validation receipt, allowed next implementation, and hard forbids.
+- `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_project_source_set_20260506.md` - exact 24-file ChatGPT Project packet guide for `05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION`, keeping tactical Codex/Gemini code and test files out of preload.
 - `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
 - `docs/planning/launch_ladder/source_set_bridges/operator_harness_visual_import_freshness_bridge_20260505.md`
+
+### Project Orchestration Doctrine
+
+Use these when a ChatGPT Project folder is supervising OpenClaw work, preparing Codex/Gemini prompts, refreshing a 24-file packet, or deciding when to start a new Project phase.
+
+- `docs/planning/project_orchestration/01_PROJECT_CHAT_OPERATOR_EXPERIENCE_CONTRACT.md` - operator-facing orchestration contract for low-stress Project chats, prompt hygiene, model routing, context health, ELI5 checkpoints, North Star drift checks, and handoff quality.
+- `docs/planning/project_orchestration/24_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md` - source-set transition doctrine for 24-file Project packets, active handoffs, repo-truth snapshots, tactical-file exclusion, Mac mirror boundaries, and transition readiness.
 
 ### Deployment Doctrine
 
