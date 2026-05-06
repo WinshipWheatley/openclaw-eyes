@@ -27,6 +27,24 @@ from backend_sqlite_schema import (
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "backend_sqlite_schema.py"
 
+EXPECTED_PRIMARY_KEYS = {
+    "semantic_records": "record_id",
+    "semantic_labels": "label_id",
+    "semantic_relationships": "relationship_id",
+    "provenance_refs": "provenance_ref_id",
+    "validation_receipts": "receipt_id",
+    "operator_promotions": "promotion_id",
+    "context_filter_receipts": "context_filter_receipt_id",
+}
+
+TABLE_LEVEL_SQL_PREFIXES = (
+    "PRIMARY ",
+    "FOREIGN ",
+    "CONSTRAINT ",
+    "UNIQUE ",
+    "CHECK ",
+)
+
 
 def module_ast() -> ast.Module:
     return ast.parse(MODULE_PATH.read_text(encoding="utf-8"))
@@ -51,6 +69,30 @@ def called_function_names(tree: ast.Module) -> set[str]:
             elif isinstance(node.func, ast.Attribute):
                 names.add(node.func.attr)
     return names
+
+
+def sql_column_lines(sql_text: str) -> tuple[str, ...]:
+    lines = []
+    for raw_line in sql_text.splitlines()[1:]:
+        line = raw_line.strip().removesuffix(",")
+        if line in {");", ")"}:
+            continue
+        if line.upper().startswith(TABLE_LEVEL_SQL_PREFIXES):
+            continue
+        lines.append(line)
+    return tuple(lines)
+
+
+def sql_column_names(sql_text: str) -> tuple[str, ...]:
+    return tuple(line.split(maxsplit=1)[0] for line in sql_column_lines(sql_text))
+
+
+def primary_key_column_names(sql_text: str) -> tuple[str, ...]:
+    return tuple(
+        line.split(maxsplit=1)[0]
+        for line in sql_column_lines(sql_text)
+        if "PRIMARY KEY" in line.upper()
+    )
 
 
 def test_module_is_inert_and_does_not_import_sqlite3():
@@ -119,6 +161,40 @@ def test_each_table_has_stable_name_columns_and_backend_contract_fields():
     assert sqlite_schema_matches_backend_contract() is True
 
 
+def test_sql_column_names_match_table_metadata_exactly():
+    for table in sqlite_schema_tables():
+        assert sql_column_names(table.create_table_sql) == table.column_names
+
+
+def test_column_names_are_unique_per_table():
+    for table in sqlite_schema_tables():
+        assert len(table.column_names) == len(set(table.column_names))
+        assert len(sql_column_names(table.create_table_sql)) == len(
+            set(sql_column_names(table.create_table_sql))
+        )
+
+
+def test_each_table_has_exactly_one_stable_primary_key_column():
+    assert set(EXPECTED_PRIMARY_KEYS) == set(sqlite_schema_table_names())
+
+    for table in sqlite_schema_tables():
+        assert primary_key_column_names(table.create_table_sql) == (
+            EXPECTED_PRIMARY_KEYS[table.table_name],
+        )
+
+
+def test_required_contract_fields_are_backed_by_schema_columns():
+    for table in sqlite_schema_tables():
+        required_fields = required_sqlite_table_concept_fields(table.table_name)
+        column_fields = {
+            column.conceptual_field
+            for column in table.columns
+            if column.name in sql_column_names(table.create_table_sql)
+        }
+
+        assert required_fields <= column_fields
+
+
 def test_hierarchy_provenance_relationship_and_promotion_fields_are_represented():
     semantic_records = sqlite_schema_table("semantic_records")
     provenance_refs = sqlite_schema_table("provenance_refs")
@@ -180,10 +256,21 @@ def test_labels_preserve_freshness_confidence_authority_sensitivity_and_review()
         "authority_label",
         "sensitivity_label",
         "review_status_label",
-    } <= records.conceptual_fields
-    assert {"label_name", "label_value", "label_basis", "review_status"} <= (
-        labels.conceptual_fields
-    )
+    } <= set(records.column_names)
+    assert {
+        "label_name",
+        "label_value",
+        "label_basis",
+        "review_status",
+        "source_label_ref",
+    } <= set(labels.column_names)
+    assert {
+        "label_name",
+        "label_value",
+        "label_basis",
+        "review_status",
+    } <= labels.conceptual_fields
+    assert "provenance_refs" in labels.conceptual_fields
     assert "validation_result" in validation.conceptual_fields
     assert "filter_outcome" in context_filter.conceptual_fields
     assert "review_route" in context_filter.conceptual_fields
