@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import backend_sqlite_runtime as runtime
 from backend_sqlite_runtime import (
+    create_file_backed_connection,
     create_in_memory_connection,
     record_in_memory_schema_version,
     sqlite_runtime_schema_version,
@@ -97,15 +98,16 @@ def test_backend_sqlite_lane_confines_sqlite3_import_to_runtime_module():
     assert importers == {"backend_sqlite_runtime.py"}
 
 
-def test_runtime_module_exposes_only_in_memory_connection_creation():
+def test_runtime_module_exposes_memory_and_explicit_file_backed_creation():
     tree = module_ast(RUNTIME_PATH)
     source = RUNTIME_PATH.read_text(encoding="utf-8")
 
     assert 'sqlite3.connect(":memory:")' in source
+    assert "create_file_backed_connection(db_path: Path)" in source
     assert "sqlite3.connect" in ast.unparse(tree)
     assert "connect" in called_function_names(tree)
     assert {"open", "read_text", "write_text"}.isdisjoint(called_function_names(tree))
-    assert "Path" not in imported_module_names(tree)
+    assert "pathlib" in imported_module_names(tree)
 
 
 def test_create_in_memory_connection_creates_no_database_file(tmp_path, monkeypatch):
@@ -128,6 +130,303 @@ def test_create_in_memory_connection_uses_memory_database_only():
         connection.close()
 
     assert database_rows == [(0, "main", "")]
+
+
+def allowed_sqlite_files_for(db_path: Path) -> set[Path]:
+    return {
+        db_path,
+        db_path.with_name(f"{db_path.name}-journal"),
+        db_path.with_name(f"{db_path.name}-wal"),
+        db_path.with_name(f"{db_path.name}-shm"),
+    }
+
+
+def assert_only_expected_sqlite_files(tmp_path: Path, db_path: Path) -> None:
+    actual_files = {path for path in tmp_path.iterdir() if path.is_file()}
+    assert db_path in actual_files
+    assert actual_files <= allowed_sqlite_files_for(db_path)
+
+
+def test_create_file_backed_connection_creates_db_only_under_tmp_path(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+
+    connection = create_file_backed_connection(db_path)
+    try:
+        database_rows = connection.execute("PRAGMA database_list").fetchall()
+
+        assert set(sqlite_runtime_table_names(connection)) == set(
+            sqlite_physical_schema_table_names()
+        )
+        assert sqlite_runtime_schema_version(connection) == SCHEMA_VERSION
+        assert sqlite_runtime_schema_version_matches(connection) is True
+        assert database_rows == [(0, "main", str(db_path))]
+    finally:
+        connection.close()
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_create_file_backed_connection_rejects_directory_path(tmp_path):
+    with pytest.raises(ValueError):
+        create_file_backed_connection(tmp_path)
+
+    assert tuple(tmp_path.iterdir()) == ()
+
+
+def test_create_file_backed_connection_rejects_missing_parent_path(tmp_path):
+    db_path = tmp_path / "missing" / "openclaw_runtime.db"
+
+    with pytest.raises(ValueError):
+        create_file_backed_connection(db_path)
+
+    assert tuple(tmp_path.iterdir()) == ()
+
+
+def test_create_file_backed_connection_rejects_non_path_argument():
+    with pytest.raises(TypeError):
+        create_file_backed_connection("openclaw_runtime.db")
+
+
+def test_create_file_backed_connection_rejects_unsafe_suffix(tmp_path):
+    for db_path in (
+        tmp_path / "openclaw_runtime.sqlite",
+        tmp_path / "openclaw_runtime",
+    ):
+        with pytest.raises(ValueError):
+            create_file_backed_connection(db_path)
+
+        assert not db_path.exists()
+
+
+def test_create_file_backed_connection_rejects_symlink_path(tmp_path):
+    real_db_path = tmp_path / "real.db"
+    symlink_db_path = tmp_path / "linked.db"
+    symlink_db_path.symlink_to(real_db_path)
+
+    with pytest.raises(ValueError):
+        create_file_backed_connection(symlink_db_path)
+
+    assert set(tmp_path.iterdir()) == {symlink_db_path}
+
+
+def test_create_file_backed_connection_rejects_symlink_parent(tmp_path):
+    real_parent = tmp_path / "real_parent"
+    linked_parent = tmp_path / "linked_parent"
+    real_parent.mkdir()
+    linked_parent.symlink_to(real_parent, target_is_directory=True)
+
+    with pytest.raises(ValueError):
+        create_file_backed_connection(linked_parent / "openclaw_runtime.db")
+
+    assert set(tmp_path.iterdir()) == {real_parent, linked_parent}
+    assert tuple(real_parent.iterdir()) == ()
+
+
+def test_file_backed_database_has_all_physical_tables_and_schema_version(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+
+    connection = create_file_backed_connection(db_path)
+    try:
+        assert set(sqlite_runtime_table_names(connection)) == set(
+            sqlite_physical_schema_table_names()
+        )
+        assert sqlite_runtime_schema_version(connection) == SCHEMA_VERSION
+        assert sqlite_runtime_schema_version_matches(connection) is True
+    finally:
+        connection.close()
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_reopening_same_valid_file_backed_database_succeeds(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+
+    connection = create_file_backed_connection(db_path)
+    connection.close()
+
+    reopened = create_file_backed_connection(db_path)
+    try:
+        assert set(sqlite_runtime_table_names(reopened)) == set(
+            sqlite_physical_schema_table_names()
+        )
+        assert sqlite_runtime_schema_version_matches(reopened) is True
+    finally:
+        reopened.close()
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_existing_empty_database_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    connection = runtime.sqlite3.connect(db_path)
+    connection.close()
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_existing_wrong_shape_database_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    connection = runtime.sqlite3.connect(db_path)
+    try:
+        connection.execute("CREATE TABLE unrelated (id TEXT PRIMARY KEY)")
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_existing_non_sqlite_database_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    db_path.write_bytes(b"not a sqlite database")
+
+    with pytest.raises(runtime.sqlite3.DatabaseError):
+        create_file_backed_connection(db_path)
+
+    assert {db_path} <= set(tmp_path.iterdir())
+
+
+def create_database_with_physical_schema_without_current_version(
+    db_path: Path,
+) -> None:
+    connection = runtime.sqlite3.connect(db_path)
+    try:
+        for sql_definition in runtime.sqlite_physical_schema_sql_definitions():
+            connection.execute(sql_definition)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def test_existing_database_with_missing_version_metadata_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    create_database_with_physical_schema_without_current_version(db_path)
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_existing_database_with_wrong_version_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    create_database_with_physical_schema_without_current_version(db_path)
+    connection = runtime.sqlite3.connect(db_path)
+    try:
+        connection.execute(
+            """
+INSERT INTO schema_versions (
+  schema_version,
+  schema_identity,
+  migration_state
+) VALUES (?, ?, ?)
+""".strip(),
+            ("wrong-version", SCHEMA_IDENTITY, SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_existing_database_with_ambiguous_version_state_fails_closed(tmp_path):
+    db_path = tmp_path / "openclaw_runtime.db"
+    create_database_with_physical_schema_without_current_version(db_path)
+    connection = runtime.sqlite3.connect(db_path)
+    try:
+        record_in_memory_schema_version(connection)
+        connection.execute(
+            """
+INSERT INTO schema_versions (
+  schema_version,
+  schema_identity,
+  migration_state
+) VALUES (?, ?, ?)
+""".strip(),
+            (
+                "other-current-version",
+                SCHEMA_IDENTITY,
+                SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE,
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert_only_expected_sqlite_files(tmp_path, db_path)
+
+
+def test_create_file_backed_connection_closes_connection_on_schema_failure(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = tmp_path / "openclaw_runtime.db"
+    real_connect = runtime.sqlite3.connect
+    connections = []
+
+    def tracking_connect(database_name):
+        connection = real_connect(database_name)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(runtime.sqlite3, "connect", tracking_connect)
+    monkeypatch.setattr(
+        runtime,
+        "sqlite_physical_schema_sql_definitions",
+        lambda: ("CREATE TABLE ok_table (id TEXT PRIMARY KEY);", "BROKEN SQL"),
+    )
+
+    with pytest.raises(Exception):
+        create_file_backed_connection(db_path)
+
+    assert len(connections) == 1
+    with pytest.raises(runtime.sqlite3.ProgrammingError):
+        connections[0].execute("SELECT 1")
+
+    assert set(tmp_path.iterdir()) <= allowed_sqlite_files_for(db_path)
+
+
+def test_create_file_backed_connection_closes_connection_on_version_failure(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = tmp_path / "openclaw_runtime.db"
+    real_connect = runtime.sqlite3.connect
+    connections = []
+
+    def tracking_connect(database_name):
+        connection = real_connect(database_name)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(runtime.sqlite3, "connect", tracking_connect)
+    monkeypatch.setattr(
+        runtime,
+        "record_in_memory_schema_version",
+        lambda connection: (_ for _ in ()).throw(RuntimeError("version failed")),
+    )
+
+    with pytest.raises(RuntimeError):
+        create_file_backed_connection(db_path)
+
+    assert len(connections) == 1
+    with pytest.raises(runtime.sqlite3.ProgrammingError):
+        connections[0].execute("SELECT 1")
+
+    assert set(tmp_path.iterdir()) <= allowed_sqlite_files_for(db_path)
 
 
 def test_create_in_memory_connection_closes_connection_on_schema_failure(monkeypatch):
@@ -332,10 +631,18 @@ def test_runtime_module_avoids_forbidden_surfaces():
         "read_text",
         "write_text",
         "executescript",
-        "commit",
         "rollback",
     }.isdisjoint(called_function_names(tree))
-    assert ".db" not in source
+    assert "commit" in called_function_names(tree)
+    assert "rollback" not in called_function_names(tree)
+    assert "expanduser" not in source
+    assert "environ" not in source
+    assert "getenv" not in source
+    assert "home()" not in source
+    assert "glob" not in source
+    assert "rglob" not in source
+    assert "iterdir" not in source
+    assert "mkdir" not in source
     assert re.search(r"\bmigration(?!_state)\b", source) is None
     assert re.search(r"\bmigrate\b", source) is None
     assert re.search(r"\balter\s+table\b", source) is None
