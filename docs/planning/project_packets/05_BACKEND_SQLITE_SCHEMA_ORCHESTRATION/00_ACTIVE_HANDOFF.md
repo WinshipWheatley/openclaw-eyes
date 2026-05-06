@@ -1,140 +1,142 @@
-# Backend SQLite Schema Orchestration Active Handoff (2026-05-06)
+# Backend SQLite Schema Orchestration Active Handoff
 
 ## 1. Repo Verification Receipt
 
 - **Current Branch:** main
-- **Latest Pushed State:** `f7367d6 test(backend): tighten inert sqlite schema invariants`
-- **Current Terminal Status Before This Docs Slice:** `main...origin/main` with a clean worktree.
-- **Current Docs Slice:** this handoff refresh, the repo-truth refresh, the runtime in-memory readiness bridge, and two index discoverability updates are pending review/commit until committed.
-- **Post-Commit Rule:** after this docs-only runtime planning slice lands, terminal truth must be re-verified and this receipt updated if needed.
-- **Latest 8 Commits:**
+- **Latest Pushed State:** `e381214 docs(project): add audit-to-execution rule`
+- **Backend Capability Checkpoint:** `d09fc50 feat(backend): add semantic record sqlite repository`
+- **Current Terminal Status Before This Docs Slice:** `main...origin/main`
+- **Latest Commits:**
 ```
-f7367d6 test(backend): tighten inert sqlite schema invariants
-575d406 docs(project): require built-state ledger in handoffs
-dd6c08f feat(backend): add inert sqlite schema definitions
-6f613a7 docs(planning): add backend retrieval strategy breadcrumb
-e7c5159 docs(project): clarify project packet transition protocol
-5eda217 docs(project): export sqlite schema project packet
-373750e docs(project): add sqlite schema orchestration source set
-67d2540 docs(planning): add first sqlite implementation plan
+e381214 docs(project): add audit-to-execution rule
+d09fc50 feat(backend): add semantic record sqlite repository
+359deef docs(project): add right stride length rule
+1b025ac feat(backend): add file-backed sqlite persistence
+5a1793c docs(planning): add sqlite file persistence readiness plan
+02f0b61 docs(project): add faster workflow checkpoint rule
+f6a4030 feat(backend): add in-memory schema version checks
+4e7617d feat(backend): add sqlite schema version metadata
+0c90662 docs(planning): add sqlite schema versioning policy
+5ebb706 test(backend): harden in-memory sqlite runtime proof
+5ee3de0 feat(backend): add in-memory sqlite runtime proof
+705bdfc docs(planning): add sqlite runtime in-memory readiness plan
 ```
-- **Validation Command Results:**
-  - `python3 launch_ladder_contract_check.py`: OK, known freshness warning only.
-  - `pytest tests/test_launch_ladder_static_contract.py`: 28 passed.
-  - `pytest tests/test_backend_data_contract.py`: 41 passed.
-  - `pytest tests/test_backend_sqlite_schema.py`: 12 passed.
-  - `python3 -m py_compile backend_data_contract.py backend_sqlite_schema.py launch_ladder_contract_check.py`: OK.
 
-## 2. Current Cleared Verdict
+## 2. Validation Receipt
 
-The inert SQLite schema-definition baseline has been implemented, test-hardened, committed, and pushed through `f7367d6`.
+- `launch_ladder_contract_check.py`: OK, known freshness warning only
+- `tests/test_launch_ladder_static_contract.py`: 28 passed
+- `tests/test_backend_data_contract.py`: 41 passed
+- `tests/test_backend_sqlite_schema.py`: 15 passed
+- `tests/test_backend_sqlite_runtime.py`: 33 passed
+- `tests/test_backend_sqlite_repository.py`: 12 passed
+- `py_compile` includes:
+  - `backend_data_contract.py`
+  - `backend_sqlite_schema.py`
+  - `backend_sqlite_runtime.py`
+  - `backend_sqlite_repository.py`
+  - `launch_ladder_contract_check.py`
 
-The current baseline is a code-level static schema contract. It is ready for runtime SQLite planning, but it does not authorize runtime SQLite implementation by itself.
+## 3. Current Built-State Ledger
 
-Runtime SQLite must be scoped from `f7367d6`, not from the older `dd6c08f` baseline.
+This lane is past docs-only planning.
+This lane is past static schema only.
+This lane is past in-memory-only runtime.
+File-backed SQLite persistence exists.
+Semantic record repository write/read exists.
+The current baseline is backend SQLite repository substrate, not merely schema planning.
 
-## Built-State Ledger / Where To Continue From
-
-- **Latest Pushed Commit:** `f7367d6 test(backend): tighten inert sqlite schema invariants`
-- **Already Built:** Code-level static schema contract implementation baseline.
-- **Active Code/Tests:**
-  - `backend_sqlite_schema.py` exists and is built.
-  - `tests/test_backend_sqlite_schema.py` exists and has 12 passing tests.
-  - `backend_data_contract.py` and `tests/test_backend_data_contract.py` enforce the semantic contract.
-- **Validation Receipts:** `launch_ladder_contract_check.py`, static contract tests, backend data-contract tests, backend SQLite schema tests, and py_compile are green.
-- **Phase Label:** Backend SQLite Schema Orchestration / Runtime Readiness Planning.
-- **Baseline Is:** An inert, code-level static schema contract implementation with test-hardened schema-shape invariants.
-- **Static Schema Tests Now Enforce:**
-  - SQL column/name alignment between inert `CREATE TABLE` strings and `TableDefinition.column_names`.
-  - Unique column names per table.
-  - One stable primary key per table.
-  - Required conceptual fields backed by schema columns.
-  - Clear canonical label surfaces across `semantic_records` and `semantic_labels`.
-- **Baseline Is NOT:** Runtime SQLite, DB creation, SQL execution, persistence, retrieval/indexing/RAG/PageIndex, API, app/frontend behavior, provider/model behavior, Hermes/MCP behavior, sync behavior, or private-root/private-data behavior.
-- **Next Authorized Baseline:** Docs-only runtime SQLite in-memory readiness planning. A later runtime implementation prompt must be separate, exact-path bounded, and explicitly authorized.
-- **Mandatory Rule:** New chats must read the active handoff and this built-state ledger before generating implementation prompts.
-
-## 3. Canonical Files For Next Lane
-
-Exact files the next ChatGPT/Codex lane should read:
-
-- `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/00_ACTIVE_HANDOFF.md`
-- `docs/planning/launch_ladder/source_set_bridges/sqlite_schema_definition_repo_truth_20260506.md`
-- `docs/planning/launch_ladder/source_set_bridges/backend_sqlite_runtime_in_memory_readiness_plan_20260506.md`
+### Built Surfaces:
 - `backend_data_contract.py`
 - `backend_sqlite_schema.py`
+- `backend_sqlite_runtime.py`
+- `backend_sqlite_repository.py`
 - `tests/test_backend_data_contract.py`
 - `tests/test_backend_sqlite_schema.py`
-- `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_sqlite_implementation_plan_20260505.md`
-- `docs/planning/launch_ladder/source_set_bridges/backend_retrieval_strategy_breadcrumb_20260506.md`
+- `tests/test_backend_sqlite_runtime.py`
+- `tests/test_backend_sqlite_repository.py`
 
-## 4. Recommended Next Planning Lane
+## 4. What Is Now Built
 
-Plan the smallest separately authorized runtime proof:
+- static semantic schema tables
+- schema_versions physical metadata table
+- physical schema APIs
+- in-memory SQLite runtime
+- file-backed SQLite persistence with explicit Path policy
+- schema version record/check helpers
+- fail-closed behavior for invalid/mismatched/ambiguous DB versions
+- semantic record repository with write/read by record_id
+- repository helpers use caller-supplied connections only
+- repository does not create paths or connections
+- repository does not automatically promote accepted truth
+- duplicate record_id fails closed
+- missing read returns None
 
-- create `backend_sqlite_runtime.py`;
-- create `tests/test_backend_sqlite_runtime.py`;
-- import `sqlite3` only inside `backend_sqlite_runtime.py`;
-- use in-memory SQLite only;
-- apply existing inert schema strings to an in-memory connection;
-- verify all seven tables exist;
-- verify columns and primary keys match `backend_sqlite_schema.py`;
-- do not create DB files;
-- do not persist;
-- do not add migrations or migration runners yet;
-- do not integrate with app/API/agents.
+## 5. Current Forbidden Surfaces
 
-This is not implementation authority. It is the recommended shape for a later prompt if runtime SQLite is explicitly authorized.
+Still forbidden:
+- migrations and migration runners
+- ingestion/extraction
+- indexing, FTS, embeddings, vectors, RAG, PageIndex
+- LLM/provider/model calls
+- Hermes/MCP/sync
+- private-root/private-data inspection
+- API routes
+- frontend/app behavior
+- automatic accepted-truth promotion
+- app/agent/runtime integration outside this backend substrate
+- broad staging
+- `git add .`
+- editing `24_files` during active lane
+- new broad/unbounded persistence beyond the existing explicit-path backend runtime.
 
-## 5. Hard Forbids Until Separately Authorized
+## 6. Current Next Lane
 
-- No file-backed DB
-- No persistence
-- No migrations or migration runners
-- No ingestion or extraction
-- No indexing, FTS, embeddings, vectors, RAG, or PageIndex
-- No provider/model calls
-- No Hermes, MCPs, or sync
-- No private-root/private-data inspection
-- No API routes
-- No frontend/app behavior
-- No Chief/Cassandra/Legal/polish-loop runtime edits
-- No broad staging
-- No `git add .`
+The next visible-road lane should be:
+- extend repository coverage from `semantic_records` to:
+  A. `semantic_labels` and `provenance_refs`
+  B. `semantic_relationships`, `validation_receipts`, `operator_promotions`
+  C. deterministic read/query helpers
+  D. first knowledge packet assembler
+  E. deterministic context selection
+  F. synthesis-ready read-model output without model calls
+  G. deterministic write-back/capture/promotion boundary helpers if safely in scope
+  H. richer retrieval only as deterministic metadata/relationship traversal or planning; no FTS/vector/RAG/PageIndex yet
 
-## 6. Doctrine Summary
+Future coder prompts should include the visible A-H road and let the coder proceed through the visible road until a real review point.
 
-- OpenClaw is a knowledge compiler/operator substrate, not generic RAG.
-- raw reality -> compiled/wiki -> relationship graph -> synthesis -> write-back/capture -> recompile.
-- Synthesis is not automatically truth.
-- Accepted knowledge requires write-back/capture, labels, receipt/provenance boundaries, and operator promotion.
-- Runtime SQLite should begin as a tiny proof that applies already-reviewed schema definitions, not as ingestion, retrieval, app behavior, or persistence.
+## 7. Canonical Read List For Next Chat
 
-## 7. Existing Backend Contract Capabilities
+- `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/00_ACTIVE_HANDOFF.md` (this handoff)
+- `backend_sqlite_repository.py`
+- `tests/test_backend_sqlite_repository.py`
+- `backend_sqlite_runtime.py`
+- `tests/test_backend_sqlite_runtime.py`
+- `backend_sqlite_schema.py`
+- `tests/test_backend_sqlite_schema.py`
+- `backend_data_contract.py`
+- `tests/test_backend_data_contract.py`
+- `docs/planning/project_orchestration/01_PROJECT_CHAT_OPERATOR_EXPERIENCE_CONTRACT.md`
+- `docs/planning/project_orchestration/24_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md`
+- `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/README.md`
 
-- Semantic data contract foundation
-- Field-bundle validator
-- Entity-family validator
-- Schema-contract surfaces
-- SQLite table-concept contract
-- Static checker gates
-- Inert SQLite schema-definition surface
-- Static SQLite schema invariant tests
+## 8. Workflow Rules
 
-## 8. Seven Table Concepts
+- **Right Stride Length Rule**
+- **Faster Workflow / Batch Checkpoint Rule**
+- **Audit-to-Execution Rule**
+- **Visible-Road Rule:** When the road is visible, prompt the agent with the road, not a crumb. If A-E are clear, include A-E in one prompt. If F branches, the agent should evaluate the branch, choose the better path using stated criteria, and continue if clear. Stop only at real review points.
 
-- `semantic_records`
-- `semantic_labels`
-- `semantic_relationships`
-- `provenance_refs`
-- `validation_receipts`
-- `operator_promotions`
-- `context_filter_receipts`
+## 9. 24_files Rule
 
-## 9. Required Validation For Next Docs/Runtime Planning
+- `24_files` are stable historical/source packet context.
+- Do not edit `24_files` during the active lane.
+- Current truth lives in this handoff plus canonical repo commits/docs.
+- Regenerate/archive packet only when the lane is complete or future chats would be materially misled.
+
+## 10. Required Validation
 
 ```bash
-cd /home/openclaw
 git status -sb --untracked-files=all
 git diff --check
 git diff --cached --check
@@ -142,15 +144,8 @@ python3 launch_ladder_contract_check.py
 pytest tests/test_launch_ladder_static_contract.py
 pytest tests/test_backend_data_contract.py
 pytest tests/test_backend_sqlite_schema.py
-python3 -m py_compile backend_data_contract.py backend_sqlite_schema.py launch_ladder_contract_check.py
+pytest tests/test_backend_sqlite_runtime.py
+pytest tests/test_backend_sqlite_repository.py
+python3 -m py_compile backend_data_contract.py backend_sqlite_schema.py backend_sqlite_runtime.py backend_sqlite_repository.py launch_ladder_contract_check.py
 git status -sb --untracked-files=all
-git diff --check
-git diff --cached --check
 ```
-
-## 10. Notes / Warnings
-
-- This handoff is repo-side PC canonical planning state.
-- Mac mirror packets are reference/upload surfaces only.
-- If terminal truth differs later, trust terminal truth.
-- The `24_files/` stable packet contents were not changed by this handoff refresh.
