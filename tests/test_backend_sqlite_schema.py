@@ -11,10 +11,18 @@ from backend_data_contract import (
 )
 from backend_sqlite_schema import (
     INERT_SCHEMA_BOUNDARIES,
+    SCHEMA_VERSION,
     SQLITE_SCHEMA_TABLES,
     SQLITE_SCHEMA_TABLE_NAMES,
     TableDefinition,
     required_contract_fields_for_table,
+    sqlite_physical_schema_sql_definitions,
+    sqlite_physical_schema_table,
+    sqlite_physical_schema_table_names,
+    sqlite_physical_schema_tables,
+    sqlite_schema_control_table,
+    sqlite_schema_control_table_names,
+    sqlite_schema_control_tables,
     sqlite_schema_matches_backend_contract,
     sqlite_schema_sql_definitions,
     sqlite_schema_table,
@@ -138,6 +146,48 @@ def test_all_seven_table_concepts_exist_in_contract_order():
     )
     assert len(sqlite_schema_tables()) == 7
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
+
+
+def test_schema_versions_is_separate_schema_control_metadata():
+    assert SCHEMA_VERSION == "backend-sqlite-schema-definition-v1"
+    assert sqlite_schema_control_table_names() == ("schema_versions",)
+    assert "schema_versions" not in sqlite_schema_table_names()
+    assert sqlite_schema_table("schema_versions") is None
+
+    table = sqlite_schema_control_table("schema_versions")
+
+    assert table is not None
+    assert table.related_schema_contract_surface == "schema_control_metadata"
+    assert table.retrieval_structure_fields == frozenset()
+    assert table.column_names == (
+        "schema_version",
+        "schema_identity",
+        "applied_at",
+        "source_commit",
+        "migration_state",
+        "notes",
+    )
+    assert primary_key_column_names(table.create_table_sql) == ("schema_version",)
+    assert sql_column_names(table.create_table_sql) == table.column_names
+    assert "no migration runner" in table.forbidden_implementation_behavior
+    assert "no file-backed database" in table.forbidden_implementation_behavior
+    assert "no persistence" in table.forbidden_implementation_behavior
+
+
+def test_physical_schema_includes_semantic_tables_plus_schema_control_metadata():
+    assert sqlite_physical_schema_table_names() == sqlite_schema_table_names() + (
+        "schema_versions",
+    )
+    assert sqlite_physical_schema_tables() == (
+        sqlite_schema_tables() + sqlite_schema_control_tables()
+    )
+    assert sqlite_physical_schema_table("schema_versions") == sqlite_schema_control_table(
+        "schema_versions"
+    )
+    assert sqlite_physical_schema_sql_definitions() == (
+        sqlite_schema_sql_definitions()
+        + tuple(table.create_table_sql for table in sqlite_schema_control_tables())
+    )
 
 
 def test_each_table_has_stable_name_columns_and_backend_contract_fields():
@@ -290,6 +340,20 @@ def test_sql_strings_are_inert_definitions_only():
         assert "CREATE INDEX" not in sql_text
 
     assert sqlite_schema_sql_definitions.__code__.co_names == ("SQLITE_CREATE_TABLE_SQL",)
+
+
+def test_physical_sql_strings_are_inert_definitions_only():
+    sql_definitions = sqlite_physical_schema_sql_definitions()
+
+    assert len(sql_definitions) == 8
+    for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
+        assert sql_text.startswith(f"CREATE TABLE {table_name} (")
+        assert sql_text.endswith(");")
+        assert "INSERT " not in sql_text
+        assert "UPDATE " not in sql_text
+        assert "DELETE " not in sql_text
+        assert "SELECT " not in sql_text
+        assert "CREATE INDEX" not in sql_text
 
 
 def test_retrieval_structure_is_preserved_without_retrieval_implementation():

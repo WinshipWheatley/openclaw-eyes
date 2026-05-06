@@ -1,4 +1,4 @@
-"""Inert SQLite schema-definition contract for backend semantic tables.
+"""Inert SQLite schema-definition contract for backend physical tables.
 
 This module defines table metadata and SQL DDL text as constants only. It does
 not import sqlite3, open database connections, execute SQL, persist data, read
@@ -176,6 +176,48 @@ CONTEXT_FILTER_RECEIPTS_COLUMNS = (
     ColumnDefinition("authority_boundary", "TEXT", "authority_label", required=False),
 )
 
+SCHEMA_VERSIONS_COLUMNS = (
+    ColumnDefinition(
+        "schema_version",
+        "TEXT",
+        "schema_version",
+        purpose="Matches the static SCHEMA_VERSION identity.",
+    ),
+    ColumnDefinition(
+        "schema_identity",
+        "TEXT",
+        "schema_identity",
+        purpose="Stable namespace for the backend SQLite schema surface.",
+    ),
+    ColumnDefinition(
+        "applied_at",
+        "TEXT",
+        "applied_at",
+        required=False,
+        purpose="Reserved for future runtime version checks.",
+    ),
+    ColumnDefinition(
+        "source_commit",
+        "TEXT",
+        "source_commit",
+        required=False,
+        purpose="Reserved for future provenance of the applied schema source.",
+    ),
+    ColumnDefinition(
+        "migration_state",
+        "TEXT",
+        "migration_state",
+        purpose="Static policy state only; no migration runner is authorized.",
+    ),
+    ColumnDefinition(
+        "notes",
+        "TEXT",
+        "notes",
+        required=False,
+        purpose="Reserved for future schema-control notes.",
+    ),
+)
+
 SQLITE_SCHEMA_TABLES = (
     TableDefinition(
         table_name="semantic_records",
@@ -328,11 +370,53 @@ CREATE TABLE context_filter_receipts (
     ),
 )
 
+SQLITE_SCHEMA_CONTROL_TABLES = (
+    TableDefinition(
+        table_name="schema_versions",
+        related_schema_contract_surface="schema_control_metadata",
+        columns=SCHEMA_VERSIONS_COLUMNS,
+        retrieval_structure_fields=frozenset(),
+        forbidden_implementation_behavior=(
+            SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+            "no migration runner",
+            "no file-backed database",
+            "no persistence",
+            "no runtime migration behavior",
+        ),
+        create_table_sql="""
+CREATE TABLE schema_versions (
+  schema_version TEXT PRIMARY KEY,
+  schema_identity TEXT NOT NULL,
+  applied_at TEXT,
+  source_commit TEXT,
+  migration_state TEXT NOT NULL,
+  notes TEXT
+);
+""".strip(),
+    ),
+)
+
 SQLITE_SCHEMA_TABLES_BY_NAME = {
     table.table_name: table for table in SQLITE_SCHEMA_TABLES
 }
+SQLITE_SCHEMA_CONTROL_TABLES_BY_NAME = {
+    table.table_name: table for table in SQLITE_SCHEMA_CONTROL_TABLES
+}
 SQLITE_SCHEMA_TABLE_NAMES = tuple(table.table_name for table in SQLITE_SCHEMA_TABLES)
+SQLITE_SCHEMA_CONTROL_TABLE_NAMES = tuple(
+    table.table_name for table in SQLITE_SCHEMA_CONTROL_TABLES
+)
+SQLITE_PHYSICAL_SCHEMA_TABLES = SQLITE_SCHEMA_TABLES + SQLITE_SCHEMA_CONTROL_TABLES
+SQLITE_PHYSICAL_SCHEMA_TABLES_BY_NAME = {
+    table.table_name: table for table in SQLITE_PHYSICAL_SCHEMA_TABLES
+}
+SQLITE_PHYSICAL_SCHEMA_TABLE_NAMES = tuple(
+    table.table_name for table in SQLITE_PHYSICAL_SCHEMA_TABLES
+)
 SQLITE_CREATE_TABLE_SQL = tuple(table.create_table_sql for table in SQLITE_SCHEMA_TABLES)
+SQLITE_PHYSICAL_CREATE_TABLE_SQL = tuple(
+    table.create_table_sql for table in SQLITE_PHYSICAL_SCHEMA_TABLES
+)
 
 INERT_SCHEMA_BOUNDARIES = (
     "no sqlite3 import",
@@ -381,6 +465,48 @@ def sqlite_schema_sql_definitions() -> tuple[str, ...]:
     """Return inert SQL DDL strings without applying or executing them."""
 
     return SQLITE_CREATE_TABLE_SQL
+
+
+def sqlite_schema_control_table_names() -> tuple[str, ...]:
+    """Return static schema-control metadata table names."""
+
+    return SQLITE_SCHEMA_CONTROL_TABLE_NAMES
+
+
+def sqlite_schema_control_tables() -> tuple[TableDefinition, ...]:
+    """Return immutable schema-control table definitions."""
+
+    return SQLITE_SCHEMA_CONTROL_TABLES
+
+
+def sqlite_schema_control_table(table_name: str) -> TableDefinition | None:
+    """Return a schema-control table by exact stable table name."""
+
+    return SQLITE_SCHEMA_CONTROL_TABLES_BY_NAME.get(table_name)
+
+
+def sqlite_physical_schema_table_names() -> tuple[str, ...]:
+    """Return every physical table name in creation order."""
+
+    return SQLITE_PHYSICAL_SCHEMA_TABLE_NAMES
+
+
+def sqlite_physical_schema_tables() -> tuple[TableDefinition, ...]:
+    """Return semantic and schema-control physical table definitions."""
+
+    return SQLITE_PHYSICAL_SCHEMA_TABLES
+
+
+def sqlite_physical_schema_table(table_name: str) -> TableDefinition | None:
+    """Return any physical schema table by exact stable table name."""
+
+    return SQLITE_PHYSICAL_SCHEMA_TABLES_BY_NAME.get(table_name)
+
+
+def sqlite_physical_schema_sql_definitions() -> tuple[str, ...]:
+    """Return inert SQL DDL strings for all physical schema tables."""
+
+    return SQLITE_PHYSICAL_CREATE_TABLE_SQL
 
 
 def validate_sqlite_schema_table(table: TableDefinition) -> bool:

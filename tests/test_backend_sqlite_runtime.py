@@ -15,7 +15,12 @@ from backend_sqlite_runtime import (
     sqlite_runtime_table_names,
     sqlite_runtime_table_primary_keys,
 )
-from backend_sqlite_schema import sqlite_schema_table_names, sqlite_schema_tables
+from backend_sqlite_schema import (
+    sqlite_physical_schema_table_names,
+    sqlite_schema_control_table,
+    sqlite_schema_table_names,
+    sqlite_schema_tables,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -131,7 +136,7 @@ def test_create_in_memory_connection_closes_connection_on_schema_failure(monkeyp
     monkeypatch.setattr(runtime.sqlite3, "connect", tracking_connect)
     monkeypatch.setattr(
         runtime,
-        "sqlite_schema_sql_definitions",
+        "sqlite_physical_schema_sql_definitions",
         lambda: ("CREATE TABLE ok_table (id TEXT PRIMARY KEY);", "BROKEN SQL"),
     )
 
@@ -146,8 +151,26 @@ def test_create_in_memory_connection_closes_connection_on_schema_failure(monkeyp
 def test_all_static_schema_tables_exist_in_runtime_connection():
     connection = create_in_memory_connection()
     try:
-        assert set(sqlite_runtime_table_names(connection)) == set(
-            sqlite_schema_table_names()
+        runtime_tables = set(sqlite_runtime_table_names(connection))
+
+        assert runtime_tables == set(sqlite_physical_schema_table_names())
+        assert set(sqlite_schema_table_names()) < runtime_tables
+        assert "schema_versions" in runtime_tables
+    finally:
+        connection.close()
+
+
+def test_runtime_schema_versions_table_matches_static_schema_control_metadata():
+    schema_versions = sqlite_schema_control_table("schema_versions")
+    assert schema_versions is not None
+
+    connection = create_in_memory_connection()
+    try:
+        assert sqlite_runtime_table_columns(connection, "schema_versions") == (
+            schema_versions.column_names
+        )
+        assert sqlite_runtime_table_primary_keys(connection, "schema_versions") == (
+            "schema_version",
         )
     finally:
         connection.close()

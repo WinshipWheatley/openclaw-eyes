@@ -5,8 +5,8 @@ from __future__ import annotations
 import sqlite3
 
 from backend_sqlite_schema import (
-    sqlite_schema_sql_definitions,
-    sqlite_schema_table_names,
+    sqlite_physical_schema_sql_definitions,
+    sqlite_physical_schema_table_names,
 )
 
 
@@ -15,7 +15,7 @@ def create_in_memory_connection() -> sqlite3.Connection:
 
     connection = sqlite3.connect(":memory:")
     try:
-        for sql_definition in sqlite_schema_sql_definitions():
+        for sql_definition in sqlite_physical_schema_sql_definitions():
             connection.execute(sql_definition)
     except Exception:
         connection.close()
@@ -33,9 +33,9 @@ def sqlite_runtime_table_names(connection: sqlite3.Connection) -> tuple[str, ...
 
 
 def _require_known_table_name(table_name: str) -> str:
-    """Return a known static schema table name or fail closed."""
+    """Return a known physical schema table name or fail closed."""
 
-    if table_name not in sqlite_schema_table_names():
+    if table_name not in sqlite_physical_schema_table_names():
         raise ValueError(f"unknown backend sqlite schema table: {table_name}")
     return table_name
 
