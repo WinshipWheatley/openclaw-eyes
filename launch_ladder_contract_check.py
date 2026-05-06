@@ -118,6 +118,10 @@ BACKEND_DATA_CONTRACT_SQLITE_IMPLEMENTATION_READINESS = (
     SOURCE_SET_BRIDGE_DIR
     / "backend_data_contract_sqlite_implementation_readiness_20260505.md"
 )
+BACKEND_DATA_CONTRACT_FIRST_SQLITE_IMPLEMENTATION_PLAN = (
+    SOURCE_SET_BRIDGE_DIR
+    / "backend_data_contract_first_sqlite_implementation_plan_20260505.md"
+)
 BACKEND_DATA_CONTRACT_MODULE = REPO_ROOT / "backend_data_contract.py"
 BACKEND_DATA_CONTRACT_TEST = REPO_ROOT / "tests" / "test_backend_data_contract.py"
 BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
@@ -189,6 +193,7 @@ BACKEND_DATA_CONTRACT_STATIC_GATE_DOCS = (
     "backend_data_contract_storage_schema_plan_20260505.md",
     "backend_data_contract_sqlite_plan_20260505.md",
     "backend_data_contract_sqlite_implementation_readiness_20260505.md",
+    "backend_data_contract_first_sqlite_implementation_plan_20260505.md",
     "04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md",
     "04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md",
     "30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md",
@@ -2381,6 +2386,147 @@ def backend_data_contract_sqlite_implementation_readiness_failures(
     return tuple(failures)
 
 
+def backend_data_contract_first_sqlite_implementation_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "source_set_bridges"
+        / "backend_data_contract_first_sqlite_implementation_plan_20260505.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"backend first SQLite implementation plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend first SQLite implementation plan required gates",
+        (
+            "Backend Data Contract First SQLite Implementation Plan",
+            "planning-only first SQLite implementation path artifact",
+            "does not authorize implementation by itself",
+            "future implementation prompt must be separate",
+            "exact-path bounded",
+            "backend_sqlite_schema.py",
+            "tests/test_backend_sqlite_schema.py",
+            "launch_ladder_contract_check.py",
+            "tests/test_launch_ladder_static_contract.py",
+            "docs/testing/VALIDATION_MAP.md",
+            "Python schema-definition module",
+            "SQL DDL strings as inert constants only",
+            "must not create a migration file",
+            "must not execute SQL DDL",
+            "must not import sqlite3",
+            "semantic_records",
+            "semantic_labels",
+            "semantic_relationships",
+            "provenance_refs",
+            "validation_receipts",
+            "operator_promotions",
+            "context_filter_receipts",
+            "no sqlite3",
+            "no database connections",
+            "no SQL DDL execution",
+            "no migrations",
+            "no persistence",
+            "no file I/O runtime behavior",
+            "API routes",
+            "ingestion",
+            "extraction",
+            "indexing",
+            "embeddings",
+            "fixtures",
+            "runtime services",
+            "frontend/app behavior",
+            "app behavior",
+            "provider/model calls",
+            "Hermes",
+            "MCPs",
+            "sync",
+            "source-set generation",
+            "private-root inspection",
+            "private-data inspection",
+            "raw",
+            "compiled/wiki",
+            "relationship",
+            "synthesis",
+            "write-back/capture",
+            "synthesis must not become truth by table placement",
+            "operator promotion",
+            "validation receipt",
+            "provenance ref",
+            "context-filter receipt",
+            "Sensitivity",
+            "Authority",
+            "Freshness",
+            "Confidence",
+            "Review status",
+            "validation-receipt boundary",
+            "receivables/accountability",
+            "semantic accountability records",
+            "automated harassment",
+            "automated sending",
+            "runtime action",
+            "private-root inspection",
+            "provider/model use",
+            "collection action",
+            "bank/payment posting",
+            "legal advice",
+            "CPA action",
+            "app behavior",
+            "separately authorized",
+            "Stop Conditions",
+        ),
+    )
+
+    forbidden_authorizing_phrases = (
+        "This plan implements SQLite",
+        "This plan authorizes SQLite implementation",
+        "This plan authorizes sqlite3",
+        "This plan opens database connections",
+        "This plan authorizes database connections",
+        "This plan executes SQL DDL",
+        "This plan authorizes SQL DDL execution",
+        "This plan creates migrations",
+        "This plan authorizes migrations",
+        "This plan authorizes persistence",
+        "This plan authorizes file I/O runtime behavior",
+        "This plan creates API routes",
+        "This plan authorizes ingestion",
+        "This plan authorizes extraction",
+        "This plan authorizes indexing",
+        "This plan authorizes embeddings",
+        "This plan creates fixtures",
+        "This plan authorizes runtime services",
+        "This plan authorizes frontend/app behavior",
+        "This plan authorizes app behavior",
+        "This plan authorizes provider/model calls",
+        "This plan authorizes Hermes",
+        "This plan authorizes MCPs",
+        "This plan authorizes sync",
+        "This plan authorizes source-set generation",
+        "This plan authorizes private-root inspection",
+        "This plan authorizes private-data inspection",
+        "SQLite implementation may begin from this artifact alone",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "backend first SQLite implementation plan: forbidden authorizing "
+                f"phrase {phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def backend_data_contract_module_failures(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[str, ...]:
@@ -3339,11 +3485,15 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "backend_data_contract_storage_schema_plan_20260505.md",
             "backend_data_contract_sqlite_plan_20260505.md",
             "backend_data_contract_sqlite_implementation_readiness_20260505.md",
+            "backend_data_contract_first_sqlite_implementation_plan_20260505.md",
             "storage/schema planning bridge",
             "SQLite planning bridge",
             "SQLite implementation-readiness bridge",
+            "first SQLite implementation planning bridge",
             "backend_data_contract.py",
             "test_backend_data_contract.py",
+            "backend_sqlite_schema.py",
+            "test_backend_sqlite_schema.py",
             "backend data-contract semantic vocabulary and guard helpers",
             "no-runtime schema-contract surfaces",
             "field-bundle validator",
@@ -3367,6 +3517,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(backend_data_contract_storage_schema_plan_failures())
     failures.extend(backend_data_contract_sqlite_plan_failures())
     failures.extend(backend_data_contract_sqlite_implementation_readiness_failures())
+    failures.extend(backend_data_contract_first_sqlite_implementation_plan_failures())
     failures.extend(backend_data_contract_module_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(pc_storage_relief_launch_packet_plan_failures())
