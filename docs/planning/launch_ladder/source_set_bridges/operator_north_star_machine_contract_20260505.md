@@ -99,7 +99,50 @@ Garden behavior must not become:
 - pressure to act;
 - fake creative authority over Winship's taste or authorship.
 
-## 6. Machine Contract For New Ideas
+## 6. Knowledge Compiler Loop
+
+OpenClaw should not merely perform chunk-based RAG, one-shot search, or notebook-style recall. It should behave as a personal/operator knowledge compiler.
+
+The durable loop is:
+
+```text
+ingest -> compile -> query/synthesize -> capture -> recompile
+```
+
+The loop has five planning layers:
+
+- Raw layer: what actually happened, as evidence or opaque withheld existence, without treating raw files as truth, safe, public, or provider-ready.
+- Compiled/wiki layer: durable structured pages, notes, briefs, packets, and summaries that make recurring knowledge inspectable and useful.
+- Relationship layer: tags, links, entity relationships, provenance links, source-set references, freshness links, contradiction links, and authority/sensitivity boundaries.
+- Synthesis layer: operator/AI judgment, higher-level insight, connection-finding, creative/business/legal/financial sensemaking, and bounded surprise.
+- Write-back/capture layer: synthesized insight may return to the substrate only when labeled with provenance, freshness, sensitivity, authority, confidence, and review status.
+
+Anti-slop rule: synthesis is not automatically truth. A useful synthesis can be draft, inferred, contradictory, stale, sensitive/local-only, blocked, or needs review. It becomes durable knowledge only through the write-back/capture layer with explicit labels and operator authority.
+
+This loop should compound. Each safe capture should make the next round of compilation, querying, synthesis, and garden growth more useful without laundering excluded material, private data, stale assumptions, provider/model output, hidden execution instructions, or unsupported confidence into accepted knowledge.
+
+This loop does not authorize ingestion, indexing, embeddings, extraction, chunking, SQLite, backend/API/schema work, provider/model calls, private-root browsing, source-set generation, runtime work, or app implementation. It is an intent and semantic-contract requirement for future planning and separately authorized implementation prompts.
+
+## 7. Operator Interaction Contract
+
+Developer tools are subordinate to the operator-native experience.
+
+SQLite tables, CLI flags, MCP tools, compile commands, source-set machinery, static checkers, and backend contracts may exist underneath, but Winship should not have to operate OpenClaw like a developer managing machinery. The daily interface should feel conversational, musical, visual, and native to the operator's life.
+
+Allowed operator-native interactions include:
+
+- talk it out;
+- ask what a new idea connects to;
+- bounce a thought against existing doctrine, source sets, memories, goals, obligations, and taste signals;
+- ask for a synthesis, contradiction, relationship, next safe action, or bounded surprise;
+- turn a good synthesis into durable knowledge only after labels and authority are clear;
+- preserve taste, authorship, attention boundaries, and the operator's final judgment.
+
+The interaction contract must preserve the creative garden rule. OpenClaw may surprise, connect, sketch, riff, and propose, but only inside privacy, authority, safety, money, legal, CPA/tax, built-state, and source-boundary gates. It must not convert delight into fake urgency, hidden execution, pressure to act, private-data exposure, provider/model leakage, or authority drift.
+
+This interaction contract does not authorize new UI, app, backend, runtime, provider/model, MCP, Hermes, sync, indexing, embedding, extraction, chunking, SQLite, ingestion, source-set generation, or private-root work.
+
+## 8. Machine Contract For New Ideas
 
 Every new build idea must answer these questions before it enters a source set, semantic contract, packet, module, or build-loop context:
 
@@ -110,6 +153,8 @@ Every new build idea must answer these questions before it enters a source set, 
 | Responsibility separated | Who is involved in the work, and who is responsible for payment, approval, escalation, legal/accounting action, or decision authority? |
 | Creative seed planted | What doctrine, source set, memory, creative reference, unfinished idea, song, workflow, goal, or taste signal is being planted or cultivated? |
 | Bounded surprise | What useful surprise, connection, prompt, riff, sketch, plan, or observation could appear without creating spam, distraction, fake urgency, or hidden authority? |
+| Knowledge compiler loop | What raw evidence, compiled/wiki page, relationship/tag/link, synthesis, or write-back/capture path is involved, and what labels prevent synthesis from becoming automatic truth? |
+| Operator-native interaction | How can the operator use this conversationally, musically, visually, or otherwise naturally without managing SQLite tables, CLI flags, MCP tools, compile commands, or backend machinery? |
 | Evidence basis | What approved evidence, freshness, provenance, authority, and sensitivity boundaries would support the idea? |
 | Steel-thread connection | Does it strengthen receivables/chase-money discipline directly, or does it reuse the same obligation/accountability pattern in another lane? |
 | Modular product path | How could the capability later transfer into a sellable or company-facing system without personal/client residue? |
@@ -119,7 +164,7 @@ Every new build idea must answer these questions before it enters a source set, 
 
 If an idea cannot answer these questions in bounded planning language, it is not ready to become implementation context.
 
-## 7. Bounce Rule
+## 9. Bounce Rule
 
 Future source sets, semantic contracts, Hermes packets, Chief packets, operator packets, legal/music/business modules, build-loop packets, context packages, and implementation prompts must classify new ideas against this North Star before use.
 
@@ -133,7 +178,7 @@ Future source sets, semantic contracts, Hermes packets, Chief packets, operator 
 
 If the classification is missing, vague, or unable to decide, the idea bounces. It cannot enter a source set, reusable context package, Hermes packet, Chief packet, operator packet, legal/music/business module, build-loop packet, semantic contract, or implementation prompt until reviewed.
 
-## 8. Backend/Data-Contract Gates Preserved
+## 10. Backend/Data-Contract Gates Preserved
 
 This North Star adds an intent gate. It does not weaken any backend/data-contract gate.
 
@@ -149,7 +194,7 @@ The following remain binding:
 
 If this North Star and a lower-lane contract appear to conflict, the next step is review and correction. Do not use the North Star as permission to bypass a stricter lower-lane gate.
 
-## 9. What This Authorizes
+## 11. What This Authorizes
 
 This artifact authorizes only these docs/planning uses:
 
@@ -158,13 +203,15 @@ This artifact authorizes only these docs/planning uses:
 - prioritizing modules that protect time, money, attention, creative energy, income, privacy, calm, health, relationships, and future optionality;
 - prioritizing prepared paths, checklists, reminders, evidence, options, and next safe actions that reduce ordinary-life burden;
 - allowing bounded creative surprise, garden-growth prompts, and low-pressure creative/business/life-design connections when source basis and authority boundaries are clear;
+- requiring future knowledge-substrate and backend/data-contract planning to preserve the raw -> compiled/wiki -> relationship -> synthesis -> write-back/capture loop;
+- requiring operator-facing concepts to stay conversational, musical, visual, and operator-native instead of exposing developer machinery as the daily interface;
 - rejecting automation ideas that do not create accountable operator leverage;
 - rejecting generative ideas that create spam, chaotic novelty, fake urgency, authorship confusion, or privacy/authority bypass;
 - requiring future packets and source sets to state how they preserve the North Star.
 
 It may guide planning, source-set framing, semantic-contract framing, packet critique, module prioritization, and context-filter intent checks.
 
-## 10. What This Does Not Authorize
+## 12. What This Does Not Authorize
 
 This artifact does not authorize:
 
@@ -175,6 +222,7 @@ This artifact does not authorize:
 - Hermes runs;
 - MCP invocation;
 - services, sync, indexing, embeddings, extraction, chunking, source-set generation, or runtime work;
+- knowledge compiler implementation, SQLite work, ingestion, extraction, chunking, indexing, embeddings, backend/API/schema work, or app/UI work;
 - private-root browsing or private-data inspection;
 - legal advice, CPA/tax action, payment, posting, collection action, external sending, outreach, or relationship automation;
 - bank, ledger, invoice, music-law, publishing, client, legal, tax, or CPA source inspection;
@@ -183,7 +231,7 @@ This artifact does not authorize:
 - commits or broad staging;
 - new control planes, shadow memory systems, duplicate ledgers, or extra orchestration layers.
 
-## 11. Stale Conditions
+## 13. Stale Conditions
 
 This machine contract becomes stale when:
 
@@ -193,11 +241,11 @@ This machine contract becomes stale when:
 - backend/data-contract semantic matrix or implementation-readiness gates change;
 - source-set 04 membership or source-set 04 bridge requirements change;
 - private-root contracts change;
-- receivables, music, writing, production, visual ideas, legal, CPA/tax, travel/logistics, ordinary-life admin, creative garden behavior, planner-builder, legal product, or company-facing module strategy changes;
+- receivables, music, writing, production, visual ideas, legal, CPA/tax, travel/logistics, ordinary-life admin, creative garden behavior, knowledge compiler loop, operator interaction contract, planner-builder, legal product, or company-facing module strategy changes;
 - a later approved Operator North Star machine contract supersedes this one.
 
-## 12. Next Safe Action
+## 14. Next Safe Action
 
-The next safe step may be a narrow proof-check planning prompt that asks whether the current planning stack can express the receivables/chase-money steel thread, active-stoicism daily-life burden reduction, and creative garden bounded-surprise behavior using approved tracked docs, synthetic examples, and existing backend/data-contract gates.
+The next safe step may be a narrow proof-check planning prompt that asks whether the current planning stack can express the receivables/chase-money steel thread, active-stoicism daily-life burden reduction, creative garden bounded-surprise behavior, knowledge compiler loop, and operator-native interaction contract using approved tracked docs, synthetic examples, and existing backend/data-contract gates.
 
 It must remain docs/planning unless a separate operator prompt explicitly authorizes a bounded implementation proof check with exact allowed paths, forbidden paths, validation receipts, and context-filter review.

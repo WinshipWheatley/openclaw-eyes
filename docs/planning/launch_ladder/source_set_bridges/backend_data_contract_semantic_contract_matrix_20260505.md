@@ -141,7 +141,21 @@ Relationships are semantic dependencies only. They are not schema, table, API, g
 | record -> operator surface | Surface depends on allowed place, evidence home, authority scope, and sensitive boundary. | UI/card visibility does not grant action authority. |
 | source category -> allowed use | Source category constrains what can be used as context. | Forbidden sources cannot be laundered through summaries or prompts. |
 
-## 9. Source Category Matrix
+## 9. Knowledge Compiler Loop Preservation
+
+Future backend/data-contract planning must preserve the knowledge compiler loop as semantic meaning only, not as implementation authority.
+
+| Loop layer | Durable meaning | Required preservation | Must not imply |
+| --- | --- | --- | --- |
+| Raw layer | What actually happened, represented as approved evidence, missing evidence, or opaque withheld existence. | Raw records need evidence, freshness, provenance, sensitivity, and authority labels before use. | Truth, safety, provider/model readiness, private browsing, ingestion, extraction, or indexing permission. |
+| Compiled/wiki layer | Durable structured pages, briefs, notes, summaries, or packets that make recurring knowledge inspectable. | Compiled records must cite source refs, compiler/source basis, freshness, sensitivity, authority, and confidence/review status. | Acceptance, final truth, backend schema, app display authority, or external sharing. |
+| Relationship layer | Tags, links, entity relationships, provenance links, source-set references, freshness links, contradiction links, and authority/sensitivity links. | Relationships must preserve direction, source basis, uncertainty, contradiction, stale conditions, and blocked/excluded boundaries. | Graph database design, relationship truth, cleanup authority, cross-context blending, or private-root content exposure. |
+| Synthesis layer | Operator/AI judgment, higher-level insight, connection-finding, contradiction surfacing, and bounded garden surprise. | Synthesis must be labeled as draft, inferred, confirmed-as-interpretation, contradiction present, stale, sensitive/local-only, blocked, or needs review. | Automatic truth, operator approval, action readiness, provider/model safety, hidden execution, or authority to override taste/authorship. |
+| Write-back/capture layer | A synthesized insight returns to durable substrate only when labeled. | Captured insight must carry provenance, freshness, sensitivity, authority, confidence, review status, and stale conditions. | Silent promotion, source-set laundering, private-data summary laundering, or implementation/runtime authority. |
+
+The compounding loop is `ingest -> compile -> query/synthesize -> capture -> recompile`, but this artifact does not authorize ingestion, extraction, chunking, indexing, embeddings, SQLite, backend/API/schema work, app implementation, source-set generation, provider/model calls, private-root browsing, or runtime work.
+
+## 10. Source Category Matrix
 
 | Source category | Allowed semantic use | Forbidden use | Default state |
 | --- | --- | --- | --- |
@@ -156,7 +170,7 @@ Relationships are semantic dependencies only. They are not schema, table, API, g
 | Hermes/MCP/sync/runtime artifacts | None. | Invocation, output ingestion, authority evidence, service activation. | Excluded. |
 | Generated safe fixtures | Future planning topic only. | Fixture creation or fixture authority in this artifact. | Not created. |
 
-## 10. Excluded And Unknown Classification Rules
+## 11. Excluded And Unknown Classification Rules
 
 Excluded classifications:
 
@@ -191,7 +205,7 @@ Rules:
 - Blocked sensitive source records may prove withheld existence only through opaque references and block reasons.
 - Private category names may be used as boundary labels only, not as content summaries.
 
-## 11. Validation Gates
+## 12. Validation Gates
 
 A future planning or implementation-readiness packet that relies on this matrix must pass these gates before it influences execution:
 
@@ -204,11 +218,12 @@ A future planning or implementation-readiness packet that relies on this matrix 
 7. Provides a context-filter receipt or explicitly states that no execution-influencing packet may proceed without one.
 8. Preserves evidence/freshness/provenance/authority/sensitivity separation for every semantic entity it uses.
 9. Preserves confirmed/inferred/excluded/unknown distinctions.
-10. Blocks private-root leakage, private-data summaries, secrets, credentials, runtime/log/state/config content, provider/model prompts, MCP context, Hermes output, sync output, generated runtime artifacts, and source-set laundering.
-11. Avoids backend/API/schema/SQLite/ingestion/fixtures/runtime/app-code authorization unless a separate operator prompt explicitly grants it.
-12. Avoids broad scans, broad paths, `git add .`, hidden execution instructions, and implied service/runtime/provider authority.
+10. Preserves raw/compiled/wiki/relationship/synthesis/write-back distinctions and prevents synthesis from becoming automatic truth.
+11. Blocks private-root leakage, private-data summaries, secrets, credentials, runtime/log/state/config content, provider/model prompts, MCP context, Hermes output, sync output, generated runtime artifacts, and source-set laundering.
+12. Avoids backend/API/schema/SQLite/ingestion/fixtures/runtime/app-code authorization unless a separate operator prompt explicitly grants it.
+13. Avoids broad scans, broad paths, `git add .`, hidden execution instructions, and implied service/runtime/provider authority.
 
-## 12. Future Implementation Handoff Requirements
+## 13. Future Implementation Handoff Requirements
 
 This matrix may support a future separately authorized implementation-readiness or implementation prompt only when that prompt:
 
@@ -218,6 +233,7 @@ This matrix may support a future separately authorized implementation-readiness 
 - names exact allowed tools and forbidden tools;
 - identifies which semantic entities are in scope for that slice;
 - states which entities remain planning-only, excluded, unknown, or blocked;
+- preserves raw/compiled/wiki/relationship/synthesis/write-back semantics and the anti-slop rule that synthesis is not automatically truth;
 - includes source-set 04 bridge and Command Atlas context-filter doctrine;
 - restates doc 30's exclusion/classification-only treatment for docs 26/27/28/29;
 - includes or requires a context-filter receipt before execution influence;
@@ -227,7 +243,7 @@ This matrix may support a future separately authorized implementation-readiness 
 
 Absent a separate operator prompt that satisfies those handoff requirements, this matrix remains planning/readiness only.
 
-## 13. Stale Conditions
+## 14. Stale Conditions
 
 This matrix artifact becomes stale when:
 
@@ -238,11 +254,12 @@ This matrix artifact becomes stale when:
 - `04_BACKEND_DATA_CONTRACT_READINESS` source-set membership changes;
 - `17`, `18`, `19`, or `30` changes in a way that alters record semantics, state vocabulary, authority boundaries, source categories, or exclusion handling;
 - docs 26/27/28/29 handling changes;
+- the Operator North Star knowledge compiler loop or operator interaction contract changes;
 - private-root contracts change;
 - backend/API/schema/SQLite/ingestion implementation is explicitly authorized;
 - a later approved semantic contract matrix supersedes this artifact.
 
-## 14. Next Step
+## 15. Next Step
 
 The next step may move to a separately authorized implementation-readiness prompt only if that prompt carries this matrix, satisfies the implementation-readiness checklist, includes a context-filter receipt requirement, and remains explicit about allowed paths, forbidden paths, allowed tools, forbidden tools, stale conditions, and validation receipts.
 
