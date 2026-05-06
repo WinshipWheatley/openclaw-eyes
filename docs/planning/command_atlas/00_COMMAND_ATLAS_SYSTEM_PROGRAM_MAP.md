@@ -18,6 +18,8 @@ The purpose of this artifact is to name the top layer clearly: Command Atlas / O
 
 The Operator Harness remains important, but it is a lane, cockpit, and operational view under the Atlas. It is not the entire OpenClaw system and should not pull every lane, root, private-data boundary, runtime dependency, and agentic workflow into its own implementation plan.
 
+`docs/planning/launch_ladder/source_set_bridges/operator_north_star_machine_contract_20260505.md` now records the operator-intent machine contract for this top layer. It defines why OpenClaw exists for Winship and how future ideas must bounce against the receivables/chase-money steel thread, active-stoicism daily-life burden reduction, creative garden bounded surprise, creative/business leverage, and modular product-transfer goals before they become source sets, semantic contracts, packets, or implementation context.
+
 This map prevents the next implementation step from overfitting to the Harness screen while root boundaries, lane responsibilities, and active dependency candidates are still unsettled.
 
 ## 3. System Signal
@@ -52,6 +54,7 @@ Its job is to keep these concerns distinct:
 
 Current Command Atlas lanes include:
 
+- Operator North Star / machine contract: the intent-authority lane that keeps OpenClaw centered on protecting Winship's time, money, attention, creative energy, income, privacy, calm, health, relationships, taste, authorship, and future optionality while turning messy real-world obligations and ordinary-life burdens into durable, evidence-backed operator systems and bounded creative garden growth. It is not implementation authority.
 - Operator Harness / Mission Control: the cockpit lane for operator-facing mission state, evidence, freshness, authority-scope display, and operational navigation.
 - Legal discovery app: a legal-workflow lane with its own private-root implications and app-surface needs.
 - Chief: the command, approval, routing, and executive synthesis lane, bounded by existing OpenClaw authority policy.

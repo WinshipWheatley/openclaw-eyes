@@ -19,6 +19,7 @@ This index tells future agents what to read, in what order, what each planning l
 North star:
 
 - Command Atlas / OpenClaw System Program is the top-level system-of-systems planning layer.
+- `docs/planning/launch_ladder/source_set_bridges/operator_north_star_machine_contract_20260505.md` is the top-layer operator-intent contract for future source sets, semantic contracts, packets, modules, and build-loop context; it is intent authority, not implementation authority.
 - Operator Harness is a lane/view/cockpit under Command Atlas, not the whole system.
 - PC WSL `/home/openclaw` remains canonical unless a later canonical doc says otherwise.
 - Documents `00` through `18` are baseline planning docs.
@@ -48,14 +49,15 @@ This index should reduce context load. It should not become a place to restate e
 ### Command Atlas / Systems Engineering Prep
 
 1. `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`
-2. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md`
-3. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md`
-4. `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md`
-5. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
-6. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
-7. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
-8. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
-9. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+2. `docs/planning/launch_ladder/source_set_bridges/operator_north_star_machine_contract_20260505.md`
+3. `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md`
+4. `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md`
+5. `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md`
+6. `docs/planning/command_atlas/04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md`
+7. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
+8. `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`
+9. `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
+10. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
 
 This read order is for Command Atlas / systems-engineering preparation only. It does not authorize implementation, runtime activation, provider/model calls, MCP invocation, messaging, private-data inspection, source-set mutation, root migration, bridge behavior changes, external sending, relationship automation, GitHub workflow creation, Claude tooling installation, cloud-agent commits, source-set generation, or commits.
 
@@ -97,9 +99,10 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 7. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_semantic_matrix_plan_20260505.md` before any backend/data-contract implementation-readiness prompt.
 8. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_semantic_contract_matrix_20260505.md` as the durable semantic contract matrix before any implementation-readiness or implementation prompt.
 9. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_implementation_readiness_checklist_20260505.md` before any separate backend/data-contract implementation prompt.
-10. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
-11. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
-12. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
+10. `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_implementation_slice_readiness_20260505.md` before any static semantic-contract implementation prompt.
+11. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
+12. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
+13. `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md` as the compact bridge that keeps dependency-map facts out of private-root content and backend authority.
 
 This read order is planning/readiness only. The committed `04_BACKEND_DATA_CONTRACT_READINESS` source set remains useful, but it is not enough by itself after `38294f9`; consuming contexts must include or explicitly bridge the Context Development Lifecycle / Context Filter doctrine and must not authorize backend implementation, ingestion, SQLite, indexing, embeddings, extraction, chunking, provider/model calls, Hermes, MCPs, source-set regeneration, private-root browsing, or runtime work.
 
@@ -167,6 +170,7 @@ This read order is for an experimental local-model benchmark / Hardware Fit Anal
 Use these before resuming Operator Harness implementation or broader systems-engineering run-throughs. They establish the top-level OpenClaw System Program frame, keep Operator Harness as a lane/view/cockpit under Command Atlas, and define Hermes as a non-authoritative systems-engineering / coherence-tuning lane.
 
 - `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md` - top-level Command Atlas / OpenClaw System Program map, root/data-boundary sequencing gate, lane inventory, and final calibration gate.
+- `docs/planning/launch_ladder/source_set_bridges/operator_north_star_machine_contract_20260505.md` - top-layer operator-intent machine contract for preserving the receivables/chase-money steel thread, active-stoicism daily-life burden reduction, creative garden bounded surprise, creative/business leverage, modular product-transfer goals, and future idea bounce rule; not implementation, runtime, provider/model, private-root, source-set generation, or backend authority.
 - `docs/planning/command_atlas/01_HERMES_SYSTEMS_ENGINEERING_RUN_MODE_SPEC.md` - Hermes run-mode boundary with Level 1 docs-only, Level 2 metadata topology, and Level 3 approved external scout packet modes; not provider/model, MCP, messaging, runtime, queue, source-set, private-data, or migration authority.
 - `docs/planning/command_atlas/02_EXTERNAL_COMMUNICATIONS_RELATIONSHIP_JUDGMENT_LANE.md` - external-facing communication judgment lane for customer, client, venue, contractor, friend-of-system, outside-circle, and relationship-risk interactions; defines tone-reading, bounded promises, disclosure restraint, escalation, reputation, and role-separation criteria without granting send, legal/financial advice, private-data disclosure, authority-transfer, or relationship-automation authority.
 - `docs/planning/command_atlas/03_AGENTIC_BUILD_LOOP_GITHUB_ACTION_PATTERN_WITHOUT_CLAUDE.md` - architectural planning lane for borrowing headless agent job packets, explicit tool/path allowlists, receipts, resumable state handles, and CI/PR feedback loops while keeping OpenClaw execution local-first, approval-gated, non-Claude, sensitive-data-safe, and explicit-authority-only.
@@ -206,6 +210,7 @@ Use these when baseline docs are too generic, stale, or missing the bridge/sourc
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_semantic_matrix_plan_20260505.md` - Markdown semantic contract matrix for backend/data-contract readiness planning; not database schema, API, SQLite, ingestion, fixture, runtime, app implementation, source-set generation, or implementation-readiness authority.
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_semantic_contract_matrix_20260505.md` - durable semantic contract matrix artifact defining backend/data-contract entities, state vocabulary, evidence/freshness/provenance fields, authority/sensitivity boundaries, relationships, exclusions, validation gates, and handoff requirements; not backend/API/schema/SQLite/ingestion/fixture/runtime/app implementation authority.
 - `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_implementation_readiness_checklist_20260505.md` - docs-only checklist defining gates that must pass before a separate future backend/data-contract implementation prompt; not backend/API/schema/SQLite/ingestion/fixture/runtime/app implementation authority.
+- `docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_implementation_slice_readiness_20260505.md` - docs-only decision selecting static semantic-contract enforcement in the existing Launch Ladder checker/test harness as the first safe future implementation slice; it allowlists only `launch_ladder_contract_check.py`, `tests/test_launch_ladder_static_contract.py`, and optional validation-map documentation for a separately authorized implementation prompt, not backend/API/schema/SQLite/ingestion/fixture/runtime/app implementation.
 - `docs/planning/launch_ladder/22_CROSS_PLATFORM_BRIDGE_CONTRACT_BREADCRUMB.md`
 - `docs/planning/launch_ladder/source_set_bridges/operator_harness_visual_import_freshness_bridge_20260505.md`
 
