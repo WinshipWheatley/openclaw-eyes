@@ -114,6 +114,10 @@ BACKEND_DATA_CONTRACT_STORAGE_SCHEMA_PLAN = (
 BACKEND_DATA_CONTRACT_SQLITE_PLAN = (
     SOURCE_SET_BRIDGE_DIR / "backend_data_contract_sqlite_plan_20260505.md"
 )
+BACKEND_DATA_CONTRACT_SQLITE_IMPLEMENTATION_READINESS = (
+    SOURCE_SET_BRIDGE_DIR
+    / "backend_data_contract_sqlite_implementation_readiness_20260505.md"
+)
 BACKEND_DATA_CONTRACT_MODULE = REPO_ROOT / "backend_data_contract.py"
 BACKEND_DATA_CONTRACT_TEST = REPO_ROOT / "tests" / "test_backend_data_contract.py"
 BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
@@ -184,6 +188,7 @@ BACKEND_DATA_CONTRACT_STATIC_GATE_DOCS = (
     "backend_data_contract_first_implementation_slice_readiness_20260505.md",
     "backend_data_contract_storage_schema_plan_20260505.md",
     "backend_data_contract_sqlite_plan_20260505.md",
+    "backend_data_contract_sqlite_implementation_readiness_20260505.md",
     "04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md",
     "04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md",
     "30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md",
@@ -2190,6 +2195,152 @@ def backend_data_contract_sqlite_plan_failures(
     return tuple(failures)
 
 
+def backend_data_contract_sqlite_implementation_readiness_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    readiness_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "source_set_bridges"
+        / "backend_data_contract_sqlite_implementation_readiness_20260505.md"
+    )
+
+    if not readiness_path.is_file():
+        return (f"backend SQLite implementation-readiness: missing {readiness_path}",)
+
+    readiness_text = _read_text(readiness_path)
+    readiness_normalized = normalize(readiness_text)
+
+    _require_all(
+        failures,
+        readiness_normalized,
+        "backend SQLite implementation-readiness required gates",
+        (
+            "Backend Data Contract SQLite Implementation Readiness",
+            "docs-only SQLite implementation-readiness artifact",
+            "does not authorize implementation by itself",
+            "first no-runtime SQLite schema-contract code slice",
+            "no-runtime",
+            "no-persistence",
+            "no-file-I/O",
+            "no-DB-connection",
+            "no-SQL-DDL",
+            "no-migrations",
+            "backend_data_contract.py",
+            "tests/test_backend_data_contract.py",
+            "launch_ladder_contract_check.py",
+            "tests/test_launch_ladder_static_contract.py",
+            "docs/testing/VALIDATION_MAP.md",
+            "semantic_records",
+            "semantic_labels",
+            "semantic_relationships",
+            "provenance_refs",
+            "validation_receipts",
+            "operator_promotions",
+            "context_filter_receipts",
+            "record_id",
+            "entity_family",
+            "knowledge_layer",
+            "contract_state",
+            "validator_decision",
+            "synthesis_not_truth",
+            "accepted_knowledge_derived",
+            "label_id",
+            "relationship_id",
+            "provenance_ref_id",
+            "receipt_id",
+            "promotion_id",
+            "context_filter_receipt_id",
+            "SQLite implementation",
+            "SQL DDL execution",
+            "migrations",
+            "persistence",
+            "database connections",
+            "file I/O",
+            "API routes",
+            "ingestion",
+            "extraction",
+            "indexing",
+            "embeddings",
+            "fixtures",
+            "runtime services",
+            "frontend/app behavior",
+            "provider/model calls",
+            "Hermes",
+            "MCPs",
+            "sync",
+            "source-set generation",
+            "private-root inspection",
+            "private-data inspection",
+            "raw",
+            "compiled/wiki",
+            "relationship",
+            "synthesis",
+            "write-back/capture",
+            "synthesis must not become truth by table placement",
+            "operator promotion",
+            "validation receipt",
+            "provenance ref",
+            "context-filter receipt",
+            "Sensitivity",
+            "Authority",
+            "Freshness",
+            "Confidence",
+            "Review status",
+            "receivables/accountability",
+            "semantic accountability records and relationships only",
+            "automated harassment",
+            "automated sending",
+            "collection action",
+            "bank access",
+            "payment posting",
+            "legal advice",
+            "CPA action",
+            "runtime action",
+            "later implementation prompt must be separate",
+            "exact-path allowlisted",
+            "Stop Conditions",
+        ),
+    )
+
+    forbidden_authorizing_phrases = (
+        "This readiness artifact implements SQLite",
+        "This readiness artifact authorizes implementation",
+        "This readiness artifact creates SQL DDL",
+        "This readiness artifact authorizes SQL DDL execution",
+        "This readiness artifact creates migrations",
+        "This readiness artifact authorizes persistence",
+        "This readiness artifact opens database connections",
+        "This readiness artifact authorizes file I/O",
+        "This readiness artifact creates API routes",
+        "This readiness artifact authorizes ingestion",
+        "This readiness artifact authorizes extraction",
+        "This readiness artifact authorizes indexing",
+        "This readiness artifact authorizes embeddings",
+        "This readiness artifact creates fixtures",
+        "This readiness artifact authorizes runtime services",
+        "This readiness artifact authorizes provider/model calls",
+        "This readiness artifact authorizes Hermes",
+        "This readiness artifact authorizes MCPs",
+        "This readiness artifact authorizes sync",
+        "This readiness artifact authorizes source-set generation",
+        "This readiness artifact authorizes private-root inspection",
+        "This readiness artifact authorizes private-data inspection",
+        "SQLite implementation may begin from this readiness artifact alone",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in readiness_text:
+            failures.append(
+                "backend SQLite implementation-readiness: forbidden authorizing "
+                f"phrase {phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def backend_data_contract_module_failures(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[str, ...]:
@@ -3147,8 +3298,10 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "backend first implementation slice readiness",
             "backend_data_contract_storage_schema_plan_20260505.md",
             "backend_data_contract_sqlite_plan_20260505.md",
+            "backend_data_contract_sqlite_implementation_readiness_20260505.md",
             "storage/schema planning bridge",
             "SQLite planning bridge",
+            "SQLite implementation-readiness bridge",
             "backend_data_contract.py",
             "test_backend_data_contract.py",
             "backend data-contract semantic vocabulary and guard helpers",
@@ -3173,6 +3326,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(backend_data_contract_implementation_readiness_checklist_failures())
     failures.extend(backend_data_contract_storage_schema_plan_failures())
     failures.extend(backend_data_contract_sqlite_plan_failures())
+    failures.extend(backend_data_contract_sqlite_implementation_readiness_failures())
     failures.extend(backend_data_contract_module_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(pc_storage_relief_launch_packet_plan_failures())
