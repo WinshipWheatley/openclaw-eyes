@@ -227,6 +227,8 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "command line",
         "db",
         "database",
+        "database connection",
+        "file i/o",
         "sqlite",
         "sql ddl",
         "migration",
@@ -792,6 +794,10 @@ def _format_schema_fields(field_names: Iterable[str]) -> str:
     return ", ".join(sorted(field_names))
 
 
+def _format_schema_boundaries(boundaries: Iterable[str]) -> str:
+    return ", ".join(sorted(boundaries))
+
+
 def validate_schema_surface_definition(
     surface_name: str,
     conceptual_fields: Iterable[str],
@@ -818,7 +824,20 @@ def validate_schema_surface_definition(
         )
 
     forbidden_text = " ".join(forbidden_implementation_behavior)
-    if forbidden_text and not is_implementation_forbidden(forbidden_text):
+    supplied_forbidden_boundaries = frozenset(
+        _normalize_phrase(boundary) for boundary in forbidden_implementation_behavior
+    )
+    missing_forbidden_boundaries = tuple(
+        boundary
+        for boundary in surface.forbidden_implementation_behavior
+        if _normalize_phrase(boundary) not in supplied_forbidden_boundaries
+    )
+    if missing_forbidden_boundaries:
+        reasons.append(
+            f"schema surface {surface.name} missing forbidden implementation behavior: "
+            f"{_format_schema_boundaries(missing_forbidden_boundaries)}"
+        )
+    elif not is_implementation_forbidden(forbidden_text):
         reasons.append(
             f"schema surface {surface.name} missing forbidden implementation boundary"
         )

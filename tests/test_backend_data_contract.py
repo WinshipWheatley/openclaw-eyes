@@ -14,6 +14,7 @@ from backend_data_contract import (
     REQUIRED_LABEL_BUNDLES_BY_LAYER,
     REQUIRED_SCHEMA_CONTRACT_SURFACES,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
+    SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
     SchemaContractSurface,
     SemanticRecordProposal,
     allowed_layers_for_entity_family,
@@ -748,6 +749,7 @@ def test_missing_schema_surface_fields_fail_with_useful_reasons():
             "knowledge_layer",
             "contract_state",
         },
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
     )
 
     assert result.ok is False
@@ -760,6 +762,22 @@ def test_missing_schema_surface_fields_fail_with_useful_reasons():
     )
 
 
+def test_missing_schema_surface_forbidden_boundaries_fail_closed():
+    result = validate_schema_surface_definition(
+        "semantic_label",
+        required_schema_surface_fields("semantic_label"),
+    )
+
+    assert result.ok is False
+    assert result.decision is ContractDecision.UNKNOWN
+    assert result.reasons == (
+        "schema surface semantic_label missing forbidden implementation behavior: "
+        "API route, Hermes, MCP, SQL DDL, SQLite implementation, database connection, "
+        "embedding, file I/O, fixture, indexing, ingestion, migration, persistence, "
+        "private-root inspection, provider/model call, runtime service",
+    )
+
+
 def test_schema_contract_layer_does_not_authorize_forbidden_implementation_terms():
     forbidden_uses = (
         "SQLite implementation",
@@ -768,6 +786,7 @@ def test_schema_contract_layer_does_not_authorize_forbidden_implementation_terms
         "persistence",
         "API route",
         "ingestion",
+        "indexing",
         "embedding",
         "runtime service",
         "fixture",
@@ -775,6 +794,8 @@ def test_schema_contract_layer_does_not_authorize_forbidden_implementation_terms
         "Hermes",
         "MCP",
         "private-root inspection",
+        "file I/O",
+        "database connection",
     )
 
     combined_forbidden = " ".join(
@@ -823,6 +844,7 @@ def test_schema_contract_helpers_are_pure_lookup_and_validation_only():
         result = validate_schema_surface_definition(
             surface_name,
             required_schema_surface_fields(surface_name),
+            forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
         )
         assert result.ok is True
         assert result.reasons == ()

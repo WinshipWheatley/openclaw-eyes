@@ -303,6 +303,7 @@ BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS = (
     "test_schema_surface_names_normalize_correctly",
     "test_schema_surfaces_expose_required_conceptual_fields",
     "test_missing_schema_surface_fields_fail_with_useful_reasons",
+    "test_missing_schema_surface_forbidden_boundaries_fail_closed",
     "test_schema_contract_layer_does_not_authorize_forbidden_implementation_terms",
     "test_semantic_record_surface_preserves_layers_and_families_without_truth_flattening",
     "test_operator_promotion_and_validation_receipt_remain_separate_schema_surfaces",
@@ -312,6 +313,8 @@ BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS = (
     "migration",
     "persistence",
     "API route",
+    "file I/O",
+    "database connection",
     "provider model call",
     "runtime services",
     "automated sending harassment collection action",
@@ -321,6 +324,7 @@ BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS = (
     "write-back/capture confirmed receipt requires operator promotion",
     "promoted_by_operator=True",
     "schema surface semantic_record missing conceptual fields",
+    "schema surface semantic_label missing forbidden implementation behavior",
     "unknown schema surface",
 )
 BACKEND_DATA_CONTRACT_FORBIDDEN_MODULE_IMPORTS = (
