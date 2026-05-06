@@ -259,7 +259,9 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "runtime service",
         "service",
         "frontend",
+        "frontend/app behavior",
         "app",
+        "app behavior",
         "schema",
         "embedding",
         "embeddings",
@@ -329,6 +331,7 @@ SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
 )
 
 SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR = (
+    "SQLite implementation",
     "SQLite runtime",
     "sqlite3",
     "SQL DDL execution",
@@ -344,12 +347,14 @@ SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR = (
     "embedding",
     "fixture",
     "runtime service",
+    "frontend/app behavior",
     "provider/model call",
     "Hermes",
     "MCP",
     "sync",
     "source-set generation",
     "private-root inspection",
+    "app behavior",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)

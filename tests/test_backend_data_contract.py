@@ -1030,18 +1030,21 @@ def test_missing_sqlite_table_concept_forbidden_boundaries_fail_closed():
 
     assert result.ok is False
     assert result.decision is ContractDecision.UNKNOWN
-    assert result.reasons == (
+    expected_reason = (
         "SQLite table concept semantic_labels missing forbidden implementation behavior: "
-        "API route, DB connections, Hermes, MCP, SQL DDL execution, SQLite runtime, "
-        "database connection, embedding, extraction, file I/O, fixture, indexing, "
-        "ingestion, migration, persistence, private-root inspection, provider/model call, "
-        "runtime service, source-set generation, sqlite3, sync",
+        "API route, DB connections, Hermes, MCP, SQL DDL execution, SQLite implementation, "
+        "SQLite runtime, app behavior, database connection, embedding, extraction, "
+        "file I/O, fixture, frontend/app behavior, indexing, ingestion, migration, "
+        "persistence, private-root inspection, provider/model call, runtime service, "
+        "source-set generation, sqlite3, sync"
     )
+    assert result.reasons == (expected_reason,)
 
 
 def test_sqlite_table_concepts_do_not_authorize_forbidden_implementation_terms():
     forbidden_uses = (
         "SQLite runtime",
+        "SQLite implementation",
         "sqlite3",
         "SQL DDL execution",
         "migrations",
@@ -1055,12 +1058,14 @@ def test_sqlite_table_concepts_do_not_authorize_forbidden_implementation_terms()
         "embeddings",
         "fixtures",
         "runtime services",
+        "frontend/app behavior",
         "provider/model calls",
         "Hermes",
         "MCPs",
         "sync",
         "source-set generation",
         "private-root inspection",
+        "app behavior",
     )
 
     combined_forbidden = " ".join(

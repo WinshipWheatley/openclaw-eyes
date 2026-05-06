@@ -250,6 +250,8 @@ BACKEND_DATA_CONTRACT_MODULE_REQUIRED_TERMS = (
     "REQUIRED_SQLITE_TABLE_CONCEPTS",
     "SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR",
     "SQLITE_TABLE_CONCEPTS",
+    "SQLite implementation",
+    "SQLite runtime",
     "semantic_records",
     "semantic_labels",
     "semantic_relationships",
@@ -369,6 +371,8 @@ BACKEND_DATA_CONTRACT_TEST_REQUIRED_TERMS = (
     "schema surface semantic_label missing forbidden implementation behavior",
     "SQLite table concept semantic_records missing conceptual fields",
     "SQLite table concept semantic_labels missing forbidden implementation behavior",
+    "frontend/app behavior",
+    "app behavior",
     "unknown schema surface",
     "unknown SQLite table concept",
 )
