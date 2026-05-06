@@ -10,6 +10,8 @@ from backend_data_contract import (
     sqlite_table_concept,
 )
 from backend_sqlite_schema import (
+    SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE,
+    SCHEMA_IDENTITY,
     INERT_SCHEMA_BOUNDARIES,
     SCHEMA_VERSION,
     SQLITE_SCHEMA_TABLES,
@@ -150,6 +152,8 @@ def test_all_seven_table_concepts_exist_in_contract_order():
 
 def test_schema_versions_is_separate_schema_control_metadata():
     assert SCHEMA_VERSION == "backend-sqlite-schema-definition-v1"
+    assert SCHEMA_IDENTITY == "backend_sqlite_schema"
+    assert SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE == "in_memory_current"
     assert sqlite_schema_control_table_names() == ("schema_versions",)
     assert "schema_versions" not in sqlite_schema_table_names()
     assert sqlite_schema_table("schema_versions") is None

@@ -54,6 +54,8 @@ class TableDefinition:
 
 
 SCHEMA_VERSION = "backend-sqlite-schema-definition-v1"
+SCHEMA_IDENTITY = "backend_sqlite_schema"
+SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE = "in_memory_current"
 
 RETRIEVAL_STRUCTURE_FIELDS = frozenset(
     {

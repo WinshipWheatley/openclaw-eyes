@@ -11,11 +11,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import backend_sqlite_runtime as runtime
 from backend_sqlite_runtime import (
     create_in_memory_connection,
+    record_in_memory_schema_version,
+    sqlite_runtime_schema_version,
+    sqlite_runtime_schema_version_matches,
     sqlite_runtime_table_columns,
     sqlite_runtime_table_names,
     sqlite_runtime_table_primary_keys,
 )
 from backend_sqlite_schema import (
+    SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE,
+    SCHEMA_IDENTITY,
+    SCHEMA_VERSION,
     sqlite_physical_schema_table_names,
     sqlite_schema_control_table,
     sqlite_schema_table_names,
@@ -176,6 +182,106 @@ def test_runtime_schema_versions_table_matches_static_schema_control_metadata():
         connection.close()
 
 
+def schema_version_rows(connection):
+    return connection.execute(
+        """
+SELECT
+  schema_version,
+  schema_identity,
+  applied_at,
+  source_commit,
+  migration_state,
+  notes
+FROM schema_versions
+ORDER BY schema_version
+""".strip()
+    ).fetchall()
+
+
+def test_schema_version_table_is_empty_until_explicitly_recorded():
+    connection = create_in_memory_connection()
+    try:
+        assert schema_version_rows(connection) == []
+        assert sqlite_runtime_schema_version(connection) is None
+        assert sqlite_runtime_schema_version_matches(connection) is False
+    finally:
+        connection.close()
+
+
+def test_schema_version_match_fails_closed_when_metadata_table_is_missing():
+    connection = runtime.sqlite3.connect(":memory:")
+    try:
+        assert sqlite_runtime_schema_version(connection) is None
+        assert sqlite_runtime_schema_version_matches(connection) is False
+    finally:
+        connection.close()
+
+
+def test_record_in_memory_schema_version_writes_current_schema_row():
+    connection = create_in_memory_connection()
+    try:
+        record_in_memory_schema_version(connection, source_commit="4e7617d")
+
+        assert schema_version_rows(connection) == [
+            (
+                SCHEMA_VERSION,
+                SCHEMA_IDENTITY,
+                None,
+                "4e7617d",
+                SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE,
+                None,
+            )
+        ]
+        assert sqlite_runtime_schema_version(connection) == SCHEMA_VERSION
+        assert sqlite_runtime_schema_version_matches(connection) is True
+    finally:
+        connection.close()
+
+
+def test_record_in_memory_schema_version_is_idempotent_for_current_schema():
+    connection = create_in_memory_connection()
+    try:
+        record_in_memory_schema_version(connection, source_commit="older")
+        record_in_memory_schema_version(connection, source_commit="newer")
+
+        assert schema_version_rows(connection) == [
+            (
+                SCHEMA_VERSION,
+                SCHEMA_IDENTITY,
+                None,
+                "newer",
+                SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE,
+                None,
+            )
+        ]
+        assert sqlite_runtime_schema_version_matches(connection) is True
+    finally:
+        connection.close()
+
+
+def test_schema_version_match_fails_closed_for_wrong_or_ambiguous_versions():
+    connection = create_in_memory_connection()
+    try:
+        connection.execute(
+            """
+INSERT INTO schema_versions (
+  schema_version,
+  schema_identity,
+  migration_state
+) VALUES (?, ?, ?)
+""".strip(),
+            ("wrong-version", SCHEMA_IDENTITY, SCHEMA_CONTROL_IN_MEMORY_CURRENT_STATE),
+        )
+        assert sqlite_runtime_schema_version(connection) == "wrong-version"
+        assert sqlite_runtime_schema_version_matches(connection) is False
+
+        record_in_memory_schema_version(connection)
+        assert sqlite_runtime_schema_version(connection) is None
+        assert sqlite_runtime_schema_version_matches(connection) is False
+    finally:
+        connection.close()
+
+
 def test_runtime_columns_match_static_schema_definitions():
     connection = create_in_memory_connection()
     try:
@@ -230,7 +336,9 @@ def test_runtime_module_avoids_forbidden_surfaces():
         "rollback",
     }.isdisjoint(called_function_names(tree))
     assert ".db" not in source
-    assert re.search(r"\bmigration\b", source) is None
+    assert re.search(r"\bmigration(?!_state)\b", source) is None
+    assert re.search(r"\bmigrate\b", source) is None
+    assert re.search(r"\balter\s+table\b", source) is None
     assert re.search(r"\bingest(?:ion)?\b", source) is None
     assert re.search(r"\bextract(?:ion)?\b", source) is None
     assert re.search(r"\bindex(?:ing)?\b", source) is None
