@@ -28,6 +28,27 @@ class KnowledgeLayer(str, Enum):
     WRITE_BACK_CAPTURE = "write-back/capture layer"
 
 
+class EntityFamily(str, Enum):
+    PERSON = "person"
+    ORGANIZATION = "organization"
+    CLIENT = "client"
+    JOB = "job"
+    INVOICE = "invoice"
+    PAYMENT = "payment"
+    PROJECT = "project"
+    MUSIC_WORK = "music work"
+    LEGAL_MATTER = "legal matter"
+    TAX_MATTER = "tax matter"
+    SOURCE_MATERIAL = "source material"
+    COMPILED_PAGE = "compiled page"
+    RELATIONSHIP = "relationship"
+    SYNTHESIS = "synthesis"
+    FOLLOW_UP_ACTION = "follow-up action"
+    APPROVAL = "approval"
+    BLOCKER = "blocker"
+    SYSTEM_ARTIFACT = "system artifact"
+
+
 class ContractLabel(str, Enum):
     PROVENANCE = "provenance"
     FRESHNESS = "freshness"
@@ -221,8 +242,240 @@ IMPLEMENTATION_FORBIDDEN_CONCEPTS = frozenset(
         "extractor",
         "chunking",
         "chunk",
+        "automated sending",
+        "auto send",
+        "auto-send",
+        "collection action",
+        "external sending",
+        "harassment",
+        "private data",
+        "private data inspection",
+        "private root",
+        "private root inspection",
     }
 )
+
+EXCLUDED_ENTITY_FAMILY_NAMES = frozenset(
+    {
+        "secret",
+        "credential",
+        "provider prompt",
+        "provider output",
+        "runtime log",
+        "runtime state",
+        "private data",
+        "private root",
+        "private source content",
+        "bank account",
+        "legal private content",
+        "tax private content",
+    }
+)
+
+GENERAL_ENTITY_STATES = frozenset(
+    {
+        ContractState.CONFIRMED,
+        ContractState.INFERRED,
+        ContractState.EXCLUDED,
+        ContractState.UNKNOWN,
+        ContractState.STALE,
+        ContractState.SENSITIVE_LOCAL_ONLY,
+        ContractState.NEEDS_REVIEW,
+    }
+)
+ACCOUNTABILITY_ENTITY_STATES = frozenset(
+    {
+        ContractState.CONFIRMED,
+        ContractState.INFERRED,
+        ContractState.EXCLUDED,
+        ContractState.UNKNOWN,
+        ContractState.BLOCKED,
+        ContractState.STALE,
+        ContractState.EVIDENCE_AVAILABLE,
+        ContractState.CONTRADICTION_PRESENT,
+        ContractState.NEEDS_REVIEW,
+    }
+)
+
+ALLOWED_LAYERS_BY_ENTITY_FAMILY = {
+    EntityFamily.PERSON: frozenset(KnowledgeLayer),
+    EntityFamily.ORGANIZATION: frozenset(KnowledgeLayer),
+    EntityFamily.CLIENT: frozenset(KnowledgeLayer),
+    EntityFamily.JOB: frozenset(KnowledgeLayer),
+    EntityFamily.INVOICE: frozenset(
+        {
+            KnowledgeLayer.RAW,
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.PAYMENT: frozenset(
+        {
+            KnowledgeLayer.RAW,
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.PROJECT: frozenset(KnowledgeLayer),
+    EntityFamily.MUSIC_WORK: frozenset(KnowledgeLayer),
+    EntityFamily.LEGAL_MATTER: frozenset(KnowledgeLayer),
+    EntityFamily.TAX_MATTER: frozenset(KnowledgeLayer),
+    EntityFamily.SOURCE_MATERIAL: frozenset(
+        {
+            KnowledgeLayer.RAW,
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+        }
+    ),
+    EntityFamily.COMPILED_PAGE: frozenset(
+        {
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.SYNTHESIS,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.RELATIONSHIP: frozenset(
+        {
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.SYNTHESIS,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.SYNTHESIS: frozenset(
+        {
+            KnowledgeLayer.SYNTHESIS,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.FOLLOW_UP_ACTION: frozenset(
+        {
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.SYNTHESIS,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.APPROVAL: frozenset(
+        {
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    ),
+    EntityFamily.BLOCKER: frozenset(KnowledgeLayer),
+    EntityFamily.SYSTEM_ARTIFACT: frozenset(KnowledgeLayer),
+}
+
+ALLOWED_STATES_BY_ENTITY_FAMILY = {
+    EntityFamily.PERSON: GENERAL_ENTITY_STATES,
+    EntityFamily.ORGANIZATION: GENERAL_ENTITY_STATES,
+    EntityFamily.CLIENT: GENERAL_ENTITY_STATES,
+    EntityFamily.JOB: ACCOUNTABILITY_ENTITY_STATES,
+    EntityFamily.INVOICE: ACCOUNTABILITY_ENTITY_STATES,
+    EntityFamily.PAYMENT: ACCOUNTABILITY_ENTITY_STATES,
+    EntityFamily.PROJECT: GENERAL_ENTITY_STATES,
+    EntityFamily.MUSIC_WORK: GENERAL_ENTITY_STATES
+    | {ContractState.DRAFT, ContractState.CONFIRMED_AS_INTERPRETATION},
+    EntityFamily.LEGAL_MATTER: GENERAL_ENTITY_STATES,
+    EntityFamily.TAX_MATTER: GENERAL_ENTITY_STATES,
+    EntityFamily.SOURCE_MATERIAL: frozenset(
+        {
+            ContractState.CONFIRMED,
+            ContractState.INFERRED,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.BLOCKED,
+            ContractState.STALE,
+            ContractState.EVIDENCE_AVAILABLE,
+        }
+    ),
+    EntityFamily.COMPILED_PAGE: frozenset(
+        {
+            ContractState.CONFIRMED_AS_INTERPRETATION,
+            ContractState.DRAFT,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.SENSITIVE_LOCAL_ONLY,
+            ContractState.NEEDS_REVIEW,
+        }
+    ),
+    EntityFamily.RELATIONSHIP: frozenset(
+        {
+            ContractState.CONFIRMED,
+            ContractState.INFERRED,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.BLOCKED,
+            ContractState.STALE,
+            ContractState.CONTRADICTION_PRESENT,
+            ContractState.NEEDS_REVIEW,
+        }
+    ),
+    EntityFamily.SYNTHESIS: frozenset(
+        {
+            ContractState.DRAFT,
+            ContractState.INFERRED,
+            ContractState.CONFIRMED_AS_INTERPRETATION,
+            ContractState.CONTRADICTION_PRESENT,
+            ContractState.STALE,
+            ContractState.SENSITIVE_LOCAL_ONLY,
+            ContractState.BLOCKED,
+            ContractState.NEEDS_REVIEW,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+        }
+    ),
+    EntityFamily.FOLLOW_UP_ACTION: frozenset(
+        {
+            ContractState.DRAFT,
+            ContractState.INFERRED,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.BLOCKED,
+            ContractState.STALE,
+            ContractState.PACKET_PREPARED,
+            ContractState.APPROVAL_PROMOTION_AVAILABLE,
+            ContractState.NEEDS_REVIEW,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+        }
+    ),
+    EntityFamily.APPROVAL: frozenset(
+        {
+            ContractState.CONFIRMED_WITH_RECEIPT,
+            ContractState.APPROVAL_PROMOTION_AVAILABLE,
+            ContractState.REJECTED,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.BLOCKED,
+            ContractState.NEEDS_REVIEW,
+        }
+    ),
+    EntityFamily.BLOCKER: frozenset(
+        {
+            ContractState.BLOCKED,
+            ContractState.NEEDS_REVIEW,
+            ContractState.UNKNOWN,
+            ContractState.EXCLUDED,
+            ContractState.CONTRADICTION_PRESENT,
+            ContractState.STALE,
+        }
+    ),
+    EntityFamily.SYSTEM_ARTIFACT: frozenset(
+        {
+            ContractState.CONFIRMED,
+            ContractState.INFERRED,
+            ContractState.EXCLUDED,
+            ContractState.UNKNOWN,
+            ContractState.BLOCKED,
+            ContractState.STALE,
+            ContractState.EVIDENCE_AVAILABLE,
+            ContractState.CONTEXT_FILTER_BLOCKED,
+            ContractState.NEEDS_REVIEW,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+        }
+    ),
+}
 
 
 def _normalize_phrase(value: object) -> str:
@@ -249,6 +502,26 @@ _LAYER_ALIASES = {
     "write back capture": KnowledgeLayer.WRITE_BACK_CAPTURE,
 }
 
+_ENTITY_FAMILY_ALIASES = {
+    _normalize_phrase(family.value): family for family in EntityFamily
+} | {
+    "music": EntityFamily.MUSIC_WORK,
+    "song": EntityFamily.MUSIC_WORK,
+    "legal": EntityFamily.LEGAL_MATTER,
+    "tax": EntityFamily.TAX_MATTER,
+    "source": EntityFamily.SOURCE_MATERIAL,
+    "compiled/wiki page": EntityFamily.COMPILED_PAGE,
+    "compiled wiki page": EntityFamily.COMPILED_PAGE,
+    "follow up": EntityFamily.FOLLOW_UP_ACTION,
+    "followup": EntityFamily.FOLLOW_UP_ACTION,
+    "follow up action": EntityFamily.FOLLOW_UP_ACTION,
+    "system": EntityFamily.SYSTEM_ARTIFACT,
+}
+
+_EXCLUDED_ENTITY_FAMILY_ALIASES = {
+    _normalize_phrase(family) for family in EXCLUDED_ENTITY_FAMILY_NAMES
+}
+
 _STATE_ALIASES = {_normalize_phrase(state.value): state for state in ContractState}
 _LABEL_ALIASES = {_normalize_phrase(label.value): label for label in ContractLabel}
 _FORBIDDEN_CONCEPT_ALIASES = {
@@ -260,6 +533,28 @@ def normalize_layer(layer: KnowledgeLayer | str) -> KnowledgeLayer | None:
     if isinstance(layer, KnowledgeLayer):
         return layer
     return _LAYER_ALIASES.get(_normalize_phrase(layer))
+
+
+def normalize_entity_family(family: EntityFamily | str) -> EntityFamily | None:
+    if isinstance(family, EntityFamily):
+        return family
+    return _ENTITY_FAMILY_ALIASES.get(_normalize_phrase(family))
+
+
+def entity_family_decision(family: EntityFamily | str) -> ContractDecision:
+    if normalize_entity_family(family) is not None:
+        return ContractDecision.ALLOWED
+    if _normalize_phrase(family) in _EXCLUDED_ENTITY_FAMILY_ALIASES:
+        return ContractDecision.EXCLUDED
+    return ContractDecision.UNKNOWN
+
+
+def is_entity_family_known(family: EntityFamily | str) -> bool:
+    return entity_family_decision(family) is ContractDecision.ALLOWED
+
+
+def is_entity_family_excluded(family: EntityFamily | str) -> bool:
+    return entity_family_decision(family) is ContractDecision.EXCLUDED
 
 
 def normalize_state(state: ContractState | str) -> ContractState | None:
@@ -286,6 +581,10 @@ def _format_labels(labels: Iterable[ContractLabel]) -> str:
     return ", ".join(sorted(label.value for label in labels))
 
 
+def _format_layers(layers: Iterable[KnowledgeLayer]) -> str:
+    return ", ".join(sorted(layer.value for layer in layers))
+
+
 def required_labels_for_layer(layer: KnowledgeLayer | str) -> frozenset[ContractLabel]:
     normalized_layer = normalize_layer(layer)
     if normalized_layer is None:
@@ -298,6 +597,24 @@ def missing_required_labels(
     labels: Iterable[ContractLabel | str],
 ) -> frozenset[ContractLabel]:
     return required_labels_for_layer(layer) - normalized_labels(labels)
+
+
+def allowed_layers_for_entity_family(
+    family: EntityFamily | str,
+) -> frozenset[KnowledgeLayer]:
+    normalized_family = normalize_entity_family(family)
+    if normalized_family is None:
+        return frozenset()
+    return ALLOWED_LAYERS_BY_ENTITY_FAMILY[normalized_family]
+
+
+def allowed_states_for_entity_family(
+    family: EntityFamily | str,
+) -> frozenset[ContractState]:
+    normalized_family = normalize_entity_family(family)
+    if normalized_family is None:
+        return frozenset()
+    return ALLOWED_STATES_BY_ENTITY_FAMILY[normalized_family]
 
 
 def is_implementation_forbidden(proposed_use: str | None) -> bool:
@@ -378,6 +695,69 @@ def validate_field_bundle(record: SemanticRecordProposal) -> ContractValidationR
     return ContractValidationResult(ContractDecision.ALLOWED)
 
 
+def validate_entity_family_record(
+    family: EntityFamily | str,
+    layer: KnowledgeLayer | str,
+    state: ContractState | str,
+    *,
+    labels: Iterable[ContractLabel | str] = (),
+    proposed_use: str = "",
+    promoted_by_operator: bool = False,
+) -> ContractValidationResult:
+    if is_implementation_forbidden(proposed_use):
+        return ContractValidationResult(
+            ContractDecision.IMPLEMENTATION_FORBIDDEN,
+            ("implementation-forbidden proposed use cannot be accepted",),
+        )
+
+    field_result = validate_field_bundle(
+        SemanticRecordProposal(
+            layer=layer,
+            state=state,
+            labels=frozenset(labels),
+            proposed_use=proposed_use,
+            promoted_by_operator=promoted_by_operator,
+        )
+    )
+    normalized_family = normalize_entity_family(family)
+    layer_value = normalize_layer(layer)
+    state_value = normalize_state(state)
+    family_decision = entity_family_decision(family)
+    reasons: list[str] = list(field_result.reasons)
+
+    if family_decision is ContractDecision.EXCLUDED:
+        reasons.insert(0, f"excluded entity family cannot be accepted: {family}")
+    elif family_decision is ContractDecision.UNKNOWN:
+        reasons.insert(0, f"unknown entity family: {family}")
+
+    if normalized_family is not None:
+        allowed_layers = ALLOWED_LAYERS_BY_ENTITY_FAMILY[normalized_family]
+        allowed_states = ALLOWED_STATES_BY_ENTITY_FAMILY[normalized_family]
+        if layer_value is not None and layer_value not in allowed_layers:
+            reasons.append(
+                f"family {normalized_family.value} is not allowed in {layer_value.value}; "
+                f"allowed layers: {_format_layers(allowed_layers)}"
+            )
+        if state_value is not None and state_value not in allowed_states:
+            reasons.append(
+                f"state {state_value.value} is not allowed for {normalized_family.value}"
+            )
+
+    if reasons:
+        if field_result.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN:
+            decision = ContractDecision.IMPLEMENTATION_FORBIDDEN
+        elif (
+            family_decision is ContractDecision.EXCLUDED
+            or state_value in EXCLUDED_STYLE_STATES
+        ):
+            decision = ContractDecision.EXCLUDED
+        else:
+            decision = ContractDecision.UNKNOWN
+        return ContractValidationResult(decision, tuple(reasons))
+
+    return ContractValidationResult(ContractDecision.ALLOWED)
+
+
 def classify_semantic_record(record: SemanticRecordProposal) -> ContractDecision:
     if is_implementation_forbidden(record.proposed_use):
         return ContractDecision.IMPLEMENTATION_FORBIDDEN
@@ -431,12 +811,44 @@ def is_accepted_knowledge(record: SemanticRecordProposal) -> bool:
     )
 
 
+def is_entity_record_accepted_knowledge(
+    family: EntityFamily | str,
+    layer: KnowledgeLayer | str,
+    state: ContractState | str,
+    *,
+    labels: Iterable[ContractLabel | str] = (),
+    proposed_use: str = "",
+    promoted_by_operator: bool = False,
+) -> bool:
+    layer_value = normalize_layer(layer)
+    state_value = normalize_state(state)
+    if layer_value is KnowledgeLayer.SYNTHESIS:
+        return False
+    return (
+        validate_entity_family_record(
+            family,
+            layer,
+            state,
+            labels=labels,
+            proposed_use=proposed_use,
+            promoted_by_operator=promoted_by_operator,
+        ).ok
+        and layer_value is KnowledgeLayer.WRITE_BACK_CAPTURE
+        and state_value is ContractState.CONFIRMED_WITH_RECEIPT
+        and promoted_by_operator
+    )
+
+
 __all__ = [
+    "ALLOWED_LAYERS_BY_ENTITY_FAMILY",
     "ALLOWED_STATES_BY_LAYER",
+    "ALLOWED_STATES_BY_ENTITY_FAMILY",
     "ContractDecision",
     "ContractLabel",
     "ContractState",
     "ContractValidationResult",
+    "EntityFamily",
+    "EXCLUDED_ENTITY_FAMILY_NAMES",
     "EXCLUDED_STYLE_STATES",
     "IMPLEMENTATION_FORBIDDEN_CONCEPTS",
     "KnowledgeLayer",
@@ -446,16 +858,24 @@ __all__ = [
     "SENSITIVE_OR_PRIVATE_STATES",
     "SemanticRecordProposal",
     "UNKNOWN_STYLE_STATES",
+    "allowed_layers_for_entity_family",
+    "allowed_states_for_entity_family",
     "classify_record_state",
     "classify_semantic_record",
+    "entity_family_decision",
     "is_accepted_knowledge",
+    "is_entity_family_excluded",
+    "is_entity_family_known",
+    "is_entity_record_accepted_knowledge",
     "is_implementation_forbidden",
     "missing_required_labels",
     "missing_write_back_capture_labels",
+    "normalize_entity_family",
     "normalize_label",
     "normalize_layer",
     "normalize_state",
     "normalized_labels",
     "required_labels_for_layer",
+    "validate_entity_family_record",
     "validate_field_bundle",
 ]

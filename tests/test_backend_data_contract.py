@@ -7,17 +7,28 @@ from backend_data_contract import (
     ContractDecision,
     ContractLabel,
     ContractState,
+    EntityFamily,
     KnowledgeLayer,
+    ALLOWED_LAYERS_BY_ENTITY_FAMILY,
+    ALLOWED_STATES_BY_ENTITY_FAMILY,
     REQUIRED_LABEL_BUNDLES_BY_LAYER,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
     SemanticRecordProposal,
+    allowed_layers_for_entity_family,
+    allowed_states_for_entity_family,
     classify_record_state,
     classify_semantic_record,
+    entity_family_decision,
     is_accepted_knowledge,
+    is_entity_family_excluded,
+    is_entity_family_known,
+    is_entity_record_accepted_knowledge,
     is_implementation_forbidden,
+    normalize_entity_family,
     missing_required_labels,
     missing_write_back_capture_labels,
     required_labels_for_layer,
+    validate_entity_family_record,
     validate_field_bundle,
 )
 
@@ -312,3 +323,290 @@ def test_private_sensitive_promotion_requires_sensitivity_and_authority_labels()
     assert result.ok is False
     assert result.decision is ContractDecision.UNKNOWN
     assert "private/sensitive promotion requires labels: authority, sensitivity" in result.reasons
+
+
+def test_known_entity_families_normalize_correctly():
+    assert {family.value for family in EntityFamily} >= {
+        "person",
+        "organization",
+        "client",
+        "job",
+        "invoice",
+        "payment",
+        "project",
+        "music work",
+        "legal matter",
+        "tax matter",
+        "source material",
+        "compiled page",
+        "relationship",
+        "synthesis",
+        "follow-up action",
+        "approval",
+        "blocker",
+        "system artifact",
+    }
+
+    assert normalize_entity_family("music-work") is EntityFamily.MUSIC_WORK
+    assert normalize_entity_family("song") is EntityFamily.MUSIC_WORK
+    assert normalize_entity_family("follow_up_action") is EntityFamily.FOLLOW_UP_ACTION
+    assert normalize_entity_family("compiled/wiki page") is EntityFamily.COMPILED_PAGE
+    assert normalize_entity_family("tax") is EntityFamily.TAX_MATTER
+
+
+def test_unknown_and_excluded_entity_families_remain_distinct():
+    assert entity_family_decision("mystery obligation") is ContractDecision.UNKNOWN
+    assert entity_family_decision("private root") is ContractDecision.EXCLUDED
+    assert is_entity_family_known(EntityFamily.INVOICE) is True
+    assert is_entity_family_excluded("private data") is True
+
+    unknown_result = validate_entity_family_record(
+        "mystery obligation",
+        KnowledgeLayer.WRITE_BACK_CAPTURE,
+        ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+        promoted_by_operator=True,
+    )
+    excluded_result = validate_entity_family_record(
+        "private data",
+        KnowledgeLayer.WRITE_BACK_CAPTURE,
+        ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+        promoted_by_operator=True,
+    )
+
+    assert unknown_result.decision is ContractDecision.UNKNOWN
+    assert unknown_result.reasons[0] == "unknown entity family: mystery obligation"
+    assert excluded_result.decision is ContractDecision.EXCLUDED
+    assert excluded_result.reasons[0] == (
+        "excluded entity family cannot be accepted: private data"
+    )
+    assert (
+        is_entity_record_accepted_knowledge(
+            "mystery obligation",
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+            labels=FULL_LABELS,
+            promoted_by_operator=True,
+        )
+        is False
+    )
+
+
+def test_entity_family_layer_and_state_maps_are_explicit():
+    assert set(ALLOWED_LAYERS_BY_ENTITY_FAMILY) == set(EntityFamily)
+    assert set(ALLOWED_STATES_BY_ENTITY_FAMILY) == set(EntityFamily)
+    assert allowed_layers_for_entity_family(EntityFamily.INVOICE) == frozenset(
+        {
+            KnowledgeLayer.RAW,
+            KnowledgeLayer.COMPILED_WIKI,
+            KnowledgeLayer.RELATIONSHIP,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+        }
+    )
+    assert ContractState.CONFIRMED in allowed_states_for_entity_family(
+        EntityFamily.PAYMENT
+    )
+    assert ContractState.PACKET_PREPARED in allowed_states_for_entity_family(
+        EntityFamily.FOLLOW_UP_ACTION
+    )
+
+
+def test_valid_entity_family_layer_state_combinations_pass():
+    valid_records = (
+        (EntityFamily.PERSON, KnowledgeLayer.RAW, ContractState.CONFIRMED, False),
+        (EntityFamily.INVOICE, KnowledgeLayer.RAW, ContractState.CONFIRMED, False),
+        (
+            EntityFamily.PAYMENT,
+            KnowledgeLayer.RELATIONSHIP,
+            ContractState.INFERRED,
+            False,
+        ),
+        (
+            EntityFamily.FOLLOW_UP_ACTION,
+            KnowledgeLayer.COMPILED_WIKI,
+            ContractState.DRAFT,
+            False,
+        ),
+        (
+            EntityFamily.APPROVAL,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+            True,
+        ),
+        (
+            EntityFamily.SYNTHESIS,
+            KnowledgeLayer.SYNTHESIS,
+            ContractState.INFERRED,
+            False,
+        ),
+    )
+
+    for family, layer, state, promoted in valid_records:
+        result = validate_entity_family_record(
+            family,
+            layer,
+            state,
+            labels=FULL_LABELS,
+            promoted_by_operator=promoted,
+        )
+        assert result.ok is True
+        assert result.reasons == ()
+
+
+def test_invalid_entity_family_combinations_fail_with_reasons():
+    invoice_result = validate_entity_family_record(
+        EntityFamily.INVOICE,
+        KnowledgeLayer.SYNTHESIS,
+        ContractState.INFERRED,
+        labels=FULL_LABELS,
+    )
+    approval_result = validate_entity_family_record(
+        EntityFamily.APPROVAL,
+        KnowledgeLayer.RAW,
+        ContractState.CONFIRMED,
+        labels=FULL_LABELS,
+    )
+
+    assert invoice_result.ok is False
+    assert invoice_result.decision is ContractDecision.UNKNOWN
+    assert any(
+        reason.startswith("family invoice is not allowed in synthesis layer")
+        for reason in invoice_result.reasons
+    )
+
+    assert approval_result.ok is False
+    assert approval_result.decision is ContractDecision.UNKNOWN
+    assert any(
+        reason.startswith("family approval is not allowed in raw layer")
+        for reason in approval_result.reasons
+    )
+    assert "state confirmed is not allowed for approval" in approval_result.reasons
+
+
+def test_receivables_families_support_accountability_without_auto_sending():
+    invoice = validate_entity_family_record(
+        EntityFamily.INVOICE,
+        KnowledgeLayer.RAW,
+        ContractState.CONFIRMED,
+        labels=FULL_LABELS,
+        proposed_use="track evidence-backed receivable for operator review",
+    )
+    payment = validate_entity_family_record(
+        EntityFamily.PAYMENT,
+        KnowledgeLayer.RELATIONSHIP,
+        ContractState.INFERRED,
+        labels=FULL_LABELS,
+        proposed_use="connect payment responsibility to invoice evidence",
+    )
+    follow_up = validate_entity_family_record(
+        EntityFamily.FOLLOW_UP_ACTION,
+        KnowledgeLayer.COMPILED_WIKI,
+        ContractState.DRAFT,
+        labels=FULL_LABELS,
+        proposed_use="prepare follow-up action for operator review",
+    )
+    forbidden_follow_up = validate_entity_family_record(
+        EntityFamily.FOLLOW_UP_ACTION,
+        KnowledgeLayer.WRITE_BACK_CAPTURE,
+        ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+        proposed_use="automated sending harassment collection action",
+        promoted_by_operator=True,
+    )
+
+    assert invoice.ok is True
+    assert payment.ok is True
+    assert follow_up.ok is True
+    assert forbidden_follow_up.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+    assert forbidden_follow_up.reasons == (
+        "implementation-forbidden proposed use cannot be accepted",
+    )
+
+
+def test_legal_tax_and_music_families_do_not_authorize_private_or_provider_use():
+    assert normalize_entity_family("legal matter") is EntityFamily.LEGAL_MATTER
+    assert normalize_entity_family("tax matter") is EntityFamily.TAX_MATTER
+    assert normalize_entity_family("music work") is EntityFamily.MUSIC_WORK
+
+    legal_private = validate_entity_family_record(
+        EntityFamily.LEGAL_MATTER,
+        KnowledgeLayer.RAW,
+        ContractState.CONFIRMED,
+        labels=FULL_LABELS,
+        proposed_use="private root inspection",
+    )
+    tax_private = validate_entity_family_record(
+        EntityFamily.TAX_MATTER,
+        KnowledgeLayer.COMPILED_WIKI,
+        ContractState.INFERRED,
+        labels=FULL_LABELS,
+        proposed_use="private data inspection",
+    )
+    music_provider = validate_entity_family_record(
+        EntityFamily.MUSIC_WORK,
+        KnowledgeLayer.SYNTHESIS,
+        ContractState.INFERRED,
+        labels=FULL_LABELS,
+        proposed_use="provider model call",
+    )
+
+    assert legal_private.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+    assert tax_private.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+    assert music_provider.decision is ContractDecision.IMPLEMENTATION_FORBIDDEN
+
+
+def test_synthesis_family_is_not_accepted_truth_by_default():
+    result = validate_entity_family_record(
+        EntityFamily.SYNTHESIS,
+        KnowledgeLayer.SYNTHESIS,
+        ContractState.INFERRED,
+        labels=FULL_LABELS,
+    )
+
+    assert result.ok is True
+    assert (
+        is_entity_record_accepted_knowledge(
+            EntityFamily.SYNTHESIS,
+            KnowledgeLayer.SYNTHESIS,
+            ContractState.INFERRED,
+            labels=FULL_LABELS,
+        )
+        is False
+    )
+
+
+def test_entity_write_back_capture_requires_labels_and_operator_promotion():
+    missing_labels = validate_entity_family_record(
+        EntityFamily.SYNTHESIS,
+        KnowledgeLayer.WRITE_BACK_CAPTURE,
+        ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS - {ContractLabel.CONFIDENCE},
+        promoted_by_operator=True,
+    )
+    missing_promotion = validate_entity_family_record(
+        EntityFamily.SYNTHESIS,
+        KnowledgeLayer.WRITE_BACK_CAPTURE,
+        ContractState.CONFIRMED_WITH_RECEIPT,
+        labels=FULL_LABELS,
+    )
+
+    assert missing_labels.ok is False
+    assert (
+        "missing required labels for write-back/capture layer: confidence"
+        in missing_labels.reasons
+    )
+    assert missing_promotion.ok is False
+    assert missing_promotion.reasons == (
+        "write-back/capture confirmed receipt requires operator promotion",
+    )
+    assert (
+        is_entity_record_accepted_knowledge(
+            EntityFamily.SYNTHESIS,
+            KnowledgeLayer.WRITE_BACK_CAPTURE,
+            ContractState.CONFIRMED_WITH_RECEIPT,
+            labels=FULL_LABELS,
+            promoted_by_operator=True,
+        )
+        is True
+    )
