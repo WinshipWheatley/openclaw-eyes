@@ -62,9 +62,10 @@ This read order is for Command Atlas / systems-engineering preparation only. It 
 2. `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`
 3. `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md`
 4. `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md`
-5. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
+5. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md`
+6. `docs/planning/launch_ladder/24_OPERATOR_HARNESS_PLANNING_INDEX.md`
 
-This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` defines the future triage/dependency-map plan, and `28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` is a template only, not the actual audit and not cleanup, migration, source-set, backend, bridge, or Operator Harness ingestion authority. Windows cleanup, migration, source-set inclusion, Operator Harness ingestion, bridge changes, and backend build-prep remain blocked until dependency mapping, private-root exclusions, owner review, and an approved move manifest exist; private roots must not enter source sets, agent browsing, provider/model context, or Operator Harness ingestion unless explicitly approved.
+This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` defines the future triage/dependency-map plan, `28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` is the table/template shape, and `29_WINDOWS_ROOT_DEPENDENCY_MAP.md` is the current metadata-only map. These docs are not cleanup, migration, source-set, backend, bridge, MCP, provider/model, SQLite, FTS, embedding, chunking, extraction, private-root browsing, or Operator Harness ingestion authority. Windows cleanup, migration, source-set inclusion, Operator Harness ingestion, bridge changes, and backend build-prep remain blocked until dependency mapping, private-root exclusions, owner review, and an approved move manifest exist; private roots must not enter source sets, agent browsing, provider/model context, or Operator Harness ingestion unless explicitly approved.
 
 ### Visual/UI Continuation
 
@@ -79,6 +80,7 @@ This read order is for metadata-only dependency-map preparation. `27_WINDOWS_ROO
 2. `docs/planning/launch_ladder/18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`
 3. `docs/planning/launch_ladder/19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`
 4. `docs/planning/launch_ladder/knowledge_substrate/02_SQLITE_LAYER_MODEL.md` if present, or the imported equivalent if differently named.
+5. `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` as exclusion/classification guidance only before `04_BACKEND_DATA_CONTRACT_READINESS` source-set generation.
 
 ### Deployment/Portability Continuation
 
@@ -129,6 +131,7 @@ Use these before preparing any Windows metadata-only audit prompt, cleanup plan,
 - `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md` - PC/Windows private-data boundary breadcrumb.
 - `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md` - future metadata-only Windows root triage/dependency-map plan.
 - `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md` - dependency-map template only; not actual audit, cleanup, migration, source-set, backend, bridge, or Operator Harness ingestion authority.
+- `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` - current metadata-only active-dependency map; use before backend source-set generation as exclusion/classification guidance only, not as private-root content or authority for cleanup, migration, ingestion, backend build-prep, provider/model/MCP context, or Operator Harness display.
 
 ### Canonical Baseline
 

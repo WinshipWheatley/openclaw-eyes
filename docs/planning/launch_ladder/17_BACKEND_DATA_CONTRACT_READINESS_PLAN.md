@@ -7,8 +7,8 @@ Freshness:
 - Generated/reviewed: 2026-05-02
 - Active source-set baseline: `03_MAC_APP_KNOWLEDGE_SUBSTRATE`
 - Source commit from latest audited source set: `c5947e7fbdf8952824ddb60fb8b8203bdea28e95`
-- Source basis: Mac App Knowledge Substrate source-set brief, Next Implementation Sequence, Launch Ladder Model, Evidence and Freshness, Security and Authority, Mission Control fixture contract, first-screen composition spec, knowledge-substrate planning package, validation map, and static Launch Ladder checker/test.
-- Stale when: the `03_MAC_APP_KNOWLEDGE_SUBSTRATE` source set changes, the next source-set folder name changes, knowledge-substrate doctrine changes, backend/data-contract record topics change, validation expectations change, or implementation starts.
+- Source basis: Mac App Knowledge Substrate source-set brief, Next Implementation Sequence, Launch Ladder Model, Evidence and Freshness, Security and Authority, Mission Control fixture contract, first-screen composition spec, knowledge-substrate planning package, world-model addendum, Command Atlas map, Windows root boundary/dependency-map planning docs, validation map, and static Launch Ladder checker/test.
+- Stale when: the `03_MAC_APP_KNOWLEDGE_SUBSTRATE` source set changes, the next source-set folder name changes, knowledge-substrate doctrine changes, Windows root dependency-map docs change, backend/data-contract record topics change, validation expectations change, or implementation starts.
 - Refresh trigger: update before generating `04_BACKEND_DATA_CONTRACT_READINESS` or before any backend/schema/SQLite/ingestion work is requested.
 
 ## 1. Recommended Next Source-Set Folder Name
@@ -107,7 +107,9 @@ This is conceptual readiness only. Do not define schema, SQL, APIs, migrations, 
 
 ### Before Source-Set Generation
 
-Before generating the next backend/data-contract source set, confirm that `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`, `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`, `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`, and `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md` are included or bridged so future implementation does not build from stale backend-only assumptions.
+Before generating the next backend/data-contract source set, confirm that `17_BACKEND_DATA_CONTRACT_READINESS_PLAN.md`, `18_BACKEND_DATA_CONTRACT_SHAPE_PLAN.md`, `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`, `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`, `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md`, `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md`, and `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md` are included or bridged so future implementation does not build from stale backend-only assumptions.
+
+The Windows root dependency-map docs may enter `04_BACKEND_DATA_CONTRACT_READINESS` only as metadata-only exclusion/classification guidance. They are not private-root content and do not authorize cleanup, migration, source-set inclusion of Windows or Mac private roots, backend build-prep, Operator Harness ingestion, provider/model context, MCP context, SQLite, FTS, embedding, chunking, extraction, indexing, or private-root browsing.
 
 ## 6. Minimum File List The Next Source Set Should Include
 
@@ -142,6 +144,8 @@ Candidate minimum set:
 | `test_launch_ladder_static_contract.py` | Provides pytest coverage for the static contract. |
 
 This candidate is 22 content files plus `MANIFEST.md`, leaving one content slot available if the generated 04 package must be exactly 23 content files. After absorbing the world-model / mode-authority addendum, the first candidate for that open slot is `19_OPERATOR_WORLD_MODEL_BUILD_READINESS_ADDENDUM.md`, unless a later bridge includes it with Command Atlas and the PC root boundary doc. If later generation tries to include both `14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md` and `15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md`, those are lower-priority for 04 because 03 already preserved taste, sound, and app feel. Keep 04 focused on backend/data-contract readiness.
+
+Separate from the content-slot decision, the Windows root dependency-map stack (`26`, `27`, `28`, and `29`) must be included or bridged before generation as exclusion/classification guidance only. If bridged, the bridge should summarize blocked private roots, unknown/quarantine states, and source-set exclusions without carrying private-root content or turning path metadata into backend authority.
 
 This is source-set planning, not source-set generation. Do not create `04_BACKEND_DATA_CONTRACT_READINESS` in this slice.
 
