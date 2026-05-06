@@ -66,7 +66,25 @@ OpenClaw translation:
 
 The useful pattern is not `let a cloud agent commit`. The useful pattern is `turn work into bounded packets with receipts, approvals, and deterministic verification`.
 
-## 6. Proposed Steel-Thread Flow
+## 6. Operator Burden / Trust Ladder
+
+The goal is not a fleet of agents the operator must manage. The build loop must reduce task-management burden, not create a new inbox of agent sessions, tabs, partial tasks, nudges, approvals, restarts, and cleanup.
+
+The core design risk is attention burden. GitHub issues, PRs, comments, queues, checks, and local runner state are coordination surfaces; they must not become new attention sinks or hidden authority surfaces. A good loop closes the anticipation gap by noticing bounded, relevant work at the right moment, preparing the next safe action, and staying quiet when the signal is weak, stale, or not salient.
+
+Proactivity should mean load-lifting moments, not agent theatrics. The system should show up when it can reduce cognitive work: identify a stuck bounded task, prepare a safe patch proposal, summarize a failing check, ask one needed question, or package a reviewable next step. It should avoid fake proactivity: noisy calendar, email, task, issue, or CI nudges based on weak context, stale assumptions, unverified salience, or generic urgency.
+
+Use a trust ladder:
+
+1. Read/notice: observe approved surfaces and identify bounded signals without mutation.
+2. Suggest: recommend one next safe action with evidence and uncertainty.
+3. Draft/prepare: prepare a patch, packet, test plan, summary, or receipt for review.
+4. Act with confirmation: apply an approved action within exact scope and explicit paths.
+5. Autonomous action: only after high trust and explicit approval doctrine for that action class.
+
+Success means the operator feels less like a project manager for agents, not more. The system should know when to show up, when to ask, and when to stay quiet.
+
+## 7. Proposed Steel-Thread Flow
 
 1. An issue, comment, or task creates a bounded job request with purpose, repo scope, expected output, and forbidden surfaces.
 2. A deterministic parser creates a job packet with exact input paths, allowed tools, validation plan, approval requirements, receipt fields, and state handle.
@@ -78,7 +96,7 @@ The useful pattern is not `let a cloud agent commit`. The useful pattern is `tur
 
 The steel thread starts with docs-only and deterministic checks. It should not begin with live code mutation, workflow creation, provider calls, or private-data tasks.
 
-## 7. Authority Boundaries
+## 8. Authority Boundaries
 
 - Cassandra may summarize job requests, draft clarifying questions, and help turn ambiguous comments into bounded packets. Cassandra does not approve execution.
 - Chief may route approved work, sequence jobs, and execute approved repo workflows with explicit paths and receipts.
@@ -87,7 +105,7 @@ The steel thread starts with docs-only and deterministic checks. It should not b
 - GitHub Actions may run deterministic checks and report pass/fail evidence. GitHub Actions must not become hidden authority, hidden execution policy, hidden provider/model route, or hidden approver.
 - The operator remains the final authority for commits, branch/PR mutation, external effects, and scope expansion unless a later explicit policy grants a narrower authority path.
 
-## 8. Allowed Outputs
+## 9. Allowed Outputs
 
 Allowed outputs from this lane:
 
@@ -104,7 +122,7 @@ Allowed outputs from this lane:
 
 Allowed outputs are advisory or deterministic evidence until a separate approved workflow applies them.
 
-## 9. Forbidden Actions
+## 10. Forbidden Actions
 
 Forbidden actions:
 
@@ -113,6 +131,10 @@ Forbidden actions:
 - autonomous cloud-agent commits;
 - provider/model prompt leakage;
 - private-data access or private-root traversal;
+- creating a new agent-management inbox;
+- noisy fake-proactive notifications based on weak context, stale assumptions, or unverified salience;
+- unbounded autonomous task pickup;
+- requiring the operator to supervise fleets of partial agent sessions;
 - unapproved branch, PR, issue, label, check, or repo-setting mutation;
 - hidden runtime, service, queue, bridge, sync, credential, permission, or user activation;
 - broad repo mutation;
@@ -121,7 +143,7 @@ Forbidden actions:
 - treating CI success as approval for the underlying change;
 - treating an issue comment as execution authority without a parsed job packet and approval state.
 
-## 10. Minimal Future Implementation Shape
+## 11. Minimal Future Implementation Shape
 
 A future implementation plan, if explicitly authorized later, should start with these pieces:
 
@@ -134,16 +156,19 @@ A future implementation plan, if explicitly authorized later, should start with 
 
 The first implementation slice should be a schema and fixture plan, not a live GitHub Action or cloud-agent runner.
 
-## 11. Checklist Before Any Implementation
+## 12. Checklist Before Any Implementation
 
 Before any implementation begins, confirm:
 
 - The work is still under Command Atlas, not an ad hoc automation shortcut.
+- The build loop reduces operator attention burden instead of creating a new agent-management inbox.
 - GitHub is coordination/check surface only.
+- GitHub issues, queues, comments, PRs, and checks are not treated as new attention sinks or hidden authority.
 - The execution substrate is a local approved runner, not Claude Code or a cloud autonomous agent.
 - No Claude Code, Claude GitHub Action, SDK, runner, workflow, dependency, provider/model route, MCP, or service installation is authorized by this doc.
 - Private roots, private data, secrets, credentials, runtime state, logs, queues, sync payloads, and broad repo scans are excluded.
 - Job packets have exact input paths, allowed tools, forbidden paths, expected outputs, validation, receipt fields, and approval gates.
+- The trust ladder is explicit: read/notice, suggest, draft/prepare, act with confirmation, and autonomous action only after high trust plus explicit approval doctrine.
 - Runner outputs are proposal-first unless a later policy grants a narrow apply authority.
 - Guardian gates sensitive, destructive, external-risk, credential-bearing, runtime, service, private-data, branch/PR, or broad-mutation actions.
 - Chief or the operator applies and commits explicit paths only.
@@ -152,6 +177,6 @@ Before any implementation begins, confirm:
 
 If any checklist item is missing, the next allowed output is a planning note, job-packet draft, risk note, or escalation recommendation only.
 
-## 12. Final Boundary
+## 13. Final Boundary
 
-This lane borrows architecture, not execution authority. The OpenClaw build loop should become more packetized, receipt-producing, resumable, reviewable, and CI-verifiable without making Claude Code, cloud agents, GitHub Actions, issues, comments, checks, or PRs into hidden authority.
+This lane borrows architecture, not execution authority. The OpenClaw build loop should become more packetized, receipt-producing, resumable, reviewable, and CI-verifiable without making Claude Code, cloud agents, GitHub Actions, issues, comments, checks, PRs, or agent-session queues into hidden authority or attention burden.
