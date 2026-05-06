@@ -108,6 +108,9 @@ BACKEND_DATA_CONTRACT_FIRST_IMPLEMENTATION_SLICE_READINESS = (
     SOURCE_SET_BRIDGE_DIR
     / "backend_data_contract_first_implementation_slice_readiness_20260505.md"
 )
+BACKEND_DATA_CONTRACT_STORAGE_SCHEMA_PLAN = (
+    SOURCE_SET_BRIDGE_DIR / "backend_data_contract_storage_schema_plan_20260505.md"
+)
 BACKEND_DATA_CONTRACT_MODULE = REPO_ROOT / "backend_data_contract.py"
 BACKEND_DATA_CONTRACT_TEST = REPO_ROOT / "tests" / "test_backend_data_contract.py"
 BACKEND_DATA_CONTRACT_RECORD_TOPICS = (
@@ -176,6 +179,7 @@ BACKEND_DATA_CONTRACT_STATIC_GATE_DOCS = (
     "backend_data_contract_semantic_contract_matrix_20260505.md",
     "backend_data_contract_implementation_readiness_checklist_20260505.md",
     "backend_data_contract_first_implementation_slice_readiness_20260505.md",
+    "backend_data_contract_storage_schema_plan_20260505.md",
     "04_backend_data_contract_readiness_context_filter_freshness_bridge_20260505.md",
     "04_CONTEXT_DEVELOPMENT_LIFECYCLE_AND_CONTEXT_FILTER_DOCTRINE.md",
     "30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md",
@@ -1943,6 +1947,91 @@ def backend_data_contract_implementation_readiness_checklist_failures(
     return tuple(failures)
 
 
+def backend_data_contract_storage_schema_plan_failures(
+    repo_root: Path = REPO_ROOT,
+) -> tuple[str, ...]:
+    failures: list[str] = []
+    plan_path = (
+        repo_root
+        / "docs"
+        / "planning"
+        / "launch_ladder"
+        / "source_set_bridges"
+        / "backend_data_contract_storage_schema_plan_20260505.md"
+    )
+
+    if not plan_path.is_file():
+        return (f"backend storage/schema plan: missing {plan_path}",)
+
+    plan_text = _read_text(plan_path)
+    plan_normalized = normalize(plan_text)
+
+    _require_all(
+        failures,
+        plan_normalized,
+        "backend storage/schema plan required gates",
+        (
+            "Backend Data Contract Storage Schema Plan",
+            "docs-only storage/schema planning artifact",
+            "does not implement SQLite, schema migrations, SQL DDL, persistence, API routes, ingestion, indexing, embeddings, extraction, chunking, source-set generation, runtime services, frontend/app code, provider/model calls, Hermes, MCPs, sync, private-root inspection, fixture generation",
+            "normalized semantic core",
+            "semantic records, labels, evidence/provenance/freshness references, relationships, and operator promotions as separate concepts",
+            "raw, compiled/wiki, relationship, synthesis, and write-back/capture stay distinct",
+            "synthesis into truth",
+            "Accepted knowledge should be a derived condition only",
+            "valid write-back/capture layer, confirmed-with-receipt state, complete required labels, and operator promotion within scope",
+            "Provenance",
+            "Freshness",
+            "Confidence",
+            "Sensitivity",
+            "Authority",
+            "Review status",
+            "storage_validation_receipts",
+            "No private roots, private data",
+            "provider/model prompts",
+            "MCP context",
+            "Hermes output",
+            "sync output",
+            "runtime state",
+            "SQLite artifacts",
+            "SQL DDL",
+            "migrations",
+            "persistence",
+            "source-set 04 manifest",
+            "source-set 04 context-filter freshness bridge",
+            "Command Atlas Context Development Lifecycle / Context Filter doctrine",
+            "docs 26/27/28/29/30 handling",
+            "smallest future schema implementation slice should be a no-runtime schema-contract slice",
+            "only if separately authorized",
+            "Schema implementation should not begin from this artifact alone",
+        ),
+    )
+
+    forbidden_authorizing_phrases = (
+        "This plan implements SQLite",
+        "This plan creates SQL DDL",
+        "This plan creates migrations",
+        "This plan creates persistence",
+        "This plan creates API routes",
+        "This plan authorizes ingestion",
+        "This plan authorizes indexing",
+        "This plan authorizes embeddings",
+        "This plan authorizes extraction",
+        "This plan creates fixtures",
+        "This plan authorizes provider/model calls",
+        "This plan authorizes private-root inspection",
+        "Schema implementation may begin from this artifact alone",
+    )
+    for phrase in forbidden_authorizing_phrases:
+        if phrase in plan_text:
+            failures.append(
+                "backend storage/schema plan: forbidden authorizing phrase "
+                f"{phrase!r}"
+            )
+
+    return tuple(failures)
+
+
 def backend_data_contract_module_failures(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[str, ...]:
@@ -2898,6 +2987,8 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
             "backend semantic contract matrix",
             "backend implementation-readiness checklist",
             "backend first implementation slice readiness",
+            "backend_data_contract_storage_schema_plan_20260505.md",
+            "storage/schema planning bridge",
             "backend_data_contract.py",
             "test_backend_data_contract.py",
             "backend data-contract semantic vocabulary and guard helpers",
@@ -2919,6 +3010,7 @@ def check_contract(corpus: ContractCorpus | None = None) -> StaticContractReport
     failures.extend(backend_data_contract_first_implementation_slice_readiness_failures())
     failures.extend(backend_data_contract_semantic_contract_matrix_failures())
     failures.extend(backend_data_contract_implementation_readiness_checklist_failures())
+    failures.extend(backend_data_contract_storage_schema_plan_failures())
     failures.extend(backend_data_contract_module_failures())
     failures.extend(storage_and_source_registry_readiness_plan_failures())
     failures.extend(pc_storage_relief_launch_packet_plan_failures())
