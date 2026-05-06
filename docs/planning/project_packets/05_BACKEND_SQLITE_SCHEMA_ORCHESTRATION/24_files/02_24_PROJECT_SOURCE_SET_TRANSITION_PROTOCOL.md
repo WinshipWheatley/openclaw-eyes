@@ -52,13 +52,14 @@ They should not rely on broad project memory, stale handoffs, or hidden assumpti
 
 ## 3. The 24-File Rule
 
-A serious Project packet usually contains about 24 files.
+A serious Project folder includes `00_ACTIVE_HANDOFF.md` outside `24_files/`, plus `24_files/` containing exactly 24 stable source-set files.
 
-The packet is phase-defining, not exhaustive.
+The active handoff is current state and transition guidance. It is not one of the stable 24 source-set files.
 
-Good packet members include:
+The 24-file source-set is phase-defining, not exhaustive.
 
-- active handoff;
+Good `24_files/` source-set members include:
+
 - repo-truth snapshot;
 - North Star/doctrine;
 - semantic contracts;
@@ -326,3 +327,74 @@ The protocol is working when:
 - phase transitions are boring and repeatable;
 - the operator does not re-explain OpenClaw;
 - the system builds from the North Star, not tool-churn.
+
+## Appendix A. New Chat Transition Handshake
+
+At the end of an old chat, do not jump straight into implementation in a new chat.
+
+Use a two-chat handshake:
+
+1. Old chat updates the active handoff.
+2. Old chat writes a short first-message audit prompt for the new chat.
+3. New chat reads the Project packet and active handoff.
+4. New chat outputs:
+   - what it thinks the current scope slice is
+   - what it thinks the next move is
+   - what source of truth it is using
+   - whether it sees contradictions
+   - whether it is cleared/not cleared to proceed
+5. Operator pastes the new chat’s audit result back into the old chat.
+6. Old chat confirms whether the transition is clean.
+7. Only then does the operator ask the new chat for the actual Codex/Gemini prompt.
+
+This prevents stale-context drift, handoff hallucination, and accidental implementation before the new chat proves it understands the lane.
+
+The new chat’s first job is not to build. Its first job is to prove it knows where it is.
+
+Success criterion: new chats prove they understand the scope before they are allowed to drive implementation prompts.
+
+## Appendix B. Future Packet Candidate Classification
+
+This packet structure is not a one-time SQLite workflow. It is the intended repeatable workflow for future OpenClaw Project folders.
+
+Every future Project packet should have:
+
+- `00_ACTIVE_HANDOFF.md` outside `24_files/`;
+- `README.md`;
+- `24_files/` containing exactly 24 stable source-set files.
+
+The handoff sits outside `24_files/` because it is active/current state. The 24 files are the stable phase source-set.
+
+Future packet creation may need to inspect files and folders outside the current 24. That is allowed only as a planning/classification step, not as automatic inclusion.
+
+Before creating the next 24-file packet, candidate materials should be classified as:
+
+- Current
+- Required
+- Reference
+- Historical
+- Superseded
+- Excluded
+- Tactical Codex/Gemini only
+- Private/sensitive / do not inspect
+- Mirror/upload packet only
+
+Files outside the 24 may help create the next 24, but they do not become active authority unless deliberately selected.
+
+Stale files should not be deleted casually. They should be marked historical, superseded, or reference and kept available for audit.
+
+Tactical implementation files should usually stay out of the ChatGPT Project packet and be read directly by Codex/Gemini from `/home/openclaw` when exact prompts name them.
+
+Future packet generation should be:
+
+- PC canonical first
+- Mac mirror second
+- snapshot/receipt based
+- exact-path bounded
+- no broad cleanup
+- no private-root inspection
+- no casual folder reorganization
+
+The existence of files/folders outside the active packet is expected. Their presence is not a problem by itself. The important thing is that they are classified before being used.
+
+Future assistants should not ask the operator to manually sort stale files or place slices into long Markdown files. They should produce complete prompts, append-only text when manual work is necessary, and clear serial next steps.
