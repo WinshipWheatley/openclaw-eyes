@@ -3,6 +3,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend_knowledge_packet import (
@@ -11,8 +13,12 @@ from backend_knowledge_packet import (
     packet_as_dict,
     packet_has_explicit_operator_promotion,
     select_context_for_record,
+    select_traversal_context_for_record,
     synthesis_ready_read_model,
     synthesis_ready_read_model_as_dict,
+    traversal_as_dict,
+    traversal_context_packet_as_dict,
+    traverse_record_relationships,
 )
 from backend_sqlite_repository import (
     OperatorPromotion,
@@ -148,6 +154,45 @@ def populate_packet_fixture(connection):
     )
 
 
+def write_relationship(
+    connection,
+    relationship_id: str,
+    from_record_id: str,
+    to_record_id: str,
+    *,
+    relationship_state: str = "draft",
+):
+    write_semantic_relationship(
+        connection,
+        SemanticRelationship(
+            relationship_id=relationship_id,
+            from_record_id=from_record_id,
+            to_record_id=to_record_id,
+            relationship_kind="supports",
+            relationship_state=relationship_state,
+            provenance_refs=f"prov:{relationship_id}",
+            freshness_refs="static-test",
+            authority_label="repository-proof",
+            sensitivity_label="local-test-only",
+            relationship_scope="direct",
+        ),
+    )
+
+
+def populate_traversal_fixture(connection):
+    for record_id in ("record-1", "record-2", "record-3", "record-4"):
+        write_semantic_record(connection, sample_semantic_record(record_id))
+    write_relationship(connection, "rel-b", "record-1", "record-2")
+    write_relationship(
+        connection,
+        "rel-a",
+        "record-1",
+        "record-3",
+        relationship_state="reviewed",
+    )
+    write_relationship(connection, "rel-c", "record-3", "record-4")
+
+
 def test_knowledge_packet_assembles_direct_record_evidence_material():
     connection = create_in_memory_connection()
     try:
@@ -269,6 +314,147 @@ def test_operator_promotion_boundary_is_explicit_not_automatic_truth():
         assert packet_with_promotion is not None
         assert packet_has_explicit_operator_promotion(packet_with_promotion) is True
         assert packet_with_promotion.record["accepted_knowledge_derived"] == 0
+    finally:
+        connection.close()
+
+
+def test_relationship_traversal_is_bounded_deterministic_and_state_aware():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        traversal = traverse_record_relationships(
+            connection,
+            "record-1",
+            max_depth=2,
+            max_records=4,
+        )
+
+        assert traversal is not None
+        assert traversal.traversal_kind == "bounded_relationship_walk"
+        assert traversal.traversal_strategy == "breadth_first_by_relationship_id"
+        assert traversal.truth_status == "not_accepted_truth"
+        assert [record.record_id for record in traversal.records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+            "record-4",
+        ]
+        assert [record.depth for record in traversal.records] == [0, 1, 1, 2]
+        assert traversal.records[1].via_relationship_id == "rel-a"
+        assert traversal.records[1].relationship_direction == "outbound"
+        assert traversal.records[1].packet.relationships[0]["relationship_state"] == (
+            "reviewed"
+        )
+        assert traversal.records[1].packet.relationships[0]["provenance_refs"] == (
+            "prov:rel-a"
+        )
+    finally:
+        connection.close()
+
+
+def test_relationship_traversal_respects_depth_and_record_bounds():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        depth_limited = traverse_record_relationships(
+            connection,
+            "record-1",
+            max_depth=1,
+            max_records=8,
+        )
+        record_limited = traverse_record_relationships(
+            connection,
+            "record-1",
+            max_depth=2,
+            max_records=2,
+        )
+
+        assert depth_limited is not None
+        assert [record.record_id for record in depth_limited.records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+        ]
+        assert record_limited is not None
+        assert [record.record_id for record in record_limited.records] == [
+            "record-1",
+            "record-3",
+        ]
+    finally:
+        connection.close()
+
+
+def test_relationship_traversal_fails_closed_for_missing_or_invalid_inputs():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        assert traverse_record_relationships(connection, "missing-record") is None
+        with pytest.raises(ValueError):
+            traverse_record_relationships(connection, "record-1", max_depth=-1)
+        with pytest.raises(ValueError):
+            traverse_record_relationships(connection, "record-1", max_records=0)
+        with pytest.raises(ValueError):
+            traverse_record_relationships(connection, "record-1", max_depth=True)
+        with pytest.raises(ValueError):
+            traverse_record_relationships(connection, "record-1", max_records=True)
+    finally:
+        connection.close()
+
+
+def test_traversal_context_packet_is_pure_bounded_read_model_material():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        context_packet = select_traversal_context_for_record(
+            connection,
+            "record-1",
+            max_depth=1,
+            max_records=3,
+        )
+
+        assert context_packet is not None
+        assert context_packet.context_kind == "traversal_backed_context_packet"
+        assert context_packet.bounded is True
+        assert context_packet.truth_status == "not_accepted_truth"
+        assert context_packet.promotion_boundary == "operator_promotion_required"
+        assert [model.record_id for model in context_packet.synthesis_ready_records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+        ]
+        assert {
+            model.synthesis_status for model in context_packet.synthesis_ready_records
+        } == {"not_synthesized"}
+        assert {
+            model.accepted_truth_status
+            for model in context_packet.synthesis_ready_records
+        } == {"not_accepted_truth"}
+    finally:
+        connection.close()
+
+
+def test_traversal_dict_conversions_are_deterministic_plain_python_data():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+        traversal = traverse_record_relationships(connection, "record-1")
+        context_packet = select_traversal_context_for_record(connection, "record-1")
+        assert traversal is not None
+        assert context_packet is not None
+
+        traversal_dict = traversal_as_dict(traversal)
+        context_packet_dict = traversal_context_packet_as_dict(context_packet)
+
+        assert traversal_dict["traversal_strategy"] == "breadth_first_by_relationship_id"
+        assert traversal_dict["records"][0]["record_id"] == "record-1"
+        assert context_packet_dict["context_kind"] == "traversal_backed_context_packet"
+        assert context_packet_dict["synthesis_ready_records"][0]["record_id"] == (
+            "record-1"
+        )
     finally:
         connection.close()
 
