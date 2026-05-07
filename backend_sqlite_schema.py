@@ -452,6 +452,31 @@ HIGHLIGHT_MARKERS_COLUMNS = (
     ColumnDefinition("status", "TEXT", "status"),
 )
 
+ACTOR_PROFILES_COLUMNS = (
+    ColumnDefinition("actor_profile_id", "TEXT", "actor_profile_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("actor_role", "TEXT", "actor_role"),
+    ColumnDefinition("actor_class", "TEXT", "actor_class"),
+    ColumnDefinition("trust_tier", "INTEGER", "trust_tier"),
+    ColumnDefinition("sensitivity_ceiling", "TEXT", "sensitivity_ceiling"),
+    ColumnDefinition("capability_scope", "TEXT", "capability_scope"),
+    ColumnDefinition("runtime_component_id", "TEXT", "runtime_component_id"),
+    ColumnDefinition("model_policy_ref", "TEXT", "model_policy_ref"),
+    ColumnDefinition("provider_policy_ref", "TEXT", "provider_policy_ref"),
+    ColumnDefinition("write_canonical_memory", "INTEGER", "write_canonical_memory"),
+    ColumnDefinition(
+        "runtime_execution_authority",
+        "INTEGER",
+        "runtime_execution_authority",
+        purpose="Represented only; does not grant execution authority here.",
+    ),
+    ColumnDefinition("requires_receipt", "INTEGER", "requires_receipt"),
+    ColumnDefinition("allowed_export_formats", "TEXT", "allowed_export_formats"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("approval_receipt_ref", "TEXT", "approval_receipt_ref"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
 AGENT_CONTEXT_PROFILES_COLUMNS = (
     ColumnDefinition("context_profile_id", "TEXT", "context_profile_id"),
     ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
@@ -1083,6 +1108,35 @@ CREATE TABLE highlight_markers (
   marker_source TEXT NOT NULL,
   notes TEXT NOT NULL,
   status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="actor_profiles",
+        related_schema_contract_surface="actor_profile",
+        columns=ACTOR_PROFILES_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"tenant_id", "actor_role", "actor_class", "status"}
+        ),
+        create_table_sql="""
+CREATE TABLE actor_profiles (
+  actor_profile_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  actor_class TEXT NOT NULL,
+  trust_tier INTEGER NOT NULL,
+  sensitivity_ceiling TEXT NOT NULL,
+  capability_scope TEXT NOT NULL,
+  runtime_component_id TEXT NOT NULL,
+  model_policy_ref TEXT NOT NULL,
+  provider_policy_ref TEXT NOT NULL,
+  write_canonical_memory INTEGER NOT NULL,
+  runtime_execution_authority INTEGER NOT NULL,
+  requires_receipt INTEGER NOT NULL,
+  allowed_export_formats TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_receipt_ref TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 """.strip(),
     ),

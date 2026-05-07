@@ -35,6 +35,7 @@ SECTION_CUES_TABLE_NAME = "section_cues"
 PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME = "performance_action_receipts"
 MANUAL_OVERRIDE_EVENTS_TABLE_NAME = "manual_override_events"
 HIGHLIGHT_MARKERS_TABLE_NAME = "highlight_markers"
+ACTOR_PROFILES_TABLE_NAME = "actor_profiles"
 AGENT_CONTEXT_PROFILES_TABLE_NAME = "agent_context_profiles"
 CONTEXT_EXPORT_RECEIPTS_TABLE_NAME = "context_export_receipts"
 
@@ -66,6 +67,7 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME: "performance_action_receipt_id",
     MANUAL_OVERRIDE_EVENTS_TABLE_NAME: "manual_override_event_id",
     HIGHLIGHT_MARKERS_TABLE_NAME: "highlight_marker_id",
+    ACTOR_PROFILES_TABLE_NAME: "actor_profile_id",
     AGENT_CONTEXT_PROFILES_TABLE_NAME: "context_profile_id",
     CONTEXT_EXPORT_RECEIPTS_TABLE_NAME: "context_export_receipt_id",
 }
@@ -481,6 +483,29 @@ class HighlightMarker:
     marker_source: str
     notes: str
     status: str
+
+
+@dataclass(frozen=True)
+class ActorProfile:
+    """Policy-bearing actor identity row; presence is not action authority."""
+
+    actor_profile_id: str
+    tenant_id: str
+    actor_role: str
+    actor_class: str
+    trust_tier: int
+    sensitivity_ceiling: str
+    capability_scope: str
+    runtime_component_id: str
+    model_policy_ref: str
+    provider_policy_ref: str
+    write_canonical_memory: int
+    runtime_execution_authority: int
+    requires_receipt: int
+    allowed_export_formats: str
+    status: str
+    approval_receipt_ref: str
+    created_at: str
 
 
 @dataclass(frozen=True)
@@ -1919,6 +1944,124 @@ def read_highlight_markers_by_performance_session_id(
         performance_session_id,
         order_by="marker_time",
     )
+
+
+def write_actor_profile(
+    connection: Any,
+    profile: ActorProfile | Mapping[str, Any],
+) -> None:
+    """Insert one actor_profiles row without granting runtime authority."""
+
+    payload = _table_payload(ACTOR_PROFILES_TABLE_NAME, profile)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_non_empty_string(payload["actor_role"], "actor_role")
+    _require_non_empty_string(payload["actor_class"], "actor_class")
+    _require_non_negative_int(payload["trust_tier"], "trust_tier")
+    _require_binary_int(payload["write_canonical_memory"], "write_canonical_memory")
+    _require_binary_int(
+        payload["runtime_execution_authority"],
+        "runtime_execution_authority",
+    )
+    _require_binary_int(payload["requires_receipt"], "requires_receipt")
+    _insert_row(connection, ACTOR_PROFILES_TABLE_NAME, payload)
+
+
+def read_actor_profile(
+    connection: Any,
+    actor_profile_id: str,
+) -> dict[str, Any] | None:
+    """Read one actor_profiles row by explicit actor_profile_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        actor_profile_id,
+    )
+
+
+def read_actor_profiles_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read actor_profiles rows for one tenant in deterministic ID order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="actor_profile_id",
+    )
+
+
+def read_actor_profiles_by_actor_class(
+    connection: Any,
+    actor_class: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read actor_profiles rows by exact class in deterministic ID order."""
+
+    _require_non_empty_string(actor_class, "actor_class")
+    return _read_rows_where(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        "actor_class",
+        actor_class,
+        order_by="actor_profile_id",
+    )
+
+
+def read_actor_profiles_by_actor_role(
+    connection: Any,
+    actor_role: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read actor_profiles rows by exact role in deterministic ID order."""
+
+    _require_non_empty_string(actor_role, "actor_role")
+    return _read_rows_where(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        "actor_role",
+        actor_role,
+        order_by="actor_profile_id",
+    )
+
+
+def read_actor_profiles_by_status(
+    connection: Any,
+    status: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read actor_profiles rows by exact status in deterministic ID order."""
+
+    _require_non_empty_string(status, "status")
+    return _read_rows_where(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        "status",
+        status,
+        order_by="actor_profile_id",
+    )
+
+
+def read_active_actor_profile(
+    connection: Any,
+    tenant_id: str,
+    actor_profile_id: str,
+) -> dict[str, Any] | None:
+    """Read one active actor profile for a tenant; inactive/revoked are absent."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    _require_non_empty_string(actor_profile_id, "actor_profile_id")
+    rows = _read_rows_where_multiple(
+        connection,
+        ACTOR_PROFILES_TABLE_NAME,
+        {
+            "tenant_id": tenant_id,
+            "actor_profile_id": actor_profile_id,
+            "status": "active",
+        },
+    )
+    return rows[0] if rows else None
 
 
 def write_agent_context_profile(

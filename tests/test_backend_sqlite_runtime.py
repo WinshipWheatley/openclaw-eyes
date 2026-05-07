@@ -62,6 +62,7 @@ EXPECTED_PRIMARY_KEYS = {
     "performance_action_receipts": "performance_action_receipt_id",
     "manual_override_events": "manual_override_event_id",
     "highlight_markers": "highlight_marker_id",
+    "actor_profiles": "actor_profile_id",
     "agent_context_profiles": "context_profile_id",
     "context_export_receipts": "context_export_receipt_id",
 }

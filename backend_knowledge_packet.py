@@ -7,8 +7,10 @@ from typing import Any
 
 from backend_sqlite_repository import (
     AgentContextProfile,
+    ActorProfile,
     ContextExportReceipt,
     read_active_agent_context_profile_by_role_and_task,
+    read_actor_profile,
     read_record_labels,
     read_record_ids_for_exact_label_seed,
     read_record_ids_for_exact_operator_promotion_seed,
@@ -64,6 +66,8 @@ class AgentContextRequest:
     seed_params: dict[str, Any]
     max_records: int = 20
     max_depth: int = 2
+    actor_profile_id: str = ""
+    context_access_receipt_ref: str = ""
 
 
 @dataclass(frozen=True)
@@ -85,6 +89,53 @@ class AgentContextExportDecision:
     max_records: int = 0
     max_depth: int = 0
     sensitivity_ceiling: str = "unknown"
+
+
+@dataclass(frozen=True)
+class ActorProfileSnapshot:
+    """Pure actor trust snapshot; presence is not action authority."""
+
+    actor_profile_id: str
+    tenant_id: str
+    actor_role: str
+    actor_class: str
+    trust_tier: int
+    sensitivity_ceiling: str
+    capability_scope: str
+    runtime_component_id: str
+    model_policy_ref: str
+    provider_policy_ref: str
+    write_canonical_memory: int
+    runtime_execution_authority: int
+    requires_receipt: int
+    allowed_export_formats: str
+    status: str
+    approval_receipt_ref: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ActorContextTrustDecision:
+    """Actor-aware export trust decision; it grants no runtime action authority."""
+
+    allowed: bool
+    reason: str
+    actor_profile_id: str = ""
+    actor_class: str = "unknown"
+    trust_tier: int = 0
+    sensitivity_ceiling: str = "unknown"
+    write_canonical_memory: int = 0
+    runtime_execution_authority: int = 0
+    requires_receipt: int = 0
+
+
+@dataclass(frozen=True)
+class ActorContextAccessFinding:
+    """Non-leaking actor/context access finding for denied or allowed exports."""
+
+    finding_code: str
+    denied_reason: str
+    leaks_private_content: bool = False
 
 
 @dataclass(frozen=True)
@@ -839,6 +890,28 @@ def agent_context_export_decision_as_dict(
     return asdict(decision)
 
 
+def actor_profile_snapshot_as_dict(snapshot: ActorProfileSnapshot) -> dict[str, Any]:
+    """Return a deterministic plain-Python actor snapshot representation."""
+
+    return asdict(snapshot)
+
+
+def actor_context_trust_decision_as_dict(
+    decision: ActorContextTrustDecision,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python actor trust decision representation."""
+
+    return asdict(decision)
+
+
+def actor_context_access_finding_as_dict(
+    finding: ActorContextAccessFinding,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python actor finding representation."""
+
+    return asdict(finding)
+
+
 def context_omission_as_dict(omission: ContextOmission) -> dict[str, Any]:
     """Return a deterministic plain-Python representation for context omission."""
 
@@ -926,6 +999,54 @@ def _combined_reason(reasons: list[str]) -> str:
     return "_and_".join(reasons)
 
 
+def _actor_denied_decision(
+    actor_profile: ActorProfileSnapshot,
+    reason: str,
+) -> ActorContextTrustDecision:
+    return ActorContextTrustDecision(
+        allowed=False,
+        reason=reason,
+        actor_profile_id=actor_profile.actor_profile_id,
+        actor_class=actor_profile.actor_class,
+        trust_tier=actor_profile.trust_tier,
+        sensitivity_ceiling=actor_profile.sensitivity_ceiling,
+        write_canonical_memory=actor_profile.write_canonical_memory,
+        runtime_execution_authority=actor_profile.runtime_execution_authority,
+        requires_receipt=actor_profile.requires_receipt,
+    )
+
+
+def _actor_allowed_decision(
+    actor_profile: ActorProfileSnapshot,
+    sensitivity_ceiling: str,
+) -> ActorContextTrustDecision:
+    return ActorContextTrustDecision(
+        allowed=True,
+        reason="actor_trust_allows_context_export",
+        actor_profile_id=actor_profile.actor_profile_id,
+        actor_class=actor_profile.actor_class,
+        trust_tier=actor_profile.trust_tier,
+        sensitivity_ceiling=sensitivity_ceiling,
+        write_canonical_memory=actor_profile.write_canonical_memory,
+        runtime_execution_authority=actor_profile.runtime_execution_authority,
+        requires_receipt=actor_profile.requires_receipt,
+    )
+
+
+def _sensitivity_allows(actor_ceiling: str, context_ceiling: str) -> bool:
+    order = {
+        "public": 0,
+        "non_sensitive": 1,
+        "sanitized": 2,
+        "sensitive_local": 3,
+        "private_strict": 4,
+        "tenant_strict": 5,
+    }
+    if actor_ceiling not in order or context_ceiling not in order:
+        return False
+    return order[actor_ceiling] >= order[context_ceiling]
+
+
 def evaluate_agent_context_access(
     connection: Any,
     request: AgentContextRequest,
@@ -958,6 +1079,139 @@ def evaluate_agent_context_access(
     )
 
 
+def actor_profile_snapshot_from_row(
+    row: ActorProfile | dict[str, Any],
+) -> ActorProfileSnapshot:
+    """Create a pure actor profile snapshot from repository row data."""
+
+    payload = asdict(row) if hasattr(row, "__dataclass_fields__") else dict(row)
+    return ActorProfileSnapshot(**payload)
+
+
+def evaluate_actor_context_trust(
+    request: AgentContextRequest,
+    context_profile: AgentContextProfile | dict[str, Any] | None,
+    actor_profile: ActorProfileSnapshot | None,
+) -> ActorContextTrustDecision:
+    """Evaluate actor trust for context export without source/content access."""
+
+    if not request.actor_profile_id:
+        return ActorContextTrustDecision(
+            allowed=False,
+            reason="missing_actor_profile_id",
+        )
+    if actor_profile is None:
+        return ActorContextTrustDecision(
+            allowed=False,
+            reason="missing_actor_profile",
+        )
+    if actor_profile.actor_profile_id != request.actor_profile_id:
+        return ActorContextTrustDecision(
+            allowed=False,
+            reason="actor_profile_id_mismatch",
+        )
+    if actor_profile.tenant_id != request.tenant_id:
+        return ActorContextTrustDecision(
+            allowed=False,
+            reason="tenant_mismatch",
+            actor_profile_id=actor_profile.actor_profile_id,
+            actor_class=actor_profile.actor_class,
+            trust_tier=actor_profile.trust_tier,
+            sensitivity_ceiling=actor_profile.sensitivity_ceiling,
+            write_canonical_memory=actor_profile.write_canonical_memory,
+            runtime_execution_authority=actor_profile.runtime_execution_authority,
+            requires_receipt=actor_profile.requires_receipt,
+        )
+    if actor_profile.status != "active":
+        return _actor_denied_decision(actor_profile, "actor_not_active")
+    if context_profile is None:
+        return _actor_denied_decision(actor_profile, "missing_context_profile")
+
+    context_payload = (
+        asdict(context_profile)
+        if hasattr(context_profile, "__dataclass_fields__")
+        else dict(context_profile)
+    )
+    context_ceiling = context_payload["sensitivity_ceiling"]
+    actor_ceiling = actor_profile.sensitivity_ceiling
+
+    if actor_profile.actor_class == "cloud_sidecar":
+        if context_ceiling == "public":
+            return _actor_allowed_decision(actor_profile, context_ceiling)
+        if context_ceiling == "sanitized":
+            if request.context_access_receipt_ref:
+                return _actor_allowed_decision(actor_profile, context_ceiling)
+            return _actor_denied_decision(
+                actor_profile,
+                "cloud_sidecar_requires_sanitization_or_approval_receipt",
+            )
+        return _actor_denied_decision(
+            actor_profile,
+            "cloud_sidecar_context_not_public_or_sanitized",
+        )
+
+    if actor_ceiling == "unknown" or context_ceiling == "unknown":
+        return _actor_denied_decision(actor_profile, "unknown_sensitivity_boundary")
+    if not _sensitivity_allows(actor_ceiling, context_ceiling):
+        return _actor_denied_decision(
+            actor_profile,
+            "actor_sensitivity_ceiling_exceeded",
+        )
+
+    return _actor_allowed_decision(actor_profile, context_ceiling)
+
+
+def evaluate_actor_agent_context_access(
+    connection: Any,
+    request: AgentContextRequest,
+) -> AgentContextExportDecision:
+    """Evaluate context access using both context profile and actor profile."""
+
+    if not request.actor_profile_id:
+        return AgentContextExportDecision(
+            allowed=False,
+            reason="missing_actor_profile_id",
+        )
+
+    profile_row = read_active_agent_context_profile_by_role_and_task(
+        connection,
+        request.tenant_id,
+        request.agent_role,
+        request.task_class,
+    )
+    if profile_row is None:
+        return AgentContextExportDecision(
+            allowed=False,
+            reason="no_active_profile_found",
+        )
+
+    actor_row = read_actor_profile(connection, request.actor_profile_id)
+    actor_snapshot = (
+        actor_profile_snapshot_from_row(actor_row) if actor_row is not None else None
+    )
+    actor_decision = evaluate_actor_context_trust(
+        request,
+        profile_row,
+        actor_snapshot,
+    )
+    if not actor_decision.allowed:
+        return AgentContextExportDecision(
+            allowed=False,
+            reason=actor_decision.reason,
+            profile_id=profile_row["context_profile_id"],
+            sensitivity_ceiling=profile_row["sensitivity_ceiling"],
+        )
+
+    return AgentContextExportDecision(
+        allowed=True,
+        reason="active_profile_and_actor_trust_match",
+        profile_id=profile_row["context_profile_id"],
+        max_records=min(request.max_records, profile_row["max_records"]),
+        max_depth=min(request.max_depth, profile_row["max_depth"]),
+        sensitivity_ceiling=profile_row["sensitivity_ceiling"],
+    )
+
+
 def assemble_agent_context_export(
     connection: Any,
     request: AgentContextRequest,
@@ -967,7 +1221,10 @@ def assemble_agent_context_export(
 ) -> AgentContextExportPacket:
     """Assemble a policy-checked context export packet for an agent."""
 
-    decision = evaluate_agent_context_access(connection, request)
+    if request.actor_profile_id:
+        decision = evaluate_actor_agent_context_access(connection, request)
+    else:
+        decision = evaluate_agent_context_access(connection, request)
 
     if not decision.allowed:
         # Write failure receipt
@@ -1006,16 +1263,22 @@ def assemble_agent_context_export(
     if request.seed_strategy == "direct_record_id":
         record_id = request.seed_params.get("record_id")
         if record_id:
-            # Check sensitivity ceiling if applicable
-            # (Stub for now: everything is allowed if profile matches)
             packet = assemble_record_knowledge_packet(connection, record_id)
-            selections.append(
-                ContextSelection(
-                    record_id=record_id,
-                    packet=packet,
-                    selection_strategy="direct_record_id",
+            if packet is None:
+                omissions.append(
+                    ContextOmission(
+                        record_id=record_id,
+                        reason="record_not_found",
+                    )
                 )
-            )
+            else:
+                selections.append(
+                    ContextSelection(
+                        record_id=record_id,
+                        packet=packet,
+                        selection_strategy="direct_record_id",
+                    )
+                )
 
     # Write success receipt
     write_context_export_receipt(

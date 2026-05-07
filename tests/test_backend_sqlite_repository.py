@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import backend_sqlite_repository as repository
 import backend_sqlite_runtime as runtime
 from backend_sqlite_repository import (
+    ActorProfile,
     ComponentCapability,
     ComponentHeartbeat,
     ComponentHealthSnapshot,
@@ -39,6 +40,12 @@ from backend_sqlite_repository import (
     read_file_inventory_row_by_source_relative_path,
     read_file_inventory_rows_by_source_id,
     read_active_source_authorization_scopes,
+    read_active_actor_profile,
+    read_actor_profile,
+    read_actor_profiles_by_actor_class,
+    read_actor_profiles_by_actor_role,
+    read_actor_profiles_by_status,
+    read_actor_profiles_by_tenant_id,
     read_latest_component_health_snapshot,
     read_latest_component_heartbeat,
     read_latest_node_heartbeat,
@@ -106,6 +113,7 @@ from backend_sqlite_repository import (
     write_source_registry_entry,
     write_storage_operation_receipt,
     write_validation_receipt,
+    write_actor_profile,
 )
 from backend_sqlite_runtime import create_file_backed_connection, create_in_memory_connection
 from backend_sqlite_schema import sqlite_schema_table
@@ -420,6 +428,34 @@ def sample_component_health_snapshot(
     )
 
 
+def sample_actor_profile(
+    actor_profile_id: str = "actor-1",
+    tenant_id: str = "tenant-personal",
+    actor_role: str = "future_worker",
+    actor_class: str = "local_sidecar",
+    status: str = "active",
+) -> ActorProfile:
+    return ActorProfile(
+        actor_profile_id=actor_profile_id,
+        tenant_id=tenant_id,
+        actor_role=actor_role,
+        actor_class=actor_class,
+        trust_tier=2,
+        sensitivity_ceiling="sensitive_local",
+        capability_scope="proposal_only",
+        runtime_component_id="component-optional",
+        model_policy_ref="model-policy-example",
+        provider_policy_ref="provider-policy-example",
+        write_canonical_memory=0,
+        runtime_execution_authority=0,
+        requires_receipt=1,
+        allowed_export_formats="json",
+        status=status,
+        approval_receipt_ref="actor-approval-1",
+        created_at="2026-05-07T00:00:00Z",
+    )
+
+
 def test_repository_module_does_not_import_sqlite3_or_create_connections():
     tree = module_ast()
     source = REPOSITORY_PATH.read_text(encoding="utf-8").lower()
@@ -467,6 +503,7 @@ def test_repository_table_column_names_match_schema_contracts():
         "node_heartbeats",
         "component_heartbeats",
         "component_health_snapshots",
+        "actor_profiles",
     }
 
     for table_name in expected_tables:
@@ -476,6 +513,95 @@ def test_repository_table_column_names_match_schema_contracts():
 
     with pytest.raises(ValueError):
         table_column_names("context_filter_receipts")
+
+
+def test_actor_profile_repository_round_trip_and_filters_are_deterministic():
+    connection = create_in_memory_connection()
+    try:
+        write_actor_profile(connection, sample_actor_profile("actor-b"))
+        write_actor_profile(
+            connection,
+            sample_actor_profile(
+                "actor-a",
+                actor_role="build_worker",
+                actor_class="build_worker",
+            ),
+        )
+        write_actor_profile(
+            connection,
+            sample_actor_profile(
+                "actor-c",
+                tenant_id="tenant-other",
+                actor_role="future_worker",
+                actor_class="future_actor",
+                status="pending",
+            ),
+        )
+
+        read_back = read_actor_profile(connection, "actor-a")
+        assert read_back is not None
+        assert read_back["actor_class"] == "build_worker"
+        assert read_back["write_canonical_memory"] == 0
+        assert read_back["runtime_execution_authority"] == 0
+
+        assert [
+            row["actor_profile_id"]
+            for row in read_actor_profiles_by_tenant_id(connection, "tenant-personal")
+        ] == ["actor-a", "actor-b"]
+        assert [
+            row["actor_profile_id"]
+            for row in read_actor_profiles_by_actor_class(connection, "build_worker")
+        ] == ["actor-a"]
+        assert [
+            row["actor_profile_id"]
+            for row in read_actor_profiles_by_actor_role(connection, "future_worker")
+        ] == ["actor-b", "actor-c"]
+        assert [
+            row["actor_profile_id"]
+            for row in read_actor_profiles_by_status(connection, "active")
+        ] == ["actor-a", "actor-b"]
+        assert read_active_actor_profile(
+            connection,
+            "tenant-personal",
+            "actor-a",
+        )["actor_profile_id"] == "actor-a"
+        assert read_active_actor_profile(connection, "tenant-other", "actor-c") is None
+    finally:
+        connection.close()
+
+
+def test_actor_profile_repository_fail_closed_validation_and_bool_rejection():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            write_actor_profile(
+                connection,
+                {**sample_actor_profile().__dict__, "actor_profile_id": ""},
+            )
+        with pytest.raises(ValueError):
+            write_actor_profile(
+                connection,
+                {**sample_actor_profile().__dict__, "tenant_id": ""},
+            )
+
+        for field in (
+            "trust_tier",
+            "write_canonical_memory",
+            "runtime_execution_authority",
+            "requires_receipt",
+        ):
+            with pytest.raises(ValueError):
+                write_actor_profile(
+                    connection,
+                    {
+                        **sample_actor_profile(
+                            actor_profile_id=f"actor-bool-{field}"
+                        ).__dict__,
+                        field: True,
+                    },
+                )
+    finally:
+        connection.close()
 
 
 def test_semantic_record_can_be_inserted_and_read_back_in_memory():

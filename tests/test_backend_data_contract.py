@@ -4,6 +4,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend_data_contract import (
+    ACTOR_PROFILE_ACTOR_CLASSES,
+    ACTOR_PROFILE_SENSITIVITY_CEILINGS,
+    ACTOR_PROFILE_STATUSES,
     ContractDecision,
     ContractLabel,
     ContractState,
@@ -731,6 +734,7 @@ def test_required_schema_contract_surfaces_exist():
         "performance_action_receipt",
         "manual_override_event",
         "highlight_marker",
+        "actor_profile",
         "agent_context_profile",
         "context_export_receipt",
     )
@@ -990,6 +994,7 @@ def test_required_sqlite_table_concepts_exist():
         "performance_action_receipts",
         "manual_override_events",
         "highlight_markers",
+        "actor_profiles",
         "agent_context_profiles",
         "context_export_receipts",
     )
@@ -1080,6 +1085,7 @@ def test_each_sqlite_table_concept_maps_to_expected_schema_surface():
         "node_heartbeats": "node_heartbeat",
         "component_heartbeats": "component_heartbeat",
         "component_health_snapshots": "component_health_snapshot",
+        "actor_profiles": "actor_profile",
     }
 
     for table_name, surface_name in expected.items():
@@ -1364,6 +1370,35 @@ def test_runtime_presence_static_value_surfaces_are_explicit():
         "stale",
         "critical",
         "unknown",
+    )
+
+
+def test_actor_profile_static_value_surfaces_are_advisory_and_open_ended():
+    assert {
+        "canonical",
+        "advisory_sidecar",
+        "build_worker",
+        "cloud_sidecar",
+        "local_sidecar",
+        "human_operator",
+        "future_actor",
+        "unknown",
+    } <= set(ACTOR_PROFILE_ACTOR_CLASSES)
+    assert {
+        "public",
+        "non_sensitive",
+        "sanitized",
+        "sensitive_local",
+        "private_strict",
+        "tenant_strict",
+        "unknown",
+    } <= set(ACTOR_PROFILE_SENSITIVITY_CEILINGS)
+    assert ACTOR_PROFILE_STATUSES == (
+        "active",
+        "inactive",
+        "revoked",
+        "pending",
+        "archived",
     )
 
 

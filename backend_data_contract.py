@@ -320,6 +320,7 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "performance_action_receipt",
     "manual_override_event",
     "highlight_marker",
+    "actor_profile",
     "agent_context_profile",
     "context_export_receipt",
 )
@@ -353,6 +354,7 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "performance_action_receipts",
     "manual_override_events",
     "highlight_markers",
+    "actor_profiles",
     "agent_context_profiles",
     "context_export_receipts",
 )
@@ -619,10 +621,9 @@ PERFORMANCE_MARKER_SOURCES = (
 )
 
 AGENT_CONTEXT_EXPORT_AGENT_ROLES = (
-    "cassandra",
-    "chief",
-    "guardian",
-    "hermes",
+    "primary_agent",
+    "advisory_agent",
+    "safety_agent",
     "legal_operator",
     "operator_harness",
     "future_agent",
@@ -657,6 +658,35 @@ AGENT_CONTEXT_EXPORT_STATUSES = (
     "denied",
     "omitted",
     "failed",
+)
+
+ACTOR_PROFILE_ACTOR_CLASSES = (
+    "canonical",
+    "advisory_sidecar",
+    "build_worker",
+    "cloud_sidecar",
+    "local_sidecar",
+    "human_operator",
+    "future_actor",
+    "unknown",
+)
+
+ACTOR_PROFILE_SENSITIVITY_CEILINGS = (
+    "public",
+    "non_sensitive",
+    "sanitized",
+    "sensitive_local",
+    "private_strict",
+    "tenant_strict",
+    "unknown",
+)
+
+ACTOR_PROFILE_STATUSES = (
+    "active",
+    "inactive",
+    "revoked",
+    "pending",
+    "archived",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -1195,6 +1225,35 @@ SCHEMA_CONTRACT_SURFACES = (
                 "marker_source",
                 "notes",
                 "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="actor_profile",
+        purpose=(
+            "Inert actor identity and trust profile surface upstream of context "
+            "export; presence, profile trust, and export access do not grant action."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "actor_profile_id",
+                "tenant_id",
+                "actor_role",
+                "actor_class",
+                "trust_tier",
+                "sensitivity_ceiling",
+                "capability_scope",
+                "runtime_component_id",
+                "model_policy_ref",
+                "provider_policy_ref",
+                "write_canonical_memory",
+                "runtime_execution_authority",
+                "requires_receipt",
+                "allowed_export_formats",
+                "status",
+                "approval_receipt_ref",
+                "created_at",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -1831,6 +1890,36 @@ SQLITE_TABLE_CONCEPTS = (
             }
         ),
         related_schema_contract_surface="highlight_marker",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="actor_profiles",
+        purpose=(
+            "Physical representation of actor identity, class, trust tier, "
+            "capability scope, and receipt requirements before context export."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "actor_profile_id",
+                "tenant_id",
+                "actor_role",
+                "actor_class",
+                "trust_tier",
+                "sensitivity_ceiling",
+                "capability_scope",
+                "runtime_component_id",
+                "model_policy_ref",
+                "provider_policy_ref",
+                "write_canonical_memory",
+                "runtime_execution_authority",
+                "requires_receipt",
+                "allowed_export_formats",
+                "status",
+                "approval_receipt_ref",
+                "created_at",
+            }
+        ),
+        related_schema_contract_surface="actor_profile",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
     SQLiteTableConcept(
@@ -2824,6 +2913,9 @@ __all__ = [
     "ALLOWED_LAYERS_BY_ENTITY_FAMILY",
     "ALLOWED_STATES_BY_LAYER",
     "ALLOWED_STATES_BY_ENTITY_FAMILY",
+    "ACTOR_PROFILE_ACTOR_CLASSES",
+    "ACTOR_PROFILE_SENSITIVITY_CEILINGS",
+    "ACTOR_PROFILE_STATUSES",
     "ContractDecision",
     "ContractLabel",
     "ContractState",

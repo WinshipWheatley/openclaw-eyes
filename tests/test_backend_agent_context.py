@@ -10,15 +10,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend_knowledge_packet import (
     AgentContextRequest,
+    ActorProfileSnapshot,
+    ActorContextTrustDecision,
     AgentContextExportDecision,
     AgentContextExportPacket,
     assemble_agent_context_export,
+    evaluate_actor_agent_context_access,
+    evaluate_actor_context_trust,
     evaluate_agent_context_access,
 )
+import backend_knowledge_packet as knowledge_packet
 from backend_sqlite_repository import (
     AgentContextProfile,
+    ActorProfile,
     ContextExportReceipt,
     SemanticRecord,
+    write_actor_profile,
     read_agent_context_profile,
     read_context_export_receipt,
     write_agent_context_profile,
@@ -32,6 +39,7 @@ def sample_agent_context_profile(
     tenant_id: str = "tenant-1",
     agent_role: str = "cassandra",
     task_class: str = "user_reply",
+    sensitivity_ceiling: str = "internal",
 ) -> AgentContextProfile:
     return AgentContextProfile(
         context_profile_id=profile_id,
@@ -43,11 +51,42 @@ def sample_agent_context_profile(
         allowed_source_mode="metadata_safe",
         max_records=100,
         max_depth=3,
-        sensitivity_ceiling="internal",
+        sensitivity_ceiling=sensitivity_ceiling,
         model_policy_ref="default-model-policy",
         provider_policy_ref="default-provider-policy",
         status="active",
         approval_receipt_ref="receipt-1",
+        created_at="2026-05-07T12:00:00Z",
+    )
+
+
+def sample_actor_profile(
+    actor_profile_id: str = "actor-1",
+    tenant_id: str = "tenant-1",
+    actor_role: str = "generic_sidecar",
+    actor_class: str = "local_sidecar",
+    sensitivity_ceiling: str = "sensitive_local",
+    status: str = "active",
+    model_policy_ref: str = "model-policy-a",
+    provider_policy_ref: str = "provider-policy-a",
+) -> ActorProfile:
+    return ActorProfile(
+        actor_profile_id=actor_profile_id,
+        tenant_id=tenant_id,
+        actor_role=actor_role,
+        actor_class=actor_class,
+        trust_tier=2,
+        sensitivity_ceiling=sensitivity_ceiling,
+        capability_scope="proposal_only",
+        runtime_component_id="runtime-component-optional",
+        model_policy_ref=model_policy_ref,
+        provider_policy_ref=provider_policy_ref,
+        write_canonical_memory=0,
+        runtime_execution_authority=0,
+        requires_receipt=1,
+        allowed_export_formats="json",
+        status=status,
+        approval_receipt_ref="actor-approval-1",
         created_at="2026-05-07T12:00:00Z",
     )
 
@@ -220,3 +259,265 @@ def test_future_agent_compatibility():
     decision = evaluate_agent_context_access(connection, request)
     assert decision.allowed is True
     assert decision.profile_id == "future-profile"
+
+
+def actor_request(
+    actor_profile_id: str = "actor-1",
+    agent_role: str = "future_agent",
+    task_class: str = "future_task",
+    receipt_ref: str = "",
+) -> AgentContextRequest:
+    return AgentContextRequest(
+        tenant_id="tenant-1",
+        requesting_actor="example-requester",
+        agent_role=agent_role,
+        task_class=task_class,
+        seed_strategy="direct_record_id",
+        seed_params={"record_id": "record-1"},
+        actor_profile_id=actor_profile_id,
+        context_access_receipt_ref=receipt_ref,
+    )
+
+
+def test_actor_context_trust_denies_missing_actor_profile():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="future-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+        ),
+    )
+
+    missing_id_decision = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(actor_profile_id=""),
+    )
+    missing_profile_decision = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(actor_profile_id="missing-actor"),
+    )
+
+    assert missing_id_decision.allowed is False
+    assert missing_id_decision.reason == "missing_actor_profile_id"
+    assert missing_profile_decision.allowed is False
+    assert missing_profile_decision.reason == "missing_actor_profile"
+
+
+def test_actor_context_trust_denies_tenant_mismatch_and_inactive_or_revoked():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="future-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+        ),
+    )
+    write_actor_profile(connection, sample_actor_profile(tenant_id="tenant-other"))
+    write_actor_profile(
+        connection,
+        sample_actor_profile("inactive-actor", status="inactive"),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile("revoked-actor", status="revoked"),
+    )
+
+    tenant_decision = evaluate_actor_agent_context_access(connection, actor_request())
+    inactive_decision = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(actor_profile_id="inactive-actor"),
+    )
+    revoked_decision = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(actor_profile_id="revoked-actor"),
+    )
+
+    assert tenant_decision.allowed is False
+    assert tenant_decision.reason == "tenant_mismatch"
+    assert inactive_decision.allowed is False
+    assert inactive_decision.reason == "actor_not_active"
+    assert revoked_decision.allowed is False
+    assert revoked_decision.reason == "actor_not_active"
+
+
+def test_cloud_sidecar_denies_private_context_by_default_without_leaking_content():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="cloud-private-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="private_strict",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="cloud_worker",
+            actor_class="cloud_sidecar",
+            sensitivity_ceiling="sanitized",
+        ),
+    )
+
+    decision = evaluate_actor_agent_context_access(connection, actor_request())
+
+    assert decision.allowed is False
+    assert decision.reason == "cloud_sidecar_context_not_public_or_sanitized"
+    assert "record-1" not in decision.reason
+
+
+def test_cloud_sidecar_allows_public_context_when_policy_permits():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="public-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="public",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="cloud_worker",
+            actor_class="cloud_sidecar",
+            sensitivity_ceiling="public",
+        ),
+    )
+
+    decision = evaluate_actor_agent_context_access(connection, actor_request())
+
+    assert decision.allowed is True
+    assert decision.reason == "active_profile_and_actor_trust_match"
+    assert decision.profile_id == "public-profile"
+
+
+def test_cloud_sidecar_allows_sanitized_context_only_with_explicit_receipt():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="sanitized-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="sanitized",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="cloud_worker",
+            actor_class="cloud_sidecar",
+            sensitivity_ceiling="sanitized",
+        ),
+    )
+
+    denied = evaluate_actor_agent_context_access(connection, actor_request())
+    allowed = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(receipt_ref="sanitization-receipt-1"),
+    )
+
+    assert denied.allowed is False
+    assert denied.reason == "cloud_sidecar_requires_sanitization_or_approval_receipt"
+    assert allowed.allowed is True
+
+
+def test_actor_sidecar_and_worker_profiles_do_not_grant_action_authority():
+    advisory = sample_actor_profile(
+        actor_profile_id="advisory-1",
+        actor_role="Hermes",
+        actor_class="advisory_sidecar",
+    )
+    build_worker = sample_actor_profile(
+        actor_profile_id="build-1",
+        actor_role="Codex",
+        actor_class="build_worker",
+    )
+
+    for profile in (advisory, build_worker):
+        snapshot = ActorProfileSnapshot(**profile.__dict__)
+        decision = evaluate_actor_context_trust(
+            actor_request(actor_profile_id=profile.actor_profile_id),
+            sample_agent_context_profile(sensitivity_ceiling="sensitive_local"),
+            snapshot,
+        )
+
+        assert isinstance(decision, ActorContextTrustDecision)
+        assert decision.allowed is True
+        assert decision.write_canonical_memory == 0
+        assert decision.runtime_execution_authority == 0
+
+
+def test_future_actor_and_model_provider_names_are_data_not_branches():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="future-profile",
+            agent_role="renamed_agent",
+            task_class="new_task_class",
+            sensitivity_ceiling="public",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="Jules",
+            actor_class="future_actor",
+            model_policy_ref="Gemini",
+            provider_policy_ref="OpenRouter",
+        ),
+    )
+
+    decision = evaluate_actor_agent_context_access(
+        connection,
+        actor_request(agent_role="renamed_agent", task_class="new_task_class"),
+    )
+
+    assert decision.allowed is True
+    source = Path(knowledge_packet.__file__).read_text(encoding="utf-8")
+    assert 'actor_role == "Jules"' not in source
+    assert "sanitize_packet" not in source
+
+
+def test_actor_aware_assemble_denies_without_source_content_or_fake_sanitization():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="cloud-private-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="tenant_strict",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="cloud_worker",
+            actor_class="cloud_sidecar",
+            sensitivity_ceiling="sanitized",
+        ),
+    )
+    write_semantic_record(connection, sample_semantic_record("record-1"))
+
+    packet = assemble_agent_context_export(
+        connection,
+        actor_request(),
+        export_receipt_id="cloud-denied-export",
+        created_at="2026-05-07T12:03:00Z",
+    )
+    receipt = read_context_export_receipt(connection, "cloud-denied-export")
+
+    assert packet.truth_status == "not_accepted_truth"
+    assert packet.synthesized is False
+    assert packet.selections == ()
+    assert receipt is not None
+    assert receipt["export_status"] == "denied"
+    assert receipt["denied_reason"] == "cloud_sidecar_context_not_public_or_sanitized"
