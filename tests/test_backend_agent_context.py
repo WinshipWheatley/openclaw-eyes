@@ -562,3 +562,46 @@ def test_denied_actor_export_does_not_echo_seed_record_ids_into_packet_or_receip
     assert packet.omissions == ()
     assert receipt["records_returned"] == 0
     assert receipt["records_omitted"] == 0
+
+
+def test_context_export_denies_sensitive_path_seed_hints_without_echoing_path():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="public-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="public",
+        ),
+    )
+    write_actor_profile(connection, sample_actor_profile(sensitivity_ceiling="public"))
+    denied_path = "legal/client/private-matter.pdf"
+
+    request = AgentContextRequest(
+        tenant_id="tenant-1",
+        requesting_actor="example-requester",
+        agent_role="future_agent",
+        task_class="future_task",
+        seed_strategy="direct_record_id",
+        seed_params={"source_path": denied_path},
+        actor_profile_id="actor-1",
+    )
+
+    packet = assemble_agent_context_export(
+        connection,
+        request,
+        export_receipt_id="sensitive-path-denied-export",
+        created_at="2026-05-07T12:05:00Z",
+    )
+    receipt = read_context_export_receipt(connection, "sensitive-path-denied-export")
+
+    assert receipt is not None
+    rendered_packet = str(agent_context_export_as_dict(packet))
+    rendered_receipt = str(dict(receipt))
+    assert receipt["export_status"] == "denied"
+    assert receipt["denied_reason"] == "sensitive_path_policy_denied"
+    assert denied_path not in rendered_packet
+    assert denied_path not in rendered_receipt
+    assert packet.selections == ()
+    assert packet.omissions == ()

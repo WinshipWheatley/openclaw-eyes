@@ -144,6 +144,63 @@ Known validation note:
 - A plain `pytest tests/test_service_inventory_audit.py ...` run initially failed collection because `service_inventory_audit.py` was not on `PYTHONPATH`; rerun with `PYTHONPATH=.` passed.
 - Before test hardening, `tests/test_chief_listener_lifecycle.py` was blocked by missing local `telegram` dependency. The test now uses local stubs and proves import/lifecycle behavior without dependency installation or runtime service launch.
 
+## Packet 06 Mile Markers - 2026-05-07 Receipt/Policy Hardening Stride
+
+This stride continued from `03a26f9 feat(operator): add packet receipt rail`. File 01 stayed the roadmap authority; this handoff stayed the train log.
+
+1. Receipt command surface promotion: complete. The canonical local receipt surface is now executable as `./scripts/openclaw_receipts.py <command>`; `python3 scripts/openclaw_receipts.py <command>` remains compatible.
+2. Sensitive Root Registry / Quarantine Intake static contract: complete as a centralized static policy module at `openclaw_sensitive_policy.py`. It defines path-string policy and metadata-only quarantine intake shape without filesystem inventory or content access.
+3. Sensitive-root receipt integration: complete. Receipt output now reports policy-only/no-content/no-traversal posture and redacts denied path strings in findings.
+4. Actor Sidecar / Context Export hardening: complete. Context export rejects sensitive/private path-hint seed parameters before context selection and writes denied receipts without echoing the path.
+5. Operator Harness read-model assembly: complete. `operator-harness-status` now includes repo, packet, active handoff, sensitive-root policy, source-set exclusion, runtime authority, recovery, MCP/shared-memory, and command-surface cards.
+6. Runtime Authority / Legacy Gating review: complete as static proof. No launcher, service, process, credential, env, or runtime state was changed.
+7. Runtime Integration / Recovery architecture review: complete as static read-model hardening. Recovery output remains evidence-based and non-self-authorizing; no runtime service was launched.
+8. MCP Shared Memory architecture review: complete as static boundary. The read model states that receipts are not execution authority and that hidden memory writes are not allowed; no MCP calls were made.
+9. Broad Source-Set Exclusion Guard audit: complete. `docs-only-guard` now rejects broad allowed prefixes such as `docs` and keeps Packet 06 exact-path receipt behavior.
+10. Consolidation / renewal readiness: complete for this stride. Packet 06 still has usable rails; Packet 07 was not created or drafted.
+
+## Validation Receipt - 2026-05-07 Receipt/Policy Hardening Stride
+
+Commands run:
+
+```text
+pwd
+git status -sb --untracked-files=all
+git --no-pager log --oneline -12
+python3 scripts/openclaw_receipts.py repo-check
+python3 scripts/openclaw_receipts.py changed-files-receipt
+python3 scripts/openclaw_receipts.py packet-status
+git diff --check
+git diff --cached --check
+python3 -m py_compile openclaw_sensitive_policy.py scripts/openclaw_receipts.py backend_knowledge_packet.py
+pytest tests/test_openclaw_receipts.py tests/test_backend_agent_context.py -q
+PYTHONPATH=. pytest tests/test_service_inventory_audit.py tests/test_legacy_launch_script_safety.py tests/test_chief_listener_lifecycle.py -q
+./scripts/openclaw_receipts.py repo-check
+./scripts/openclaw_receipts.py changed-files-receipt
+./scripts/openclaw_receipts.py packet-status
+./scripts/openclaw_receipts.py no-private-root-check --from-changed-files
+./scripts/openclaw_receipts.py sensitive-root-contract
+./scripts/openclaw_receipts.py operator-harness-status
+python3 scripts/openclaw_receipts.py repo-check
+python3 scripts/openclaw_receipts.py changed-files-receipt
+python3 scripts/openclaw_receipts.py packet-status
+```
+
+Results:
+
+- Start state was clean at `03a26f9 feat(operator): add packet receipt rail`.
+- Packet 06 `packet-status` passed with `rail_count: 24`.
+- `git diff --check` and `git diff --cached --check` passed at start.
+- Py compile passed for the static policy module, receipt CLI, and actor context module.
+- Receipt and actor context export tests: `31 passed`.
+- Runtime authority / legacy gating / listener lifecycle static tests: `17 passed`.
+- Canonical executable receipt surface passed for repo-check, changed-files, packet-status, no-private-root, sensitive-root-contract, and operator-harness-status commands.
+- Python script compatibility surface passed for repo-check, changed-files, and packet-status commands.
+
+Boundary notes:
+
+- No private roots, sensitive folders, legal/client/private folders, secrets, env files, credentials, `.chief.env`, API keys, tokens, provider/model APIs, MCP calls, runtime services, invoice actions, broad filesystem crawling, Packet 06 `24_files` edits, Packet 07 creation, commits, or pushes were used.
+
 ## Candidate Continuations From File 01 Only
 
 These are copied from `24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md` and are not independent roadmap authority:

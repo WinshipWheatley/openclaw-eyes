@@ -46,6 +46,7 @@
 !backend_sqlite_repository.py
 !backend_knowledge_packet.py
 !backend_storage_intelligence.py
+!openclaw_sensitive_policy.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md

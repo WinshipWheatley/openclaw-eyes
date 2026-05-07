@@ -23,6 +23,11 @@ from backend_sqlite_repository import (
     read_semantic_record,
     write_context_export_receipt,
 )
+from openclaw_sensitive_policy import (
+    PathPolicyFinding,
+    path_policy_findings,
+    sensitive_path_hint_values,
+)
 
 
 @dataclass(frozen=True)
@@ -1212,6 +1217,54 @@ def evaluate_actor_agent_context_access(
     )
 
 
+def _request_path_policy_findings(
+    request: AgentContextRequest,
+) -> tuple[PathPolicyFinding, ...]:
+    return path_policy_findings(sensitive_path_hint_values(request.seed_params))
+
+
+def _write_denied_context_export_receipt(
+    connection: Any,
+    request: AgentContextRequest,
+    export_receipt_id: str,
+    *,
+    denied_reason: str,
+    created_at: str,
+) -> None:
+    write_context_export_receipt(
+        connection,
+        {
+            "context_export_receipt_id": export_receipt_id,
+            "tenant_id": request.tenant_id,
+            "context_profile_id": "none",
+            "requesting_actor": request.requesting_actor,
+            "agent_role": request.agent_role,
+            "task_class": request.task_class,
+            "seed_strategy": request.seed_strategy,
+            "records_returned": 0,
+            "records_omitted": 0,
+            "denied_reason": denied_reason,
+            "export_status": "denied",
+            "created_at": created_at,
+        },
+    )
+
+
+def _empty_denied_context_export_packet(
+    request: AgentContextRequest,
+    export_receipt_id: str,
+) -> AgentContextExportPacket:
+    return AgentContextExportPacket(
+        tenant_id=request.tenant_id,
+        agent_role=request.agent_role,
+        task_class=request.task_class,
+        context_profile_id="none",
+        export_receipt_id=export_receipt_id,
+        selections=(),
+        omissions=(),
+    )
+
+
 def assemble_agent_context_export(
     connection: Any,
     request: AgentContextRequest,
@@ -1221,39 +1274,30 @@ def assemble_agent_context_export(
 ) -> AgentContextExportPacket:
     """Assemble a policy-checked context export packet for an agent."""
 
+    if _request_path_policy_findings(request):
+        _write_denied_context_export_receipt(
+            connection,
+            request,
+            export_receipt_id,
+            denied_reason="sensitive_path_policy_denied",
+            created_at=created_at,
+        )
+        return _empty_denied_context_export_packet(request, export_receipt_id)
+
     if request.actor_profile_id:
         decision = evaluate_actor_agent_context_access(connection, request)
     else:
         decision = evaluate_agent_context_access(connection, request)
 
     if not decision.allowed:
-        # Write failure receipt
-        write_context_export_receipt(
+        _write_denied_context_export_receipt(
             connection,
-            {
-                "context_export_receipt_id": export_receipt_id,
-                "tenant_id": request.tenant_id,
-                "context_profile_id": "none",
-                "requesting_actor": request.requesting_actor,
-                "agent_role": request.agent_role,
-                "task_class": request.task_class,
-                "seed_strategy": request.seed_strategy,
-                "records_returned": 0,
-                "records_omitted": 0,
-                "denied_reason": decision.reason,
-                "export_status": "denied",
-                "created_at": created_at,
-            },
+            request,
+            export_receipt_id,
+            denied_reason=decision.reason,
+            created_at=created_at,
         )
-        return AgentContextExportPacket(
-            tenant_id=request.tenant_id,
-            agent_role=request.agent_role,
-            task_class=request.task_class,
-            context_profile_id="none",
-            export_receipt_id=export_receipt_id,
-            selections=(),
-            omissions=(),
-        )
+        return _empty_denied_context_export_packet(request, export_receipt_id)
 
     # For now, we only support direct record_id seeding in this helper
     # Future versions will support multi-seed strategies.

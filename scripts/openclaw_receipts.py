@@ -6,12 +6,26 @@ from __future__ import annotations
 import argparse
 import ast
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
-
 ROOT = Path("/home/openclaw")
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from openclaw_sensitive_policy import (
+    PathPolicyFinding,
+    broad_source_set_prefix_findings,
+    is_under,
+    normalize_repo_path,
+    path_policy_findings,
+    sensitive_root_contract,
+)
+
+
+CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
 
 ACTIVE_PACKET_RELATIVE_PATH = Path(
     "docs/planning/project_packets/"
@@ -61,43 +75,6 @@ KEY_RAIL_FILES = (
     "24_VISIBLE_ROAD_AND_BIG_STRIDES_DOCTRINE.md",
 )
 
-APPROVED_SENSITIVE_POLICY_DOC_PREFIXES = (
-    "docs/planning/sensitive_roots/",
-    str(ACTIVE_RAILS_RELATIVE_PATH).replace("\\", "/") + "/15_",
-)
-
-SENSITIVE_COMPONENTS = {
-    ".chief.env",
-    ".env",
-    ".google-secrets",
-    "api_keys",
-    "apikeys",
-    "client",
-    "clients",
-    "credential",
-    "credentials",
-    "key",
-    "keys",
-    "legal",
-    "private",
-    "secrets",
-    "sensitive",
-    "token",
-    "tokens",
-    "vault",
-    "vaults",
-}
-
-SENSITIVE_NAME_MARKERS = (
-    "api_key",
-    "apikey",
-    "credential",
-    "private",
-    "secret",
-    "sensitive folder for review",
-    "token",
-)
-
 @dataclass(frozen=True)
 class GitCommandResult:
     args: tuple[str, ...]
@@ -110,13 +87,6 @@ class GitCommandResult:
 class ChangedFile:
     status: str
     path: str
-
-
-@dataclass(frozen=True)
-class PathPolicyFinding:
-    path: str
-    finding: str
-    matched: str
 
 
 def _run_git(root: Path, args: Sequence[str]) -> GitCommandResult:
@@ -175,56 +145,6 @@ def changed_files(root: Path = ROOT) -> tuple[ChangedFile, ...]:
     return tuple(parse_porcelain_status(result.stdout))
 
 
-def _collapse_slashes(value: str) -> str:
-    while "//" in value:
-        value = value.replace("//", "/")
-    return value
-
-
-def normalize_repo_path(raw_path: str, root: Path = ROOT) -> tuple[str, bool]:
-    """Normalize a path string without resolving or inspecting the filesystem."""
-
-    raw = str(raw_path).strip().replace("\\", "/")
-    raw = _collapse_slashes(raw)
-    root_text = str(root).replace("\\", "/").rstrip("/")
-
-    if raw == root_text:
-        raw = "."
-    elif raw.startswith(root_text + "/"):
-        raw = raw[len(root_text) + 1 :]
-    elif raw.startswith("/") or (len(raw) > 2 and raw[1] == ":" and raw[2] == "/"):
-        return raw, False
-
-    parts: list[str] = []
-    for part in raw.split("/"):
-        if part in ("", "."):
-            continue
-        if part == "..":
-            if parts and parts[-1] != "..":
-                parts.pop()
-            else:
-                parts.append(part)
-            continue
-        parts.append(part)
-
-    if not parts:
-        return ".", True
-    if parts[0] == "..":
-        return "/".join(parts), False
-    return "/".join(parts), True
-
-
-def _is_under(path: str, prefix: str) -> bool:
-    normalized = prefix.strip().replace("\\", "/").rstrip("/")
-    if normalized in ("", "."):
-        return True
-    return path == normalized or path.startswith(normalized + "/")
-
-
-def _is_approved_sensitive_policy_doc(path: str) -> bool:
-    return any(path.startswith(prefix) for prefix in APPROVED_SENSITIVE_POLICY_DOC_PREFIXES)
-
-
 def _packet_index_points_to_active(index_text: str) -> bool:
     full_path = str(ACTIVE_PACKET_RELATIVE_PATH).replace("\\", "/")
     packet_name = ACTIVE_PACKET_RELATIVE_PATH.name
@@ -235,52 +155,6 @@ def _packet_index_points_to_active(index_text: str) -> bool:
         packet_name + "/",
     )
     return any(marker in index_text for marker in accepted_markers)
-
-
-def path_policy_findings(
-    paths: Iterable[str],
-    *,
-    root: Path = ROOT,
-) -> tuple[PathPolicyFinding, ...]:
-    findings: list[PathPolicyFinding] = []
-    for raw_path in paths:
-        path, inside_repo = normalize_repo_path(raw_path, root)
-        lowered = path.lower()
-        if not inside_repo:
-            findings.append(
-                PathPolicyFinding(
-                    path=path,
-                    finding="outside_repo_or_parent_escape",
-                    matched=str(raw_path),
-                )
-            )
-            continue
-        if _is_approved_sensitive_policy_doc(path):
-            continue
-
-        components = [part.lower() for part in path.split("/") if part]
-        for component in components:
-            if component in SENSITIVE_COMPONENTS or component.startswith(".env"):
-                findings.append(
-                    PathPolicyFinding(
-                        path=path,
-                        finding="sensitive_path_component",
-                        matched=component,
-                    )
-                )
-                break
-        else:
-            for marker in SENSITIVE_NAME_MARKERS:
-                if marker in lowered:
-                    findings.append(
-                        PathPolicyFinding(
-                            path=path,
-                            finding="sensitive_path_marker",
-                            matched=marker,
-                        )
-                    )
-                    break
-    return tuple(findings)
 
 
 def docs_only_guard_report(
@@ -295,21 +169,29 @@ def docs_only_guard_report(
     changed = tuple(files)
     changed_paths = tuple(item.path for item in changed)
     private_findings = path_policy_findings(changed_paths, root=root)
+    broad_allowed_prefixes = broad_source_set_prefix_findings(
+        normalized_allowed,
+        root=root,
+    )
     outside_allowed = tuple(
         item.path
         for item in changed
         if normalized_allowed
-        and not any(_is_under(normalize_repo_path(item.path, root)[0], prefix) for prefix in normalized_allowed)
+        and not any(
+            is_under(normalize_repo_path(item.path, root)[0], prefix)
+            for prefix in normalized_allowed
+        )
     )
 
     return {
         "receipt_type": "openclaw.docs_only_guard",
         "mode": "read-only/static-path-policy",
         "allowed_prefixes": normalized_allowed,
+        "broad_allowed_prefixes": broad_allowed_prefixes,
         "changed_files": changed,
         "private_findings": private_findings,
         "outside_allowed": outside_allowed,
-        "passed": not private_findings and not outside_allowed,
+        "passed": not private_findings and not outside_allowed and not broad_allowed_prefixes,
     }
 
 
@@ -321,7 +203,13 @@ def packet_status(root: Path = ROOT) -> dict[str, object]:
 
     existing_rails: tuple[str, ...] = ()
     if rails_dir.is_dir():
-        existing_rails = tuple(sorted(path.name for path in rails_dir.iterdir() if path.is_file() and path.suffix == ".md"))
+        existing_rails = tuple(
+            sorted(
+                path.name
+                for path in rails_dir.iterdir()
+                if path.is_file() and path.suffix == ".md"
+            )
+        )
 
     missing_rails = tuple(name for name in REQUIRED_RAIL_FILES if name not in existing_rails)
     extra_rails = tuple(name for name in existing_rails if name not in REQUIRED_RAIL_FILES)
@@ -376,6 +264,7 @@ def repo_check_receipt(root: Path = ROOT) -> dict[str, object]:
         "receipt_type": "openclaw.repo_check",
         "mode": "read-only/git-and-exact-packet-paths",
         "root": str(root),
+        "canonical_command": CANONICAL_RECEIPT_COMMAND,
         "branch_status": _first_line(status.stdout),
         "head": _first_line(head.stdout),
         "worktree_clean": not changed,
@@ -403,45 +292,6 @@ def repo_check_receipt(root: Path = ROOT) -> dict[str, object]:
     }
 
 
-def sensitive_root_contract() -> dict[str, object]:
-    return {
-        "receipt_type": "openclaw.sensitive_root_static_contract",
-        "mode": "metadata-only/no-content-access/no-traversal",
-        "registry_fields": (
-            "root_id",
-            "display_name",
-            "path_hint",
-            "sensitivity_class",
-            "quarantine_state",
-            "allowed_access_mode",
-            "content_access_authority",
-            "approved_actor_class",
-            "approval_receipt_ref",
-            "review_status",
-        ),
-        "quarantine_states": (
-            "blocked_unknown",
-            "metadata_only",
-            "quarantined_no_unauthorized_approval",
-            "approved_local_only_future_lane",
-        ),
-        "forbidden_actions": (
-            "crawl",
-            "open",
-            "summarize",
-            "classify_content",
-            "ocr",
-            "sync",
-            "move",
-            "permission_change",
-            "external_model_access",
-        ),
-        "content_access_allowed": False,
-        "path_policy_only": True,
-        "passed": True,
-    }
-
-
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -451,6 +301,9 @@ def operator_harness_read_model(
     changed_paths = tuple(item.path for item in changed)
     private_findings = path_policy_findings(changed_paths, root=root)
     packet = packet_status(root)
+    sensitive_contract = sensitive_root_contract()
+    status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
+    head = _run_git(root, ["--no-pager", "log", "--oneline", "-1"])
 
     return {
         "receipt_type": "openclaw.operator_harness_read_model",
@@ -458,7 +311,15 @@ def operator_harness_read_model(
         "authority_note": "Receipts are proof snapshots; File 01 remains roadmap authority.",
         "cards": (
             {
+                "card": "command_surface",
+                "canonical_command": CANONICAL_RECEIPT_COMMAND,
+                "read_only": True,
+                "write_capable": False,
+            },
+            {
                 "card": "repo",
+                "branch_status": _first_line(status.stdout),
+                "head": _first_line(head.stdout),
                 "changed_file_count": len(changed),
                 "private_path_policy": "blocked" if private_findings else "clear",
             },
@@ -469,8 +330,23 @@ def operator_harness_read_model(
                 "packet_status": "present" if packet["passed"] else "review",
             },
             {
+                "card": "active_handoff",
+                "present": packet["handoff_present"],
+                "first_line": packet["handoff_first_line"],
+                "roadmap_authority": "24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
+                "is_roadmap_authority": False,
+            },
+            {
+                "card": "sensitive_root_policy",
+                "contract_mode": sensitive_contract["mode"],
+                "path_policy_only": sensitive_contract["path_policy_only"],
+                "content_access_allowed": sensitive_contract["content_access_allowed"],
+                "filesystem_inspected": sensitive_contract["filesystem_inspected"],
+            },
+            {
                 "card": "source_set_exclusion",
                 "broad_scan_used": False,
+                "broad_source_set_authority": False,
                 "private_root_inspection_used": False,
                 "withheld_surfaces": (
                     "private roots",
@@ -483,12 +359,20 @@ def operator_harness_read_model(
                 "card": "runtime_authority",
                 "live_service_inspection_used": False,
                 "runtime_mutation_allowed": False,
+                "receipt_grants_execution": False,
                 "static_review_pointer": "service_inventory_audit.py",
             },
             {
                 "card": "recovery",
                 "runtime_launched": False,
+                "self_authorizing": False,
                 "static_review_pointer": "tests/test_chief_listener_lifecycle.py",
+            },
+            {
+                "card": "mcp_shared_memory",
+                "external_mcp_calls_used": False,
+                "hidden_memory_writes_allowed": False,
+                "receipts_are_execution_authority": False,
             },
         ),
         "private_findings": private_findings,
@@ -510,6 +394,18 @@ def _print_list(name: str, values: Iterable[object]) -> None:
         return
     for value in items:
         print(f"- {value}")
+
+
+def _redacted_path(path: str, findings: Sequence[PathPolicyFinding]) -> str:
+    if any(finding.path == path for finding in findings):
+        return "<withheld_by_static_path_policy>"
+    return path
+
+
+def _redacted_match(finding: PathPolicyFinding) -> str:
+    if finding.finding == "outside_repo_or_parent_escape":
+        return "<withheld_by_static_path_policy>"
+    return finding.matched
 
 
 def print_packet_status(report: dict[str, object]) -> None:
@@ -543,6 +439,7 @@ def print_repo_check(report: dict[str, object]) -> None:
             ("receipt_type", report["receipt_type"]),
             ("mode", report["mode"]),
             ("root", report["root"]),
+            ("canonical_command", report["canonical_command"]),
             ("branch_status", report["branch_status"]),
             ("head", report["head"]),
             ("worktree_clean", report["worktree_clean"]),
@@ -570,7 +467,7 @@ def print_changed_files_receipt(files: Sequence[ChangedFile], findings: Sequence
     if not files:
         print("- none")
     for item in files:
-        print(f"- {item.status} {item.path}")
+        print(f"- {item.status} {_redacted_path(item.path, findings)}")
     print_findings(findings)
 
 
@@ -580,7 +477,23 @@ def print_findings(findings: Sequence[PathPolicyFinding]) -> None:
         print("- none")
         return
     for finding in findings:
-        print(f"- {finding.path}: {finding.finding} ({finding.matched})")
+        print(f"- <withheld_by_static_path_policy>: {finding.finding} ({_redacted_match(finding)})")
+
+
+def print_no_private_root_check(paths: Sequence[str], findings: Sequence[PathPolicyFinding]) -> None:
+    _print_scalar_lines(
+        "OpenClaw No Private Root Check Receipt",
+        (
+            ("receipt_type", "openclaw.no_private_root_check"),
+            ("mode", "read-only/path-strings-only"),
+            ("path_policy_only", True),
+            ("filesystem_inspected", False),
+            ("content_accessed", False),
+            ("path_count", len(paths)),
+            ("passed", not findings),
+        ),
+    )
+    print_findings(findings)
 
 
 def print_docs_only_guard(report: dict[str, object]) -> None:
@@ -593,10 +506,17 @@ def print_docs_only_guard(report: dict[str, object]) -> None:
         ),
     )
     _print_list("allowed_prefixes", report["allowed_prefixes"])
+    _print_list("broad_allowed_prefixes", report["broad_allowed_prefixes"])
     print("changed_files:")
     for item in report["changed_files"]:
-        print(f"- {item.status} {item.path}")
-    _print_list("outside_allowed", report["outside_allowed"])
+        print(f"- {item.status} {_redacted_path(item.path, report['private_findings'])}")
+    _print_list(
+        "outside_allowed",
+        (
+            _redacted_path(path, report["private_findings"])
+            for path in report["outside_allowed"]
+        ),
+    )
     print_findings(report["private_findings"])
 
 
@@ -608,11 +528,15 @@ def print_sensitive_root_contract(report: dict[str, object]) -> None:
             ("mode", report["mode"]),
             ("content_access_allowed", report["content_access_allowed"]),
             ("path_policy_only", report["path_policy_only"]),
+            ("filesystem_inspected", report["filesystem_inspected"]),
             ("passed", report["passed"]),
         ),
     )
     _print_list("registry_fields", report["registry_fields"])
     _print_list("quarantine_states", report["quarantine_states"])
+    print("quarantine_intake_contract:")
+    for key, value in report["quarantine_intake_contract"].items():
+        print(f"- {key}: {value}")
     _print_list("forbidden_actions", report["forbidden_actions"])
 
 
@@ -645,7 +569,7 @@ def _paths_from_args_or_changes(args: argparse.Namespace, root: Path) -> tuple[s
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python3 scripts/openclaw_receipts.py",
+        prog=CANONICAL_RECEIPT_COMMAND,
         description="Read-only OpenClaw proof receipts.",
     )
     parser.add_argument("--root", type=Path, default=ROOT, help="Repository root.")
@@ -655,7 +579,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("changed-files-receipt", help="Print changed files with static path policy.")
     subparsers.add_parser("packet-status", help="Print active Packet 06 status receipt.")
 
-    docs_guard = subparsers.add_parser("docs-only-guard", help="Fail if changed files leave allowed prefixes.")
+    docs_guard = subparsers.add_parser(
+        "docs-only-guard",
+        help="Fail if changed files leave allowed prefixes.",
+    )
     docs_guard.add_argument(
         "--allowed",
         action="append",
@@ -714,7 +641,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "no-private-root-check":
         paths = _paths_from_args_or_changes(args, root)
         findings = path_policy_findings(paths, root=root)
-        print_findings(findings)
+        print_no_private_root_check(paths, findings)
         return 0 if not findings else 1
     if args.command == "sensitive-root-contract":
         report = sensitive_root_contract()
