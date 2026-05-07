@@ -8,6 +8,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend_knowledge_packet import (
+    assemble_context_from_exact_label_seed,
+    assemble_context_from_exact_operator_promotion_seed,
+    assemble_context_from_exact_provenance_seed,
+    assemble_context_from_exact_validation_seed,
     assemble_multi_seed_context,
     assemble_record_knowledge_packet,
     context_selection_as_dict,
@@ -201,6 +205,78 @@ def populate_traversal_fixture(connection):
         relationship_state="reviewed",
     )
     write_relationship(connection, "rel-c", "record-3", "record-4")
+
+
+def populate_exact_seed_context_fixture(connection):
+    populate_traversal_fixture(connection)
+    for label_id, record_id in (
+        ("label-3", "record-3"),
+        ("label-1", "record-1"),
+    ):
+        write_semantic_label(
+            connection,
+            SemanticLabel(
+                label_id=label_id,
+                target_record_id=record_id,
+                label_name="confidence",
+                label_value="test-confidence",
+                label_basis="static test",
+                review_status="needs review",
+                source_label_ref=None,
+            ),
+        )
+    write_provenance_ref(
+        connection,
+        ProvenanceRef(
+            provenance_ref_id="prov-3",
+            target_record_id="record-3",
+            source_basis="test source",
+            source_set_ref="source-set-1",
+            manifest_ref="manifest-1",
+            bridge_ref="bridge-1",
+            packet_ref="packet-1",
+            receipt_ref="receipt-1",
+            document_id="doc-1",
+            section_path="1. sample",
+            page_ref=None,
+        ),
+    )
+    for receipt_id, record_id, result in (
+        ("receipt-3", "record-3", "passed"),
+        ("receipt-1", "record-1", "passed"),
+        ("receipt-2", "record-2", "failed"),
+    ):
+        write_validation_receipt(
+            connection,
+            ValidationReceipt(
+                receipt_id=receipt_id,
+                validated_target=record_id,
+                validator_name="static-test",
+                validation_result=result,
+                failure_reasons="",
+                checked_at="2026-05-06T00:00:00Z",
+                source_basis="pytest",
+                authority_boundary="repository-proof",
+            ),
+        )
+    for promotion_id, record_id, promoted in (
+        ("promotion-3", "record-3", 1),
+        ("promotion-1", "record-1", 1),
+        ("promotion-2", "record-2", 0),
+    ):
+        write_operator_promotion(
+            connection,
+            OperatorPromotion(
+                promotion_id=promotion_id,
+                target_record_id=record_id,
+                operator_decision="accepted for review",
+                receipt_ref="receipt-1",
+                promotion_scope="test scope",
+                promoted_by_operator=promoted,
+                complete_label_set="confidence,sensitivity,authority,review",
+                authority_boundary="operator explicit",
+            ),
+        )
 
 
 def test_knowledge_packet_assembles_direct_record_evidence_material():
@@ -506,6 +582,193 @@ def test_exact_candidate_seed_ids_feed_multi_seed_context_without_coupling():
         assert context_packet.records_returned == 4
         assert context_packet.truth_status == "not_accepted_truth"
         assert context_packet.synthesis_status == "not_synthesized"
+    finally:
+        connection.close()
+
+
+def test_exact_seed_context_wrappers_return_multi_seed_context_packets():
+    connection = create_in_memory_connection()
+    try:
+        populate_exact_seed_context_fixture(connection)
+
+        label_context = assemble_context_from_exact_label_seed(
+            connection,
+            "confidence",
+            "test-confidence",
+            seed_max_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+        provenance_context = assemble_context_from_exact_provenance_seed(
+            connection,
+            "prov-3",
+            seed_max_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+        validation_context = assemble_context_from_exact_validation_seed(
+            connection,
+            "static-test",
+            "passed",
+            seed_max_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+        promotion_context = assemble_context_from_exact_operator_promotion_seed(
+            connection,
+            "test scope",
+            1,
+            seed_max_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+
+        assert label_context.context_kind == "multi_seed_context_packet"
+        assert label_context.seed_record_ids == ("record-1", "record-3")
+        assert [record.record_id for record in label_context.records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+            "record-4",
+        ]
+        assert provenance_context.seed_record_ids == ("record-3",)
+        assert [record.record_id for record in provenance_context.records] == [
+            "record-3",
+            "record-1",
+            "record-4",
+        ]
+        assert validation_context.seed_record_ids == ("record-1", "record-3")
+        assert promotion_context.seed_record_ids == ("record-1", "record-3")
+        assert {context.truth_status for context in (
+            label_context,
+            provenance_context,
+            validation_context,
+            promotion_context,
+        )} == {"not_accepted_truth"}
+        assert {context.synthesis_status for context in (
+            label_context,
+            provenance_context,
+            validation_context,
+            promotion_context,
+        )} == {"not_synthesized"}
+    finally:
+        connection.close()
+
+
+def test_exact_seed_context_wrappers_keep_seed_and_context_limits_separate():
+    connection = create_in_memory_connection()
+    try:
+        populate_exact_seed_context_fixture(connection)
+
+        seed_limited = assemble_context_from_exact_validation_seed(
+            connection,
+            "static-test",
+            "passed",
+            seed_max_records=1,
+            max_depth=1,
+            max_records=8,
+        )
+        context_limited = assemble_context_from_exact_validation_seed(
+            connection,
+            "static-test",
+            "passed",
+            seed_max_records=8,
+            max_depth=2,
+            max_records=2,
+        )
+
+        assert seed_limited.seed_record_ids == ("record-1",)
+        assert seed_limited.max_seed_records == 1
+        assert seed_limited.max_records == 8
+        assert [record.record_id for record in seed_limited.records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+        ]
+        assert context_limited.seed_record_ids == ("record-1", "record-3")
+        assert context_limited.max_seed_records == 8
+        assert context_limited.max_records == 2
+        assert [record.record_id for record in context_limited.records] == [
+            "record-1",
+            "record-3",
+        ]
+        assert context_limited.truncated is True
+        assert context_limited.truncation_reason == "max_records"
+    finally:
+        connection.close()
+
+
+def test_exact_seed_context_wrappers_return_deterministic_empty_context():
+    connection = create_in_memory_connection()
+    try:
+        populate_exact_seed_context_fixture(connection)
+
+        context_packet = assemble_context_from_exact_label_seed(
+            connection,
+            "confidence",
+            "missing-confidence",
+            seed_max_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+
+        assert context_packet.seed_record_ids == ()
+        assert context_packet.records == ()
+        assert context_packet.records_returned == 0
+        assert context_packet.completed is True
+        assert context_packet.truncated is False
+        assert context_packet.truth_status == "not_accepted_truth"
+        assert context_packet.synthesis_status == "not_synthesized"
+    finally:
+        connection.close()
+
+
+def test_exact_seed_context_wrappers_fail_closed_for_invalid_inputs_and_bounds():
+    connection = create_in_memory_connection()
+    try:
+        populate_exact_seed_context_fixture(connection)
+
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_label_seed(
+                connection,
+                "",
+                "test-confidence",
+            )
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_label_seed(
+                connection,
+                "confidence",
+                "",
+            )
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_label_seed(
+                connection,
+                "confidence",
+                "test-confidence",
+                seed_max_records=True,
+            )
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_provenance_seed(connection, "")
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_validation_seed(
+                connection,
+                "static-test",
+                "passed",
+                max_depth=True,
+            )
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_operator_promotion_seed(
+                connection,
+                "test scope",
+                True,
+            )
+        with pytest.raises(ValueError):
+            assemble_context_from_exact_operator_promotion_seed(
+                connection,
+                "test scope",
+                1,
+                max_records=True,
+            )
     finally:
         connection.close()
 

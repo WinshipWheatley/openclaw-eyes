@@ -571,6 +571,108 @@ def assemble_multi_seed_context(
     )
 
 
+def assemble_context_from_exact_label_seed(
+    connection: Any,
+    label_name: str,
+    label_value: str,
+    *,
+    seed_max_records: int = 8,
+    max_depth: int = 1,
+    max_records: int = 16,
+) -> MultiSeedContextPacket:
+    """Assemble context from one exact label seed selection."""
+
+    selection = select_exact_label_candidate_seeds(
+        connection,
+        label_name,
+        label_value,
+        max_records=seed_max_records,
+    )
+    return assemble_multi_seed_context(
+        connection,
+        selection.record_ids,
+        max_seed_records=seed_max_records,
+        max_depth=max_depth,
+        max_records=max_records,
+    )
+
+
+def assemble_context_from_exact_provenance_seed(
+    connection: Any,
+    provenance_ref_id: str,
+    *,
+    seed_max_records: int = 8,
+    max_depth: int = 1,
+    max_records: int = 16,
+) -> MultiSeedContextPacket:
+    """Assemble context from one exact provenance-ref seed selection."""
+
+    selection = select_exact_provenance_candidate_seeds(
+        connection,
+        provenance_ref_id,
+        max_records=seed_max_records,
+    )
+    return assemble_multi_seed_context(
+        connection,
+        selection.record_ids,
+        max_seed_records=seed_max_records,
+        max_depth=max_depth,
+        max_records=max_records,
+    )
+
+
+def assemble_context_from_exact_validation_seed(
+    connection: Any,
+    validator_name: str,
+    validation_result: str,
+    *,
+    seed_max_records: int = 8,
+    max_depth: int = 1,
+    max_records: int = 16,
+) -> MultiSeedContextPacket:
+    """Assemble context from one exact validation seed selection."""
+
+    selection = select_exact_validation_candidate_seeds(
+        connection,
+        validator_name,
+        validation_result,
+        max_records=seed_max_records,
+    )
+    return assemble_multi_seed_context(
+        connection,
+        selection.record_ids,
+        max_seed_records=seed_max_records,
+        max_depth=max_depth,
+        max_records=max_records,
+    )
+
+
+def assemble_context_from_exact_operator_promotion_seed(
+    connection: Any,
+    promotion_scope: str,
+    promoted_by_operator: int,
+    *,
+    seed_max_records: int = 8,
+    max_depth: int = 1,
+    max_records: int = 16,
+) -> MultiSeedContextPacket:
+    """Assemble context from one exact operator-promotion seed selection."""
+
+    selection = select_exact_operator_promotion_candidate_seeds(
+        connection,
+        promotion_scope,
+        promoted_by_operator,
+        max_records=seed_max_records,
+    )
+    return assemble_multi_seed_context(
+        connection,
+        selection.record_ids,
+        max_seed_records=seed_max_records,
+        max_depth=max_depth,
+        max_records=max_records,
+    )
+
+
 def synthesis_ready_read_model(
     packet: RecordKnowledgePacket,
 ) -> SynthesisReadyReadModel:
