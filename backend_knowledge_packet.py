@@ -129,6 +129,36 @@ class TraversalBackedContextPacket:
     promotion_boundary: str = "operator_promotion_required"
 
 
+@dataclass(frozen=True)
+class MultiSeedContextPacket:
+    """Pure context packet assembled from explicit seed record IDs."""
+
+    seed_record_ids: tuple[str, ...]
+    records: tuple[TraversedRecordContext, ...]
+    traversals: tuple[RelationshipTraversal, ...]
+    synthesis_ready_records: tuple[SynthesisReadyReadModel, ...]
+    max_seed_records: int
+    max_depth: int
+    max_records: int
+    completed: bool
+    truncated: bool
+    truncation_reason: str | None
+    records_returned: int
+    max_depth_reached: int
+    missing_seed_record_ids: tuple[str, ...]
+    duplicate_seed_record_ids: tuple[str, ...]
+    skipped_record_ids: tuple[str, ...]
+    missing_related_record_ids: tuple[str, ...]
+    skipped_relationship_ids: tuple[str, ...]
+    integrity_findings: tuple[str, ...]
+    context_kind: str = "multi_seed_context_packet"
+    seed_ordering: str = "input_order"
+    bounded: bool = True
+    truth_status: str = "not_accepted_truth"
+    synthesis_status: str = "not_synthesized"
+    promotion_boundary: str = "operator_promotion_required"
+
+
 def assemble_record_knowledge_packet(
     connection: Any,
     record_id: str,
@@ -318,6 +348,104 @@ def select_traversal_context_for_record(
     )
 
 
+def assemble_multi_seed_context(
+    connection: Any,
+    seed_record_ids: tuple[str, ...] | list[str],
+    *,
+    max_seed_records: int = 8,
+    max_depth: int = 1,
+    max_records: int = 16,
+) -> MultiSeedContextPacket:
+    """Assemble bounded context from explicit seed IDs in input order."""
+
+    _require_traversal_bounds(max_depth=max_depth, max_records=max_records)
+    _require_positive_int(max_seed_records, "max_seed_records")
+    (
+        normalized_seed_ids,
+        duplicate_seed_record_ids,
+        skipped_seed_record_ids,
+    ) = _normalize_seed_record_ids(
+        seed_record_ids,
+        max_seed_records=max_seed_records,
+    )
+    traversals: list[RelationshipTraversal] = []
+    records: list[TraversedRecordContext] = []
+    included_record_ids: set[str] = set()
+    missing_seed_record_ids: list[str] = []
+    skipped_record_ids: list[str] = []
+    missing_related_record_ids: list[str] = []
+    skipped_relationship_ids: list[str] = []
+    integrity_findings: list[str] = []
+    truncation_reasons: list[str] = []
+    if skipped_seed_record_ids:
+        _append_unique(truncation_reasons, "max_seed_records")
+        _extend_unique(skipped_record_ids, skipped_seed_record_ids)
+
+    for seed_record_id in normalized_seed_ids:
+        if len(records) >= max_records:
+            _append_unique(truncation_reasons, "max_records")
+            _append_unique(skipped_record_ids, seed_record_id)
+            continue
+
+        traversal = traverse_record_relationships(
+            connection,
+            seed_record_id,
+            max_depth=max_depth,
+            max_records=max_records - len(records),
+        )
+        if traversal is None:
+            _append_unique(missing_seed_record_ids, seed_record_id)
+            _append_unique(
+                integrity_findings,
+                f"missing_seed_record:{seed_record_id}",
+            )
+            continue
+
+        traversals.append(traversal)
+        if traversal.truncated and traversal.truncation_reason is not None:
+            for reason in traversal.truncation_reason.split("_and_"):
+                _append_unique(truncation_reasons, reason)
+        _extend_unique(missing_related_record_ids, traversal.missing_related_record_ids)
+        _extend_unique(skipped_relationship_ids, traversal.skipped_relationship_ids)
+        _extend_unique(integrity_findings, traversal.integrity_findings)
+
+        for record in traversal.records:
+            if record.record_id in included_record_ids:
+                _append_unique(skipped_record_ids, record.record_id)
+                continue
+            if len(records) >= max_records:
+                _append_unique(truncation_reasons, "max_records")
+                _append_unique(skipped_record_ids, record.record_id)
+                continue
+            records.append(record)
+            included_record_ids.add(record.record_id)
+
+    truncated = bool(truncation_reasons)
+    return MultiSeedContextPacket(
+        seed_record_ids=normalized_seed_ids,
+        records=tuple(records),
+        traversals=tuple(traversals),
+        synthesis_ready_records=tuple(
+            synthesis_ready_read_model(record.packet)
+            for record in records
+        ),
+        max_seed_records=max_seed_records,
+        max_depth=max_depth,
+        max_records=max_records,
+        completed=not truncated and not integrity_findings,
+        truncated=truncated,
+        truncation_reason=_combined_reason(truncation_reasons) if truncated else None,
+        records_returned=len(records),
+        max_depth_reached=max((record.depth for record in records), default=0),
+        missing_seed_record_ids=tuple(missing_seed_record_ids),
+        duplicate_seed_record_ids=duplicate_seed_record_ids,
+        skipped_record_ids=tuple(skipped_record_ids),
+        missing_related_record_ids=tuple(missing_related_record_ids),
+        skipped_relationship_ids=tuple(skipped_relationship_ids),
+        integrity_findings=tuple(integrity_findings),
+    )
+
+
 def synthesis_ready_read_model(
     packet: RecordKnowledgePacket,
 ) -> SynthesisReadyReadModel:
@@ -377,6 +505,14 @@ def traversal_context_packet_as_dict(
     return asdict(context_packet)
 
 
+def multi_seed_context_packet_as_dict(
+    context_packet: MultiSeedContextPacket,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python multi-seed context representation."""
+
+    return asdict(context_packet)
+
+
 def synthesis_ready_read_model_as_dict(
     read_model: SynthesisReadyReadModel,
 ) -> dict[str, Any]:
@@ -390,6 +526,38 @@ def _require_traversal_bounds(*, max_depth: int, max_records: int) -> None:
         raise ValueError("max_depth must be a non-negative integer")
     if type(max_records) is not int or max_records < 1:
         raise ValueError("max_records must be a positive integer")
+
+
+def _require_positive_int(value: Any, field_name: str) -> None:
+    if type(value) is not int or value < 1:
+        raise ValueError(f"{field_name} must be a positive integer")
+
+
+def _normalize_seed_record_ids(
+    seed_record_ids: tuple[str, ...] | list[str],
+    *,
+    max_seed_records: int,
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+    if not isinstance(seed_record_ids, (tuple, list)):
+        raise ValueError("seed_record_ids must be a tuple or list of record IDs")
+    normalized: list[str] = []
+    duplicate_seed_record_ids: list[str] = []
+    skipped_seed_record_ids: list[str] = []
+    for seed_record_id in seed_record_ids:
+        if not isinstance(seed_record_id, str) or not seed_record_id:
+            raise ValueError("seed record IDs must be non-empty strings")
+        if seed_record_id in normalized:
+            _append_unique(duplicate_seed_record_ids, seed_record_id)
+            continue
+        if len(normalized) >= max_seed_records:
+            _append_unique(skipped_seed_record_ids, seed_record_id)
+            continue
+        normalized.append(seed_record_id)
+    return (
+        tuple(normalized),
+        tuple(duplicate_seed_record_ids),
+        tuple(skipped_seed_record_ids),
+    )
 
 
 def _related_record_id(
@@ -415,6 +583,11 @@ def _relationship_direction(
 def _append_unique(items: list[str], value: str) -> None:
     if value not in items:
         items.append(value)
+
+
+def _extend_unique(items: list[str], values: tuple[str, ...]) -> None:
+    for value in values:
+        _append_unique(items, value)
 
 
 def _combined_reason(reasons: list[str]) -> str:

@@ -8,9 +8,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend_knowledge_packet import (
+    assemble_multi_seed_context,
     assemble_record_knowledge_packet,
     context_selection_as_dict,
     exact_label_candidate_seed_selection_as_dict,
+    multi_seed_context_packet_as_dict,
     packet_as_dict,
     packet_has_explicit_operator_promotion,
     select_context_for_record,
@@ -554,6 +556,203 @@ def test_traversal_context_packet_is_pure_bounded_read_model_material():
             model.accepted_truth_status
             for model in context_packet.synthesis_ready_records
         } == {"not_accepted_truth"}
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_preserves_input_seed_order_and_dedupes_overlap():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        context_packet = assemble_multi_seed_context(
+            connection,
+            ("record-3", "record-1", "record-3"),
+            max_seed_records=8,
+            max_depth=2,
+            max_records=8,
+        )
+
+        assert context_packet.context_kind == "multi_seed_context_packet"
+        assert context_packet.seed_ordering == "input_order"
+        assert context_packet.seed_record_ids == ("record-3", "record-1")
+        assert context_packet.duplicate_seed_record_ids == ("record-3",)
+        assert [record.record_id for record in context_packet.records] == [
+            "record-3",
+            "record-1",
+            "record-4",
+            "record-2",
+        ]
+        assert context_packet.skipped_record_ids == (
+            "record-1",
+            "record-3",
+            "record-2",
+            "record-4",
+        )
+        assert context_packet.records_returned == 4
+        assert context_packet.max_depth_reached == 2
+        assert context_packet.completed is True
+        assert context_packet.truncated is False
+        assert context_packet.truncation_reason is None
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_enforces_global_record_budget_across_seeds():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        context_packet = assemble_multi_seed_context(
+            connection,
+            ("record-1", "record-3"),
+            max_seed_records=8,
+            max_depth=2,
+            max_records=3,
+        )
+
+        assert [record.record_id for record in context_packet.records] == [
+            "record-1",
+            "record-3",
+            "record-2",
+        ]
+        assert context_packet.completed is False
+        assert context_packet.truncated is True
+        assert context_packet.truncation_reason == "max_records"
+        assert context_packet.records_returned == 3
+        assert context_packet.skipped_record_ids == ("record-3",)
+        assert context_packet.skipped_relationship_ids == ("rel-c",)
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_reports_missing_seed_and_missing_related_records():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        connection.execute(
+            """
+INSERT INTO semantic_relationships (
+  relationship_id,
+  from_record_id,
+  to_record_id,
+  relationship_kind,
+  relationship_state,
+  provenance_refs,
+  freshness_refs,
+  authority_label,
+  sensitivity_label,
+  relationship_scope
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""".strip(),
+            (
+                "rel-missing",
+                "record-1",
+                "missing-related",
+                "supports",
+                "draft",
+                "prov:rel-missing",
+                "static-test",
+                "repository-proof",
+                "local-test-only",
+                "direct",
+            ),
+        )
+
+        context_packet = assemble_multi_seed_context(
+            connection,
+            ("record-1", "missing-seed"),
+            max_seed_records=8,
+            max_depth=1,
+            max_records=8,
+        )
+
+        assert context_packet.completed is False
+        assert context_packet.truncated is False
+        assert context_packet.missing_seed_record_ids == ("missing-seed",)
+        assert context_packet.missing_related_record_ids == ("missing-related",)
+        assert context_packet.skipped_relationship_ids == ("rel-missing",)
+        assert context_packet.integrity_findings == (
+            "missing_related_record:missing-related",
+            "missing_seed_record:missing-seed",
+        )
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_fails_closed_for_invalid_bounds_and_seed_ids():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, "record-1")
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, ("",))
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, ("record-1",), max_seed_records=0)
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, ("record-1",), max_seed_records=True)
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, ("record-1",), max_depth=True)
+        with pytest.raises(ValueError):
+            assemble_multi_seed_context(connection, ("record-1",), max_records=True)
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_handles_empty_and_max_seed_budget_deterministically():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        empty_packet = assemble_multi_seed_context(connection, ())
+        seed_limited_packet = assemble_multi_seed_context(
+            connection,
+            ("record-1", "record-2", "record-3"),
+            max_seed_records=2,
+            max_depth=0,
+            max_records=8,
+        )
+
+        assert empty_packet.completed is True
+        assert empty_packet.records == ()
+        assert empty_packet.records_returned == 0
+        assert seed_limited_packet.seed_record_ids == ("record-1", "record-2")
+        assert seed_limited_packet.truncated is True
+        assert seed_limited_packet.truncation_reason == (
+            "max_seed_records_and_max_depth"
+        )
+        assert seed_limited_packet.skipped_record_ids == ("record-3",)
+    finally:
+        connection.close()
+
+
+def test_multi_seed_context_output_is_plain_data_not_synthesized_truth():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+
+        context_packet = assemble_multi_seed_context(
+            connection,
+            ("record-1",),
+            max_depth=1,
+            max_records=3,
+        )
+        context_dict = multi_seed_context_packet_as_dict(context_packet)
+
+        assert context_packet.truth_status == "not_accepted_truth"
+        assert context_packet.synthesis_status == "not_synthesized"
+        assert context_packet.promotion_boundary == "operator_promotion_required"
+        assert {
+            model.synthesis_status for model in context_packet.synthesis_ready_records
+        } == {"not_synthesized"}
+        assert {
+            model.accepted_truth_status
+            for model in context_packet.synthesis_ready_records
+        } == {"not_accepted_truth"}
+        assert context_dict["context_kind"] == "multi_seed_context_packet"
+        assert context_dict["seed_ordering"] == "input_order"
+        assert context_dict["records"][1]["via_relationship_id"] == "rel-a"
+        assert context_dict["records"][1]["via_relationship_state"] == "reviewed"
     finally:
         connection.close()
 
