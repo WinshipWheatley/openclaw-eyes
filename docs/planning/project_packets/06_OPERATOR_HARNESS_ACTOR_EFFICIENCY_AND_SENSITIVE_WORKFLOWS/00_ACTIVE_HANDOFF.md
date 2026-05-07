@@ -201,6 +201,52 @@ Boundary notes:
 
 - No private roots, sensitive folders, legal/client/private folders, secrets, env files, credentials, `.chief.env`, API keys, tokens, provider/model APIs, MCP calls, runtime services, invoice actions, broad filesystem crawling, Packet 06 `24_files` edits, Packet 07 creation, commits, or pushes were used.
 
+## Packet 06 Final Consolidation Campaign - 2026-05-07
+
+This stride consolidated the remaining visible Packet 06 rails without creating Packet 07. File 01 stayed the roadmap authority; this handoff stayed the train log.
+
+Status marker: READY_FOR_PACKET_07_RENEWAL.
+
+1. File 16 - Invoice Artifact / Billing Bridge final static policy review: complete. Draft-only invoice artifacts may preserve reconciliation metadata, ambiguity, asset capture, and approval-before-send status. They do not authorize final invoice generation, invoice sending, active reconciliation, collection, finance-root access, email/client inspection, or invoice tooling.
+2. File 19 - Legal Context Export final static policy review: complete. Legal export policy stays metadata-only with blocked-source references, export class, sensitivity class, and approval receipt references. It does not authorize legal-private content reads, client/private matter summaries, outside model access, or legal action/advice.
+3. File 21 - MCP Shared Memory static authority review: complete. MCP/shared memory remains an architecture review topic only. Receipts and read models are not execution approval; hidden canonical memory writes and external MCP calls remain deferred.
+4. Files 20/22 - Runtime Integration / Legacy Gating final static review: complete. Runtime and legacy launch surfaces remain static-reviewed only. No services, processes, launchers, timers, credentials, env files, or runtime state were launched, scanned, or mutated.
+5. File 23 - Broad Source-Set Exclusion Guard final audit: complete. Packet 07 must carry forward the blocks on broad preload, path-metadata-as-authority, private-root inspection, runtime/provider/billing laundering, and hidden source-set authority.
+6. Model/tool-specific prompt doctrine carry-forward: complete. Prompts must be model/tool-specific, not generic. Gemini planning prompts should focus on rails, tradeoffs, risks, scope, READY/NOT_READY, and no repo mutation. Codex implementation prompts should focus on repo state, conventions, minimal correct edits, no opportunistic cleanup, targeted tests, exact changed files, honest failures, and no staging/commit/push unless authorized. Review prompts should split by tool: Gemini for architecture/scope/risk; Codex for dirty diff, line behavior, tests, failure modes, and commit readiness.
+7. Packet 06 renewal readiness assessment: complete. The receipt/policy/read-model rails are consolidated or explicitly deferred, and Packet 06 is READY_FOR_PACKET_07_RENEWAL. Packet 07 was not created or drafted.
+
+Static proof surfaces added or refreshed:
+
+- `openclaw_sensitive_policy.packet06_final_static_boundary_contract()` records invoice, legal export, MCP/shared-memory, runtime/legacy, and broad source-set carry-forward boundaries as static policy only.
+- `./scripts/openclaw_receipts.py operator-harness-status` now surfaces those final boundaries as low-context read-only cards.
+- `tests/test_openclaw_receipts.py` verifies the static contract and read-model cards without private-root inspection, runtime launch, provider calls, MCP calls, invoice generation, or Packet 07 creation.
+
+## Validation Receipt - 2026-05-07 Final Consolidation Campaign
+
+Commands run:
+
+```text
+pwd
+git status -sb --untracked-files=all
+git --no-pager log --oneline -10
+./scripts/openclaw_receipts.py repo-check
+./scripts/openclaw_receipts.py packet-status
+./scripts/openclaw_receipts.py operator-harness-status
+git diff --check
+git diff --cached --check
+pytest tests/test_openclaw_receipts.py tests/test_backend_agent_context.py -q
+./scripts/openclaw_receipts.py changed-files-receipt
+```
+
+Results:
+
+- Start state was clean at `162acbf feat(operator): harden receipt policy read model`.
+- Packet 06 `packet-status` passed with `rail_count: 24`.
+- Focused receipt and actor context export tests: `33 passed`.
+- Final receipt commands passed through the canonical `./scripts/openclaw_receipts.py` surface.
+- `git diff --check` and `git diff --cached --check` passed.
+- Final dirty files are limited to this consolidation stride: `openclaw_sensitive_policy.py`, `scripts/openclaw_receipts.py`, `tests/test_openclaw_receipts.py`, and this handoff.
+
 ## Candidate Continuations From File 01 Only
 
 These are copied from `24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md` and are not independent roadmap authority:

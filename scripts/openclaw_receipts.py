@@ -20,6 +20,7 @@ from openclaw_sensitive_policy import (
     broad_source_set_prefix_findings,
     is_under,
     normalize_repo_path,
+    packet06_final_static_boundary_contract,
     path_policy_findings,
     sensitive_root_contract,
 )
@@ -302,8 +303,14 @@ def operator_harness_read_model(
     private_findings = path_policy_findings(changed_paths, root=root)
     packet = packet_status(root)
     sensitive_contract = sensitive_root_contract()
+    final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
     head = _run_git(root, ["--no-pager", "log", "--oneline", "-1"])
+    invoice_artifact = final_contract["invoice_artifact"]
+    legal_context_export = final_contract["legal_context_export"]
+    runtime_gating = final_contract["runtime_and_legacy_gating"]
+    source_set_exclusion = final_contract["source_set_exclusion"]
+    mcp_shared_memory = final_contract["mcp_shared_memory"]
 
     return {
         "receipt_type": "openclaw.operator_harness_read_model",
@@ -344,10 +351,53 @@ def operator_harness_read_model(
                 "filesystem_inspected": sensitive_contract["filesystem_inspected"],
             },
             {
+                "card": "invoice_artifact",
+                "draft_only": invoice_artifact["draft_only"],
+                "approval_before_send_required": invoice_artifact[
+                    "approval_before_send_required"
+                ],
+                "invoice_generation_allowed": invoice_artifact[
+                    "invoice_generation_allowed"
+                ],
+                "invoice_send_allowed": invoice_artifact["invoice_send_allowed"],
+                "invoice_reconciliation_authority": invoice_artifact[
+                    "invoice_reconciliation_authority"
+                ],
+                "private_finance_access_allowed": invoice_artifact[
+                    "private_finance_access_allowed"
+                ],
+            },
+            {
+                "card": "legal_context_export",
+                "metadata_only": legal_context_export["metadata_only"],
+                "blocked_source_refs_only": legal_context_export[
+                    "blocked_source_refs_only"
+                ],
+                "content_access_allowed": legal_context_export[
+                    "content_access_allowed"
+                ],
+                "private_legal_root_inspection_allowed": legal_context_export[
+                    "private_legal_root_inspection_allowed"
+                ],
+                "outside_model_access_allowed": legal_context_export[
+                    "outside_model_access_allowed"
+                ],
+                "no_echo_required": legal_context_export["no_echo_required"],
+            },
+            {
                 "card": "source_set_exclusion",
                 "broad_scan_used": False,
-                "broad_source_set_authority": False,
+                "broad_preload_allowed": source_set_exclusion["broad_preload_allowed"],
+                "broad_source_set_authority": source_set_exclusion[
+                    "broad_source_set_authority"
+                ],
+                "path_metadata_is_authority": source_set_exclusion[
+                    "path_metadata_is_authority"
+                ],
                 "private_root_inspection_used": False,
+                "packet07_carry_forward_constraint": source_set_exclusion[
+                    "packet07_carry_forward_constraint"
+                ],
                 "withheld_surfaces": (
                     "private roots",
                     "secrets/env/credentials",
@@ -357,8 +407,13 @@ def operator_harness_read_model(
             },
             {
                 "card": "runtime_authority",
-                "live_service_inspection_used": False,
-                "runtime_mutation_allowed": False,
+                "static_review_only": runtime_gating["static_review_only"],
+                "live_service_inspection_used": runtime_gating[
+                    "live_service_launch_allowed"
+                ],
+                "runtime_mutation_allowed": runtime_gating["runtime_mutation_allowed"],
+                "process_scan_allowed": runtime_gating["process_scan_allowed"],
+                "legacy_bypass_allowed": runtime_gating["legacy_bypass_allowed"],
                 "receipt_grants_execution": False,
                 "static_review_pointer": "service_inventory_audit.py",
             },
@@ -370,9 +425,25 @@ def operator_harness_read_model(
             },
             {
                 "card": "mcp_shared_memory",
+                "external_mcp_calls_allowed": mcp_shared_memory[
+                    "external_mcp_calls_allowed"
+                ],
                 "external_mcp_calls_used": False,
-                "hidden_memory_writes_allowed": False,
-                "receipts_are_execution_authority": False,
+                "hidden_memory_writes_allowed": mcp_shared_memory[
+                    "hidden_canonical_memory_writes_allowed"
+                ],
+                "receipts_are_execution_authority": mcp_shared_memory[
+                    "receipts_are_execution_authority"
+                ],
+                "shared_memory_is_roadmap_authority": mcp_shared_memory[
+                    "shared_memory_is_roadmap_authority"
+                ],
+            },
+            {
+                "card": "packet07_carry_forward",
+                "read_from_handoff_before_renewal": True,
+                "receipt_is_roadmap_authority": False,
+                "constraints": final_contract["packet07_carry_forward"],
             },
         ),
         "private_findings": private_findings,

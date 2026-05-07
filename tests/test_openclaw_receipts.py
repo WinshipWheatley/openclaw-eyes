@@ -156,6 +156,29 @@ def test_sensitive_root_contract_is_metadata_only_and_deny_content():
     assert "external_model_access" in report["forbidden_actions"]
 
 
+def test_packet06_final_static_boundary_contract_preserves_deferred_authority():
+    report = sensitive_policy.packet06_final_static_boundary_contract()
+
+    assert report["passed"] is True
+    assert report["invoice_artifact"]["draft_only"] is True
+    assert report["invoice_artifact"]["invoice_generation_allowed"] is False
+    assert report["invoice_artifact"]["invoice_send_allowed"] is False
+    assert report["invoice_artifact"]["invoice_reconciliation_authority"] is False
+    assert report["legal_context_export"]["metadata_only"] is True
+    assert report["legal_context_export"]["content_access_allowed"] is False
+    assert report["legal_context_export"]["outside_model_access_allowed"] is False
+    assert report["legal_context_export"]["no_echo_required"] is True
+    assert report["mcp_shared_memory"]["external_mcp_calls_allowed"] is False
+    assert report["mcp_shared_memory"]["hidden_canonical_memory_writes_allowed"] is False
+    assert report["mcp_shared_memory"]["receipts_are_execution_authority"] is False
+    assert report["runtime_and_legacy_gating"]["static_review_only"] is True
+    assert report["runtime_and_legacy_gating"]["live_service_launch_allowed"] is False
+    assert report["runtime_and_legacy_gating"]["runtime_mutation_allowed"] is False
+    assert report["source_set_exclusion"]["broad_preload_allowed"] is False
+    assert report["source_set_exclusion"]["path_metadata_is_authority"] is False
+    assert report["source_set_exclusion"]["packet07_carry_forward_constraint"] is True
+
+
 def test_no_private_root_check_receipt_redacts_denied_path_strings(tmp_path, capsys):
     private_path = "/Users/hwinshipwheatley/Sensitive Folder For Review/raw.pdf"
 
@@ -220,14 +243,26 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     assert cards["packet"]["rail_count"] == 24
     assert cards["active_handoff"]["is_roadmap_authority"] is False
     assert cards["sensitive_root_policy"]["filesystem_inspected"] is False
+    assert cards["invoice_artifact"]["draft_only"] is True
+    assert cards["invoice_artifact"]["invoice_generation_allowed"] is False
+    assert cards["invoice_artifact"]["invoice_send_allowed"] is False
+    assert cards["legal_context_export"]["metadata_only"] is True
+    assert cards["legal_context_export"]["content_access_allowed"] is False
+    assert cards["legal_context_export"]["outside_model_access_allowed"] is False
     assert cards["source_set_exclusion"]["broad_scan_used"] is False
+    assert cards["source_set_exclusion"]["broad_preload_allowed"] is False
     assert cards["source_set_exclusion"]["broad_source_set_authority"] is False
+    assert cards["source_set_exclusion"]["path_metadata_is_authority"] is False
     assert cards["runtime_authority"]["live_service_inspection_used"] is False
     assert cards["runtime_authority"]["runtime_mutation_allowed"] is False
     assert cards["runtime_authority"]["receipt_grants_execution"] is False
     assert cards["recovery"]["runtime_launched"] is False
     assert cards["recovery"]["self_authorizing"] is False
+    assert cards["mcp_shared_memory"]["external_mcp_calls_allowed"] is False
     assert cards["mcp_shared_memory"]["hidden_memory_writes_allowed"] is False
+    assert cards["mcp_shared_memory"]["shared_memory_is_roadmap_authority"] is False
+    assert cards["packet07_carry_forward"]["receipt_is_roadmap_authority"] is False
+    assert cards["packet07_carry_forward"]["read_from_handoff_before_renewal"] is True
 
 
 def test_operator_harness_read_model_blocks_private_path_strings(tmp_path):

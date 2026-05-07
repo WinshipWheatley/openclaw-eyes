@@ -269,3 +269,64 @@ def sensitive_root_contract() -> dict[str, object]:
         "filesystem_inspected": False,
         "passed": True,
     }
+
+
+def packet06_final_static_boundary_contract() -> dict[str, object]:
+    """Final Packet 06 static boundaries before any Packet 07 renewal work."""
+
+    return {
+        "receipt_type": "openclaw.packet06_final_static_boundary_contract",
+        "mode": "static-policy/no-content/no-runtime/no-provider/no-billing-execution",
+        "invoice_artifact": {
+            "draft_only": True,
+            "approval_before_send_required": True,
+            "invoice_generation_allowed": False,
+            "invoice_send_allowed": False,
+            "invoice_reconciliation_authority": False,
+            "private_finance_access_allowed": False,
+            "future_authority_required": True,
+        },
+        "legal_context_export": {
+            "metadata_only": True,
+            "blocked_source_refs_only": True,
+            "content_access_allowed": False,
+            "private_legal_root_inspection_allowed": False,
+            "outside_model_access_allowed": False,
+            "client_private_summary_allowed": False,
+            "no_echo_required": True,
+            "future_authority_required": True,
+        },
+        "mcp_shared_memory": {
+            "external_mcp_calls_allowed": False,
+            "hidden_canonical_memory_writes_allowed": False,
+            "receipts_are_execution_authority": False,
+            "shared_memory_is_roadmap_authority": False,
+            "future_architecture_review_required": True,
+        },
+        "runtime_and_legacy_gating": {
+            "static_review_only": True,
+            "live_service_launch_allowed": False,
+            "runtime_mutation_allowed": False,
+            "process_scan_allowed": False,
+            "legacy_bypass_allowed": False,
+            "self_healing_allowed": False,
+            "future_explicit_authority_required": True,
+        },
+        "source_set_exclusion": {
+            "broad_preload_allowed": False,
+            "broad_source_set_authority": False,
+            "path_metadata_is_authority": False,
+            "private_root_inspection_allowed": False,
+            "runtime_provider_billing_laundering_allowed": False,
+            "packet07_carry_forward_constraint": True,
+        },
+        "packet07_carry_forward": (
+            "draft-only invoice artifacts until explicit billing authority exists",
+            "legal exports stay metadata-only until explicit local legal authority exists",
+            "MCP/shared memory cannot become hidden authority or memory writes",
+            "runtime and legacy launch surfaces stay static-reviewed until authorized",
+            "broad preload and path-metadata-as-authority stay blocked",
+            "model/tool prompts must be specific to the review or implementation role",
+        ),
+        "passed": True,
+    }
