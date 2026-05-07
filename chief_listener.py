@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -455,10 +456,6 @@ async def handle_callback(update: Update, _context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("Button response error.")
 
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.add_handler(CallbackQueryHandler(handle_callback))
-
 # ── Startup: notify about pending queue items (once per unique queue state) ───
 _QUEUE_NOTIF_STATE = Path("/mnt/c/OpenClaw/logs/queue_notif_state.json")
 
@@ -511,7 +508,64 @@ async def _post_startup_queue(application):
     except Exception as e:
         print(f"Queue startup notification failed: {e}")
 
-app.post_init = _post_startup_queue
 
-print("[chief_listener] starting...", flush=True)
-app.run_polling()
+def build_application():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.post_init = _post_startup_queue
+    return application
+
+
+async def run_listener(application=None, stop_event: asyncio.Event | None = None) -> None:
+    application = application or build_application()
+    updater = application.updater
+    if updater is None:
+        raise RuntimeError("Chief listener application must have an updater.")
+
+    loop = asyncio.get_running_loop()
+    stop_event = stop_event or asyncio.Event()
+    registered_signals: list[signal.Signals] = []
+    polling_started = False
+    app_started = False
+    initialized = False
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, stop_event.set)
+            registered_signals.append(sig)
+        except (NotImplementedError, RuntimeError):
+            pass
+
+    try:
+        await application.initialize()
+        initialized = True
+        if application.post_init:
+            await application.post_init(application)
+        await updater.start_polling()
+        polling_started = True
+        await application.start()
+        app_started = True
+        await stop_event.wait()
+    finally:
+        for sig in registered_signals:
+            try:
+                loop.remove_signal_handler(sig)
+            except (NotImplementedError, RuntimeError):
+                pass
+
+        if polling_started:
+            await updater.stop()
+        if app_started and application.running:
+            await application.stop()
+        if initialized:
+            await application.shutdown()
+
+
+def main() -> None:
+    print("[chief_listener] starting...", flush=True)
+    asyncio.run(run_listener())
+
+
+if __name__ == "__main__":
+    main()
