@@ -45,6 +45,7 @@
 !backend_sqlite_runtime.py
 !backend_sqlite_repository.py
 !backend_knowledge_packet.py
+!backend_storage_intelligence.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -206,6 +207,7 @@
 !inbox_parser.py
 !tests/
 !tests/test_inbox_parser.py
+!tests/test_backend_storage_intelligence.py
 !chief_musiclaw_brain.py
 !chief_publishing_brain.py
 !chief_website_creative.py

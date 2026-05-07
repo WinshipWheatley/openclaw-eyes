@@ -299,6 +299,11 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "validation_receipt",
     "operator_promotion",
     "context_filter_receipt",
+    "source_registry",
+    "source_discovery_queue",
+    "source_exclusion",
+    "file_inventory",
+    "storage_operation_receipt",
 )
 
 REQUIRED_SQLITE_TABLE_CONCEPTS = (
@@ -309,6 +314,11 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "validation_receipts",
     "operator_promotions",
     "context_filter_receipts",
+    "source_registry",
+    "source_discovery_queue",
+    "source_exclusions",
+    "file_inventory",
+    "storage_operation_receipts",
 )
 
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
@@ -355,6 +365,62 @@ SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR = (
     "source-set generation",
     "private-root inspection",
     "app behavior",
+)
+
+STORAGE_INTELLIGENCE_ALLOWED_SOURCE_MODES = (
+    "ignore",
+    "guided_review",
+    "inventory_only",
+    "metadata_safe",
+    "content_allowed",
+    "private_vault",
+)
+
+STORAGE_INTELLIGENCE_OPERATOR_CLASSIFICATIONS = (
+    "camera",
+    "field_recorder",
+    "archive",
+    "music_projects",
+    "video_projects",
+    "backup",
+    "legal_private",
+    "client_delivery",
+    "system_noise",
+    "ignore",
+    "unknown",
+)
+
+STORAGE_INTELLIGENCE_DISCOVERY_STATUSES = (
+    "pending_approval",
+    "approved",
+    "ignored",
+)
+
+STORAGE_INTELLIGENCE_INVENTORY_STATUSES = (
+    "discovered",
+    "inventoried",
+    "metadata_extracted",
+    "content_extracted",
+    "stale",
+    "missing",
+    "error",
+)
+
+STORAGE_INTELLIGENCE_SAFETY_TIERS = (
+    "read_only",
+    "reversible_copy",
+    "move_after_verified_copy",
+    "destructive_or_reformat",
+)
+
+STORAGE_INTELLIGENCE_EXECUTION_STATUSES = (
+    "dry_run",
+    "planned",
+    "approved",
+    "executed",
+    "verified",
+    "blocked",
+    "failed",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -493,6 +559,98 @@ SCHEMA_CONTRACT_SURFACES = (
                 "filter_outcome",
                 "finding_summary",
                 "review_route",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="source_registry",
+        purpose=(
+            "Approved source/device/server registry surface; discovery alone does "
+            "not authorize source access."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "source_id",
+                "device_identity",
+                "last_known_mount_path",
+                "source_mode",
+                "operator_classification",
+                "approval_receipt_ref",
+                "freshness_timestamp",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="source_discovery_queue",
+        purpose=(
+            "Discovered-but-not-approved source event surface; pending discovery "
+            "does not imply source approval."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "discovery_id",
+                "device_identity",
+                "detected_path",
+                "detected_at",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="source_exclusion",
+        purpose="Explicit source, folder, file, type, or sensitivity exclusion boundary.",
+        required_conceptual_fields=frozenset(
+            {
+                "exclusion_id",
+                "source_id",
+                "pattern_type",
+                "path_pattern",
+                "exclusion_level",
+                "reason",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="file_inventory",
+        purpose=(
+            "Approved-source file metadata inventory surface before content "
+            "extraction; source_id plus relative_path is the durable identity."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "inventory_id",
+                "source_id",
+                "relative_path",
+                "file_size",
+                "mtime",
+                "hash_heuristic",
+                "inventory_status",
+                "last_seen_timestamp",
+                "source_confidence",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="storage_operation_receipt",
+        purpose=(
+            "Evidence receipt surface for future dry-run and storage operations; "
+            "receipt rows do not imply execution unless execution_status says so."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "operation_id",
+                "operation_type",
+                "source_inventory_id",
+                "target_path",
+                "safety_tier",
+                "checksum_verification",
+                "operator_approval_ref",
+                "execution_status",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -659,6 +817,107 @@ SQLITE_TABLE_CONCEPTS = (
             }
         ),
         related_schema_contract_surface="context_filter_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="source_registry",
+        purpose=(
+            "Static table concept for approved source/device/server registry rows; "
+            "source modes bound future behavior and discovery does not imply approval."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "source_id",
+                "device_identity",
+                "last_known_mount_path",
+                "source_mode",
+                "operator_classification",
+                "approval_receipt_ref",
+                "freshness_timestamp",
+            }
+        ),
+        related_schema_contract_surface="source_registry",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="source_discovery_queue",
+        purpose=(
+            "Static table concept for discovered source events that remain pending "
+            "until explicit approval, ignore, or other operator decision."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "discovery_id",
+                "device_identity",
+                "detected_path",
+                "detected_at",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="source_discovery_queue",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="source_exclusions",
+        purpose=(
+            "Static table concept for first-class private, source, folder, file, "
+            "type, and sensitivity exclusions."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "exclusion_id",
+                "source_id",
+                "pattern_type",
+                "path_pattern",
+                "exclusion_level",
+                "reason",
+            }
+        ),
+        related_schema_contract_surface="source_exclusion",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="file_inventory",
+        purpose=(
+            "Static table concept for approved-source metadata inventory before "
+            "content extraction; identity is source_id plus relative_path, not "
+            "absolute path."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "inventory_id",
+                "source_id",
+                "relative_path",
+                "file_size",
+                "mtime",
+                "hash_heuristic",
+                "inventory_status",
+                "last_seen_timestamp",
+                "source_confidence",
+            }
+        ),
+        related_schema_contract_surface="file_inventory",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="storage_operation_receipts",
+        purpose=(
+            "Static table concept for storage-operation and dry-run receipts; "
+            "safety tier and execution status preserve approval boundaries."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "operation_id",
+                "operation_type",
+                "source_inventory_id",
+                "target_path",
+                "safety_tier",
+                "checksum_verification",
+                "operator_approval_ref",
+                "execution_status",
+            }
+        ),
+        related_schema_contract_surface="storage_operation_receipt",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
 )
@@ -959,6 +1218,14 @@ _SCHEMA_SURFACE_ALIASES = {
     "operator promotions": "operator_promotion",
     "context filter receipt": "context_filter_receipt",
     "context filter receipts": "context_filter_receipt",
+    "source registry": "source_registry",
+    "source discovery": "source_discovery_queue",
+    "source discovery queue": "source_discovery_queue",
+    "source exclusion": "source_exclusion",
+    "source exclusions": "source_exclusion",
+    "file inventory": "file_inventory",
+    "storage operation receipt": "storage_operation_receipt",
+    "storage operation receipts": "storage_operation_receipt",
 }
 _SQLITE_TABLE_CONCEPTS_BY_NAME = {
     concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
@@ -985,6 +1252,14 @@ _SQLITE_TABLE_CONCEPT_ALIASES = {
     "operator promotions": "operator_promotions",
     "context filter receipt": "context_filter_receipts",
     "context filter receipts": "context_filter_receipts",
+    "source registry": "source_registry",
+    "source discovery": "source_discovery_queue",
+    "source discovery queue": "source_discovery_queue",
+    "source exclusion": "source_exclusions",
+    "source exclusions": "source_exclusions",
+    "file inventory": "file_inventory",
+    "storage operation receipt": "storage_operation_receipts",
+    "storage operation receipts": "storage_operation_receipts",
 }
 
 

@@ -14,6 +14,11 @@ SEMANTIC_RELATIONSHIPS_TABLE_NAME = "semantic_relationships"
 PROVENANCE_REFS_TABLE_NAME = "provenance_refs"
 VALIDATION_RECEIPTS_TABLE_NAME = "validation_receipts"
 OPERATOR_PROMOTIONS_TABLE_NAME = "operator_promotions"
+SOURCE_REGISTRY_TABLE_NAME = "source_registry"
+SOURCE_DISCOVERY_QUEUE_TABLE_NAME = "source_discovery_queue"
+SOURCE_EXCLUSIONS_TABLE_NAME = "source_exclusions"
+FILE_INVENTORY_TABLE_NAME = "file_inventory"
+STORAGE_OPERATION_RECEIPTS_TABLE_NAME = "storage_operation_receipts"
 
 REPOSITORY_TABLE_PRIMARY_KEYS = {
     SEMANTIC_RECORDS_TABLE_NAME: "record_id",
@@ -22,6 +27,11 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     PROVENANCE_REFS_TABLE_NAME: "provenance_ref_id",
     VALIDATION_RECEIPTS_TABLE_NAME: "receipt_id",
     OPERATOR_PROMOTIONS_TABLE_NAME: "promotion_id",
+    SOURCE_REGISTRY_TABLE_NAME: "source_id",
+    SOURCE_DISCOVERY_QUEUE_TABLE_NAME: "discovery_id",
+    SOURCE_EXCLUSIONS_TABLE_NAME: "exclusion_id",
+    FILE_INVENTORY_TABLE_NAME: "inventory_id",
+    STORAGE_OPERATION_RECEIPTS_TABLE_NAME: "operation_id",
 }
 
 
@@ -126,6 +136,75 @@ class OperatorPromotion:
     promoted_by_operator: int
     complete_label_set: str
     authority_boundary: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceRegistryEntry:
+    """Approved source/device/server registry row.
+
+    last_known_mount_path is an ephemeral location hint. File identity belongs
+    to file_inventory.source_id plus file_inventory.relative_path.
+    """
+
+    source_id: str
+    device_identity: str
+    last_known_mount_path: str
+    source_mode: str
+    operator_classification: str
+    approval_receipt_ref: str
+    freshness_timestamp: str
+
+
+@dataclass(frozen=True)
+class SourceDiscoveryEvent:
+    """Discovered source event that is not approved by discovery alone."""
+
+    discovery_id: str
+    device_identity: str
+    detected_path: str
+    detected_at: str
+    status: str
+
+
+@dataclass(frozen=True)
+class SourceExclusion:
+    """Explicit source/folder/file/type/sensitivity exclusion boundary."""
+
+    exclusion_id: str
+    source_id: str
+    pattern_type: str
+    path_pattern: str
+    exclusion_level: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class FileInventoryRow:
+    """Metadata inventory row for an approved source, before content access."""
+
+    inventory_id: str
+    source_id: str
+    relative_path: str
+    file_size: int
+    mtime: str
+    hash_heuristic: str
+    inventory_status: str
+    last_seen_timestamp: str
+    source_confidence: str
+
+
+@dataclass(frozen=True)
+class StorageOperationReceipt:
+    """Dry-run or future operation receipt row; execution is status-explicit."""
+
+    operation_id: str
+    operation_type: str
+    source_inventory_id: str
+    target_path: str
+    safety_tier: str
+    checksum_verification: int
+    operator_approval_ref: str
+    execution_status: str
 
 
 def semantic_record_column_names() -> tuple[str, ...]:
@@ -377,6 +456,220 @@ def record_has_explicit_operator_promotion(connection: Any, record_id: str) -> b
     )
 
 
+def write_source_registry_entry(
+    connection: Any,
+    entry: SourceRegistryEntry | Mapping[str, Any],
+) -> None:
+    """Insert one approved source_registry row through a caller-owned connection."""
+
+    payload = _table_payload(SOURCE_REGISTRY_TABLE_NAME, entry)
+    _insert_row(connection, SOURCE_REGISTRY_TABLE_NAME, payload)
+
+
+def read_source_registry_entry(
+    connection: Any,
+    source_id: str,
+) -> dict[str, Any] | None:
+    """Read one source_registry row by explicit source_id."""
+
+    return _read_row_by_primary_key(connection, SOURCE_REGISTRY_TABLE_NAME, source_id)
+
+
+def read_source_registry_entries_by_device_identity(
+    connection: Any,
+    device_identity: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read approved source rows for one exact device identity in source_id order."""
+
+    _require_non_empty_string(device_identity, "device_identity")
+    return _read_rows_where(
+        connection,
+        SOURCE_REGISTRY_TABLE_NAME,
+        "device_identity",
+        device_identity,
+        order_by="source_id",
+    )
+
+
+def write_source_discovery_event(
+    connection: Any,
+    event: SourceDiscoveryEvent | Mapping[str, Any],
+) -> None:
+    """Insert one discovered source event; this does not approve the source."""
+
+    payload = _table_payload(SOURCE_DISCOVERY_QUEUE_TABLE_NAME, event)
+    _insert_row(connection, SOURCE_DISCOVERY_QUEUE_TABLE_NAME, payload)
+
+
+def read_source_discovery_event(
+    connection: Any,
+    discovery_id: str,
+) -> dict[str, Any] | None:
+    """Read one source_discovery_queue row by explicit discovery_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        SOURCE_DISCOVERY_QUEUE_TABLE_NAME,
+        discovery_id,
+    )
+
+
+def read_pending_source_discovery_events(
+    connection: Any,
+) -> tuple[dict[str, Any], ...]:
+    """Read pending source discovery events in deterministic detected_at/id order."""
+
+    columns = table_column_names(SOURCE_DISCOVERY_QUEUE_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM source_discovery_queue
+WHERE status = ?
+ORDER BY detected_at, discovery_id
+""".strip(),
+        ("pending_approval",),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
+def write_source_exclusion(
+    connection: Any,
+    exclusion: SourceExclusion | Mapping[str, Any],
+) -> None:
+    """Insert one explicit exclusion for an approved source."""
+
+    payload = _table_payload(SOURCE_EXCLUSIONS_TABLE_NAME, exclusion)
+    _require_existing_source_registry_entry(connection, payload["source_id"])
+    _insert_row(connection, SOURCE_EXCLUSIONS_TABLE_NAME, payload)
+
+
+def read_source_exclusion(
+    connection: Any,
+    exclusion_id: str,
+) -> dict[str, Any] | None:
+    """Read one source_exclusions row by explicit exclusion_id."""
+
+    return _read_row_by_primary_key(connection, SOURCE_EXCLUSIONS_TABLE_NAME, exclusion_id)
+
+
+def read_source_exclusions(
+    connection: Any,
+    source_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read exclusions for one source in deterministic exclusion_id order."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    return _read_rows_where(
+        connection,
+        SOURCE_EXCLUSIONS_TABLE_NAME,
+        "source_id",
+        source_id,
+        order_by="exclusion_id",
+    )
+
+
+def write_file_inventory_row(
+    connection: Any,
+    row: FileInventoryRow | Mapping[str, Any],
+) -> None:
+    """Insert one metadata inventory row without touching real files."""
+
+    payload = _table_payload(FILE_INVENTORY_TABLE_NAME, row)
+    _require_existing_source_registry_entry(connection, payload["source_id"])
+    _require_relative_inventory_path(payload["relative_path"])
+    _require_non_negative_int(payload["file_size"], "file_size")
+    _insert_row(connection, FILE_INVENTORY_TABLE_NAME, payload)
+
+
+def read_file_inventory_row(
+    connection: Any,
+    inventory_id: str,
+) -> dict[str, Any] | None:
+    """Read one file_inventory row by explicit inventory_id."""
+
+    return _read_row_by_primary_key(connection, FILE_INVENTORY_TABLE_NAME, inventory_id)
+
+
+def read_file_inventory_rows_by_source_id(
+    connection: Any,
+    source_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read inventory rows for one source in deterministic relative_path order."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    return _read_rows_where(
+        connection,
+        FILE_INVENTORY_TABLE_NAME,
+        "source_id",
+        source_id,
+        order_by="relative_path",
+    )
+
+
+def read_file_inventory_row_by_source_relative_path(
+    connection: Any,
+    source_id: str,
+    relative_path: str,
+) -> dict[str, Any] | None:
+    """Read one inventory row by durable source_id plus relative_path identity."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    _require_relative_inventory_path(relative_path)
+    columns = table_column_names(FILE_INVENTORY_TABLE_NAME)
+    row = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM file_inventory
+WHERE source_id = ? AND relative_path = ?
+""".strip(),
+        (source_id, relative_path),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(columns, row))
+
+
+def write_storage_operation_receipt(
+    connection: Any,
+    receipt: StorageOperationReceipt | Mapping[str, Any],
+) -> None:
+    """Insert one dry-run/future operation receipt without executing operations."""
+
+    payload = _table_payload(STORAGE_OPERATION_RECEIPTS_TABLE_NAME, receipt)
+    _require_existing_file_inventory_row(connection, payload["source_inventory_id"])
+    _require_binary_int(payload["checksum_verification"], "checksum_verification")
+    _insert_row(connection, STORAGE_OPERATION_RECEIPTS_TABLE_NAME, payload)
+
+
+def read_storage_operation_receipt(
+    connection: Any,
+    operation_id: str,
+) -> dict[str, Any] | None:
+    """Read one storage_operation_receipts row by explicit operation_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        STORAGE_OPERATION_RECEIPTS_TABLE_NAME,
+        operation_id,
+    )
+
+
+def read_storage_operation_receipts_by_inventory_id(
+    connection: Any,
+    inventory_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read operation receipts for one inventory row in operation_id order."""
+
+    _require_existing_file_inventory_row(connection, inventory_id)
+    return _read_rows_where(
+        connection,
+        STORAGE_OPERATION_RECEIPTS_TABLE_NAME,
+        "source_inventory_id",
+        inventory_id,
+        order_by="operation_id",
+    )
+
+
 def read_record_ids_for_exact_label_seed(
     connection: Any,
     label_name: str,
@@ -592,6 +885,18 @@ def _require_existing_semantic_record(connection: Any, record_id: str) -> None:
         raise ValueError(f"unknown semantic record reference: {record_id}")
 
 
+def _require_existing_source_registry_entry(connection: Any, source_id: str) -> None:
+    _require_non_empty_string(source_id, "source_id")
+    if read_source_registry_entry(connection, source_id) is None:
+        raise ValueError(f"unknown source registry reference: {source_id}")
+
+
+def _require_existing_file_inventory_row(connection: Any, inventory_id: str) -> None:
+    _require_non_empty_string(inventory_id, "inventory_id")
+    if read_file_inventory_row(connection, inventory_id) is None:
+        raise ValueError(f"unknown file inventory reference: {inventory_id}")
+
+
 def _require_repository_table_name(table_name: str) -> str:
     if table_name not in REPOSITORY_TABLE_PRIMARY_KEYS:
         raise ValueError(f"unknown backend sqlite repository table: {table_name}")
@@ -608,6 +913,20 @@ def _require_binary_int(value: Any, field_name: str) -> None:
         raise ValueError(f"{field_name} must be 0 or 1")
 
 
+def _require_non_negative_int(value: Any, field_name: str) -> None:
+    if type(value) is not int or value < 0:
+        raise ValueError(f"{field_name} must be a non-negative integer")
+
+
 def _require_positive_int(value: Any, field_name: str) -> None:
     if type(value) is not int or value < 1:
         raise ValueError(f"{field_name} must be a positive integer")
+
+
+def _require_relative_inventory_path(value: Any) -> None:
+    _require_non_empty_string(value, "relative_path")
+    normalized = value.replace("\\", "/")
+    if normalized.startswith("/") or normalized.startswith("../") or "/../" in normalized:
+        raise ValueError("relative_path must be source-relative")
+    if len(value) >= 3 and value[1] == ":" and value[2] in {"/", "\\"}:
+        raise ValueError("relative_path must not be an absolute drive path")

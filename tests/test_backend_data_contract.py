@@ -17,6 +17,12 @@ from backend_data_contract import (
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
     SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
     SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    STORAGE_INTELLIGENCE_ALLOWED_SOURCE_MODES,
+    STORAGE_INTELLIGENCE_DISCOVERY_STATUSES,
+    STORAGE_INTELLIGENCE_EXECUTION_STATUSES,
+    STORAGE_INTELLIGENCE_INVENTORY_STATUSES,
+    STORAGE_INTELLIGENCE_OPERATOR_CLASSIFICATIONS,
+    STORAGE_INTELLIGENCE_SAFETY_TIERS,
     SchemaContractSurface,
     SemanticRecordProposal,
     SQLiteTableConcept,
@@ -695,6 +701,11 @@ def test_required_schema_contract_surfaces_exist():
         "validation_receipt",
         "operator_promotion",
         "context_filter_receipt",
+        "source_registry",
+        "source_discovery_queue",
+        "source_exclusion",
+        "file_inventory",
+        "storage_operation_receipt",
     )
 
     surfaces = schema_contract_surfaces()
@@ -710,6 +721,15 @@ def test_schema_surface_names_normalize_correctly():
     assert normalize_schema_surface_name("operator promotions") == "operator_promotion"
     assert normalize_schema_surface_name("context filter receipts") == (
         "context_filter_receipt"
+    )
+    assert normalize_schema_surface_name("source registry") == "source_registry"
+    assert normalize_schema_surface_name("source discovery") == (
+        "source_discovery_queue"
+    )
+    assert normalize_schema_surface_name("source exclusions") == "source_exclusion"
+    assert normalize_schema_surface_name("file inventory") == "file_inventory"
+    assert normalize_schema_surface_name("storage operation receipts") == (
+        "storage_operation_receipt"
     )
     assert normalize_schema_surface_name("unknown table") is None
     assert is_schema_surface_known("semantic records") is True
@@ -906,6 +926,11 @@ def test_required_sqlite_table_concepts_exist():
         "validation_receipts",
         "operator_promotions",
         "context_filter_receipts",
+        "source_registry",
+        "source_discovery_queue",
+        "source_exclusions",
+        "file_inventory",
+        "storage_operation_receipts",
     )
 
     table_concepts = sqlite_table_concepts()
@@ -934,6 +959,19 @@ def test_sqlite_table_concept_names_normalize_correctly():
     assert normalize_sqlite_table_concept_name("context-filter-receipts") == (
         "context_filter_receipts"
     )
+    assert normalize_sqlite_table_concept_name("source registry") == (
+        "source_registry"
+    )
+    assert normalize_sqlite_table_concept_name("source discovery") == (
+        "source_discovery_queue"
+    )
+    assert normalize_sqlite_table_concept_name("source exclusions") == (
+        "source_exclusions"
+    )
+    assert normalize_sqlite_table_concept_name("file inventory") == "file_inventory"
+    assert normalize_sqlite_table_concept_name("storage operation receipt") == (
+        "storage_operation_receipts"
+    )
     assert normalize_sqlite_table_concept_name("runtime table") is None
     assert is_sqlite_table_concept_known("provenance references") is True
     assert is_sqlite_table_concept_known("sqlite runtime") is False
@@ -948,6 +986,11 @@ def test_each_sqlite_table_concept_maps_to_expected_schema_surface():
         "validation_receipts": "validation_receipt",
         "operator_promotions": "operator_promotion",
         "context_filter_receipts": "context_filter_receipt",
+        "source_registry": "source_registry",
+        "source_discovery_queue": "source_discovery_queue",
+        "source_exclusions": "source_exclusion",
+        "file_inventory": "file_inventory",
+        "storage_operation_receipts": "storage_operation_receipt",
     }
 
     for table_name, surface_name in expected.items():
@@ -997,6 +1040,71 @@ def test_sqlite_table_concepts_expose_required_conceptual_fields():
             "finding_summary",
             "review_route",
         }
+    )
+    assert required_sqlite_table_concept_fields("source_registry") >= frozenset(
+        {
+            "source_id",
+            "device_identity",
+            "last_known_mount_path",
+            "source_mode",
+            "operator_classification",
+            "approval_receipt_ref",
+            "freshness_timestamp",
+        }
+    )
+    assert required_sqlite_table_concept_fields("file_inventory") >= frozenset(
+        {
+            "inventory_id",
+            "source_id",
+            "relative_path",
+            "file_size",
+            "mtime",
+            "hash_heuristic",
+            "inventory_status",
+            "last_seen_timestamp",
+            "source_confidence",
+        }
+    )
+    assert required_sqlite_table_concept_fields(
+        "storage_operation_receipts"
+    ) >= frozenset(
+        {
+            "operation_id",
+            "operation_type",
+            "source_inventory_id",
+            "target_path",
+            "safety_tier",
+            "checksum_verification",
+            "operator_approval_ref",
+            "execution_status",
+        }
+    )
+
+
+def test_storage_intelligence_static_value_surfaces_are_explicit():
+    assert STORAGE_INTELLIGENCE_ALLOWED_SOURCE_MODES == (
+        "ignore",
+        "guided_review",
+        "inventory_only",
+        "metadata_safe",
+        "content_allowed",
+        "private_vault",
+    )
+    assert {"camera", "field_recorder", "music_projects", "unknown"} <= set(
+        STORAGE_INTELLIGENCE_OPERATOR_CLASSIFICATIONS
+    )
+    assert "pending_approval" in STORAGE_INTELLIGENCE_DISCOVERY_STATUSES
+    assert {"discovered", "inventoried", "stale", "missing"} <= set(
+        STORAGE_INTELLIGENCE_INVENTORY_STATUSES
+    )
+    assert STORAGE_INTELLIGENCE_SAFETY_TIERS == (
+        "read_only",
+        "reversible_copy",
+        "move_after_verified_copy",
+        "destructive_or_reformat",
+    )
+    assert {"dry_run", "approved", "executed", "blocked", "failed"} <= set(
+        STORAGE_INTELLIGENCE_EXECUTION_STATUSES
     )
 
 

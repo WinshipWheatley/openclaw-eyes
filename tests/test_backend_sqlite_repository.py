@@ -10,12 +10,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import backend_sqlite_repository as repository
 import backend_sqlite_runtime as runtime
 from backend_sqlite_repository import (
+    FileInventoryRow,
     OperatorPromotion,
     ProvenanceRef,
     SemanticLabel,
     SemanticRecord,
     SemanticRelationship,
+    SourceDiscoveryEvent,
+    SourceExclusion,
+    SourceRegistryEntry,
+    StorageOperationReceipt,
     ValidationReceipt,
+    read_file_inventory_row,
+    read_file_inventory_row_by_source_relative_path,
+    read_file_inventory_rows_by_source_id,
     read_operator_promotion,
     read_provenance_ref,
     read_record_labels,
@@ -30,15 +38,28 @@ from backend_sqlite_repository import (
     read_semantic_label,
     read_semantic_record,
     read_semantic_relationship,
+    read_source_discovery_event,
+    read_source_exclusion,
+    read_source_exclusions,
+    read_source_registry_entries_by_device_identity,
+    read_source_registry_entry,
+    read_pending_source_discovery_events,
+    read_storage_operation_receipt,
+    read_storage_operation_receipts_by_inventory_id,
     read_validation_receipt,
     record_has_explicit_operator_promotion,
     semantic_record_column_names,
     table_column_names,
+    write_file_inventory_row,
     write_operator_promotion,
     write_provenance_ref,
     write_semantic_label,
     write_semantic_record,
     write_semantic_relationship,
+    write_source_discovery_event,
+    write_source_exclusion,
+    write_source_registry_entry,
+    write_storage_operation_receipt,
     write_validation_receipt,
 )
 from backend_sqlite_runtime import create_file_backed_connection, create_in_memory_connection
@@ -169,6 +190,70 @@ def sample_operator_promotion(promotion_id: str = "promotion-1") -> OperatorProm
     )
 
 
+def sample_source_registry_entry(source_id: str = "source-1") -> SourceRegistryEntry:
+    return SourceRegistryEntry(
+        source_id=source_id,
+        device_identity="device-camera-001",
+        last_known_mount_path="/Volumes/CAMERA_CARD",
+        source_mode="inventory_only",
+        operator_classification="camera",
+        approval_receipt_ref="approval-1",
+        freshness_timestamp="2026-05-06T00:00:00Z",
+    )
+
+
+def sample_source_discovery_event(
+    discovery_id: str = "discovery-1",
+) -> SourceDiscoveryEvent:
+    return SourceDiscoveryEvent(
+        discovery_id=discovery_id,
+        device_identity="device-camera-001",
+        detected_path="/Volumes/CAMERA_CARD",
+        detected_at="2026-05-06T00:00:00Z",
+        status="pending_approval",
+    )
+
+
+def sample_source_exclusion(exclusion_id: str = "exclusion-1") -> SourceExclusion:
+    return SourceExclusion(
+        exclusion_id=exclusion_id,
+        source_id="source-1",
+        pattern_type="folder",
+        path_pattern="PRIVATE/",
+        exclusion_level="private",
+        reason="operator excluded private folder",
+    )
+
+
+def sample_file_inventory_row(inventory_id: str = "inventory-1") -> FileInventoryRow:
+    return FileInventoryRow(
+        inventory_id=inventory_id,
+        source_id="source-1",
+        relative_path="DCIM/100OPEN/clip001.mov",
+        file_size=4096,
+        mtime="2026-05-06T00:00:00Z",
+        hash_heuristic="size-mtime",
+        inventory_status="inventoried",
+        last_seen_timestamp="2026-05-06T00:00:00Z",
+        source_confidence="operator-approved-source",
+    )
+
+
+def sample_storage_operation_receipt(
+    operation_id: str = "operation-1",
+) -> StorageOperationReceipt:
+    return StorageOperationReceipt(
+        operation_id=operation_id,
+        operation_type="backup_plan",
+        source_inventory_id="inventory-1",
+        target_path="/operator/provided/target",
+        safety_tier="read_only",
+        checksum_verification=0,
+        operator_approval_ref="approval-1",
+        execution_status="dry_run",
+    )
+
+
 def test_repository_module_does_not_import_sqlite3_or_create_connections():
     tree = module_ast()
     source = REPOSITORY_PATH.read_text(encoding="utf-8").lower()
@@ -197,6 +282,11 @@ def test_repository_table_column_names_match_schema_contracts():
         "provenance_refs",
         "validation_receipts",
         "operator_promotions",
+        "source_registry",
+        "source_discovery_queue",
+        "source_exclusions",
+        "file_inventory",
+        "storage_operation_receipts",
     }
 
     for table_name in expected_tables:
@@ -476,6 +566,214 @@ def test_operator_promotion_is_explicit_and_does_not_rewrite_record_truth_flags(
         assert record_has_explicit_operator_promotion(connection, "record-1") is True
         assert stored_record is not None
         assert stored_record["accepted_knowledge_derived"] == 0
+    finally:
+        connection.close()
+
+
+def test_storage_registry_inventory_exclusions_and_receipts_round_trip():
+    connection = create_in_memory_connection()
+    try:
+        source = sample_source_registry_entry()
+        discovery = sample_source_discovery_event()
+        exclusion = sample_source_exclusion()
+        inventory = sample_file_inventory_row()
+        receipt = sample_storage_operation_receipt()
+
+        write_source_registry_entry(connection, source)
+        write_source_discovery_event(connection, discovery)
+        write_source_exclusion(connection, exclusion)
+        write_file_inventory_row(connection, inventory)
+        write_storage_operation_receipt(connection, receipt)
+
+        assert read_source_registry_entry(connection, "source-1") == source.__dict__
+        assert read_source_discovery_event(connection, "discovery-1") == discovery.__dict__
+        assert read_source_exclusion(connection, "exclusion-1") == exclusion.__dict__
+        assert read_file_inventory_row(connection, "inventory-1") == inventory.__dict__
+        assert read_storage_operation_receipt(connection, "operation-1") == (
+            receipt.__dict__
+        )
+    finally:
+        connection.close()
+
+
+def test_storage_query_helpers_are_deterministic_and_source_scoped():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(connection, sample_source_registry_entry("source-b"))
+        write_source_registry_entry(connection, sample_source_registry_entry("source-a"))
+        for discovery_id, detected_at, status in (
+            ("discovery-c", "2026-05-06T00:02:00Z", "pending_approval"),
+            ("discovery-a", "2026-05-06T00:01:00Z", "pending_approval"),
+            ("discovery-b", "2026-05-06T00:01:00Z", "approved"),
+        ):
+            write_source_discovery_event(
+                connection,
+                {
+                    **sample_source_discovery_event(discovery_id).__dict__,
+                    "detected_at": detected_at,
+                    "status": status,
+                },
+            )
+        write_source_exclusion(
+            connection,
+            {**sample_source_exclusion("exclusion-b").__dict__, "source_id": "source-a"},
+        )
+        write_source_exclusion(
+            connection,
+            {**sample_source_exclusion("exclusion-a").__dict__, "source_id": "source-a"},
+        )
+        write_file_inventory_row(
+            connection,
+            {
+                **sample_file_inventory_row("inventory-b").__dict__,
+                "source_id": "source-a",
+                "relative_path": "z-last.wav",
+            },
+        )
+        write_file_inventory_row(
+            connection,
+            {
+                **sample_file_inventory_row("inventory-a").__dict__,
+                "source_id": "source-a",
+                "relative_path": "a-first.wav",
+            },
+        )
+        write_storage_operation_receipt(
+            connection,
+            {
+                **sample_storage_operation_receipt("operation-b").__dict__,
+                "source_inventory_id": "inventory-a",
+            },
+        )
+        write_storage_operation_receipt(
+            connection,
+            {
+                **sample_storage_operation_receipt("operation-a").__dict__,
+                "source_inventory_id": "inventory-a",
+            },
+        )
+
+        assert [
+            row["source_id"]
+            for row in read_source_registry_entries_by_device_identity(
+                connection,
+                "device-camera-001",
+            )
+        ] == ["source-a", "source-b"]
+        assert [
+            row["discovery_id"] for row in read_pending_source_discovery_events(connection)
+        ] == ["discovery-a", "discovery-c"]
+        assert [
+            row["exclusion_id"] for row in read_source_exclusions(connection, "source-a")
+        ] == ["exclusion-a", "exclusion-b"]
+        assert [
+            row["inventory_id"]
+            for row in read_file_inventory_rows_by_source_id(connection, "source-a")
+        ] == ["inventory-a", "inventory-b"]
+        assert read_file_inventory_row_by_source_relative_path(
+            connection,
+            "source-a",
+            "a-first.wav",
+        )["inventory_id"] == "inventory-a"
+        assert [
+            row["operation_id"]
+            for row in read_storage_operation_receipts_by_inventory_id(
+                connection,
+                "inventory-a",
+            )
+        ] == ["operation-a", "operation-b"]
+    finally:
+        connection.close()
+
+
+def test_file_inventory_identity_is_source_id_plus_relative_path_not_mount_path():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(
+            connection,
+            {
+                **sample_source_registry_entry("source-1").__dict__,
+                "last_known_mount_path": "/Volumes/CAMERA_CARD",
+            },
+        )
+        write_source_registry_entry(
+            connection,
+            {
+                **sample_source_registry_entry("source-2").__dict__,
+                "last_known_mount_path": "/mnt/e",
+            },
+        )
+        write_file_inventory_row(connection, sample_file_inventory_row("inventory-1"))
+        write_file_inventory_row(
+            connection,
+            {
+                **sample_file_inventory_row("inventory-2").__dict__,
+                "source_id": "source-2",
+            },
+        )
+
+        assert read_file_inventory_row_by_source_relative_path(
+            connection,
+            "source-1",
+            "DCIM/100OPEN/clip001.mov",
+        )["inventory_id"] == "inventory-1"
+        assert read_file_inventory_row_by_source_relative_path(
+            connection,
+            "source-2",
+            "DCIM/100OPEN/clip001.mov",
+        )["inventory_id"] == "inventory-2"
+    finally:
+        connection.close()
+
+
+def test_storage_repository_writes_fail_closed_for_unknown_references():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            write_source_exclusion(connection, sample_source_exclusion())
+        with pytest.raises(ValueError):
+            write_file_inventory_row(connection, sample_file_inventory_row())
+
+        write_source_registry_entry(connection, sample_source_registry_entry())
+        with pytest.raises(ValueError):
+            write_storage_operation_receipt(connection, sample_storage_operation_receipt())
+    finally:
+        connection.close()
+
+
+def test_storage_repository_rejects_absolute_paths_and_bool_numeric_values():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(connection, sample_source_registry_entry())
+        for relative_path in (
+            "/absolute/path.mov",
+            "../outside.mov",
+            "folder/../outside.mov",
+            "C:\\absolute\\path.mov",
+        ):
+            with pytest.raises(ValueError):
+                write_file_inventory_row(
+                    connection,
+                    {
+                        **sample_file_inventory_row(f"inventory-{relative_path}").__dict__,
+                        "relative_path": relative_path,
+                    },
+                )
+        with pytest.raises(ValueError):
+            write_file_inventory_row(
+                connection,
+                {**sample_file_inventory_row("bool-size").__dict__, "file_size": True},
+            )
+
+        write_file_inventory_row(connection, sample_file_inventory_row())
+        with pytest.raises(ValueError):
+            write_storage_operation_receipt(
+                connection,
+                {
+                    **sample_storage_operation_receipt().__dict__,
+                    "checksum_verification": True,
+                },
+            )
     finally:
         connection.close()
 

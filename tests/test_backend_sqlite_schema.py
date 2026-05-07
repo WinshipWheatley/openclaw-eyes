@@ -45,6 +45,11 @@ EXPECTED_PRIMARY_KEYS = {
     "validation_receipts": "receipt_id",
     "operator_promotions": "promotion_id",
     "context_filter_receipts": "context_filter_receipt_id",
+    "source_registry": "source_id",
+    "source_discovery_queue": "discovery_id",
+    "source_exclusions": "exclusion_id",
+    "file_inventory": "inventory_id",
+    "storage_operation_receipts": "operation_id",
 }
 
 TABLE_LEVEL_SQL_PREFIXES = (
@@ -135,7 +140,7 @@ def test_module_is_inert_and_does_not_import_sqlite3():
     }
 
 
-def test_all_seven_table_concepts_exist_in_contract_order():
+def test_all_table_concepts_exist_in_contract_order():
     assert sqlite_schema_table_names() == REQUIRED_SQLITE_TABLE_CONCEPTS
     assert SQLITE_SCHEMA_TABLE_NAMES == (
         "semantic_records",
@@ -145,8 +150,13 @@ def test_all_seven_table_concepts_exist_in_contract_order():
         "validation_receipts",
         "operator_promotions",
         "context_filter_receipts",
+        "source_registry",
+        "source_discovery_queue",
+        "source_exclusions",
+        "file_inventory",
+        "storage_operation_receipts",
     )
-    assert len(sqlite_schema_tables()) == 7
+    assert len(sqlite_schema_tables()) == 12
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
 
 
@@ -330,10 +340,74 @@ def test_labels_preserve_freshness_confidence_authority_sensitivity_and_review()
     assert "review_route" in context_filter.conceptual_fields
 
 
+def test_operator_storage_intelligence_tables_preserve_static_boundaries():
+    source_registry = sqlite_schema_table("source_registry")
+    discovery_queue = sqlite_schema_table("source_discovery_queue")
+    exclusions = sqlite_schema_table("source_exclusions")
+    inventory = sqlite_schema_table("file_inventory")
+    receipts = sqlite_schema_table("storage_operation_receipts")
+
+    assert source_registry is not None
+    assert discovery_queue is not None
+    assert exclusions is not None
+    assert inventory is not None
+    assert receipts is not None
+
+    assert {
+        "source_id",
+        "device_identity",
+        "last_known_mount_path",
+        "source_mode",
+        "operator_classification",
+        "approval_receipt_ref",
+        "freshness_timestamp",
+    } <= set(source_registry.column_names)
+    assert {
+        "discovery_id",
+        "device_identity",
+        "detected_path",
+        "detected_at",
+        "status",
+    } <= set(discovery_queue.column_names)
+    assert {
+        "exclusion_id",
+        "source_id",
+        "pattern_type",
+        "path_pattern",
+        "exclusion_level",
+        "reason",
+    } <= set(exclusions.column_names)
+    assert {
+        "inventory_id",
+        "source_id",
+        "relative_path",
+        "file_size",
+        "mtime",
+        "hash_heuristic",
+        "inventory_status",
+        "last_seen_timestamp",
+        "source_confidence",
+    } <= set(inventory.column_names)
+    assert {
+        "operation_id",
+        "operation_type",
+        "source_inventory_id",
+        "target_path",
+        "safety_tier",
+        "checksum_verification",
+        "operator_approval_ref",
+        "execution_status",
+    } <= set(receipts.column_names)
+    assert "UNIQUE (source_id, relative_path)" in inventory.create_table_sql
+    assert inventory.retrieval_structure_fields == frozenset(
+        {"source_id", "relative_path"}
+    )
+
+
 def test_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_schema_sql_definitions()
 
-    assert len(sql_definitions) == 7
+    assert len(sql_definitions) == 12
     for table_name, sql_text in zip(sqlite_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")
@@ -349,7 +423,7 @@ def test_sql_strings_are_inert_definitions_only():
 def test_physical_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_physical_schema_sql_definitions()
 
-    assert len(sql_definitions) == 8
+    assert len(sql_definitions) == 13
     for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")

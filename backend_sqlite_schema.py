@@ -178,6 +178,66 @@ CONTEXT_FILTER_RECEIPTS_COLUMNS = (
     ColumnDefinition("authority_boundary", "TEXT", "authority_label", required=False),
 )
 
+SOURCE_REGISTRY_COLUMNS = (
+    ColumnDefinition("source_id", "TEXT", "source_id"),
+    ColumnDefinition("device_identity", "TEXT", "device_identity"),
+    ColumnDefinition(
+        "last_known_mount_path",
+        "TEXT",
+        "last_known_mount_path",
+        purpose="Ephemeral source location; not a durable file identity.",
+    ),
+    ColumnDefinition("source_mode", "TEXT", "source_mode"),
+    ColumnDefinition("operator_classification", "TEXT", "operator_classification"),
+    ColumnDefinition("approval_receipt_ref", "TEXT", "approval_receipt_ref"),
+    ColumnDefinition("freshness_timestamp", "TEXT", "freshness_timestamp"),
+)
+
+SOURCE_DISCOVERY_QUEUE_COLUMNS = (
+    ColumnDefinition("discovery_id", "TEXT", "discovery_id"),
+    ColumnDefinition("device_identity", "TEXT", "device_identity"),
+    ColumnDefinition("detected_path", "TEXT", "detected_path"),
+    ColumnDefinition("detected_at", "TEXT", "detected_at"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
+SOURCE_EXCLUSIONS_COLUMNS = (
+    ColumnDefinition("exclusion_id", "TEXT", "exclusion_id"),
+    ColumnDefinition("source_id", "TEXT", "source_id"),
+    ColumnDefinition("pattern_type", "TEXT", "pattern_type"),
+    ColumnDefinition("path_pattern", "TEXT", "path_pattern"),
+    ColumnDefinition("exclusion_level", "TEXT", "exclusion_level"),
+    ColumnDefinition("reason", "TEXT", "reason"),
+)
+
+FILE_INVENTORY_COLUMNS = (
+    ColumnDefinition("inventory_id", "TEXT", "inventory_id"),
+    ColumnDefinition("source_id", "TEXT", "source_id"),
+    ColumnDefinition(
+        "relative_path",
+        "TEXT",
+        "relative_path",
+        purpose="Durable source-local file identity; never an absolute mount path.",
+    ),
+    ColumnDefinition("file_size", "INTEGER", "file_size"),
+    ColumnDefinition("mtime", "TEXT", "mtime"),
+    ColumnDefinition("hash_heuristic", "TEXT", "hash_heuristic"),
+    ColumnDefinition("inventory_status", "TEXT", "inventory_status"),
+    ColumnDefinition("last_seen_timestamp", "TEXT", "last_seen_timestamp"),
+    ColumnDefinition("source_confidence", "TEXT", "source_confidence"),
+)
+
+STORAGE_OPERATION_RECEIPTS_COLUMNS = (
+    ColumnDefinition("operation_id", "TEXT", "operation_id"),
+    ColumnDefinition("operation_type", "TEXT", "operation_type"),
+    ColumnDefinition("source_inventory_id", "TEXT", "source_inventory_id"),
+    ColumnDefinition("target_path", "TEXT", "target_path"),
+    ColumnDefinition("safety_tier", "TEXT", "safety_tier"),
+    ColumnDefinition("checksum_verification", "INTEGER", "checksum_verification"),
+    ColumnDefinition("operator_approval_ref", "TEXT", "operator_approval_ref"),
+    ColumnDefinition("execution_status", "TEXT", "execution_status"),
+)
+
 SCHEMA_VERSIONS_COLUMNS = (
     ColumnDefinition(
         "schema_version",
@@ -367,6 +427,92 @@ CREATE TABLE context_filter_receipts (
   finding_summary TEXT NOT NULL,
   review_route TEXT NOT NULL,
   authority_boundary TEXT
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="source_registry",
+        related_schema_contract_surface="source_registry",
+        columns=SOURCE_REGISTRY_COLUMNS,
+        retrieval_structure_fields=frozenset(),
+        create_table_sql="""
+CREATE TABLE source_registry (
+  source_id TEXT PRIMARY KEY,
+  device_identity TEXT NOT NULL,
+  last_known_mount_path TEXT NOT NULL,
+  source_mode TEXT NOT NULL,
+  operator_classification TEXT NOT NULL,
+  approval_receipt_ref TEXT NOT NULL,
+  freshness_timestamp TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="source_discovery_queue",
+        related_schema_contract_surface="source_discovery_queue",
+        columns=SOURCE_DISCOVERY_QUEUE_COLUMNS,
+        retrieval_structure_fields=frozenset(),
+        create_table_sql="""
+CREATE TABLE source_discovery_queue (
+  discovery_id TEXT PRIMARY KEY,
+  device_identity TEXT NOT NULL,
+  detected_path TEXT NOT NULL,
+  detected_at TEXT NOT NULL,
+  status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="source_exclusions",
+        related_schema_contract_surface="source_exclusion",
+        columns=SOURCE_EXCLUSIONS_COLUMNS,
+        retrieval_structure_fields=frozenset(),
+        create_table_sql="""
+CREATE TABLE source_exclusions (
+  exclusion_id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  pattern_type TEXT NOT NULL,
+  path_pattern TEXT NOT NULL,
+  exclusion_level TEXT NOT NULL,
+  reason TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="file_inventory",
+        related_schema_contract_surface="file_inventory",
+        columns=FILE_INVENTORY_COLUMNS,
+        retrieval_structure_fields=frozenset({"source_id", "relative_path"}),
+        create_table_sql="""
+CREATE TABLE file_inventory (
+  inventory_id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  relative_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  mtime TEXT NOT NULL,
+  hash_heuristic TEXT NOT NULL,
+  inventory_status TEXT NOT NULL,
+  last_seen_timestamp TEXT NOT NULL,
+  source_confidence TEXT NOT NULL,
+  UNIQUE (source_id, relative_path)
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="storage_operation_receipts",
+        related_schema_contract_surface="storage_operation_receipt",
+        columns=STORAGE_OPERATION_RECEIPTS_COLUMNS,
+        retrieval_structure_fields=frozenset(),
+        create_table_sql="""
+CREATE TABLE storage_operation_receipts (
+  operation_id TEXT PRIMARY KEY,
+  operation_type TEXT NOT NULL,
+  source_inventory_id TEXT NOT NULL,
+  target_path TEXT NOT NULL,
+  safety_tier TEXT NOT NULL,
+  checksum_verification INTEGER NOT NULL,
+  operator_approval_ref TEXT NOT NULL,
+  execution_status TEXT NOT NULL
 );
 """.strip(),
     ),

@@ -41,6 +41,11 @@ EXPECTED_PRIMARY_KEYS = {
     "validation_receipts": "receipt_id",
     "operator_promotions": "promotion_id",
     "context_filter_receipts": "context_filter_receipt_id",
+    "source_registry": "source_id",
+    "source_discovery_queue": "discovery_id",
+    "source_exclusions": "exclusion_id",
+    "file_inventory": "inventory_id",
+    "storage_operation_receipts": "operation_id",
 }
 
 
