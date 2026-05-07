@@ -176,14 +176,21 @@ This handoff records the train position. The 24_files and canonical source-set d
 - **Audit-to-Execution Rule**
 - **Visible-Road Rule:** When the road is visible, prompt the agent with the road, not a crumb. If A-E are clear, include A-E in one prompt. If F branches, the agent should evaluate the branch, choose the better path using stated criteria, and continue if clear. Stop only at real review points.
 
+### North Star Rails Doctrine (Motherland / Big-Strides)
+- **The Choo Choo Train:** The active handoff is the train. It records where the train is now: what was done, what mile markers were passed, current detours, validation receipts, and what a new chat must verify before moving.
+- **Not the Roadmap:** The handoff must not become the roadmap by itself. It should keep new chats oriented back to the `24_files` and current canonical docs.
+- **Big-Strides over Timid Crumbs:** Prompts should not shrink the operator’s ambition into timid crumbs. When the visible road is clear, prompts should carry the whole relevant picture and ask for the right-sized stride.
+- **Safe Big Strides:** “Big stride” does not mean unsafe scope expansion. It means the largest correct bounded chunk that preserves rollback/review points. Future chats should translate the big vision into concrete bounded lanes with strong examples, clear boundaries, validation, and a review stop.
+
 ## 12. 24_files Rule
 
-- `24_files` are stable historical/source packet context.
+- **The Railroad Tracks:** `24_files` are the durable rails. They define the roadmap, source-set authority, North Star continuity, and bird’s-eye future-work direction.
+- **Bird's-Eye View:** The point of a `24_files` batch is to enable substantial future work from a bird’s-eye view, so the train can gain as much distance as possible in the right direction toward the North Star.
+- `24_files` are stable historical/source packet context until exhausted.
 - **Do not edit `24_files` during the active lane.**
 - Current truth lives in this handoff plus canonical repo commits/docs.
 - **The current active handoff should orient new chats back to `24_files`.**
-- `24_files` are stable source-packet context until exhausted.
-- **Archive the current `24_files` together with the final active handoff as a paired snapshot before generating the next batch.**
+- **Renewal Protocol:** The next `24_files` renewal should allow the current handoff to flow into the new chat’s handoff, then switch authority to the newly built handoff, then archive the old handoff together with the old `24_files` as the paired snapshot of where that batch ended.
 
 ## 13. Required Validation
 

@@ -410,3 +410,6 @@
 !tests/test_backend_performance_intelligence.py
 !tests/test_backend_agent_context.py
 !tests/test_chief_listener_lifecycle.py
+
+!docs/planning/chase_money/
+!docs/planning/chase_money/*.md
