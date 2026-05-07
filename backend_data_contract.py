@@ -304,6 +304,9 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "source_exclusion",
     "file_inventory",
     "storage_operation_receipt",
+    "openclaw_node",
+    "node_source_link",
+    "source_authorization_scope",
 )
 
 REQUIRED_SQLITE_TABLE_CONCEPTS = (
@@ -319,6 +322,9 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "source_exclusions",
     "file_inventory",
     "storage_operation_receipts",
+    "openclaw_nodes",
+    "node_source_links",
+    "source_authorization_scopes",
 )
 
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
@@ -421,6 +427,46 @@ STORAGE_INTELLIGENCE_EXECUTION_STATUSES = (
     "verified",
     "blocked",
     "failed",
+)
+
+ENVIRONMENT_INTELLIGENCE_NODE_ROLES = (
+    "primary",
+    "worker",
+    "observer",
+    "mobile",
+    "source_only",
+    "firm_workstation",
+)
+
+ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES = (
+    "unknown",
+    "pending_approval",
+    "approved",
+    "revoked",
+    "stale",
+)
+
+ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES = (
+    "pending",
+    "active",
+    "revoked",
+    "stale",
+)
+
+ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES = (
+    "active",
+    "expired",
+    "revoked",
+)
+
+ENVIRONMENT_INTELLIGENCE_AUTHORIZED_ENTITY_FAMILIES = (
+    "personal_project",
+    "music_project",
+    "video_project",
+    "legal_matter",
+    "client_delivery",
+    "archive",
+    "system",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -651,6 +697,70 @@ SCHEMA_CONTRACT_SURFACES = (
                 "checksum_verification",
                 "operator_approval_ref",
                 "execution_status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="openclaw_node",
+        purpose=(
+            "Approved OpenClaw-aware endpoint identity surface; node approval "
+            "does not authorize source, content, network, or remote execution access."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "node_id",
+                "node_identity",
+                "node_fingerprint",
+                "trust_status",
+                "identity_verified_at",
+                "node_role",
+                "tenant_id",
+                "agent_version",
+                "status",
+                "operator_approval_ref",
+                "first_seen",
+                "last_seen",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="node_source_link",
+        purpose=(
+            "Explicit tenant-scoped link between an approved node and approved "
+            "source; the link does not authorize content access."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "link_id",
+                "node_id",
+                "source_id",
+                "tenant_id",
+                "status",
+                "linked_at",
+                "last_seen",
+                "operator_approval_ref",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="source_authorization_scope",
+        purpose=(
+            "Explicit tenant-scoped source authorization for sensitive, legal, "
+            "private, and matter workflows before any source/content handling."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "scope_id",
+                "source_id",
+                "tenant_id",
+                "authorized_entity_family",
+                "authorized_entity_id",
+                "operator_approval_ref",
+                "expiration_timestamp",
+                "status",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -918,6 +1028,73 @@ SQLITE_TABLE_CONCEPTS = (
             }
         ),
         related_schema_contract_surface="storage_operation_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="openclaw_nodes",
+        purpose=(
+            "Static table concept for OpenClaw-aware node identity, tenant, trust, "
+            "and operator approval state without network communication authority."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "node_id",
+                "node_identity",
+                "node_fingerprint",
+                "trust_status",
+                "identity_verified_at",
+                "node_role",
+                "tenant_id",
+                "agent_version",
+                "status",
+                "operator_approval_ref",
+                "first_seen",
+                "last_seen",
+            }
+        ),
+        related_schema_contract_surface="openclaw_node",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="node_source_links",
+        purpose=(
+            "Static table concept for explicit tenant-scoped node/source links; "
+            "node approval and source approval remain separate."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "link_id",
+                "node_id",
+                "source_id",
+                "tenant_id",
+                "status",
+                "linked_at",
+                "last_seen",
+                "operator_approval_ref",
+            }
+        ),
+        related_schema_contract_surface="node_source_link",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="source_authorization_scopes",
+        purpose=(
+            "Static table concept for scoped source authorization; tenant and "
+            "authorized entity are required before sensitive/legal/private handling."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "scope_id",
+                "source_id",
+                "tenant_id",
+                "authorized_entity_family",
+                "authorized_entity_id",
+                "operator_approval_ref",
+                "expiration_timestamp",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="source_authorization_scope",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
 )
@@ -1226,6 +1403,12 @@ _SCHEMA_SURFACE_ALIASES = {
     "file inventory": "file_inventory",
     "storage operation receipt": "storage_operation_receipt",
     "storage operation receipts": "storage_operation_receipt",
+    "openclaw node": "openclaw_node",
+    "openclaw nodes": "openclaw_node",
+    "node source link": "node_source_link",
+    "node source links": "node_source_link",
+    "source authorization scope": "source_authorization_scope",
+    "source authorization scopes": "source_authorization_scope",
 }
 _SQLITE_TABLE_CONCEPTS_BY_NAME = {
     concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
@@ -1260,6 +1443,12 @@ _SQLITE_TABLE_CONCEPT_ALIASES = {
     "file inventory": "file_inventory",
     "storage operation receipt": "storage_operation_receipts",
     "storage operation receipts": "storage_operation_receipts",
+    "openclaw node": "openclaw_nodes",
+    "openclaw nodes": "openclaw_nodes",
+    "node source link": "node_source_links",
+    "node source links": "node_source_links",
+    "source authorization scope": "source_authorization_scopes",
+    "source authorization scopes": "source_authorization_scopes",
 }
 
 

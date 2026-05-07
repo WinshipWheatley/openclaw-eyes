@@ -19,6 +19,9 @@ SOURCE_DISCOVERY_QUEUE_TABLE_NAME = "source_discovery_queue"
 SOURCE_EXCLUSIONS_TABLE_NAME = "source_exclusions"
 FILE_INVENTORY_TABLE_NAME = "file_inventory"
 STORAGE_OPERATION_RECEIPTS_TABLE_NAME = "storage_operation_receipts"
+OPENCLAW_NODES_TABLE_NAME = "openclaw_nodes"
+NODE_SOURCE_LINKS_TABLE_NAME = "node_source_links"
+SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME = "source_authorization_scopes"
 
 REPOSITORY_TABLE_PRIMARY_KEYS = {
     SEMANTIC_RECORDS_TABLE_NAME: "record_id",
@@ -32,6 +35,9 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     SOURCE_EXCLUSIONS_TABLE_NAME: "exclusion_id",
     FILE_INVENTORY_TABLE_NAME: "inventory_id",
     STORAGE_OPERATION_RECEIPTS_TABLE_NAME: "operation_id",
+    OPENCLAW_NODES_TABLE_NAME: "node_id",
+    NODE_SOURCE_LINKS_TABLE_NAME: "link_id",
+    SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME: "scope_id",
 }
 
 
@@ -205,6 +211,52 @@ class StorageOperationReceipt:
     checksum_verification: int
     operator_approval_ref: str
     execution_status: str
+
+
+@dataclass(frozen=True)
+class OpenClawNode:
+    """Approved OpenClaw-aware node row; no source/content access is implied."""
+
+    node_id: str
+    node_identity: str
+    node_fingerprint: str
+    trust_status: str
+    identity_verified_at: str
+    node_role: str
+    tenant_id: str
+    agent_version: str
+    status: str
+    operator_approval_ref: str
+    first_seen: str
+    last_seen: str
+
+
+@dataclass(frozen=True)
+class NodeSourceLink:
+    """Tenant-scoped link between a node and an approved source."""
+
+    link_id: str
+    node_id: str
+    source_id: str
+    tenant_id: str
+    status: str
+    linked_at: str
+    last_seen: str
+    operator_approval_ref: str
+
+
+@dataclass(frozen=True)
+class SourceAuthorizationScope:
+    """Explicit tenant/source/entity authorization scope."""
+
+    scope_id: str
+    source_id: str
+    tenant_id: str
+    authorized_entity_family: str
+    authorized_entity_id: str
+    operator_approval_ref: str
+    expiration_timestamp: str
+    status: str
 
 
 def semantic_record_column_names() -> tuple[str, ...]:
@@ -670,6 +722,257 @@ def read_storage_operation_receipts_by_inventory_id(
     )
 
 
+def write_openclaw_node(
+    connection: Any,
+    node: OpenClawNode | Mapping[str, Any],
+) -> None:
+    """Insert one OpenClaw-aware node row without network communication."""
+
+    payload = _table_payload(OPENCLAW_NODES_TABLE_NAME, node)
+    _require_non_empty_string(payload["node_identity"], "node_identity")
+    _require_non_empty_string(payload["node_fingerprint"], "node_fingerprint")
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _insert_row(connection, OPENCLAW_NODES_TABLE_NAME, payload)
+
+
+def read_openclaw_node(connection: Any, node_id: str) -> dict[str, Any] | None:
+    """Read one openclaw_nodes row by explicit node_id."""
+
+    return _read_row_by_primary_key(connection, OPENCLAW_NODES_TABLE_NAME, node_id)
+
+
+def read_openclaw_nodes_by_node_identity(
+    connection: Any,
+    node_identity: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read nodes for one exact node identity in deterministic node_id order."""
+
+    _require_non_empty_string(node_identity, "node_identity")
+    return _read_rows_where(
+        connection,
+        OPENCLAW_NODES_TABLE_NAME,
+        "node_identity",
+        node_identity,
+        order_by="node_id",
+    )
+
+
+def read_openclaw_nodes_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read nodes for one tenant in deterministic node_id order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        OPENCLAW_NODES_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="node_id",
+    )
+
+
+def read_openclaw_nodes_by_trust_status(
+    connection: Any,
+    trust_status: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read nodes by exact trust status in deterministic node_id order."""
+
+    _require_non_empty_string(trust_status, "trust_status")
+    return _read_rows_where(
+        connection,
+        OPENCLAW_NODES_TABLE_NAME,
+        "trust_status",
+        trust_status,
+        order_by="node_id",
+    )
+
+
+def read_openclaw_nodes_by_status(
+    connection: Any,
+    status: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read nodes by exact status in deterministic node_id order."""
+
+    _require_non_empty_string(status, "status")
+    return _read_rows_where(
+        connection,
+        OPENCLAW_NODES_TABLE_NAME,
+        "status",
+        status,
+        order_by="node_id",
+    )
+
+
+def write_node_source_link(
+    connection: Any,
+    link: NodeSourceLink | Mapping[str, Any],
+) -> None:
+    """Insert one explicit node/source link; this does not authorize content."""
+
+    payload = _table_payload(NODE_SOURCE_LINKS_TABLE_NAME, link)
+    _require_existing_openclaw_node(connection, payload["node_id"])
+    _require_existing_source_registry_entry(connection, payload["source_id"])
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    node_row = read_openclaw_node(connection, payload["node_id"])
+    if node_row is not None and node_row["tenant_id"] != payload["tenant_id"]:
+        raise ValueError("node_source_links.tenant_id must match openclaw_nodes.tenant_id")
+    _insert_row(connection, NODE_SOURCE_LINKS_TABLE_NAME, payload)
+
+
+def read_node_source_link(connection: Any, link_id: str) -> dict[str, Any] | None:
+    """Read one node_source_links row by explicit link_id."""
+
+    return _read_row_by_primary_key(connection, NODE_SOURCE_LINKS_TABLE_NAME, link_id)
+
+
+def read_node_source_links_by_node_id(
+    connection: Any,
+    node_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read source links for one node in deterministic link_id order."""
+
+    _require_existing_openclaw_node(connection, node_id)
+    return _read_rows_where(
+        connection,
+        NODE_SOURCE_LINKS_TABLE_NAME,
+        "node_id",
+        node_id,
+        order_by="link_id",
+    )
+
+
+def read_node_source_links_by_source_id(
+    connection: Any,
+    source_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read node links for one source in deterministic link_id order."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    return _read_rows_where(
+        connection,
+        NODE_SOURCE_LINKS_TABLE_NAME,
+        "source_id",
+        source_id,
+        order_by="link_id",
+    )
+
+
+def read_node_source_links_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read node/source links for one tenant in deterministic link_id order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        NODE_SOURCE_LINKS_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="link_id",
+    )
+
+
+def write_source_authorization_scope(
+    connection: Any,
+    scope: SourceAuthorizationScope | Mapping[str, Any],
+) -> None:
+    """Insert one explicit source authorization scope."""
+
+    payload = _table_payload(SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME, scope)
+    _require_existing_source_registry_entry(connection, payload["source_id"])
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_non_empty_string(
+        payload["authorized_entity_family"],
+        "authorized_entity_family",
+    )
+    _require_non_empty_string(payload["authorized_entity_id"], "authorized_entity_id")
+    _insert_row(connection, SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME, payload)
+
+
+def read_source_authorization_scope(
+    connection: Any,
+    scope_id: str,
+) -> dict[str, Any] | None:
+    """Read one source_authorization_scopes row by explicit scope_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME,
+        scope_id,
+    )
+
+
+def read_source_authorization_scopes_by_source_id(
+    connection: Any,
+    source_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read authorization scopes for one source in deterministic scope_id order."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    return _read_rows_where(
+        connection,
+        SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME,
+        "source_id",
+        source_id,
+        order_by="scope_id",
+    )
+
+
+def read_source_authorization_scopes_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read authorization scopes for one tenant in deterministic scope_id order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="scope_id",
+    )
+
+
+def read_active_source_authorization_scopes(
+    connection: Any,
+    source_id: str,
+    tenant_id: str,
+    authorized_entity_family: str,
+    authorized_entity_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read active exact source authorization scopes for one tenant/entity."""
+
+    _require_existing_source_registry_entry(connection, source_id)
+    _require_non_empty_string(tenant_id, "tenant_id")
+    _require_non_empty_string(authorized_entity_family, "authorized_entity_family")
+    _require_non_empty_string(authorized_entity_id, "authorized_entity_id")
+    columns = table_column_names(SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM source_authorization_scopes
+WHERE source_id = ?
+  AND tenant_id = ?
+  AND authorized_entity_family = ?
+  AND authorized_entity_id = ?
+  AND status = ?
+ORDER BY scope_id
+""".strip(),
+        (
+            source_id,
+            tenant_id,
+            authorized_entity_family,
+            authorized_entity_id,
+            "active",
+        ),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
 def read_record_ids_for_exact_label_seed(
     connection: Any,
     label_name: str,
@@ -895,6 +1198,12 @@ def _require_existing_file_inventory_row(connection: Any, inventory_id: str) -> 
     _require_non_empty_string(inventory_id, "inventory_id")
     if read_file_inventory_row(connection, inventory_id) is None:
         raise ValueError(f"unknown file inventory reference: {inventory_id}")
+
+
+def _require_existing_openclaw_node(connection: Any, node_id: str) -> None:
+    _require_non_empty_string(node_id, "node_id")
+    if read_openclaw_node(connection, node_id) is None:
+        raise ValueError(f"unknown OpenClaw node reference: {node_id}")
 
 
 def _require_repository_table_name(table_name: str) -> str:

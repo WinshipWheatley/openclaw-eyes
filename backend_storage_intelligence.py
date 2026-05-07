@@ -10,6 +10,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from backend_data_contract import (
+    ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES,
+    ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES,
+    ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES,
     STORAGE_INTELLIGENCE_EXECUTION_STATUSES,
     STORAGE_INTELLIGENCE_SAFETY_TIERS,
 )
@@ -22,6 +25,9 @@ HIGH_RISK_SAFETY_TIERS = frozenset(
     }
 )
 NON_EXECUTING_PLAN_STATUSES = frozenset({"dry_run", "planned", "blocked"})
+AUTHORIZATION_READINESS_SCOPE_STATUSES = frozenset(
+    ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES
+) | {"missing"}
 
 
 @dataclass(frozen=True)
@@ -62,6 +68,25 @@ class DryRunStoragePlan:
     receipt_refs: tuple[str, ...] = ()
     risk_findings: tuple[StorageRiskFinding, ...] = ()
     plan_status: str = "non_executing"
+
+
+@dataclass(frozen=True)
+class NodeAuthorizationSnapshot:
+    """Caller-provided node/source/tenant authorization state."""
+
+    node_id: str
+    node_trust_status: str
+    node_status: str
+    node_tenant_id: str
+    source_id: str
+    source_tenant_id: str
+    source_link_status: str
+    authorization_scope_status: str
+    authorized_entity_family: str
+    authorized_entity_id: str
+    source_mode: str
+    operator_approval_ref: str
+    agent_version: str = ""
 
 
 def evaluate_storage_operation_risks(
@@ -159,6 +184,106 @@ def assemble_dry_run_storage_plan(
     )
 
 
+def evaluate_node_authorization_risks(
+    snapshot: NodeAuthorizationSnapshot,
+) -> tuple[StorageRiskFinding, ...]:
+    """Return deterministic zero-trust risks from caller-provided node state."""
+
+    _validate_node_authorization_snapshot(snapshot)
+    findings: list[StorageRiskFinding] = []
+    if snapshot.node_trust_status == "unknown":
+        findings.append(
+            _node_risk(
+                snapshot,
+                "unknown_node",
+                "high",
+                "node trust is unknown; discovery does not authorize communication",
+            )
+        )
+    if snapshot.node_trust_status == "pending_approval":
+        findings.append(
+            _node_risk(
+                snapshot,
+                "unapproved_node",
+                "high",
+                "node requires explicit operator approval before use",
+            )
+        )
+    if snapshot.node_trust_status == "revoked":
+        findings.append(
+            _node_risk(snapshot, "revoked_node", "high", "node trust is revoked")
+        )
+    if snapshot.node_trust_status == "stale":
+        findings.append(_node_risk(snapshot, "stale_node", "medium", "node trust is stale"))
+    if snapshot.node_tenant_id != snapshot.source_tenant_id:
+        findings.append(
+            _node_risk(
+                snapshot,
+                "node_source_tenant_mismatch",
+                "high",
+                "node/source tenant mismatch blocks cross-tenant operation",
+            )
+        )
+    if snapshot.source_link_status != "active":
+        findings.append(
+            _node_risk(
+                snapshot,
+                "source_not_actively_linked_to_node",
+                "high",
+                "source must have an active tenant-scoped node/source link",
+            )
+        )
+    if snapshot.authorization_scope_status != "active":
+        findings.append(
+            _node_risk(
+                snapshot,
+                f"{snapshot.authorization_scope_status}_source_authorization_scope",
+                "high",
+                "source authorization scope is missing, expired, or revoked",
+            )
+        )
+    if (
+        snapshot.authorized_entity_family == "legal_matter"
+        and snapshot.authorization_scope_status != "active"
+    ):
+        findings.append(
+            _node_risk(
+                snapshot,
+                "legal_private_source_without_active_scope",
+                "high",
+                "legal/private source handling requires an active matching scope",
+            )
+        )
+    if "remote" in snapshot.node_status.lower():
+        findings.append(
+            _node_risk(
+                snapshot,
+                "remote_execution_not_allowed",
+                "high",
+                "remote execution is not authorized by node/source approval",
+            )
+        )
+    if snapshot.agent_version == "stale":
+        findings.append(
+            _node_risk(
+                snapshot,
+                "stale_agent_version",
+                "medium",
+                "node agent version is stale and needs review",
+                requires_operator_approval=False,
+            )
+        )
+    return tuple(findings)
+
+
+def node_authorization_snapshot_as_dict(
+    snapshot: NodeAuthorizationSnapshot,
+) -> dict[str, object]:
+    """Return deterministic plain-Python node authorization data."""
+
+    return asdict(snapshot)
+
+
 def storage_risk_finding_as_dict(finding: StorageRiskFinding) -> dict[str, object]:
     """Return a deterministic plain-Python risk finding representation."""
 
@@ -196,6 +321,50 @@ def _validate_operation_shape(operation: ProposedStorageOperation) -> None:
         raise ValueError(f"unknown execution_status: {operation.execution_status}")
     if not isinstance(operation.risk_findings, tuple):
         raise ValueError("risk_findings must be a tuple")
+
+
+def _validate_node_authorization_snapshot(snapshot: NodeAuthorizationSnapshot) -> None:
+    if not isinstance(snapshot, NodeAuthorizationSnapshot):
+        raise ValueError("snapshot must be a NodeAuthorizationSnapshot")
+    _require_non_empty_string(snapshot.node_id, "node_id")
+    _require_non_empty_string(snapshot.node_status, "node_status")
+    _require_non_empty_string(snapshot.node_tenant_id, "node_tenant_id")
+    _require_non_empty_string(snapshot.source_id, "source_id")
+    _require_non_empty_string(snapshot.source_tenant_id, "source_tenant_id")
+    _require_non_empty_string(
+        snapshot.authorized_entity_family,
+        "authorized_entity_family",
+    )
+    _require_non_empty_string(snapshot.authorized_entity_id, "authorized_entity_id")
+    _require_non_empty_string(snapshot.source_mode, "source_mode")
+    if snapshot.node_trust_status not in ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES:
+        raise ValueError(f"unknown node_trust_status: {snapshot.node_trust_status}")
+    if snapshot.source_link_status not in ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES:
+        raise ValueError(f"unknown source_link_status: {snapshot.source_link_status}")
+    if (
+        snapshot.authorization_scope_status
+        not in AUTHORIZATION_READINESS_SCOPE_STATUSES
+    ):
+        raise ValueError(
+            f"unknown authorization_scope_status: {snapshot.authorization_scope_status}"
+        )
+
+
+def _node_risk(
+    snapshot: NodeAuthorizationSnapshot,
+    finding_kind: str,
+    severity: str,
+    message: str,
+    *,
+    requires_operator_approval: bool = True,
+) -> StorageRiskFinding:
+    return StorageRiskFinding(
+        finding_id=f"{snapshot.node_id}:{snapshot.source_id}:{finding_kind}",
+        finding_kind=finding_kind,
+        severity=severity,
+        message=message,
+        requires_operator_approval=requires_operator_approval,
+    )
 
 
 def _looks_destructive(operation: ProposedStorageOperation) -> bool:

@@ -50,6 +50,9 @@ EXPECTED_PRIMARY_KEYS = {
     "source_exclusions": "exclusion_id",
     "file_inventory": "inventory_id",
     "storage_operation_receipts": "operation_id",
+    "openclaw_nodes": "node_id",
+    "node_source_links": "link_id",
+    "source_authorization_scopes": "scope_id",
 }
 
 TABLE_LEVEL_SQL_PREFIXES = (
@@ -155,8 +158,11 @@ def test_all_table_concepts_exist_in_contract_order():
         "source_exclusions",
         "file_inventory",
         "storage_operation_receipts",
+        "openclaw_nodes",
+        "node_source_links",
+        "source_authorization_scopes",
     )
-    assert len(sqlite_schema_tables()) == 12
+    assert len(sqlite_schema_tables()) == 15
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
 
 
@@ -404,10 +410,67 @@ def test_operator_storage_intelligence_tables_preserve_static_boundaries():
     )
 
 
+def test_network_node_and_tenant_authorization_tables_preserve_zero_trust_boundaries():
+    nodes = sqlite_schema_table("openclaw_nodes")
+    links = sqlite_schema_table("node_source_links")
+    scopes = sqlite_schema_table("source_authorization_scopes")
+
+    assert nodes is not None
+    assert links is not None
+    assert scopes is not None
+
+    assert {
+        "node_id",
+        "node_identity",
+        "node_fingerprint",
+        "trust_status",
+        "identity_verified_at",
+        "node_role",
+        "tenant_id",
+        "agent_version",
+        "status",
+        "operator_approval_ref",
+        "first_seen",
+        "last_seen",
+    } <= set(nodes.column_names)
+    assert {
+        "link_id",
+        "node_id",
+        "source_id",
+        "tenant_id",
+        "status",
+        "linked_at",
+        "last_seen",
+        "operator_approval_ref",
+    } <= set(links.column_names)
+    assert {
+        "scope_id",
+        "source_id",
+        "tenant_id",
+        "authorized_entity_family",
+        "authorized_entity_id",
+        "operator_approval_ref",
+        "expiration_timestamp",
+        "status",
+    } <= set(scopes.column_names)
+    assert nodes.retrieval_structure_fields == frozenset({"node_identity", "tenant_id"})
+    assert links.retrieval_structure_fields == frozenset(
+        {"node_id", "source_id", "tenant_id"}
+    )
+    assert scopes.retrieval_structure_fields == frozenset(
+        {
+            "source_id",
+            "tenant_id",
+            "authorized_entity_family",
+            "authorized_entity_id",
+        }
+    )
+
+
 def test_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_schema_sql_definitions()
 
-    assert len(sql_definitions) == 12
+    assert len(sql_definitions) == 15
     for table_name, sql_text in zip(sqlite_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")
@@ -423,7 +486,7 @@ def test_sql_strings_are_inert_definitions_only():
 def test_physical_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_physical_schema_sql_definitions()
 
-    assert len(sql_definitions) == 13
+    assert len(sql_definitions) == 16
     for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")

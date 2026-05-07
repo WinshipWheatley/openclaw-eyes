@@ -238,6 +238,53 @@ STORAGE_OPERATION_RECEIPTS_COLUMNS = (
     ColumnDefinition("execution_status", "TEXT", "execution_status"),
 )
 
+OPENCLAW_NODES_COLUMNS = (
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition(
+        "node_identity",
+        "TEXT",
+        "node_identity",
+        purpose="Stable node identity surface; not merely MAC, IP, or hostname.",
+    ),
+    ColumnDefinition(
+        "node_fingerprint",
+        "TEXT",
+        "node_fingerprint",
+        purpose="Reserved for future cryptographic/public-key identity material.",
+    ),
+    ColumnDefinition("trust_status", "TEXT", "trust_status"),
+    ColumnDefinition("identity_verified_at", "TEXT", "identity_verified_at"),
+    ColumnDefinition("node_role", "TEXT", "node_role"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("agent_version", "TEXT", "agent_version"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("operator_approval_ref", "TEXT", "operator_approval_ref"),
+    ColumnDefinition("first_seen", "TEXT", "first_seen"),
+    ColumnDefinition("last_seen", "TEXT", "last_seen"),
+)
+
+NODE_SOURCE_LINKS_COLUMNS = (
+    ColumnDefinition("link_id", "TEXT", "link_id"),
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition("source_id", "TEXT", "source_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("linked_at", "TEXT", "linked_at"),
+    ColumnDefinition("last_seen", "TEXT", "last_seen"),
+    ColumnDefinition("operator_approval_ref", "TEXT", "operator_approval_ref"),
+)
+
+SOURCE_AUTHORIZATION_SCOPES_COLUMNS = (
+    ColumnDefinition("scope_id", "TEXT", "scope_id"),
+    ColumnDefinition("source_id", "TEXT", "source_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("authorized_entity_family", "TEXT", "authorized_entity_family"),
+    ColumnDefinition("authorized_entity_id", "TEXT", "authorized_entity_id"),
+    ColumnDefinition("operator_approval_ref", "TEXT", "operator_approval_ref"),
+    ColumnDefinition("expiration_timestamp", "TEXT", "expiration_timestamp"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
 SCHEMA_VERSIONS_COLUMNS = (
     ColumnDefinition(
         "schema_version",
@@ -513,6 +560,71 @@ CREATE TABLE storage_operation_receipts (
   checksum_verification INTEGER NOT NULL,
   operator_approval_ref TEXT NOT NULL,
   execution_status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="openclaw_nodes",
+        related_schema_contract_surface="openclaw_node",
+        columns=OPENCLAW_NODES_COLUMNS,
+        retrieval_structure_fields=frozenset({"node_identity", "tenant_id"}),
+        create_table_sql="""
+CREATE TABLE openclaw_nodes (
+  node_id TEXT PRIMARY KEY,
+  node_identity TEXT NOT NULL,
+  node_fingerprint TEXT NOT NULL,
+  trust_status TEXT NOT NULL,
+  identity_verified_at TEXT NOT NULL,
+  node_role TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  agent_version TEXT NOT NULL,
+  status TEXT NOT NULL,
+  operator_approval_ref TEXT NOT NULL,
+  first_seen TEXT NOT NULL,
+  last_seen TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="node_source_links",
+        related_schema_contract_surface="node_source_link",
+        columns=NODE_SOURCE_LINKS_COLUMNS,
+        retrieval_structure_fields=frozenset({"node_id", "source_id", "tenant_id"}),
+        create_table_sql="""
+CREATE TABLE node_source_links (
+  link_id TEXT PRIMARY KEY,
+  node_id TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  linked_at TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  operator_approval_ref TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="source_authorization_scopes",
+        related_schema_contract_surface="source_authorization_scope",
+        columns=SOURCE_AUTHORIZATION_SCOPES_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {
+                "source_id",
+                "tenant_id",
+                "authorized_entity_family",
+                "authorized_entity_id",
+            }
+        ),
+        create_table_sql="""
+CREATE TABLE source_authorization_scopes (
+  scope_id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  authorized_entity_family TEXT NOT NULL,
+  authorized_entity_id TEXT NOT NULL,
+  operator_approval_ref TEXT NOT NULL,
+  expiration_timestamp TEXT NOT NULL,
+  status TEXT NOT NULL
 );
 """.strip(),
     ),

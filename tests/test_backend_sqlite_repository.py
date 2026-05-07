@@ -11,11 +11,14 @@ import backend_sqlite_repository as repository
 import backend_sqlite_runtime as runtime
 from backend_sqlite_repository import (
     FileInventoryRow,
+    NodeSourceLink,
+    OpenClawNode,
     OperatorPromotion,
     ProvenanceRef,
     SemanticLabel,
     SemanticRecord,
     SemanticRelationship,
+    SourceAuthorizationScope,
     SourceDiscoveryEvent,
     SourceExclusion,
     SourceRegistryEntry,
@@ -24,6 +27,16 @@ from backend_sqlite_repository import (
     read_file_inventory_row,
     read_file_inventory_row_by_source_relative_path,
     read_file_inventory_rows_by_source_id,
+    read_active_source_authorization_scopes,
+    read_node_source_link,
+    read_node_source_links_by_node_id,
+    read_node_source_links_by_source_id,
+    read_node_source_links_by_tenant_id,
+    read_openclaw_node,
+    read_openclaw_nodes_by_node_identity,
+    read_openclaw_nodes_by_status,
+    read_openclaw_nodes_by_tenant_id,
+    read_openclaw_nodes_by_trust_status,
     read_operator_promotion,
     read_provenance_ref,
     read_record_labels,
@@ -41,6 +54,9 @@ from backend_sqlite_repository import (
     read_source_discovery_event,
     read_source_exclusion,
     read_source_exclusions,
+    read_source_authorization_scope,
+    read_source_authorization_scopes_by_source_id,
+    read_source_authorization_scopes_by_tenant_id,
     read_source_registry_entries_by_device_identity,
     read_source_registry_entry,
     read_pending_source_discovery_events,
@@ -51,6 +67,8 @@ from backend_sqlite_repository import (
     semantic_record_column_names,
     table_column_names,
     write_file_inventory_row,
+    write_node_source_link,
+    write_openclaw_node,
     write_operator_promotion,
     write_provenance_ref,
     write_semantic_label,
@@ -58,6 +76,7 @@ from backend_sqlite_repository import (
     write_semantic_relationship,
     write_source_discovery_event,
     write_source_exclusion,
+    write_source_authorization_scope,
     write_source_registry_entry,
     write_storage_operation_receipt,
     write_validation_receipt,
@@ -254,10 +273,61 @@ def sample_storage_operation_receipt(
     )
 
 
+def sample_openclaw_node(node_id: str = "node-1") -> OpenClawNode:
+    return OpenClawNode(
+        node_id=node_id,
+        node_identity="node-identity-001",
+        node_fingerprint="future-public-key-fingerprint",
+        trust_status="approved",
+        identity_verified_at="2026-05-06T00:00:00Z",
+        node_role="primary",
+        tenant_id="tenant-personal",
+        agent_version="static-test-agent",
+        status="active",
+        operator_approval_ref="node-approval-1",
+        first_seen="2026-05-06T00:00:00Z",
+        last_seen="2026-05-06T00:00:00Z",
+    )
+
+
+def sample_node_source_link(link_id: str = "link-1") -> NodeSourceLink:
+    return NodeSourceLink(
+        link_id=link_id,
+        node_id="node-1",
+        source_id="source-1",
+        tenant_id="tenant-personal",
+        status="active",
+        linked_at="2026-05-06T00:00:00Z",
+        last_seen="2026-05-06T00:00:00Z",
+        operator_approval_ref="link-approval-1",
+    )
+
+
+def sample_source_authorization_scope(
+    scope_id: str = "scope-1",
+) -> SourceAuthorizationScope:
+    return SourceAuthorizationScope(
+        scope_id=scope_id,
+        source_id="source-1",
+        tenant_id="tenant-personal",
+        authorized_entity_family="legal_matter",
+        authorized_entity_id="matter-1",
+        operator_approval_ref="scope-approval-1",
+        expiration_timestamp="2026-12-31T00:00:00Z",
+        status="active",
+    )
+
+
 def test_repository_module_does_not_import_sqlite3_or_create_connections():
     tree = module_ast()
     source = REPOSITORY_PATH.read_text(encoding="utf-8").lower()
 
+    assert imported_module_names(tree) <= {
+        "__future__",
+        "dataclasses",
+        "typing",
+        "backend_sqlite_schema",
+    }
     assert "sqlite3" not in imported_module_names(tree)
     assert {"connect", "open", "read_text", "write_text"}.isdisjoint(
         called_function_names(tree)
@@ -287,6 +357,9 @@ def test_repository_table_column_names_match_schema_contracts():
         "source_exclusions",
         "file_inventory",
         "storage_operation_receipts",
+        "openclaw_nodes",
+        "node_source_links",
+        "source_authorization_scopes",
     }
 
     for table_name in expected_tables:
@@ -778,6 +851,209 @@ def test_storage_repository_rejects_absolute_paths_and_bool_numeric_values():
         connection.close()
 
 
+def test_network_node_link_and_authorization_scope_round_trip():
+    connection = create_in_memory_connection()
+    try:
+        source = sample_source_registry_entry()
+        node = sample_openclaw_node()
+        link = sample_node_source_link()
+        scope = sample_source_authorization_scope()
+
+        write_source_registry_entry(connection, source)
+        write_openclaw_node(connection, node)
+        write_node_source_link(connection, link)
+        write_source_authorization_scope(connection, scope)
+
+        assert read_openclaw_node(connection, "node-1") == node.__dict__
+        assert read_node_source_link(connection, "link-1") == link.__dict__
+        assert read_source_authorization_scope(connection, "scope-1") == scope.__dict__
+        assert read_source_registry_entry(connection, "source-1")["source_mode"] == (
+            "inventory_only"
+        )
+    finally:
+        connection.close()
+
+
+def test_network_node_queries_are_deterministic_and_tenant_scoped():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(connection, sample_source_registry_entry("source-a"))
+        write_source_registry_entry(connection, sample_source_registry_entry("source-b"))
+        for node_id, tenant_id, trust_status, status in (
+            ("node-c", "tenant-b", "pending_approval", "review"),
+            ("node-a", "tenant-a", "approved", "active"),
+            ("node-b", "tenant-a", "revoked", "inactive"),
+        ):
+            write_openclaw_node(
+                connection,
+                {
+                    **sample_openclaw_node(node_id).__dict__,
+                    "tenant_id": tenant_id,
+                    "trust_status": trust_status,
+                    "status": status,
+                },
+            )
+        for link_id, node_id, source_id, tenant_id in (
+            ("link-c", "node-c", "source-b", "tenant-b"),
+            ("link-a", "node-a", "source-a", "tenant-a"),
+            ("link-b", "node-b", "source-a", "tenant-a"),
+        ):
+            write_node_source_link(
+                connection,
+                {
+                    **sample_node_source_link(link_id).__dict__,
+                    "node_id": node_id,
+                    "source_id": source_id,
+                    "tenant_id": tenant_id,
+                },
+            )
+
+        assert [
+            row["node_id"]
+            for row in read_openclaw_nodes_by_node_identity(
+                connection,
+                "node-identity-001",
+            )
+        ] == ["node-a", "node-b", "node-c"]
+        assert [
+            row["node_id"] for row in read_openclaw_nodes_by_tenant_id(connection, "tenant-a")
+        ] == ["node-a", "node-b"]
+        assert [
+            row["node_id"]
+            for row in read_openclaw_nodes_by_trust_status(connection, "approved")
+        ] == ["node-a"]
+        assert [
+            row["node_id"] for row in read_openclaw_nodes_by_status(connection, "active")
+        ] == ["node-a"]
+        assert [
+            row["link_id"] for row in read_node_source_links_by_node_id(connection, "node-a")
+        ] == ["link-a"]
+        assert [
+            row["link_id"]
+            for row in read_node_source_links_by_source_id(connection, "source-a")
+        ] == ["link-a", "link-b"]
+        assert [
+            row["link_id"]
+            for row in read_node_source_links_by_tenant_id(connection, "tenant-a")
+        ] == ["link-a", "link-b"]
+    finally:
+        connection.close()
+
+
+def test_source_authorization_scope_lookup_requires_exact_tenant_entity_match():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(connection, sample_source_registry_entry("source-1"))
+        write_source_registry_entry(connection, sample_source_registry_entry("source-2"))
+        for scope_id, source_id, tenant_id, family, entity_id, status in (
+            ("scope-a", "source-1", "tenant-a", "legal_matter", "matter-1", "active"),
+            ("scope-b", "source-1", "tenant-b", "legal_matter", "matter-1", "active"),
+            ("scope-c", "source-1", "tenant-a", "legal_matter", "matter-2", "active"),
+            ("scope-d", "source-1", "tenant-a", "legal_matter", "matter-1", "revoked"),
+            ("scope-e", "source-2", "tenant-a", "archive", "archive-1", "expired"),
+        ):
+            write_source_authorization_scope(
+                connection,
+                {
+                    **sample_source_authorization_scope(scope_id).__dict__,
+                    "source_id": source_id,
+                    "tenant_id": tenant_id,
+                    "authorized_entity_family": family,
+                    "authorized_entity_id": entity_id,
+                    "status": status,
+                },
+            )
+
+        assert [
+            row["scope_id"]
+            for row in read_source_authorization_scopes_by_source_id(
+                connection,
+                "source-1",
+            )
+        ] == ["scope-a", "scope-b", "scope-c", "scope-d"]
+        assert [
+            row["scope_id"]
+            for row in read_source_authorization_scopes_by_tenant_id(
+                connection,
+                "tenant-a",
+            )
+        ] == ["scope-a", "scope-c", "scope-d", "scope-e"]
+        assert [
+            row["scope_id"]
+            for row in read_active_source_authorization_scopes(
+                connection,
+                "source-1",
+                "tenant-a",
+                "legal_matter",
+                "matter-1",
+            )
+        ] == ["scope-a"]
+    finally:
+        connection.close()
+
+
+def test_network_node_repository_writes_fail_closed_for_unknown_references():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            write_node_source_link(connection, sample_node_source_link())
+        with pytest.raises(ValueError):
+            write_source_authorization_scope(
+                connection,
+                sample_source_authorization_scope(),
+            )
+
+        write_source_registry_entry(connection, sample_source_registry_entry())
+        with pytest.raises(ValueError):
+            write_node_source_link(connection, sample_node_source_link())
+
+        write_openclaw_node(connection, sample_openclaw_node())
+        write_node_source_link(connection, sample_node_source_link())
+        write_source_authorization_scope(connection, sample_source_authorization_scope())
+    finally:
+        connection.close()
+
+
+def test_network_node_repository_inputs_fail_closed():
+    connection = create_in_memory_connection()
+    try:
+        write_source_registry_entry(connection, sample_source_registry_entry())
+        write_openclaw_node(connection, sample_openclaw_node())
+
+        with pytest.raises(ValueError):
+            write_openclaw_node(
+                connection,
+                {**sample_openclaw_node("bad-node").__dict__, "tenant_id": ""},
+            )
+        with pytest.raises(ValueError):
+            read_openclaw_nodes_by_tenant_id(connection, "")
+        with pytest.raises(ValueError):
+            write_node_source_link(
+                connection,
+                {
+                    **sample_node_source_link("wrong-tenant-link").__dict__,
+                    "tenant_id": "tenant-law",
+                },
+            )
+        with pytest.raises(ValueError):
+            write_node_source_link(
+                connection,
+                {**sample_node_source_link("bad-link").__dict__, "tenant_id": ""},
+            )
+        with pytest.raises(ValueError):
+            read_source_authorization_scopes_by_tenant_id(connection, "")
+        with pytest.raises(ValueError):
+            read_active_source_authorization_scopes(
+                connection,
+                "source-1",
+                "",
+                "legal_matter",
+                "matter-1",
+            )
+    finally:
+        connection.close()
+
+
 def test_exact_label_seed_selection_is_bounded_deterministic_and_non_promoting():
     connection = create_in_memory_connection()
     try:
@@ -1140,3 +1416,6 @@ def test_repository_avoids_forbidden_surfaces():
     assert re.search(r"\bapi\b", source) is None
     assert re.search(r"\bfrontend\b", source) is None
     assert re.search(r"\bapp\b", source) is None
+    assert {"socket", "request", "run", "walk", "stat", "iterdir", "glob"}.isdisjoint(
+        called_function_names(tree)
+    )

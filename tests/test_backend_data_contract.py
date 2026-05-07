@@ -7,6 +7,11 @@ from backend_data_contract import (
     ContractDecision,
     ContractLabel,
     ContractState,
+    ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES,
+    ENVIRONMENT_INTELLIGENCE_AUTHORIZED_ENTITY_FAMILIES,
+    ENVIRONMENT_INTELLIGENCE_NODE_ROLES,
+    ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES,
+    ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES,
     EntityFamily,
     KnowledgeLayer,
     ALLOWED_LAYERS_BY_ENTITY_FAMILY,
@@ -706,6 +711,9 @@ def test_required_schema_contract_surfaces_exist():
         "source_exclusion",
         "file_inventory",
         "storage_operation_receipt",
+        "openclaw_node",
+        "node_source_link",
+        "source_authorization_scope",
     )
 
     surfaces = schema_contract_surfaces()
@@ -730,6 +738,11 @@ def test_schema_surface_names_normalize_correctly():
     assert normalize_schema_surface_name("file inventory") == "file_inventory"
     assert normalize_schema_surface_name("storage operation receipts") == (
         "storage_operation_receipt"
+    )
+    assert normalize_schema_surface_name("openclaw nodes") == "openclaw_node"
+    assert normalize_schema_surface_name("node source links") == "node_source_link"
+    assert normalize_schema_surface_name("source authorization scopes") == (
+        "source_authorization_scope"
     )
     assert normalize_schema_surface_name("unknown table") is None
     assert is_schema_surface_known("semantic records") is True
@@ -931,6 +944,9 @@ def test_required_sqlite_table_concepts_exist():
         "source_exclusions",
         "file_inventory",
         "storage_operation_receipts",
+        "openclaw_nodes",
+        "node_source_links",
+        "source_authorization_scopes",
     )
 
     table_concepts = sqlite_table_concepts()
@@ -972,6 +988,13 @@ def test_sqlite_table_concept_names_normalize_correctly():
     assert normalize_sqlite_table_concept_name("storage operation receipt") == (
         "storage_operation_receipts"
     )
+    assert normalize_sqlite_table_concept_name("openclaw node") == "openclaw_nodes"
+    assert normalize_sqlite_table_concept_name("node source link") == (
+        "node_source_links"
+    )
+    assert normalize_sqlite_table_concept_name("source authorization scope") == (
+        "source_authorization_scopes"
+    )
     assert normalize_sqlite_table_concept_name("runtime table") is None
     assert is_sqlite_table_concept_known("provenance references") is True
     assert is_sqlite_table_concept_known("sqlite runtime") is False
@@ -991,6 +1014,9 @@ def test_each_sqlite_table_concept_maps_to_expected_schema_surface():
         "source_exclusions": "source_exclusion",
         "file_inventory": "file_inventory",
         "storage_operation_receipts": "storage_operation_receipt",
+        "openclaw_nodes": "openclaw_node",
+        "node_source_links": "node_source_link",
+        "source_authorization_scopes": "source_authorization_scope",
     }
 
     for table_name, surface_name in expected.items():
@@ -1079,6 +1105,48 @@ def test_sqlite_table_concepts_expose_required_conceptual_fields():
             "execution_status",
         }
     )
+    assert required_sqlite_table_concept_fields("openclaw_nodes") >= frozenset(
+        {
+            "node_id",
+            "node_identity",
+            "node_fingerprint",
+            "trust_status",
+            "identity_verified_at",
+            "node_role",
+            "tenant_id",
+            "agent_version",
+            "status",
+            "operator_approval_ref",
+            "first_seen",
+            "last_seen",
+        }
+    )
+    assert required_sqlite_table_concept_fields("node_source_links") >= frozenset(
+        {
+            "link_id",
+            "node_id",
+            "source_id",
+            "tenant_id",
+            "status",
+            "linked_at",
+            "last_seen",
+            "operator_approval_ref",
+        }
+    )
+    assert required_sqlite_table_concept_fields(
+        "source_authorization_scopes"
+    ) >= frozenset(
+        {
+            "scope_id",
+            "source_id",
+            "tenant_id",
+            "authorized_entity_family",
+            "authorized_entity_id",
+            "operator_approval_ref",
+            "expiration_timestamp",
+            "status",
+        }
+    )
 
 
 def test_storage_intelligence_static_value_surfaces_are_explicit():
@@ -1105,6 +1173,38 @@ def test_storage_intelligence_static_value_surfaces_are_explicit():
     )
     assert {"dry_run", "approved", "executed", "blocked", "failed"} <= set(
         STORAGE_INTELLIGENCE_EXECUTION_STATUSES
+    )
+
+
+def test_environment_intelligence_static_value_surfaces_are_explicit():
+    assert ENVIRONMENT_INTELLIGENCE_NODE_ROLES == (
+        "primary",
+        "worker",
+        "observer",
+        "mobile",
+        "source_only",
+        "firm_workstation",
+    )
+    assert ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES == (
+        "unknown",
+        "pending_approval",
+        "approved",
+        "revoked",
+        "stale",
+    )
+    assert ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES == (
+        "pending",
+        "active",
+        "revoked",
+        "stale",
+    )
+    assert ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES == (
+        "active",
+        "expired",
+        "revoked",
+    )
+    assert {"legal_matter", "client_delivery", "system"} <= set(
+        ENVIRONMENT_INTELLIGENCE_AUTHORIZED_ENTITY_FAMILIES
     )
 
 

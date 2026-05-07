@@ -46,6 +46,9 @@ EXPECTED_PRIMARY_KEYS = {
     "source_exclusions": "exclusion_id",
     "file_inventory": "inventory_id",
     "storage_operation_receipts": "operation_id",
+    "openclaw_nodes": "node_id",
+    "node_source_links": "link_id",
+    "source_authorization_scopes": "scope_id",
 }
 
 
