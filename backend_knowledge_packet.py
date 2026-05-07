@@ -6,6 +6,9 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from backend_sqlite_repository import (
+    AgentContextProfile,
+    ContextExportReceipt,
+    read_active_agent_context_profile_by_role_and_task,
     read_record_labels,
     read_record_ids_for_exact_label_seed,
     read_record_ids_for_exact_operator_promotion_seed,
@@ -16,6 +19,7 @@ from backend_sqlite_repository import (
     read_record_relationships,
     read_record_validation_receipts,
     read_semantic_record,
+    write_context_export_receipt,
 )
 
 
@@ -46,6 +50,57 @@ class ContextSelection:
     includes_fuzzy_search: bool = False
     includes_vector_search: bool = False
     includes_model_calls: bool = False
+
+
+@dataclass(frozen=True)
+class AgentContextRequest:
+    """Explicit request for bounded context from a specific agent/actor."""
+
+    tenant_id: str
+    requesting_actor: str
+    agent_role: str
+    task_class: str
+    seed_strategy: str
+    seed_params: dict[str, Any]
+    max_records: int = 20
+    max_depth: int = 2
+
+
+@dataclass(frozen=True)
+class ContextOmission:
+    """Explicit record of omitted/denied context without leaking private content."""
+
+    record_id: str
+    reason: str
+    sensitivity_level: str = "unknown"
+
+
+@dataclass(frozen=True)
+class AgentContextExportDecision:
+    """Result of an agent context access policy evaluation."""
+
+    allowed: bool
+    reason: str
+    profile_id: str | None = None
+    max_records: int = 0
+    max_depth: int = 0
+    sensitivity_ceiling: str = "unknown"
+
+
+@dataclass(frozen=True)
+class AgentContextExportPacket:
+    """Bounded, deterministic, and policy-checked context packet for an agent."""
+
+    tenant_id: str
+    agent_role: str
+    task_class: str
+    context_profile_id: str
+    export_receipt_id: str
+    selections: tuple[ContextSelection, ...]
+    omissions: tuple[ContextOmission, ...]
+    packet_kind: str = "agent_context_export"
+    truth_status: str = "not_accepted_truth"
+    synthesized: bool = False
 
 
 @dataclass(frozen=True)
@@ -764,6 +819,32 @@ def multi_seed_context_packet_as_dict(
     return asdict(context_packet)
 
 
+def agent_context_export_as_dict(packet: AgentContextExportPacket) -> dict[str, Any]:
+    """Return a deterministic plain-Python representation for agent context export."""
+
+    return asdict(packet)
+
+
+def agent_context_request_as_dict(request: AgentContextRequest) -> dict[str, Any]:
+    """Return a deterministic plain-Python representation for agent context request."""
+
+    return asdict(request)
+
+
+def agent_context_export_decision_as_dict(
+    decision: AgentContextExportDecision,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python representation for agent export decision."""
+
+    return asdict(decision)
+
+
+def context_omission_as_dict(omission: ContextOmission) -> dict[str, Any]:
+    """Return a deterministic plain-Python representation for context omission."""
+
+    return asdict(omission)
+
+
 def synthesis_ready_read_model_as_dict(
     read_model: SynthesisReadyReadModel,
 ) -> dict[str, Any]:
@@ -843,3 +924,124 @@ def _extend_unique(items: list[str], values: tuple[str, ...]) -> None:
 
 def _combined_reason(reasons: list[str]) -> str:
     return "_and_".join(reasons)
+
+
+def evaluate_agent_context_access(
+    connection: Any,
+    request: AgentContextRequest,
+) -> AgentContextExportDecision:
+    """Evaluate if an agent context request is allowed by active profiles."""
+
+    profile_row = read_active_agent_context_profile_by_role_and_task(
+        connection,
+        request.tenant_id,
+        request.agent_role,
+        request.task_class,
+    )
+
+    if profile_row is None:
+        return AgentContextExportDecision(
+            allowed=False,
+            reason="no_active_profile_found",
+        )
+
+    # In this phase, we just check if the profile exists and is active.
+    # Future hardening can add more granular capability/sensitivity checks.
+
+    return AgentContextExportDecision(
+        allowed=True,
+        reason="active_profile_match",
+        profile_id=profile_row["context_profile_id"],
+        max_records=min(request.max_records, profile_row["max_records"]),
+        max_depth=min(request.max_depth, profile_row["max_depth"]),
+        sensitivity_ceiling=profile_row["sensitivity_ceiling"],
+    )
+
+
+def assemble_agent_context_export(
+    connection: Any,
+    request: AgentContextRequest,
+    export_receipt_id: str,
+    *,
+    created_at: str,
+) -> AgentContextExportPacket:
+    """Assemble a policy-checked context export packet for an agent."""
+
+    decision = evaluate_agent_context_access(connection, request)
+
+    if not decision.allowed:
+        # Write failure receipt
+        write_context_export_receipt(
+            connection,
+            {
+                "context_export_receipt_id": export_receipt_id,
+                "tenant_id": request.tenant_id,
+                "context_profile_id": "none",
+                "requesting_actor": request.requesting_actor,
+                "agent_role": request.agent_role,
+                "task_class": request.task_class,
+                "seed_strategy": request.seed_strategy,
+                "records_returned": 0,
+                "records_omitted": 0,
+                "denied_reason": decision.reason,
+                "export_status": "denied",
+                "created_at": created_at,
+            },
+        )
+        return AgentContextExportPacket(
+            tenant_id=request.tenant_id,
+            agent_role=request.agent_role,
+            task_class=request.task_class,
+            context_profile_id="none",
+            export_receipt_id=export_receipt_id,
+            selections=(),
+            omissions=(),
+        )
+
+    # For now, we only support direct record_id seeding in this helper
+    # Future versions will support multi-seed strategies.
+    selections = []
+    omissions = []
+
+    if request.seed_strategy == "direct_record_id":
+        record_id = request.seed_params.get("record_id")
+        if record_id:
+            # Check sensitivity ceiling if applicable
+            # (Stub for now: everything is allowed if profile matches)
+            packet = assemble_record_knowledge_packet(connection, record_id)
+            selections.append(
+                ContextSelection(
+                    record_id=record_id,
+                    packet=packet,
+                    selection_strategy="direct_record_id",
+                )
+            )
+
+    # Write success receipt
+    write_context_export_receipt(
+        connection,
+        {
+            "context_export_receipt_id": export_receipt_id,
+            "tenant_id": request.tenant_id,
+            "context_profile_id": decision.profile_id or "unknown",
+            "requesting_actor": request.requesting_actor,
+            "agent_role": request.agent_role,
+            "task_class": request.task_class,
+            "seed_strategy": request.seed_strategy,
+            "records_returned": len(selections),
+            "records_omitted": len(omissions),
+            "denied_reason": "none",
+            "export_status": "allowed",
+            "created_at": created_at,
+        },
+    )
+
+    return AgentContextExportPacket(
+        tenant_id=request.tenant_id,
+        agent_role=request.agent_role,
+        task_class=request.task_class,
+        context_profile_id=decision.profile_id or "unknown",
+        export_receipt_id=export_receipt_id,
+        selections=tuple(selections),
+        omissions=tuple(omissions),
+    )

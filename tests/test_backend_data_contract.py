@@ -731,6 +731,8 @@ def test_required_schema_contract_surfaces_exist():
         "performance_action_receipt",
         "manual_override_event",
         "highlight_marker",
+        "agent_context_profile",
+        "context_export_receipt",
     )
 
     surfaces = schema_contract_surfaces()
@@ -988,6 +990,8 @@ def test_required_sqlite_table_concepts_exist():
         "performance_action_receipts",
         "manual_override_events",
         "highlight_markers",
+        "agent_context_profiles",
+        "context_export_receipts",
     )
 
     table_concepts = sqlite_table_concepts()

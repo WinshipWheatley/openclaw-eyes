@@ -452,6 +452,39 @@ HIGHLIGHT_MARKERS_COLUMNS = (
     ColumnDefinition("status", "TEXT", "status"),
 )
 
+AGENT_CONTEXT_PROFILES_COLUMNS = (
+    ColumnDefinition("context_profile_id", "TEXT", "context_profile_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("agent_role", "TEXT", "agent_role"),
+    ColumnDefinition("task_class", "TEXT", "task_class"),
+    ColumnDefinition("capability_scope", "TEXT", "capability_scope"),
+    ColumnDefinition("allowed_entity_family", "TEXT", "allowed_entity_family"),
+    ColumnDefinition("allowed_source_mode", "TEXT", "allowed_source_mode"),
+    ColumnDefinition("max_records", "INTEGER", "max_records"),
+    ColumnDefinition("max_depth", "INTEGER", "max_depth"),
+    ColumnDefinition("sensitivity_ceiling", "TEXT", "sensitivity_ceiling"),
+    ColumnDefinition("model_policy_ref", "TEXT", "model_policy_ref"),
+    ColumnDefinition("provider_policy_ref", "TEXT", "provider_policy_ref"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("approval_receipt_ref", "TEXT", "approval_receipt_ref"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
+CONTEXT_EXPORT_RECEIPTS_COLUMNS = (
+    ColumnDefinition("context_export_receipt_id", "TEXT", "context_export_receipt_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("context_profile_id", "TEXT", "context_profile_id"),
+    ColumnDefinition("requesting_actor", "TEXT", "requesting_actor"),
+    ColumnDefinition("agent_role", "TEXT", "agent_role"),
+    ColumnDefinition("task_class", "TEXT", "task_class"),
+    ColumnDefinition("seed_strategy", "TEXT", "seed_strategy"),
+    ColumnDefinition("records_returned", "INTEGER", "records_returned"),
+    ColumnDefinition("records_omitted", "INTEGER", "records_omitted"),
+    ColumnDefinition("denied_reason", "TEXT", "denied_reason"),
+    ColumnDefinition("export_status", "TEXT", "export_status"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
 SCHEMA_VERSIONS_COLUMNS = (
     ColumnDefinition(
         "schema_version",
@@ -1050,6 +1083,55 @@ CREATE TABLE highlight_markers (
   marker_source TEXT NOT NULL,
   notes TEXT NOT NULL,
   status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="agent_context_profiles",
+        related_schema_contract_surface="agent_context_profile",
+        columns=AGENT_CONTEXT_PROFILES_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "agent_role", "task_class"}),
+        create_table_sql="""
+CREATE TABLE agent_context_profiles (
+  context_profile_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  agent_role TEXT NOT NULL,
+  task_class TEXT NOT NULL,
+  capability_scope TEXT NOT NULL,
+  allowed_entity_family TEXT NOT NULL,
+  allowed_source_mode TEXT NOT NULL,
+  max_records INTEGER NOT NULL,
+  max_depth INTEGER NOT NULL,
+  sensitivity_ceiling TEXT NOT NULL,
+  model_policy_ref TEXT NOT NULL,
+  provider_policy_ref TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_receipt_ref TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="context_export_receipts",
+        related_schema_contract_surface="context_export_receipt",
+        columns=CONTEXT_EXPORT_RECEIPTS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"tenant_id", "context_profile_id", "requesting_actor"}
+        ),
+        create_table_sql="""
+CREATE TABLE context_export_receipts (
+  context_export_receipt_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  context_profile_id TEXT NOT NULL,
+  requesting_actor TEXT NOT NULL,
+  agent_role TEXT NOT NULL,
+  task_class TEXT NOT NULL,
+  seed_strategy TEXT NOT NULL,
+  records_returned INTEGER NOT NULL,
+  records_omitted INTEGER NOT NULL,
+  denied_reason TEXT NOT NULL,
+  export_status TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 """.strip(),
     ),

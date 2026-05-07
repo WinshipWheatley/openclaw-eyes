@@ -66,6 +66,8 @@ EXPECTED_PRIMARY_KEYS = {
     "performance_action_receipts": "performance_action_receipt_id",
     "manual_override_events": "manual_override_event_id",
     "highlight_markers": "highlight_marker_id",
+    "agent_context_profiles": "context_profile_id",
+    "context_export_receipts": "context_export_receipt_id",
 }
 
 TABLE_LEVEL_SQL_PREFIXES = (
@@ -187,9 +189,11 @@ def test_all_table_concepts_exist_in_contract_order():
         "performance_action_receipts",
         "manual_override_events",
         "highlight_markers",
+        "agent_context_profiles",
+        "context_export_receipts",
     )
 
-    assert len(sqlite_schema_tables()) == 28
+    assert len(sqlite_schema_tables()) == 30
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
 
 
@@ -573,7 +577,7 @@ def test_runtime_presence_and_component_health_tables_preserve_boundaries():
 def test_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_schema_sql_definitions()
 
-    assert len(sql_definitions) == 28
+    assert len(sql_definitions) == 30
 
     for table_name, sql_text in zip(sqlite_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
@@ -590,7 +594,7 @@ def test_sql_strings_are_inert_definitions_only():
 def test_physical_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_physical_schema_sql_definitions()
 
-    assert len(sql_definitions) == 29
+    assert len(sql_definitions) == 31
 
     for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")

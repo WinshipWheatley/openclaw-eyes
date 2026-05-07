@@ -408,3 +408,5 @@
 
 !tests/test_backend_performance_repository.py
 !tests/test_backend_performance_intelligence.py
+!tests/test_backend_agent_context.py
+!tests/test_chief_listener_lifecycle.py

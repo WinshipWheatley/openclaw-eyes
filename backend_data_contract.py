@@ -320,6 +320,8 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "performance_action_receipt",
     "manual_override_event",
     "highlight_marker",
+    "agent_context_profile",
+    "context_export_receipt",
 )
 
 REQUIRED_SQLITE_TABLE_CONCEPTS = (
@@ -351,6 +353,8 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "performance_action_receipts",
     "manual_override_events",
     "highlight_markers",
+    "agent_context_profiles",
+    "context_export_receipts",
 )
 
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
@@ -612,6 +616,47 @@ PERFORMANCE_MARKER_SOURCES = (
     "control_surface",
     "system_suggestion",
     "imported",
+)
+
+AGENT_CONTEXT_EXPORT_AGENT_ROLES = (
+    "cassandra",
+    "chief",
+    "guardian",
+    "hermes",
+    "legal_operator",
+    "operator_harness",
+    "future_agent",
+    "unknown",
+)
+
+AGENT_CONTEXT_EXPORT_TASK_CLASSES = (
+    "user_reply",
+    "evidence_scan",
+    "safety_review",
+    "legal_review",
+    "storage_planning",
+    "runtime_status",
+    "performance_planning",
+    "handoff_generation",
+    "future_task",
+    "unknown",
+)
+
+AGENT_CONTEXT_EXPORT_CAPABILITY_SCOPES = (
+    "personal",
+    "firm",
+    "legal",
+    "music",
+    "system",
+    "unknown",
+)
+
+AGENT_CONTEXT_EXPORT_STATUSES = (
+    "dry_run",
+    "allowed",
+    "denied",
+    "omitted",
+    "failed",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -1150,6 +1195,51 @@ SCHEMA_CONTRACT_SURFACES = (
                 "marker_source",
                 "notes",
                 "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="agent_context_profile",
+        purpose="Inert definition of approved context access profiles for agent/lane roles.",
+        required_conceptual_fields=frozenset(
+            {
+                "context_profile_id",
+                "tenant_id",
+                "agent_role",
+                "task_class",
+                "capability_scope",
+                "allowed_entity_family",
+                "allowed_source_mode",
+                "max_records",
+                "max_depth",
+                "sensitivity_ceiling",
+                "model_policy_ref",
+                "provider_policy_ref",
+                "status",
+                "approval_receipt_ref",
+                "created_at",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="context_export_receipt",
+        purpose="Inert log for deterministic context export attempts/results.",
+        required_conceptual_fields=frozenset(
+            {
+                "context_export_receipt_id",
+                "tenant_id",
+                "context_profile_id",
+                "requesting_actor",
+                "agent_role",
+                "task_class",
+                "seed_strategy",
+                "records_returned",
+                "records_omitted",
+                "denied_reason",
+                "export_status",
+                "created_at",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -1743,6 +1833,53 @@ SQLITE_TABLE_CONCEPTS = (
         related_schema_contract_surface="highlight_marker",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
+    SQLiteTableConcept(
+        name="agent_context_profiles",
+        purpose="Physical representation of approved context access profiles.",
+        required_conceptual_fields=frozenset(
+            {
+                "context_profile_id",
+                "tenant_id",
+                "agent_role",
+                "task_class",
+                "capability_scope",
+                "allowed_entity_family",
+                "allowed_source_mode",
+                "max_records",
+                "max_depth",
+                "sensitivity_ceiling",
+                "model_policy_ref",
+                "provider_policy_ref",
+                "status",
+                "approval_receipt_ref",
+                "created_at",
+            }
+        ),
+        related_schema_contract_surface="agent_context_profile",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="context_export_receipts",
+        purpose="Physical representation of context export attempt logs.",
+        required_conceptual_fields=frozenset(
+            {
+                "context_export_receipt_id",
+                "tenant_id",
+                "context_profile_id",
+                "requesting_actor",
+                "agent_role",
+                "task_class",
+                "seed_strategy",
+                "records_returned",
+                "records_omitted",
+                "denied_reason",
+                "export_status",
+                "created_at",
+            }
+        ),
+        related_schema_contract_surface="context_export_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
 )
 
 EXCLUDED_ENTITY_FAMILY_NAMES = frozenset(
@@ -2081,6 +2218,10 @@ _SCHEMA_SURFACE_ALIASES = {
     "manual override events": "manual_override_event",
     "highlight marker": "highlight_marker",
     "highlight markers": "highlight_marker",
+    "agent context profile": "agent_context_profile",
+    "agent context profiles": "agent_context_profile",
+    "context export receipt": "context_export_receipt",
+    "context export receipts": "context_export_receipt",
 }
 _SQLITE_TABLE_CONCEPTS_BY_NAME = {
     concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
@@ -2147,6 +2288,10 @@ _SQLITE_TABLE_CONCEPT_ALIASES = {
     "manual override events": "manual_override_events",
     "highlight marker": "highlight_markers",
     "highlight markers": "highlight_markers",
+    "agent context profile": "agent_context_profiles",
+    "agent context profiles": "agent_context_profiles",
+    "context export receipt": "context_export_receipts",
+    "context export receipts": "context_export_receipts",
 }
 
 

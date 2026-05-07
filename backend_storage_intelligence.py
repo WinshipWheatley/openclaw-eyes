@@ -105,6 +105,18 @@ class NodeAuthorizationSnapshot:
 
 
 @dataclass(frozen=True)
+class AgentContextAccessFinding:
+    """Plain risk/access signal for an agent context export request."""
+
+    finding_id: str
+    finding_kind: str
+    severity: str
+    message: str
+    is_blocked: bool
+    context_profile_id: str | None = None
+
+
+@dataclass(frozen=True)
 class RuntimeComponentHealthSnapshot:
     """Caller-provided runtime component readiness state."""
 

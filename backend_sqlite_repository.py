@@ -35,6 +35,8 @@ SECTION_CUES_TABLE_NAME = "section_cues"
 PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME = "performance_action_receipts"
 MANUAL_OVERRIDE_EVENTS_TABLE_NAME = "manual_override_events"
 HIGHLIGHT_MARKERS_TABLE_NAME = "highlight_markers"
+AGENT_CONTEXT_PROFILES_TABLE_NAME = "agent_context_profiles"
+CONTEXT_EXPORT_RECEIPTS_TABLE_NAME = "context_export_receipts"
 
 REPOSITORY_TABLE_PRIMARY_KEYS = {
     SEMANTIC_RECORDS_TABLE_NAME: "record_id",
@@ -64,6 +66,8 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME: "performance_action_receipt_id",
     MANUAL_OVERRIDE_EVENTS_TABLE_NAME: "manual_override_event_id",
     HIGHLIGHT_MARKERS_TABLE_NAME: "highlight_marker_id",
+    AGENT_CONTEXT_PROFILES_TABLE_NAME: "context_profile_id",
+    CONTEXT_EXPORT_RECEIPTS_TABLE_NAME: "context_export_receipt_id",
 }
 
 
@@ -477,6 +481,45 @@ class HighlightMarker:
     marker_source: str
     notes: str
     status: str
+
+
+@dataclass(frozen=True)
+class AgentContextProfile:
+    """Inert definition of approved context access profiles."""
+
+    context_profile_id: str
+    tenant_id: str
+    agent_role: str
+    task_class: str
+    capability_scope: str
+    allowed_entity_family: str
+    allowed_source_mode: str
+    max_records: int
+    max_depth: int
+    sensitivity_ceiling: str
+    model_policy_ref: str
+    provider_policy_ref: str
+    status: str
+    approval_receipt_ref: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ContextExportReceipt:
+    """Inert log for deterministic context export attempts/results."""
+
+    context_export_receipt_id: str
+    tenant_id: str
+    context_profile_id: str
+    requesting_actor: str
+    agent_role: str
+    task_class: str
+    seed_strategy: str
+    records_returned: int
+    records_omitted: int
+    denied_reason: str
+    export_status: str
+    created_at: str
 
 
 def semantic_record_column_names() -> tuple[str, ...]:
@@ -1878,6 +1921,136 @@ def read_highlight_markers_by_performance_session_id(
     )
 
 
+def write_agent_context_profile(
+    connection: Any,
+    profile: AgentContextProfile | Mapping[str, Any],
+) -> None:
+    """Insert one agent_context_profiles row."""
+
+    payload = _table_payload(AGENT_CONTEXT_PROFILES_TABLE_NAME, profile)
+    _require_non_negative_int(payload["max_records"], "max_records")
+    _require_non_negative_int(payload["max_depth"], "max_depth")
+    _insert_row(connection, AGENT_CONTEXT_PROFILES_TABLE_NAME, payload)
+
+
+def read_agent_context_profile(connection: Any, profile_id: str) -> dict[str, Any] | None:
+    """Read one agent_context_profiles row by explicit profile_id."""
+
+    return _read_row_by_primary_key(connection, AGENT_CONTEXT_PROFILES_TABLE_NAME, profile_id)
+
+
+def read_agent_context_profiles_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read agent_context_profiles rows for one tenant."""
+
+    return _read_rows_where(
+        connection,
+        AGENT_CONTEXT_PROFILES_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="context_profile_id",
+    )
+
+
+def read_active_agent_context_profiles_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read active agent_context_profiles rows for one tenant."""
+
+    return _read_rows_where_multiple(
+        connection,
+        AGENT_CONTEXT_PROFILES_TABLE_NAME,
+        {"tenant_id": tenant_id, "status": "active"},
+    )
+
+
+def read_active_agent_context_profile_by_role_and_task(
+    connection: Any,
+    tenant_id: str,
+    agent_role: str,
+    task_class: str,
+) -> dict[str, Any] | None:
+    """Read an active agent_context_profile by tenant, role, and task class."""
+
+    rows = _read_rows_where_multiple(
+        connection,
+        AGENT_CONTEXT_PROFILES_TABLE_NAME,
+        {
+            "tenant_id": tenant_id,
+            "agent_role": agent_role,
+            "task_class": task_class,
+            "status": "active",
+        },
+    )
+    return rows[0] if rows else None
+
+
+def write_context_export_receipt(
+    connection: Any,
+    receipt: ContextExportReceipt | Mapping[str, Any],
+) -> None:
+    """Insert one context_export_receipts row."""
+
+    payload = _table_payload(CONTEXT_EXPORT_RECEIPTS_TABLE_NAME, receipt)
+    _require_non_negative_int(payload["records_returned"], "records_returned")
+    _require_non_negative_int(payload["records_omitted"], "records_omitted")
+    _insert_row(connection, CONTEXT_EXPORT_RECEIPTS_TABLE_NAME, payload)
+
+
+def read_context_export_receipt(connection: Any, receipt_id: str) -> dict[str, Any] | None:
+    """Read one context_export_receipts row by explicit receipt_id."""
+
+    return _read_row_by_primary_key(connection, CONTEXT_EXPORT_RECEIPTS_TABLE_NAME, receipt_id)
+
+
+def read_context_export_receipts_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read context_export_receipts rows for one tenant."""
+
+    return _read_rows_where(
+        connection,
+        CONTEXT_EXPORT_RECEIPTS_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="created_at",
+    )
+
+
+def read_context_export_receipts_by_requesting_actor(
+    connection: Any,
+    requesting_actor: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read context_export_receipts rows for one requesting actor."""
+
+    return _read_rows_where(
+        connection,
+        CONTEXT_EXPORT_RECEIPTS_TABLE_NAME,
+        "requesting_actor",
+        requesting_actor,
+        order_by="created_at",
+    )
+
+
+def read_context_export_receipts_by_agent_role(
+    connection: Any,
+    agent_role: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read context_export_receipts rows for one agent role."""
+
+    return _read_rows_where(
+        connection,
+        CONTEXT_EXPORT_RECEIPTS_TABLE_NAME,
+        "agent_role",
+        agent_role,
+        order_by="created_at",
+    )
+
+
 def read_record_ids_for_exact_label_seed(
     connection: Any,
     label_name: str,
@@ -2039,6 +2212,37 @@ WHERE {where_column} = ?
 ORDER BY {order_by}
 """.strip(),
         (where_value,),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
+def _read_rows_where_multiple(
+    connection: Any,
+    table_name: str,
+    where_fields: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    table_name = _require_repository_table_name(table_name)
+    columns = table_column_names(table_name)
+
+    where_clauses = []
+    params = []
+    for field, value in where_fields.items():
+        if field not in columns:
+            raise ValueError(f"unknown repository where column: {field}")
+        where_clauses.append(f"{field} = ?")
+        params.append(value)
+
+    where_sql = " AND ".join(where_clauses)
+    primary_key_column = REPOSITORY_TABLE_PRIMARY_KEYS[table_name]
+
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM {table_name}
+WHERE {where_sql}
+ORDER BY {primary_key_column}
+""".strip(),
+        tuple(params),
     ).fetchall()
     return tuple(dict(zip(columns, row)) for row in rows)
 
