@@ -3,33 +3,33 @@
 ## 1. Repo Verification Receipt
 
 - **Current Branch:** main
-- **Latest Pushed State (Origin):** `6e7117d docs(project): refresh backend sqlite active handoff`
-- **Latest Local Backend Capability Checkpoint:** `627326a feat(backend): add agent context export substrate`
-- **Current Terminal Status:** `main...origin/main [ahead 2]`
+- **Latest Pushed State (Origin):** `bd723ce docs(project): refresh backend sqlite active handoff`
+- **Latest Local Backend Capability Checkpoint:** `e306c4d feat(backend): add actor registry context trust bridge`
+- **Current Terminal Status:** `main...origin/main [ahead 1]`
 - **Latest Local Commits:**
-```
+```text
+e306c4d feat(backend): add actor registry context trust bridge
+bd723ce docs(project): refresh backend sqlite active handoff
 6845e62 fix(chief): repair telegram listener lifecycle
 627326a feat(backend): add agent context export substrate
 6e7117d docs(project): refresh backend sqlite active handoff
 565d05a feat(backend): add performance show map substrate
-bdb127d feat(backend): add runtime presence health substrate
-d43f869 feat(backend): add network node authorization substrate
 ```
 
 ## 2. Validation Receipt
 
 - `launch_ladder_contract_check.py`: OK, known freshness warning only
 - `tests/test_launch_ladder_static_contract.py`: 28 passed
-- `tests/test_backend_data_contract.py`: 44 passed
-- `tests/test_backend_sqlite_schema.py`: 24 passed
+- `tests/test_backend_data_contract.py`: 45 passed
+- `tests/test_backend_sqlite_schema.py`: 19 passed
 - `tests/test_backend_sqlite_runtime.py`: 33 passed
-- `tests/test_backend_sqlite_repository.py`: 41 passed
+- `tests/test_backend_sqlite_repository.py`: 43 passed
 - `tests/test_backend_knowledge_packet.py`: 27 passed
 - `tests/test_backend_storage_intelligence.py`: 17 passed
 - `tests/test_backend_performance_repository.py`: 7 passed
 - `tests/test_backend_performance_intelligence.py`: 8 passed
-- `tests/test_backend_agent_context.py`: 7 passed
-- **Full Backend Validation:** 230 tests passed
+- `tests/test_backend_agent_context.py`: 15 passed
+- **Full Backend Validation:** 242 tests passed
 - `py_compile` includes:
   - `backend_data_contract.py`
   - `backend_sqlite_schema.py`
@@ -50,6 +50,7 @@ Storage intelligence substrate exists (Authorizations, Runtime Presence).
 Knowledge packet substrate exists (Seeds, Traversal, Context).
 Performance Director / Show Map substrate exists.
 Agent Context Export / Access Policy substrate exists.
+Actor Registry / Context Export Trust Bridge exists.
 
 ### Built Surfaces:
 - `backend_data_contract.py`
@@ -70,6 +71,14 @@ Agent Context Export / Access Policy substrate exists.
 
 ## 4. What Is Now Built
 
+- **Actor Registry / Context Export Trust Bridge**
+  - `actor_profiles` physical and semantic models
+  - Actor lanes and actor classes
+  - Trust tiers and sensitivity ceilings
+  - Capability scopes and inert authority flags
+  - Receipt requirements for sensitive context
+  - Cloud-sidecar deny-by-default context trust behavior
+  - No fake sanitization logic allowed
 - **Agent Context Export / Access Policy static schema/data-contract substrate**
 - **Physical SQLite schema definitions** for `agent_context_profiles` and `context_export_receipts`
 - **Repository helpers** for agent context profiles and context export receipts using caller-owned SQLite connections only
@@ -101,6 +110,11 @@ Agent Context Export / Access Policy substrate exists.
 ## 6. Current Forbidden Surfaces
 
 STRICTLY FORBIDDEN (No live performance or control architecture):
+- **cloud sidecars deny by default unless context is already public/sanitized and approval/receipt-backed**
+- **no fake `sanitize_packet()` placeholder**
+- **no sidecar/Jules runtime use**
+- **no invoice hardening in this same backend lane**
+- **no live runtime integration, API/MCP, retrieval/RAG/vector/PageIndex, model/provider calls, private-root inspection, filesystem/network/MIDI/web/control behavior**
 - **live MIDI listeners**
 - **audio/chord/lyric analysis**
 - **camera switching**
@@ -114,15 +128,13 @@ STRICTLY FORBIDDEN (No live performance or control architecture):
 - **adaptive inference engines**
 - **live file operations / network polling**
 - **process/service scanning**
-- **model/provider calls**
-- **retrieval/search/RAG/vector/PageIndex**
-- **private-root inspection**
 - migrations and migration runners
 - ingestion/extraction
 
-## 7. Current Next Lane
+## 7. Candidate Next Lanes from Current Checkpoint
 
-The next visible-road lane should be:
+This handoff records the train position. The 24_files and canonical source-set docs define the tracks. The following are candidate continuations from the current checkpoint, not independently authoritative roadmap decisions.
+
 - **Agent Context Export hardening**
 - **Actor Registry / sidecar profile schema** if not already built
 - **Operator Harness read-model assembly**
@@ -130,11 +142,17 @@ The next visible-road lane should be:
 - **Runtime integration architecture review**
 - **MCP/shared memory architecture review inspired by Open Brain / OB1**
 
-## 8. Review Boundary
+## 8. Process Lessons & Known State
 
-- Latest checkpoint `627326a` and fix `6845e62` remain local-only (`ahead 2`).
+- **Docs-Only Drift:** Gemini previously drifted into implementation (`backend_data_contract.py`) after a docs-only handoff update. Future docs-only workers must strictly stop after the requested documentation update and report.
+- **Invoice Tools Reality:** Existing invoice tools are not safe for unattended real invoice generation. `reportlab` and `requests` are missing from the active `.venv`, and `chief_invoice_brain.py` misparsed “Tomorrow” as `deposit_amount`. Real invoices should be manual/semi-manual until an "Invoice Artifact v0 / Billing Bridge" lane is explicitly selected.
+- **24_files Archive Rule:** When the current `24_files` are exhausted, they must be archived *together* with the final active handoff as a paired snapshot before generating the next batch.
 
-## 9. Canonical Read List For Next Chat
+## 9. Review Boundary
+
+- Latest checkpoint `e306c4d` remains local-only (`ahead 1`).
+
+## 10. Canonical Read List For Next Chat
 
 - `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/00_ACTIVE_HANDOFF.md` (this handoff)
 - `backend_sqlite_repository.py`
@@ -151,21 +169,23 @@ The next visible-road lane should be:
 - `docs/planning/project_orchestration/24_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md`
 - `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/README.md`
 
-## 10. Workflow Rules
+## 11. Workflow Rules
 
 - **Right Stride Length Rule**
 - **Faster Workflow / Batch Checkpoint Rule**
 - **Audit-to-Execution Rule**
 - **Visible-Road Rule:** When the road is visible, prompt the agent with the road, not a crumb. If A-E are clear, include A-E in one prompt. If F branches, the agent should evaluate the branch, choose the better path using stated criteria, and continue if clear. Stop only at real review points.
 
-## 11. 24_files Rule
+## 12. 24_files Rule
 
 - `24_files` are stable historical/source packet context.
-- Do not edit `24_files` during the active lane.
+- **Do not edit `24_files` during the active lane.**
 - Current truth lives in this handoff plus canonical repo commits/docs.
-- Regenerate/archive packet only when the lane is complete or future chats would be materially misled.
+- **The current active handoff should orient new chats back to `24_files`.**
+- `24_files` are stable source-packet context until exhausted.
+- **Archive the current `24_files` together with the final active handoff as a paired snapshot before generating the next batch.**
 
-## 12. Required Validation
+## 13. Required Validation
 
 ```bash
 git status -sb --untracked-files=all
