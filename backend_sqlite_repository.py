@@ -377,6 +377,34 @@ def record_has_explicit_operator_promotion(connection: Any, record_id: str) -> b
     )
 
 
+def read_record_ids_for_exact_label_seed(
+    connection: Any,
+    label_name: str,
+    label_value: str,
+    *,
+    max_records: int = 8,
+) -> tuple[str, ...]:
+    """Return bounded candidate record IDs for one exact semantic label."""
+
+    _require_non_empty_string(label_name, "label_name")
+    _require_non_empty_string(label_value, "label_value")
+    _require_positive_int(max_records, "max_records")
+    rows = connection.execute(
+        """
+SELECT labels.target_record_id
+FROM semantic_labels AS labels
+INNER JOIN semantic_records AS records
+  ON records.record_id = labels.target_record_id
+WHERE labels.label_name = ? AND labels.label_value = ?
+GROUP BY labels.target_record_id
+ORDER BY labels.target_record_id
+LIMIT ?
+""".strip(),
+        (label_name, label_value, max_records),
+    ).fetchall()
+    return tuple(row[0] for row in rows)
+
+
 def _insert_row(connection: Any, table_name: str, payload: Mapping[str, Any]) -> None:
     table_name = _require_repository_table_name(table_name)
     columns = table_column_names(table_name)
@@ -494,5 +522,10 @@ def _require_non_empty_string(value: Any, field_name: str) -> None:
 
 
 def _require_binary_int(value: Any, field_name: str) -> None:
-    if value not in {0, 1} or not isinstance(value, int):
+    if type(value) is not int or value not in {0, 1}:
         raise ValueError(f"{field_name} must be 0 or 1")
+
+
+def _require_positive_int(value: Any, field_name: str) -> None:
+    if type(value) is not int or value < 1:
+        raise ValueError(f"{field_name} must be a positive integer")

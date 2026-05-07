@@ -23,6 +23,7 @@ from backend_sqlite_repository import (
     read_record_provenance_refs,
     read_record_relationships,
     read_record_validation_receipts,
+    read_record_ids_for_exact_label_seed,
     read_semantic_label,
     read_semantic_record,
     read_semantic_relationship,
@@ -476,17 +477,109 @@ def test_operator_promotion_is_explicit_and_does_not_rewrite_record_truth_flags(
         connection.close()
 
 
+def test_exact_label_seed_selection_is_bounded_deterministic_and_non_promoting():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+        write_semantic_label(
+            connection,
+            {**sample_semantic_label("label-c").__dict__, "target_record_id": "record-c"},
+        )
+        write_semantic_label(
+            connection,
+            {**sample_semantic_label("label-a").__dict__, "target_record_id": "record-a"},
+        )
+        write_semantic_label(
+            connection,
+            {**sample_semantic_label("label-b").__dict__, "target_record_id": "record-b"},
+        )
+        write_semantic_label(
+            connection,
+            {
+                **sample_semantic_label("label-other").__dict__,
+                "target_record_id": "record-a",
+                "label_value": "other-confidence",
+            },
+        )
+
+        assert read_record_ids_for_exact_label_seed(
+            connection,
+            "confidence",
+            "test-confidence",
+            max_records=2,
+        ) == ("record-a", "record-b")
+        assert read_record_ids_for_exact_label_seed(
+            connection,
+            "confidence",
+            "other-confidence",
+            max_records=8,
+        ) == ("record-a",)
+        assert read_semantic_record(connection, "record-a")[
+            "accepted_knowledge_derived"
+        ] == 0
+    finally:
+        connection.close()
+
+
+def test_exact_label_seed_selection_fails_closed_for_invalid_inputs():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_label_seed(
+                connection,
+                "",
+                "test-confidence",
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_label_seed(
+                connection,
+                "confidence",
+                "",
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_label_seed(
+                connection,
+                "confidence",
+                "test-confidence",
+                max_records=0,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_label_seed(
+                connection,
+                "confidence",
+                "test-confidence",
+                max_records=True,
+            )
+    finally:
+        connection.close()
+
+
 def test_semantic_record_truth_boundary_flags_must_be_binary_ints():
     connection = create_in_memory_connection()
     try:
         for field_name in ("synthesis_not_truth", "accepted_knowledge_derived"):
-            payload = {
-                **sample_semantic_record(f"bad-{field_name}").__dict__,
-                field_name: "1",
-            }
+            for bad_value in ("1", True):
+                payload = {
+                    **sample_semantic_record(f"bad-{field_name}-{bad_value}").__dict__,
+                    field_name: bad_value,
+                }
 
-            with pytest.raises(ValueError):
-                write_semantic_record(connection, payload)
+                with pytest.raises(ValueError):
+                    write_semantic_record(connection, payload)
+    finally:
+        connection.close()
+
+
+def test_operator_promotion_flag_must_be_binary_int_not_bool():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        with pytest.raises(ValueError):
+            write_operator_promotion(
+                connection,
+                {**sample_operator_promotion().__dict__, "promoted_by_operator": True},
+            )
     finally:
         connection.close()
 

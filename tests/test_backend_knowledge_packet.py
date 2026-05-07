@@ -10,9 +10,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend_knowledge_packet import (
     assemble_record_knowledge_packet,
     context_selection_as_dict,
+    exact_label_candidate_seed_selection_as_dict,
     packet_as_dict,
     packet_has_explicit_operator_promotion,
     select_context_for_record,
+    select_exact_label_candidate_seeds,
     select_traversal_context_for_record,
     synthesis_ready_read_model,
     synthesis_ready_read_model_as_dict,
@@ -248,6 +250,46 @@ def test_context_selection_is_explicit_record_id_only_and_bounded():
         connection.close()
 
 
+def test_exact_label_candidate_seed_selection_is_bounded_plain_data():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+            write_semantic_label(
+                connection,
+                SemanticLabel(
+                    label_id=f"label-{record_id}",
+                    target_record_id=record_id,
+                    label_name="confidence",
+                    label_value="test-confidence",
+                    label_basis="static test",
+                    review_status="needs review",
+                    source_label_ref=None,
+                ),
+            )
+
+        selection = select_exact_label_candidate_seeds(
+            connection,
+            "confidence",
+            "test-confidence",
+            max_records=2,
+        )
+        selection_dict = exact_label_candidate_seed_selection_as_dict(selection)
+
+        assert selection.seed_kind == "exact_semantic_label_seed"
+        assert selection.selection_strategy == "exact_label_match"
+        assert selection.record_ids == ("record-a", "record-b")
+        assert selection.records_returned == 2
+        assert selection.max_records == 2
+        assert selection.truth_status == "not_accepted_truth"
+        assert selection.includes_fuzzy_match is False
+        assert selection.includes_model_calls is False
+        assert selection.ordered_by_record_id is True
+        assert selection_dict["record_ids"] == ("record-a", "record-b")
+    finally:
+        connection.close()
+
+
 def test_synthesis_ready_read_model_is_pure_data_not_synthesized_truth():
     connection = create_in_memory_connection()
     try:
@@ -334,6 +376,14 @@ def test_relationship_traversal_is_bounded_deterministic_and_state_aware():
         assert traversal.traversal_kind == "bounded_relationship_walk"
         assert traversal.traversal_strategy == "breadth_first_by_relationship_id"
         assert traversal.truth_status == "not_accepted_truth"
+        assert traversal.completed is True
+        assert traversal.truncated is False
+        assert traversal.truncation_reason is None
+        assert traversal.records_returned == 4
+        assert traversal.max_depth_reached == 2
+        assert traversal.missing_related_record_ids == ()
+        assert traversal.skipped_relationship_ids == ()
+        assert traversal.integrity_findings == ()
         assert [record.record_id for record in traversal.records] == [
             "record-1",
             "record-3",
@@ -343,6 +393,8 @@ def test_relationship_traversal_is_bounded_deterministic_and_state_aware():
         assert [record.depth for record in traversal.records] == [0, 1, 1, 2]
         assert traversal.records[1].via_relationship_id == "rel-a"
         assert traversal.records[1].relationship_direction == "outbound"
+        assert traversal.records[1].via_relationship_state == "reviewed"
+        assert traversal.records[1].via_relationship_provenance_refs == "prov:rel-a"
         assert traversal.records[1].packet.relationships[0]["relationship_state"] == (
             "reviewed"
         )
@@ -377,11 +429,23 @@ def test_relationship_traversal_respects_depth_and_record_bounds():
             "record-3",
             "record-2",
         ]
+        assert depth_limited.completed is False
+        assert depth_limited.truncated is True
+        assert depth_limited.truncation_reason == "max_depth"
+        assert depth_limited.records_returned == 3
+        assert depth_limited.max_depth_reached == 1
+        assert depth_limited.skipped_relationship_ids == ("rel-c",)
         assert record_limited is not None
         assert [record.record_id for record in record_limited.records] == [
             "record-1",
             "record-3",
         ]
+        assert record_limited.completed is False
+        assert record_limited.truncated is True
+        assert record_limited.truncation_reason == "max_records"
+        assert record_limited.records_returned == 2
+        assert record_limited.max_depth_reached == 1
+        assert record_limited.skipped_relationship_ids == ("rel-b", "rel-c")
     finally:
         connection.close()
 
@@ -404,6 +468,60 @@ def test_relationship_traversal_fails_closed_for_missing_or_invalid_inputs():
         connection.close()
 
 
+def test_relationship_traversal_reports_missing_related_records_deterministically():
+    connection = create_in_memory_connection()
+    try:
+        write_semantic_record(connection, sample_semantic_record("record-1"))
+        connection.execute(
+            """
+INSERT INTO semantic_relationships (
+  relationship_id,
+  from_record_id,
+  to_record_id,
+  relationship_kind,
+  relationship_state,
+  provenance_refs,
+  freshness_refs,
+  authority_label,
+  sensitivity_label,
+  relationship_scope
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""".strip(),
+            (
+                "rel-missing",
+                "record-1",
+                "missing-record",
+                "supports",
+                "draft",
+                "prov:rel-missing",
+                "static-test",
+                "repository-proof",
+                "local-test-only",
+                "direct",
+            ),
+        )
+
+        traversal = traverse_record_relationships(
+            connection,
+            "record-1",
+            max_depth=1,
+            max_records=8,
+        )
+
+        assert traversal is not None
+        assert traversal.completed is False
+        assert traversal.truncated is False
+        assert traversal.truncation_reason is None
+        assert traversal.records_returned == 1
+        assert traversal.missing_related_record_ids == ("missing-record",)
+        assert traversal.skipped_relationship_ids == ("rel-missing",)
+        assert traversal.integrity_findings == (
+            "missing_related_record:missing-record",
+        )
+    finally:
+        connection.close()
+
+
 def test_traversal_context_packet_is_pure_bounded_read_model_material():
     connection = create_in_memory_connection()
     try:
@@ -421,6 +539,9 @@ def test_traversal_context_packet_is_pure_bounded_read_model_material():
         assert context_packet.bounded is True
         assert context_packet.truth_status == "not_accepted_truth"
         assert context_packet.promotion_boundary == "operator_promotion_required"
+        assert context_packet.traversal.records_returned == 3
+        assert context_packet.traversal.truncated is True
+        assert context_packet.traversal.truncation_reason == "max_depth"
         assert [model.record_id for model in context_packet.synthesis_ready_records] == [
             "record-1",
             "record-3",
@@ -441,8 +562,16 @@ def test_traversal_dict_conversions_are_deterministic_plain_python_data():
     connection = create_in_memory_connection()
     try:
         populate_traversal_fixture(connection)
-        traversal = traverse_record_relationships(connection, "record-1")
-        context_packet = select_traversal_context_for_record(connection, "record-1")
+        traversal = traverse_record_relationships(
+            connection,
+            "record-1",
+            max_depth=2,
+        )
+        context_packet = select_traversal_context_for_record(
+            connection,
+            "record-1",
+            max_depth=2,
+        )
         assert traversal is not None
         assert context_packet is not None
 
@@ -450,7 +579,10 @@ def test_traversal_dict_conversions_are_deterministic_plain_python_data():
         context_packet_dict = traversal_context_packet_as_dict(context_packet)
 
         assert traversal_dict["traversal_strategy"] == "breadth_first_by_relationship_id"
+        assert traversal_dict["completed"] is True
+        assert traversal_dict["records_returned"] == 4
         assert traversal_dict["records"][0]["record_id"] == "record-1"
+        assert traversal_dict["records"][1]["via_relationship_state"] == "reviewed"
         assert context_packet_dict["context_kind"] == "traversal_backed_context_packet"
         assert context_packet_dict["synthesis_ready_records"][0]["record_id"] == (
             "record-1"

@@ -7,6 +7,7 @@ from typing import Any
 
 from backend_sqlite_repository import (
     read_record_labels,
+    read_record_ids_for_exact_label_seed,
     read_record_operator_promotions,
     read_record_provenance_refs,
     read_record_relationships,
@@ -45,6 +46,24 @@ class ContextSelection:
 
 
 @dataclass(frozen=True)
+class ExactLabelCandidateSeedSelection:
+    """Bounded candidate seeds from one exact semantic label."""
+
+    label_name: str
+    label_value: str
+    record_ids: tuple[str, ...]
+    max_records: int
+    records_returned: int
+    seed_kind: str = "exact_semantic_label_seed"
+    selection_strategy: str = "exact_label_match"
+    bounded: bool = True
+    truth_status: str = "not_accepted_truth"
+    includes_fuzzy_match: bool = False
+    includes_model_calls: bool = False
+    ordered_by_record_id: bool = True
+
+
+@dataclass(frozen=True)
 class TraversedRecordContext:
     """One record reached by bounded relationship traversal."""
 
@@ -54,6 +73,8 @@ class TraversedRecordContext:
     via_relationship_id: str | None = None
     previous_record_id: str | None = None
     relationship_direction: str | None = None
+    via_relationship_state: str | None = None
+    via_relationship_provenance_refs: str | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +85,14 @@ class RelationshipTraversal:
     records: tuple[TraversedRecordContext, ...]
     max_depth: int
     max_records: int
+    completed: bool
+    truncated: bool
+    truncation_reason: str | None
+    records_returned: int
+    max_depth_reached: int
+    missing_related_record_ids: tuple[str, ...]
+    skipped_relationship_ids: tuple[str, ...]
+    integrity_findings: tuple[str, ...]
     traversal_kind: str = "bounded_relationship_walk"
     traversal_strategy: str = "breadth_first_by_relationship_id"
     bounded: bool = True
@@ -132,6 +161,30 @@ def select_context_for_record(
     return ContextSelection(record_id=record_id, packet=packet)
 
 
+def select_exact_label_candidate_seeds(
+    connection: Any,
+    label_name: str,
+    label_value: str,
+    *,
+    max_records: int = 8,
+) -> ExactLabelCandidateSeedSelection:
+    """Select bounded candidate seed record IDs by exact label only."""
+
+    record_ids = read_record_ids_for_exact_label_seed(
+        connection,
+        label_name,
+        label_value,
+        max_records=max_records,
+    )
+    return ExactLabelCandidateSeedSelection(
+        label_name=label_name,
+        label_value=label_value,
+        record_ids=record_ids,
+        max_records=max_records,
+        records_returned=len(record_ids),
+    )
+
+
 def traverse_record_relationships(
     connection: Any,
     root_record_id: str,
@@ -147,6 +200,9 @@ def traverse_record_relationships(
         return None
 
     visited = {root_record_id}
+    truncation_reasons: list[str] = []
+    missing_related_record_ids: list[str] = []
+    skipped_relationship_ids: list[str] = []
     queued = [
         TraversedRecordContext(
             record_id=root_record_id,
@@ -160,17 +216,41 @@ def traverse_record_relationships(
         current = queued.pop(0)
         records.append(current)
         if current.depth >= max_depth:
+            for relationship in current.packet.relationships:
+                related_record_id = _related_record_id(
+                    relationship,
+                    current.record_id,
+                )
+                if related_record_id is None or related_record_id in visited:
+                    continue
+                _append_unique(truncation_reasons, "max_depth")
+                _append_unique(
+                    skipped_relationship_ids,
+                    relationship["relationship_id"],
+                )
             continue
 
         for relationship in current.packet.relationships:
             related_record_id = _related_record_id(relationship, current.record_id)
             if related_record_id is None or related_record_id in visited:
                 continue
+            if len(records) + len(queued) >= max_records:
+                _append_unique(truncation_reasons, "max_records")
+                _append_unique(
+                    skipped_relationship_ids,
+                    relationship["relationship_id"],
+                )
+                continue
             related_packet = assemble_record_knowledge_packet(
                 connection,
                 related_record_id,
             )
             if related_packet is None:
+                _append_unique(missing_related_record_ids, related_record_id)
+                _append_unique(
+                    skipped_relationship_ids,
+                    relationship["relationship_id"],
+                )
                 continue
             visited.add(related_record_id)
             queued.append(
@@ -184,16 +264,30 @@ def traverse_record_relationships(
                         relationship,
                         current.record_id,
                     ),
+                    via_relationship_state=relationship["relationship_state"],
+                    via_relationship_provenance_refs=relationship["provenance_refs"],
                 )
             )
-            if len(records) + len(queued) >= max_records:
-                break
+
+    truncated = bool(truncation_reasons)
+    integrity_findings = tuple(
+        f"missing_related_record:{record_id}"
+        for record_id in missing_related_record_ids
+    )
 
     return RelationshipTraversal(
         root_record_id=root_record_id,
         records=tuple(records),
         max_depth=max_depth,
         max_records=max_records,
+        completed=not truncated and not integrity_findings,
+        truncated=truncated,
+        truncation_reason=_combined_reason(truncation_reasons) if truncated else None,
+        records_returned=len(records),
+        max_depth_reached=max((record.depth for record in records), default=0),
+        missing_related_record_ids=tuple(missing_related_record_ids),
+        skipped_relationship_ids=tuple(skipped_relationship_ids),
+        integrity_findings=integrity_findings,
     )
 
 
@@ -261,6 +355,14 @@ def context_selection_as_dict(selection: ContextSelection) -> dict[str, Any]:
     return asdict(selection)
 
 
+def exact_label_candidate_seed_selection_as_dict(
+    selection: ExactLabelCandidateSeedSelection,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python candidate-seed representation."""
+
+    return asdict(selection)
+
+
 def traversal_as_dict(traversal: RelationshipTraversal) -> dict[str, Any]:
     """Return a deterministic plain-Python traversal representation."""
 
@@ -308,3 +410,12 @@ def _relationship_direction(
     if relationship["from_record_id"] == current_record_id:
         return "outbound"
     return "inbound"
+
+
+def _append_unique(items: list[str], value: str) -> None:
+    if value not in items:
+        items.append(value)
+
+
+def _combined_reason(reasons: list[str]) -> str:
+    return "_and_".join(reasons)
