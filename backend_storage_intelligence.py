@@ -13,6 +13,9 @@ from backend_data_contract import (
     ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES,
     ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES,
     ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES,
+    RUNTIME_PRESENCE_CAPABILITY_STATUSES,
+    RUNTIME_PRESENCE_COMPONENT_STATUSES,
+    RUNTIME_PRESENCE_HEALTH_STATUSES,
     STORAGE_INTELLIGENCE_EXECUTION_STATUSES,
     STORAGE_INTELLIGENCE_SAFETY_TIERS,
 )
@@ -27,6 +30,16 @@ HIGH_RISK_SAFETY_TIERS = frozenset(
 NON_EXECUTING_PLAN_STATUSES = frozenset({"dry_run", "planned", "blocked"})
 AUTHORIZATION_READINESS_SCOPE_STATUSES = frozenset(
     ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES
+) | {"missing"}
+RUNTIME_COMPONENT_READINESS_STATUSES = frozenset(
+    RUNTIME_PRESENCE_COMPONENT_STATUSES
+) | {"missing"}
+RUNTIME_HEARTBEAT_READINESS_STATUSES = frozenset(RUNTIME_PRESENCE_HEALTH_STATUSES) | {
+    "missing",
+    "expired",
+}
+RUNTIME_CAPABILITY_READINESS_STATUSES = frozenset(
+    RUNTIME_PRESENCE_CAPABILITY_STATUSES
 ) | {"missing"}
 
 
@@ -87,6 +100,24 @@ class NodeAuthorizationSnapshot:
     source_mode: str
     operator_approval_ref: str
     agent_version: str = ""
+
+
+@dataclass(frozen=True)
+class RuntimeComponentHealthSnapshot:
+    """Caller-provided runtime component readiness state."""
+
+    component_id: str
+    node_id: str
+    tenant_id: str
+    component_status: str
+    component_role: str
+    requested_role: str
+    heartbeat_status: str
+    health_status: str
+    capability_status: str
+    required_capability: str
+    component_version: str
+    approved_for_tenant_id: str
 
 
 def evaluate_storage_operation_risks(
@@ -284,6 +315,149 @@ def node_authorization_snapshot_as_dict(
     return asdict(snapshot)
 
 
+def evaluate_runtime_component_health_risks(
+    snapshot: RuntimeComponentHealthSnapshot,
+) -> tuple[StorageRiskFinding, ...]:
+    """Return deterministic health/readiness risks from caller-provided state."""
+
+    _validate_runtime_component_health_snapshot(snapshot)
+    findings: list[StorageRiskFinding] = []
+    if snapshot.tenant_id != snapshot.approved_for_tenant_id:
+        findings.append(
+            _component_risk(
+                snapshot,
+                "component_tenant_mismatch",
+                "high",
+                "component tenant mismatch blocks scoped runtime visibility",
+            )
+        )
+    if snapshot.component_status == "missing":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "missing_component",
+                "high",
+                "required runtime component is not represented",
+            )
+        )
+    if snapshot.component_status == "unknown":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "unknown_component",
+                "high",
+                "unknown component presence is a signal, not trusted inventory",
+            )
+        )
+    if snapshot.component_status == "pending_approval":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "component_present_but_not_approved",
+                "high",
+                "component presence does not imply approval",
+            )
+        )
+    if snapshot.component_status == "revoked":
+        findings.append(
+            _component_risk(snapshot, "revoked_component", "high", "component revoked")
+        )
+    if snapshot.component_status == "stale":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "stale_component",
+                "medium",
+                "component registration is stale",
+            )
+        )
+    if snapshot.heartbeat_status == "missing":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "missing_heartbeat",
+                "medium",
+                "component has no stored heartbeat data",
+                requires_operator_approval=False,
+            )
+        )
+    if snapshot.heartbeat_status == "expired":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "expired_heartbeat_ttl",
+                "medium",
+                "component heartbeat TTL is expired",
+                requires_operator_approval=False,
+            )
+        )
+    if snapshot.health_status == "degraded":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "degraded_component",
+                "medium",
+                "component health is degraded",
+                requires_operator_approval=False,
+            )
+        )
+    if snapshot.health_status == "critical":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "critical_component_health",
+                "high",
+                "component health is critical",
+            )
+        )
+    if snapshot.capability_status == "missing":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "missing_required_capability",
+                "high",
+                "component lacks required capability metadata",
+            )
+        )
+    if snapshot.capability_status == "revoked":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "capability_revoked",
+                "high",
+                "required component capability is revoked",
+            )
+        )
+    if snapshot.component_role != snapshot.requested_role:
+        findings.append(
+            _component_risk(
+                snapshot,
+                "component_cannot_run_requested_role",
+                "high",
+                "component role does not match the requested role",
+            )
+        )
+    if snapshot.component_version == "stale":
+        findings.append(
+            _component_risk(
+                snapshot,
+                "stale_component_version",
+                "medium",
+                "component version is stale and needs review",
+                requires_operator_approval=False,
+            )
+        )
+    return tuple(findings)
+
+
+def runtime_component_health_snapshot_as_dict(
+    snapshot: RuntimeComponentHealthSnapshot,
+) -> dict[str, object]:
+    """Return deterministic plain-Python runtime component health data."""
+
+    return asdict(snapshot)
+
+
 def storage_risk_finding_as_dict(finding: StorageRiskFinding) -> dict[str, object]:
     """Return a deterministic plain-Python risk finding representation."""
 
@@ -350,6 +524,29 @@ def _validate_node_authorization_snapshot(snapshot: NodeAuthorizationSnapshot) -
         )
 
 
+def _validate_runtime_component_health_snapshot(
+    snapshot: RuntimeComponentHealthSnapshot,
+) -> None:
+    if not isinstance(snapshot, RuntimeComponentHealthSnapshot):
+        raise ValueError("snapshot must be a RuntimeComponentHealthSnapshot")
+    _require_non_empty_string(snapshot.component_id, "component_id")
+    _require_non_empty_string(snapshot.node_id, "node_id")
+    _require_non_empty_string(snapshot.tenant_id, "tenant_id")
+    _require_non_empty_string(snapshot.component_role, "component_role")
+    _require_non_empty_string(snapshot.requested_role, "requested_role")
+    _require_non_empty_string(snapshot.required_capability, "required_capability")
+    _require_non_empty_string(snapshot.component_version, "component_version")
+    _require_non_empty_string(snapshot.approved_for_tenant_id, "approved_for_tenant_id")
+    if snapshot.component_status not in RUNTIME_COMPONENT_READINESS_STATUSES:
+        raise ValueError(f"unknown component_status: {snapshot.component_status}")
+    if snapshot.heartbeat_status not in RUNTIME_HEARTBEAT_READINESS_STATUSES:
+        raise ValueError(f"unknown heartbeat_status: {snapshot.heartbeat_status}")
+    if snapshot.health_status not in RUNTIME_PRESENCE_HEALTH_STATUSES:
+        raise ValueError(f"unknown health_status: {snapshot.health_status}")
+    if snapshot.capability_status not in RUNTIME_CAPABILITY_READINESS_STATUSES:
+        raise ValueError(f"unknown capability_status: {snapshot.capability_status}")
+
+
 def _node_risk(
     snapshot: NodeAuthorizationSnapshot,
     finding_kind: str,
@@ -360,6 +557,23 @@ def _node_risk(
 ) -> StorageRiskFinding:
     return StorageRiskFinding(
         finding_id=f"{snapshot.node_id}:{snapshot.source_id}:{finding_kind}",
+        finding_kind=finding_kind,
+        severity=severity,
+        message=message,
+        requires_operator_approval=requires_operator_approval,
+    )
+
+
+def _component_risk(
+    snapshot: RuntimeComponentHealthSnapshot,
+    finding_kind: str,
+    severity: str,
+    message: str,
+    *,
+    requires_operator_approval: bool = True,
+) -> StorageRiskFinding:
+    return StorageRiskFinding(
+        finding_id=f"{snapshot.component_id}:{snapshot.required_capability}:{finding_kind}",
         finding_kind=finding_kind,
         severity=severity,
         message=message,

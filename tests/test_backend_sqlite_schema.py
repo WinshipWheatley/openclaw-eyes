@@ -53,6 +53,11 @@ EXPECTED_PRIMARY_KEYS = {
     "openclaw_nodes": "node_id",
     "node_source_links": "link_id",
     "source_authorization_scopes": "scope_id",
+    "runtime_components": "component_id",
+    "component_capabilities": "capability_id",
+    "node_heartbeats": "heartbeat_id",
+    "component_heartbeats": "heartbeat_id",
+    "component_health_snapshots": "snapshot_id",
 }
 
 TABLE_LEVEL_SQL_PREFIXES = (
@@ -161,8 +166,13 @@ def test_all_table_concepts_exist_in_contract_order():
         "openclaw_nodes",
         "node_source_links",
         "source_authorization_scopes",
+        "runtime_components",
+        "component_capabilities",
+        "node_heartbeats",
+        "component_heartbeats",
+        "component_health_snapshots",
     )
-    assert len(sqlite_schema_tables()) == 15
+    assert len(sqlite_schema_tables()) == 20
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
 
 
@@ -467,10 +477,86 @@ def test_network_node_and_tenant_authorization_tables_preserve_zero_trust_bounda
     )
 
 
+def test_runtime_presence_and_component_health_tables_preserve_boundaries():
+    components = sqlite_schema_table("runtime_components")
+    capabilities = sqlite_schema_table("component_capabilities")
+    node_heartbeats = sqlite_schema_table("node_heartbeats")
+    component_heartbeats = sqlite_schema_table("component_heartbeats")
+    snapshots = sqlite_schema_table("component_health_snapshots")
+
+    assert components is not None
+    assert capabilities is not None
+    assert node_heartbeats is not None
+    assert component_heartbeats is not None
+    assert snapshots is not None
+
+    assert {
+        "component_id",
+        "node_id",
+        "tenant_id",
+        "component_name",
+        "component_instance_id",
+        "component_role",
+        "component_version",
+        "status",
+        "approval_receipt_ref",
+        "registered_at",
+        "last_seen",
+    } <= set(components.column_names)
+    assert {
+        "capability_id",
+        "component_id",
+        "tenant_id",
+        "capability_name",
+        "capability_scope",
+        "status",
+        "approval_receipt_ref",
+    } <= set(capabilities.column_names)
+    assert {
+        "heartbeat_id",
+        "node_id",
+        "tenant_id",
+        "reported_at",
+        "heartbeat_ttl_seconds",
+        "health_status",
+        "last_known_state",
+    } <= set(node_heartbeats.column_names)
+    assert {
+        "heartbeat_id",
+        "component_id",
+        "node_id",
+        "tenant_id",
+        "reported_at",
+        "heartbeat_ttl_seconds",
+        "health_status",
+        "last_known_state",
+    } <= set(component_heartbeats.column_names)
+    assert {
+        "snapshot_id",
+        "component_id",
+        "node_id",
+        "tenant_id",
+        "captured_at",
+        "health_status",
+        "degraded_reason",
+        "capabilities_reported",
+        "version_reported",
+        "last_known_state",
+    } <= set(snapshots.column_names)
+    assert components.retrieval_structure_fields == frozenset(
+        {"node_id", "tenant_id", "component_role", "status"}
+    )
+    assert capabilities.retrieval_structure_fields == frozenset(
+        {"component_id", "tenant_id", "capability_name", "status"}
+    )
+    assert "execute" not in components.create_table_sql.lower()
+    assert "socket" not in node_heartbeats.create_table_sql.lower()
+
+
 def test_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_schema_sql_definitions()
 
-    assert len(sql_definitions) == 15
+    assert len(sql_definitions) == 20
     for table_name, sql_text in zip(sqlite_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")
@@ -486,7 +572,7 @@ def test_sql_strings_are_inert_definitions_only():
 def test_physical_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_physical_schema_sql_definitions()
 
-    assert len(sql_definitions) == 16
+    assert len(sql_definitions) == 21
     for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")

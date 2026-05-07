@@ -307,6 +307,11 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "openclaw_node",
     "node_source_link",
     "source_authorization_scope",
+    "runtime_component",
+    "component_capability",
+    "node_heartbeat",
+    "component_heartbeat",
+    "component_health_snapshot",
 )
 
 REQUIRED_SQLITE_TABLE_CONCEPTS = (
@@ -325,6 +330,11 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "openclaw_nodes",
     "node_source_links",
     "source_authorization_scopes",
+    "runtime_components",
+    "component_capabilities",
+    "node_heartbeats",
+    "component_heartbeats",
+    "component_health_snapshots",
 )
 
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
@@ -467,6 +477,45 @@ ENVIRONMENT_INTELLIGENCE_AUTHORIZED_ENTITY_FAMILIES = (
     "client_delivery",
     "archive",
     "system",
+)
+
+RUNTIME_PRESENCE_COMPONENT_STATUSES = (
+    "pending_approval",
+    "approved",
+    "active",
+    "inactive",
+    "revoked",
+    "stale",
+    "degraded",
+    "unknown",
+)
+
+RUNTIME_PRESENCE_COMPONENT_ROLES = (
+    "primary",
+    "worker",
+    "storage_runner",
+    "hermes_sidecar",
+    "web_capture_runner",
+    "mobile_bridge",
+    "control_surface_runner",
+    "environment_runner",
+    "discovery_runner",
+    "unknown",
+)
+
+RUNTIME_PRESENCE_CAPABILITY_STATUSES = (
+    "pending",
+    "approved",
+    "revoked",
+    "stale",
+)
+
+RUNTIME_PRESENCE_HEALTH_STATUSES = (
+    "healthy",
+    "degraded",
+    "stale",
+    "critical",
+    "unknown",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -761,6 +810,111 @@ SCHEMA_CONTRACT_SURFACES = (
                 "operator_approval_ref",
                 "expiration_timestamp",
                 "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="runtime_component",
+        purpose=(
+            "Tenant-scoped runtime component registration surface; component "
+            "presence does not authorize source access or action execution."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "component_name",
+                "component_instance_id",
+                "component_role",
+                "component_version",
+                "status",
+                "approval_receipt_ref",
+                "registered_at",
+                "last_seen",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="component_capability",
+        purpose=(
+            "Static component capability declaration surface; capabilities are "
+            "metadata/authorization signals, not live execution."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "capability_id",
+                "component_id",
+                "tenant_id",
+                "capability_name",
+                "capability_scope",
+                "status",
+                "approval_receipt_ref",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="node_heartbeat",
+        purpose=(
+            "Stored node heartbeat state surface; heartbeat records are data only "
+            "and do not implement live heartbeat senders or receivers."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "heartbeat_id",
+                "node_id",
+                "tenant_id",
+                "reported_at",
+                "heartbeat_ttl_seconds",
+                "health_status",
+                "status_message",
+                "last_known_state",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="component_heartbeat",
+        purpose=(
+            "Stored component heartbeat state surface; component heartbeat records "
+            "are data only and do not implement live polling."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "heartbeat_id",
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "reported_at",
+                "heartbeat_ttl_seconds",
+                "health_status",
+                "status_message",
+                "last_known_state",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="component_health_snapshot",
+        purpose=(
+            "Last-known component health/vitals surface as caller-provided plain "
+            "data, without process scanning or runtime integration."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "snapshot_id",
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "captured_at",
+                "health_status",
+                "degraded_reason",
+                "capabilities_reported",
+                "version_reported",
+                "last_known_state",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -1097,6 +1251,116 @@ SQLITE_TABLE_CONCEPTS = (
         related_schema_contract_surface="source_authorization_scope",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
+    SQLiteTableConcept(
+        name="runtime_components",
+        purpose=(
+            "Static table concept for tenant-scoped runtime component presence; "
+            "presence is not trust, source access, or action permission."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "component_name",
+                "component_instance_id",
+                "component_role",
+                "component_version",
+                "status",
+                "approval_receipt_ref",
+                "registered_at",
+                "last_seen",
+            }
+        ),
+        related_schema_contract_surface="runtime_component",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="component_capabilities",
+        purpose=(
+            "Static table concept for bounded component capability declarations; "
+            "capabilities do not execute behavior."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "capability_id",
+                "component_id",
+                "tenant_id",
+                "capability_name",
+                "capability_scope",
+                "status",
+                "approval_receipt_ref",
+            }
+        ),
+        related_schema_contract_surface="component_capability",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="node_heartbeats",
+        purpose=(
+            "Static table concept for recorded node heartbeat data; no live "
+            "network, process, or service-manager behavior is authorized."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "heartbeat_id",
+                "node_id",
+                "tenant_id",
+                "reported_at",
+                "heartbeat_ttl_seconds",
+                "health_status",
+                "status_message",
+                "last_known_state",
+            }
+        ),
+        related_schema_contract_surface="node_heartbeat",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="component_heartbeats",
+        purpose=(
+            "Static table concept for recorded component heartbeat data; no live "
+            "polling, sockets, or runtime supervisor is authorized."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "heartbeat_id",
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "reported_at",
+                "heartbeat_ttl_seconds",
+                "health_status",
+                "status_message",
+                "last_known_state",
+            }
+        ),
+        related_schema_contract_surface="component_heartbeat",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="component_health_snapshots",
+        purpose=(
+            "Static table concept for caller-provided component health/vitals "
+            "snapshots without process scanning or adapter integration."
+        ),
+        required_conceptual_fields=frozenset(
+            {
+                "snapshot_id",
+                "component_id",
+                "node_id",
+                "tenant_id",
+                "captured_at",
+                "health_status",
+                "degraded_reason",
+                "capabilities_reported",
+                "version_reported",
+                "last_known_state",
+            }
+        ),
+        related_schema_contract_surface="component_health_snapshot",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
 )
 
 EXCLUDED_ENTITY_FAMILY_NAMES = frozenset(
@@ -1409,6 +1673,16 @@ _SCHEMA_SURFACE_ALIASES = {
     "node source links": "node_source_link",
     "source authorization scope": "source_authorization_scope",
     "source authorization scopes": "source_authorization_scope",
+    "runtime component": "runtime_component",
+    "runtime components": "runtime_component",
+    "component capability": "component_capability",
+    "component capabilities": "component_capability",
+    "node heartbeat": "node_heartbeat",
+    "node heartbeats": "node_heartbeat",
+    "component heartbeat": "component_heartbeat",
+    "component heartbeats": "component_heartbeat",
+    "component health snapshot": "component_health_snapshot",
+    "component health snapshots": "component_health_snapshot",
 }
 _SQLITE_TABLE_CONCEPTS_BY_NAME = {
     concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
@@ -1449,6 +1723,16 @@ _SQLITE_TABLE_CONCEPT_ALIASES = {
     "node source links": "node_source_links",
     "source authorization scope": "source_authorization_scopes",
     "source authorization scopes": "source_authorization_scopes",
+    "runtime component": "runtime_components",
+    "runtime components": "runtime_components",
+    "component capability": "component_capabilities",
+    "component capabilities": "component_capabilities",
+    "node heartbeat": "node_heartbeats",
+    "node heartbeats": "node_heartbeats",
+    "component heartbeat": "component_heartbeats",
+    "component heartbeats": "component_heartbeats",
+    "component health snapshot": "component_health_snapshots",
+    "component health snapshots": "component_health_snapshots",
 }
 
 
@@ -1995,6 +2279,10 @@ __all__ = [
     "REQUIRED_SCHEMA_CONTRACT_SURFACES",
     "REQUIRED_SQLITE_TABLE_CONCEPTS",
     "REQUIRED_WRITE_BACK_CAPTURE_LABELS",
+    "RUNTIME_PRESENCE_CAPABILITY_STATUSES",
+    "RUNTIME_PRESENCE_COMPONENT_ROLES",
+    "RUNTIME_PRESENCE_COMPONENT_STATUSES",
+    "RUNTIME_PRESENCE_HEALTH_STATUSES",
     "SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR",
     "SCHEMA_CONTRACT_SURFACES",
     "SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR",

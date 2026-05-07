@@ -49,6 +49,11 @@ EXPECTED_PRIMARY_KEYS = {
     "openclaw_nodes": "node_id",
     "node_source_links": "link_id",
     "source_authorization_scopes": "scope_id",
+    "runtime_components": "component_id",
+    "component_capabilities": "capability_id",
+    "node_heartbeats": "heartbeat_id",
+    "component_heartbeats": "heartbeat_id",
+    "component_health_snapshots": "snapshot_id",
 }
 
 

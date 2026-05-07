@@ -285,6 +285,76 @@ SOURCE_AUTHORIZATION_SCOPES_COLUMNS = (
     ColumnDefinition("status", "TEXT", "status"),
 )
 
+RUNTIME_COMPONENTS_COLUMNS = (
+    ColumnDefinition("component_id", "TEXT", "component_id"),
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("component_name", "TEXT", "component_name"),
+    ColumnDefinition("component_instance_id", "TEXT", "component_instance_id"),
+    ColumnDefinition("component_role", "TEXT", "component_role"),
+    ColumnDefinition("component_version", "TEXT", "component_version"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition(
+        "approval_receipt_ref",
+        "TEXT",
+        "approval_receipt_ref",
+        purpose="Component approval does not authorize source or action access.",
+    ),
+    ColumnDefinition("registered_at", "TEXT", "registered_at"),
+    ColumnDefinition("last_seen", "TEXT", "last_seen"),
+)
+
+COMPONENT_CAPABILITIES_COLUMNS = (
+    ColumnDefinition("capability_id", "TEXT", "capability_id"),
+    ColumnDefinition("component_id", "TEXT", "component_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("capability_name", "TEXT", "capability_name"),
+    ColumnDefinition("capability_scope", "TEXT", "capability_scope"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition(
+        "approval_receipt_ref",
+        "TEXT",
+        "approval_receipt_ref",
+        purpose="Capability metadata is not live execution permission.",
+    ),
+)
+
+NODE_HEARTBEATS_COLUMNS = (
+    ColumnDefinition("heartbeat_id", "TEXT", "heartbeat_id"),
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("reported_at", "TEXT", "reported_at"),
+    ColumnDefinition("heartbeat_ttl_seconds", "INTEGER", "heartbeat_ttl_seconds"),
+    ColumnDefinition("health_status", "TEXT", "health_status"),
+    ColumnDefinition("status_message", "TEXT", "status_message"),
+    ColumnDefinition("last_known_state", "TEXT", "last_known_state"),
+)
+
+COMPONENT_HEARTBEATS_COLUMNS = (
+    ColumnDefinition("heartbeat_id", "TEXT", "heartbeat_id"),
+    ColumnDefinition("component_id", "TEXT", "component_id"),
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("reported_at", "TEXT", "reported_at"),
+    ColumnDefinition("heartbeat_ttl_seconds", "INTEGER", "heartbeat_ttl_seconds"),
+    ColumnDefinition("health_status", "TEXT", "health_status"),
+    ColumnDefinition("status_message", "TEXT", "status_message"),
+    ColumnDefinition("last_known_state", "TEXT", "last_known_state"),
+)
+
+COMPONENT_HEALTH_SNAPSHOTS_COLUMNS = (
+    ColumnDefinition("snapshot_id", "TEXT", "snapshot_id"),
+    ColumnDefinition("component_id", "TEXT", "component_id"),
+    ColumnDefinition("node_id", "TEXT", "node_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("captured_at", "TEXT", "captured_at"),
+    ColumnDefinition("health_status", "TEXT", "health_status"),
+    ColumnDefinition("degraded_reason", "TEXT", "degraded_reason"),
+    ColumnDefinition("capabilities_reported", "TEXT", "capabilities_reported"),
+    ColumnDefinition("version_reported", "TEXT", "version_reported"),
+    ColumnDefinition("last_known_state", "TEXT", "last_known_state"),
+)
+
 SCHEMA_VERSIONS_COLUMNS = (
     ColumnDefinition(
         "schema_version",
@@ -625,6 +695,111 @@ CREATE TABLE source_authorization_scopes (
   operator_approval_ref TEXT NOT NULL,
   expiration_timestamp TEXT NOT NULL,
   status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="runtime_components",
+        related_schema_contract_surface="runtime_component",
+        columns=RUNTIME_COMPONENTS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"node_id", "tenant_id", "component_role", "status"}
+        ),
+        create_table_sql="""
+CREATE TABLE runtime_components (
+  component_id TEXT PRIMARY KEY,
+  node_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  component_name TEXT NOT NULL,
+  component_instance_id TEXT NOT NULL,
+  component_role TEXT NOT NULL,
+  component_version TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_receipt_ref TEXT NOT NULL,
+  registered_at TEXT NOT NULL,
+  last_seen TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="component_capabilities",
+        related_schema_contract_surface="component_capability",
+        columns=COMPONENT_CAPABILITIES_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"component_id", "tenant_id", "capability_name", "status"}
+        ),
+        create_table_sql="""
+CREATE TABLE component_capabilities (
+  capability_id TEXT PRIMARY KEY,
+  component_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  capability_name TEXT NOT NULL,
+  capability_scope TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_receipt_ref TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="node_heartbeats",
+        related_schema_contract_surface="node_heartbeat",
+        columns=NODE_HEARTBEATS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"node_id", "tenant_id", "reported_at", "health_status"}
+        ),
+        create_table_sql="""
+CREATE TABLE node_heartbeats (
+  heartbeat_id TEXT PRIMARY KEY,
+  node_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  reported_at TEXT NOT NULL,
+  heartbeat_ttl_seconds INTEGER NOT NULL,
+  health_status TEXT NOT NULL,
+  status_message TEXT NOT NULL,
+  last_known_state TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="component_heartbeats",
+        related_schema_contract_surface="component_heartbeat",
+        columns=COMPONENT_HEARTBEATS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"component_id", "node_id", "tenant_id", "reported_at", "health_status"}
+        ),
+        create_table_sql="""
+CREATE TABLE component_heartbeats (
+  heartbeat_id TEXT PRIMARY KEY,
+  component_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  reported_at TEXT NOT NULL,
+  heartbeat_ttl_seconds INTEGER NOT NULL,
+  health_status TEXT NOT NULL,
+  status_message TEXT NOT NULL,
+  last_known_state TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="component_health_snapshots",
+        related_schema_contract_surface="component_health_snapshot",
+        columns=COMPONENT_HEALTH_SNAPSHOTS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"component_id", "node_id", "tenant_id", "captured_at", "health_status"}
+        ),
+        create_table_sql="""
+CREATE TABLE component_health_snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  component_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  captured_at TEXT NOT NULL,
+  health_status TEXT NOT NULL,
+  degraded_reason TEXT NOT NULL,
+  capabilities_reported TEXT NOT NULL,
+  version_reported TEXT NOT NULL,
+  last_known_state TEXT NOT NULL
 );
 """.strip(),
     ),

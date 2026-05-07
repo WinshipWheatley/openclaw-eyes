@@ -22,6 +22,11 @@ STORAGE_OPERATION_RECEIPTS_TABLE_NAME = "storage_operation_receipts"
 OPENCLAW_NODES_TABLE_NAME = "openclaw_nodes"
 NODE_SOURCE_LINKS_TABLE_NAME = "node_source_links"
 SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME = "source_authorization_scopes"
+RUNTIME_COMPONENTS_TABLE_NAME = "runtime_components"
+COMPONENT_CAPABILITIES_TABLE_NAME = "component_capabilities"
+NODE_HEARTBEATS_TABLE_NAME = "node_heartbeats"
+COMPONENT_HEARTBEATS_TABLE_NAME = "component_heartbeats"
+COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME = "component_health_snapshots"
 
 REPOSITORY_TABLE_PRIMARY_KEYS = {
     SEMANTIC_RECORDS_TABLE_NAME: "record_id",
@@ -38,6 +43,11 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     OPENCLAW_NODES_TABLE_NAME: "node_id",
     NODE_SOURCE_LINKS_TABLE_NAME: "link_id",
     SOURCE_AUTHORIZATION_SCOPES_TABLE_NAME: "scope_id",
+    RUNTIME_COMPONENTS_TABLE_NAME: "component_id",
+    COMPONENT_CAPABILITIES_TABLE_NAME: "capability_id",
+    NODE_HEARTBEATS_TABLE_NAME: "heartbeat_id",
+    COMPONENT_HEARTBEATS_TABLE_NAME: "heartbeat_id",
+    COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME: "snapshot_id",
 }
 
 
@@ -257,6 +267,81 @@ class SourceAuthorizationScope:
     operator_approval_ref: str
     expiration_timestamp: str
     status: str
+
+
+@dataclass(frozen=True)
+class RuntimeComponent:
+    """Tenant-scoped runtime component row; presence is not permission."""
+
+    component_id: str
+    node_id: str
+    tenant_id: str
+    component_name: str
+    component_instance_id: str
+    component_role: str
+    component_version: str
+    status: str
+    approval_receipt_ref: str
+    registered_at: str
+    last_seen: str
+
+
+@dataclass(frozen=True)
+class ComponentCapability:
+    """Bounded component capability metadata; it does not execute behavior."""
+
+    capability_id: str
+    component_id: str
+    tenant_id: str
+    capability_name: str
+    capability_scope: str
+    status: str
+    approval_receipt_ref: str
+
+
+@dataclass(frozen=True)
+class NodeHeartbeat:
+    """Stored node heartbeat data; no live heartbeat behavior is implied."""
+
+    heartbeat_id: str
+    node_id: str
+    tenant_id: str
+    reported_at: str
+    heartbeat_ttl_seconds: int
+    health_status: str
+    status_message: str
+    last_known_state: str
+
+
+@dataclass(frozen=True)
+class ComponentHeartbeat:
+    """Stored component heartbeat data; no polling behavior is implied."""
+
+    heartbeat_id: str
+    component_id: str
+    node_id: str
+    tenant_id: str
+    reported_at: str
+    heartbeat_ttl_seconds: int
+    health_status: str
+    status_message: str
+    last_known_state: str
+
+
+@dataclass(frozen=True)
+class ComponentHealthSnapshot:
+    """Caller-provided component health snapshot; no process scan is implied."""
+
+    snapshot_id: str
+    component_id: str
+    node_id: str
+    tenant_id: str
+    captured_at: str
+    health_status: str
+    degraded_reason: str
+    capabilities_reported: str
+    version_reported: str
+    last_known_state: str
 
 
 def semantic_record_column_names() -> tuple[str, ...]:
@@ -973,6 +1058,366 @@ ORDER BY scope_id
     return tuple(dict(zip(columns, row)) for row in rows)
 
 
+def write_runtime_component(
+    connection: Any,
+    component: RuntimeComponent | Mapping[str, Any],
+) -> None:
+    """Insert one runtime component row without process or network checks."""
+
+    payload = _table_payload(RUNTIME_COMPONENTS_TABLE_NAME, component)
+    _require_existing_openclaw_node(connection, payload["node_id"])
+    _require_tenant_matches_openclaw_node(
+        connection,
+        payload["node_id"],
+        payload["tenant_id"],
+    )
+    _insert_row(connection, RUNTIME_COMPONENTS_TABLE_NAME, payload)
+
+
+def read_runtime_component(
+    connection: Any,
+    component_id: str,
+) -> dict[str, Any] | None:
+    """Read one runtime_components row by explicit component_id."""
+
+    return _read_row_by_primary_key(connection, RUNTIME_COMPONENTS_TABLE_NAME, component_id)
+
+
+def read_runtime_components_by_node_id(
+    connection: Any,
+    node_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read components for one node in deterministic component_id order."""
+
+    _require_existing_openclaw_node(connection, node_id)
+    return _read_rows_where(
+        connection,
+        RUNTIME_COMPONENTS_TABLE_NAME,
+        "node_id",
+        node_id,
+        order_by="component_id",
+    )
+
+
+def read_runtime_components_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read components for one tenant in deterministic component_id order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        RUNTIME_COMPONENTS_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="component_id",
+    )
+
+
+def read_runtime_components_by_component_role(
+    connection: Any,
+    component_role: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read components by exact role in deterministic component_id order."""
+
+    _require_non_empty_string(component_role, "component_role")
+    return _read_rows_where(
+        connection,
+        RUNTIME_COMPONENTS_TABLE_NAME,
+        "component_role",
+        component_role,
+        order_by="component_id",
+    )
+
+
+def read_runtime_components_by_status(
+    connection: Any,
+    status: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read components by exact status in deterministic component_id order."""
+
+    _require_non_empty_string(status, "status")
+    return _read_rows_where(
+        connection,
+        RUNTIME_COMPONENTS_TABLE_NAME,
+        "status",
+        status,
+        order_by="component_id",
+    )
+
+
+def write_component_capability(
+    connection: Any,
+    capability: ComponentCapability | Mapping[str, Any],
+) -> None:
+    """Insert one component capability declaration without executing it."""
+
+    payload = _table_payload(COMPONENT_CAPABILITIES_TABLE_NAME, capability)
+    _require_existing_runtime_component(connection, payload["component_id"])
+    _require_tenant_matches_runtime_component(
+        connection,
+        payload["component_id"],
+        payload["tenant_id"],
+    )
+    _insert_row(connection, COMPONENT_CAPABILITIES_TABLE_NAME, payload)
+
+
+def read_component_capability(
+    connection: Any,
+    capability_id: str,
+) -> dict[str, Any] | None:
+    """Read one component_capabilities row by explicit capability_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        COMPONENT_CAPABILITIES_TABLE_NAME,
+        capability_id,
+    )
+
+
+def read_component_capabilities_by_component_id(
+    connection: Any,
+    component_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read capability declarations for one component in capability_id order."""
+
+    _require_existing_runtime_component(connection, component_id)
+    return _read_rows_where(
+        connection,
+        COMPONENT_CAPABILITIES_TABLE_NAME,
+        "component_id",
+        component_id,
+        order_by="capability_id",
+    )
+
+
+def read_approved_component_capabilities_by_component_id(
+    connection: Any,
+    component_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read approved capabilities for one component in deterministic order."""
+
+    _require_existing_runtime_component(connection, component_id)
+    columns = table_column_names(COMPONENT_CAPABILITIES_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM component_capabilities
+WHERE component_id = ? AND status = ?
+ORDER BY capability_id
+""".strip(),
+        (component_id, "approved"),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
+def write_node_heartbeat(
+    connection: Any,
+    heartbeat: NodeHeartbeat | Mapping[str, Any],
+) -> None:
+    """Insert one stored node heartbeat row without live polling."""
+
+    payload = _table_payload(NODE_HEARTBEATS_TABLE_NAME, heartbeat)
+    _require_existing_openclaw_node(connection, payload["node_id"])
+    _require_tenant_matches_openclaw_node(
+        connection,
+        payload["node_id"],
+        payload["tenant_id"],
+    )
+    _require_positive_int(payload["heartbeat_ttl_seconds"], "heartbeat_ttl_seconds")
+    _insert_row(connection, NODE_HEARTBEATS_TABLE_NAME, payload)
+
+
+def read_node_heartbeat(
+    connection: Any,
+    heartbeat_id: str,
+) -> dict[str, Any] | None:
+    """Read one node_heartbeats row by explicit heartbeat_id."""
+
+    return _read_row_by_primary_key(connection, NODE_HEARTBEATS_TABLE_NAME, heartbeat_id)
+
+
+def read_latest_node_heartbeat(
+    connection: Any,
+    node_id: str,
+) -> dict[str, Any] | None:
+    """Read latest stored heartbeat for one node by reported_at/id order."""
+
+    _require_existing_openclaw_node(connection, node_id)
+    columns = table_column_names(NODE_HEARTBEATS_TABLE_NAME)
+    row = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM node_heartbeats
+WHERE node_id = ?
+ORDER BY reported_at DESC, heartbeat_id DESC
+LIMIT 1
+""".strip(),
+        (node_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(columns, row))
+
+
+def read_stale_node_heartbeats(
+    connection: Any,
+    stale_before_reported_at: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read stored stale node heartbeats using a caller-provided timestamp bound."""
+
+    _require_non_empty_string(stale_before_reported_at, "stale_before_reported_at")
+    columns = table_column_names(NODE_HEARTBEATS_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM node_heartbeats
+WHERE reported_at < ?
+ORDER BY reported_at, heartbeat_id
+""".strip(),
+        (stale_before_reported_at,),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
+def write_component_heartbeat(
+    connection: Any,
+    heartbeat: ComponentHeartbeat | Mapping[str, Any],
+) -> None:
+    """Insert one stored component heartbeat row without live polling."""
+
+    payload = _table_payload(COMPONENT_HEARTBEATS_TABLE_NAME, heartbeat)
+    _require_existing_runtime_component(connection, payload["component_id"])
+    _require_existing_openclaw_node(connection, payload["node_id"])
+    _require_component_belongs_to_node(
+        connection,
+        payload["component_id"],
+        payload["node_id"],
+    )
+    _require_tenant_matches_runtime_component(
+        connection,
+        payload["component_id"],
+        payload["tenant_id"],
+    )
+    _require_positive_int(payload["heartbeat_ttl_seconds"], "heartbeat_ttl_seconds")
+    _insert_row(connection, COMPONENT_HEARTBEATS_TABLE_NAME, payload)
+
+
+def read_component_heartbeat(
+    connection: Any,
+    heartbeat_id: str,
+) -> dict[str, Any] | None:
+    """Read one component_heartbeats row by explicit heartbeat_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        COMPONENT_HEARTBEATS_TABLE_NAME,
+        heartbeat_id,
+    )
+
+
+def read_latest_component_heartbeat(
+    connection: Any,
+    component_id: str,
+) -> dict[str, Any] | None:
+    """Read latest stored heartbeat for one component by reported_at/id order."""
+
+    _require_existing_runtime_component(connection, component_id)
+    columns = table_column_names(COMPONENT_HEARTBEATS_TABLE_NAME)
+    row = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM component_heartbeats
+WHERE component_id = ?
+ORDER BY reported_at DESC, heartbeat_id DESC
+LIMIT 1
+""".strip(),
+        (component_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(columns, row))
+
+
+def write_component_health_snapshot(
+    connection: Any,
+    snapshot: ComponentHealthSnapshot | Mapping[str, Any],
+) -> None:
+    """Insert one component health snapshot without process inspection."""
+
+    payload = _table_payload(COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME, snapshot)
+    _require_existing_runtime_component(connection, payload["component_id"])
+    _require_existing_openclaw_node(connection, payload["node_id"])
+    _require_component_belongs_to_node(
+        connection,
+        payload["component_id"],
+        payload["node_id"],
+    )
+    _require_tenant_matches_runtime_component(
+        connection,
+        payload["component_id"],
+        payload["tenant_id"],
+    )
+    _insert_row(connection, COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME, payload)
+
+
+def read_component_health_snapshot(
+    connection: Any,
+    snapshot_id: str,
+) -> dict[str, Any] | None:
+    """Read one component_health_snapshots row by explicit snapshot_id."""
+
+    return _read_row_by_primary_key(
+        connection,
+        COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME,
+        snapshot_id,
+    )
+
+
+def read_latest_component_health_snapshot(
+    connection: Any,
+    component_id: str,
+) -> dict[str, Any] | None:
+    """Read latest component health snapshot by captured_at/id order."""
+
+    _require_existing_runtime_component(connection, component_id)
+    columns = table_column_names(COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME)
+    row = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM component_health_snapshots
+WHERE component_id = ?
+ORDER BY captured_at DESC, snapshot_id DESC
+LIMIT 1
+""".strip(),
+        (component_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(columns, row))
+
+
+def read_degraded_component_health_snapshots_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read degraded component snapshots for one tenant in deterministic order."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    columns = table_column_names(COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM component_health_snapshots
+WHERE tenant_id = ? AND health_status = ?
+ORDER BY captured_at, snapshot_id
+""".strip(),
+        (tenant_id, "degraded"),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
 def read_record_ids_for_exact_label_seed(
     connection: Any,
     label_name: str,
@@ -1204,6 +1649,51 @@ def _require_existing_openclaw_node(connection: Any, node_id: str) -> None:
     _require_non_empty_string(node_id, "node_id")
     if read_openclaw_node(connection, node_id) is None:
         raise ValueError(f"unknown OpenClaw node reference: {node_id}")
+
+
+def _require_existing_runtime_component(connection: Any, component_id: str) -> None:
+    _require_non_empty_string(component_id, "component_id")
+    if read_runtime_component(connection, component_id) is None:
+        raise ValueError(f"unknown runtime component reference: {component_id}")
+
+
+def _require_tenant_matches_openclaw_node(
+    connection: Any,
+    node_id: str,
+    tenant_id: str,
+) -> None:
+    _require_non_empty_string(tenant_id, "tenant_id")
+    node_row = read_openclaw_node(connection, node_id)
+    if node_row is None:
+        raise ValueError(f"unknown OpenClaw node reference: {node_id}")
+    if node_row["tenant_id"] != tenant_id:
+        raise ValueError("tenant_id must match openclaw_nodes.tenant_id")
+
+
+def _require_tenant_matches_runtime_component(
+    connection: Any,
+    component_id: str,
+    tenant_id: str,
+) -> None:
+    _require_non_empty_string(tenant_id, "tenant_id")
+    component_row = read_runtime_component(connection, component_id)
+    if component_row is None:
+        raise ValueError(f"unknown runtime component reference: {component_id}")
+    if component_row["tenant_id"] != tenant_id:
+        raise ValueError("tenant_id must match runtime_components.tenant_id")
+
+
+def _require_component_belongs_to_node(
+    connection: Any,
+    component_id: str,
+    node_id: str,
+) -> None:
+    _require_non_empty_string(node_id, "node_id")
+    component_row = read_runtime_component(connection, component_id)
+    if component_row is None:
+        raise ValueError(f"unknown runtime component reference: {component_id}")
+    if component_row["node_id"] != node_id:
+        raise ValueError("component node_id must match runtime_components.node_id")
 
 
 def _require_repository_table_name(table_name: str) -> str:

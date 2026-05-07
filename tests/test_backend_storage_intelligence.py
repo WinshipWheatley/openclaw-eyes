@@ -11,13 +11,16 @@ from backend_storage_intelligence import (
     DryRunStoragePlan,
     NodeAuthorizationSnapshot,
     ProposedStorageOperation,
+    RuntimeComponentHealthSnapshot,
     StorageRiskFinding,
     assemble_dry_run_storage_plan,
     dry_run_storage_plan_as_dict,
     evaluate_node_authorization_risks,
+    evaluate_runtime_component_health_risks,
     evaluate_storage_operation_risks,
     node_authorization_snapshot_as_dict,
     proposed_storage_operation_as_dict,
+    runtime_component_health_snapshot_as_dict,
     storage_operation_is_non_executing,
     storage_risk_finding_as_dict,
 )
@@ -84,6 +87,24 @@ def sample_node_snapshot(**overrides) -> NodeAuthorizationSnapshot:
         "agent_version": "current",
     } | overrides
     return NodeAuthorizationSnapshot(**payload)
+
+
+def sample_runtime_component_snapshot(**overrides) -> RuntimeComponentHealthSnapshot:
+    payload = {
+        "component_id": "component-1",
+        "node_id": "node-1",
+        "tenant_id": "tenant-personal",
+        "component_status": "active",
+        "component_role": "storage_runner",
+        "requested_role": "storage_runner",
+        "heartbeat_status": "healthy",
+        "health_status": "healthy",
+        "capability_status": "approved",
+        "required_capability": "storage_planning",
+        "component_version": "current",
+        "approved_for_tenant_id": "tenant-personal",
+    } | overrides
+    return RuntimeComponentHealthSnapshot(**payload)
 
 
 def test_storage_intelligence_module_is_pure_and_non_executing():
@@ -292,4 +313,100 @@ def test_node_authorization_models_are_plain_data_and_fail_closed():
     with pytest.raises(ValueError):
         evaluate_node_authorization_risks(
             sample_node_snapshot(authorization_scope_status="magic"),
+        )
+
+
+def test_runtime_component_presence_does_not_imply_permission():
+    snapshot = sample_runtime_component_snapshot(
+        component_status="pending_approval",
+        capability_status="missing",
+    )
+
+    findings = evaluate_runtime_component_health_risks(snapshot)
+
+    assert [finding.finding_kind for finding in findings] == [
+        "component_present_but_not_approved",
+        "missing_required_capability",
+    ]
+    assert all(finding.requires_operator_approval for finding in findings)
+
+
+def test_runtime_component_stale_degraded_and_revoked_risks_are_represented():
+    stale = evaluate_runtime_component_health_risks(
+        sample_runtime_component_snapshot(
+            component_status="stale",
+            heartbeat_status="expired",
+            component_version="stale",
+        )
+    )
+    degraded = evaluate_runtime_component_health_risks(
+        sample_runtime_component_snapshot(health_status="degraded")
+    )
+    revoked = evaluate_runtime_component_health_risks(
+        sample_runtime_component_snapshot(component_status="revoked")
+    )
+
+    assert [finding.finding_kind for finding in stale] == [
+        "stale_component",
+        "expired_heartbeat_ttl",
+        "stale_component_version",
+    ]
+    assert [finding.finding_kind for finding in degraded] == ["degraded_component"]
+    assert [finding.finding_kind for finding in revoked] == ["revoked_component"]
+
+
+def test_runtime_component_missing_heartbeat_and_capability_risks_are_represented():
+    findings = evaluate_runtime_component_health_risks(
+        sample_runtime_component_snapshot(
+            heartbeat_status="missing",
+            capability_status="revoked",
+        )
+    )
+
+    assert [finding.finding_kind for finding in findings] == [
+        "missing_heartbeat",
+        "capability_revoked",
+    ]
+
+
+def test_runtime_component_tenant_and_role_mismatch_are_blocked():
+    findings = evaluate_runtime_component_health_risks(
+        sample_runtime_component_snapshot(
+            tenant_id="tenant-personal",
+            approved_for_tenant_id="tenant-law",
+            component_role="observer",
+            requested_role="storage_runner",
+        )
+    )
+
+    assert [finding.finding_kind for finding in findings] == [
+        "component_tenant_mismatch",
+        "component_cannot_run_requested_role",
+    ]
+    assert all(finding.requires_operator_approval for finding in findings)
+
+
+def test_runtime_component_health_models_are_plain_data_and_fail_closed():
+    snapshot = sample_runtime_component_snapshot()
+
+    assert evaluate_runtime_component_health_risks(snapshot) == ()
+    assert runtime_component_health_snapshot_as_dict(snapshot)["component_id"] == (
+        "component-1"
+    )
+
+    with pytest.raises(ValueError):
+        evaluate_runtime_component_health_risks(
+            sample_runtime_component_snapshot(component_status="magic"),
+        )
+    with pytest.raises(ValueError):
+        evaluate_runtime_component_health_risks(
+            sample_runtime_component_snapshot(heartbeat_status="magic"),
+        )
+    with pytest.raises(ValueError):
+        evaluate_runtime_component_health_risks(
+            sample_runtime_component_snapshot(health_status="magic"),
+        )
+    with pytest.raises(ValueError):
+        evaluate_runtime_component_health_risks(
+            sample_runtime_component_snapshot(capability_status="magic"),
         )

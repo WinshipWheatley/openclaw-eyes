@@ -10,8 +10,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import backend_sqlite_repository as repository
 import backend_sqlite_runtime as runtime
 from backend_sqlite_repository import (
+    ComponentCapability,
+    ComponentHeartbeat,
+    ComponentHealthSnapshot,
     FileInventoryRow,
     NodeSourceLink,
+    NodeHeartbeat,
     OpenClawNode,
     OperatorPromotion,
     ProvenanceRef,
@@ -23,11 +27,22 @@ from backend_sqlite_repository import (
     SourceExclusion,
     SourceRegistryEntry,
     StorageOperationReceipt,
+    RuntimeComponent,
     ValidationReceipt,
+    read_approved_component_capabilities_by_component_id,
+    read_component_capabilities_by_component_id,
+    read_component_capability,
+    read_component_health_snapshot,
+    read_component_heartbeat,
+    read_degraded_component_health_snapshots_by_tenant_id,
     read_file_inventory_row,
     read_file_inventory_row_by_source_relative_path,
     read_file_inventory_rows_by_source_id,
     read_active_source_authorization_scopes,
+    read_latest_component_health_snapshot,
+    read_latest_component_heartbeat,
+    read_latest_node_heartbeat,
+    read_node_heartbeat,
     read_node_source_link,
     read_node_source_links_by_node_id,
     read_node_source_links_by_source_id,
@@ -48,6 +63,11 @@ from backend_sqlite_repository import (
     read_record_ids_for_exact_operator_promotion_seed,
     read_record_ids_for_exact_provenance_ref_seed,
     read_record_ids_for_exact_validation_seed,
+    read_runtime_component,
+    read_runtime_components_by_component_role,
+    read_runtime_components_by_node_id,
+    read_runtime_components_by_status,
+    read_runtime_components_by_tenant_id,
     read_semantic_label,
     read_semantic_record,
     read_semantic_relationship,
@@ -60,17 +80,23 @@ from backend_sqlite_repository import (
     read_source_registry_entries_by_device_identity,
     read_source_registry_entry,
     read_pending_source_discovery_events,
+    read_stale_node_heartbeats,
     read_storage_operation_receipt,
     read_storage_operation_receipts_by_inventory_id,
     read_validation_receipt,
     record_has_explicit_operator_promotion,
     semantic_record_column_names,
     table_column_names,
+    write_component_capability,
+    write_component_health_snapshot,
+    write_component_heartbeat,
     write_file_inventory_row,
+    write_node_heartbeat,
     write_node_source_link,
     write_openclaw_node,
     write_operator_promotion,
     write_provenance_ref,
+    write_runtime_component,
     write_semantic_label,
     write_semantic_record,
     write_semantic_relationship,
@@ -318,6 +344,82 @@ def sample_source_authorization_scope(
     )
 
 
+def sample_runtime_component(component_id: str = "component-1") -> RuntimeComponent:
+    return RuntimeComponent(
+        component_id=component_id,
+        node_id="node-1",
+        tenant_id="tenant-personal",
+        component_name="storage runner",
+        component_instance_id="storage-runner-instance-1",
+        component_role="storage_runner",
+        component_version="static-test-component",
+        status="active",
+        approval_receipt_ref="component-approval-1",
+        registered_at="2026-05-06T00:00:00Z",
+        last_seen="2026-05-06T00:00:00Z",
+    )
+
+
+def sample_component_capability(
+    capability_id: str = "capability-1",
+) -> ComponentCapability:
+    return ComponentCapability(
+        capability_id=capability_id,
+        component_id="component-1",
+        tenant_id="tenant-personal",
+        capability_name="storage_planning",
+        capability_scope="dry_run_only",
+        status="approved",
+        approval_receipt_ref="capability-approval-1",
+    )
+
+
+def sample_node_heartbeat(heartbeat_id: str = "node-heartbeat-1") -> NodeHeartbeat:
+    return NodeHeartbeat(
+        heartbeat_id=heartbeat_id,
+        node_id="node-1",
+        tenant_id="tenant-personal",
+        reported_at="2026-05-06T00:00:00Z",
+        heartbeat_ttl_seconds=120,
+        health_status="healthy",
+        status_message="caller-provided heartbeat state",
+        last_known_state="active",
+    )
+
+
+def sample_component_heartbeat(
+    heartbeat_id: str = "component-heartbeat-1",
+) -> ComponentHeartbeat:
+    return ComponentHeartbeat(
+        heartbeat_id=heartbeat_id,
+        component_id="component-1",
+        node_id="node-1",
+        tenant_id="tenant-personal",
+        reported_at="2026-05-06T00:00:00Z",
+        heartbeat_ttl_seconds=120,
+        health_status="healthy",
+        status_message="caller-provided component heartbeat state",
+        last_known_state="active",
+    )
+
+
+def sample_component_health_snapshot(
+    snapshot_id: str = "snapshot-1",
+) -> ComponentHealthSnapshot:
+    return ComponentHealthSnapshot(
+        snapshot_id=snapshot_id,
+        component_id="component-1",
+        node_id="node-1",
+        tenant_id="tenant-personal",
+        captured_at="2026-05-06T00:00:00Z",
+        health_status="healthy",
+        degraded_reason="",
+        capabilities_reported="storage_planning",
+        version_reported="static-test-component",
+        last_known_state="active",
+    )
+
+
 def test_repository_module_does_not_import_sqlite3_or_create_connections():
     tree = module_ast()
     source = REPOSITORY_PATH.read_text(encoding="utf-8").lower()
@@ -360,6 +462,11 @@ def test_repository_table_column_names_match_schema_contracts():
         "openclaw_nodes",
         "node_source_links",
         "source_authorization_scopes",
+        "runtime_components",
+        "component_capabilities",
+        "node_heartbeats",
+        "component_heartbeats",
+        "component_health_snapshots",
     }
 
     for table_name in expected_tables:
@@ -1049,6 +1156,272 @@ def test_network_node_repository_inputs_fail_closed():
                 "",
                 "legal_matter",
                 "matter-1",
+            )
+    finally:
+        connection.close()
+
+
+def test_runtime_component_capability_heartbeat_and_snapshot_round_trip():
+    connection = create_in_memory_connection()
+    try:
+        write_openclaw_node(connection, sample_openclaw_node())
+        component = sample_runtime_component()
+        capability = sample_component_capability()
+        node_heartbeat = sample_node_heartbeat()
+        component_heartbeat = sample_component_heartbeat()
+        snapshot = sample_component_health_snapshot()
+
+        write_runtime_component(connection, component)
+        write_component_capability(connection, capability)
+        write_node_heartbeat(connection, node_heartbeat)
+        write_component_heartbeat(connection, component_heartbeat)
+        write_component_health_snapshot(connection, snapshot)
+
+        assert read_runtime_component(connection, "component-1") == component.__dict__
+        assert read_component_capability(connection, "capability-1") == (
+            capability.__dict__
+        )
+        assert read_node_heartbeat(connection, "node-heartbeat-1") == (
+            node_heartbeat.__dict__
+        )
+        assert read_component_heartbeat(connection, "component-heartbeat-1") == (
+            component_heartbeat.__dict__
+        )
+        assert read_component_health_snapshot(connection, "snapshot-1") == (
+            snapshot.__dict__
+        )
+    finally:
+        connection.close()
+
+
+def test_runtime_presence_queries_are_deterministic_and_tenant_scoped():
+    connection = create_in_memory_connection()
+    try:
+        for node_id, tenant_id in (("node-a", "tenant-a"), ("node-b", "tenant-b")):
+            write_openclaw_node(
+                connection,
+                {**sample_openclaw_node(node_id).__dict__, "tenant_id": tenant_id},
+            )
+        for component_id, node_id, tenant_id, role, status in (
+            ("component-c", "node-b", "tenant-b", "worker", "degraded"),
+            ("component-a", "node-a", "tenant-a", "storage_runner", "active"),
+            ("component-b", "node-a", "tenant-a", "hermes_sidecar", "stale"),
+        ):
+            write_runtime_component(
+                connection,
+                {
+                    **sample_runtime_component(component_id).__dict__,
+                    "node_id": node_id,
+                    "tenant_id": tenant_id,
+                    "component_role": role,
+                    "status": status,
+                },
+            )
+        for capability_id, component_id, tenant_id, status in (
+            ("capability-c", "component-a", "tenant-a", "pending"),
+            ("capability-a", "component-a", "tenant-a", "approved"),
+            ("capability-b", "component-b", "tenant-a", "approved"),
+        ):
+            write_component_capability(
+                connection,
+                {
+                    **sample_component_capability(capability_id).__dict__,
+                    "component_id": component_id,
+                    "tenant_id": tenant_id,
+                    "status": status,
+                },
+            )
+
+        assert [
+            row["component_id"]
+            for row in read_runtime_components_by_node_id(connection, "node-a")
+        ] == ["component-a", "component-b"]
+        assert [
+            row["component_id"]
+            for row in read_runtime_components_by_tenant_id(connection, "tenant-a")
+        ] == ["component-a", "component-b"]
+        assert [
+            row["component_id"]
+            for row in read_runtime_components_by_component_role(
+                connection,
+                "storage_runner",
+            )
+        ] == ["component-a"]
+        assert [
+            row["component_id"]
+            for row in read_runtime_components_by_status(connection, "stale")
+        ] == ["component-b"]
+        assert [
+            row["capability_id"]
+            for row in read_component_capabilities_by_component_id(
+                connection,
+                "component-a",
+            )
+        ] == ["capability-a", "capability-c"]
+        assert [
+            row["capability_id"]
+            for row in read_approved_component_capabilities_by_component_id(
+                connection,
+                "component-a",
+            )
+        ] == ["capability-a"]
+    finally:
+        connection.close()
+
+
+def test_runtime_heartbeat_and_health_latest_queries_are_deterministic():
+    connection = create_in_memory_connection()
+    try:
+        write_openclaw_node(connection, sample_openclaw_node())
+        write_runtime_component(connection, sample_runtime_component())
+        for heartbeat_id, reported_at in (
+            ("node-heartbeat-a", "2026-05-06T00:01:00Z"),
+            ("node-heartbeat-c", "2026-05-06T00:03:00Z"),
+            ("node-heartbeat-b", "2026-05-06T00:03:00Z"),
+        ):
+            write_node_heartbeat(
+                connection,
+                {
+                    **sample_node_heartbeat(heartbeat_id).__dict__,
+                    "reported_at": reported_at,
+                },
+            )
+        for heartbeat_id, reported_at in (
+            ("component-heartbeat-a", "2026-05-06T00:01:00Z"),
+            ("component-heartbeat-b", "2026-05-06T00:02:00Z"),
+        ):
+            write_component_heartbeat(
+                connection,
+                {
+                    **sample_component_heartbeat(heartbeat_id).__dict__,
+                    "reported_at": reported_at,
+                },
+            )
+        for snapshot_id, captured_at, health_status in (
+            ("snapshot-a", "2026-05-06T00:01:00Z", "healthy"),
+            ("snapshot-c", "2026-05-06T00:03:00Z", "degraded"),
+            ("snapshot-b", "2026-05-06T00:03:00Z", "degraded"),
+        ):
+            write_component_health_snapshot(
+                connection,
+                {
+                    **sample_component_health_snapshot(snapshot_id).__dict__,
+                    "captured_at": captured_at,
+                    "health_status": health_status,
+                },
+            )
+
+        assert read_latest_node_heartbeat(connection, "node-1")["heartbeat_id"] == (
+            "node-heartbeat-c"
+        )
+        assert read_latest_component_heartbeat(
+            connection,
+            "component-1",
+        )["heartbeat_id"] == "component-heartbeat-b"
+        assert read_latest_component_health_snapshot(
+            connection,
+            "component-1",
+        )["snapshot_id"] == "snapshot-c"
+        assert [
+            row["heartbeat_id"]
+            for row in read_stale_node_heartbeats(
+                connection,
+                "2026-05-06T00:03:00Z",
+            )
+        ] == ["node-heartbeat-a"]
+        assert [
+            row["snapshot_id"]
+            for row in read_degraded_component_health_snapshots_by_tenant_id(
+                connection,
+                "tenant-personal",
+            )
+        ] == ["snapshot-b", "snapshot-c"]
+    finally:
+        connection.close()
+
+
+def test_runtime_presence_repository_writes_fail_closed_for_unknown_references():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            write_runtime_component(connection, sample_runtime_component())
+
+        write_openclaw_node(connection, sample_openclaw_node())
+        with pytest.raises(ValueError):
+            write_component_capability(connection, sample_component_capability())
+        with pytest.raises(ValueError):
+            write_component_heartbeat(connection, sample_component_heartbeat())
+        with pytest.raises(ValueError):
+            write_component_health_snapshot(connection, sample_component_health_snapshot())
+
+        write_runtime_component(connection, sample_runtime_component())
+        write_component_capability(connection, sample_component_capability())
+        write_component_heartbeat(connection, sample_component_heartbeat())
+        write_component_health_snapshot(connection, sample_component_health_snapshot())
+    finally:
+        connection.close()
+
+
+def test_runtime_presence_repository_inputs_fail_closed():
+    connection = create_in_memory_connection()
+    try:
+        write_openclaw_node(connection, sample_openclaw_node())
+        write_runtime_component(connection, sample_runtime_component())
+
+        with pytest.raises(ValueError):
+            write_runtime_component(
+                connection,
+                {**sample_runtime_component("bad-component").__dict__, "tenant_id": ""},
+            )
+        with pytest.raises(ValueError):
+            write_runtime_component(
+                connection,
+                {
+                    **sample_runtime_component("wrong-tenant-component").__dict__,
+                    "tenant_id": "tenant-law",
+                },
+            )
+        with pytest.raises(ValueError):
+            read_runtime_components_by_tenant_id(connection, "")
+        with pytest.raises(ValueError):
+            write_component_capability(
+                connection,
+                {
+                    **sample_component_capability("wrong-tenant-capability").__dict__,
+                    "tenant_id": "tenant-law",
+                },
+            )
+        with pytest.raises(ValueError):
+            write_node_heartbeat(
+                connection,
+                {
+                    **sample_node_heartbeat("bad-node-heartbeat").__dict__,
+                    "heartbeat_ttl_seconds": True,
+                },
+            )
+        with pytest.raises(ValueError):
+            write_node_heartbeat(
+                connection,
+                {
+                    **sample_node_heartbeat("zero-node-heartbeat").__dict__,
+                    "heartbeat_ttl_seconds": 0,
+                },
+            )
+        with pytest.raises(ValueError):
+            write_component_heartbeat(
+                connection,
+                {
+                    **sample_component_heartbeat("bad-component-heartbeat").__dict__,
+                    "heartbeat_ttl_seconds": True,
+                },
+            )
+        with pytest.raises(ValueError):
+            write_component_health_snapshot(
+                connection,
+                {
+                    **sample_component_health_snapshot("wrong-node-snapshot").__dict__,
+                    "node_id": "missing-node",
+                },
             )
     finally:
         connection.close()

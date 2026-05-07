@@ -20,6 +20,10 @@ from backend_data_contract import (
     REQUIRED_SCHEMA_CONTRACT_SURFACES,
     REQUIRED_SQLITE_TABLE_CONCEPTS,
     REQUIRED_WRITE_BACK_CAPTURE_LABELS,
+    RUNTIME_PRESENCE_CAPABILITY_STATUSES,
+    RUNTIME_PRESENCE_COMPONENT_ROLES,
+    RUNTIME_PRESENCE_COMPONENT_STATUSES,
+    RUNTIME_PRESENCE_HEALTH_STATUSES,
     SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
     SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     STORAGE_INTELLIGENCE_ALLOWED_SOURCE_MODES,
@@ -714,6 +718,11 @@ def test_required_schema_contract_surfaces_exist():
         "openclaw_node",
         "node_source_link",
         "source_authorization_scope",
+        "runtime_component",
+        "component_capability",
+        "node_heartbeat",
+        "component_heartbeat",
+        "component_health_snapshot",
     )
 
     surfaces = schema_contract_surfaces()
@@ -743,6 +752,17 @@ def test_schema_surface_names_normalize_correctly():
     assert normalize_schema_surface_name("node source links") == "node_source_link"
     assert normalize_schema_surface_name("source authorization scopes") == (
         "source_authorization_scope"
+    )
+    assert normalize_schema_surface_name("runtime components") == "runtime_component"
+    assert normalize_schema_surface_name("component capabilities") == (
+        "component_capability"
+    )
+    assert normalize_schema_surface_name("node heartbeats") == "node_heartbeat"
+    assert normalize_schema_surface_name("component heartbeats") == (
+        "component_heartbeat"
+    )
+    assert normalize_schema_surface_name("component health snapshots") == (
+        "component_health_snapshot"
     )
     assert normalize_schema_surface_name("unknown table") is None
     assert is_schema_surface_known("semantic records") is True
@@ -947,6 +967,11 @@ def test_required_sqlite_table_concepts_exist():
         "openclaw_nodes",
         "node_source_links",
         "source_authorization_scopes",
+        "runtime_components",
+        "component_capabilities",
+        "node_heartbeats",
+        "component_heartbeats",
+        "component_health_snapshots",
     )
 
     table_concepts = sqlite_table_concepts()
@@ -995,6 +1020,19 @@ def test_sqlite_table_concept_names_normalize_correctly():
     assert normalize_sqlite_table_concept_name("source authorization scope") == (
         "source_authorization_scopes"
     )
+    assert normalize_sqlite_table_concept_name("runtime component") == (
+        "runtime_components"
+    )
+    assert normalize_sqlite_table_concept_name("component capability") == (
+        "component_capabilities"
+    )
+    assert normalize_sqlite_table_concept_name("node heartbeat") == "node_heartbeats"
+    assert normalize_sqlite_table_concept_name("component heartbeat") == (
+        "component_heartbeats"
+    )
+    assert normalize_sqlite_table_concept_name("component health snapshot") == (
+        "component_health_snapshots"
+    )
     assert normalize_sqlite_table_concept_name("runtime table") is None
     assert is_sqlite_table_concept_known("provenance references") is True
     assert is_sqlite_table_concept_known("sqlite runtime") is False
@@ -1017,6 +1055,11 @@ def test_each_sqlite_table_concept_maps_to_expected_schema_surface():
         "openclaw_nodes": "openclaw_node",
         "node_source_links": "node_source_link",
         "source_authorization_scopes": "source_authorization_scope",
+        "runtime_components": "runtime_component",
+        "component_capabilities": "component_capability",
+        "node_heartbeats": "node_heartbeat",
+        "component_heartbeats": "component_heartbeat",
+        "component_health_snapshots": "component_health_snapshot",
     }
 
     for table_name, surface_name in expected.items():
@@ -1147,6 +1190,73 @@ def test_sqlite_table_concepts_expose_required_conceptual_fields():
             "status",
         }
     )
+    assert required_sqlite_table_concept_fields("runtime_components") >= frozenset(
+        {
+            "component_id",
+            "node_id",
+            "tenant_id",
+            "component_name",
+            "component_instance_id",
+            "component_role",
+            "component_version",
+            "status",
+            "approval_receipt_ref",
+            "registered_at",
+            "last_seen",
+        }
+    )
+    assert required_sqlite_table_concept_fields("component_capabilities") >= frozenset(
+        {
+            "capability_id",
+            "component_id",
+            "tenant_id",
+            "capability_name",
+            "capability_scope",
+            "status",
+            "approval_receipt_ref",
+        }
+    )
+    assert required_sqlite_table_concept_fields("node_heartbeats") >= frozenset(
+        {
+            "heartbeat_id",
+            "node_id",
+            "tenant_id",
+            "reported_at",
+            "heartbeat_ttl_seconds",
+            "health_status",
+            "status_message",
+            "last_known_state",
+        }
+    )
+    assert required_sqlite_table_concept_fields("component_heartbeats") >= frozenset(
+        {
+            "heartbeat_id",
+            "component_id",
+            "node_id",
+            "tenant_id",
+            "reported_at",
+            "heartbeat_ttl_seconds",
+            "health_status",
+            "status_message",
+            "last_known_state",
+        }
+    )
+    assert required_sqlite_table_concept_fields(
+        "component_health_snapshots"
+    ) >= frozenset(
+        {
+            "snapshot_id",
+            "component_id",
+            "node_id",
+            "tenant_id",
+            "captured_at",
+            "health_status",
+            "degraded_reason",
+            "capabilities_reported",
+            "version_reported",
+            "last_known_state",
+        }
+    )
 
 
 def test_storage_intelligence_static_value_surfaces_are_explicit():
@@ -1205,6 +1315,35 @@ def test_environment_intelligence_static_value_surfaces_are_explicit():
     )
     assert {"legal_matter", "client_delivery", "system"} <= set(
         ENVIRONMENT_INTELLIGENCE_AUTHORIZED_ENTITY_FAMILIES
+    )
+
+
+def test_runtime_presence_static_value_surfaces_are_explicit():
+    assert {"pending_approval", "active", "revoked", "degraded", "unknown"} <= set(
+        RUNTIME_PRESENCE_COMPONENT_STATUSES
+    )
+    assert {
+        "storage_runner",
+        "hermes_sidecar",
+        "web_capture_runner",
+        "mobile_bridge",
+        "control_surface_runner",
+        "environment_runner",
+        "discovery_runner",
+        "unknown",
+    } <= set(RUNTIME_PRESENCE_COMPONENT_ROLES)
+    assert RUNTIME_PRESENCE_CAPABILITY_STATUSES == (
+        "pending",
+        "approved",
+        "revoked",
+        "stale",
+    )
+    assert RUNTIME_PRESENCE_HEALTH_STATUSES == (
+        "healthy",
+        "degraded",
+        "stale",
+        "critical",
+        "unknown",
     )
 
 
