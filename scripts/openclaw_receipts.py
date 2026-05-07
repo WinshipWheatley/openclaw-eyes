@@ -28,15 +28,25 @@ from openclaw_sensitive_policy import (
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
 
-ACTIVE_PACKET_RELATIVE_PATH = Path(
-    "docs/planning/project_packets/"
+PACKET_ROOT_RELATIVE_PATH = Path("docs/planning/project_packets")
+PACKET_ARCHIVE_ROOT_RELATIVE_PATH = Path("docs/planning/project_packets_archive")
+PACKET_INDEX_RELATIVE_PATH = PACKET_ROOT_RELATIVE_PATH / "README.md"
+
+PACKET06_RELATIVE_PATH = PACKET_ROOT_RELATIVE_PATH / (
     "06_OPERATOR_HARNESS_ACTOR_EFFICIENCY_AND_SENSITIVE_WORKFLOWS"
 )
-PACKET_INDEX_RELATIVE_PATH = Path("docs/planning/project_packets/README.md")
+PACKET06_ARCHIVE_RELATIVE_PATH = PACKET_ARCHIVE_ROOT_RELATIVE_PATH / (
+    "06_OPERATOR_HARNESS_ACTOR_EFFICIENCY_AND_SENSITIVE_WORKFLOWS_SNAPSHOT"
+)
+PACKET07_RELATIVE_PATH = PACKET_ROOT_RELATIVE_PATH / (
+    "07_OPERATOR_HARNESS_PROMPT_DOCTRINE_AND_GATED_ACTIVATION"
+)
+
+ACTIVE_PACKET_RELATIVE_PATH = PACKET07_RELATIVE_PATH
 ACTIVE_HANDOFF_RELATIVE_PATH = ACTIVE_PACKET_RELATIVE_PATH / "00_ACTIVE_HANDOFF.md"
 ACTIVE_RAILS_RELATIVE_PATH = ACTIVE_PACKET_RELATIVE_PATH / "24_files"
 
-REQUIRED_RAIL_FILES = (
+PACKET06_REQUIRED_RAIL_FILES = (
     "01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
     "02_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md",
     "03_CORE_ARCHITECTURE_PRINCIPLES.md",
@@ -63,17 +73,78 @@ REQUIRED_RAIL_FILES = (
     "24_VISIBLE_ROAD_AND_BIG_STRIDES_DOCTRINE.md",
 )
 
-KEY_RAIL_FILES = (
+PACKET07_REQUIRED_RAIL_FILES = (
     "01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
+    "02_PROJECT_SOURCE_SET_TRANSITION_PROTOCOL.md",
+    "03_CORE_ARCHITECTURE_PRINCIPLES.md",
+    "04_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md",
+    "05_OPERATOR_NORTH_STAR_MACHINE_CONTRACT.md",
+    "06_PROJECT_CHAT_OPERATOR_EXPERIENCE_CONTRACT.md",
     "07_VALIDATION_MAP_AND_TEST_BOUNDARIES.md",
-    "14_CLI_RECEIPT_LAYER_AND_LOW_CONTEXT_INTERFACE.md",
-    "15_SENSITIVE_ROOT_QUARANTINE_POLICY_AND_REGISTRY.md",
-    "17_ACTOR_SIDECAR_AND_CONTEXT_EXPORT_HARDENING_PLAN.md",
-    "18_OPERATOR_HARNESS_READ_MODEL_PLAN.md",
-    "20_RUNTIME_INTEGRATION_AND_RECOVERY_ARCHITECTURE.md",
-    "22_RUNTIME_AUTHORITY_AND_LEGACY_GATING.md",
-    "23_BROAD_SOURCE_SET_EXCLUSION_GUARD.md",
-    "24_VISIBLE_ROAD_AND_BIG_STRIDES_DOCTRINE.md",
+    "08_BACKEND_DATA_CONTRACT_AND_SCHEMA_TRUTH.md",
+    "09_BACKEND_REPOSITORY_AND_RUNTIME_TRUTH.md",
+    "10_CONTEXT_SUBSTRATE_AND_TRAVERSAL_TRUTH.md",
+    "11_ACTOR_REGISTRY_AND_TRUST_BRIDGE_TRUTH.md",
+    "12_STORAGE_INTELLIGENCE_AND_AUTHORIZATION.md",
+    "13_PERFORMANCE_DIRECTOR_SHOW_MAP_TRUTH.md",
+    "14_MODEL_AND_TOOL_SPECIFIC_PROMPT_DOCTRINE.md",
+    "15_RECEIPT_LAYER_AND_OPERATOR_READ_MODEL_V1.md",
+    "16_SENSITIVE_ROOT_AND_LEGAL_EXPORT_BOUNDARIES.md",
+    "17_INVOICE_ARTIFACT_AND_BILLING_BRIDGE_BOUNDARIES.md",
+    "18_ACTOR_CONTEXT_EXPORT_AND_NO_ECHO_HARDENING.md",
+    "19_GATED_ACTIVATION_READINESS_MAP.md",
+    "20_RUNTIME_AUTHORITY_AND_LEGACY_GATING_PLAN.md",
+    "21_RUNTIME_INTEGRATION_AND_RECOVERY_ACTIVATION_PLAN.md",
+    "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md",
+    "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md",
+    "24_VISIBLE_ROAD_BIG_STRIDES_AND_RENEWAL_DISCIPLINE.md",
+)
+
+REQUIRED_RAIL_FILES = PACKET07_REQUIRED_RAIL_FILES
+
+PACKET_REQUIRED_RAILS = {
+    PACKET06_RELATIVE_PATH.name: PACKET06_REQUIRED_RAIL_FILES,
+    PACKET07_RELATIVE_PATH.name: PACKET07_REQUIRED_RAIL_FILES,
+}
+
+PACKET_KEY_RAILS = {
+    PACKET06_RELATIVE_PATH.name: (
+        "01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
+        "07_VALIDATION_MAP_AND_TEST_BOUNDARIES.md",
+        "14_CLI_RECEIPT_LAYER_AND_LOW_CONTEXT_INTERFACE.md",
+        "15_SENSITIVE_ROOT_QUARANTINE_POLICY_AND_REGISTRY.md",
+        "17_ACTOR_SIDECAR_AND_CONTEXT_EXPORT_HARDENING_PLAN.md",
+        "18_OPERATOR_HARNESS_READ_MODEL_PLAN.md",
+        "20_RUNTIME_INTEGRATION_AND_RECOVERY_ARCHITECTURE.md",
+        "22_RUNTIME_AUTHORITY_AND_LEGACY_GATING.md",
+        "23_BROAD_SOURCE_SET_EXCLUSION_GUARD.md",
+        "24_VISIBLE_ROAD_AND_BIG_STRIDES_DOCTRINE.md",
+    ),
+    PACKET07_RELATIVE_PATH.name: (
+        "01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
+        "07_VALIDATION_MAP_AND_TEST_BOUNDARIES.md",
+        "14_MODEL_AND_TOOL_SPECIFIC_PROMPT_DOCTRINE.md",
+        "15_RECEIPT_LAYER_AND_OPERATOR_READ_MODEL_V1.md",
+        "19_GATED_ACTIVATION_READINESS_MAP.md",
+        "20_RUNTIME_AUTHORITY_AND_LEGACY_GATING_PLAN.md",
+        "21_RUNTIME_INTEGRATION_AND_RECOVERY_ACTIVATION_PLAN.md",
+        "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md",
+        "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md",
+        "24_VISIBLE_ROAD_BIG_STRIDES_AND_RENEWAL_DISCIPLINE.md",
+    ),
+}
+
+KEY_RAIL_FILES = PACKET_KEY_RAILS[PACKET07_RELATIVE_PATH.name]
+
+PROMPT_DOCTRINE_RAIL = "14_MODEL_AND_TOOL_SPECIFIC_PROMPT_DOCTRINE.md"
+GATED_ACTIVATION_RAILS = (
+    "16_SENSITIVE_ROOT_AND_LEGAL_EXPORT_BOUNDARIES.md",
+    "17_INVOICE_ARTIFACT_AND_BILLING_BRIDGE_BOUNDARIES.md",
+    "19_GATED_ACTIVATION_READINESS_MAP.md",
+    "20_RUNTIME_AUTHORITY_AND_LEGACY_GATING_PLAN.md",
+    "21_RUNTIME_INTEGRATION_AND_RECOVERY_ACTIVATION_PLAN.md",
+    "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md",
+    "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md",
 )
 
 @dataclass(frozen=True)
@@ -146,16 +217,80 @@ def changed_files(root: Path = ROOT) -> tuple[ChangedFile, ...]:
     return tuple(parse_porcelain_status(result.stdout))
 
 
-def _packet_index_points_to_active(index_text: str) -> bool:
-    full_path = str(ACTIVE_PACKET_RELATIVE_PATH).replace("\\", "/")
-    packet_name = ACTIVE_PACKET_RELATIVE_PATH.name
-    accepted_markers = (
-        full_path,
-        full_path + "/",
-        packet_name,
-        packet_name + "/",
+def _active_packet_from_index(index_text: str) -> Path | None:
+    in_active_section = False
+    for line in index_text.splitlines():
+        stripped = line.strip()
+        if stripped == "## Active Packet":
+            in_active_section = True
+            continue
+        if in_active_section and stripped.startswith("## "):
+            return None
+        if not in_active_section or not stripped.startswith("- `"):
+            continue
+
+        start = stripped.find("`")
+        end = stripped.find("`", start + 1)
+        if start == -1 or end == -1:
+            continue
+        candidate = stripped[start + 1 : end].strip().rstrip("/")
+        if not candidate or "/24_files/" in candidate or candidate.endswith(".md"):
+            continue
+        if candidate.startswith(str(PACKET_ROOT_RELATIVE_PATH).replace("\\", "/") + "/"):
+            packet_path = Path(candidate)
+        else:
+            packet_path = PACKET_ROOT_RELATIVE_PATH / candidate
+        if packet_path.parent == PACKET_ROOT_RELATIVE_PATH:
+            return packet_path
+    return None
+
+
+def _target_packet_path(target: str | None, index_text: str) -> Path:
+    if target in (None, "", "active", "current"):
+        return _active_packet_from_index(index_text) or ACTIVE_PACKET_RELATIVE_PATH
+    normalized = target.strip().rstrip("/")
+    if normalized.startswith(str(PACKET_ROOT_RELATIVE_PATH).replace("\\", "/") + "/"):
+        return Path(normalized)
+    return PACKET_ROOT_RELATIVE_PATH / normalized
+
+
+def _markdown_files(path: Path) -> tuple[str, ...]:
+    if not path.is_dir():
+        return ()
+    return tuple(
+        sorted(
+            child.name
+            for child in path.iterdir()
+            if child.is_file() and child.suffix == ".md"
+        )
     )
-    return any(marker in index_text for marker in accepted_markers)
+
+
+def _packet06_archive_status(root: Path) -> dict[str, object]:
+    archive_dir = root / PACKET06_ARCHIVE_RELATIVE_PATH
+    handoff = archive_dir / "00_ACTIVE_HANDOFF.md"
+    rails_dir = archive_dir / "24_files"
+    rails = _markdown_files(rails_dir)
+    missing = tuple(name for name in PACKET06_REQUIRED_RAIL_FILES if name not in rails)
+    extra = tuple(name for name in rails if name not in PACKET06_REQUIRED_RAIL_FILES)
+    preserved = (
+        archive_dir.is_dir()
+        and handoff.is_file()
+        and rails_dir.is_dir()
+        and len(rails) == 24
+        and not missing
+        and not extra
+    )
+    return {
+        "path": str(PACKET06_ARCHIVE_RELATIVE_PATH),
+        "dir_present": archive_dir.is_dir(),
+        "handoff_present": handoff.is_file(),
+        "rails_dir_present": rails_dir.is_dir(),
+        "rail_count": len(rails),
+        "missing_rails": missing,
+        "extra_rails": extra,
+        "preserved": preserved,
+    }
 
 
 def docs_only_guard_report(
@@ -196,39 +331,35 @@ def docs_only_guard_report(
     }
 
 
-def packet_status(root: Path = ROOT) -> dict[str, object]:
+def packet_status(root: Path = ROOT, target: str | None = None) -> dict[str, object]:
     packet_index = root / PACKET_INDEX_RELATIVE_PATH
-    packet_dir = root / ACTIVE_PACKET_RELATIVE_PATH
-    handoff = root / ACTIVE_HANDOFF_RELATIVE_PATH
-    rails_dir = root / ACTIVE_RAILS_RELATIVE_PATH
-
-    existing_rails: tuple[str, ...] = ()
-    if rails_dir.is_dir():
-        existing_rails = tuple(
-            sorted(
-                path.name
-                for path in rails_dir.iterdir()
-                if path.is_file() and path.suffix == ".md"
-            )
-        )
-
-    missing_rails = tuple(name for name in REQUIRED_RAIL_FILES if name not in existing_rails)
-    extra_rails = tuple(name for name in existing_rails if name not in REQUIRED_RAIL_FILES)
-    key_rails = {
-        name: (rails_dir / name).is_file()
-        for name in KEY_RAIL_FILES
-    }
-
     index_text = packet_index.read_text(encoding="utf-8") if packet_index.is_file() else ""
+    active_packet = _active_packet_from_index(index_text)
+    target_packet = _target_packet_path(target, index_text)
+    packet_dir = root / target_packet
+    handoff = packet_dir / "00_ACTIVE_HANDOFF.md"
+    rails_dir = packet_dir / "24_files"
+
+    existing_rails = _markdown_files(rails_dir)
+    required_rails = PACKET_REQUIRED_RAILS.get(target_packet.name, ())
+    key_rail_names = PACKET_KEY_RAILS.get(target_packet.name, ())
+    missing_rails = tuple(name for name in required_rails if name not in existing_rails)
+    extra_rails = tuple(name for name in existing_rails if name not in required_rails)
+    key_rails = {name: (rails_dir / name).is_file() for name in key_rail_names}
+
     handoff_first_line = _first_line(handoff.read_text(encoding="utf-8")) if handoff.is_file() else ""
-    index_points_to_active = _packet_index_points_to_active(index_text)
+    target_is_active = active_packet == target_packet
+    archive = _packet06_archive_status(root)
 
     return {
         "receipt_type": "openclaw.packet_status",
         "mode": "read-only/exact-packet-paths",
-        "active_packet": str(ACTIVE_PACKET_RELATIVE_PATH),
+        "target_packet": str(target_packet),
+        "active_packet": str(active_packet) if active_packet else "",
+        "target_is_active": target_is_active,
         "packet_index_present": packet_index.is_file(),
-        "packet_index_points_to_active": index_points_to_active,
+        "packet_index_points_to_active": target_is_active,
+        "packet_index_active_parseable": active_packet is not None,
         "packet_dir_present": packet_dir.is_dir(),
         "handoff_present": handoff.is_file(),
         "handoff_first_line": handoff_first_line,
@@ -237,16 +368,20 @@ def packet_status(root: Path = ROOT) -> dict[str, object]:
         "missing_rails": missing_rails,
         "extra_rails": extra_rails,
         "key_rails": key_rails,
+        "packet06_archive": archive,
         "passed": (
             packet_index.is_file()
-            and index_points_to_active
+            and target_is_active
+            and active_packet is not None
             and packet_dir.is_dir()
             and handoff.is_file()
             and rails_dir.is_dir()
             and len(existing_rails) == 24
+            and len(required_rails) == 24
             and not missing_rails
             and not extra_rails
             and all(key_rails.values())
+            and bool(archive["preserved"])
         ),
     }
 
@@ -293,6 +428,110 @@ def repo_check_receipt(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def _active_rails_dir_from_packet(report: dict[str, object], root: Path) -> Path:
+    return root / Path(str(report["target_packet"])) / "24_files"
+
+
+def _read_rail_text(rails_dir: Path, name: str) -> str:
+    path = rails_dir / name
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def prompt_doctrine_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    rails_dir = _active_rails_dir_from_packet(packet, root)
+    rail_path = rails_dir / PROMPT_DOCTRINE_RAIL
+    text = _read_rail_text(rails_dir, PROMPT_DOCTRINE_RAIL)
+
+    checks = {
+        "file14_present": rail_path.is_file(),
+        "gemini_planning_profile_present": (
+            "Gemini planning/audit prompts" in text
+            and "READY/NOT_READY" in text
+            and "Gemini plans are not automatic execution authority" in text
+        ),
+        "codex_implementation_profile_present": (
+            "Codex implementation prompts" in text
+            and "bounded repo mutation" in text
+            and "produce reviewable diffs" in text
+        ),
+        "review_prompt_split_present": (
+            "Gemini review:" in text
+            and "Codex review:" in text
+            and "commit readiness" in text
+        ),
+        "non_generic_prompting_doctrine_present": (
+            "generic forbiddance" in text
+            and "Guard the real risks" in text
+            and "actual strengths and failure modes" in text
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.prompt_doctrine_status",
+        "mode": "read-only/exact-packet07-rail",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "authority_note": "This receipt checks prompt doctrine presence; it does not generate prompts.",
+        "mutates_files": False,
+        "generates_prompts": False,
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
+def gated_activation_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    rails_dir = _active_rails_dir_from_packet(packet, root)
+    rail_texts = {
+        name: _read_rail_text(rails_dir, name)
+        for name in GATED_ACTIVATION_RAILS
+    }
+    combined_text = "\n".join(rail_texts.values())
+
+    checks = {
+        "gated_activation_rail_present": bool(
+            rail_texts["19_GATED_ACTIVATION_READINESS_MAP.md"]
+        ),
+        "runtime_activation_not_authorized": (
+            "No live service launch" in combined_text
+            and "does not authorize live runtime launch" in combined_text
+        ),
+        "mcp_hidden_authority_blocked": (
+            "No MCP invocation" in combined_text
+            and "No hidden memory writes" in combined_text
+            and "hidden authority" in combined_text
+        ),
+        "invoice_legal_private_root_activation_gated": (
+            "Do not generate final invoices" in combined_text
+            and "No legal-private content reads" in combined_text
+            and "No private-root inspection" in combined_text
+        ),
+        "broad_source_set_laundering_blocked": (
+            "No broad filesystem crawling" in combined_text
+            and "No path-metadata-as-authority" in combined_text
+            and "No source-set generation from hidden chat memory" in combined_text
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.gated_activation_status",
+        "mode": "read-only/static-activation-boundaries",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "authority_note": "Readiness evidence is not activation approval.",
+        "runtime_activation_authorized": False,
+        "receipt_grants_execution_authority": False,
+        "mcp_hidden_memory_write_authorized": False,
+        "invoice_legal_private_root_activation_authorized": False,
+        "filesystem_inspected": False,
+        "runtime_launched": False,
+        "provider_or_model_called": False,
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -302,6 +541,8 @@ def operator_harness_read_model(
     changed_paths = tuple(item.path for item in changed)
     private_findings = path_policy_findings(changed_paths, root=root)
     packet = packet_status(root)
+    prompt_doctrine = prompt_doctrine_status(root)
+    gated_activation = gated_activation_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -332,9 +573,19 @@ def operator_harness_read_model(
             },
             {
                 "card": "packet",
+                "target_packet": packet["target_packet"],
                 "active_packet": packet["active_packet"],
+                "target_is_active": packet["target_is_active"],
                 "rail_count": packet["rail_count"],
                 "packet_status": "present" if packet["passed"] else "review",
+                "roadmap_authority": "24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md",
+            },
+            {
+                "card": "packet06_archive",
+                "path": packet["packet06_archive"]["path"],
+                "preserved": packet["packet06_archive"]["preserved"],
+                "rail_count": packet["packet06_archive"]["rail_count"],
+                "handoff_present": packet["packet06_archive"]["handoff_present"],
             },
             {
                 "card": "active_handoff",
@@ -349,6 +600,34 @@ def operator_harness_read_model(
                 "path_policy_only": sensitive_contract["path_policy_only"],
                 "content_access_allowed": sensitive_contract["content_access_allowed"],
                 "filesystem_inspected": sensitive_contract["filesystem_inspected"],
+            },
+            {
+                "card": "prompt_doctrine",
+                "passed": prompt_doctrine["passed"],
+                "generates_prompts": prompt_doctrine["generates_prompts"],
+                "mutates_files": prompt_doctrine["mutates_files"],
+                **prompt_doctrine["checks"],
+            },
+            {
+                "card": "gated_activation",
+                "passed": gated_activation["passed"],
+                "runtime_activation_authorized": gated_activation[
+                    "runtime_activation_authorized"
+                ],
+                "receipt_grants_execution_authority": gated_activation[
+                    "receipt_grants_execution_authority"
+                ],
+                "mcp_hidden_memory_write_authorized": gated_activation[
+                    "mcp_hidden_memory_write_authorized"
+                ],
+                "invoice_legal_private_root_activation_authorized": gated_activation[
+                    "invoice_legal_private_root_activation_authorized"
+                ],
+                "filesystem_inspected": gated_activation["filesystem_inspected"],
+                "runtime_launched": gated_activation["runtime_launched"],
+                "provider_or_model_called": gated_activation[
+                    "provider_or_model_called"
+                ],
             },
             {
                 "card": "invoice_artifact",
@@ -447,7 +726,12 @@ def operator_harness_read_model(
             },
         ),
         "private_findings": private_findings,
-        "passed": bool(packet["passed"]) and not private_findings,
+        "passed": (
+            bool(packet["passed"])
+            and bool(prompt_doctrine["passed"])
+            and bool(gated_activation["passed"])
+            and not private_findings
+        ),
     }
 
 
@@ -485,9 +769,12 @@ def print_packet_status(report: dict[str, object]) -> None:
         (
             ("receipt_type", report["receipt_type"]),
             ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
             ("active_packet", report["active_packet"]),
+            ("target_is_active", report["target_is_active"]),
             ("packet_index_present", report["packet_index_present"]),
             ("packet_index_points_to_active", report["packet_index_points_to_active"]),
+            ("packet_index_active_parseable", report["packet_index_active_parseable"]),
             ("packet_dir_present", report["packet_dir_present"]),
             ("handoff_present", report["handoff_present"]),
             ("rails_dir_present", report["rails_dir_present"]),
@@ -501,6 +788,25 @@ def print_packet_status(report: dict[str, object]) -> None:
     print("key_rails:")
     for name, present in report["key_rails"].items():
         print(f"- {name}: {present}")
+    archive = report["packet06_archive"]
+    print("packet06_archive:")
+    for key in (
+        "path",
+        "dir_present",
+        "handoff_present",
+        "rails_dir_present",
+        "rail_count",
+        "preserved",
+    ):
+        print(f"- {key}: {archive[key]}")
+    for key in ("missing_rails", "extra_rails"):
+        print(f"- {key}:")
+        values = list(archive[key])
+        if not values:
+            print("  - none")
+            continue
+        for value in values:
+            print(f"  - {value}")
 
 
 def print_repo_check(report: dict[str, object]) -> None:
@@ -611,6 +917,58 @@ def print_sensitive_root_contract(report: dict[str, object]) -> None:
     _print_list("forbidden_actions", report["forbidden_actions"])
 
 
+def print_prompt_doctrine_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Prompt Doctrine Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("authority_note", report["authority_note"]),
+            ("mutates_files", report["mutates_files"]),
+            ("generates_prompts", report["generates_prompts"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
+def print_gated_activation_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Gated Activation Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("authority_note", report["authority_note"]),
+            ("runtime_activation_authorized", report["runtime_activation_authorized"]),
+            (
+                "receipt_grants_execution_authority",
+                report["receipt_grants_execution_authority"],
+            ),
+            (
+                "mcp_hidden_memory_write_authorized",
+                report["mcp_hidden_memory_write_authorized"],
+            ),
+            (
+                "invoice_legal_private_root_activation_authorized",
+                report["invoice_legal_private_root_activation_authorized"],
+            ),
+            ("filesystem_inspected", report["filesystem_inspected"]),
+            ("runtime_launched", report["runtime_launched"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -648,7 +1006,15 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("repo-check", help="Print git and active-packet proof receipt.")
     subparsers.add_parser("changed-files-receipt", help="Print changed files with static path policy.")
-    subparsers.add_parser("packet-status", help="Print active Packet 06 status receipt.")
+    packet_status_parser = subparsers.add_parser(
+        "packet-status",
+        help="Print active packet status receipt.",
+    )
+    packet_status_parser.add_argument(
+        "target",
+        nargs="?",
+        help="Optional packet folder name; default is the active packet from the packet index.",
+    )
 
     docs_guard = subparsers.add_parser(
         "docs-only-guard",
@@ -680,6 +1046,14 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-harness-status",
         help="Print low-context read-only operator harness receipt cards.",
     )
+    subparsers.add_parser(
+        "prompt-doctrine-status",
+        help="Print Packet 07 model/tool-specific prompt doctrine status.",
+    )
+    subparsers.add_parser(
+        "gated-activation-status",
+        help="Print Packet 07 gated activation boundary status.",
+    )
     return parser
 
 
@@ -698,7 +1072,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_changed_files_receipt(files, findings)
         return 0 if not findings else 1
     if args.command == "packet-status":
-        report = packet_status(root)
+        report = packet_status(root, target=args.target)
         print_packet_status(report)
         return 0 if report["passed"] else 1
     if args.command == "docs-only-guard":
@@ -721,6 +1095,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "operator-harness-status":
         report = operator_harness_read_model(root=root)
         print_operator_harness_read_model(report)
+        return 0 if report["passed"] else 1
+    if args.command == "prompt-doctrine-status":
+        report = prompt_doctrine_status(root=root)
+        print_prompt_doctrine_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "gated-activation-status":
+        report = gated_activation_status(root=root)
+        print_gated_activation_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")

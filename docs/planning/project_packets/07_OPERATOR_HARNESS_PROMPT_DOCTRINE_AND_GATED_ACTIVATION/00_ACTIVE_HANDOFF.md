@@ -124,6 +124,35 @@ Results:
 - `pytest tests/test_openclaw_receipts.py -q`: `16 passed`.
 - `packet-status` remains Packet 06-specific and reports Packet 06; Packet 07 was validated with exact path/count checks instead.
 
+## Packet 07 Receipt/Read-Model Native Milestone - 2026-05-07
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- `packet-status` is now active-index driven and reports Packet 07 as the active target with 24 rails.
+- `packet-status` checks that the Packet 06 archive snapshot is preserved with final handoff plus 24 rails.
+- `operator-harness-status` now reports Packet 07-native packet cards, Packet 06 archive preservation, prompt-doctrine status, and gated-activation status.
+- Added `prompt-doctrine-status` as a read-only check for Packet 07 File 14. It confirms Gemini planning/audit profile, Codex implementation profile, review prompt split, and non-generic prompt doctrine without generating prompts.
+- Added `gated-activation-status` as a read-only static boundary check. It confirms runtime activation is not authorized, MCP hidden authority stays blocked, invoice/legal/private-root activation remains gated, and broad source-set laundering remains blocked.
+
+Validation receipt:
+
+```text
+./scripts/openclaw_receipts.py packet-status: passed, target Packet 07, Packet 06 archive preserved
+./scripts/openclaw_receipts.py operator-harness-status: passed, non-authorizing read model
+./scripts/openclaw_receipts.py prompt-doctrine-status: passed
+./scripts/openclaw_receipts.py gated-activation-status: passed
+pytest tests/test_openclaw_receipts.py -q: 19 passed
+```
+
+Current next visible lane:
+
+- First future activation candidate: runtime authority and legacy gating controlled activation planning.
+- Why first: Packet 07 now has static receipts proving active packet state, prompt doctrine, and gated activation boundaries; runtime/legacy gates are the major future activation lane but can advance through dry-run planning without live service launch.
+- Future path: static guard -> dry-run readiness harness -> explicit approval gate -> future live authorization.
+- Still forbidden now: live runtime launch, process/service scans, runtime mutation, MCP writes, hidden memory writes, provider/model calls, invoice actions, legal/private content access, private-root inspection, and treating receipts as approval.
+
 ## Archive And Renewal Notes
 
 - Packet 06 archive snapshot: `docs/planning/project_packets_archive/06_OPERATOR_HARNESS_ACTOR_EFFICIENCY_AND_SENSITIVE_WORKFLOWS_SNAPSHOT/`

@@ -17,14 +17,60 @@ import openclaw_receipts as receipts
 import openclaw_sensitive_policy as sensitive_policy
 
 
+def _rail_fixture_text(name: str) -> str:
+    if name == receipts.PROMPT_DOCTRINE_RAIL:
+        return (
+            "# Model And Tool Specific Prompt Doctrine\n\n"
+            "Gemini planning/audit prompts are for rail interpretation, "
+            "architecture/design judgment, tradeoffs, risk, scope, campaign "
+            "shaping, and READY/NOT_READY recommendations.\n"
+            "Gemini plans are not automatic execution authority.\n"
+            "Codex implementation prompts are for bounded repo mutation: "
+            "inspect conventions, edit files, add focused tests, run checks, "
+            "fix failures, and produce reviewable diffs.\n"
+            "Do not castrate Codex with generic forbiddance spam. Guard the "
+            "real risks and actual strengths and failure modes.\n"
+            "Gemini review: architecture, scope, risk, rail alignment.\n"
+            "Codex review: dirty diff, line behavior, tests, failure modes, "
+            "boundary leaks, commit readiness.\n"
+        )
+    gated_text = {
+        "16_SENSITIVE_ROOT_AND_LEGAL_EXPORT_BOUNDARIES.md": (
+            "No legal-private content reads.\nNo private-root inspection.\n"
+        ),
+        "17_INVOICE_ARTIFACT_AND_BILLING_BRIDGE_BOUNDARIES.md": (
+            "Do not generate final invoices.\n"
+        ),
+        "19_GATED_ACTIVATION_READINESS_MAP.md": (
+            "Packet 07 does not authorize live runtime launch.\n"
+            "No live service launch.\nNo private-root inspection.\n"
+        ),
+        "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md": (
+            "No MCP invocation.\nNo hidden memory writes.\nhidden authority\n"
+        ),
+        "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md": (
+            "No broad filesystem crawling.\nNo path-metadata-as-authority.\n"
+            "No source-set generation from hidden chat memory.\n"
+        ),
+    }
+    return f"# {name}\n\n{gated_text.get(name, '')}"
+
+
 def _write_packet_fixture(root: Path) -> None:
     packet_index = root / receipts.PACKET_INDEX_RELATIVE_PATH
     rails_dir = root / receipts.ACTIVE_RAILS_RELATIVE_PATH
     handoff = root / receipts.ACTIVE_HANDOFF_RELATIVE_PATH
+    archive_dir = root / receipts.PACKET06_ARCHIVE_RELATIVE_PATH
+    archive_rails = archive_dir / "24_files"
+    archive_handoff = archive_dir / "00_ACTIVE_HANDOFF.md"
 
     packet_index.parent.mkdir(parents=True, exist_ok=True)
     packet_index.write_text(
-        f"# OpenClaw Project Packets\n\n- `{receipts.ACTIVE_PACKET_RELATIVE_PATH.name}/`\n",
+        "# OpenClaw Project Packets\n\n"
+        "## Active Packet\n\n"
+        f"- `{receipts.ACTIVE_PACKET_RELATIVE_PATH.name}/`\n\n"
+        "## Archived Packet Snapshots\n\n"
+        f"- `../project_packets_archive/{receipts.PACKET06_ARCHIVE_RELATIVE_PATH.name}/`\n",
         encoding="utf-8",
     )
     rails_dir.mkdir(parents=True, exist_ok=True)
@@ -34,7 +80,15 @@ def _write_packet_fixture(root: Path) -> None:
         encoding="utf-8",
     )
     for name in receipts.REQUIRED_RAIL_FILES:
-        (rails_dir / name).write_text(f"# {name}\n", encoding="utf-8")
+        (rails_dir / name).write_text(_rail_fixture_text(name), encoding="utf-8")
+    archive_rails.mkdir(parents=True, exist_ok=True)
+    archive_handoff.write_text(
+        "This handoff is the train. The roadmap authority is "
+        "24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md.\n",
+        encoding="utf-8",
+    )
+    for name in receipts.PACKET06_REQUIRED_RAIL_FILES:
+        (archive_rails / name).write_text(f"# {name}\n", encoding="utf-8")
 
 
 def test_parse_porcelain_status_handles_changed_untracked_and_renames():
@@ -58,10 +112,27 @@ def test_packet_status_checks_exact_active_packet_without_broad_scan(tmp_path):
     report = receipts.packet_status(tmp_path)
 
     assert report["passed"] is True
+    assert report["active_packet"] == str(receipts.ACTIVE_PACKET_RELATIVE_PATH)
+    assert report["target_packet"] == str(receipts.ACTIVE_PACKET_RELATIVE_PATH)
+    assert report["target_is_active"] is True
     assert report["rail_count"] == 24
     assert report["missing_rails"] == ()
     assert report["extra_rails"] == ()
     assert all(report["key_rails"].values())
+    assert report["key_rails"][receipts.PROMPT_DOCTRINE_RAIL] is True
+    assert report["key_rails"]["19_GATED_ACTIVATION_READINESS_MAP.md"] is True
+    assert report["packet06_archive"]["preserved"] is True
+    assert report["packet06_archive"]["rail_count"] == 24
+
+
+def test_packet_status_fails_if_packet06_archive_snapshot_is_missing(tmp_path):
+    _write_packet_fixture(tmp_path)
+    (tmp_path / receipts.PACKET06_ARCHIVE_RELATIVE_PATH / "00_ACTIVE_HANDOFF.md").unlink()
+
+    report = receipts.packet_status(tmp_path)
+
+    assert report["passed"] is False
+    assert report["packet06_archive"]["preserved"] is False
 
 
 def test_docs_only_guard_blocks_changed_files_outside_allowed_prefix(tmp_path):
@@ -227,6 +298,41 @@ def test_canonical_receipt_surface_is_executable_and_names_itself():
     assert "usage: ./scripts/openclaw_receipts.py" in completed.stdout
 
 
+def test_prompt_doctrine_status_checks_packet07_model_profiles(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.prompt_doctrine_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["target_packet"] == str(receipts.ACTIVE_PACKET_RELATIVE_PATH)
+    assert report["mutates_files"] is False
+    assert report["generates_prompts"] is False
+    assert report["checks"]["file14_present"] is True
+    assert report["checks"]["gemini_planning_profile_present"] is True
+    assert report["checks"]["codex_implementation_profile_present"] is True
+    assert report["checks"]["review_prompt_split_present"] is True
+    assert report["checks"]["non_generic_prompting_doctrine_present"] is True
+
+
+def test_gated_activation_status_is_static_and_non_authorizing(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.gated_activation_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["runtime_activation_authorized"] is False
+    assert report["receipt_grants_execution_authority"] is False
+    assert report["mcp_hidden_memory_write_authorized"] is False
+    assert report["invoice_legal_private_root_activation_authorized"] is False
+    assert report["filesystem_inspected"] is False
+    assert report["runtime_launched"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["checks"]["runtime_activation_not_authorized"] is True
+    assert report["checks"]["mcp_hidden_authority_blocked"] is True
+    assert report["checks"]["invoice_legal_private_root_activation_gated"] is True
+    assert report["checks"]["broad_source_set_laundering_blocked"] is True
+
+
 def test_operator_harness_read_model_combines_receipts_without_runtime_authority(tmp_path):
     _write_packet_fixture(tmp_path)
 
@@ -240,9 +346,20 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     assert report["authority_note"].startswith("Receipts are proof snapshots")
     assert cards["command_surface"]["canonical_command"] == receipts.CANONICAL_RECEIPT_COMMAND
     assert cards["repo"]["changed_file_count"] == 1
+    assert cards["packet"]["active_packet"] == str(receipts.ACTIVE_PACKET_RELATIVE_PATH)
+    assert cards["packet"]["target_packet"] == str(receipts.ACTIVE_PACKET_RELATIVE_PATH)
+    assert cards["packet"]["target_is_active"] is True
     assert cards["packet"]["rail_count"] == 24
+    assert cards["packet06_archive"]["preserved"] is True
+    assert cards["packet06_archive"]["rail_count"] == 24
     assert cards["active_handoff"]["is_roadmap_authority"] is False
     assert cards["sensitive_root_policy"]["filesystem_inspected"] is False
+    assert cards["prompt_doctrine"]["passed"] is True
+    assert cards["prompt_doctrine"]["gemini_planning_profile_present"] is True
+    assert cards["prompt_doctrine"]["codex_implementation_profile_present"] is True
+    assert cards["gated_activation"]["passed"] is True
+    assert cards["gated_activation"]["runtime_activation_authorized"] is False
+    assert cards["gated_activation"]["receipt_grants_execution_authority"] is False
     assert cards["invoice_artifact"]["draft_only"] is True
     assert cards["invoice_artifact"]["invoice_generation_allowed"] is False
     assert cards["invoice_artifact"]["invoice_send_allowed"] is False
@@ -283,7 +400,7 @@ def test_repo_check_receipt_is_testable_without_shell_or_live_services(tmp_path,
     def fake_run_git(root: Path, args: list[str]) -> receipts.GitCommandResult:
         stdout_by_args = {
             ("status", "-sb", "--untracked-files=all"): "## main...origin/main\n",
-            ("--no-pager", "log", "--oneline", "-1"): "b460cdd docs(project): create packet 06 source set\n",
+            ("--no-pager", "log", "--oneline", "-1"): "91c24a4 docs(project): create packet 07 source set\n",
             ("diff", "--check"): "",
             ("diff", "--cached", "--check"): "",
             ("status", "--porcelain=v1", "--untracked-files=all"): "",
@@ -300,7 +417,7 @@ def test_repo_check_receipt_is_testable_without_shell_or_live_services(tmp_path,
     report = receipts.repo_check_receipt(tmp_path)
 
     assert report["passed"] is True
-    assert report["head"].startswith("b460cdd")
+    assert report["head"].startswith("91c24a4")
     assert report["worktree_clean"] is True
     assert report["packet_status_passed"] is True
 
