@@ -24,6 +24,9 @@ from backend_sqlite_repository import (
     read_record_relationships,
     read_record_validation_receipts,
     read_record_ids_for_exact_label_seed,
+    read_record_ids_for_exact_operator_promotion_seed,
+    read_record_ids_for_exact_provenance_ref_seed,
+    read_record_ids_for_exact_validation_seed,
     read_semantic_label,
     read_semantic_record,
     read_semantic_relationship,
@@ -549,6 +552,208 @@ def test_exact_label_seed_selection_fails_closed_for_invalid_inputs():
                 connection,
                 "confidence",
                 "test-confidence",
+                max_records=True,
+            )
+    finally:
+        connection.close()
+
+
+def test_exact_provenance_seed_selection_is_bounded_deterministic_and_non_promoting():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+        write_provenance_ref(
+            connection,
+            {**sample_provenance_ref("prov-c").__dict__, "target_record_id": "record-c"},
+        )
+        write_provenance_ref(
+            connection,
+            {**sample_provenance_ref("prov-a").__dict__, "target_record_id": "record-a"},
+        )
+
+        assert read_record_ids_for_exact_provenance_ref_seed(
+            connection,
+            "prov-a",
+            max_records=8,
+        ) == ("record-a",)
+        assert read_record_ids_for_exact_provenance_ref_seed(
+            connection,
+            "missing-prov",
+            max_records=8,
+        ) == ()
+        assert read_semantic_record(connection, "record-a")[
+            "accepted_knowledge_derived"
+        ] == 0
+    finally:
+        connection.close()
+
+
+def test_exact_validation_seed_selection_is_bounded_deterministic_and_deduped():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+        write_validation_receipt(
+            connection,
+            {
+                **sample_validation_receipt("receipt-c").__dict__,
+                "validated_target": "record-c",
+            },
+        )
+        write_validation_receipt(
+            connection,
+            {
+                **sample_validation_receipt("receipt-a1").__dict__,
+                "validated_target": "record-a",
+            },
+        )
+        write_validation_receipt(
+            connection,
+            {
+                **sample_validation_receipt("receipt-a2").__dict__,
+                "validated_target": "record-a",
+            },
+        )
+        write_validation_receipt(
+            connection,
+            {
+                **sample_validation_receipt("receipt-other").__dict__,
+                "validated_target": "record-b",
+                "validation_result": "failed",
+            },
+        )
+
+        assert read_record_ids_for_exact_validation_seed(
+            connection,
+            "static-test",
+            "passed",
+            max_records=2,
+        ) == ("record-a", "record-c")
+        assert read_record_ids_for_exact_validation_seed(
+            connection,
+            "static-test",
+            "failed",
+            max_records=8,
+        ) == ("record-b",)
+    finally:
+        connection.close()
+
+
+def test_exact_operator_promotion_seed_selection_is_bounded_and_deduped():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+        write_operator_promotion(
+            connection,
+            {
+                **sample_operator_promotion("promotion-c").__dict__,
+                "target_record_id": "record-c",
+            },
+        )
+        write_operator_promotion(
+            connection,
+            {
+                **sample_operator_promotion("promotion-a1").__dict__,
+                "target_record_id": "record-a",
+            },
+        )
+        write_operator_promotion(
+            connection,
+            {
+                **sample_operator_promotion("promotion-a2").__dict__,
+                "target_record_id": "record-a",
+            },
+        )
+        write_operator_promotion(
+            connection,
+            {
+                **sample_operator_promotion("promotion-b").__dict__,
+                "target_record_id": "record-b",
+                "promoted_by_operator": 0,
+            },
+        )
+
+        assert read_record_ids_for_exact_operator_promotion_seed(
+            connection,
+            "test scope",
+            1,
+            max_records=2,
+        ) == ("record-a", "record-c")
+        assert read_record_ids_for_exact_operator_promotion_seed(
+            connection,
+            "test scope",
+            0,
+            max_records=8,
+        ) == ("record-b",)
+        assert read_semantic_record(connection, "record-a")[
+            "accepted_knowledge_derived"
+        ] == 0
+    finally:
+        connection.close()
+
+
+def test_new_exact_seed_selection_helpers_fail_closed_for_invalid_inputs():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_provenance_ref_seed(connection, "")
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_provenance_ref_seed(
+                connection,
+                "prov-1",
+                max_records=True,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_validation_seed(
+                connection,
+                "",
+                "passed",
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_validation_seed(
+                connection,
+                "static-test",
+                "",
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_validation_seed(
+                connection,
+                "static-test",
+                "passed",
+                max_records=0,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_validation_seed(
+                connection,
+                "static-test",
+                "passed",
+                max_records=True,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_operator_promotion_seed(
+                connection,
+                "",
+                1,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_operator_promotion_seed(
+                connection,
+                "test scope",
+                True,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_operator_promotion_seed(
+                connection,
+                "test scope",
+                2,
+            )
+        with pytest.raises(ValueError):
+            read_record_ids_for_exact_operator_promotion_seed(
+                connection,
+                "test scope",
+                1,
                 max_records=True,
             )
     finally:

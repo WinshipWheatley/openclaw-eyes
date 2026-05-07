@@ -405,6 +405,88 @@ LIMIT ?
     return tuple(row[0] for row in rows)
 
 
+def read_record_ids_for_exact_provenance_ref_seed(
+    connection: Any,
+    provenance_ref_id: str,
+    *,
+    max_records: int = 8,
+) -> tuple[str, ...]:
+    """Return bounded candidate record IDs for one exact provenance ref ID."""
+
+    _require_non_empty_string(provenance_ref_id, "provenance_ref_id")
+    _require_positive_int(max_records, "max_records")
+    rows = connection.execute(
+        """
+SELECT refs.target_record_id
+FROM provenance_refs AS refs
+INNER JOIN semantic_records AS records
+  ON records.record_id = refs.target_record_id
+WHERE refs.provenance_ref_id = ?
+GROUP BY refs.target_record_id
+ORDER BY refs.target_record_id
+LIMIT ?
+""".strip(),
+        (provenance_ref_id, max_records),
+    ).fetchall()
+    return tuple(row[0] for row in rows)
+
+
+def read_record_ids_for_exact_validation_seed(
+    connection: Any,
+    validator_name: str,
+    validation_result: str,
+    *,
+    max_records: int = 8,
+) -> tuple[str, ...]:
+    """Return bounded candidate record IDs for one exact validation result."""
+
+    _require_non_empty_string(validator_name, "validator_name")
+    _require_non_empty_string(validation_result, "validation_result")
+    _require_positive_int(max_records, "max_records")
+    rows = connection.execute(
+        """
+SELECT receipts.validated_target
+FROM validation_receipts AS receipts
+INNER JOIN semantic_records AS records
+  ON records.record_id = receipts.validated_target
+WHERE receipts.validator_name = ? AND receipts.validation_result = ?
+GROUP BY receipts.validated_target
+ORDER BY receipts.validated_target
+LIMIT ?
+""".strip(),
+        (validator_name, validation_result, max_records),
+    ).fetchall()
+    return tuple(row[0] for row in rows)
+
+
+def read_record_ids_for_exact_operator_promotion_seed(
+    connection: Any,
+    promotion_scope: str,
+    promoted_by_operator: int,
+    *,
+    max_records: int = 8,
+) -> tuple[str, ...]:
+    """Return bounded candidate record IDs for one exact operator boundary."""
+
+    _require_non_empty_string(promotion_scope, "promotion_scope")
+    _require_binary_int(promoted_by_operator, "promoted_by_operator")
+    _require_positive_int(max_records, "max_records")
+    rows = connection.execute(
+        """
+SELECT promotions.target_record_id
+FROM operator_promotions AS promotions
+INNER JOIN semantic_records AS records
+  ON records.record_id = promotions.target_record_id
+WHERE promotions.promotion_scope = ? AND promotions.promoted_by_operator = ?
+GROUP BY promotions.target_record_id
+ORDER BY promotions.target_record_id
+LIMIT ?
+""".strip(),
+        (promotion_scope, promoted_by_operator, max_records),
+    ).fetchall()
+    return tuple(row[0] for row in rows)
+
+
 def _insert_row(connection: Any, table_name: str, payload: Mapping[str, Any]) -> None:
     table_name = _require_repository_table_name(table_name)
     columns = table_column_names(table_name)

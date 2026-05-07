@@ -12,11 +12,17 @@ from backend_knowledge_packet import (
     assemble_record_knowledge_packet,
     context_selection_as_dict,
     exact_label_candidate_seed_selection_as_dict,
+    exact_operator_promotion_candidate_seed_selection_as_dict,
+    exact_provenance_candidate_seed_selection_as_dict,
+    exact_validation_candidate_seed_selection_as_dict,
     multi_seed_context_packet_as_dict,
     packet_as_dict,
     packet_has_explicit_operator_promotion,
     select_context_for_record,
     select_exact_label_candidate_seeds,
+    select_exact_operator_promotion_candidate_seeds,
+    select_exact_provenance_candidate_seeds,
+    select_exact_validation_candidate_seeds,
     select_traversal_context_for_record,
     synthesis_ready_read_model,
     synthesis_ready_read_model_as_dict,
@@ -288,6 +294,218 @@ def test_exact_label_candidate_seed_selection_is_bounded_plain_data():
         assert selection.includes_model_calls is False
         assert selection.ordered_by_record_id is True
         assert selection_dict["record_ids"] == ("record-a", "record-b")
+    finally:
+        connection.close()
+
+
+def test_new_exact_candidate_seed_selections_are_bounded_plain_data():
+    connection = create_in_memory_connection()
+    try:
+        for record_id in ("record-c", "record-a", "record-b"):
+            write_semantic_record(connection, sample_semantic_record(record_id))
+        write_provenance_ref(
+            connection,
+            {
+                **ProvenanceRef(
+                    provenance_ref_id="prov-a",
+                    target_record_id="record-a",
+                    source_basis="test source",
+                    source_set_ref="source-set-1",
+                    manifest_ref="manifest-1",
+                    bridge_ref="bridge-1",
+                    packet_ref="packet-1",
+                    receipt_ref="receipt-1",
+                    document_id="doc-1",
+                    section_path="1. sample",
+                    page_ref=None,
+                ).__dict__,
+            },
+        )
+        for receipt_id, record_id, result in (
+            ("receipt-c", "record-c", "passed"),
+            ("receipt-a", "record-a", "passed"),
+            ("receipt-b", "record-b", "failed"),
+        ):
+            write_validation_receipt(
+                connection,
+                ValidationReceipt(
+                    receipt_id=receipt_id,
+                    validated_target=record_id,
+                    validator_name="static-test",
+                    validation_result=result,
+                    failure_reasons="",
+                    checked_at="2026-05-06T00:00:00Z",
+                    source_basis="pytest",
+                    authority_boundary="repository-proof",
+                ),
+            )
+        for promotion_id, record_id, promoted in (
+            ("promotion-c", "record-c", 1),
+            ("promotion-a", "record-a", 1),
+            ("promotion-b", "record-b", 0),
+        ):
+            write_operator_promotion(
+                connection,
+                OperatorPromotion(
+                    promotion_id=promotion_id,
+                    target_record_id=record_id,
+                    operator_decision="accepted for review",
+                    receipt_ref="receipt-1",
+                    promotion_scope="test scope",
+                    promoted_by_operator=promoted,
+                    complete_label_set="confidence,sensitivity,authority,review",
+                    authority_boundary="operator explicit",
+                ),
+            )
+
+        provenance_selection = select_exact_provenance_candidate_seeds(
+            connection,
+            "prov-a",
+            max_records=8,
+        )
+        validation_selection = select_exact_validation_candidate_seeds(
+            connection,
+            "static-test",
+            "passed",
+            max_records=2,
+        )
+        promotion_selection = select_exact_operator_promotion_candidate_seeds(
+            connection,
+            "test scope",
+            1,
+            max_records=2,
+        )
+
+        assert provenance_selection.seed_kind == "exact_provenance_ref_seed"
+        assert provenance_selection.selection_strategy == (
+            "exact_provenance_ref_id_match"
+        )
+        assert provenance_selection.record_ids == ("record-a",)
+        assert provenance_selection.truth_status == "not_accepted_truth"
+        assert provenance_selection.includes_fuzzy_match is False
+        assert provenance_selection.includes_model_calls is False
+        assert validation_selection.seed_kind == "exact_validation_seed"
+        assert validation_selection.record_ids == ("record-a", "record-c")
+        assert validation_selection.records_returned == 2
+        assert promotion_selection.seed_kind == "exact_operator_promotion_seed"
+        assert promotion_selection.record_ids == ("record-a", "record-c")
+        assert promotion_selection.promoted_by_operator == 1
+        assert exact_provenance_candidate_seed_selection_as_dict(
+            provenance_selection
+        )["record_ids"] == ("record-a",)
+        assert exact_validation_candidate_seed_selection_as_dict(
+            validation_selection
+        )["selection_strategy"] == "exact_validator_result_match"
+        assert exact_operator_promotion_candidate_seed_selection_as_dict(
+            promotion_selection
+        )["truth_status"] == "not_accepted_truth"
+    finally:
+        connection.close()
+
+
+def test_new_exact_candidate_seed_selections_fail_closed_for_invalid_inputs():
+    connection = create_in_memory_connection()
+    try:
+        with pytest.raises(ValueError):
+            select_exact_provenance_candidate_seeds(connection, "")
+        with pytest.raises(ValueError):
+            select_exact_provenance_candidate_seeds(
+                connection,
+                "prov-a",
+                max_records=True,
+            )
+        with pytest.raises(ValueError):
+            select_exact_validation_candidate_seeds(connection, "", "passed")
+        with pytest.raises(ValueError):
+            select_exact_validation_candidate_seeds(connection, "static-test", "")
+        with pytest.raises(ValueError):
+            select_exact_validation_candidate_seeds(
+                connection,
+                "static-test",
+                "passed",
+                max_records=0,
+            )
+        with pytest.raises(ValueError):
+            select_exact_validation_candidate_seeds(
+                connection,
+                "static-test",
+                "passed",
+                max_records=True,
+            )
+        with pytest.raises(ValueError):
+            select_exact_operator_promotion_candidate_seeds(connection, "", 1)
+        with pytest.raises(ValueError):
+            select_exact_operator_promotion_candidate_seeds(
+                connection,
+                "test scope",
+                True,
+            )
+        with pytest.raises(ValueError):
+            select_exact_operator_promotion_candidate_seeds(
+                connection,
+                "test scope",
+                2,
+            )
+        with pytest.raises(ValueError):
+            select_exact_operator_promotion_candidate_seeds(
+                connection,
+                "test scope",
+                1,
+                max_records=True,
+            )
+    finally:
+        connection.close()
+
+
+def test_exact_candidate_seed_ids_feed_multi_seed_context_without_coupling():
+    connection = create_in_memory_connection()
+    try:
+        populate_traversal_fixture(connection)
+        write_validation_receipt(
+            connection,
+            ValidationReceipt(
+                receipt_id="receipt-3",
+                validated_target="record-3",
+                validator_name="static-test",
+                validation_result="passed",
+                failure_reasons="",
+                checked_at="2026-05-06T00:00:00Z",
+                source_basis="pytest",
+                authority_boundary="repository-proof",
+            ),
+        )
+        write_validation_receipt(
+            connection,
+            ValidationReceipt(
+                receipt_id="receipt-1",
+                validated_target="record-1",
+                validator_name="static-test",
+                validation_result="passed",
+                failure_reasons="",
+                checked_at="2026-05-06T00:00:00Z",
+                source_basis="pytest",
+                authority_boundary="repository-proof",
+            ),
+        )
+
+        seed_selection = select_exact_validation_candidate_seeds(
+            connection,
+            "static-test",
+            "passed",
+            max_records=8,
+        )
+        context_packet = assemble_multi_seed_context(
+            connection,
+            seed_selection.record_ids,
+            max_depth=1,
+            max_records=8,
+        )
+
+        assert seed_selection.record_ids == ("record-1", "record-3")
+        assert context_packet.seed_record_ids == ("record-1", "record-3")
+        assert context_packet.records_returned == 4
+        assert context_packet.truth_status == "not_accepted_truth"
+        assert context_packet.synthesis_status == "not_synthesized"
     finally:
         connection.close()
 

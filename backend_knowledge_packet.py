@@ -8,6 +8,9 @@ from typing import Any
 from backend_sqlite_repository import (
     read_record_labels,
     read_record_ids_for_exact_label_seed,
+    read_record_ids_for_exact_operator_promotion_seed,
+    read_record_ids_for_exact_provenance_ref_seed,
+    read_record_ids_for_exact_validation_seed,
     read_record_operator_promotions,
     read_record_provenance_refs,
     read_record_relationships,
@@ -56,6 +59,59 @@ class ExactLabelCandidateSeedSelection:
     records_returned: int
     seed_kind: str = "exact_semantic_label_seed"
     selection_strategy: str = "exact_label_match"
+    bounded: bool = True
+    truth_status: str = "not_accepted_truth"
+    includes_fuzzy_match: bool = False
+    includes_model_calls: bool = False
+    ordered_by_record_id: bool = True
+
+
+@dataclass(frozen=True)
+class ExactProvenanceCandidateSeedSelection:
+    """Bounded candidate seeds from one exact provenance ref ID."""
+
+    provenance_ref_id: str
+    record_ids: tuple[str, ...]
+    max_records: int
+    records_returned: int
+    seed_kind: str = "exact_provenance_ref_seed"
+    selection_strategy: str = "exact_provenance_ref_id_match"
+    bounded: bool = True
+    truth_status: str = "not_accepted_truth"
+    includes_fuzzy_match: bool = False
+    includes_model_calls: bool = False
+    ordered_by_record_id: bool = True
+
+
+@dataclass(frozen=True)
+class ExactValidationCandidateSeedSelection:
+    """Bounded candidate seeds from one exact validation result."""
+
+    validator_name: str
+    validation_result: str
+    record_ids: tuple[str, ...]
+    max_records: int
+    records_returned: int
+    seed_kind: str = "exact_validation_seed"
+    selection_strategy: str = "exact_validator_result_match"
+    bounded: bool = True
+    truth_status: str = "not_accepted_truth"
+    includes_fuzzy_match: bool = False
+    includes_model_calls: bool = False
+    ordered_by_record_id: bool = True
+
+
+@dataclass(frozen=True)
+class ExactOperatorPromotionCandidateSeedSelection:
+    """Bounded candidate seeds from one exact operator-promotion boundary."""
+
+    promotion_scope: str
+    promoted_by_operator: int
+    record_ids: tuple[str, ...]
+    max_records: int
+    records_returned: int
+    seed_kind: str = "exact_operator_promotion_seed"
+    selection_strategy: str = "exact_promotion_scope_and_flag_match"
     bounded: bool = True
     truth_status: str = "not_accepted_truth"
     includes_fuzzy_match: bool = False
@@ -209,6 +265,75 @@ def select_exact_label_candidate_seeds(
     return ExactLabelCandidateSeedSelection(
         label_name=label_name,
         label_value=label_value,
+        record_ids=record_ids,
+        max_records=max_records,
+        records_returned=len(record_ids),
+    )
+
+
+def select_exact_provenance_candidate_seeds(
+    connection: Any,
+    provenance_ref_id: str,
+    *,
+    max_records: int = 8,
+) -> ExactProvenanceCandidateSeedSelection:
+    """Select bounded candidate seed record IDs by exact provenance ref ID."""
+
+    record_ids = read_record_ids_for_exact_provenance_ref_seed(
+        connection,
+        provenance_ref_id,
+        max_records=max_records,
+    )
+    return ExactProvenanceCandidateSeedSelection(
+        provenance_ref_id=provenance_ref_id,
+        record_ids=record_ids,
+        max_records=max_records,
+        records_returned=len(record_ids),
+    )
+
+
+def select_exact_validation_candidate_seeds(
+    connection: Any,
+    validator_name: str,
+    validation_result: str,
+    *,
+    max_records: int = 8,
+) -> ExactValidationCandidateSeedSelection:
+    """Select bounded candidate seed record IDs by exact validation result."""
+
+    record_ids = read_record_ids_for_exact_validation_seed(
+        connection,
+        validator_name,
+        validation_result,
+        max_records=max_records,
+    )
+    return ExactValidationCandidateSeedSelection(
+        validator_name=validator_name,
+        validation_result=validation_result,
+        record_ids=record_ids,
+        max_records=max_records,
+        records_returned=len(record_ids),
+    )
+
+
+def select_exact_operator_promotion_candidate_seeds(
+    connection: Any,
+    promotion_scope: str,
+    promoted_by_operator: int,
+    *,
+    max_records: int = 8,
+) -> ExactOperatorPromotionCandidateSeedSelection:
+    """Select bounded candidate seed IDs by exact operator-promotion boundary."""
+
+    record_ids = read_record_ids_for_exact_operator_promotion_seed(
+        connection,
+        promotion_scope,
+        promoted_by_operator,
+        max_records=max_records,
+    )
+    return ExactOperatorPromotionCandidateSeedSelection(
+        promotion_scope=promotion_scope,
+        promoted_by_operator=promoted_by_operator,
         record_ids=record_ids,
         max_records=max_records,
         records_returned=len(record_ids),
@@ -485,6 +610,30 @@ def context_selection_as_dict(selection: ContextSelection) -> dict[str, Any]:
 
 def exact_label_candidate_seed_selection_as_dict(
     selection: ExactLabelCandidateSeedSelection,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python candidate-seed representation."""
+
+    return asdict(selection)
+
+
+def exact_provenance_candidate_seed_selection_as_dict(
+    selection: ExactProvenanceCandidateSeedSelection,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python candidate-seed representation."""
+
+    return asdict(selection)
+
+
+def exact_validation_candidate_seed_selection_as_dict(
+    selection: ExactValidationCandidateSeedSelection,
+) -> dict[str, Any]:
+    """Return a deterministic plain-Python candidate-seed representation."""
+
+    return asdict(selection)
+
+
+def exact_operator_promotion_candidate_seed_selection_as_dict(
+    selection: ExactOperatorPromotionCandidateSeedSelection,
 ) -> dict[str, Any]:
     """Return a deterministic plain-Python candidate-seed representation."""
 
