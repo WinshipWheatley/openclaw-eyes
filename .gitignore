@@ -416,3 +416,6 @@
 
 !docs/planning/sensitive_roots/
 !docs/planning/sensitive_roots/*.md
+
+!docs/planning/agent_efficiency/
+!docs/planning/agent_efficiency/*.md
