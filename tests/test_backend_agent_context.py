@@ -15,6 +15,7 @@ from backend_knowledge_packet import (
     AgentContextExportDecision,
     AgentContextExportPacket,
     assemble_agent_context_export,
+    agent_context_export_as_dict,
     evaluate_actor_agent_context_access,
     evaluate_actor_context_trust,
     evaluate_agent_context_access,
@@ -521,3 +522,43 @@ def test_actor_aware_assemble_denies_without_source_content_or_fake_sanitization
     assert receipt is not None
     assert receipt["export_status"] == "denied"
     assert receipt["denied_reason"] == "cloud_sidecar_context_not_public_or_sanitized"
+
+
+def test_denied_actor_export_does_not_echo_seed_record_ids_into_packet_or_receipt():
+    connection = create_in_memory_connection()
+    write_agent_context_profile(
+        connection,
+        sample_agent_context_profile(
+            profile_id="cloud-private-profile",
+            agent_role="future_agent",
+            task_class="future_task",
+            sensitivity_ceiling="tenant_strict",
+        ),
+    )
+    write_actor_profile(
+        connection,
+        sample_actor_profile(
+            actor_role="cloud_worker",
+            actor_class="cloud_sidecar",
+            sensitivity_ceiling="sanitized",
+        ),
+    )
+    write_semantic_record(connection, sample_semantic_record("record-1"))
+
+    packet = assemble_agent_context_export(
+        connection,
+        actor_request(),
+        export_receipt_id="cloud-denied-export-no-echo",
+        created_at="2026-05-07T12:04:00Z",
+    )
+    receipt = read_context_export_receipt(connection, "cloud-denied-export-no-echo")
+
+    assert receipt is not None
+    rendered_packet = str(agent_context_export_as_dict(packet))
+    rendered_receipt = str(dict(receipt))
+    assert "record-1" not in rendered_packet
+    assert "record-1" not in rendered_receipt
+    assert packet.selections == ()
+    assert packet.omissions == ()
+    assert receipt["records_returned"] == 0
+    assert receipt["records_omitted"] == 0

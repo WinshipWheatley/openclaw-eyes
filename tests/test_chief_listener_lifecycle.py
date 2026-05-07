@@ -3,12 +3,36 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import asyncio
 import importlib
-import sys
+import types
 
 
 def import_chief_listener(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
     monkeypatch.setenv("TELEGRAM_AUTHORIZED_USER_ID", "12345")
+    telegram = types.ModuleType("telegram")
+    telegram.Update = type("Update", (), {})
+    telegram_ext = types.ModuleType("telegram.ext")
+    telegram_ext.ApplicationBuilder = type("ApplicationBuilder", (), {})
+    telegram_ext.MessageHandler = type("MessageHandler", (), {})
+    telegram_ext.CallbackQueryHandler = type("CallbackQueryHandler", (), {})
+    telegram_ext.filters = types.SimpleNamespace(TEXT=object(), COMMAND=object())
+    telegram_ext.ContextTypes = types.SimpleNamespace(DEFAULT_TYPE=object())
+    monkeypatch.setitem(sys.modules, "telegram", telegram)
+    monkeypatch.setitem(sys.modules, "telegram.ext", telegram_ext)
+
+    chief_router = types.ModuleType("chief_router")
+    chief_router.route_message = lambda text: {"intent": "noop", "reply": ""}
+    chief_validator_brain = types.ModuleType("chief_validator_brain")
+    chief_validator_brain.validate_reply = lambda reply: True
+    chief_queue_brain = types.ModuleType("chief_queue_brain")
+    chief_queue_brain.check_pending_queue = lambda: []
+    chief_output_utils = types.ModuleType("chief_output_utils")
+    chief_output_utils.tts_clean = lambda text: text
+    monkeypatch.setitem(sys.modules, "chief_router", chief_router)
+    monkeypatch.setitem(sys.modules, "chief_validator_brain", chief_validator_brain)
+    monkeypatch.setitem(sys.modules, "chief_queue_brain", chief_queue_brain)
+    monkeypatch.setitem(sys.modules, "chief_output_utils", chief_output_utils)
+
     sys.modules.pop("chief_listener", None)
     return importlib.import_module("chief_listener")
 

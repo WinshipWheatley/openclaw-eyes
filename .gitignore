@@ -361,6 +361,7 @@
 !tools/
 !tools/file_verify.py
 !scripts/
+!scripts/openclaw_receipts.py
 !scripts/check_cassandra_capability_drift.py
 !scripts/demo_legal_mock_discovery.py
 !scripts/demo_legal_known_answer_fixtures.py
@@ -420,6 +421,7 @@
 !tests/test_backend_performance_intelligence.py
 !tests/test_backend_agent_context.py
 !tests/test_chief_listener_lifecycle.py
+!tests/test_openclaw_receipts.py
 
 !docs/planning/chase_money/
 !docs/planning/chase_money/*.md
