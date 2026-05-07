@@ -355,6 +355,103 @@ COMPONENT_HEALTH_SNAPSHOTS_COLUMNS = (
     ColumnDefinition("last_known_state", "TEXT", "last_known_state"),
 )
 
+PERFORMANCE_SESSIONS_COLUMNS = (
+    ColumnDefinition("performance_session_id", "TEXT", "performance_session_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("session_name", "TEXT", "session_name"),
+    ColumnDefinition("session_type", "TEXT", "session_type"),
+    ColumnDefinition("planned_start", "TEXT", "planned_start"),
+    ColumnDefinition("actual_start", "TEXT", "actual_start"),
+    ColumnDefinition("actual_end", "TEXT", "actual_end"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("operator_approval_ref", "TEXT", "operator_approval_ref"),
+    ColumnDefinition("source_context_ref", "TEXT", "source_context_ref"),
+    ColumnDefinition("runtime_context_ref", "TEXT", "runtime_context_ref"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
+SETLISTS_COLUMNS = (
+    ColumnDefinition("setlist_id", "TEXT", "setlist_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("performance_session_id", "TEXT", "performance_session_id"),
+    ColumnDefinition("setlist_name", "TEXT", "setlist_name"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
+SETLIST_ITEMS_COLUMNS = (
+    ColumnDefinition("setlist_item_id", "TEXT", "setlist_item_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("setlist_id", "TEXT", "setlist_id"),
+    ColumnDefinition("item_order", "INTEGER", "item_order"),
+    ColumnDefinition("item_type", "TEXT", "item_type"),
+    ColumnDefinition("title", "TEXT", "title"),
+    ColumnDefinition("semantic_record_id", "TEXT", "semantic_record_id"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
+SONG_CUES_COLUMNS = (
+    ColumnDefinition("song_cue_id", "TEXT", "song_cue_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("setlist_item_id", "TEXT", "setlist_item_id"),
+    ColumnDefinition("cue_name", "TEXT", "cue_name"),
+    ColumnDefinition("cue_type", "TEXT", "cue_type"),
+    ColumnDefinition("cue_order", "INTEGER", "cue_order"),
+    ColumnDefinition("expected_tempo", "TEXT", "expected_tempo"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
+SECTION_CUES_COLUMNS = (
+    ColumnDefinition("section_cue_id", "TEXT", "section_cue_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("song_cue_id", "TEXT", "song_cue_id"),
+    ColumnDefinition("section_name", "TEXT", "section_name"),
+    ColumnDefinition("section_type", "TEXT", "section_type"),
+    ColumnDefinition("section_order", "INTEGER", "section_order"),
+    ColumnDefinition("expected_duration", "INTEGER", "expected_duration"),
+    ColumnDefinition("safe_baseline_scene_ref", "TEXT", "safe_baseline_scene_ref"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
+PERFORMANCE_ACTION_RECEIPTS_COLUMNS = (
+    ColumnDefinition(
+        "performance_action_receipt_id", "TEXT", "performance_action_receipt_id"
+    ),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("performance_session_id", "TEXT", "performance_session_id"),
+    ColumnDefinition("action_type", "TEXT", "action_type"),
+    ColumnDefinition("action_target", "TEXT", "action_target"),
+    ColumnDefinition("action_tier", "TEXT", "action_tier"),
+    ColumnDefinition("requested_by", "TEXT", "requested_by"),
+    ColumnDefinition("approved_by", "TEXT", "approved_by"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("receipt_payload", "TEXT", "receipt_payload"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
+MANUAL_OVERRIDE_EVENTS_COLUMNS = (
+    ColumnDefinition("manual_override_event_id", "TEXT", "manual_override_event_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("performance_session_id", "TEXT", "performance_session_id"),
+    ColumnDefinition("override_type", "TEXT", "override_type"),
+    ColumnDefinition("override_reason", "TEXT", "override_reason"),
+    ColumnDefinition("affected_target", "TEXT", "affected_target"),
+    ColumnDefinition("status", "TEXT", "status"),
+    ColumnDefinition("created_at", "TEXT", "created_at"),
+)
+
+HIGHLIGHT_MARKERS_COLUMNS = (
+    ColumnDefinition("highlight_marker_id", "TEXT", "highlight_marker_id"),
+    ColumnDefinition("tenant_id", "TEXT", "tenant_id"),
+    ColumnDefinition("performance_session_id", "TEXT", "performance_session_id"),
+    ColumnDefinition("setlist_item_id", "TEXT", "setlist_item_id"),
+    ColumnDefinition("marker_time", "TEXT", "marker_time"),
+    ColumnDefinition("marker_label", "TEXT", "marker_label"),
+    ColumnDefinition("marker_source", "TEXT", "marker_source"),
+    ColumnDefinition("notes", "TEXT", "notes"),
+    ColumnDefinition("status", "TEXT", "status"),
+)
+
 SCHEMA_VERSIONS_COLUMNS = (
     ColumnDefinition(
         "schema_version",
@@ -800,6 +897,159 @@ CREATE TABLE component_health_snapshots (
   capabilities_reported TEXT NOT NULL,
   version_reported TEXT NOT NULL,
   last_known_state TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="performance_sessions",
+        related_schema_contract_surface="performance_session",
+        columns=PERFORMANCE_SESSIONS_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "status"}),
+        create_table_sql="""
+CREATE TABLE performance_sessions (
+  performance_session_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  session_name TEXT NOT NULL,
+  session_type TEXT NOT NULL,
+  planned_start TEXT NOT NULL,
+  actual_start TEXT NOT NULL,
+  actual_end TEXT NOT NULL,
+  status TEXT NOT NULL,
+  operator_approval_ref TEXT NOT NULL,
+  source_context_ref TEXT NOT NULL,
+  runtime_context_ref TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="setlists",
+        related_schema_contract_surface="setlist",
+        columns=SETLISTS_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "performance_session_id"}),
+        create_table_sql="""
+CREATE TABLE setlists (
+  setlist_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  performance_session_id TEXT NOT NULL,
+  setlist_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="setlist_items",
+        related_schema_contract_surface="setlist_item",
+        columns=SETLIST_ITEMS_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "setlist_id", "item_order"}),
+        create_table_sql="""
+CREATE TABLE setlist_items (
+  setlist_item_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  setlist_id TEXT NOT NULL,
+  item_order INTEGER NOT NULL,
+  item_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  semantic_record_id TEXT NOT NULL,
+  status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="song_cues",
+        related_schema_contract_surface="song_cue",
+        columns=SONG_CUES_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "setlist_item_id", "cue_order"}),
+        create_table_sql="""
+CREATE TABLE song_cues (
+  song_cue_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  setlist_item_id TEXT NOT NULL,
+  cue_name TEXT NOT NULL,
+  cue_type TEXT NOT NULL,
+  cue_order INTEGER NOT NULL,
+  expected_tempo TEXT NOT NULL,
+  status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="section_cues",
+        related_schema_contract_surface="section_cue",
+        columns=SECTION_CUES_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "song_cue_id", "section_order"}),
+        create_table_sql="""
+CREATE TABLE section_cues (
+  section_cue_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  song_cue_id TEXT NOT NULL,
+  section_name TEXT NOT NULL,
+  section_type TEXT NOT NULL,
+  section_order INTEGER NOT NULL,
+  expected_duration INTEGER NOT NULL,
+  safe_baseline_scene_ref TEXT NOT NULL,
+  status TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="performance_action_receipts",
+        related_schema_contract_surface="performance_action_receipt",
+        columns=PERFORMANCE_ACTION_RECEIPTS_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "performance_session_id"}),
+        create_table_sql="""
+CREATE TABLE performance_action_receipts (
+  performance_action_receipt_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  performance_session_id TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  action_target TEXT NOT NULL,
+  action_tier TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  approved_by TEXT NOT NULL,
+  status TEXT NOT NULL,
+  receipt_payload TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="manual_override_events",
+        related_schema_contract_surface="manual_override_event",
+        columns=MANUAL_OVERRIDE_EVENTS_COLUMNS,
+        retrieval_structure_fields=frozenset({"tenant_id", "performance_session_id"}),
+        create_table_sql="""
+CREATE TABLE manual_override_events (
+  manual_override_event_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  performance_session_id TEXT NOT NULL,
+  override_type TEXT NOT NULL,
+  override_reason TEXT NOT NULL,
+  affected_target TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+""".strip(),
+    ),
+    TableDefinition(
+        table_name="highlight_markers",
+        related_schema_contract_surface="highlight_marker",
+        columns=HIGHLIGHT_MARKERS_COLUMNS,
+        retrieval_structure_fields=frozenset(
+            {"tenant_id", "performance_session_id", "setlist_item_id"}
+        ),
+        create_table_sql="""
+CREATE TABLE highlight_markers (
+  highlight_marker_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  performance_session_id TEXT NOT NULL,
+  setlist_item_id TEXT NOT NULL,
+  marker_time TEXT NOT NULL,
+  marker_label TEXT NOT NULL,
+  marker_source TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  status TEXT NOT NULL
 );
 """.strip(),
     ),

@@ -404,3 +404,7 @@
 !tests/test_cut6_reply_bridge_helpers.py
 !cassandra_identity.py
 !tests/test_cassandra_identity.py
+!backend_data_contract.py
+
+!tests/test_backend_performance_repository.py
+!tests/test_backend_performance_intelligence.py

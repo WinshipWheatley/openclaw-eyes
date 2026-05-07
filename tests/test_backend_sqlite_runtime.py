@@ -54,7 +54,16 @@ EXPECTED_PRIMARY_KEYS = {
     "node_heartbeats": "heartbeat_id",
     "component_heartbeats": "heartbeat_id",
     "component_health_snapshots": "snapshot_id",
+    "performance_sessions": "performance_session_id",
+    "setlists": "setlist_id",
+    "setlist_items": "setlist_item_id",
+    "song_cues": "song_cue_id",
+    "section_cues": "section_cue_id",
+    "performance_action_receipts": "performance_action_receipt_id",
+    "manual_override_events": "manual_override_event_id",
+    "highlight_markers": "highlight_marker_id",
 }
+
 
 
 def backend_sqlite_lane_paths() -> tuple[Path, ...]:

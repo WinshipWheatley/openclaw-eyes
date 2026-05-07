@@ -312,6 +312,14 @@ REQUIRED_SCHEMA_CONTRACT_SURFACES = (
     "node_heartbeat",
     "component_heartbeat",
     "component_health_snapshot",
+    "performance_session",
+    "setlist",
+    "setlist_item",
+    "song_cue",
+    "section_cue",
+    "performance_action_receipt",
+    "manual_override_event",
+    "highlight_marker",
 )
 
 REQUIRED_SQLITE_TABLE_CONCEPTS = (
@@ -335,6 +343,14 @@ REQUIRED_SQLITE_TABLE_CONCEPTS = (
     "node_heartbeats",
     "component_heartbeats",
     "component_health_snapshots",
+    "performance_sessions",
+    "setlists",
+    "setlist_items",
+    "song_cues",
+    "section_cues",
+    "performance_action_receipts",
+    "manual_override_events",
+    "highlight_markers",
 )
 
 SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR = (
@@ -516,6 +532,86 @@ RUNTIME_PRESENCE_HEALTH_STATUSES = (
     "stale",
     "critical",
     "unknown",
+)
+
+PERFORMANCE_SESSION_TYPES = (
+    "live_show",
+    "rehearsal",
+    "studio_tracking",
+    "livestream",
+    "podcast",
+    "soundcheck",
+    "unknown",
+)
+
+PERFORMANCE_SESSION_STATUSES = (
+    "planned",
+    "ready",
+    "active",
+    "paused",
+    "completed",
+    "cancelled",
+    "archived",
+)
+
+PERFORMANCE_SETLIST_ITEM_TYPES = (
+    "song",
+    "talk",
+    "interlude",
+    "break",
+    "improvisation",
+    "unknown",
+)
+
+PERFORMANCE_SONG_CUE_TYPES = (
+    "song_start",
+    "song_end",
+    "intro",
+    "verse",
+    "chorus",
+    "bridge",
+    "solo",
+    "outro",
+    "talk",
+    "vamp",
+    "unknown",
+)
+
+PERFORMANCE_ACTION_STATUSES = (
+    "dry_run",
+    "planned",
+    "approved",
+    "blocked",
+    "logged",
+    "executed_later",
+    "failed",
+)
+
+PERFORMANCE_ACTION_TIERS = (
+    "read_only",
+    "visual_safe",
+    "audio_safe",
+    "show_control",
+    "requires_confirmation",
+    "blocked_high_risk",
+)
+
+PERFORMANCE_OVERRIDE_TYPES = (
+    "manual_override",
+    "panic_safe_baseline",
+    "cue_hold",
+    "cue_skip",
+    "cue_relock",
+    "talk_mode",
+    "vamp_mode",
+)
+
+PERFORMANCE_MARKER_SOURCES = (
+    "operator",
+    "footswitch",
+    "control_surface",
+    "system_suggestion",
+    "imported",
 )
 
 _ALL_KNOWLEDGE_LAYERS = frozenset(KnowledgeLayer)
@@ -915,6 +1011,145 @@ SCHEMA_CONTRACT_SURFACES = (
                 "capabilities_reported",
                 "version_reported",
                 "last_known_state",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="performance_session",
+        purpose="Inert show map boundary representing a bounded live performance or studio session.",
+        required_conceptual_fields=frozenset(
+            {
+                "performance_session_id",
+                "tenant_id",
+                "session_name",
+                "session_type",
+                "planned_start",
+                "actual_start",
+                "actual_end",
+                "status",
+                "operator_approval_ref",
+                "source_context_ref",
+                "runtime_context_ref",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="setlist",
+        purpose="Inert planned roadmap for a performance session.",
+        required_conceptual_fields=frozenset(
+            {
+                "setlist_id",
+                "tenant_id",
+                "performance_session_id",
+                "setlist_name",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="setlist_item",
+        purpose="Inert ordered item in a performance setlist.",
+        required_conceptual_fields=frozenset(
+            {
+                "setlist_item_id",
+                "tenant_id",
+                "setlist_id",
+                "item_order",
+                "item_type",
+                "title",
+                "semantic_record_id",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="song_cue",
+        purpose="Inert planned song-level marker.",
+        required_conceptual_fields=frozenset(
+            {
+                "song_cue_id",
+                "tenant_id",
+                "setlist_item_id",
+                "cue_name",
+                "cue_type",
+                "cue_order",
+                "expected_tempo",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="section_cue",
+        purpose="Inert explicit section-level map marker.",
+        required_conceptual_fields=frozenset(
+            {
+                "section_cue_id",
+                "tenant_id",
+                "song_cue_id",
+                "section_name",
+                "section_type",
+                "section_order",
+                "expected_duration",
+                "safe_baseline_scene_ref",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="performance_action_receipt",
+        purpose="Inert receipt or log for performance actions; execution is status-explicit.",
+        required_conceptual_fields=frozenset(
+            {
+                "performance_action_receipt_id",
+                "tenant_id",
+                "performance_session_id",
+                "action_type",
+                "action_target",
+                "action_tier",
+                "requested_by",
+                "approved_by",
+                "status",
+                "receipt_payload",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="manual_override_event",
+        purpose="Inert explicit record of operator intervention overriding show control.",
+        required_conceptual_fields=frozenset(
+            {
+                "manual_override_event_id",
+                "tenant_id",
+                "performance_session_id",
+                "override_type",
+                "override_reason",
+                "affected_target",
+                "status",
+            }
+        ),
+        forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
+    ),
+    SchemaContractSurface(
+        name="highlight_marker",
+        purpose="Inert timestamped moment for later review or editing.",
+        required_conceptual_fields=frozenset(
+            {
+                "highlight_marker_id",
+                "tenant_id",
+                "performance_session_id",
+                "setlist_item_id",
+                "marker_time",
+                "marker_label",
+                "marker_source",
+                "notes",
+                "status",
             }
         ),
         forbidden_implementation_behavior=SCHEMA_CONTRACT_FORBIDDEN_BEHAVIOR,
@@ -1361,6 +1596,153 @@ SQLITE_TABLE_CONCEPTS = (
         related_schema_contract_surface="component_health_snapshot",
         forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
     ),
+    SQLiteTableConcept(
+        name="performance_sessions",
+        purpose="Physical representation of a bounded live performance or studio session.",
+        required_conceptual_fields=frozenset(
+            {
+                "performance_session_id",
+                "tenant_id",
+                "session_name",
+                "session_type",
+                "planned_start",
+                "actual_start",
+                "actual_end",
+                "status",
+                "operator_approval_ref",
+                "source_context_ref",
+                "runtime_context_ref",
+            }
+        ),
+        related_schema_contract_surface="performance_session",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="setlists",
+        purpose="Physical representation of an inert planned roadmap for a session.",
+        required_conceptual_fields=frozenset(
+            {
+                "setlist_id",
+                "tenant_id",
+                "performance_session_id",
+                "setlist_name",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="setlist",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="setlist_items",
+        purpose="Physical representation of an inert ordered item in a setlist.",
+        required_conceptual_fields=frozenset(
+            {
+                "setlist_item_id",
+                "tenant_id",
+                "setlist_id",
+                "item_order",
+                "item_type",
+                "title",
+                "semantic_record_id",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="setlist_item",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="song_cues",
+        purpose="Physical representation of an inert planned song-level marker.",
+        required_conceptual_fields=frozenset(
+            {
+                "song_cue_id",
+                "tenant_id",
+                "setlist_item_id",
+                "cue_name",
+                "cue_type",
+                "cue_order",
+                "expected_tempo",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="song_cue",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="section_cues",
+        purpose="Physical representation of an inert explicit section-level map marker.",
+        required_conceptual_fields=frozenset(
+            {
+                "section_cue_id",
+                "tenant_id",
+                "song_cue_id",
+                "section_name",
+                "section_type",
+                "section_order",
+                "expected_duration",
+                "safe_baseline_scene_ref",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="section_cue",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="performance_action_receipts",
+        purpose="Physical representation of a receipt or log for performance actions.",
+        required_conceptual_fields=frozenset(
+            {
+                "performance_action_receipt_id",
+                "tenant_id",
+                "performance_session_id",
+                "action_type",
+                "action_target",
+                "action_tier",
+                "requested_by",
+                "approved_by",
+                "status",
+                "receipt_payload",
+            }
+        ),
+        related_schema_contract_surface="performance_action_receipt",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="manual_override_events",
+        purpose="Physical representation of an explicit operator intervention.",
+        required_conceptual_fields=frozenset(
+            {
+                "manual_override_event_id",
+                "tenant_id",
+                "performance_session_id",
+                "override_type",
+                "override_reason",
+                "affected_target",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="manual_override_event",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
+    SQLiteTableConcept(
+        name="highlight_markers",
+        purpose="Physical representation of a timestamped moment for later review.",
+        required_conceptual_fields=frozenset(
+            {
+                "highlight_marker_id",
+                "tenant_id",
+                "performance_session_id",
+                "setlist_item_id",
+                "marker_time",
+                "marker_label",
+                "marker_source",
+                "notes",
+                "status",
+            }
+        ),
+        related_schema_contract_surface="highlight_marker",
+        forbidden_implementation_behavior=SQLITE_TABLE_CONCEPT_FORBIDDEN_BEHAVIOR,
+    ),
 )
 
 EXCLUDED_ENTITY_FAMILY_NAMES = frozenset(
@@ -1683,6 +2065,22 @@ _SCHEMA_SURFACE_ALIASES = {
     "component heartbeats": "component_heartbeat",
     "component health snapshot": "component_health_snapshot",
     "component health snapshots": "component_health_snapshot",
+    "performance session": "performance_session",
+    "performance sessions": "performance_session",
+    "setlist": "setlist",
+    "setlists": "setlist",
+    "setlist item": "setlist_item",
+    "setlist items": "setlist_item",
+    "song cue": "song_cue",
+    "song cues": "song_cue",
+    "section cue": "section_cue",
+    "section cues": "section_cue",
+    "performance action receipt": "performance_action_receipt",
+    "performance action receipts": "performance_action_receipt",
+    "manual override event": "manual_override_event",
+    "manual override events": "manual_override_event",
+    "highlight marker": "highlight_marker",
+    "highlight markers": "highlight_marker",
 }
 _SQLITE_TABLE_CONCEPTS_BY_NAME = {
     concept.name: concept for concept in SQLITE_TABLE_CONCEPTS
@@ -1733,6 +2131,22 @@ _SQLITE_TABLE_CONCEPT_ALIASES = {
     "component heartbeats": "component_heartbeats",
     "component health snapshot": "component_health_snapshots",
     "component health snapshots": "component_health_snapshots",
+    "performance session": "performance_sessions",
+    "performance sessions": "performance_sessions",
+    "setlist": "setlists",
+    "setlists": "setlists",
+    "setlist item": "setlist_items",
+    "setlist items": "setlist_items",
+    "song cue": "song_cues",
+    "song cues": "song_cues",
+    "section cue": "section_cues",
+    "section cues": "section_cues",
+    "performance action receipt": "performance_action_receipts",
+    "performance action receipts": "performance_action_receipts",
+    "manual override event": "manual_override_events",
+    "manual override events": "manual_override_events",
+    "highlight marker": "highlight_markers",
+    "highlight markers": "highlight_markers",
 }
 
 

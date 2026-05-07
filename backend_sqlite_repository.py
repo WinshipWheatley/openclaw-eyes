@@ -27,6 +27,14 @@ COMPONENT_CAPABILITIES_TABLE_NAME = "component_capabilities"
 NODE_HEARTBEATS_TABLE_NAME = "node_heartbeats"
 COMPONENT_HEARTBEATS_TABLE_NAME = "component_heartbeats"
 COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME = "component_health_snapshots"
+PERFORMANCE_SESSIONS_TABLE_NAME = "performance_sessions"
+SETLISTS_TABLE_NAME = "setlists"
+SETLIST_ITEMS_TABLE_NAME = "setlist_items"
+SONG_CUES_TABLE_NAME = "song_cues"
+SECTION_CUES_TABLE_NAME = "section_cues"
+PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME = "performance_action_receipts"
+MANUAL_OVERRIDE_EVENTS_TABLE_NAME = "manual_override_events"
+HIGHLIGHT_MARKERS_TABLE_NAME = "highlight_markers"
 
 REPOSITORY_TABLE_PRIMARY_KEYS = {
     SEMANTIC_RECORDS_TABLE_NAME: "record_id",
@@ -48,6 +56,14 @@ REPOSITORY_TABLE_PRIMARY_KEYS = {
     NODE_HEARTBEATS_TABLE_NAME: "heartbeat_id",
     COMPONENT_HEARTBEATS_TABLE_NAME: "heartbeat_id",
     COMPONENT_HEALTH_SNAPSHOTS_TABLE_NAME: "snapshot_id",
+    PERFORMANCE_SESSIONS_TABLE_NAME: "performance_session_id",
+    SETLISTS_TABLE_NAME: "setlist_id",
+    SETLIST_ITEMS_TABLE_NAME: "setlist_item_id",
+    SONG_CUES_TABLE_NAME: "song_cue_id",
+    SECTION_CUES_TABLE_NAME: "section_cue_id",
+    PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME: "performance_action_receipt_id",
+    MANUAL_OVERRIDE_EVENTS_TABLE_NAME: "manual_override_event_id",
+    HIGHLIGHT_MARKERS_TABLE_NAME: "highlight_marker_id",
 }
 
 
@@ -342,6 +358,125 @@ class ComponentHealthSnapshot:
     capabilities_reported: str
     version_reported: str
     last_known_state: str
+
+
+@dataclass(frozen=True)
+class PerformanceSession:
+    """Bounded live show, performance, or studio-flow session."""
+
+    performance_session_id: str
+    tenant_id: str
+    session_name: str
+    session_type: str
+    planned_start: str
+    actual_start: str
+    actual_end: str
+    status: str
+    operator_approval_ref: str
+    source_context_ref: str
+    runtime_context_ref: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class Setlist:
+    """Inert planned roadmap for a performance session."""
+
+    setlist_id: str
+    tenant_id: str
+    performance_session_id: str
+    setlist_name: str
+    status: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class SetlistItem:
+    """Inert ordered item in a performance setlist."""
+
+    setlist_item_id: str
+    tenant_id: str
+    setlist_id: str
+    item_order: int
+    item_type: str
+    title: str
+    semantic_record_id: str
+    status: str
+
+
+@dataclass(frozen=True)
+class SongCue:
+    """Inert planned song-level cue marker."""
+
+    song_cue_id: str
+    tenant_id: str
+    setlist_item_id: str
+    cue_name: str
+    cue_type: str
+    cue_order: int
+    expected_tempo: str
+    status: str
+
+
+@dataclass(frozen=True)
+class SectionCue:
+    """Inert explicit section-level map marker."""
+
+    section_cue_id: str
+    tenant_id: str
+    song_cue_id: str
+    section_name: str
+    section_type: str
+    section_order: int
+    expected_duration: int
+    safe_baseline_scene_ref: str
+    status: str
+
+
+@dataclass(frozen=True)
+class PerformanceActionReceipt:
+    """Inert receipt or log for performance actions."""
+
+    performance_action_receipt_id: str
+    tenant_id: str
+    performance_session_id: str
+    action_type: str
+    action_target: str
+    action_tier: str
+    requested_by: str
+    approved_by: str
+    status: str
+    receipt_payload: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ManualOverrideEvent:
+    """Inert explicit record of operator intervention overriding show control."""
+
+    manual_override_event_id: str
+    tenant_id: str
+    performance_session_id: str
+    override_type: str
+    override_reason: str
+    affected_target: str
+    status: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class HighlightMarker:
+    """Inert timestamped moment for later review or editing."""
+
+    highlight_marker_id: str
+    tenant_id: str
+    performance_session_id: str
+    setlist_item_id: str
+    marker_time: str
+    marker_label: str
+    marker_source: str
+    notes: str
+    status: str
 
 
 def semantic_record_column_names() -> tuple[str, ...]:
@@ -1418,6 +1553,331 @@ ORDER BY captured_at, snapshot_id
     return tuple(dict(zip(columns, row)) for row in rows)
 
 
+def write_performance_session(
+    connection: Any,
+    session: PerformanceSession | Mapping[str, Any],
+) -> None:
+    """Insert one performance session record."""
+
+    payload = _table_payload(PERFORMANCE_SESSIONS_TABLE_NAME, session)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _insert_row(connection, PERFORMANCE_SESSIONS_TABLE_NAME, payload)
+
+
+def read_performance_session(
+    connection: Any,
+    performance_session_id: str,
+) -> dict[str, Any] | None:
+    """Read one performance session record by its primary key."""
+
+    return _read_row_by_primary_key(
+        connection,
+        PERFORMANCE_SESSIONS_TABLE_NAME,
+        performance_session_id,
+    )
+
+
+def read_performance_sessions_by_tenant_id(
+    connection: Any,
+    tenant_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read performance sessions for a tenant ordered by performance_session_id."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    return _read_rows_where(
+        connection,
+        PERFORMANCE_SESSIONS_TABLE_NAME,
+        "tenant_id",
+        tenant_id,
+        order_by="performance_session_id",
+    )
+
+
+def read_performance_sessions_by_status(
+    connection: Any,
+    tenant_id: str,
+    status: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read performance sessions by status for a tenant."""
+
+    _require_non_empty_string(tenant_id, "tenant_id")
+    _require_non_empty_string(status, "status")
+    columns = table_column_names(PERFORMANCE_SESSIONS_TABLE_NAME)
+    rows = connection.execute(
+        f"""
+SELECT {", ".join(columns)}
+FROM performance_sessions
+WHERE tenant_id = ? AND status = ?
+ORDER BY performance_session_id
+""".strip(),
+        (tenant_id, status),
+    ).fetchall()
+    return tuple(dict(zip(columns, row)) for row in rows)
+
+
+def write_setlist(
+    connection: Any,
+    setlist: Setlist | Mapping[str, Any],
+) -> None:
+    """Insert one setlist record."""
+
+    payload = _table_payload(SETLISTS_TABLE_NAME, setlist)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_performance_session(connection, payload["performance_session_id"])
+    _insert_row(connection, SETLISTS_TABLE_NAME, payload)
+
+
+def read_setlist(connection: Any, setlist_id: str) -> dict[str, Any] | None:
+    """Read one setlist record by its primary key."""
+
+    return _read_row_by_primary_key(connection, SETLISTS_TABLE_NAME, setlist_id)
+
+
+def read_setlists_by_performance_session_id(
+    connection: Any,
+    performance_session_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read setlists for a performance session ordered by setlist_id."""
+
+    _require_non_empty_string(performance_session_id, "performance_session_id")
+    return _read_rows_where(
+        connection,
+        SETLISTS_TABLE_NAME,
+        "performance_session_id",
+        performance_session_id,
+        order_by="setlist_id",
+    )
+
+
+def write_setlist_item(
+    connection: Any,
+    item: SetlistItem | Mapping[str, Any],
+) -> None:
+    """Insert one setlist item record."""
+
+    payload = _table_payload(SETLIST_ITEMS_TABLE_NAME, item)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_setlist(connection, payload["setlist_id"])
+    _require_non_negative_int(payload["item_order"], "item_order")
+    _insert_row(connection, SETLIST_ITEMS_TABLE_NAME, payload)
+
+
+def read_setlist_item(connection: Any, setlist_item_id: str) -> dict[str, Any] | None:
+    """Read one setlist item record by its primary key."""
+
+    return _read_row_by_primary_key(connection, SETLIST_ITEMS_TABLE_NAME, setlist_item_id)
+
+
+def read_setlist_items_by_setlist_id(
+    connection: Any,
+    setlist_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read setlist items for a setlist ordered by item_order."""
+
+    _require_non_empty_string(setlist_id, "setlist_id")
+    return _read_rows_where(
+        connection,
+        SETLIST_ITEMS_TABLE_NAME,
+        "setlist_id",
+        setlist_id,
+        order_by="item_order",
+    )
+
+
+def write_song_cue(
+    connection: Any,
+    cue: SongCue | Mapping[str, Any],
+) -> None:
+    """Insert one song cue record."""
+
+    payload = _table_payload(SONG_CUES_TABLE_NAME, cue)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_setlist_item(connection, payload["setlist_item_id"])
+    _require_non_negative_int(payload["cue_order"], "cue_order")
+    _insert_row(connection, SONG_CUES_TABLE_NAME, payload)
+
+
+def read_song_cue(connection: Any, song_cue_id: str) -> dict[str, Any] | None:
+    """Read one song cue record by its primary key."""
+
+    return _read_row_by_primary_key(connection, SONG_CUES_TABLE_NAME, song_cue_id)
+
+
+def read_song_cues_by_setlist_item_id(
+    connection: Any,
+    setlist_item_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read song cues for a setlist item ordered by cue_order."""
+
+    _require_non_empty_string(setlist_item_id, "setlist_item_id")
+    return _read_rows_where(
+        connection,
+        SONG_CUES_TABLE_NAME,
+        "setlist_item_id",
+        setlist_item_id,
+        order_by="cue_order",
+    )
+
+
+def write_section_cue(
+    connection: Any,
+    cue: SectionCue | Mapping[str, Any],
+) -> None:
+    """Insert one section cue record."""
+
+    payload = _table_payload(SECTION_CUES_TABLE_NAME, cue)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_song_cue(connection, payload["song_cue_id"])
+    _require_non_negative_int(payload["section_order"], "section_order")
+    _require_non_negative_int(payload["expected_duration"], "expected_duration")
+    _insert_row(connection, SECTION_CUES_TABLE_NAME, payload)
+
+
+def read_section_cue(connection: Any, section_cue_id: str) -> dict[str, Any] | None:
+    """Read one section cue record by its primary key."""
+
+    return _read_row_by_primary_key(connection, SECTION_CUES_TABLE_NAME, section_cue_id)
+
+
+def read_section_cues_by_song_cue_id(
+    connection: Any,
+    song_cue_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read section cues for a song cue ordered by section_order."""
+
+    _require_non_empty_string(song_cue_id, "song_cue_id")
+    return _read_rows_where(
+        connection,
+        SECTION_CUES_TABLE_NAME,
+        "song_cue_id",
+        song_cue_id,
+        order_by="section_order",
+    )
+
+
+def write_performance_action_receipt(
+    connection: Any,
+    receipt: PerformanceActionReceipt | Mapping[str, Any],
+) -> None:
+    """Insert one performance action receipt."""
+
+    payload = _table_payload(PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME, receipt)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_performance_session(connection, payload["performance_session_id"])
+    _insert_row(connection, PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME, payload)
+
+
+def read_performance_action_receipt(
+    connection: Any,
+    performance_action_receipt_id: str,
+) -> dict[str, Any] | None:
+    """Read one performance action receipt by its primary key."""
+
+    return _read_row_by_primary_key(
+        connection,
+        PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME,
+        performance_action_receipt_id,
+    )
+
+
+def read_performance_action_receipts_by_performance_session_id(
+    connection: Any,
+    performance_session_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read performance action receipts for a session ordered by created_at."""
+
+    _require_non_empty_string(performance_session_id, "performance_session_id")
+    return _read_rows_where(
+        connection,
+        PERFORMANCE_ACTION_RECEIPTS_TABLE_NAME,
+        "performance_session_id",
+        performance_session_id,
+        order_by="created_at",
+    )
+
+
+def write_manual_override_event(
+    connection: Any,
+    event: ManualOverrideEvent | Mapping[str, Any],
+) -> None:
+    """Insert one manual override event."""
+
+    payload = _table_payload(MANUAL_OVERRIDE_EVENTS_TABLE_NAME, event)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_performance_session(connection, payload["performance_session_id"])
+    _insert_row(connection, MANUAL_OVERRIDE_EVENTS_TABLE_NAME, payload)
+
+
+def read_manual_override_event(
+    connection: Any,
+    manual_override_event_id: str,
+) -> dict[str, Any] | None:
+    """Read one manual override event by its primary key."""
+
+    return _read_row_by_primary_key(
+        connection,
+        MANUAL_OVERRIDE_EVENTS_TABLE_NAME,
+        manual_override_event_id,
+    )
+
+
+def read_manual_override_events_by_performance_session_id(
+    connection: Any,
+    performance_session_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read manual override events for a session ordered by created_at."""
+
+    _require_non_empty_string(performance_session_id, "performance_session_id")
+    return _read_rows_where(
+        connection,
+        MANUAL_OVERRIDE_EVENTS_TABLE_NAME,
+        "performance_session_id",
+        performance_session_id,
+        order_by="created_at",
+    )
+
+
+def write_highlight_marker(
+    connection: Any,
+    marker: HighlightMarker | Mapping[str, Any],
+) -> None:
+    """Insert one highlight marker record."""
+
+    payload = _table_payload(HIGHLIGHT_MARKERS_TABLE_NAME, marker)
+    _require_non_empty_string(payload["tenant_id"], "tenant_id")
+    _require_existing_performance_session(connection, payload["performance_session_id"])
+    _insert_row(connection, HIGHLIGHT_MARKERS_TABLE_NAME, payload)
+
+
+def read_highlight_marker(
+    connection: Any,
+    highlight_marker_id: str,
+) -> dict[str, Any] | None:
+    """Read one highlight marker record by its primary key."""
+
+    return _read_row_by_primary_key(
+        connection,
+        HIGHLIGHT_MARKERS_TABLE_NAME,
+        highlight_marker_id,
+    )
+
+
+def read_highlight_markers_by_performance_session_id(
+    connection: Any,
+    performance_session_id: str,
+) -> tuple[dict[str, Any], ...]:
+    """Read highlight markers for a session ordered by marker_time."""
+
+    _require_non_empty_string(performance_session_id, "performance_session_id")
+    return _read_rows_where(
+        connection,
+        HIGHLIGHT_MARKERS_TABLE_NAME,
+        "performance_session_id",
+        performance_session_id,
+        order_by="marker_time",
+    )
+
+
 def read_record_ids_for_exact_label_seed(
     connection: Any,
     label_name: str,
@@ -1655,6 +2115,35 @@ def _require_existing_runtime_component(connection: Any, component_id: str) -> N
     _require_non_empty_string(component_id, "component_id")
     if read_runtime_component(connection, component_id) is None:
         raise ValueError(f"unknown runtime component reference: {component_id}")
+
+
+def _require_existing_performance_session(
+    connection: Any,
+    performance_session_id: str,
+) -> None:
+    _require_non_empty_string(performance_session_id, "performance_session_id")
+    if read_performance_session(connection, performance_session_id) is None:
+        raise ValueError(
+            f"unknown performance session reference: {performance_session_id}"
+        )
+
+
+def _require_existing_setlist(connection: Any, setlist_id: str) -> None:
+    _require_non_empty_string(setlist_id, "setlist_id")
+    if read_setlist(connection, setlist_id) is None:
+        raise ValueError(f"unknown setlist reference: {setlist_id}")
+
+
+def _require_existing_setlist_item(connection: Any, setlist_item_id: str) -> None:
+    _require_non_empty_string(setlist_item_id, "setlist_item_id")
+    if read_setlist_item(connection, setlist_item_id) is None:
+        raise ValueError(f"unknown setlist item reference: {setlist_item_id}")
+
+
+def _require_existing_song_cue(connection: Any, song_cue_id: str) -> None:
+    _require_non_empty_string(song_cue_id, "song_cue_id")
+    if read_song_cue(connection, song_cue_id) is None:
+        raise ValueError(f"unknown song cue reference: {song_cue_id}")
 
 
 def _require_tenant_matches_openclaw_node(

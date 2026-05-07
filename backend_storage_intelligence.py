@@ -13,6 +13,8 @@ from backend_data_contract import (
     ENVIRONMENT_INTELLIGENCE_AUTHORIZATION_SCOPE_STATUSES,
     ENVIRONMENT_INTELLIGENCE_NODE_SOURCE_LINK_STATUSES,
     ENVIRONMENT_INTELLIGENCE_TRUST_STATUSES,
+    PERFORMANCE_ACTION_STATUSES,
+    PERFORMANCE_ACTION_TIERS,
     RUNTIME_PRESENCE_CAPABILITY_STATUSES,
     RUNTIME_PRESENCE_COMPONENT_STATUSES,
     RUNTIME_PRESENCE_HEALTH_STATUSES,
@@ -118,6 +120,26 @@ class RuntimeComponentHealthSnapshot:
     required_capability: str
     component_version: str
     approved_for_tenant_id: str
+
+
+@dataclass(frozen=True)
+class PerformanceReadinessSnapshot:
+    """Caller-provided performance/show readiness state."""
+
+    performance_session_id: str
+    tenant_id: str
+    setlist_id: str
+    current_setlist_item_id: str
+    current_song_cue_id: str
+    current_section_cue_id: str
+    session_status: str
+    action_type: str
+    action_target: str
+    action_tier: str
+    confidence_label: str
+    manual_override_active: int
+    operator_approval_ref: str
+    component_health_findings: tuple[StorageRiskFinding, ...] = ()
 
 
 def evaluate_storage_operation_risks(
@@ -458,6 +480,76 @@ def runtime_component_health_snapshot_as_dict(
     return asdict(snapshot)
 
 
+def evaluate_performance_action_risks(
+    snapshot: PerformanceReadinessSnapshot,
+) -> tuple[StorageRiskFinding, ...]:
+    """Return deterministic performance risks from caller-provided show state."""
+
+    _validate_performance_readiness_snapshot(snapshot)
+    findings: list[StorageRiskFinding] = list(snapshot.component_health_findings)
+
+    if snapshot.confidence_label in {"low", "none"}:
+        findings.append(
+            _performance_risk(
+                snapshot,
+                "low_confidence_fallback_required",
+                "high",
+                "low confidence requires fallback to safe baseline scene",
+            )
+        )
+
+    if snapshot.action_tier == "requires_confirmation" and not snapshot.operator_approval_ref:
+        findings.append(
+            _performance_risk(
+                snapshot,
+                "action_tier_requires_confirmation",
+                "high",
+                f"performance action tier {snapshot.action_tier} requires explicit approval",
+            )
+        )
+
+    if snapshot.action_tier == "blocked_high_risk":
+        findings.append(
+            _performance_risk(
+                snapshot,
+                "high_risk_action_blocked",
+                "high",
+                "proposed performance action is blocked as high risk",
+            )
+        )
+
+    if snapshot.manual_override_active == 1:
+        findings.append(
+            _performance_risk(
+                snapshot,
+                "manual_override_active",
+                "medium",
+                "operator manual override is active; adaptive cues suppressed",
+                requires_operator_approval=False,
+            )
+        )
+
+    if snapshot.session_status != "active":
+        findings.append(
+            _performance_risk(
+                snapshot,
+                "performance_session_not_active",
+                "high",
+                f"actions are blocked while session status is {snapshot.session_status}",
+            )
+        )
+
+    return tuple(findings)
+
+
+def performance_readiness_snapshot_as_dict(
+    snapshot: PerformanceReadinessSnapshot,
+) -> dict[str, object]:
+    """Return deterministic plain-Python performance readiness data."""
+
+    return asdict(snapshot)
+
+
 def storage_risk_finding_as_dict(finding: StorageRiskFinding) -> dict[str, object]:
     """Return a deterministic plain-Python risk finding representation."""
 
@@ -547,6 +639,25 @@ def _validate_runtime_component_health_snapshot(
         raise ValueError(f"unknown capability_status: {snapshot.capability_status}")
 
 
+def _validate_performance_readiness_snapshot(
+    snapshot: PerformanceReadinessSnapshot,
+) -> None:
+    if not isinstance(snapshot, PerformanceReadinessSnapshot):
+        raise ValueError("snapshot must be a PerformanceReadinessSnapshot")
+    _require_non_empty_string(snapshot.performance_session_id, "performance_session_id")
+    _require_non_empty_string(snapshot.tenant_id, "tenant_id")
+    _require_non_empty_string(snapshot.action_type, "action_type")
+    _require_non_empty_string(snapshot.action_target, "action_target")
+    if snapshot.action_tier not in PERFORMANCE_ACTION_TIERS:
+        raise ValueError(f"unknown performance action_tier: {snapshot.action_tier}")
+    if type(snapshot.manual_override_active) is not int or (
+        snapshot.manual_override_active not in {0, 1}
+    ):
+        raise ValueError("manual_override_active must be 0 or 1")
+    if not isinstance(snapshot.component_health_findings, tuple):
+        raise ValueError("component_health_findings must be a tuple")
+
+
 def _node_risk(
     snapshot: NodeAuthorizationSnapshot,
     finding_kind: str,
@@ -574,6 +685,23 @@ def _component_risk(
 ) -> StorageRiskFinding:
     return StorageRiskFinding(
         finding_id=f"{snapshot.component_id}:{snapshot.required_capability}:{finding_kind}",
+        finding_kind=finding_kind,
+        severity=severity,
+        message=message,
+        requires_operator_approval=requires_operator_approval,
+    )
+
+
+def _performance_risk(
+    snapshot: PerformanceReadinessSnapshot,
+    finding_kind: str,
+    severity: str,
+    message: str,
+    *,
+    requires_operator_approval: bool = True,
+) -> StorageRiskFinding:
+    return StorageRiskFinding(
+        finding_id=f"{snapshot.performance_session_id}:{snapshot.action_target}:{finding_kind}",
         finding_kind=finding_kind,
         severity=severity,
         message=message,

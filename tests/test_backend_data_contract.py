@@ -723,6 +723,14 @@ def test_required_schema_contract_surfaces_exist():
         "node_heartbeat",
         "component_heartbeat",
         "component_health_snapshot",
+        "performance_session",
+        "setlist",
+        "setlist_item",
+        "song_cue",
+        "section_cue",
+        "performance_action_receipt",
+        "manual_override_event",
+        "highlight_marker",
     )
 
     surfaces = schema_contract_surfaces()
@@ -972,6 +980,14 @@ def test_required_sqlite_table_concepts_exist():
         "node_heartbeats",
         "component_heartbeats",
         "component_health_snapshots",
+        "performance_sessions",
+        "setlists",
+        "setlist_items",
+        "song_cues",
+        "section_cues",
+        "performance_action_receipts",
+        "manual_override_events",
+        "highlight_markers",
     )
 
     table_concepts = sqlite_table_concepts()

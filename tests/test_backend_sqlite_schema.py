@@ -58,6 +58,14 @@ EXPECTED_PRIMARY_KEYS = {
     "node_heartbeats": "heartbeat_id",
     "component_heartbeats": "heartbeat_id",
     "component_health_snapshots": "snapshot_id",
+    "performance_sessions": "performance_session_id",
+    "setlists": "setlist_id",
+    "setlist_items": "setlist_item_id",
+    "song_cues": "song_cue_id",
+    "section_cues": "section_cue_id",
+    "performance_action_receipts": "performance_action_receipt_id",
+    "manual_override_events": "manual_override_event_id",
+    "highlight_markers": "highlight_marker_id",
 }
 
 TABLE_LEVEL_SQL_PREFIXES = (
@@ -171,8 +179,17 @@ def test_all_table_concepts_exist_in_contract_order():
         "node_heartbeats",
         "component_heartbeats",
         "component_health_snapshots",
+        "performance_sessions",
+        "setlists",
+        "setlist_items",
+        "song_cues",
+        "section_cues",
+        "performance_action_receipts",
+        "manual_override_events",
+        "highlight_markers",
     )
-    assert len(sqlite_schema_tables()) == 20
+
+    assert len(sqlite_schema_tables()) == 28
     assert all(isinstance(table, TableDefinition) for table in SQLITE_SCHEMA_TABLES)
 
 
@@ -556,7 +573,8 @@ def test_runtime_presence_and_component_health_tables_preserve_boundaries():
 def test_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_schema_sql_definitions()
 
-    assert len(sql_definitions) == 20
+    assert len(sql_definitions) == 28
+
     for table_name, sql_text in zip(sqlite_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")
@@ -572,7 +590,8 @@ def test_sql_strings_are_inert_definitions_only():
 def test_physical_sql_strings_are_inert_definitions_only():
     sql_definitions = sqlite_physical_schema_sql_definitions()
 
-    assert len(sql_definitions) == 21
+    assert len(sql_definitions) == 29
+
     for table_name, sql_text in zip(sqlite_physical_schema_table_names(), sql_definitions):
         assert sql_text.startswith(f"CREATE TABLE {table_name} (")
         assert sql_text.endswith(");")
