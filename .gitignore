@@ -413,3 +413,6 @@
 
 !docs/planning/chase_money/
 !docs/planning/chase_money/*.md
+
+!docs/planning/sensitive_roots/
+!docs/planning/sensitive_roots/*.md
