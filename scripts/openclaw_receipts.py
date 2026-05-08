@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -3091,6 +3092,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Read-only OpenClaw proof receipts.",
     )
     parser.add_argument("--root", type=Path, default=ROOT, help="Repository root.")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the receipt as a JSON object instead of human-readable text.",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("repo-check", help="Print git and active-packet proof receipt.")
@@ -3187,87 +3193,123 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = args.root
 
+    # Collect report
+    report: dict[str, object] | None = None
     if args.command == "repo-check":
         report = repo_check_receipt(root)
-        print_repo_check(report)
-        return 0 if report["passed"] else 1
-    if args.command == "changed-files-receipt":
+    elif args.command == "changed-files-receipt":
         files = changed_files(root)
         findings = path_policy_findings((item.path for item in files), root=root)
-        print_changed_files_receipt(files, findings)
-        return 0 if not findings else 1
-    if args.command == "packet-status":
+        report = {
+            "receipt_type": "openclaw.changed_files",
+            "files": [asdict(f) for f in files],
+            "findings": findings,
+            "passed": not findings,
+        }
+    elif args.command == "packet-status":
         report = packet_status(root, target=args.target)
-        print_packet_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "docs-only-guard":
+    elif args.command == "docs-only-guard":
         report = docs_only_guard_report(
             changed_files(root),
             allowed_prefixes=tuple(args.allowed),
             root=root,
         )
+    elif args.command == "no-private-root-check":
+        paths = _paths_from_args_or_changes(args, root)
+        findings = path_policy_findings(paths, root=root)
+        report = {
+            "receipt_type": "openclaw.no_private_root_check",
+            "paths": paths,
+            "findings": findings,
+            "passed": not findings,
+        }
+    elif args.command == "sensitive-root-contract":
+        report = sensitive_root_contract()
+    elif args.command == "operator-harness-status":
+        report = operator_harness_read_model(root=root)
+    elif args.command == "prompt-doctrine-status":
+        report = prompt_doctrine_status(root=root)
+    elif args.command == "prompt-pack-status":
+        report = prompt_pack_status(root=root)
+    elif args.command == "gated-activation-status":
+        report = gated_activation_status(root=root)
+    elif args.command == "runtime-dry-run-readiness":
+        report = runtime_dry_run_readiness(root=root)
+    elif args.command == "activation-evidence-status":
+        report = activation_evidence_status(root=root)
+    elif args.command == "mcp-shared-memory-gate-status":
+        report = mcp_shared_memory_gate_status(root=root)
+    elif args.command == "operator-intake-status":
+        report = operator_intake_status(root=root)
+    elif args.command == "operator-intent-core-status":
+        report = operator_intent_core_status(root=root)
+    elif args.command == "operator-action-covenant-status":
+        report = operator_action_covenant_status(root=root)
+    elif args.command == "operator-extension-simulator-status":
+        report = operator_extension_simulator_status(root=root)
+    elif args.command == "operator-evidence-bridge-status":
+        report = operator_evidence_bridge_status(root=root)
+
+    if report is None:
+        parser.error(f"unknown command: {args.command}")
+        return 2
+
+    if args.json:
+        # Simple JSON conversion for dataclasses if any remain in values
+        def _json_serializable(obj: object) -> object:
+            if hasattr(obj, "__dataclass_fields__"):
+                return asdict(obj)  # type: ignore
+            if isinstance(obj, (datetime, Path)):
+                return str(obj)
+            return str(obj)
+
+        print(json.dumps(report, indent=2, default=_json_serializable))
+        return 0 if report.get("passed", True) else 1
+
+    # Human-readable output
+    if args.command == "repo-check":
+        print_repo_check(report)
+    elif args.command == "changed-files-receipt":
+        # files and findings were handled above for the dict, but we reuse the local vars here
+        files = changed_files(root)
+        findings = path_policy_findings((item.path for item in files), root=root)
+        print_changed_files_receipt(files, findings)
+    elif args.command == "packet-status":
+        print_packet_status(report)
+    elif args.command == "docs-only-guard":
         print_docs_only_guard(report)
-        return 0 if report["passed"] else 1
-    if args.command == "no-private-root-check":
+    elif args.command == "no-private-root-check":
         paths = _paths_from_args_or_changes(args, root)
         findings = path_policy_findings(paths, root=root)
         print_no_private_root_check(paths, findings)
-        return 0 if not findings else 1
-    if args.command == "sensitive-root-contract":
-        report = sensitive_root_contract()
+    elif args.command == "sensitive-root-contract":
         print_sensitive_root_contract(report)
-        return 0
-    if args.command == "operator-harness-status":
-        report = operator_harness_read_model(root=root)
+    elif args.command == "operator-harness-status":
         print_operator_harness_read_model(report)
-        return 0 if report["passed"] else 1
-    if args.command == "prompt-doctrine-status":
-        report = prompt_doctrine_status(root=root)
+    elif args.command == "prompt-doctrine-status":
         print_prompt_doctrine_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "prompt-pack-status":
-        report = prompt_pack_status(root=root)
+    elif args.command == "prompt-pack-status":
         print_prompt_pack_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "gated-activation-status":
-        report = gated_activation_status(root=root)
+    elif args.command == "gated-activation-status":
         print_gated_activation_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "runtime-dry-run-readiness":
-        report = runtime_dry_run_readiness(root=root)
+    elif args.command == "runtime-dry-run-readiness":
         print_runtime_dry_run_readiness(report)
-        return 0 if report["passed"] else 1
-    if args.command == "activation-evidence-status":
-        report = activation_evidence_status(root=root)
+    elif args.command == "activation-evidence-status":
         print_activation_evidence_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "mcp-shared-memory-gate-status":
-        report = mcp_shared_memory_gate_status(root=root)
+    elif args.command == "mcp-shared-memory-gate-status":
         print_mcp_shared_memory_gate_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "operator-intake-status":
-        report = operator_intake_status(root=root)
+    elif args.command == "operator-intake-status":
         print_operator_intake_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "operator-intent-core-status":
-        report = operator_intent_core_status(root=root)
+    elif args.command == "operator-intent-core-status":
         print_operator_intent_core_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "operator-action-covenant-status":
-        report = operator_action_covenant_status(root=root)
+    elif args.command == "operator-action-covenant-status":
         print_operator_action_covenant_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "operator-extension-simulator-status":
-        report = operator_extension_simulator_status(root=root)
+    elif args.command == "operator-extension-simulator-status":
         print_operator_extension_simulator_status(report)
-        return 0 if report["passed"] else 1
-    if args.command == "operator-evidence-bridge-status":
-        report = operator_evidence_bridge_status(root=root)
+    elif args.command == "operator-evidence-bridge-status":
         print_operator_evidence_bridge_status(report)
-        return 0 if report["passed"] else 1
 
-    parser.error(f"unknown command: {args.command}")
-    return 2
+    return 0 if report.get("passed", True) else 1
 
 
 if __name__ == "__main__":

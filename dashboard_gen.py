@@ -275,6 +275,17 @@ def get_budget_status() -> str:
         return "Budget tracker unavailable"
 
 
+def get_operator_harness_status() -> dict:
+    try:
+        out = subprocess.check_output(
+            ["python3", "/home/openclaw/scripts/openclaw_receipts.py", "--json", "operator-harness-status"],
+            text=True, timeout=10, cwd="/home/openclaw"
+        )
+        return json.loads(out)
+    except Exception:
+        return {}
+
+
 def _get_advisory_task_proposals() -> dict[str, list[dict]]:
     """Compatibility wrapper for urgency-lane tasks."""
     try:
@@ -583,6 +594,55 @@ def _render_big_picture_budget(budget: "dict | None", fallback_text: str = "") -
         return "\n".join(lines)
 
     lines.append("- **Spend detail:** unavailable")
+    return "\n".join(lines)
+
+
+def _render_operator_harness_card(harness: dict) -> str:
+    lines = ["", "### Operator Harness"]
+    if not harness:
+        lines.append("- Operator Harness status unavailable.")
+        return "\n".join(lines)
+
+    cards = {c["card"]: c for c in harness.get("cards", [])}
+
+    # Module Presence
+    presence = []
+    if "operator_intent_core" in cards:
+        presence.append("Intent Core")
+    if "operator_action_covenant" in cards:
+        presence.append("Action Covenant")
+    if "operator_extension_simulator" in cards:
+        presence.append("Extension Simulator")
+    if "operator_evidence_bridge" in cards:
+        presence.append("Evidence Bridge")
+    lines.append(f"- **Components:** {', '.join(presence) if presence else 'none'}")
+
+    # Intent Core
+    if "operator_intent_core" in cards:
+        c = cards["operator_intent_core"]
+        lines.append(f"- **Intent Core:** {c.get('intent_count', '?')} intents / {c.get('phrase_count', '?')} phrases (framing only)")
+
+    # Action Covenant
+    if "operator_action_covenant" in cards:
+        c = cards["operator_action_covenant"]
+        status = "present" if c.get("passed") else "error"
+        lines.append(f"- **Action Covenant:** {status} (no live authority)")
+
+    # Simulator
+    if "operator_extension_simulator" in cards:
+        lines.append("- **Extension Simulator:** simulation-only")
+
+    # Evidence Bridge
+    if "operator_evidence_bridge" in cards:
+        c = cards["operator_evidence_bridge"]
+        lines.append(f"- **Evidence Bridge:** {c.get('domain_count', '?')} domains (evidence names only)")
+
+    # Authority Boundaries
+    lines.append("- **Current authority:** no runtime launch, no MCP writes, no external sends, no private/legal/invoice action")
+
+    # Next useful loop
+    lines.append("- **Next useful loop:** natural language → intent → evidence names → covenant posture → safe frame")
+
     return "\n".join(lines)
 
 
@@ -963,6 +1023,9 @@ def gen_right_now() -> str:
 
     headroom = _get_headroom_summary()
     lines.append(_render_headroom_section(headroom))
+
+    harness = get_operator_harness_status()
+    lines.append(_render_operator_harness_card(harness))
 
     lines.extend([
         "", "### What you likely need to do next",

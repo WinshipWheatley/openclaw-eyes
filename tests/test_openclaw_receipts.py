@@ -1100,6 +1100,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "argparse",
         "ast",
         "dataclasses",
+        "json",
         "openclaw_sensitive_policy",
         "operator_action_covenant",
         "operator_evidence_bridge",
