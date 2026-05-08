@@ -237,3 +237,21 @@ Current next visible lane:
 - Natural-language intake is now useful as static response framing for future chats: when Winship says X, the system should infer the likely intent, name the next safe move, and identify the gate required before doing more.
 - Stage 2 prompt/handoff generation remains the next natural hardening lane if File 01 still supports it; runtime-specific dry-run plan hardening remains separately gated by the existing runtime readiness rails.
 - Still gated now: live autonomy, live runtime launch, assistant daemons/listeners, speech/audio/Telegram/UI integration, process/service scans, provider/model/API calls, MCP calls or writes, hidden memory writes, external sends, invoice actions, legal/private-root/sensitive-data actions, commits/pushes/destructive operations without their separate gates, and treating natural language as hidden execution authority.
+
+## Packet 07 Consolidated Frontier - 2026-05-08
+
+Packet 07 has now advanced past source-set creation into two substantial static readiness layers: activation dry-run readiness receipts and natural-language operator intake/action-rights v0. Current pushed baseline is 55ec641. The next worker should treat activation readiness and natural-language intake as completed static v0 surfaces, not as unresolved discovery tasks.
+
+### Completed Mile Markers
+1. **Source-set creation**: Packet 07 exists as the active source set with File 01 as roadmap authority and this handoff as train log only.
+2. **Packet 07-native receipts**: `repo-check`, `packet-status`, `operator-harness-status`, and `gated-activation-status` now read Packet 07 as the active packet surface.
+3. **North Star consolidation**: File 05 now contains a merged doctrine of Active Stoicism, Mastery-to-Assets, and Knowledge Substrate.
+4. **Activation dry-run readiness receipts**: `scripts/openclaw_receipts.py` now includes `runtime-dry-run-readiness`, `prompt-pack-status`, `activation-evidence-status`, and `mcp-shared-memory-gate-status`. These prove dry-run-only scope and static activation boundaries.
+5. **Natural-language intake v0**: `NATURAL_LANGUAGE_OPERATOR_INTAKE_AND_ACTION_RIGHTS_V0.md` defines intent mapping and the action-rights ladder. `operator-intake-status` receipt provides static proof of Stage 1 implementation.
+
+### Next Safe Lanes
+The next lane should be chosen from the Packet 07 rails (File 01) and should directly reduce operator burden or clarify safe action. Do not continue adding doctrine unless it creates immediate operator leverage.
+
+- **First Candidate**: Stage 2 prompt/handoff generation (File 01 Rail 10 / Intake Stage 2).
+- **Alternative**: Runtime authority and legacy gating dry-run plan hardening (File 01 Rail 7 / Rail 20).
+- **Forbidden**: Do not start live runtime, daemon/listener, MCP write/shared-memory implementation, provider/model call, invoice/legal/private-root action, UI/dashboard/app, external send, or Packet 08.
