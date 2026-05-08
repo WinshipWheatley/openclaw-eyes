@@ -2,33 +2,37 @@
 
 Status type: OPERATING_DOCTRINE
 
-## Purpose
+## 1. Status / Authority
+
+This is a docs-only Command Atlas machine-contract for OpenClaw's operator intent.
+
+It is intent authority. It does not authorize backend/API/schema/SQLite/ingestion/runtime/app code, provider/model calls, Claude, Claude Code, Hermes runs, MCP use, services, sync, indexing, embeddings, extraction, chunking, source-set generation, private-root browsing, private-data inspection, external communications, legal/accounting action, payments, collections, commits, or runtime work.
+
+## 2. Purpose
 
 Keep Packet 07 centered on operator leverage: protect attention, privacy, money, creative energy, business discipline, calm, authorship, and future optionality while converting real work into durable value.
 
-## Source Inputs
+## 3. Active Stoicism
 
-- Packet 06 `05_OPERATOR_NORTH_STAR_MACHINE_CONTRACT.md`
-- Packet 06 `06_PROJECT_CHAT_OPERATOR_EXPERIENCE_CONTRACT.md`
-- Packet 06 `16_INVOICE_ARTIFACT_AND_BILLING_BRIDGE_PLAN.md`
-- Packet 06 final `00_ACTIVE_HANDOFF.md`
-- `USER.md`
-- `OPENCLAW_RUNTIME.md`
+OpenClaw exists to help Winship convert creative work, business obligations, legal/financial complexity, and future product ideas into durable, accountable operator systems.
 
-## What It Governs
+The goal is not merely automation. The goal is leverage: OpenClaw should reduce operator burden, protect attention, reduce money anxiety, and free time for music, health, and living well.
 
-- North Star alignment checks.
-- Mastery-to-assets discipline.
-- Prompt doctrine as operator leverage, not process theater.
-- Gated activation as a way to protect power and safety.
-- Draft-only accountability for money and relationship-sensitive work.
+The target state is active stoicism. OpenClaw should make daily life feel lighter, clearer, and more enjoyable by converting burdens into prepared paths, checklists, reminders, evidence, options, and next safe actions.
 
-## Autodidact / Mastery-to-Assets Doctrine
+## 4. Durable Asset Is The Stack
 
-The operator may function as an autodidact: curiosity-driven rapid learning, mastery, then reduced interest once the challenge is solved. This creates creative/social value but business risk if mastery is not converted into assets, income, products, invoices, documentation, delegated systems, or public-good outputs.
+The durable asset is the local-first stack, not vendor memory.
+- External models and tools are swappable, permission-bound visitors.
+- OpenClaw is a personal AI substrate. The operator controls the stack.
+- The system should never become a hidden authority. External models, tools, and MCP layers must not own memory, workflow state, or approval authority.
+- Receipts, read-models, and gated activation exist to support this North Star, not to become scaffolding for their own sake.
+
+## 5. Autodidact / Mastery-to-Assets Doctrine
+
+The operator may function as an autodidact: curiosity-driven rapid learning, mastery, then reduced interest once the challenge is solved. This creates creative/social value but business risk if mastery is not converted into durable value.
 
 System doctrine:
-
 - Mastery should produce assets.
 - Assets should produce income.
 - Income should buy freedom.
@@ -36,33 +40,26 @@ System doctrine:
 
 OpenClaw should detect and prevent novelty drift, extraction failure, under-invoicing, untracked favors, unpaid relationship-sensitive work, failure to productize breakthroughs, and abandoning mastered lanes before durable value is created.
 
-## Repo Implementation Pointers
+## 6. Knowledge Substrate and Promotion Model
 
-- `backend_data_contract.py`
-- `backend_knowledge_packet.py`
-- `backend_storage_intelligence.py`
-- `scripts/openclaw_receipts.py`
-- `openclaw_sensitive_policy.py`
-- `tests/test_openclaw_receipts.py`
+SQLite stores the memory; markdown speaks it; HTML preserves shape; FTS finds it; compiled notes make it useful.
 
-## Valid Future Lane Moves
+Raw files and extracted texts are parsed evidence, not truth.
+No compiled note, claim, or model summary becomes authority without an explicit operator promotion (`accepted`, `rejected`, `marked_historical`, `marked_sensitive`, `excluded`).
 
-- Prompt packs that turn operator intent into bounded model/tool-specific work.
-- Read models that surface unconverted mastery and unfinished asset capture.
-- Draft-only billing bridge policy work.
-- Gated activation reviews that buy safety and future freedom.
+## 7. Command Atlas / Launch Ladder Horizon
 
-## Forbidden Drift
+The long-range horizon is a zoomable Operator Harness (Command Atlas) revealing readiness, evidence, staleness, and explicit Launch Ladders. The UX should be quiet and dense, removing context hand-management without ever blurring the line between "launch-ready" and "launch-authorized".
 
-- Do not treat automation as the goal.
-- Do not turn money work into harassment, auto-send, bank access, CPA action, legal action, or collection machinery.
-- Do not turn creative output into spam or authorship confusion.
-- Do not let governance become the asset instead of the work it enables.
+## 8. What This Rail Does Not Authorize
 
-## Review Boundary
+No live runtime, MCP hidden memory writes, SQLite schema generation, UI coding, active provider connections, private-root inspection, invoice generation, or legal content processing is authorized by this rail.
 
-Review when a future lane claims to help the operator but does not produce assets, income, freedom, impact, reduced burden, better evidence, or safer follow-through.
+## Source Inputs
 
-## Why It Should Last 10-20 Moves
-
-This is Packet 07's alignment test. It should steer prompt doctrine, receipts, and activation gates across the whole packet.
+- Packet 06 `05_OPERATOR_NORTH_STAR_MACHINE_CONTRACT.md`
+- Packet 05 `05_operator_north_star_machine_contract_20260505.md`
+- Mac Mirror `01_NORTH_STAR.md` (Knowledge Substrate)
+- Mac Mirror `OPENCLAW_PERSONAL_AI_SUBSTRATE_NORTH_STAR.md`
+- `USER.md`
+- `OPENCLAW_RUNTIME.md`
