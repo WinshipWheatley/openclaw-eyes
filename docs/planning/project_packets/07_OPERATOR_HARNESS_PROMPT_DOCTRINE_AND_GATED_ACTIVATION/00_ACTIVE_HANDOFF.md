@@ -255,3 +255,28 @@ The next lane should be chosen from the Packet 07 rails (File 01) and should dir
 - **First Candidate**: Stage 2 prompt/handoff generation (File 01 Rail 10 / Intake Stage 2).
 - **Alternative**: Runtime authority and legacy gating dry-run plan hardening (File 01 Rail 7 / Rail 20).
 - **Forbidden**: Do not start live runtime, daemon/listener, MCP write/shared-memory implementation, provider/model call, invoice/legal/private-root action, UI/dashboard/app, external send, or Packet 08.
+
+## Packet 07 Operator Intent Core v0 Milestone - 2026-05-08
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- Added `operator_intent_core.py` as a surface-neutral, deterministic local core for classifying and framing operator intent. It is not Cassandra-, Chief-, Telegram-, UI-, provider-, MCP-, or runtime-specific.
+- Implemented the shared API shape `classify_operator_intent(text)`, `frame_operator_intent(intent)`, and `classify_and_frame_operator_intent(text)` for Stage 1 classification and response framing only.
+- Covered required intent classes and phrases including "where are we", "what's next", "I'm tired, tell me what matters", "send that to Codex", "ask Gemini", "review this for commit", "can I push", "do the next thing", "go ahead", "launch it", "activate it", "wait", and "stop".
+- Added `operator-intent-core-status` as a compact receipt proving the module exists, phrase coverage passes, Codex and Gemini route differently, dangerous phrases are non-authorizing, and runtime activation remains unauthorized.
+- Extended `operator-harness-status` with a concise `operator_intent_core` card.
+
+Validation receipt:
+
+```text
+./scripts/openclaw_receipts.py operator-intent-core-status: passed, execution_authority_granted=False
+pytest tests/test_operator_intent_core.py -q: 8 passed
+pytest tests/test_openclaw_receipts.py -q: 31 passed
+```
+
+Current next visible lane:
+
+- Stage 2 prompt/handoff generation is now better prepared because natural operator language can be classified into shared, surface-neutral intent frames before any tool-specific prompt is produced.
+- Still gated now: live autonomy, live runtime launch, assistant daemons/listeners, Cassandra/Chief/Telegram integration, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, UI/dashboard/app work, Packet 08, and treating natural language as execution authority.

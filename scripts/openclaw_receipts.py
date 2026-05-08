@@ -24,6 +24,14 @@ from openclaw_sensitive_policy import (
     path_policy_findings,
     sensitive_root_contract,
 )
+from operator_intent_core import (
+    FORBIDDEN_ACTIONS as OPERATOR_INTENT_CORE_FORBIDDEN_ACTIONS,
+    INTENT_CLASSES as OPERATOR_INTENT_CORE_REQUIRED_INTENTS,
+    classify_operator_intent,
+    classify_phrase_matrix,
+    frame_operator_intent,
+    sample_phrase_matrix,
+)
 
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
@@ -585,6 +593,8 @@ OPERATOR_INTAKE_FORBIDDEN_CROSSINGS = (
     "invoice, money, legal, private-root, or sensitive-data actions",
     "commits, pushes, destructive operations",
 )
+
+OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH = Path("operator_intent_core.py")
 
 @dataclass(frozen=True)
 class GitCommandResult:
@@ -1412,6 +1422,115 @@ def operator_intake_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def operator_intent_core_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    module_path = root / OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH
+    phrase_rows = classify_phrase_matrix()
+    phrase_checks = {row["phrase"]: bool(row["passed"]) for row in phrase_rows}
+    frames = {
+        row["phrase"]: frame_operator_intent(classify_operator_intent(str(row["phrase"])))
+        for row in phrase_rows
+    }
+    dangerous_phrases = ("do the next thing", "go ahead", "launch it", "activate it")
+    dangerous_rows = tuple(
+        row for row in phrase_rows if row["phrase"] in dangerous_phrases
+    )
+    codex_frame = frames["send that to Codex"]
+    gemini_frame = frames["ask Gemini"]
+    tired_frame = frames["I'm tired, tell me what matters"]
+    stop_frame = frames["stop"]
+
+    checks = {
+        "module_present": module_path.is_file(),
+        "required_intent_classes_present": OPERATOR_INTENT_CORE_REQUIRED_INTENTS
+        == (
+            "status_brief",
+            "next_safe_action",
+            "tired_tell_me_what_matters",
+            "codex_prompt_request",
+            "gemini_review_request",
+            "commit_review_request",
+            "push_confirmation_context",
+            "handoff_request",
+            "activation_readiness_question",
+            "approval_required_action",
+            "unsafe_or_ambiguous_action",
+            "stop_or_wait_instruction",
+        ),
+        "required_phrase_coverage_passed": all(phrase_checks.values()),
+        "dangerous_phrases_non_authorizing": all(
+            row["execution_authority"] is False for row in dangerous_rows
+        ),
+        "do_the_next_thing_not_execution_authority": (
+            frames["do the next thing"].execution_authority is False
+            and frames["do the next thing"].follow_up_required is True
+        ),
+        "go_ahead_requires_future_pending_approval_gate": (
+            frames["go ahead"].execution_authority is False
+            and frames["go ahead"].follow_up_required is True
+            and frames["go ahead"].tool_route == "approval_gate_required"
+        ),
+        "activation_phrases_do_not_authorize_launch": (
+            frames["launch it"].execution_authority is False
+            and frames["activate it"].execution_authority is False
+            and "live runtime launch" in frames["launch it"].forbidden_actions
+        ),
+        "codex_and_gemini_routes_are_distinct": (
+            codex_frame.tool_route == "codex_bounded_repo_prompt"
+            and gemini_frame.tool_route == "gemini_architecture_scope_review"
+            and codex_frame.tool_route != gemini_frame.tool_route
+        ),
+        "tired_frame_is_operator_relief": (
+            tired_frame.intent_name == "tired_tell_me_what_matters"
+            and "state, the risk, the next safe move" in tired_frame.recommended_response_frame
+        ),
+        "stop_wait_classifies_as_stop": (
+            stop_frame.intent_name == "stop_or_wait_instruction"
+            and stop_frame.request_category == "stop"
+        ),
+        "frames_include_forbidden_actions_and_follow_up_posture": all(
+            frames[row["phrase"]].forbidden_actions
+            and row["follow_up_required"] in {True, False}
+            for row in phrase_rows
+        ),
+        "surface_neutral_no_runtime_authority": True,
+    }
+
+    return {
+        "receipt_type": "openclaw.operator_intent_core_status",
+        "mode": "read-only/importable-local-core/no-execution",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "module_path": str(OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH),
+        "authority_note": (
+            "Operator Intent Core v0 classifies and frames natural language only; "
+            "it grants no runtime, MCP, provider, external-send, commit, push, "
+            "invoice, legal, private-root, hidden-memory, or destructive authority."
+        ),
+        "execution_authority_granted": False,
+        "runtime_activation_authorized": False,
+        "external_calls_used": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "hidden_memory_write_used": False,
+        "cassandra_specific": False,
+        "chief_specific": False,
+        "telegram_specific": False,
+        "required_intents": OPERATOR_INTENT_CORE_REQUIRED_INTENTS,
+        "required_phrase_matrix": sample_phrase_matrix(),
+        "phrase_rows": phrase_rows,
+        "forbidden_actions": OPERATOR_INTENT_CORE_FORBIDDEN_ACTIONS,
+        "tool_routes": {
+            "codex": codex_frame.tool_route,
+            "gemini": gemini_frame.tool_route,
+            "activation": frames["launch it"].tool_route,
+            "stop": stop_frame.tool_route,
+        },
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -1425,6 +1544,7 @@ def operator_harness_read_model(
     gated_activation = gated_activation_status(root)
     runtime_dry_run = runtime_dry_run_readiness(root)
     operator_intake = operator_intake_status(root)
+    operator_intent_core = operator_intent_core_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -1510,6 +1630,24 @@ def operator_harness_read_model(
                     "runtime_activation_authorized"
                 ],
                 "intent_count": len(operator_intake["required_intents"]),
+            },
+            {
+                "card": "operator_intent_core",
+                "passed": operator_intent_core["passed"],
+                "status_command": (
+                    f"{CANONICAL_RECEIPT_COMMAND} operator-intent-core-status"
+                ),
+                "module_path": operator_intent_core["module_path"],
+                "execution_authority_granted": operator_intent_core[
+                    "execution_authority_granted"
+                ],
+                "runtime_activation_authorized": operator_intent_core[
+                    "runtime_activation_authorized"
+                ],
+                "intent_count": len(operator_intent_core["required_intents"]),
+                "phrase_count": len(operator_intent_core["phrase_rows"]),
+                "codex_route": operator_intent_core["tool_routes"]["codex"],
+                "gemini_route": operator_intent_core["tool_routes"]["gemini"],
             },
             {
                 "card": "gated_activation",
@@ -1650,6 +1788,7 @@ def operator_harness_read_model(
             and bool(gated_activation["passed"])
             and bool(runtime_dry_run["passed"])
             and bool(operator_intake["passed"])
+            and bool(operator_intent_core["passed"])
             and not private_findings
         ),
     }
@@ -2109,6 +2248,48 @@ def print_operator_intake_status(report: dict[str, object]) -> None:
         print(f"- {key}: {value}")
 
 
+def print_operator_intent_core_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Intent Core Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("module_path", report["module_path"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            ("external_calls_used", report["external_calls_used"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("hidden_memory_write_used", report["hidden_memory_write_used"]),
+            ("cassandra_specific", report["cassandra_specific"]),
+            ("chief_specific", report["chief_specific"]),
+            ("telegram_specific", report["telegram_specific"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_list("required_intents", report["required_intents"])
+    print("phrase_rows:")
+    for row in report["phrase_rows"]:
+        print(f"- {row['phrase']}:")
+        for key, value in row.items():
+            if key == "phrase":
+                continue
+            print(f"  {key}: {value}")
+    _print_list("forbidden_actions", report["forbidden_actions"])
+    print("tool_routes:")
+    for key, value in report["tool_routes"].items():
+        print(f"- {key}: {value}")
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -2214,6 +2395,10 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-intake-status",
         help="Print static natural-language operator intake and action-rights status.",
     )
+    subparsers.add_parser(
+        "operator-intent-core-status",
+        help="Print shared Operator Intent Core v0 status.",
+    )
     return parser
 
 
@@ -2283,6 +2468,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "operator-intake-status":
         report = operator_intake_status(root=root)
         print_operator_intake_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "operator-intent-core-status":
+        report = operator_intent_core_status(root=root)
+        print_operator_intent_core_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")

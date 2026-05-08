@@ -143,6 +143,10 @@ def _write_packet_fixture(root: Path) -> None:
     )
     for name in receipts.PACKET06_REQUIRED_RAIL_FILES:
         (archive_rails / name).write_text(f"# {name}\n", encoding="utf-8")
+    (root / receipts.OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH).write_text(
+        "# fixture placeholder for operator_intent_core.py\n",
+        encoding="utf-8",
+    )
 
 
 def test_parse_porcelain_status_handles_changed_untracked_and_renames():
@@ -610,6 +614,41 @@ def test_operator_intake_command_passes_without_authorizing_runtime(tmp_path, ca
     assert "live_classifier_implemented: False" in output
 
 
+def test_operator_intent_core_status_proves_importable_shared_core(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_intent_core_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["module_path"] == str(receipts.OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH)
+    assert report["execution_authority_granted"] is False
+    assert report["runtime_activation_authorized"] is False
+    assert report["external_calls_used"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["mcp_called"] is False
+    assert report["hidden_memory_write_used"] is False
+    assert report["cassandra_specific"] is False
+    assert report["chief_specific"] is False
+    assert report["telegram_specific"] is False
+    assert report["checks"]["required_intent_classes_present"] is True
+    assert report["checks"]["required_phrase_coverage_passed"] is True
+    assert report["checks"]["dangerous_phrases_non_authorizing"] is True
+    assert report["checks"]["codex_and_gemini_routes_are_distinct"] is True
+
+
+def test_operator_intent_core_command_passes_without_authorizing_runtime(tmp_path, capsys):
+    _write_packet_fixture(tmp_path)
+
+    exit_code = receipts.main(["--root", str(tmp_path), "operator-intent-core-status"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "passed: True" in output
+    assert "execution_authority_granted: False" in output
+    assert "runtime_activation_authorized: False" in output
+    assert "cassandra_specific: False" in output
+
+
 def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
     _write_packet_fixture(tmp_path)
 
@@ -619,6 +658,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "activation-evidence-status",
         "mcp-shared-memory-gate-status",
         "operator-intake-status",
+        "operator-intent-core-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -680,6 +720,24 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     )
     assert cards["natural_language_operator_intake"]["intent_count"] == len(
         receipts.OPERATOR_INTAKE_REQUIRED_INTENTS
+    )
+    assert cards["operator_intent_core"]["passed"] is True
+    assert cards["operator_intent_core"]["status_command"].endswith(
+        "operator-intent-core-status"
+    )
+    assert cards["operator_intent_core"]["module_path"] == "operator_intent_core.py"
+    assert cards["operator_intent_core"]["execution_authority_granted"] is False
+    assert cards["operator_intent_core"]["runtime_activation_authorized"] is False
+    assert cards["operator_intent_core"]["intent_count"] == len(
+        receipts.OPERATOR_INTENT_CORE_REQUIRED_INTENTS
+    )
+    assert cards["operator_intent_core"]["phrase_count"] == len(
+        receipts.sample_phrase_matrix()
+    )
+    assert cards["operator_intent_core"]["codex_route"] == "codex_bounded_repo_prompt"
+    assert (
+        cards["operator_intent_core"]["gemini_route"]
+        == "gemini_architecture_scope_review"
     )
     assert cards["gated_activation"]["passed"] is True
     assert cards["gated_activation"]["runtime_activation_authorized"] is False
@@ -785,6 +843,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "ast",
         "dataclasses",
         "openclaw_sensitive_policy",
+        "operator_intent_core",
         "pathlib",
         "subprocess",
         "sys",
