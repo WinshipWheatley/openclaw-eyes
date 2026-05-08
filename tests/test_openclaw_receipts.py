@@ -147,6 +147,18 @@ def _write_packet_fixture(root: Path) -> None:
         "# fixture placeholder for operator_intent_core.py\n",
         encoding="utf-8",
     )
+    (root / receipts.OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH).write_text(
+        "# fixture placeholder for operator_action_covenant.py\n",
+        encoding="utf-8",
+    )
+    (root / receipts.OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH).parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    (root / receipts.OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH).write_text(
+        "# fixture placeholder for tests/test_operator_action_covenant.py\n",
+        encoding="utf-8",
+    )
 
 
 def test_parse_porcelain_status_handles_changed_untracked_and_renames():
@@ -649,6 +661,58 @@ def test_operator_intent_core_command_passes_without_authorizing_runtime(tmp_pat
     assert "cassandra_specific: False" in output
 
 
+def test_operator_action_covenant_status_proves_shared_approval_object(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_action_covenant_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["module_path"] == str(
+        receipts.OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH
+    )
+    assert report["test_path"] == str(receipts.OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH)
+    assert report["execution_authority_granted"] is False
+    assert report["restricted_authority_approvable_in_v0"] is False
+    assert report["runtime_activation_authorized"] is False
+    assert report["external_calls_used"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["mcp_called"] is False
+    assert report["hidden_memory_write_used"] is False
+    assert report["persistence_or_database_used"] is False
+    assert report["cassandra_specific"] is False
+    assert report["chief_specific"] is False
+    assert report["telegram_specific"] is False
+    assert report["statuses"] == ("pending", "approved", "denied", "expired", "executed")
+    assert "restricted" in report["risk_levels"]
+    assert "bounded_repo_mutation" in report["authority_levels"]
+    assert "live runtime launch" in report["restricted_domains"]
+    assert "Packet 08 creation" in report["restricted_domains"]
+    assert report["checks"]["restricted_approval_blocked_in_v0"] is True
+    assert (
+        report["checks"]["external_runtime_sensitive_approval_blocked_in_v0"]
+        is True
+    )
+    assert report["checks"]["exact_confirmation_required_for_mutation"] is True
+    assert report["checks"]["go_ahead_without_pending_covenant_blocked"] is True
+    assert report["checks"]["model_advisory_cannot_approve"] is True
+
+
+def test_operator_action_covenant_command_passes_without_authorizing_runtime(
+    tmp_path,
+    capsys,
+):
+    _write_packet_fixture(tmp_path)
+
+    exit_code = receipts.main(["--root", str(tmp_path), "operator-action-covenant-status"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "passed: True" in output
+    assert "execution_authority_granted: False" in output
+    assert "restricted_authority_approvable_in_v0: False" in output
+    assert "runtime_activation_authorized: False" in output
+
+
 def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
     _write_packet_fixture(tmp_path)
 
@@ -659,6 +723,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "mcp-shared-memory-gate-status",
         "operator-intake-status",
         "operator-intent-core-status",
+        "operator-action-covenant-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -738,6 +803,25 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     assert (
         cards["operator_intent_core"]["gemini_route"]
         == "gemini_architecture_scope_review"
+    )
+    assert cards["operator_action_covenant"]["passed"] is True
+    assert cards["operator_action_covenant"]["status_command"].endswith(
+        "operator-action-covenant-status"
+    )
+    assert cards["operator_action_covenant"]["module_path"] == (
+        "operator_action_covenant.py"
+    )
+    assert cards["operator_action_covenant"]["execution_authority_granted"] is False
+    assert (
+        cards["operator_action_covenant"]["restricted_authority_approvable_in_v0"]
+        is False
+    )
+    assert cards["operator_action_covenant"]["runtime_activation_authorized"] is False
+    assert cards["operator_action_covenant"]["status_count"] == len(
+        receipts.ACTION_COVENANT_STATUSES
+    )
+    assert cards["operator_action_covenant"]["restricted_domain_count"] == len(
+        receipts.ACTION_COVENANT_RESTRICTED_DOMAINS
     )
     assert cards["gated_activation"]["passed"] is True
     assert cards["gated_activation"]["runtime_activation_authorized"] is False
@@ -843,6 +927,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "ast",
         "dataclasses",
         "openclaw_sensitive_policy",
+        "operator_action_covenant",
         "operator_intent_core",
         "pathlib",
         "subprocess",

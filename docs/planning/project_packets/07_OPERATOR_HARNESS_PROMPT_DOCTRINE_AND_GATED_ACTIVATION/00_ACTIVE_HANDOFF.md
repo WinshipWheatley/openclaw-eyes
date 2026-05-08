@@ -280,3 +280,27 @@ Current next visible lane:
 
 - Stage 2 prompt/handoff generation is now better prepared because natural operator language can be classified into shared, surface-neutral intent frames before any tool-specific prompt is produced.
 - Still gated now: live autonomy, live runtime launch, assistant daemons/listeners, Cassandra/Chief/Telegram integration, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, UI/dashboard/app work, Packet 08, and treating natural language as execution authority.
+
+## Packet 07 Operator Action Covenant v0 Milestone - 2026-05-08
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- Added `operator_action_covenant.py` as a surface-neutral, deterministic local approval-object seed. It defines the Action Covenant shape future surfaces must present before authority-bearing action: action, risk, authority, evidence, checked boundaries, rollback, expiry, exact confirmation, and status.
+- Implemented local validation helpers for covenant creation, approval eligibility, expiry, denial, approval marking, and compact operator-facing covenant summaries.
+- Added `operator-action-covenant-status` as a compact static receipt proving required statuses, risk levels, authority levels, restricted domains, exact-confirmation behavior, model-advice non-authority, and restricted-domain approval blocking.
+- Extended `operator-harness-status` with a concise `operator_action_covenant` card.
+
+Validation receipt:
+
+```text
+python3 -m py_compile operator_action_covenant.py operator_intent_core.py scripts/openclaw_receipts.py: passed
+pytest tests/test_operator_action_covenant.py -q: 16 passed
+pytest tests/test_openclaw_receipts.py -q: 33 passed
+```
+
+Current next visible lane:
+
+- Future operator surfaces now have a shared covenant object to combine with Operator Intent Core before any action-right request. Natural language can ask; the covenant must carry evidence and exact approval shape before action.
+- Still gated now: live runtime launch, assistant daemon/listener work, Cassandra/Chief/Telegram wiring, persistence/database queues, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, destructive filesystem operations, UI/dashboard/app work, Packet 08, and treating a covenant receipt as execution authority.

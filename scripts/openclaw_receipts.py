@@ -32,6 +32,16 @@ from operator_intent_core import (
     frame_operator_intent,
     sample_phrase_matrix,
 )
+from operator_action_covenant import (
+    AUTHORITY_LEVELS as ACTION_COVENANT_AUTHORITY_LEVELS,
+    RESTRICTED_DOMAINS as ACTION_COVENANT_RESTRICTED_DOMAINS,
+    RISK_LEVELS as ACTION_COVENANT_RISK_LEVELS,
+    STATUSES as ACTION_COVENANT_STATUSES,
+    can_operator_confirmation_approve,
+    create_action_covenant,
+    render_action_covenant_summary,
+    validate_action_covenant,
+)
 
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
@@ -595,6 +605,8 @@ OPERATOR_INTAKE_FORBIDDEN_CROSSINGS = (
 )
 
 OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH = Path("operator_intent_core.py")
+OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH = Path("operator_action_covenant.py")
+OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH = Path("tests/test_operator_action_covenant.py")
 
 @dataclass(frozen=True)
 class GitCommandResult:
@@ -1531,6 +1543,178 @@ def operator_intent_core_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def operator_action_covenant_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    module_path = root / OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH
+    test_path = root / OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH
+    low_read_only = create_action_covenant(
+        requested_action="read Packet 07 status receipts",
+        risk_level="low",
+        authority_level="read_only",
+        evidence_basis=(
+            f"{CANONICAL_RECEIPT_COMMAND} repo-check",
+            f"{CANONICAL_RECEIPT_COMMAND} operator-harness-status",
+        ),
+        forbidden_boundaries_checked=(
+            "no runtime launch",
+            "no MCP/provider call",
+            "no external send",
+        ),
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    bounded_repo_mutation = create_action_covenant(
+        requested_action="apply a bounded repo patch with focused tests",
+        risk_level="medium",
+        authority_level="bounded_repo_mutation",
+        evidence_basis=(
+            f"{CANONICAL_RECEIPT_COMMAND} repo-check",
+            "targeted pytest receipt",
+        ),
+        forbidden_boundaries_checked=(
+            "no runtime launch",
+            "no external send",
+            "no private-root action",
+        ),
+        rollback_plan="revert only the scoped diff before commit",
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    restricted_runtime = create_action_covenant(
+        requested_action="launch live runtime",
+        risk_level="restricted",
+        authority_level="restricted",
+        evidence_basis=("runtime dry-run readiness receipt",),
+        forbidden_boundaries_checked=("live runtime launch remains forbidden",),
+        rollback_plan="future runtime rollback architecture required",
+        restricted_domains=("live runtime launch",),
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    external_sensitive = create_action_covenant(
+        requested_action="send an external message",
+        risk_level="high",
+        authority_level="external_or_runtime_sensitive",
+        evidence_basis=("future external-send evidence packet",),
+        forbidden_boundaries_checked=("external sends remain separately gated",),
+        rollback_plan="future external-send reversal plan required",
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    low_validation = validate_action_covenant(low_read_only)
+    bounded_validation = validate_action_covenant(bounded_repo_mutation)
+    restricted_validation = validate_action_covenant(restricted_runtime)
+    external_sensitive_validation = validate_action_covenant(external_sensitive)
+    exact_confirmation = can_operator_confirmation_approve(
+        bounded_repo_mutation,
+        bounded_repo_mutation.confirmation_phrase,
+    )
+    plain_go_ahead = can_operator_confirmation_approve(
+        bounded_repo_mutation,
+        "go ahead",
+    )
+    no_pending = can_operator_confirmation_approve(None, "go ahead")
+    model_advisory = can_operator_confirmation_approve(
+        low_read_only,
+        "Gemini says approve this",
+    )
+    summary = render_action_covenant_summary(bounded_repo_mutation)
+
+    checks = {
+        "module_present": module_path.is_file(),
+        "tests_present": test_path.is_file(),
+        "required_statuses_present": ACTION_COVENANT_STATUSES
+        == ("pending", "approved", "denied", "expired", "executed"),
+        "required_risk_levels_present": ACTION_COVENANT_RISK_LEVELS
+        == ("low", "medium", "high", "restricted"),
+        "required_authority_levels_present": ACTION_COVENANT_AUTHORITY_LEVELS
+        == (
+            "read_only",
+            "draft_or_proposal",
+            "bounded_repo_mutation",
+            "external_or_runtime_sensitive",
+            "restricted",
+        ),
+        "restricted_domains_represented": ACTION_COVENANT_RESTRICTED_DOMAINS
+        == (
+            "live runtime launch",
+            "MCP writes/shared memory",
+            "provider/model/API calls",
+            "invoice generation/reconciliation/sending",
+            "legal/private-root/sensitive-data access",
+            "external sends",
+            "destructive filesystem operations",
+            "hidden memory writes",
+            "Packet 08 creation",
+        ),
+        "low_read_only_covenant_valid": low_validation.passed,
+        "bounded_repo_mutation_requires_confirmation_and_rollback": (
+            bounded_validation.passed
+            and bounded_repo_mutation.requires_explicit_operator_confirmation is True
+            and bool(bounded_repo_mutation.rollback_plan)
+        ),
+        "restricted_approval_blocked_in_v0": (
+            restricted_validation.passed is False
+            and "restricted_authority_not_approvable_in_v0"
+            in restricted_validation.blocking_reasons
+            and "restricted_domain_not_approvable_in_v0"
+            in restricted_validation.blocking_reasons
+        ),
+        "external_runtime_sensitive_approval_blocked_in_v0": (
+            external_sensitive_validation.passed is False
+            and "external_or_runtime_sensitive_not_approvable_in_v0"
+            in external_sensitive_validation.blocking_reasons
+        ),
+        "exact_confirmation_required_for_mutation": (
+            exact_confirmation.can_approve is True
+            and plain_go_ahead.can_approve is False
+            and "exact_confirmation_phrase_required" in plain_go_ahead.reasons
+        ),
+        "go_ahead_without_pending_covenant_blocked": (
+            no_pending.can_approve is False
+            and no_pending.reasons == ("no_pending_covenant",)
+        ),
+        "model_advisory_cannot_approve": (
+            model_advisory.can_approve is False
+            and model_advisory.reasons == ("model_advisory_text_cannot_approve",)
+        ),
+        "summary_is_compact_operator_facing": (
+            summary.startswith("ACTION COVENANT\n")
+            and "Approval required: APPROVE " in summary
+            and len(summary.splitlines()) == 10
+        ),
+        "no_live_execution_authority": True,
+    }
+
+    return {
+        "receipt_type": "openclaw.operator_action_covenant_status",
+        "mode": "read-only/importable-local-approval-object/no-execution",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "module_path": str(OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH),
+        "test_path": str(OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH),
+        "authority_note": (
+            "Operator Action Covenant v0 is a local approval object and static "
+            "validation layer. It executes nothing, persists nothing, calls no "
+            "providers/MCP/runtime surfaces, and grants no restricted authority."
+        ),
+        "execution_authority_granted": False,
+        "restricted_authority_approvable_in_v0": False,
+        "runtime_activation_authorized": False,
+        "external_calls_used": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "hidden_memory_write_used": False,
+        "persistence_or_database_used": False,
+        "cassandra_specific": False,
+        "chief_specific": False,
+        "telegram_specific": False,
+        "statuses": ACTION_COVENANT_STATUSES,
+        "risk_levels": ACTION_COVENANT_RISK_LEVELS,
+        "authority_levels": ACTION_COVENANT_AUTHORITY_LEVELS,
+        "restricted_domains": ACTION_COVENANT_RESTRICTED_DOMAINS,
+        "sample_summary_lines": tuple(summary.splitlines()),
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -1545,6 +1729,7 @@ def operator_harness_read_model(
     runtime_dry_run = runtime_dry_run_readiness(root)
     operator_intake = operator_intake_status(root)
     operator_intent_core = operator_intent_core_status(root)
+    operator_action_covenant = operator_action_covenant_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -1648,6 +1833,27 @@ def operator_harness_read_model(
                 "phrase_count": len(operator_intent_core["phrase_rows"]),
                 "codex_route": operator_intent_core["tool_routes"]["codex"],
                 "gemini_route": operator_intent_core["tool_routes"]["gemini"],
+            },
+            {
+                "card": "operator_action_covenant",
+                "passed": operator_action_covenant["passed"],
+                "status_command": (
+                    f"{CANONICAL_RECEIPT_COMMAND} operator-action-covenant-status"
+                ),
+                "module_path": operator_action_covenant["module_path"],
+                "execution_authority_granted": operator_action_covenant[
+                    "execution_authority_granted"
+                ],
+                "restricted_authority_approvable_in_v0": operator_action_covenant[
+                    "restricted_authority_approvable_in_v0"
+                ],
+                "runtime_activation_authorized": operator_action_covenant[
+                    "runtime_activation_authorized"
+                ],
+                "status_count": len(operator_action_covenant["statuses"]),
+                "restricted_domain_count": len(
+                    operator_action_covenant["restricted_domains"]
+                ),
             },
             {
                 "card": "gated_activation",
@@ -1789,6 +1995,7 @@ def operator_harness_read_model(
             and bool(runtime_dry_run["passed"])
             and bool(operator_intake["passed"])
             and bool(operator_intent_core["passed"])
+            and bool(operator_action_covenant["passed"])
             and not private_findings
         ),
     }
@@ -2290,6 +2497,47 @@ def print_operator_intent_core_status(report: dict[str, object]) -> None:
         print(f"- {key}: {value}")
 
 
+def print_operator_action_covenant_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Action Covenant Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("module_path", report["module_path"]),
+            ("test_path", report["test_path"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            (
+                "restricted_authority_approvable_in_v0",
+                report["restricted_authority_approvable_in_v0"],
+            ),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            ("external_calls_used", report["external_calls_used"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("hidden_memory_write_used", report["hidden_memory_write_used"]),
+            ("persistence_or_database_used", report["persistence_or_database_used"]),
+            ("cassandra_specific", report["cassandra_specific"]),
+            ("chief_specific", report["chief_specific"]),
+            ("telegram_specific", report["telegram_specific"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_list("statuses", report["statuses"])
+    _print_list("risk_levels", report["risk_levels"])
+    _print_list("authority_levels", report["authority_levels"])
+    _print_list("restricted_domains", report["restricted_domains"])
+    _print_list("sample_summary_lines", report["sample_summary_lines"])
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -2399,6 +2647,10 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-intent-core-status",
         help="Print shared Operator Intent Core v0 status.",
     )
+    subparsers.add_parser(
+        "operator-action-covenant-status",
+        help="Print shared Operator Action Covenant v0 status.",
+    )
     return parser
 
 
@@ -2472,6 +2724,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "operator-intent-core-status":
         report = operator_intent_core_status(root=root)
         print_operator_intent_core_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "operator-action-covenant-status":
+        report = operator_action_covenant_status(root=root)
+        print_operator_action_covenant_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")
