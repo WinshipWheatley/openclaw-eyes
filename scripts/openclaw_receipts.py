@@ -147,6 +147,317 @@ GATED_ACTIVATION_RAILS = (
     "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md",
 )
 
+RUNTIME_AUTHORITY_RAILS = (
+    "19_GATED_ACTIVATION_READINESS_MAP.md",
+    "20_RUNTIME_AUTHORITY_AND_LEGACY_GATING_PLAN.md",
+    "21_RUNTIME_INTEGRATION_AND_RECOVERY_ACTIVATION_PLAN.md",
+    "24_VISIBLE_ROAD_BIG_STRIDES_AND_RENEWAL_DISCIPLINE.md",
+)
+
+RUNTIME_DRY_RUN_FUTURE_PATH = (
+    "static guard",
+    "dry-run readiness harness",
+    "approval gate",
+    "future live authorization",
+)
+
+RUNTIME_FORBIDDEN_NOW = (
+    "live runtime launch",
+    "service start/restart/enable/disable",
+    "process scan or service crawl",
+    "runtime state mutation",
+    "provider/model call",
+    "MCP call or connector mutation",
+    "invoice action",
+    "legal/private-root inspection",
+)
+
+RUNTIME_LEGACY_SURFACE_GROUPS = (
+    {
+        "surface": "legacy_launch_scripts",
+        "classification": "blocked",
+        "paths": (
+            "scripts/start_all.sh",
+            "start_chief.sh",
+            "start_openclaw_brains.sh",
+            "scripts/launch_pc.sh",
+        ),
+        "reason": "prevents unsafe activation through frozen launch shortcuts",
+    },
+    {
+        "surface": "legacy_stack_installer",
+        "classification": "blocked",
+        "paths": ("scripts/install_openclaw_stack.sh",),
+        "reason": "prevents broad stack mutation before exact approval",
+    },
+    {
+        "surface": "hermes_gateway_installer",
+        "classification": "dry-run-only",
+        "paths": ("scripts/install_hermes_gateway_service.sh",),
+        "reason": "clarifies the only currently visible installer path is dry-run planning",
+    },
+    {
+        "surface": "service_inventory_audit",
+        "classification": "review-required",
+        "paths": (
+            "scripts/audit_openclaw_services.sh",
+            "tests/test_audit_openclaw_services_static.py",
+        ),
+        "reason": "reduces rediscovery of existing static audit proof without running it",
+    },
+    {
+        "surface": "systemd_user_templates",
+        "classification": "future-approval-required",
+        "paths": (
+            "systemd/user/openclaw-stack.target.in",
+            "systemd/user/chief-listener.service.in",
+            "systemd/user/chief-worker.service.in",
+            "systemd/user/chief-memory-worker.service.in",
+            "systemd/user/chief-state-worker.service.in",
+            "systemd/user/chief-watcher-brain.service.in",
+            "systemd/user/chief-guardian-listener.service.in",
+            "systemd/user/cassandra-listener.service.in",
+            "systemd/user/cassandra-watcher.service.in",
+            "systemd/user/cassandra-briefing-scheduler.service.in",
+            "systemd/user/hermes-gateway.service.in",
+        ),
+        "reason": "preserves operator leverage by naming service templates without mutating units",
+    },
+    {
+        "surface": "runtime_entrypoints_and_lifecycle_tests",
+        "classification": "review-required",
+        "paths": (
+            "chief_listener.py",
+            "backend_sqlite_runtime.py",
+            "tests/test_chief_listener_lifecycle.py",
+            "tests/test_backend_sqlite_runtime.py",
+        ),
+        "reason": "clarifies exact future review surfaces without launching runtime code",
+    },
+)
+
+PROMPT_PACK_PROFILES = (
+    {
+        "profile": "gemini_planning_prompt",
+        "tool": "Gemini",
+        "role": "planning",
+        "use_for": (
+            "rail interpretation",
+            "architecture/design judgment",
+            "tradeoffs and risk",
+            "scope and campaign shaping",
+            "READY/NOT_READY recommendation",
+        ),
+        "requires": (
+            "roadmap rail references",
+            "visible mile markers",
+            "explicit forbidden surfaces",
+            "review boundary",
+        ),
+        "forbids": (
+            "repo mutation",
+            "execution approval",
+            "provider/runtime/MCP action",
+        ),
+        "north_star_purpose": "clarifies next safe action",
+    },
+    {
+        "profile": "codex_implementation_prompt",
+        "tool": "Codex",
+        "role": "implementation",
+        "use_for": (
+            "bounded repo mutation",
+            "convention inspection",
+            "focused tests",
+            "diff production",
+            "validation receipts",
+        ),
+        "requires": (
+            "clean baseline proof",
+            "exact allowed files or surfaces",
+            "focused validation commands",
+            "no staging or commit unless explicitly requested",
+        ),
+        "drift_guards": (
+            "invented architecture",
+            "adjacent-file cleanup",
+            "dirty-worktree mistakes",
+            "broad staging",
+            "overclaiming completion",
+        ),
+        "north_star_purpose": "preserves operator leverage",
+    },
+    {
+        "profile": "gemini_architecture_scope_review_prompt",
+        "tool": "Gemini",
+        "role": "architecture_scope_review",
+        "use_for": (
+            "architecture alignment",
+            "scope risk",
+            "rail alignment",
+            "overreach/underreach review",
+        ),
+        "requires": (
+            "changed-file summary",
+            "receipt outputs",
+            "mile marker acceptance criteria",
+            "READY/NOT_READY finding",
+        ),
+        "forbids": (
+            "commit approval by implication",
+            "live activation permission",
+            "private-root or runtime expansion",
+        ),
+        "north_star_purpose": "prevents unsafe activation",
+    },
+    {
+        "profile": "codex_diff_commit_readiness_review_prompt",
+        "tool": "Codex",
+        "role": "diff_commit_readiness_review",
+        "use_for": (
+            "dirty diff inspection",
+            "line behavior",
+            "tests and failure modes",
+            "boundary leaks",
+            "commit readiness",
+        ),
+        "requires": (
+            "git diff",
+            "test outputs",
+            "exact changed files",
+            "READY_TO_COMMIT or NOT_READY_TO_COMMIT",
+        ),
+        "forbids": (
+            "broad refactor review drift",
+            "model-only approval",
+            "unstated staging",
+        ),
+        "north_star_purpose": "reduces future discovery",
+    },
+    {
+        "profile": "codex_commit_mechanics_prompt",
+        "tool": "Codex",
+        "role": "commit_mechanics",
+        "use_for": (
+            "explicit staging",
+            "final checks",
+            "Conventional Commit",
+            "post-commit receipts",
+            "no push",
+        ),
+        "requires": (
+            "prior review returned READY_TO_COMMIT",
+            "explicit staging scope",
+            "final validation receipt",
+            "post-commit receipt",
+        ),
+        "forbids": (
+            "commit before READY_TO_COMMIT",
+            "broad staging",
+            "push",
+        ),
+        "north_star_purpose": "preserves evidence boundaries",
+    },
+)
+
+ACTIVATION_EVIDENCE_ITEMS = (
+    {
+        "item": "repo_receipt",
+        "command": f"{CANONICAL_RECEIPT_COMMAND} repo-check",
+        "purpose": "reduces future discovery of repo cleanliness and Packet state",
+    },
+    {
+        "item": "packet_receipt",
+        "command": f"{CANONICAL_RECEIPT_COMMAND} packet-status",
+        "purpose": "preserves File 01 roadmap authority and active Packet 07 proof",
+    },
+    {
+        "item": "operator_harness_read_model_receipt",
+        "command": f"{CANONICAL_RECEIPT_COMMAND} operator-harness-status",
+        "purpose": "reduces operator context load through low-context cards",
+    },
+    {
+        "item": "dry_run_readiness_receipt",
+        "command": f"{CANONICAL_RECEIPT_COMMAND} runtime-dry-run-readiness",
+        "purpose": "prevents unsafe activation by proving dry-run-only scope",
+    },
+    {
+        "item": "boundary_non_authority_receipt",
+        "command": f"{CANONICAL_RECEIPT_COMMAND} gated-activation-status",
+        "purpose": "preserves evidence boundaries by showing receipts are not approval",
+    },
+    {
+        "item": "targeted_test_receipt",
+        "command": "pytest tests/test_openclaw_receipts.py -q",
+        "purpose": "ties readiness to focused tests instead of model judgment alone",
+    },
+    {
+        "item": "approval_gate_note",
+        "command": "future explicit operator approval note",
+        "purpose": "clarifies the next safe action before any live lane",
+    },
+)
+
+CONTROLLED_ACTIVATION_LANE_PLAN = {
+    "lane": "runtime_authority_and_legacy_gating",
+    "selected": True,
+    "selection_reason": (
+        "Packet 07 already names runtime/legacy gating as the first visible "
+        "future activation lane, and it can advance through static dry-run "
+        "proof without launching services."
+    ),
+    "surface_category": "legacy launch scripts, service templates, and runtime entrypoints",
+    "evidence_required": tuple(item["item"] for item in ACTIVATION_EVIDENCE_ITEMS),
+    "failure_modes": (
+        "legacy script bypasses approval",
+        "dry-run wording implies launch permission",
+        "service template mutation appears in a readiness step",
+        "receipt treated as approval",
+        "process or runtime state is inspected as proof",
+    ),
+    "approval_required_before": (
+        "any service launch",
+        "any process/service inspection",
+        "any runtime mutation",
+        "any installer apply/restart path",
+    ),
+    "rollback_boundary": (
+        "dry-run readiness is static only; no runtime rollback is needed until "
+        "a future approved live lane exists"
+    ),
+    "forbidden_now": RUNTIME_FORBIDDEN_NOW,
+}
+
+MCP_SHARED_MEMORY_STATIC_POINTERS = (
+    {
+        "surface": "mcp_profile_config",
+        "classification": "future-approval-required",
+        "paths": (".mcp.json",),
+        "reason": "prevents connector configuration from becoming hidden authority",
+    },
+    {
+        "surface": "knowledge_substrate_review",
+        "classification": "review-required",
+        "paths": (
+            "backend_knowledge_packet.py",
+            "backend_sqlite_repository.py",
+            "backend_storage_intelligence.py",
+            "tests/test_backend_agent_context.py",
+        ),
+        "reason": "keeps canonical memory review tied to existing local-first substrate",
+    },
+    {
+        "surface": "receipt_read_model_bridge",
+        "classification": "dry-run-only",
+        "paths": (
+            "scripts/openclaw_receipts.py",
+            "openclaw_sensitive_policy.py",
+            "tests/test_openclaw_receipts.py",
+        ),
+        "reason": "allows static evidence without MCP calls or hidden writes",
+    },
+)
+
 @dataclass(frozen=True)
 class GitCommandResult:
     args: tuple[str, ...]
@@ -437,6 +748,58 @@ def _read_rail_text(rails_dir: Path, name: str) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
+def _present_paths(root: Path, paths: Sequence[str]) -> tuple[str, ...]:
+    return tuple(path for path in paths if (root / path).is_file())
+
+
+def _surface_groups_with_presence(
+    root: Path,
+    groups: Sequence[dict[str, object]],
+) -> tuple[dict[str, object], ...]:
+    enriched: list[dict[str, object]] = []
+    for group in groups:
+        paths = tuple(str(path) for path in group["paths"])
+        enriched.append(
+            {
+                **group,
+                "paths": paths,
+                "present_paths": _present_paths(root, paths),
+                "executes_surface": False,
+                "mutates_surface": False,
+            }
+        )
+    return tuple(enriched)
+
+
+def _approval_gate_shape(
+    lane: str,
+    required_evidence: Sequence[str],
+) -> dict[str, object]:
+    return {
+        "lane": lane,
+        "current_approval_granted": False,
+        "future_explicit_authority_required": True,
+        "live_approval_engine_implemented": False,
+        "approval_decision_fields": (
+            "lane",
+            "scope",
+            "evidence_receipts",
+            "targeted_tests",
+            "rollback_or_reversal_boundary",
+            "forbidden_surfaces_confirmed",
+            "operator_approval_timestamp",
+        ),
+        "required_evidence": tuple(required_evidence),
+        "not_sufficient": (
+            "model recommendation alone",
+            "receipt existence alone",
+            "dry-run readiness alone",
+            "stale handoff note",
+        ),
+        "authority_note": "Approval is a future explicit operator authority, not current permission.",
+    }
+
+
 def prompt_doctrine_status(root: Path = ROOT) -> dict[str, object]:
     packet = packet_status(root)
     rails_dir = _active_rails_dir_from_packet(packet, root)
@@ -480,6 +843,69 @@ def prompt_doctrine_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def prompt_pack_status(root: Path = ROOT) -> dict[str, object]:
+    doctrine = prompt_doctrine_status(root)
+    profile_ids = tuple(profile["profile"] for profile in PROMPT_PACK_PROFILES)
+    implementation_profile = next(
+        profile
+        for profile in PROMPT_PACK_PROFILES
+        if profile["profile"] == "codex_implementation_prompt"
+    )
+    commit_profile = next(
+        profile
+        for profile in PROMPT_PACK_PROFILES
+        if profile["profile"] == "codex_commit_mechanics_prompt"
+    )
+
+    checks = {
+        "file14_doctrine_passed": bool(doctrine["passed"]),
+        "profile_count_is_5": len(PROMPT_PACK_PROFILES) == 5,
+        "required_profiles_present": profile_ids
+        == (
+            "gemini_planning_prompt",
+            "codex_implementation_prompt",
+            "gemini_architecture_scope_review_prompt",
+            "codex_diff_commit_readiness_review_prompt",
+            "codex_commit_mechanics_prompt",
+        ),
+        "gemini_and_codex_profiles_distinct": len(
+            {(profile["tool"], profile["role"]) for profile in PROMPT_PACK_PROFILES}
+        )
+        == len(PROMPT_PACK_PROFILES),
+        "codex_real_drift_risks_guarded": all(
+            risk in implementation_profile["drift_guards"]
+            for risk in (
+                "invented architecture",
+                "adjacent-file cleanup",
+                "dirty-worktree mistakes",
+                "broad staging",
+                "overclaiming completion",
+            )
+        ),
+        "commit_mechanics_requires_ready_to_commit": (
+            "prior review returned READY_TO_COMMIT" in commit_profile["requires"]
+        ),
+        "static_read_only_no_generation": True,
+    }
+
+    return {
+        "receipt_type": "openclaw.prompt_pack_status",
+        "mode": "read-only/static-prompt-profile-check",
+        "target_packet": doctrine["target_packet"],
+        "active_packet": doctrine["active_packet"],
+        "authority_note": (
+            "Prompt-pack profiles are static guidance; this receipt does not "
+            "generate prompts or grant execution authority."
+        ),
+        "mutates_files": False,
+        "generates_prompts": False,
+        "generated_prompt_count": 0,
+        "profiles": PROMPT_PACK_PROFILES,
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+
+
 def gated_activation_status(root: Path = ROOT) -> dict[str, object]:
     packet = packet_status(root)
     rails_dir = _active_rails_dir_from_packet(packet, root)
@@ -512,6 +938,8 @@ def gated_activation_status(root: Path = ROOT) -> dict[str, object]:
             and "No path-metadata-as-authority" in combined_text
             and "No source-set generation from hidden chat memory" in combined_text
         ),
+        "runtime_dry_run_readiness_receipt_exposed": True,
+        "mcp_shared_memory_gate_receipt_exposed": True,
     }
 
     return {
@@ -527,6 +955,228 @@ def gated_activation_status(root: Path = ROOT) -> dict[str, object]:
         "filesystem_inspected": False,
         "runtime_launched": False,
         "provider_or_model_called": False,
+        "runtime_dry_run_readiness_command": (
+            f"{CANONICAL_RECEIPT_COMMAND} runtime-dry-run-readiness"
+        ),
+        "mcp_shared_memory_gate_command": (
+            f"{CANONICAL_RECEIPT_COMMAND} mcp-shared-memory-gate-status"
+        ),
+        "future_activation_path": RUNTIME_DRY_RUN_FUTURE_PATH,
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
+def runtime_dry_run_readiness(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    rails_dir = _active_rails_dir_from_packet(packet, root)
+    rail_texts = {
+        name: _read_rail_text(rails_dir, name)
+        for name in RUNTIME_AUTHORITY_RAILS
+    }
+    combined_text = "\n".join(rail_texts.values())
+    surface_groups = _surface_groups_with_presence(root, RUNTIME_LEGACY_SURFACE_GROUPS)
+    approval_gate = _approval_gate_shape(
+        CONTROLLED_ACTIVATION_LANE_PLAN["lane"],
+        CONTROLLED_ACTIVATION_LANE_PLAN["evidence_required"],
+    )
+
+    checks = {
+        "packet07_runtime_rails_present": all(bool(text) for text in rail_texts.values()),
+        "runtime_activation_not_authorized": (
+            "No live service launch" in combined_text
+            and "does not authorize live runtime launch" in combined_text
+        ),
+        "legacy_surfaces_classified": all(
+            group["classification"]
+            in {
+                "blocked",
+                "review-required",
+                "dry-run-only",
+                "future-approval-required",
+            }
+            for group in surface_groups
+        ),
+        "dry_run_path_defined": RUNTIME_DRY_RUN_FUTURE_PATH
+        == (
+            "static guard",
+            "dry-run readiness harness",
+            "approval gate",
+            "future live authorization",
+        ),
+        "approval_gate_is_future_shape_only": (
+            approval_gate["current_approval_granted"] is False
+            and approval_gate["future_explicit_authority_required"] is True
+            and approval_gate["live_approval_engine_implemented"] is False
+        ),
+        "no_runtime_or_external_effects": True,
+    }
+
+    return {
+        "receipt_type": "openclaw.runtime_dry_run_readiness",
+        "mode": "read-only/static-repo-pointers/no-runtime-inspection",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "authority_note": (
+            "Runtime activation is not authorized; this receipt is dry-run "
+            "readiness evidence only."
+        ),
+        "runtime_activation_authorized": False,
+        "receipt_grants_execution_authority": False,
+        "runtime_launched": False,
+        "process_scan_used": False,
+        "service_state_inspected": False,
+        "runtime_state_mutated": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "invoice_action_taken": False,
+        "private_root_inspected": False,
+        "future_path": RUNTIME_DRY_RUN_FUTURE_PATH,
+        "future_path_text": " -> ".join(RUNTIME_DRY_RUN_FUTURE_PATH),
+        "surface_groups": surface_groups,
+        "approval_gate": approval_gate,
+        "first_controlled_activation_lane": CONTROLLED_ACTIVATION_LANE_PLAN,
+        "forbidden_now": RUNTIME_FORBIDDEN_NOW,
+        "north_star_filter": (
+            "reduce future discovery",
+            "prevent unsafe activation",
+            "clarify next safe action",
+            "preserve operator leverage",
+        ),
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
+def activation_evidence_status(root: Path = ROOT) -> dict[str, object]:
+    runtime = runtime_dry_run_readiness(root)
+    gated = gated_activation_status(root)
+    approval_gate = _approval_gate_shape(
+        CONTROLLED_ACTIVATION_LANE_PLAN["lane"],
+        tuple(item["item"] for item in ACTIVATION_EVIDENCE_ITEMS),
+    )
+    evidence_names = tuple(item["item"] for item in ACTIVATION_EVIDENCE_ITEMS)
+
+    checks = {
+        "required_evidence_items_present": evidence_names
+        == (
+            "repo_receipt",
+            "packet_receipt",
+            "operator_harness_read_model_receipt",
+            "dry_run_readiness_receipt",
+            "boundary_non_authority_receipt",
+            "targeted_test_receipt",
+            "approval_gate_note",
+        ),
+        "runtime_lane_supported_first": (
+            CONTROLLED_ACTIVATION_LANE_PLAN["lane"]
+            == "runtime_authority_and_legacy_gating"
+        ),
+        "generalizable_future_lanes_named": True,
+        "dry_run_readiness_non_authorizing": (
+            runtime["runtime_activation_authorized"] is False
+            and runtime["receipt_grants_execution_authority"] is False
+        ),
+        "boundary_receipt_non_authorizing": (
+            gated["receipt_grants_execution_authority"] is False
+        ),
+        "approval_gate_future_only": (
+            approval_gate["current_approval_granted"] is False
+            and approval_gate["live_approval_engine_implemented"] is False
+        ),
+        "evidence_tied_to_receipts_and_tests": all(
+            "receipt" in item["item"]
+            or "test" in item["item"]
+            or item["item"] == "approval_gate_note"
+            for item in ACTIVATION_EVIDENCE_ITEMS
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.activation_evidence_status",
+        "mode": "read-only/static-evidence-bundle/non-authorizing",
+        "target_lane": CONTROLLED_ACTIVATION_LANE_PLAN["lane"],
+        "authority_note": (
+            "This evidence packet is a structure/check, not activation authority."
+        ),
+        "execution_authority_granted": False,
+        "live_activation_implemented": False,
+        "supported_future_lanes": (
+            "runtime_legacy_activation",
+            "mcp_shared_memory_activation",
+            "legal_export_activation",
+            "invoice_billing_activation",
+        ),
+        "required_evidence": ACTIVATION_EVIDENCE_ITEMS,
+        "approval_gate": approval_gate,
+        "first_controlled_activation_lane": CONTROLLED_ACTIVATION_LANE_PLAN,
+        "checks": checks,
+        "passed": bool(runtime["passed"]) and bool(gated["passed"]) and all(checks.values()),
+    }
+
+
+def mcp_shared_memory_gate_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    rails_dir = _active_rails_dir_from_packet(packet, root)
+    rail_text = _read_rail_text(
+        rails_dir,
+        "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md",
+    )
+    final_contract = packet06_final_static_boundary_contract()
+    mcp_contract = final_contract["mcp_shared_memory"]
+    static_pointers = _surface_groups_with_presence(root, MCP_SHARED_MEMORY_STATIC_POINTERS)
+
+    checks = {
+        "file22_present": bool(rail_text),
+        "external_mcp_calls_blocked": (
+            "No MCP invocation" in rail_text
+            and "No external MCP calls" in rail_text
+            and mcp_contract["external_mcp_calls_allowed"] is False
+        ),
+        "hidden_memory_writes_blocked": (
+            "No hidden memory writes" in rail_text
+            and mcp_contract["hidden_canonical_memory_writes_allowed"] is False
+        ),
+        "single_source_of_truth_required": "Single-source-of-truth requirements" in rail_text,
+        "receipts_not_execution_authority": (
+            "Receipts/read models as evidence, not approval" in rail_text
+            and mcp_contract["receipts_are_execution_authority"] is False
+        ),
+        "private_context_leakage_blocked": "No private-root exposure" in rail_text,
+        "static_pointers_classified": all(
+            group["classification"]
+            in {"review-required", "dry-run-only", "future-approval-required"}
+            for group in static_pointers
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.mcp_shared_memory_gate_status",
+        "mode": "read-only/static-mcp-gate/no-connector-call",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "authority_note": (
+            "MCP/shared memory remains a future gate; this receipt performs no "
+            "MCP calls and writes no memory."
+        ),
+        "external_mcp_calls_allowed": False,
+        "external_mcp_calls_used": False,
+        "mcp_connector_mutated": False,
+        "hidden_canonical_memory_writes_allowed": False,
+        "hidden_canonical_memory_writes_used": False,
+        "private_context_leakage_allowed": False,
+        "shared_memory_is_execution_authority": False,
+        "receipts_are_execution_authority": False,
+        "static_pointers": static_pointers,
+        "required_future_evidence": (
+            "source authority",
+            "single source of truth",
+            "context provenance",
+            "no hidden writer",
+            "privacy boundary",
+            "receipt/read-model non-authority",
+            "explicit approval",
+        ),
         "checks": checks,
         "passed": bool(packet["passed"]) and all(checks.values()),
     }
@@ -543,6 +1193,7 @@ def operator_harness_read_model(
     packet = packet_status(root)
     prompt_doctrine = prompt_doctrine_status(root)
     gated_activation = gated_activation_status(root)
+    runtime_dry_run = runtime_dry_run_readiness(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -628,6 +1279,21 @@ def operator_harness_read_model(
                 "provider_or_model_called": gated_activation[
                     "provider_or_model_called"
                 ],
+            },
+            {
+                "card": "runtime_dry_run_readiness",
+                "passed": runtime_dry_run["passed"],
+                "runtime_activation_authorized": runtime_dry_run[
+                    "runtime_activation_authorized"
+                ],
+                "receipt_grants_execution_authority": runtime_dry_run[
+                    "receipt_grants_execution_authority"
+                ],
+                "readiness_command": (
+                    f"{CANONICAL_RECEIPT_COMMAND} runtime-dry-run-readiness"
+                ),
+                "future_path": runtime_dry_run["future_path"],
+                "surface_group_count": len(runtime_dry_run["surface_groups"]),
             },
             {
                 "card": "invoice_artifact",
@@ -730,6 +1396,7 @@ def operator_harness_read_model(
             bool(packet["passed"])
             and bool(prompt_doctrine["passed"])
             and bool(gated_activation["passed"])
+            and bool(runtime_dry_run["passed"])
             and not private_findings
         ),
     }
@@ -749,6 +1416,25 @@ def _print_list(name: str, values: Iterable[object]) -> None:
         return
     for value in items:
         print(f"- {value}")
+
+
+def _print_records(
+    name: str,
+    values: Iterable[dict[str, object]],
+    *,
+    label_key: str,
+) -> None:
+    print(f"{name}:")
+    records = list(values)
+    if not records:
+        print("- none")
+        return
+    for record in records:
+        print(f"- {record[label_key]}:")
+        for key, value in record.items():
+            if key == label_key:
+                continue
+            print(f"  {key}: {value}")
 
 
 def _redacted_path(path: str, findings: Sequence[PathPolicyFinding]) -> str:
@@ -936,6 +1622,27 @@ def print_prompt_doctrine_status(report: dict[str, object]) -> None:
         print(f"- {key}: {value}")
 
 
+def print_prompt_pack_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Prompt-Pack Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("authority_note", report["authority_note"]),
+            ("mutates_files", report["mutates_files"]),
+            ("generates_prompts", report["generates_prompts"]),
+            ("generated_prompt_count", report["generated_prompt_count"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_records("profiles", report["profiles"], label_key="profile")
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_gated_activation_status(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Gated Activation Status Receipt",
@@ -961,9 +1668,126 @@ def print_gated_activation_status(report: dict[str, object]) -> None:
             ("filesystem_inspected", report["filesystem_inspected"]),
             ("runtime_launched", report["runtime_launched"]),
             ("provider_or_model_called", report["provider_or_model_called"]),
+            (
+                "runtime_dry_run_readiness_command",
+                report["runtime_dry_run_readiness_command"],
+            ),
+            ("mcp_shared_memory_gate_command", report["mcp_shared_memory_gate_command"]),
             ("passed", report["passed"]),
         ),
     )
+    _print_list("future_activation_path", report["future_activation_path"])
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
+def print_runtime_dry_run_readiness(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Runtime Dry-Run Readiness Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("authority_note", report["authority_note"]),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            (
+                "receipt_grants_execution_authority",
+                report["receipt_grants_execution_authority"],
+            ),
+            ("runtime_launched", report["runtime_launched"]),
+            ("process_scan_used", report["process_scan_used"]),
+            ("service_state_inspected", report["service_state_inspected"]),
+            ("runtime_state_mutated", report["runtime_state_mutated"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("invoice_action_taken", report["invoice_action_taken"]),
+            ("private_root_inspected", report["private_root_inspected"]),
+            ("future_path_text", report["future_path_text"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_records("surface_groups", report["surface_groups"], label_key="surface")
+    print("approval_gate:")
+    for key, value in report["approval_gate"].items():
+        print(f"- {key}: {value}")
+    print("first_controlled_activation_lane:")
+    for key, value in report["first_controlled_activation_lane"].items():
+        print(f"- {key}: {value}")
+    _print_list("forbidden_now", report["forbidden_now"])
+    _print_list("north_star_filter", report["north_star_filter"])
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
+def print_activation_evidence_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Activation Evidence Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_lane", report["target_lane"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            ("live_activation_implemented", report["live_activation_implemented"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_list("supported_future_lanes", report["supported_future_lanes"])
+    _print_records("required_evidence", report["required_evidence"], label_key="item")
+    print("approval_gate:")
+    for key, value in report["approval_gate"].items():
+        print(f"- {key}: {value}")
+    print("first_controlled_activation_lane:")
+    for key, value in report["first_controlled_activation_lane"].items():
+        print(f"- {key}: {value}")
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
+def print_mcp_shared_memory_gate_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw MCP Shared Memory Gate Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("authority_note", report["authority_note"]),
+            ("external_mcp_calls_allowed", report["external_mcp_calls_allowed"]),
+            ("external_mcp_calls_used", report["external_mcp_calls_used"]),
+            ("mcp_connector_mutated", report["mcp_connector_mutated"]),
+            (
+                "hidden_canonical_memory_writes_allowed",
+                report["hidden_canonical_memory_writes_allowed"],
+            ),
+            (
+                "hidden_canonical_memory_writes_used",
+                report["hidden_canonical_memory_writes_used"],
+            ),
+            (
+                "private_context_leakage_allowed",
+                report["private_context_leakage_allowed"],
+            ),
+            (
+                "shared_memory_is_execution_authority",
+                report["shared_memory_is_execution_authority"],
+            ),
+            (
+                "receipts_are_execution_authority",
+                report["receipts_are_execution_authority"],
+            ),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_records("static_pointers", report["static_pointers"], label_key="surface")
+    _print_list("required_future_evidence", report["required_future_evidence"])
     print("checks:")
     for key, value in report["checks"].items():
         print(f"- {key}: {value}")
@@ -1051,8 +1875,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print Packet 07 model/tool-specific prompt doctrine status.",
     )
     subparsers.add_parser(
+        "prompt-pack-status",
+        help="Print Packet 07 static prompt-pack profile status.",
+    )
+    subparsers.add_parser(
         "gated-activation-status",
         help="Print Packet 07 gated activation boundary status.",
+    )
+    subparsers.add_parser(
+        "runtime-dry-run-readiness",
+        help="Print runtime authority and legacy gating dry-run readiness.",
+    )
+    subparsers.add_parser(
+        "activation-evidence-status",
+        help="Print static activation evidence packet status.",
+    )
+    subparsers.add_parser(
+        "mcp-shared-memory-gate-status",
+        help="Print static MCP/shared-memory hidden-authority gate status.",
     )
     return parser
 
@@ -1100,9 +1940,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = prompt_doctrine_status(root=root)
         print_prompt_doctrine_status(report)
         return 0 if report["passed"] else 1
+    if args.command == "prompt-pack-status":
+        report = prompt_pack_status(root=root)
+        print_prompt_pack_status(report)
+        return 0 if report["passed"] else 1
     if args.command == "gated-activation-status":
         report = gated_activation_status(root=root)
         print_gated_activation_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "runtime-dry-run-readiness":
+        report = runtime_dry_run_readiness(root=root)
+        print_runtime_dry_run_readiness(report)
+        return 0 if report["passed"] else 1
+    if args.command == "activation-evidence-status":
+        report = activation_evidence_status(root=root)
+        print_activation_evidence_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "mcp-shared-memory-gate-status":
+        report = mcp_shared_memory_gate_status(root=root)
+        print_mcp_shared_memory_gate_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")

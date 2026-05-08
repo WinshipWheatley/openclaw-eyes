@@ -46,7 +46,11 @@ def _rail_fixture_text(name: str) -> str:
             "No live service launch.\nNo private-root inspection.\n"
         ),
         "22_MCP_SHARED_MEMORY_AND_HIDDEN_AUTHORITY_GATES.md": (
-            "No MCP invocation.\nNo hidden memory writes.\nhidden authority\n"
+            "Single-source-of-truth requirements.\n"
+            "Receipts/read models as evidence, not approval.\n"
+            "No MCP invocation.\nNo external MCP calls.\n"
+            "No hidden memory writes.\nhidden authority\n"
+            "No private-root exposure.\n"
         ),
         "23_BROAD_SOURCE_SET_EXCLUSION_AND_PACKET_RENEWAL_GUARD.md": (
             "No broad filesystem crawling.\nNo path-metadata-as-authority.\n"
@@ -331,6 +335,164 @@ def test_gated_activation_status_is_static_and_non_authorizing(tmp_path):
     assert report["checks"]["mcp_hidden_authority_blocked"] is True
     assert report["checks"]["invoice_legal_private_root_activation_gated"] is True
     assert report["checks"]["broad_source_set_laundering_blocked"] is True
+    assert report["runtime_dry_run_readiness_command"].endswith("runtime-dry-run-readiness")
+    assert report["mcp_shared_memory_gate_command"].endswith("mcp-shared-memory-gate-status")
+    assert report["future_activation_path"] == receipts.RUNTIME_DRY_RUN_FUTURE_PATH
+
+
+def test_runtime_dry_run_readiness_classifies_surfaces_without_execution(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.runtime_dry_run_readiness(tmp_path)
+
+    assert report["passed"] is True
+    assert report["runtime_activation_authorized"] is False
+    assert report["receipt_grants_execution_authority"] is False
+    assert report["runtime_launched"] is False
+    assert report["process_scan_used"] is False
+    assert report["service_state_inspected"] is False
+    assert report["runtime_state_mutated"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["mcp_called"] is False
+    assert report["invoice_action_taken"] is False
+    assert report["private_root_inspected"] is False
+    assert report["future_path"] == (
+        "static guard",
+        "dry-run readiness harness",
+        "approval gate",
+        "future live authorization",
+    )
+
+    groups = {group["surface"]: group for group in report["surface_groups"]}
+    assert groups["legacy_launch_scripts"]["classification"] == "blocked"
+    assert groups["legacy_stack_installer"]["classification"] == "blocked"
+    assert groups["hermes_gateway_installer"]["classification"] == "dry-run-only"
+    assert groups["service_inventory_audit"]["classification"] == "review-required"
+    assert groups["systemd_user_templates"]["classification"] == "future-approval-required"
+    assert all(group["executes_surface"] is False for group in groups.values())
+    assert all(group["mutates_surface"] is False for group in groups.values())
+
+
+def test_runtime_approval_gate_is_shape_not_current_permission(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.runtime_dry_run_readiness(tmp_path)
+    gate = report["approval_gate"]
+
+    assert gate["current_approval_granted"] is False
+    assert gate["future_explicit_authority_required"] is True
+    assert gate["live_approval_engine_implemented"] is False
+    assert "model recommendation alone" in gate["not_sufficient"]
+    assert "dry_run_readiness_receipt" in gate["required_evidence"]
+    assert report["first_controlled_activation_lane"]["lane"] == (
+        "runtime_authority_and_legacy_gating"
+    )
+    assert "receipt treated as approval" in report["first_controlled_activation_lane"][
+        "failure_modes"
+    ]
+
+
+def test_prompt_pack_status_defines_distinct_model_review_and_commit_profiles(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.prompt_pack_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["mutates_files"] is False
+    assert report["generates_prompts"] is False
+    assert report["generated_prompt_count"] == 0
+    profiles = {profile["profile"]: profile for profile in report["profiles"]}
+    assert set(profiles) == {
+        "gemini_planning_prompt",
+        "codex_implementation_prompt",
+        "gemini_architecture_scope_review_prompt",
+        "codex_diff_commit_readiness_review_prompt",
+        "codex_commit_mechanics_prompt",
+    }
+    assert profiles["gemini_planning_prompt"]["tool"] == "Gemini"
+    assert profiles["codex_implementation_prompt"]["tool"] == "Codex"
+    assert "invented architecture" in profiles["codex_implementation_prompt"][
+        "drift_guards"
+    ]
+    assert "generic forbiddance spam" not in str(report["profiles"])
+    assert "prior review returned READY_TO_COMMIT" in profiles[
+        "codex_commit_mechanics_prompt"
+    ]["requires"]
+    assert report["checks"]["commit_mechanics_requires_ready_to_commit"] is True
+
+
+def test_activation_evidence_packet_contains_required_static_evidence(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.activation_evidence_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["execution_authority_granted"] is False
+    assert report["live_activation_implemented"] is False
+    evidence = {item["item"]: item for item in report["required_evidence"]}
+    assert tuple(evidence) == (
+        "repo_receipt",
+        "packet_receipt",
+        "operator_harness_read_model_receipt",
+        "dry_run_readiness_receipt",
+        "boundary_non_authority_receipt",
+        "targeted_test_receipt",
+        "approval_gate_note",
+    )
+    assert evidence["repo_receipt"]["command"].endswith("repo-check")
+    assert evidence["packet_receipt"]["command"].endswith("packet-status")
+    assert evidence["operator_harness_read_model_receipt"]["command"].endswith(
+        "operator-harness-status"
+    )
+    assert evidence["dry_run_readiness_receipt"]["command"].endswith(
+        "runtime-dry-run-readiness"
+    )
+    assert evidence["boundary_non_authority_receipt"]["command"].endswith(
+        "gated-activation-status"
+    )
+    assert evidence["targeted_test_receipt"]["command"] == (
+        "pytest tests/test_openclaw_receipts.py -q"
+    )
+    assert all(item["purpose"] for item in evidence.values())
+    assert report["approval_gate"]["current_approval_granted"] is False
+    assert "mcp_shared_memory_activation" in report["supported_future_lanes"]
+
+
+def test_mcp_shared_memory_gate_is_static_no_call_and_non_authorizing(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.mcp_shared_memory_gate_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["external_mcp_calls_allowed"] is False
+    assert report["external_mcp_calls_used"] is False
+    assert report["mcp_connector_mutated"] is False
+    assert report["hidden_canonical_memory_writes_allowed"] is False
+    assert report["hidden_canonical_memory_writes_used"] is False
+    assert report["private_context_leakage_allowed"] is False
+    assert report["shared_memory_is_execution_authority"] is False
+    assert report["receipts_are_execution_authority"] is False
+    pointers = {pointer["surface"]: pointer for pointer in report["static_pointers"]}
+    assert pointers["mcp_profile_config"]["classification"] == "future-approval-required"
+    assert pointers["receipt_read_model_bridge"]["classification"] == "dry-run-only"
+    assert "single source of truth" in report["required_future_evidence"]
+    assert report["checks"]["external_mcp_calls_blocked"] is True
+
+
+def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
+    _write_packet_fixture(tmp_path)
+
+    for command in (
+        "runtime-dry-run-readiness",
+        "prompt-pack-status",
+        "activation-evidence-status",
+        "mcp-shared-memory-gate-status",
+    ):
+        exit_code = receipts.main(["--root", str(tmp_path), command])
+        output = capsys.readouterr().out
+
+        assert exit_code == 0
+        assert "passed: True" in output
 
 
 def test_operator_harness_read_model_combines_receipts_without_runtime_authority(tmp_path):
@@ -360,6 +522,21 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     assert cards["gated_activation"]["passed"] is True
     assert cards["gated_activation"]["runtime_activation_authorized"] is False
     assert cards["gated_activation"]["receipt_grants_execution_authority"] is False
+    assert cards["runtime_dry_run_readiness"]["passed"] is True
+    assert cards["runtime_dry_run_readiness"]["runtime_activation_authorized"] is False
+    assert (
+        cards["runtime_dry_run_readiness"]["receipt_grants_execution_authority"]
+        is False
+    )
+    assert cards["runtime_dry_run_readiness"]["readiness_command"].endswith(
+        "runtime-dry-run-readiness"
+    )
+    assert cards["runtime_dry_run_readiness"]["future_path"] == (
+        "static guard",
+        "dry-run readiness harness",
+        "approval gate",
+        "future live authorization",
+    )
     assert cards["invoice_artifact"]["draft_only"] is True
     assert cards["invoice_artifact"]["invoice_generation_allowed"] is False
     assert cards["invoice_artifact"]["invoice_send_allowed"] is False
