@@ -624,7 +624,7 @@ def _render_operator_harness_card(harness: dict) -> str:
 
     cards = {c["card"]: c for c in harness.get("cards", [])}
 
-    # Module Presence
+    # Presence and descriptive wording
     presence = []
     if "operator_intent_core" in cards:
         presence.append("Intent Core")
@@ -636,31 +636,44 @@ def _render_operator_harness_card(harness: dict) -> str:
         presence.append("Evidence Bridge")
     lines.append(f"- **Components:** {', '.join(presence) if presence else 'none'}")
 
-    # Intent Core
     if "operator_intent_core" in cards:
-        c = cards["operator_intent_core"]
-        lines.append(f"- **Intent Core:** {c.get('intent_count', '?')} intents / {c.get('phrase_count', '?')} phrases (framing only)")
-
-    # Action Covenant
+        lines.append("- **Intent Core:** understands natural language intent; framing only")
     if "operator_action_covenant" in cards:
-        c = cards["operator_action_covenant"]
-        status = "present" if c.get("passed") else "error"
-        lines.append(f"- **Action Covenant:** {status} (no live authority)")
-
-    # Simulator
+        lines.append("- **Action Covenant:** governs power; no live authority")
     if "operator_extension_simulator" in cards:
-        lines.append("- **Extension Simulator:** simulation-only")
-
-    # Evidence Bridge
+        lines.append("- **Extension Simulator:** tests speech → intent → covenant posture → safe frame")
     if "operator_evidence_bridge" in cards:
-        c = cards["operator_evidence_bridge"]
-        lines.append(f"- **Evidence Bridge:** {c.get('domain_count', '?')} domains (evidence names only)")
+        lines.append("- **Evidence Bridge:** maps intent to approved evidence names; no execution")
 
     # Authority Boundaries
     lines.append("- **Current authority:** no runtime launch, no MCP writes, no external sends, no private/legal/invoice action")
 
     # Next useful loop
     lines.append("- **Next useful loop:** natural language → intent → evidence names → covenant posture → safe frame")
+
+    # North Star Progress
+    lines.extend([
+        "",
+        "### North Star Progress",
+        "- **Mission:** make daily life lighter without becoming hidden authority",
+        "- **Operator extension:** the computer is learning to understand speech, select evidence, frame safe moves, and keep power gated",
+        "- **Built:** intent, covenant, simulator, evidence bridge, receipt-backed watch visibility",
+        "- **Not built yet:** approved evidence runner, live conversational surface, action execution, runtime activation, private/sensitive workflows",
+        "- **Current focus:** turn the harness from visible posture into useful operator loops without crossing authority boundaries",
+        "- **Next build pressure:** approved evidence packets / read-model runner before deeper UX or live surface wiring",
+    ])
+
+    # AI Builder Focus
+    lines.extend([
+        "",
+        "### AI Builder Focus",
+        "- Build from the Operator Loop altitude:",
+        "  natural language → intent → evidence → covenant → visible frame",
+        "- Prefer backend grounding before cosmetic UX",
+        "- Prefer tasteful operator visibility over dashboard clutter",
+        "- Do not add live authority until receipts, rollback, and Covenant gates exist",
+        "- Do not let stale builder-loop status obscure active Operator Harness progress",
+    ])
 
     return "\n".join(lines)
 
