@@ -49,6 +49,7 @@
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
+!operator_evidence_bridge.py
 !openclaw_sensitive_policy.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
@@ -440,6 +441,7 @@
 !tests/test_operator_intent_core.py
 !tests/test_operator_action_covenant.py
 !tests/test_operator_extension_simulator.py
+!tests/test_operator_evidence_bridge.py
 
 !docs/planning/chase_money/
 !docs/planning/chase_money/*.md

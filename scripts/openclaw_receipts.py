@@ -52,6 +52,19 @@ from operator_extension_simulator import (
     simulate_operator_extension_request,
     simulation_phrase_matrix,
 )
+from operator_evidence_bridge import (
+    BRIDGE_NEVER_EXECUTES as OPERATOR_EVIDENCE_BRIDGE_NEVER_EXECUTES,
+    EVIDENCE_SURFACES_ARE_NAMES_ONLY,
+    EXTRA_RESTRICTED_DOMAIN_IDS as OPERATOR_EVIDENCE_EXTRA_RESTRICTED_DOMAINS,
+    REQUIRED_BRIDGE_DOMAIN_IDS as OPERATOR_EVIDENCE_REQUIRED_DOMAINS,
+    RESTRICTED_BRIDGE_DOMAIN_IDS as OPERATOR_EVIDENCE_RESTRICTED_DOMAINS,
+    USES_OPERATOR_ACTION_COVENANT as BRIDGE_USES_OPERATOR_ACTION_COVENANT,
+    USES_OPERATOR_EXTENSION_SIMULATOR as BRIDGE_USES_OPERATOR_EXTENSION_SIMULATOR,
+    USES_OPERATOR_INTENT_CORE as BRIDGE_USES_OPERATOR_INTENT_CORE,
+    bridge_operator_request,
+    bridge_phrase_matrix,
+    render_operator_evidence_bridge_result,
+)
 
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
@@ -623,6 +636,11 @@ OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH = Path(
 OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH = Path(
     "tests/test_operator_extension_simulator.py"
 )
+OPERATOR_EVIDENCE_BRIDGE_MODULE_RELATIVE_PATH = Path("operator_evidence_bridge.py")
+OPERATOR_EVIDENCE_BRIDGE_TEST_RELATIVE_PATH = Path(
+    "tests/test_operator_evidence_bridge.py"
+)
+
 
 @dataclass(frozen=True)
 class GitCommandResult:
@@ -1888,6 +1906,188 @@ def operator_extension_simulator_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def operator_evidence_bridge_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    module_path = root / OPERATOR_EVIDENCE_BRIDGE_MODULE_RELATIVE_PATH
+    test_path = root / OPERATOR_EVIDENCE_BRIDGE_TEST_RELATIVE_PATH
+    phrase_rows = []
+    for phrase, expected_domain in bridge_phrase_matrix():
+        result = bridge_operator_request(phrase)
+        phrase_rows.append(
+            {
+                "phrase": phrase,
+                "expected_domain": expected_domain,
+                "actual_domain": result.bridge_domain,
+                "passed": result.bridge_domain == expected_domain,
+                "intent": result.inferred_intent,
+                "request_category": result.request_category,
+                "evidence_selection_mode": result.evidence_selection_mode,
+                "evidence_surface_count": len(result.approved_evidence_surfaces),
+                "execution_authority_granted": result.execution_authority_granted,
+                "restricted_block": result.restricted_block,
+                "covenant_posture": result.covenant_posture,
+                "follow_up_required": result.follow_up_required,
+            }
+        )
+
+    status = bridge_operator_request("where are we")
+    relief = bridge_operator_request("I'm tired, tell me what matters")
+    codex = bridge_operator_request("send that to Codex")
+    gemini = bridge_operator_request("ask Gemini")
+    approval = bridge_operator_request("go ahead")
+    do_next = bridge_operator_request("do the next thing")
+    packet08 = bridge_operator_request("should we make Packet 08")
+    taste = bridge_operator_request("where is the taste")
+    restricted_results = tuple(
+        bridge_operator_request(phrase)
+        for phrase in (
+            "launch it",
+            "write to MCP memory",
+            "call the provider",
+            "send the invoice",
+            "touch legal files",
+            "send the email",
+            "delete it",
+            "create Packet 08",
+        )
+    )
+    rendered = render_operator_evidence_bridge_result(approval)
+    actual_domains = tuple(dict.fromkeys(row["actual_domain"] for row in phrase_rows))
+    all_results = (
+        status,
+        relief,
+        codex,
+        gemini,
+        approval,
+        do_next,
+        packet08,
+        taste,
+    ) + restricted_results
+
+    checks = {
+        "module_present": module_path.is_file(),
+        "tests_present": test_path.is_file(),
+        "imports_operator_intent_core": BRIDGE_USES_OPERATOR_INTENT_CORE is True,
+        "imports_operator_action_covenant": BRIDGE_USES_OPERATOR_ACTION_COVENANT is True,
+        "imports_operator_extension_simulator": (
+            BRIDGE_USES_OPERATOR_EXTENSION_SIMULATOR is True
+        ),
+        "required_phrase_matrix_passed": all(row["passed"] for row in phrase_rows),
+        "required_domains_a_to_s_represented": set(OPERATOR_EVIDENCE_REQUIRED_DOMAINS)
+        <= set(actual_domains),
+        "restricted_domains_represented": set(OPERATOR_EVIDENCE_RESTRICTED_DOMAINS)
+        <= set(actual_domains),
+        "provider_api_restricted_extra_domain_represented": set(
+            OPERATOR_EVIDENCE_EXTRA_RESTRICTED_DOMAINS
+        )
+        <= set(actual_domains),
+        "evidence_surfaces_selected_by_name_only": (
+            EVIDENCE_SURFACES_ARE_NAMES_ONLY is True
+            and all(
+                result.evidence_selection_mode == "names_only"
+                and all(
+                    not surface.startswith("./scripts/")
+                    and "openclaw_receipts.py" not in surface
+                    for surface in result.approved_evidence_surfaces
+                )
+                for result in all_results
+            )
+        ),
+        "status_orientation_no_covenant": (
+            status.bridge_domain == "status_orientation"
+            and status.covenant_posture == "not_required_read_only_status"
+            and status.restricted_block is False
+        ),
+        "operator_relief_short_practical": (
+            relief.bridge_domain == "operator_relief"
+            and "Cut the noise" in relief.operator_facing_summary
+            and len(relief.operator_facing_summary) < 130
+        ),
+        "codex_and_gemini_routes_are_distinct": (
+            codex.bridge_domain == "codex_coder_routing"
+            and gemini.bridge_domain == "gemini_planning_architecture_routing"
+            and codex.approved_evidence_surfaces != gemini.approved_evidence_surfaces
+        ),
+        "approval_phrases_reframe_without_authority": (
+            approval.execution_authority_granted is False
+            and approval.covenant_posture == "pending_covenant_required"
+            and bool(approval.yes_no_reframe)
+        ),
+        "do_next_does_not_execute": (
+            do_next.execution_authority_granted is False
+            and do_next.covenant_posture == "proposal_only_until_specific_action"
+            and do_next.follow_up_required is True
+        ),
+        "restricted_lanes_blocked": all(
+            result.execution_authority_granted is False
+            and result.restricted_block is True
+            and result.covenant_posture == "restricted_not_approvable_in_v0"
+            for result in restricted_results
+        ),
+        "taste_uses_manifesto_evidence": (
+            taste.bridge_domain == "taste_product_feel_beauty"
+            and "OPERATOR_EXTENSION_MANIFESTO.md" in taste.approved_evidence_surfaces
+        ),
+        "packet08_creation_not_authorized": (
+            packet08.bridge_domain == "packet_renewal_next_packet"
+            and packet08.restricted_block is True
+            and "Packet 08 creation" in packet08.forbidden_boundaries
+        ),
+        "renderer_includes_bridge_posture": (
+            "OPERATOR EVIDENCE BRIDGE" in rendered
+            and "Evidence surfaces:" in rendered
+            and "Covenant:" in rendered
+            and "Forbidden boundaries:" in rendered
+            and "Next move:" in rendered
+        ),
+        "bridge_remains_non_live_non_executing": (
+            OPERATOR_EVIDENCE_BRIDGE_NEVER_EXECUTES is True
+            and all(
+                result.execution_authority_granted is False
+                and result.receipts_executed is False
+                and result.shell_commands_executed is False
+                and result.runtime_or_external_action_used is False
+                for result in all_results
+            )
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.operator_evidence_bridge_status",
+        "mode": "read-only/local-evidence-selection/no-execution",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "module_path": str(OPERATOR_EVIDENCE_BRIDGE_MODULE_RELATIVE_PATH),
+        "test_path": str(OPERATOR_EVIDENCE_BRIDGE_TEST_RELATIVE_PATH),
+        "authority_note": (
+            "Operator Evidence Bridge v0 selects approved evidence surface names "
+            "and frames Covenant posture only. It does not run receipts, execute "
+            "shell commands, read private roots, call providers/MCP/runtime "
+            "surfaces, mutate state, or grant action authority."
+        ),
+        "execution_authority_granted": False,
+        "runtime_activation_authorized": False,
+        "external_calls_used": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "hidden_memory_write_used": False,
+        "persistence_or_database_used": False,
+        "receipts_executed": False,
+        "shell_commands_executed": False,
+        "evidence_surfaces_are_names_only": True,
+        "cassandra_specific": False,
+        "chief_specific": False,
+        "telegram_specific": False,
+        "required_domains": OPERATOR_EVIDENCE_REQUIRED_DOMAINS,
+        "extra_restricted_domains": OPERATOR_EVIDENCE_EXTRA_RESTRICTED_DOMAINS,
+        "restricted_domains": OPERATOR_EVIDENCE_RESTRICTED_DOMAINS,
+        "domain_count": len(actual_domains),
+        "phrase_rows": tuple(phrase_rows),
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -1904,6 +2104,7 @@ def operator_harness_read_model(
     operator_intent_core = operator_intent_core_status(root)
     operator_action_covenant = operator_action_covenant_status(root)
     operator_extension_simulator = operator_extension_simulator_status(root)
+    operator_evidence_bridge = operator_evidence_bridge_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -2054,6 +2255,28 @@ def operator_harness_read_model(
                 ],
             },
             {
+                "card": "operator_evidence_bridge",
+                "passed": operator_evidence_bridge["passed"],
+                "status_command": (
+                    f"{CANONICAL_RECEIPT_COMMAND} "
+                    "operator-evidence-bridge-status"
+                ),
+                "module_path": operator_evidence_bridge["module_path"],
+                "execution_authority_granted": operator_evidence_bridge[
+                    "execution_authority_granted"
+                ],
+                "runtime_activation_authorized": operator_evidence_bridge[
+                    "runtime_activation_authorized"
+                ],
+                "evidence_surfaces_are_names_only": operator_evidence_bridge[
+                    "evidence_surfaces_are_names_only"
+                ],
+                "domain_count": operator_evidence_bridge["domain_count"],
+                "restricted_domain_count": len(
+                    operator_evidence_bridge["restricted_domains"]
+                ),
+            },
+            {
                 "card": "gated_activation",
                 "passed": gated_activation["passed"],
                 "runtime_activation_authorized": gated_activation[
@@ -2195,6 +2418,7 @@ def operator_harness_read_model(
             and bool(operator_intent_core["passed"])
             and bool(operator_action_covenant["passed"])
             and bool(operator_extension_simulator["passed"])
+            and bool(operator_evidence_bridge["passed"])
             and not private_findings
         ),
     }
@@ -2785,6 +3009,55 @@ def print_operator_extension_simulator_status(report: dict[str, object]) -> None
         print(f"- {key}: {value}")
 
 
+def print_operator_evidence_bridge_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Evidence Bridge Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("module_path", report["module_path"]),
+            ("test_path", report["test_path"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            ("external_calls_used", report["external_calls_used"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("hidden_memory_write_used", report["hidden_memory_write_used"]),
+            ("persistence_or_database_used", report["persistence_or_database_used"]),
+            ("receipts_executed", report["receipts_executed"]),
+            ("shell_commands_executed", report["shell_commands_executed"]),
+            (
+                "evidence_surfaces_are_names_only",
+                report["evidence_surfaces_are_names_only"],
+            ),
+            ("cassandra_specific", report["cassandra_specific"]),
+            ("chief_specific", report["chief_specific"]),
+            ("telegram_specific", report["telegram_specific"]),
+            ("domain_count", report["domain_count"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_list("required_domains", report["required_domains"])
+    _print_list("extra_restricted_domains", report["extra_restricted_domains"])
+    _print_list("restricted_domains", report["restricted_domains"])
+    print("phrase_rows:")
+    for row in report["phrase_rows"]:
+        print(f"- {row['phrase']}:")
+        for key, value in row.items():
+            if key == "phrase":
+                continue
+            print(f"  {key}: {value}")
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -2902,6 +3175,10 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-extension-simulator-status",
         help="Print shared Operator Extension Simulation Harness v0 status.",
     )
+    subparsers.add_parser(
+        "operator-evidence-bridge-status",
+        help="Print shared Operator Evidence Bridge v0 status.",
+    )
     return parser
 
 
@@ -2983,6 +3260,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "operator-extension-simulator-status":
         report = operator_extension_simulator_status(root=root)
         print_operator_extension_simulator_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "operator-evidence-bridge-status":
+        report = operator_evidence_bridge_status(root=root)
+        print_operator_evidence_bridge_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")

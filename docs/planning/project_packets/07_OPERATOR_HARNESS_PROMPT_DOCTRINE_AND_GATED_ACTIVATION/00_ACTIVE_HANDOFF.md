@@ -329,3 +329,29 @@ Current next visible lane:
 
 - Future operator surfaces can now simulate the full non-live loop: natural language -> Intent Core -> Covenant/no-Covenant posture -> safe response frame. This reduces ambiguity before any future action-right request.
 - Still gated now: live runtime launch, assistant daemon/listener work, Cassandra/Chief/Telegram wiring, persistence/database queues, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, destructive filesystem operations, UI/dashboard/app work, Packet 08, and treating simulator output as execution authority.
+
+## Packet 07 Operator Evidence Bridge v0 Milestone - 2026-05-08
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- Added `operator_evidence_bridge.py` as a surface-neutral, deterministic local bridge from natural language to Intent Core, evidence-surface selection by name, simulator posture, Action Covenant posture, and a useful operator response frame.
+- Covered status/orientation, operator relief, forward readiness, Codex routing, Gemini routing, commit/push, handoff continuity, approval/Covenant, runtime, MCP/shared memory, provider/API, invoice/billing, legal/private/sensitive, external sends, destructive/broad traversal, taste/product feel, packet renewal, stop/wait, unsafe ambiguity, and do-next/continue language.
+- Added `operator-evidence-bridge-status` as a compact static receipt proving A-S domain coverage, restricted-lane blocking, name-only evidence selection, approval reframing without authority, and no receipt/shell/live execution.
+- Extended `operator-harness-status` with a concise `operator_evidence_bridge` card.
+
+Validation receipt:
+
+```text
+python3 -m py_compile operator_evidence_bridge.py scripts/openclaw_receipts.py: passed
+./scripts/openclaw_receipts.py operator-evidence-bridge-status: passed, execution_authority_granted=False, evidence_surfaces_are_names_only=True
+pytest tests/test_operator_evidence_bridge.py -q: 17 passed
+pytest tests/test_openclaw_receipts.py -q: 37 passed
+```
+
+Current next visible lane:
+
+- Future operator surfaces can now ask: what does this natural language mean, which approved evidence surfaces should ground the response, and what Covenant posture applies before any action-right request.
+- The bridge selects evidence names only. It does not run receipts, execute shell commands, read files, call providers/MCP/runtime surfaces, persist state, or grant authority.
+- Still gated now: live runtime launch, process/service scans, daemon/listener work, Cassandra/Chief/Telegram wiring, provider/model/API calls, MCP calls or writes, hidden memory writes, external sends, invoice/legal/private-root/sensitive-data actions, destructive filesystem operations, UI/dashboard/app work, Packet 08, and treating evidence as authority.
