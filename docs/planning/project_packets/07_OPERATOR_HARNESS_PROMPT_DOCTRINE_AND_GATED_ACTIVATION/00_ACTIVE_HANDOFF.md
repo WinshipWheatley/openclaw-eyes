@@ -304,3 +304,28 @@ Current next visible lane:
 
 - Future operator surfaces now have a shared covenant object to combine with Operator Intent Core before any action-right request. Natural language can ask; the covenant must carry evidence and exact approval shape before action.
 - Still gated now: live runtime launch, assistant daemon/listener work, Cassandra/Chief/Telegram wiring, persistence/database queues, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, destructive filesystem operations, UI/dashboard/app work, Packet 08, and treating a covenant receipt as execution authority.
+
+## Packet 07 Operator Extension Simulation Harness v0 Milestone - 2026-05-08
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- Added `operator_extension_simulator.py` as a surface-neutral, deterministic local harness joining natural language, Operator Intent Core, Action Covenant posture, and a safe operator response frame.
+- Covered operator speech, agent proposals, and system action descriptions without adding a daemon, router, UI, runtime loop, provider call, MCP call, persistence layer, or executor.
+- Added `operator-extension-simulator-status` as a compact static receipt proving status/orientation requests, approval-sensitive reframes, restricted-lane blocking, Codex/Gemini route separation, safe illustrative Covenant posture, and no live execution authority.
+- Extended `operator-harness-status` with a concise `operator_extension_simulator` card.
+
+Validation receipt:
+
+```text
+python3 -m py_compile operator_extension_simulator.py operator_intent_core.py operator_action_covenant.py scripts/openclaw_receipts.py: passed
+./scripts/openclaw_receipts.py operator-extension-simulator-status: passed, execution_authority_granted=False
+pytest tests/test_operator_extension_simulator.py -q: 14 passed
+pytest tests/test_openclaw_receipts.py -q: 35 passed
+```
+
+Current next visible lane:
+
+- Future operator surfaces can now simulate the full non-live loop: natural language -> Intent Core -> Covenant/no-Covenant posture -> safe response frame. This reduces ambiguity before any future action-right request.
+- Still gated now: live runtime launch, assistant daemon/listener work, Cassandra/Chief/Telegram wiring, persistence/database queues, provider/model/API calls, MCP calls or writes, hidden memory writes, process/service scans, external sends, invoice/legal/private-root/sensitive-data actions, destructive filesystem operations, UI/dashboard/app work, Packet 08, and treating simulator output as execution authority.

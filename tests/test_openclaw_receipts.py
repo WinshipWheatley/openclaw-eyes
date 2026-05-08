@@ -159,6 +159,18 @@ def _write_packet_fixture(root: Path) -> None:
         "# fixture placeholder for tests/test_operator_action_covenant.py\n",
         encoding="utf-8",
     )
+    (root / receipts.OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH).write_text(
+        "# fixture placeholder for operator_extension_simulator.py\n",
+        encoding="utf-8",
+    )
+    (root / receipts.OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH).parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    (root / receipts.OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH).write_text(
+        "# fixture placeholder for tests/test_operator_extension_simulator.py\n",
+        encoding="utf-8",
+    )
 
 
 def test_parse_porcelain_status_handles_changed_untracked_and_renames():
@@ -713,6 +725,55 @@ def test_operator_action_covenant_command_passes_without_authorizing_runtime(
     assert "runtime_activation_authorized: False" in output
 
 
+def test_operator_extension_simulator_status_proves_non_live_bridge(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_extension_simulator_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["module_path"] == str(
+        receipts.OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH
+    )
+    assert report["test_path"] == str(
+        receipts.OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH
+    )
+    assert report["execution_authority_granted"] is False
+    assert report["runtime_activation_authorized"] is False
+    assert report["external_calls_used"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["mcp_called"] is False
+    assert report["hidden_memory_write_used"] is False
+    assert report["persistence_or_database_used"] is False
+    assert report["cassandra_specific"] is False
+    assert report["chief_specific"] is False
+    assert report["telegram_specific"] is False
+    assert report["checks"]["imports_operator_intent_core"] is True
+    assert report["checks"]["imports_operator_action_covenant"] is True
+    assert report["checks"]["status_orientation_phrases_represented"] is True
+    assert report["checks"]["restricted_phrases_represented"] is True
+    assert report["checks"]["approval_sensitive_reframes_represented"] is True
+    assert report["checks"]["send_to_codex_is_not_external_send"] is True
+    assert report["checks"]["simulator_remains_non_live_non_executing"] is True
+
+
+def test_operator_extension_simulator_command_passes_without_authorizing_runtime(
+    tmp_path,
+    capsys,
+):
+    _write_packet_fixture(tmp_path)
+
+    exit_code = receipts.main(
+        ["--root", str(tmp_path), "operator-extension-simulator-status"]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "passed: True" in output
+    assert "execution_authority_granted: False" in output
+    assert "runtime_activation_authorized: False" in output
+    assert "simulator_remains_non_live_non_executing: True" in output
+
+
 def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
     _write_packet_fixture(tmp_path)
 
@@ -724,6 +785,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "operator-intake-status",
         "operator-intent-core-status",
         "operator-action-covenant-status",
+        "operator-extension-simulator-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -822,6 +884,27 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     )
     assert cards["operator_action_covenant"]["restricted_domain_count"] == len(
         receipts.ACTION_COVENANT_RESTRICTED_DOMAINS
+    )
+    assert cards["operator_extension_simulator"]["passed"] is True
+    assert cards["operator_extension_simulator"]["status_command"].endswith(
+        "operator-extension-simulator-status"
+    )
+    assert cards["operator_extension_simulator"]["module_path"] == (
+        "operator_extension_simulator.py"
+    )
+    assert cards["operator_extension_simulator"]["execution_authority_granted"] is False
+    assert (
+        cards["operator_extension_simulator"]["runtime_activation_authorized"]
+        is False
+    )
+    assert cards["operator_extension_simulator"]["status_orientation_phrase_count"] == len(
+        receipts.OPERATOR_EXTENSION_STATUS_PHRASES
+    )
+    assert cards["operator_extension_simulator"]["approval_sensitive_phrase_count"] == len(
+        receipts.OPERATOR_EXTENSION_APPROVAL_PHRASES
+    )
+    assert cards["operator_extension_simulator"]["restricted_phrase_count"] == len(
+        receipts.OPERATOR_EXTENSION_RESTRICTED_PHRASES
     )
     assert cards["gated_activation"]["passed"] is True
     assert cards["gated_activation"]["runtime_activation_authorized"] is False
@@ -928,6 +1011,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "dataclasses",
         "openclaw_sensitive_policy",
         "operator_action_covenant",
+        "operator_extension_simulator",
         "operator_intent_core",
         "pathlib",
         "subprocess",

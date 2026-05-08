@@ -48,6 +48,7 @@
 !backend_storage_intelligence.py
 !operator_intent_core.py
 !operator_action_covenant.py
+!operator_extension_simulator.py
 !openclaw_sensitive_policy.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
@@ -438,6 +439,7 @@
 !tests/test_openclaw_receipts.py
 !tests/test_operator_intent_core.py
 !tests/test_operator_action_covenant.py
+!tests/test_operator_extension_simulator.py
 
 !docs/planning/chase_money/
 !docs/planning/chase_money/*.md

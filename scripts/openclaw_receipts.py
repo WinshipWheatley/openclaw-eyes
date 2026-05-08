@@ -42,6 +42,16 @@ from operator_action_covenant import (
     render_action_covenant_summary,
     validate_action_covenant,
 )
+from operator_extension_simulator import (
+    APPROVAL_SENSITIVE_PHRASES as OPERATOR_EXTENSION_APPROVAL_PHRASES,
+    RESTRICTED_PHRASES as OPERATOR_EXTENSION_RESTRICTED_PHRASES,
+    STATUS_ORIENTATION_PHRASES as OPERATOR_EXTENSION_STATUS_PHRASES,
+    USES_OPERATOR_ACTION_COVENANT,
+    USES_OPERATOR_INTENT_CORE,
+    render_operator_extension_simulation,
+    simulate_operator_extension_request,
+    simulation_phrase_matrix,
+)
 
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
@@ -607,6 +617,12 @@ OPERATOR_INTAKE_FORBIDDEN_CROSSINGS = (
 OPERATOR_INTENT_CORE_MODULE_RELATIVE_PATH = Path("operator_intent_core.py")
 OPERATOR_ACTION_COVENANT_MODULE_RELATIVE_PATH = Path("operator_action_covenant.py")
 OPERATOR_ACTION_COVENANT_TEST_RELATIVE_PATH = Path("tests/test_operator_action_covenant.py")
+OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH = Path(
+    "operator_extension_simulator.py"
+)
+OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH = Path(
+    "tests/test_operator_extension_simulator.py"
+)
 
 @dataclass(frozen=True)
 class GitCommandResult:
@@ -1715,6 +1731,163 @@ def operator_action_covenant_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def operator_extension_simulator_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    module_path = root / OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH
+    test_path = root / OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH
+    phrase_rows = []
+    for phrase, expected_intent in simulation_phrase_matrix():
+        simulation = simulate_operator_extension_request(phrase)
+        phrase_rows.append(
+            {
+                "phrase": phrase,
+                "expected_intent": expected_intent,
+                "actual_intent": simulation.inferred_intent,
+                "passed": simulation.inferred_intent == expected_intent,
+                "source": simulation.input_source_guess,
+                "request_category": simulation.request_category,
+                "execution_authority": simulation.execution_authority,
+                "covenant_required": simulation.covenant_required,
+                "covenant_allowed_in_v0": simulation.covenant_allowed_in_v0,
+                "restricted_block": simulation.restricted_block,
+                "has_yes_no_reframe": bool(simulation.yes_no_reframe),
+            }
+        )
+
+    status_sims = tuple(
+        simulate_operator_extension_request(phrase)
+        for phrase in ("where are we", "are we good", "what needs my attention")
+    )
+    restricted_sims = tuple(
+        simulate_operator_extension_request(phrase)
+        for phrase in (
+            "launch it",
+            "write to MCP memory",
+            "send the invoice",
+            "touch legal files",
+            "delete the files",
+            "create Packet 08",
+        )
+    )
+    approval_sims = tuple(
+        simulate_operator_extension_request(phrase)
+        for phrase in ("go ahead", "do it", "do the next thing", "ship it")
+    )
+    codex = simulate_operator_extension_request("send that to Codex")
+    gemini = simulate_operator_extension_request("ask Gemini")
+    commit_proposal = simulate_operator_extension_request("I recommend committing this")
+    handoff_proposal = simulate_operator_extension_request("I can update the handoff")
+    renderer_sample = render_operator_extension_simulation(
+        simulate_operator_extension_request("go ahead")
+    )
+
+    checks = {
+        "module_present": module_path.is_file(),
+        "tests_present": test_path.is_file(),
+        "imports_operator_intent_core": USES_OPERATOR_INTENT_CORE is True,
+        "imports_operator_action_covenant": USES_OPERATOR_ACTION_COVENANT is True,
+        "required_phrase_matrix_passed": all(row["passed"] for row in phrase_rows),
+        "status_orientation_phrases_represented": (
+            set(OPERATOR_EXTENSION_STATUS_PHRASES)
+            >= {
+                "where are we",
+                "are we good",
+                "what changed",
+                "what needs my attention",
+            }
+            and all(
+                sim.execution_authority is False
+                and sim.covenant_required is False
+                and sim.restricted_block is False
+                for sim in status_sims
+            )
+        ),
+        "restricted_phrases_represented": (
+            "launch it" in OPERATOR_EXTENSION_RESTRICTED_PHRASES
+            and "write to mcp memory" in OPERATOR_EXTENSION_RESTRICTED_PHRASES
+            and "send the invoice" in OPERATOR_EXTENSION_RESTRICTED_PHRASES
+            and all(
+                sim.execution_authority is False
+                and sim.restricted_block is True
+                and sim.covenant_required is True
+                and sim.covenant_allowed_in_v0 is False
+                and sim.suggested_covenant is None
+                for sim in restricted_sims
+            )
+        ),
+        "approval_sensitive_reframes_represented": (
+            "go ahead" in OPERATOR_EXTENSION_APPROVAL_PHRASES
+            and "ship it" in OPERATOR_EXTENSION_APPROVAL_PHRASES
+            and all(
+                sim.execution_authority is False
+                and sim.follow_up_required is True
+                and bool(sim.yes_no_reframe)
+                for sim in approval_sims
+            )
+        ),
+        "codex_and_gemini_routes_are_distinct": (
+            codex.tool_route == "codex_bounded_repo_prompt"
+            and gemini.tool_route == "gemini_architecture_scope_review"
+            and codex.tool_route != gemini.tool_route
+        ),
+        "send_to_codex_is_not_external_send": (
+            codex.restricted_block is False
+            and codex.covenant_required is False
+            and "not an external send" in codex.operator_facing_summary
+        ),
+        "agent_proposals_can_suggest_only_safe_covenants": (
+            commit_proposal.input_source_guess == "agent_proposal"
+            and handoff_proposal.input_source_guess == "agent_proposal"
+            and commit_proposal.suggested_covenant is not None
+            and handoff_proposal.suggested_covenant is not None
+            and commit_proposal.suggested_covenant.authority_level
+            == "bounded_repo_mutation"
+            and handoff_proposal.suggested_covenant.authority_level
+            == "bounded_repo_mutation"
+            and commit_proposal.suggested_covenant.restricted_domains == ()
+            and handoff_proposal.suggested_covenant.restricted_domains == ()
+        ),
+        "renderer_includes_authority_covenant_and_reframe": (
+            "Authority: execution_authority=False" in renderer_sample
+            and "Covenant: required=True" in renderer_sample
+            and "Reframe:" in renderer_sample
+            and "Summary:" in renderer_sample
+        ),
+        "simulator_remains_non_live_non_executing": True,
+    }
+
+    return {
+        "receipt_type": "openclaw.operator_extension_simulator_status",
+        "mode": "read-only/local-simulation/no-execution",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "module_path": str(OPERATOR_EXTENSION_SIMULATOR_MODULE_RELATIVE_PATH),
+        "test_path": str(OPERATOR_EXTENSION_SIMULATOR_TEST_RELATIVE_PATH),
+        "authority_note": (
+            "Operator Extension Simulator v0 connects natural language to Intent "
+            "Core and Action Covenant posture for simulation only. It executes "
+            "nothing, persists nothing, calls no providers/MCP/runtime surfaces, "
+            "and grants no action authority."
+        ),
+        "execution_authority_granted": False,
+        "runtime_activation_authorized": False,
+        "external_calls_used": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "hidden_memory_write_used": False,
+        "persistence_or_database_used": False,
+        "cassandra_specific": False,
+        "chief_specific": False,
+        "telegram_specific": False,
+        "status_orientation_phrase_count": len(OPERATOR_EXTENSION_STATUS_PHRASES),
+        "approval_sensitive_phrase_count": len(OPERATOR_EXTENSION_APPROVAL_PHRASES),
+        "restricted_phrase_count": len(OPERATOR_EXTENSION_RESTRICTED_PHRASES),
+        "phrase_rows": tuple(phrase_rows),
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -1730,6 +1903,7 @@ def operator_harness_read_model(
     operator_intake = operator_intake_status(root)
     operator_intent_core = operator_intent_core_status(root)
     operator_action_covenant = operator_action_covenant_status(root)
+    operator_extension_simulator = operator_extension_simulator_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -1854,6 +2028,30 @@ def operator_harness_read_model(
                 "restricted_domain_count": len(
                     operator_action_covenant["restricted_domains"]
                 ),
+            },
+            {
+                "card": "operator_extension_simulator",
+                "passed": operator_extension_simulator["passed"],
+                "status_command": (
+                    f"{CANONICAL_RECEIPT_COMMAND} "
+                    "operator-extension-simulator-status"
+                ),
+                "module_path": operator_extension_simulator["module_path"],
+                "execution_authority_granted": operator_extension_simulator[
+                    "execution_authority_granted"
+                ],
+                "runtime_activation_authorized": operator_extension_simulator[
+                    "runtime_activation_authorized"
+                ],
+                "status_orientation_phrase_count": operator_extension_simulator[
+                    "status_orientation_phrase_count"
+                ],
+                "approval_sensitive_phrase_count": operator_extension_simulator[
+                    "approval_sensitive_phrase_count"
+                ],
+                "restricted_phrase_count": operator_extension_simulator[
+                    "restricted_phrase_count"
+                ],
             },
             {
                 "card": "gated_activation",
@@ -1996,6 +2194,7 @@ def operator_harness_read_model(
             and bool(operator_intake["passed"])
             and bool(operator_intent_core["passed"])
             and bool(operator_action_covenant["passed"])
+            and bool(operator_extension_simulator["passed"])
             and not private_findings
         ),
     }
@@ -2538,6 +2737,54 @@ def print_operator_action_covenant_status(report: dict[str, object]) -> None:
         print(f"- {key}: {value}")
 
 
+def print_operator_extension_simulator_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Extension Simulator Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("module_path", report["module_path"]),
+            ("test_path", report["test_path"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            ("external_calls_used", report["external_calls_used"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("hidden_memory_write_used", report["hidden_memory_write_used"]),
+            ("persistence_or_database_used", report["persistence_or_database_used"]),
+            ("cassandra_specific", report["cassandra_specific"]),
+            ("chief_specific", report["chief_specific"]),
+            ("telegram_specific", report["telegram_specific"]),
+            (
+                "status_orientation_phrase_count",
+                report["status_orientation_phrase_count"],
+            ),
+            (
+                "approval_sensitive_phrase_count",
+                report["approval_sensitive_phrase_count"],
+            ),
+            ("restricted_phrase_count", report["restricted_phrase_count"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    print("phrase_rows:")
+    for row in report["phrase_rows"]:
+        print(f"- {row['phrase']}:")
+        for key, value in row.items():
+            if key == "phrase":
+                continue
+            print(f"  {key}: {value}")
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -2651,6 +2898,10 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-action-covenant-status",
         help="Print shared Operator Action Covenant v0 status.",
     )
+    subparsers.add_parser(
+        "operator-extension-simulator-status",
+        help="Print shared Operator Extension Simulation Harness v0 status.",
+    )
     return parser
 
 
@@ -2728,6 +2979,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "operator-action-covenant-status":
         report = operator_action_covenant_status(root=root)
         print_operator_action_covenant_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "operator-extension-simulator-status":
+        report = operator_extension_simulator_status(root=root)
+        print_operator_extension_simulator_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")
