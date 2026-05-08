@@ -451,3 +451,6 @@
 
 !docs/planning/agent_efficiency/
 !docs/planning/agent_efficiency/*.md
+
+!Operator/
+!Operator/*.md
