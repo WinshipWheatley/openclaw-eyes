@@ -458,6 +458,134 @@ MCP_SHARED_MEMORY_STATIC_POINTERS = (
     },
 )
 
+OPERATOR_INTAKE_DOC_RELATIVE_PATH = ACTIVE_PACKET_RELATIVE_PATH / (
+    "NATURAL_LANGUAGE_OPERATOR_INTAKE_AND_ACTION_RIGHTS_V0.md"
+)
+
+OPERATOR_INTAKE_REQUIRED_SECTIONS = (
+    "Purpose",
+    "North Star alignment",
+    "What this v0 authorizes",
+    "What this v0 does not authorize",
+    "Stage 1: Intent and response framing",
+    "Stage 2: Prompt/handoff generation",
+    "Stage 3: Safe read-only action rights",
+    "Stage 4: Earned bounded autonomy",
+    "Intent map",
+    "Action-rights ladder",
+    "Approval and stop rules",
+    "Tool-specific routing",
+    "Examples",
+    "Tests / receipt expectations",
+    "Remaining risks",
+)
+
+OPERATOR_INTAKE_STAGE_HEADINGS = (
+    "Stage 1: Intent and response framing",
+    "Stage 2: Prompt/handoff generation",
+    "Stage 3: Safe read-only action rights",
+    "Stage 4: Earned bounded autonomy",
+)
+
+OPERATOR_INTAKE_REQUIRED_INTENTS = (
+    "status_brief",
+    "next_safe_action",
+    "codex_prompt_request",
+    "gemini_review_request",
+    "commit_review_request",
+    "push_confirmation_context",
+    "handoff_request",
+    "activation_readiness_question",
+    "approval_required_action",
+    "unsafe_or_ambiguous_action",
+    "stop_or_wait_instruction",
+    "do_the_next_thing",
+    "send_that_to_codex",
+    "ask_gemini",
+    "where_are_we",
+    "can_we_move_forward",
+    "make_my_life_easier",
+    "tired_tell_me_what_matters",
+)
+
+OPERATOR_INTAKE_ACTION_RIGHT_LEVELS = (
+    {
+        "level": "level_0_static_framing_only",
+        "heading": "Level 0 - Static framing only",
+        "currently_authorized": True,
+        "authority": "classify intent, explain next safe action, prepare static prompts/handoffs",
+    },
+    {
+        "level": "level_1_read_only_local_evidence",
+        "heading": "Level 1 - Read-only local evidence",
+        "currently_authorized": False,
+        "authority": "future approved receipt and packet/handoff reads only",
+    },
+    {
+        "level": "level_2_draft_proposal_generation",
+        "heading": "Level 2 - Draft/proposal generation",
+        "currently_authorized": False,
+        "authority": "future prompt, handoff, and review-plan drafts",
+    },
+    {
+        "level": "level_3_bounded_repo_mutation",
+        "heading": "Level 3 - Bounded repo mutation",
+        "currently_authorized": False,
+        "authority": "future scoped Codex repo edits with tests and review",
+    },
+    {
+        "level": "level_4_pre_approved_low_risk_execution",
+        "heading": "Level 4 - Pre-approved low-risk execution",
+        "currently_authorized": False,
+        "authority": "future low-risk lanes after receipts, rollback, stop conditions, and audit",
+    },
+    {
+        "level": "level_5_restricted_high_risk_actions",
+        "heading": "Level 5 - Restricted/high-risk actions",
+        "currently_authorized": False,
+        "authority": "always requires explicit approval gate; not authorized by this v0",
+    },
+)
+
+OPERATOR_INTAKE_DANGEROUS_PHRASE_FRAMES = (
+    {
+        "intent": "do_the_next_thing",
+        "phrase": "do the next thing",
+        "execution_authority_now": False,
+        "safe_frame": "infer likely next safe lane; do not cross mutation/external/runtime gates",
+        "requires_follow_up_for_risky_action": True,
+    },
+    {
+        "intent": "unsafe_or_ambiguous_action",
+        "phrase": "just handle it",
+        "execution_authority_now": False,
+        "safe_frame": "narrow scope and propose the smallest safe next move",
+        "requires_follow_up_for_risky_action": True,
+    },
+    {
+        "intent": "approval_required_action",
+        "phrase": "go ahead and launch",
+        "execution_authority_now": False,
+        "safe_frame": "route to explicit approval gate and current non-authority statement",
+        "requires_follow_up_for_risky_action": True,
+    },
+)
+
+OPERATOR_INTAKE_FORBIDDEN_CROSSINGS = (
+    "live runtime launch",
+    "assistant daemons",
+    "Telegram",
+    "process scans",
+    "service scans",
+    "systemd/launchctl/service/timer/daemon/launcher mutation",
+    "provider/model/API calls",
+    "MCP calls",
+    "hidden memory writes",
+    "external sends",
+    "invoice, money, legal, private-root, or sensitive-data actions",
+    "commits, pushes, destructive operations",
+)
+
 @dataclass(frozen=True)
 class GitCommandResult:
     args: tuple[str, ...]
@@ -1182,6 +1310,108 @@ def mcp_shared_memory_gate_status(root: Path = ROOT) -> dict[str, object]:
     }
 
 
+def operator_intake_status(root: Path = ROOT) -> dict[str, object]:
+    packet = packet_status(root)
+    doc_path = root / OPERATOR_INTAKE_DOC_RELATIVE_PATH
+    doc_text = doc_path.read_text(encoding="utf-8") if doc_path.is_file() else ""
+    section_checks = {
+        section: f"## {section}" in doc_text
+        for section in OPERATOR_INTAKE_REQUIRED_SECTIONS
+    }
+    stage_checks = {
+        stage: f"## {stage}" in doc_text
+        for stage in OPERATOR_INTAKE_STAGE_HEADINGS
+    }
+    intent_checks = {
+        intent: f"| {intent} |" in doc_text
+        for intent in OPERATOR_INTAKE_REQUIRED_INTENTS
+    }
+    action_right_checks = {
+        str(level["level"]): f"### {level['heading']}" in doc_text
+        for level in OPERATOR_INTAKE_ACTION_RIGHT_LEVELS
+    }
+    phrase_checks = {
+        str(frame["intent"]): str(frame["phrase"]) in doc_text
+        for frame in OPERATOR_INTAKE_DANGEROUS_PHRASE_FRAMES
+    }
+
+    checks = {
+        "doc_present": doc_path.is_file(),
+        "required_sections_present": all(section_checks.values()),
+        "stage_1_to_4_headings_present": all(stage_checks.values()),
+        "required_intent_classes_present": all(intent_checks.values()),
+        "action_rights_ladder_present": all(action_right_checks.values()),
+        "dangerous_phrases_framed": all(phrase_checks.values()),
+        "do_the_next_thing_not_execution_authority": (
+            '"do the next thing" is not execution authority' in doc_text
+            and "Natural language can express operator intent. It cannot by itself grant hidden execution authority."
+            in doc_text
+        ),
+        "stage_4_future_gated_not_current_authority": (
+            "Stage 4 remains future-gated, not current authority." in doc_text
+            and "Current v0 authorization: future gated, not active." in doc_text
+        ),
+        "level_5_restricted_high_risk_actions_remain_restricted": (
+            "Level 5 - Restricted/high-risk actions" in doc_text
+            and "always require explicit approval gate" in doc_text
+            and "not authorized by this v0" in doc_text
+        ),
+        "stage_1_only_current_authority": (
+            "Level 0 static framing is the only action-right level authorized by this v0."
+            in doc_text
+        ),
+        "no_live_autonomy_authorized": (
+            "This v0 does not authorize live autonomy." in doc_text
+            and "It is not a live classifier, prompt generator, action router, approval engine, or daemon."
+            in doc_text
+        ),
+        "forbidden_crossings_named": all(
+            crossing in doc_text for crossing in OPERATOR_INTAKE_FORBIDDEN_CROSSINGS
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.operator_intake_status",
+        "mode": "read-only/static-doc-proof/no-classifier",
+        "target_packet": packet["target_packet"],
+        "active_packet": packet["active_packet"],
+        "doc_path": str(OPERATOR_INTAKE_DOC_RELATIVE_PATH),
+        "authority_note": (
+            "Natural-language intake v0 is static framing only; it grants no "
+            "execution, runtime, provider, MCP, send, commit, push, invoice, "
+            "legal, private-root, or hidden-memory authority."
+        ),
+        "stage_1_static_v0_implemented": bool(
+            checks["doc_present"] and checks["stage_1_only_current_authority"]
+        ),
+        "stage_2_to_4_future_gated": bool(
+            checks["stage_4_future_gated_not_current_authority"]
+        ),
+        "live_classifier_implemented": False,
+        "prompt_generator_implemented": False,
+        "action_router_implemented": False,
+        "approval_engine_implemented": False,
+        "natural_language_is_execution_authority": False,
+        "do_the_next_thing_execution_authority": False,
+        "runtime_activation_authorized": False,
+        "external_calls_used": False,
+        "provider_or_model_called": False,
+        "mcp_called": False,
+        "hidden_memory_write_used": False,
+        "section_checks": section_checks,
+        "stage_checks": stage_checks,
+        "intent_checks": intent_checks,
+        "required_intents": OPERATOR_INTAKE_REQUIRED_INTENTS,
+        "action_right_levels": OPERATOR_INTAKE_ACTION_RIGHT_LEVELS,
+        "action_right_checks": action_right_checks,
+        "dangerous_phrase_frames": OPERATOR_INTAKE_DANGEROUS_PHRASE_FRAMES,
+        "dangerous_phrase_checks": phrase_checks,
+        "forbidden_crossings": OPERATOR_INTAKE_FORBIDDEN_CROSSINGS,
+        "checks": checks,
+        "passed": bool(packet["passed"]) and all(checks.values()),
+    }
+
+
 def operator_harness_read_model(
     *,
     root: Path = ROOT,
@@ -1194,6 +1424,7 @@ def operator_harness_read_model(
     prompt_doctrine = prompt_doctrine_status(root)
     gated_activation = gated_activation_status(root)
     runtime_dry_run = runtime_dry_run_readiness(root)
+    operator_intake = operator_intake_status(root)
     sensitive_contract = sensitive_root_contract()
     final_contract = packet06_final_static_boundary_contract()
     status = _run_git(root, ["status", "-sb", "--untracked-files=all"])
@@ -1258,6 +1489,27 @@ def operator_harness_read_model(
                 "generates_prompts": prompt_doctrine["generates_prompts"],
                 "mutates_files": prompt_doctrine["mutates_files"],
                 **prompt_doctrine["checks"],
+            },
+            {
+                "card": "natural_language_operator_intake",
+                "passed": operator_intake["passed"],
+                "status_command": f"{CANONICAL_RECEIPT_COMMAND} operator-intake-status",
+                "stage_1_static_v0_implemented": operator_intake[
+                    "stage_1_static_v0_implemented"
+                ],
+                "stage_2_to_4_future_gated": operator_intake[
+                    "stage_2_to_4_future_gated"
+                ],
+                "natural_language_is_execution_authority": operator_intake[
+                    "natural_language_is_execution_authority"
+                ],
+                "do_the_next_thing_execution_authority": operator_intake[
+                    "do_the_next_thing_execution_authority"
+                ],
+                "runtime_activation_authorized": operator_intake[
+                    "runtime_activation_authorized"
+                ],
+                "intent_count": len(operator_intake["required_intents"]),
             },
             {
                 "card": "gated_activation",
@@ -1397,6 +1649,7 @@ def operator_harness_read_model(
             and bool(prompt_doctrine["passed"])
             and bool(gated_activation["passed"])
             and bool(runtime_dry_run["passed"])
+            and bool(operator_intake["passed"])
             and not private_findings
         ),
     }
@@ -1793,6 +2046,69 @@ def print_mcp_shared_memory_gate_status(report: dict[str, object]) -> None:
         print(f"- {key}: {value}")
 
 
+def print_operator_intake_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Intake Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("target_packet", report["target_packet"]),
+            ("active_packet", report["active_packet"]),
+            ("doc_path", report["doc_path"]),
+            ("authority_note", report["authority_note"]),
+            (
+                "stage_1_static_v0_implemented",
+                report["stage_1_static_v0_implemented"],
+            ),
+            ("stage_2_to_4_future_gated", report["stage_2_to_4_future_gated"]),
+            ("live_classifier_implemented", report["live_classifier_implemented"]),
+            ("prompt_generator_implemented", report["prompt_generator_implemented"]),
+            ("action_router_implemented", report["action_router_implemented"]),
+            ("approval_engine_implemented", report["approval_engine_implemented"]),
+            (
+                "natural_language_is_execution_authority",
+                report["natural_language_is_execution_authority"],
+            ),
+            (
+                "do_the_next_thing_execution_authority",
+                report["do_the_next_thing_execution_authority"],
+            ),
+            (
+                "runtime_activation_authorized",
+                report["runtime_activation_authorized"],
+            ),
+            ("external_calls_used", report["external_calls_used"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("mcp_called", report["mcp_called"]),
+            ("hidden_memory_write_used", report["hidden_memory_write_used"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    print("section_checks:")
+    for key, value in report["section_checks"].items():
+        print(f"- {key}: {value}")
+    print("stage_checks:")
+    for key, value in report["stage_checks"].items():
+        print(f"- {key}: {value}")
+    print("intent_checks:")
+    for key, value in report["intent_checks"].items():
+        print(f"- {key}: {value}")
+    _print_records(
+        "action_right_levels",
+        report["action_right_levels"],
+        label_key="level",
+    )
+    _print_records(
+        "dangerous_phrase_frames",
+        report["dangerous_phrase_frames"],
+        label_key="intent",
+    )
+    _print_list("forbidden_crossings", report["forbidden_crossings"])
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def print_operator_harness_read_model(report: dict[str, object]) -> None:
     _print_scalar_lines(
         "OpenClaw Operator Harness Read Model Receipt",
@@ -1894,6 +2210,10 @@ def build_parser() -> argparse.ArgumentParser:
         "mcp-shared-memory-gate-status",
         help="Print static MCP/shared-memory hidden-authority gate status.",
     )
+    subparsers.add_parser(
+        "operator-intake-status",
+        help="Print static natural-language operator intake and action-rights status.",
+    )
     return parser
 
 
@@ -1959,6 +2279,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "mcp-shared-memory-gate-status":
         report = mcp_shared_memory_gate_status(root=root)
         print_mcp_shared_memory_gate_status(report)
+        return 0 if report["passed"] else 1
+    if args.command == "operator-intake-status":
+        report = operator_intake_status(root=root)
+        print_operator_intake_status(report)
         return 0 if report["passed"] else 1
 
     parser.error(f"unknown command: {args.command}")

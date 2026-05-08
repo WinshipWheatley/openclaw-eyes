@@ -17,6 +17,52 @@ import openclaw_receipts as receipts
 import openclaw_sensitive_policy as sensitive_policy
 
 
+def _operator_intake_fixture_text() -> str:
+    section_blocks = "\n\n".join(
+        f"## {section}\n"
+        for section in receipts.OPERATOR_INTAKE_REQUIRED_SECTIONS
+    )
+    intent_rows = "\n".join(
+        (
+            f"| {intent} | example phrase | inferred meaning | correct response "
+            "frame | allowed behavior now | future behavior after earned gates | "
+            "evidence/receipts to consult | follow-up needed | hard forbidden crossings |"
+        )
+        for intent in receipts.OPERATOR_INTAKE_REQUIRED_INTENTS
+    )
+    level_blocks = "\n\n".join(
+        f"### {level['heading']}\nCurrent v0 authorization: future gated, not active.\n"
+        for level in receipts.OPERATOR_INTAKE_ACTION_RIGHT_LEVELS
+    )
+    forbidden_crossings = "\n".join(
+        f"- {crossing}" for crossing in receipts.OPERATOR_INTAKE_FORBIDDEN_CROSSINGS
+    )
+
+    return (
+        "# Natural-Language Operator Intake And Action-Rights Roadmap v0\n\n"
+        f"{section_blocks}\n\n"
+        "This v0 does not authorize live autonomy.\n"
+        "Natural language can express operator intent. It cannot by itself grant "
+        "hidden execution authority.\n"
+        "Level 0 static framing is the only action-right level authorized by this v0.\n"
+        "Stage 4 remains future-gated, not current authority.\n"
+        "Current v0 authorization: future gated, not active.\n"
+        "Level 5 - Restricted/high-risk actions always require explicit approval "
+        "gate and are not authorized by this v0.\n"
+        '"do the next thing" is not execution authority.\n'
+        "It is not a live classifier, prompt generator, action router, approval "
+        "engine, or daemon.\n"
+        "do the next thing\njust handle it\ngo ahead and launch\n\n"
+        "| Intent | Example operator phrases | Inferred meaning | Correct response "
+        "frame | Allowed behavior now | Future behavior after earned gates | "
+        "Evidence/receipts to consult | Follow-up needed | Hard forbidden crossings |\n"
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+        f"{intent_rows}\n\n"
+        f"{level_blocks}\n\n"
+        f"{forbidden_crossings}\n"
+    )
+
+
 def _rail_fixture_text(name: str) -> str:
     if name == receipts.PROMPT_DOCTRINE_RAIL:
         return (
@@ -85,6 +131,10 @@ def _write_packet_fixture(root: Path) -> None:
     )
     for name in receipts.REQUIRED_RAIL_FILES:
         (rails_dir / name).write_text(_rail_fixture_text(name), encoding="utf-8")
+    (root / receipts.OPERATOR_INTAKE_DOC_RELATIVE_PATH).write_text(
+        _operator_intake_fixture_text(),
+        encoding="utf-8",
+    )
     archive_rails.mkdir(parents=True, exist_ok=True)
     archive_handoff.write_text(
         "This handoff is the train. The roadmap authority is "
@@ -479,6 +529,87 @@ def test_mcp_shared_memory_gate_is_static_no_call_and_non_authorizing(tmp_path):
     assert report["checks"]["external_mcp_calls_blocked"] is True
 
 
+def test_operator_intake_status_proves_stage_1_static_v0_and_future_gates(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_intake_status(tmp_path)
+
+    assert report["passed"] is True
+    assert report["doc_path"] == str(receipts.OPERATOR_INTAKE_DOC_RELATIVE_PATH)
+    assert report["stage_1_static_v0_implemented"] is True
+    assert report["stage_2_to_4_future_gated"] is True
+    assert report["live_classifier_implemented"] is False
+    assert report["prompt_generator_implemented"] is False
+    assert report["action_router_implemented"] is False
+    assert report["approval_engine_implemented"] is False
+    assert report["natural_language_is_execution_authority"] is False
+    assert report["runtime_activation_authorized"] is False
+    assert report["external_calls_used"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["mcp_called"] is False
+    assert report["hidden_memory_write_used"] is False
+    assert report["checks"]["no_live_autonomy_authorized"] is True
+    assert report["checks"]["stage_4_future_gated_not_current_authority"] is True
+
+
+def test_operator_intake_status_covers_required_stages_intents_and_action_rights(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_intake_status(tmp_path)
+
+    assert all(report["section_checks"].values())
+    assert set(report["stage_checks"]) == set(receipts.OPERATOR_INTAKE_STAGE_HEADINGS)
+    assert all(report["stage_checks"].values())
+    assert tuple(report["intent_checks"]) == receipts.OPERATOR_INTAKE_REQUIRED_INTENTS
+    assert all(report["intent_checks"].values())
+    levels = {level["level"]: level for level in report["action_right_levels"]}
+    assert set(levels) == {
+        "level_0_static_framing_only",
+        "level_1_read_only_local_evidence",
+        "level_2_draft_proposal_generation",
+        "level_3_bounded_repo_mutation",
+        "level_4_pre_approved_low_risk_execution",
+        "level_5_restricted_high_risk_actions",
+    }
+    assert levels["level_0_static_framing_only"]["currently_authorized"] is True
+    assert all(
+        level["currently_authorized"] is False
+        for key, level in levels.items()
+        if key != "level_0_static_framing_only"
+    )
+    assert all(report["action_right_checks"].values())
+    assert report["checks"]["level_5_restricted_high_risk_actions_remain_restricted"] is True
+
+
+def test_operator_intake_status_frames_dangerous_phrases_without_authority(tmp_path):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_intake_status(tmp_path)
+
+    frames = {frame["intent"]: frame for frame in report["dangerous_phrase_frames"]}
+    assert frames["do_the_next_thing"]["phrase"] == "do the next thing"
+    assert frames["do_the_next_thing"]["execution_authority_now"] is False
+    assert frames["do_the_next_thing"]["requires_follow_up_for_risky_action"] is True
+    assert report["do_the_next_thing_execution_authority"] is False
+    assert frames["unsafe_or_ambiguous_action"]["execution_authority_now"] is False
+    assert frames["approval_required_action"]["execution_authority_now"] is False
+    assert all(report["dangerous_phrase_checks"].values())
+    assert report["checks"]["do_the_next_thing_not_execution_authority"] is True
+
+
+def test_operator_intake_command_passes_without_authorizing_runtime(tmp_path, capsys):
+    _write_packet_fixture(tmp_path)
+
+    exit_code = receipts.main(["--root", str(tmp_path), "operator-intake-status"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "passed: True" in output
+    assert "runtime_activation_authorized: False" in output
+    assert "natural_language_is_execution_authority: False" in output
+    assert "live_classifier_implemented: False" in output
+
+
 def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
     _write_packet_fixture(tmp_path)
 
@@ -487,6 +618,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "prompt-pack-status",
         "activation-evidence-status",
         "mcp-shared-memory-gate-status",
+        "operator-intake-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -519,6 +651,36 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
     assert cards["prompt_doctrine"]["passed"] is True
     assert cards["prompt_doctrine"]["gemini_planning_profile_present"] is True
     assert cards["prompt_doctrine"]["codex_implementation_profile_present"] is True
+    assert cards["natural_language_operator_intake"]["passed"] is True
+    assert cards["natural_language_operator_intake"]["status_command"].endswith(
+        "operator-intake-status"
+    )
+    assert (
+        cards["natural_language_operator_intake"][
+            "stage_1_static_v0_implemented"
+        ]
+        is True
+    )
+    assert cards["natural_language_operator_intake"]["stage_2_to_4_future_gated"] is True
+    assert (
+        cards["natural_language_operator_intake"][
+            "natural_language_is_execution_authority"
+        ]
+        is False
+    )
+    assert (
+        cards["natural_language_operator_intake"][
+            "do_the_next_thing_execution_authority"
+        ]
+        is False
+    )
+    assert (
+        cards["natural_language_operator_intake"]["runtime_activation_authorized"]
+        is False
+    )
+    assert cards["natural_language_operator_intake"]["intent_count"] == len(
+        receipts.OPERATOR_INTAKE_REQUIRED_INTENTS
+    )
     assert cards["gated_activation"]["passed"] is True
     assert cards["gated_activation"]["runtime_activation_authorized"] is False
     assert cards["gated_activation"]["receipt_grants_execution_authority"] is False

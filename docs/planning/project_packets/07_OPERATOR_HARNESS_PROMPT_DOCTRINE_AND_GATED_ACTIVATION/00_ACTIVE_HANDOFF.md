@@ -208,3 +208,32 @@ Current next visible lane:
 - Next lane remains runtime-specific dry-run plan hardening; MCP shared memory now has a static gate/evidence shape, but no MCP activation or connector implementation.
 - Still gated now: live runtime launch, service/process scans, runtime mutation, installer apply/restart paths, provider/model calls, MCP calls or connector mutation, hidden memory writes, invoice action, legal/private content access, private-root inspection, and treating receipts as approval.
 - New receipt/check surfaces were added only where they reduce discovery, prevent unsafe activation, clarify next action, or preserve operator leverage.
+
+## Packet 07 Natural-Language Operator Intake And Action-Rights v0 Milestone - 2026-05-08
+
+Train-log note only: File 01 remains roadmap authority.
+
+Completed:
+
+- Added `NATURAL_LANGUAGE_OPERATOR_INTAKE_AND_ACTION_RIGHTS_V0.md` as a Packet 07 static bridge from manual command/prompt management toward natural-language operator intake.
+- Implemented Stage 1 only: intent and response framing. Stages 2-4 are documented as future gated progression for prompt/handoff generation, safe read-only action rights, and earned bounded autonomy.
+- Added `operator-intake-status` as a read-only static receipt proving the doc exists, Stage 1-4 headings exist, required intent classes exist, the action-rights ladder exists, "do the next thing" is not execution authority, Stage 4 is future-gated, and Level 5 restricted/high-risk actions remain restricted.
+- Extended `operator-harness-status` with a concise `natural_language_operator_intake` card. It is non-authorizing and keeps `runtime_activation_authorized=False`.
+- Added the exact `.gitignore` allowlist entry needed for the new Packet 07 doc to be tracked under the repo's deny-by-default ignore model.
+
+Validation receipt:
+
+```text
+./scripts/openclaw_receipts.py operator-intake-status: passed, Stage 1 static v0 implemented, Stage 2-4 future-gated
+./scripts/openclaw_receipts.py operator-harness-status: passed, natural-language intake card present
+./scripts/openclaw_receipts.py gated-activation-status: passed, readiness evidence remains non-authorizing
+./scripts/openclaw_receipts.py runtime-dry-run-readiness: passed, runtime_activation_authorized=False
+./scripts/openclaw_receipts.py activation-evidence-status: passed, execution_authority_granted=False
+pytest tests/test_openclaw_receipts.py -q: 29 passed
+```
+
+Current next visible lane:
+
+- Natural-language intake is now useful as static response framing for future chats: when Winship says X, the system should infer the likely intent, name the next safe move, and identify the gate required before doing more.
+- Stage 2 prompt/handoff generation remains the next natural hardening lane if File 01 still supports it; runtime-specific dry-run plan hardening remains separately gated by the existing runtime readiness rails.
+- Still gated now: live autonomy, live runtime launch, assistant daemons/listeners, speech/audio/Telegram/UI integration, process/service scans, provider/model/API calls, MCP calls or writes, hidden memory writes, external sends, invoice actions, legal/private-root/sensitive-data actions, commits/pushes/destructive operations without their separate gates, and treating natural language as hidden execution authority.
