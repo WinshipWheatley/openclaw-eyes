@@ -529,7 +529,23 @@ def _render_headroom_section(headroom: dict) -> str:
     icon = "⚠️" if warn else "✅"
     parts_str = " · ".join(parts) if parts else "no window data"
     captured_at = claude.get("captured_at")
-    age_suffix = f" · {age_str(captured_at)}" if captured_at else ""
+    age_suffix = ""
+    if captured_at:
+        age = age_str(captured_at)
+        is_stale = False
+        try:
+            # We use UTC for receipt timestamps
+            dt = datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+            if (datetime.now(dt.tzinfo) - dt) > timedelta(hours=24):
+                is_stale = True
+        except Exception:
+            pass
+
+        if is_stale:
+            age_suffix = f" · **Stale / Offline** ({age})"
+        else:
+            age_suffix = f" · {age}"
+
     lines.append(f"- **Claude:** {icon} {parts_str}{age_suffix}")
 
     return "\n".join(lines)
@@ -602,6 +618,9 @@ def _render_operator_harness_card(harness: dict) -> str:
     if not harness:
         lines.append("- Operator Harness status unavailable.")
         return "\n".join(lines)
+
+    if harness.get("passed"):
+        lines.append("*Status: Verified by current receipt*")
 
     cards = {c["card"]: c for c in harness.get("cards", [])}
 
@@ -943,12 +962,17 @@ def gen_right_now() -> str:
     task_title, task_goal = get_task_info()
     queued = get_queued_tasks()
 
+    harness = get_operator_harness_status()
+
     lines = [
-        f"# {icon} Loop Status — Right Now",
+        f"# {icon} Automated Builder Loop Status — Right Now",
         f"*Updated: {now_str()}*",
         "",
         f"**Loop status:** {state} — {explain}",
     ]
+
+    if harness.get("passed"):
+        lines.append("**Current Focus:** Operator Harness / Packet 07")
 
     last_attempted = _get_last_attempted_task()
     last_successful = _get_last_meaningful_successful_task()
