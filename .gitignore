@@ -454,3 +454,5 @@
 
 !Operator/
 !Operator/*.md
+!scripts/mac_watch_markdown_index.py
+!tests/test_mac_watch_markdown_index.py

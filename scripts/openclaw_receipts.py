@@ -3086,6 +3086,58 @@ def _paths_from_args_or_changes(args: argparse.Namespace, root: Path) -> tuple[s
     return paths
 
 
+
+def mac_watch_markdown_index_status(root: Path = ROOT) -> dict[str, object]:
+    script_path = root / "scripts" / "mac_watch_markdown_index.py"
+    report_json = root / "reports" / "mac_watch_index" / "MAC_WATCH_MARKDOWN_INDEX.json"
+    report_md = root / "reports" / "mac_watch_index" / "MAC_WATCH_MARKDOWN_INDEX.md"
+
+    script_text = script_path.read_text(encoding="utf-8") if script_path.is_file() else ""
+
+    checks = {
+        "script_exists": script_path.is_file(),
+        "report_paths_documented": (
+            "MAC_WATCH_MARKDOWN_INDEX.json" in script_text
+            and "MAC_WATCH_MARKDOWN_INDEX.md" in script_text
+        ),
+        "classifier_tagging_functions_exist": (
+            "def classify_file(" in script_text
+            and "group" in script_text
+            and "tags" in script_text
+        ),
+        "no_move_delete_write_back_behavior": (
+            "os.remove(" not in script_text
+            and "shutil.rmtree(" not in script_text
+            and "os.rename(" not in script_text
+            and ".unlink(" not in script_text
+        ),
+        "dependency_audit_terms_represented": (
+            "OpenClaw_Watch" in script_text
+            and "mac_eyes" in script_text
+            and "Right now.md" in script_text
+            and "MAC_WATCH_MARKDOWN_CENSUS_REPORT" in script_text
+        ),
+    }
+
+    return {
+        "receipt_type": "openclaw.mac_watch_markdown_index_status",
+        "mode": "read-only/static-script-check",
+        "script_path": str(script_path),
+        "report_json_path": str(report_json),
+        "report_md_path": str(report_md),
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+
+def print_mac_watch_markdown_index_status(report: dict[str, object]) -> None:
+    print(f"--- MAC WATCH MARKDOWN INDEX STATUS ---")
+    print(f"Script Path: {report.get('script_path')}")
+    checks = report.get('checks', {})
+    for k, v in checks.items():
+        icon = "✅" if v else "❌"
+        print(f"{icon} {k}")
+    print(f"Passed: {'YES' if report.get('passed') else 'NO'}")
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=CANONICAL_RECEIPT_COMMAND,
@@ -3185,6 +3237,10 @@ def build_parser() -> argparse.ArgumentParser:
         "operator-evidence-bridge-status",
         help="Print shared Operator Evidence Bridge v0 status.",
     )
+    subparsers.add_parser(
+        "mac-watch-markdown-index-status",
+        help="Print status of Mac Watch Markdown Index v0.",
+    )
     return parser
 
 
@@ -3249,6 +3305,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = operator_extension_simulator_status(root=root)
     elif args.command == "operator-evidence-bridge-status":
         report = operator_evidence_bridge_status(root=root)
+    elif args.command == "mac-watch-markdown-index-status":
+        report = mac_watch_markdown_index_status(root=root)
 
     if report is None:
         parser.error(f"unknown command: {args.command}")
@@ -3308,6 +3366,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_operator_extension_simulator_status(report)
     elif args.command == "operator-evidence-bridge-status":
         print_operator_evidence_bridge_status(report)
+    elif args.command == "mac-watch-markdown-index-status":
+        print_mac_watch_markdown_index_status(report)
 
     return 0 if report.get("passed", True) else 1
 
