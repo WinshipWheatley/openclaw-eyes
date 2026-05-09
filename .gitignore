@@ -51,6 +51,7 @@
 !operator_extension_simulator.py
 !operator_evidence_bridge.py
 !operator_question_response.py
+!compiled_knowledge_substrate.py
 !openclaw_sensitive_policy.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
@@ -464,6 +465,7 @@
 !/operator_prompt_handoff_generator.py
 !/tests/test_operator_prompt_handoff_generator.py
 !/tests/test_operator_question_response.py
+!/tests/test_compiled_knowledge_substrate.py
 
 # Operator Harness planning specs
 !/docs/planning/operator_harness/
