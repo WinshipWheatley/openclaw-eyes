@@ -29,7 +29,7 @@ from operator_evidence_bridge import (
     OperatorEvidenceBridgeResult,
     bridge_operator_request,
 )
-from operator_intent_core import OperatorIntentFrame
+from operator_intent_core import OperatorIntentFrame, classify_and_frame_operator_intent
 
 
 WORKER_PROFILES = (
@@ -69,6 +69,7 @@ DEFAULT_FORBIDDEN_LANES = (
     "external sends",
     "UI/dashboard/app work",
     "Packet 08 creation",
+    "Mac Watch moves, renames, deletes, writes, or source-file mutation",
     "commits or pushes unless separately and explicitly authorized",
     "destructive filesystem operations",
 )
@@ -196,6 +197,41 @@ DEFAULT_LIKELY_FILES_BY_PROFILE = {
     ),
 }
 
+RESTRICTED_TEXT_MARKERS = (
+    "launch it",
+    "activate it",
+    "start runtime",
+    "launch runtime",
+    "send externally",
+    "external send",
+    "send external",
+    "send email",
+    "send the email",
+    "move mac watch",
+    "move mac watch files",
+    "rename mac watch",
+    "delete mac watch",
+    "write mac watch",
+    "modify mac watch",
+    "access legal",
+    "legal private root",
+    "legal private roots",
+    "private root",
+    "private roots",
+    "access private root",
+    "access private roots",
+    "call provider api",
+    "call provider",
+    "call the provider",
+    "provider api",
+    "use provider api",
+    "use the api",
+    "call model api",
+    "write to mcp",
+    "write mcp memory",
+    "create packet 08",
+)
+
 
 @dataclass(frozen=True)
 class EvidenceReference:
@@ -240,6 +276,30 @@ def _validate_worker_profile(profile: str) -> str:
             f"unknown target_worker_profile: {profile!r}; expected one of {allowed}"
         )
     return normalized
+
+
+def _plain_normalize(text: str) -> str:
+    lowered = str(text).lower().strip()
+    chars = []
+    for char in lowered:
+        if char.isalnum() or char in {"'", " "}:
+            chars.append(char)
+        else:
+            chars.append(" ")
+    return " ".join("".join(chars).split())
+
+
+def _contains_normalized_phrase(normalized_text: str, phrase: str) -> bool:
+    normalized_phrase = _plain_normalize(phrase)
+    return bool(normalized_phrase) and f" {normalized_phrase} " in f" {normalized_text} "
+
+
+def _text_touches_restricted_lane(text: str) -> bool:
+    normalized = _plain_normalize(text)
+    return any(
+        _contains_normalized_phrase(normalized, marker)
+        for marker in RESTRICTED_TEXT_MARKERS
+    )
 
 
 def _reference_source_type(reference: str) -> str:
@@ -362,6 +422,22 @@ def _canonical_files_for_profile(profile: str) -> tuple[str, ...]:
     return _dedupe(BASE_CANONICAL_FILES + PROFILE_CANONICAL_FILES[profile])
 
 
+def _domain_and_posture_for_intent_frame(frame: OperatorIntentFrame) -> tuple[str, str]:
+    if frame.tool_route == "codex_bounded_repo_prompt":
+        return "codex_coder_routing", "not_required_draft_or_review"
+    if frame.tool_route == "gemini_architecture_scope_review":
+        return "gemini_planning_architecture_routing", "not_required_draft_or_review"
+    if frame.tool_route == "codex_diff_commit_readiness_review":
+        return "commit_push_remote_mutation", "not_required_review_only"
+    if frame.tool_route == "operator_handoff_draft":
+        return "handoff_packet_continuity", "draft_only_or_scoped_mutation_required"
+    if frame.request_category == "prompt_generation":
+        return "handoff_packet_continuity", "not_required_draft_or_review"
+    if frame.request_category == "review":
+        return "commit_push_remote_mutation", "not_required_review_only"
+    return "status_orientation", "not_required_read_only_status"
+
+
 def _intent_from_frame_or_bridge(
     *,
     operator_text: str | None,
@@ -372,6 +448,23 @@ def _intent_from_frame_or_bridge(
         text = intent_frame.intent_name
 
     bridge = bridge_operator_request(text)
+    frame = intent_frame or classify_and_frame_operator_intent(text)
+
+    if (
+        bridge.restricted_block is False
+        and bridge.bridge_domain == "unsafe_ambiguous_handle_it"
+        and frame.intent_name != "unsafe_or_ambiguous_action"
+        and frame.request_category in {"prompt_generation", "review"}
+    ):
+        bridge_domain, covenant_posture = _domain_and_posture_for_intent_frame(frame)
+        return (
+            frame.intent_name,
+            bridge_domain,
+            frame.request_category,
+            covenant_posture,
+            bridge,
+        )
+
     if intent_frame is None:
         return (
             bridge.inferred_intent,
@@ -390,8 +483,12 @@ def _intent_from_frame_or_bridge(
     )
 
 
-def _is_restricted(bridge: OperatorEvidenceBridgeResult) -> bool:
-    return bridge.restricted_block or bridge.bridge_domain in RESTRICTED_BRIDGE_DOMAIN_IDS
+def _is_restricted(bridge: OperatorEvidenceBridgeResult, operator_text: str = "") -> bool:
+    return (
+        bridge.restricted_block
+        or bridge.bridge_domain in RESTRICTED_BRIDGE_DOMAIN_IDS
+        or _text_touches_restricted_lane(operator_text)
+    )
 
 
 def _status_for(
@@ -474,18 +571,18 @@ def _render_prompt_text(
     lines: list[str] = [
         "OPERATOR PROMPT/HANDOFF v0",
         "",
-        "AUTHORITY BANNER",
+        "AUTHORITY / NON-AUTHORITY",
         AUTHORITY_BANNER,
         RECEIPT_NON_AUTHORITY_STATEMENT,
         MAC_WATCH_SUPPORT_BANNER,
         "",
-        "TARGET WORKER PROFILE",
+        "WORKER PROFILE",
         profile,
         "",
         "STATUS",
         status,
         "",
-        "OPERATOR TEXT",
+        "OPERATOR REQUEST",
         operator_text or "<intent frame supplied without raw operator text>",
         "",
         "CLASSIFIED INTENT",
@@ -548,7 +645,7 @@ def _render_prompt_text(
     lines.extend(
         (
             "",
-            "WORKER INSTRUCTIONS",
+            "WORKER TASK",
             PROFILE_INSTRUCTIONS[profile],
             "",
             "COVENANT AND AUTHORITY",
@@ -603,6 +700,9 @@ def generate_operator_prompt_handoff(
     """
     profile = _validate_worker_profile(target_worker_profile)
     raw_text = str(operator_text or "").strip()
+    restricted_text = raw_text
+    if not restricted_text and intent_frame is not None:
+        restricted_text = intent_frame.intent_name
 
     classified_intent, bridge_domain, request_category, covenant_posture, bridge = (
         _intent_from_frame_or_bridge(
@@ -617,7 +717,7 @@ def generate_operator_prompt_handoff(
     )
     canonical_evidence, mac_watch_support = _split_evidence(evidence)
     has_evidence = bool(evidence)
-    restricted = _is_restricted(bridge)
+    restricted = _is_restricted(bridge, restricted_text)
     status = _status_for(
         profile=profile,
         has_evidence=has_evidence,

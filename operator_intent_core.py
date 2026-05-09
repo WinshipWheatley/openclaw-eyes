@@ -128,6 +128,19 @@ _RULES: tuple[_Rule, ...] = (
         "gemini_architecture_scope_review",
     ),
     _Rule(
+        "handoff_request",
+        "prompt_generation",
+        "exact",
+        (
+            "bounded worker prompt",
+            "produce the bounded worker prompt",
+            "worker prompt",
+            "prompt handoff",
+            "operator harness slice",
+        ),
+        "operator_handoff_draft",
+    ),
+    _Rule(
         "commit_review_request",
         "review",
         "exact",
@@ -213,8 +226,8 @@ _FRAMES = {
         "required final checks and require explicit push authority."
     ),
     "handoff_request": (
-        "Prepare a concise train-log handoff: completed work, validation, next "
-        "visible lane, File 01 authority, and gated surfaces."
+        "Prepare a bounded worker prompt or handoff: intent, evidence, scope, "
+        "files, validation, stop conditions, and current non-authority."
     ),
     "activation_readiness_question": (
         "Separate readiness evidence from approval; name current authorization "
@@ -242,7 +255,7 @@ _FUTURE_GATES = {
     "gemini_review_request": "Level 2 prompt generation gate; provider calls need separate policy",
     "commit_review_request": "Level 3 bounded repo review/commit gate",
     "push_confirmation_context": "Level 5 external-send/remote-mutation gate",
-    "handoff_request": "Level 2 draft gate; Level 3 if writing repo docs",
+    "handoff_request": "Level 2 prompt/handoff generation gate; Level 3 only if writing repo files",
     "activation_readiness_question": "activation evidence gate, then future explicit approval",
     "approval_required_action": "explicit action-right approval gate with receipts and rollback",
     "unsafe_or_ambiguous_action": "clarification before any action-right level",
@@ -322,6 +335,7 @@ def _evidence_for(intent: OperatorIntent) -> tuple[str, ...]:
         return (
             "Packet 07 active handoff",
             "Packet 07 File 01 roadmap authority",
+            "Packet 07 File 14 prompt doctrine",
         ) + COMMON_EVIDENCE_SURFACES
     return COMMON_EVIDENCE_SURFACES
 
@@ -367,6 +381,7 @@ def sample_phrase_matrix() -> tuple[tuple[str, str], ...]:
         ("can we move forward", "activation_readiness_question"),
         ("send that to Codex", "codex_prompt_request"),
         ("ask Gemini", "gemini_review_request"),
+        ("Review the next safe Operator Harness slice and produce the bounded worker prompt", "handoff_request"),
         ("review this for commit", "commit_review_request"),
         ("can I push", "push_confirmation_context"),
         ("make a handoff", "handoff_request"),

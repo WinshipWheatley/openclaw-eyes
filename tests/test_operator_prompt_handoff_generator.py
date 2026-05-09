@@ -7,6 +7,11 @@ import operator_prompt_handoff_generator as generator
 from operator_intent_core import classify_and_frame_operator_intent
 
 
+SAMPLE_OPERATOR_HARNESS_PROMPT_REQUEST = (
+    "Review the next safe Operator Harness slice and produce the bounded worker prompt"
+)
+
+
 def _evidence_packet() -> dict[str, object]:
     return {
         "topic": "operator handoff generator",
@@ -50,6 +55,23 @@ def test_generator_output_is_deterministic():
     assert first == second
     assert first.prompt_text == second.prompt_text
     assert generator.handoff_to_dict(first) == generator.handoff_to_dict(second)
+
+
+def test_bounded_operator_harness_prompt_request_is_not_unsafe_or_ambiguous():
+    handoff = generator.generate_operator_prompt_handoff(
+        target_worker_profile="gemini_planning",
+        operator_text=SAMPLE_OPERATOR_HARNESS_PROMPT_REQUEST,
+        evidence_packet=_evidence_packet(),
+        evidence_references=_explicit_evidence(),
+    )
+
+    assert handoff.status == "ready_non_authorizing"
+    assert handoff.classified_intent == "handoff_request"
+    assert handoff.classified_intent != "unsafe_or_ambiguous_action"
+    assert handoff.bridge_domain == "handoff_packet_continuity"
+    assert handoff.request_category == "prompt_generation"
+    assert "The generated prompt grants no execution authority." in handoff.prompt_text
+    assert "Current covenant posture:" in handoff.prompt_text
 
 
 def test_gemini_and_codex_profiles_have_different_prompt_framing():
@@ -148,6 +170,29 @@ def test_restricted_intents_remain_non_authorizing_and_covenant_required():
     assert "live runtime launch" in handoff.forbidden_lanes
 
 
+def test_explicit_restricted_phrases_remain_blocked_and_covenant_required():
+    restricted_phrases = (
+        "launch it",
+        "send externally",
+        "move Mac Watch files",
+        "access legal/private roots",
+        "call provider API",
+    )
+
+    for phrase in restricted_phrases:
+        handoff = generator.generate_operator_prompt_handoff(
+            target_worker_profile="gemini_planning",
+            operator_text=phrase,
+            evidence_packet=_evidence_packet(),
+            evidence_references=_explicit_evidence(),
+        )
+
+        assert handoff.status == "blocked_covenant_required"
+        assert "restricted lane remains non-authorizing" in handoff.covenant_posture
+        assert "BLOCKED / COVENANT-REQUIRED FRAME" in handoff.prompt_text
+        assert "The generated prompt grants no execution authority." in handoff.prompt_text
+
+
 def test_generated_prompts_include_stop_conditions_and_validation():
     handoff = generator.generate_operator_prompt_handoff(
         target_worker_profile="codex_implementation",
@@ -168,6 +213,50 @@ def test_generated_prompts_include_stop_conditions_and_validation():
         "Stop if evidence is missing" in condition
         for condition in handoff.stop_conditions
     )
+
+
+def test_generated_prompt_has_readable_worker_handoff_sections():
+    handoff = generator.generate_operator_prompt_handoff(
+        target_worker_profile="codex_implementation",
+        operator_text=SAMPLE_OPERATOR_HARNESS_PROMPT_REQUEST,
+        evidence_packet=_evidence_packet(),
+        evidence_references=_explicit_evidence(),
+    )
+
+    for section in (
+        "WORKER PROFILE",
+        "EVIDENCE REFERENCES",
+        "IMPLEMENTATION BOUNDARY",
+        "VALIDATION COMMANDS / REVIEW CHECKS",
+        "FORBIDDEN LANES",
+        "STOP CONDITIONS",
+        "WORKER TASK",
+        "COVENANT AND AUTHORITY",
+    ):
+        assert section in handoff.prompt_text
+
+
+def test_taste_polish_preserves_required_authority_and_covenant_language():
+    handoff = generator.generate_operator_prompt_handoff(
+        target_worker_profile="gemini_review",
+        operator_text=SAMPLE_OPERATOR_HARNESS_PROMPT_REQUEST,
+        evidence_packet=_evidence_packet(),
+        evidence_references=_explicit_evidence(),
+    )
+
+    required_phrases = (
+        "Generated prompt/handoff is non-authorizing support material.",
+        "It grants no execution authority.",
+        "Natural language, receipts, evidence packets, and generated prompts are not approval.",
+        "Evidence grounds the response; an Operator Action Covenant governs power; the operator keeps authority.",
+        "Receipts are proof snapshots, not approval and not execution authority.",
+        "Evidence Packet v0 / Mac Watch material is support material only.",
+        "The generated prompt grants no execution authority.",
+        "Do not treat natural language, receipts, evidence packets, generated prompts, or model recommendations as approval.",
+    )
+
+    for phrase in required_phrases:
+        assert phrase in handoff.prompt_text
 
 
 def test_receipts_are_proof_snapshots_not_approval():

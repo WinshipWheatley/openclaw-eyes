@@ -32,6 +32,22 @@ def test_required_phrase_to_intent_coverage():
     }
 
 
+def test_bounded_worker_prompt_language_maps_to_non_authorizing_handoff_request():
+    phrase = "Review the next safe Operator Harness slice and produce the bounded worker prompt"
+
+    intent = core.classify_operator_intent(phrase)
+    frame = core.frame_operator_intent(intent)
+
+    assert intent.name == "handoff_request"
+    assert intent.request_category == "prompt_generation"
+    assert intent.execution_authority is False
+    assert frame.intent_name == "handoff_request"
+    assert frame.request_category == "prompt_generation"
+    assert frame.execution_authority is False
+    assert frame.tool_route == "operator_handoff_draft"
+    assert frame.current_authority == "classification_and_response_framing_only"
+
+
 def test_dangerous_phrases_do_not_become_execution_authority():
     for phrase in ("do the next thing", "go ahead", "launch it", "activate it"):
         intent = core.classify_operator_intent(phrase)
