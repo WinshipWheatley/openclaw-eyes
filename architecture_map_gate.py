@@ -84,14 +84,26 @@ def evaluate_architecture_request(request_text: str) -> ArchitectureGateResult:
         next_safe_step = "Do not access private roots. Consult operator for manual review."
         blocked = True
 
-    # 6. Generic tool/app/dashboard/service build requests must return prior_art_check_required
-    elif any(kw in normalized_text for kw in ("build a dashboard", "build an app", "build a service", "build from scratch", "new dashboard", "new app")):
+    # 6. Rebuilding known OpenClaw substrate must not be treated as generic prior art.
+    elif "rebuild" in normalized_text and any(
+        kw in normalized_text for kw in ("map room", "plugin system", "registry", "frontier")
+    ):
+        already_built_risk = True
+        gate_decision = "already_built_review_required"
+        decision_reason = "Request to rebuild established Map Room or plugin system substrate."
+        next_safe_step = "Consult existing maps and registry before proposing a rebuild."
+
+    # 7. Generic tool/app/dashboard/service build requests must return prior_art_check_required.
+    elif (
+        any(kw in normalized_text for kw in ("dashboard", "app", "service", "tool", "interface", "frontend", "backend"))
+        and any(kw in normalized_text for kw in ("build", "create", "new", "scratch"))
+    ) or "from scratch" in normalized_text:
         gate_decision = "prior_art_check_required"
         decision_reason = "Generic build request requires a prior-art check to avoid duplication."
         needs_prior_art_check = True
         next_safe_step = "Consult NO_BUILD_PRIOR_ART_SOURCES.md before proceeding."
 
-    # 7. Multi-domain tasks must return too_broad_manual_review
+    # 8. Multi-domain tasks must return too_broad_manual_review
     elif too_broad:
         gate_decision = "too_broad_manual_review"
         decision_reason = domain_match.reason
@@ -104,6 +116,12 @@ def evaluate_architecture_request(request_text: str) -> ArchitectureGateResult:
         ready_for_bounded_slice = True
         next_safe_step = "Proceed with architectural planning within the defined boundary."
     
+    elif any(kw in normalized_text for kw in ("design", "plan")) and any(kw in normalized_text for kw in ("domain", "router", "architecture", "map")):
+         gate_decision = "ready_for_bounded_architecture_slice"
+         decision_reason = "Request is for a bounded architecture/planning slice."
+         ready_for_bounded_slice = True
+         next_safe_step = "Proceed with architectural planning within the defined boundary."
+
     elif domain_match.matched_domain_id == "architecture_map_gate":
         # Check if it looks like a bounded slice even without the keywords
         if "design" in normalized_text or "plan" in normalized_text:

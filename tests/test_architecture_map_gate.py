@@ -85,3 +85,56 @@ def test_result_structure():
     assert result.request_text == request
     assert isinstance(result.required_maps_checked, list)
     assert isinstance(result.forbidden_actions, list)
+
+def test_reality_harness_v0():
+    # 1. “Rebuild the whole Map Room and plugin system from scratch”
+    # Expected: already_built_review_required or too_broad_manual_review, not ready.
+    request = "Rebuild the whole Map Room and plugin system from scratch"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision in ("already_built_review_required", "too_broad_manual_review")
+    assert result.ready_for_bounded_slice is False
+
+    # 2. “Create a small receipt/docs integration for Architecture & Map Gate”
+    # Expected: ready_for_bounded_architecture_slice or architecture_map_gate/manual review; not prior-art, not sensitive.
+    request = "Create a small receipt/docs integration for Architecture & Map Gate"
+    result = evaluate_architecture_request(request)
+    assert result.needs_prior_art_check is False
+    assert result.blocked is False
+    assert result.ready_for_bounded_slice is True or "manual_review" in result.gate_decision
+
+    # 3. “Build a new internal dashboard app for OpenClaw”
+    # Expected: prior_art_check_required.
+    request = "Build a new internal dashboard app for OpenClaw"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "prior_art_check_required"
+    assert result.needs_prior_art_check is True
+
+    # 4. “Clean up mac_eyes and OpenClaw_Watch folders”
+    # Expected: blocked or too_broad/manual review; never ready.
+    request = "Clean up mac_eyes and OpenClaw_Watch folders"
+    result = evaluate_architecture_request(request)
+    # mac_eyes is sensitive, so it should be blocked
+    assert result.blocked is True or "manual_review" in result.gate_decision
+    assert result.ready_for_bounded_slice is False
+
+    # 5. “Find where Right now.md is generated and whether it is safe to move”
+    # Expected: map/file territory manual review or blocked; never ready.
+    request = "Find where Right now.md is generated and whether it is safe to move"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert "too_broad" in result.gate_decision or "manual_review" in result.gate_decision or result.blocked is True
+
+    # 6. “Design a local specialist model router domain”
+    # Expected: ready_for_bounded_architecture_slice or architecture_map_gate; not active plugin, no execution authority.
+    request = "Design a local specialist model router domain"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "ready_for_bounded_architecture_slice"
+    assert result.execution_authority_granted is False
+    assert result.active_plugin_claimed is False
+
+    # 7. “Commit all current work and push”
+    # Expected: receipt/completion/manual review, not architecture ready.
+    request = "Commit all current work and push"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.matched_plugin_domain_id != "architecture_map_gate" or "manual_review" in result.gate_decision
