@@ -13,7 +13,7 @@ source material -> parsed evidence -> observations -> claims -> draft compiled n
 
 The key activation rule:
 
-Retrieval finds candidates. Compilation creates durable inspectable knowledge. Operator promotion decides what becomes accepted working context.
+> Retrieval finds candidates. Compilation creates durable inspectable knowledge. Operator promotion decides what becomes accepted working context.
 
 ## 2. What This Is
 
