@@ -458,3 +458,7 @@
 !tests/test_mac_watch_markdown_index.py
 !scripts/evidence_packet_generator.py
 !tests/test_evidence_packet_generator.py
+
+# Operator prompt/handoff generator
+!/operator_prompt_handoff_generator.py
+!/tests/test_operator_prompt_handoff_generator.py
