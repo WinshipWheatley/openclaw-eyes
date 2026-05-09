@@ -19,6 +19,7 @@ Future workers must enter the Map Room and consult the relevant artifacts before
 - [Compiled Knowledge Substrate Frontier Map](./COMPILED_KNOWLEDGE_SUBSTRATE_FRONTIER_MAP.md) - [Frontier Map] Tracks the compiled_knowledge_substrate territory.
 - [No-Build / Prior-Art Sources](./NO_BUILD_PRIOR_ART_SOURCES.md) - [Discovery Guide] A check-before-building guide to prevent reinventing existing tools.
 - [File Territory / Cleanup Readiness Map](./FILE_TERRITORY_CLEANUP_READINESS_MAP.md) - [Readiness Map] A read-only map defining what exists and dependencies before any cleanup.
+- [Dependency Owner Candidate Move Map](./DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md) - [Readiness Map] Classifies file path dependencies by ownership and risk to safely plan future cleanup candidates.
 
 ## Core Navigation Doctrine
 

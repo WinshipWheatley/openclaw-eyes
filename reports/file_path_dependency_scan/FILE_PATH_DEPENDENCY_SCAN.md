@@ -3,8 +3,8 @@
 ## Metadata
 - **Mode:** read-only/static-reference-scan
 - **Repo Root:** /home/openclaw
-- **Scanned File Count:** 7200
-- **Skipped Categories:** .venv, .google-secrets, .claude, compliance_verdicts, OpenClawShared, .gemini, .private, OpenClawLegalPrivate, .openclaw, __pycache__, .git, .nemoclaw, venv, env, .pytest_cache, .kimi, .feynman, chief_env, mac_eyes, .codex, node_modules, binary files, private roots
+- **Scanned File Count:** 7203
+- **Skipped Categories:** env, .claude, .codex, .private, .venv, .git, OpenClawLegalPrivate, chief_env, mac_eyes, .kimi, .openclaw, compliance_verdicts, __pycache__, node_modules, .gemini, venv, OpenClawShared, .nemoclaw, .google-secrets, .pytest_cache, .feynman, binary files, private roots
 
 ## Cleanup Decision Posture
 - **Status:** no move/delete/rename allowed from this scan alone
@@ -18,373 +18,376 @@
 ## Term Summary
 | Term | Matches | Files | Sample Files |
 |---|---|---|---|
-| `OpenClaw_Watch` | 276 | 56 | MAC_WATCH_CLASSIFICATION_REPORT.md, MAC_WATCH_MARKDOWN_CENSUS_REPORT.md, apps/legal-console-spike/src-tauri/src/dummy.rs |
-| `mac_eyes` | 12464 | 122 | 00 Launchers/DEPRECATED.md, OPEN_CLAW_MANIFEST.md, autonomy_qualification.py |
-| `Operator Watch.md` | 35 | 11 | MAC_WATCH_CLASSIFICATION_REPORT.md, MAC_WATCH_MARKDOWN_CENSUS_REPORT.md, Operator/04_ANTI_DRIFT_RULES.md |
-| `Right now.md` | 135 | 29 | 00 Launchers/00 Start Here.md, builder_watcher.log, dashboard_gen.py |
-| `dashboard_gen.py` | 685 | 55 | MAC_WATCH_CLASSIFICATION_REPORT.md, OpenClaw/exports/inspection-20260420-191703/findings.txt, OpenClaw/exports/inspection-20260420-210312/findings.txt |
-| `reports/mac_watch_index` | 29 | 4 | reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md, reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json |
-| `MAC_WATCH_MARKDOWN_INDEX` | 45 | 8 | docs/navigation_maps/FILE_TERRITORY_CLEANUP_READINESS_MAP.md, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md |
-| `sync_operator_harness_to_mac` | 45 | 13 | docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md, docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/VALIDATION_MAP.md, docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/launch_ladder_contract_check.py |
-| `sync_legal_planning_to_mac` | 21 | 7 | reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md, reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json |
-| `watch_legal_planning_to_mac` | 13 | 4 | reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md, reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json |
-| `sync_legal` | 38 | 7 | reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json, reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md, reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json |
-| `Launchers` | 167 | 24 | 00 Launchers/DEPRECATED.md, builder_watcher.log, docs/operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md |
-| `OpenClawShared` | 2932 | 276 | CURRENT_STATE.md, KNOWN_GAPS.md, RUNBOOK.md |
-| `OpenClawLegalPrivate` | 412 | 51 | apps/legal-console-spike/README.md, apps/legal-console-spike/dist/assets/index-8-QFaHFh.js, apps/legal-console-spike/src-tauri/src/dummy.rs |
-| `/mnt/c/OpenClaw` | 19932 | 489 | CURRENT_STATE.md, KNOWN_GAPS.md, NEXT_ACTIONS.md |
-| `/mnt/c/OpenClawShared` | 2286 | 263 | CURRENT_STATE.md, KNOWN_GAPS.md, RUNBOOK.md |
-| `/mnt/c/OpenClawLegalPrivate` | 149 | 30 | apps/legal-console-spike/README.md, apps/legal-console-spike/dist/assets/index-8-QFaHFh.js, apps/legal-console-spike/src-tauri/src/run.rs |
+| `OpenClaw_Watch` | 287 | 59 | MAC_WATCH_CLASSIFICATION_REPORT.md, MAC_WATCH_MARKDOWN_CENSUS_REPORT.md, apps/legal-console-spike/src-tauri/src/dummy.rs |
+| `mac_eyes` | 12475 | 125 | 00 Launchers/DEPRECATED.md, OPEN_CLAW_MANIFEST.md, autonomy_qualification.py |
+| `Operator Watch.md` | 44 | 14 | MAC_WATCH_CLASSIFICATION_REPORT.md, MAC_WATCH_MARKDOWN_CENSUS_REPORT.md, Operator/04_ANTI_DRIFT_RULES.md |
+| `Right now.md` | 145 | 32 | 00 Launchers/00 Start Here.md, builder_watcher.log, dashboard_gen.py |
+| `dashboard_gen.py` | 697 | 58 | MAC_WATCH_CLASSIFICATION_REPORT.md, OpenClaw/exports/inspection-20260420-191703/findings.txt, OpenClaw/exports/inspection-20260420-210312/findings.txt |
+| `reports/mac_watch_index` | 30 | 7 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md |
+| `MAC_WATCH_MARKDOWN_INDEX` | 46 | 11 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, docs/navigation_maps/FILE_TERRITORY_CLEANUP_READINESS_MAP.md, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json |
+| `sync_operator_harness_to_mac` | 55 | 16 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md, docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/VALIDATION_MAP.md |
+| `sync_legal_planning_to_mac` | 31 | 10 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md |
+| `watch_legal_planning_to_mac` | 23 | 7 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md |
+| `sync_legal` | 54 | 10 | docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json, reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md |
+| `Launchers` | 177 | 27 | 00 Launchers/DEPRECATED.md, builder_watcher.log, docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md |
+| `OpenClawShared` | 2950 | 279 | CURRENT_STATE.md, KNOWN_GAPS.md, RUNBOOK.md |
+| `OpenClawLegalPrivate` | 431 | 54 | apps/legal-console-spike/README.md, apps/legal-console-spike/dist/assets/index-8-QFaHFh.js, apps/legal-console-spike/src-tauri/src/dummy.rs |
+| `/mnt/c/OpenClaw` | 19960 | 492 | CURRENT_STATE.md, KNOWN_GAPS.md, NEXT_ACTIONS.md |
+| `/mnt/c/OpenClawShared` | 2295 | 266 | CURRENT_STATE.md, KNOWN_GAPS.md, RUNBOOK.md |
+| `/mnt/c/OpenClawLegalPrivate` | 158 | 33 | apps/legal-console-spike/README.md, apps/legal-console-spike/dist/assets/index-8-QFaHFh.js, apps/legal-console-spike/src-tauri/src/run.rs |
 
 ## Dependency-Sensitive Files (Multiple References)
-- `00 Launchers/DEPRECATED.md`: `mac_eyes`, `Launchers`
-- `CURRENT_STATE.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `KNOWN_GAPS.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `MAC_WATCH_CLASSIFICATION_REPORT.md`: `dashboard_gen.py`, `Operator Watch.md`, `OpenClaw_Watch`
-- `MAC_WATCH_MARKDOWN_CENSUS_REPORT.md`: `Operator Watch.md`, `OpenClaw_Watch`
-- `RUNBOOK.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `apps/legal-console-spike/README.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `apps/legal-console-spike/dist/assets/index-8-QFaHFh.js`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
+- `00 Launchers/DEPRECATED.md`: `Launchers`, `mac_eyes`
+- `CURRENT_STATE.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `KNOWN_GAPS.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `MAC_WATCH_CLASSIFICATION_REPORT.md`: `dashboard_gen.py`, `OpenClaw_Watch`, `Operator Watch.md`
+- `MAC_WATCH_MARKDOWN_CENSUS_REPORT.md`: `OpenClaw_Watch`, `Operator Watch.md`
+- `RUNBOOK.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `apps/legal-console-spike/README.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `apps/legal-console-spike/dist/assets/index-8-QFaHFh.js`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
 - `apps/legal-console-spike/src-tauri/src/dummy.rs`: `OpenClawLegalPrivate`, `OpenClaw_Watch`
 - `apps/legal-console-spike/src-tauri/src/intake.rs`: `OpenClawLegalPrivate`, `OpenClaw_Watch`
-- `apps/legal-console-spike/src-tauri/src/run.rs`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`, `OpenClaw_Watch`
+- `apps/legal-console-spike/src-tauri/src/run.rs`: `OpenClawLegalPrivate`, `OpenClaw_Watch`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
 - `apps/legal-console-spike/src-tauri/src/status.rs`: `OpenClawLegalPrivate`, `OpenClaw_Watch`
-- `apps/legal-console-spike/src/legalPaths.ts`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `autonomy_qualification.py`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `brain_dump_parser.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `builder_watcher.log`: `dashboard_gen.py`, `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`, `Launchers`
-- `cassandra_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `cassandra_brain.py.bak`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `cassandra_briefing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `cassandra_briefing_morning_context.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `cassandra_watcher.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_album_batch.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_album_io.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_album_mixer.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_analytics_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_approval_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_approval_bridge.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_backup_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_brainstorm_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_brainstorm_router.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_brainstorm_watcher.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_brand_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_calendar_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_ceo_briefing.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_content_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_cpa_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_email_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_end_of_day_review.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_financial_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_focus_reporter.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_focus_shield.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_fundo_identity.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_fundo_release.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_fundo_session.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_goals_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_integration_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_marketing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_momentum_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_morning_inspector.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_morning_push.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_morning_synthesis.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_musiclaw_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_obsidian_sync.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_ops_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_ops_reporter.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_phone_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_publishing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_queue_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_reflection_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_reporter_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_scheduler_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_scout_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_sms_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_trinity_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_validator_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_website_coordinator.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_website_creative.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `chief_website_qa.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `dashboard_gen.py`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `docs/doctrine/SURFACE_AUTHORITY.md`: `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`
-- `docs/navigation_maps/FILE_TERRITORY_CLEANUP_READINESS_MAP.md`: `mac_eyes`, `dashboard_gen.py`, `MAC_WATCH_MARKDOWN_INDEX`, `OpenClaw_Watch`
-- `docs/operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`
-- `docs/operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`, `Launchers`
-- `docs/operations/OPENCLAW_STALE_FOLDER_MANIFEST_DRAFT.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`
+- `apps/legal-console-spike/src/legalPaths.ts`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `autonomy_qualification.py`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `brain_dump_parser.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `builder_watcher.log`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
+- `cassandra_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `cassandra_brain.py.bak`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `cassandra_briefing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `cassandra_briefing_morning_context.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `cassandra_watcher.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_album_batch.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_album_io.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_album_mixer.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_analytics_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_approval_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_approval_bridge.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_backup_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_brainstorm_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_brainstorm_router.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_brainstorm_watcher.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_brand_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_calendar_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_ceo_briefing.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_content_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_cpa_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_email_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_end_of_day_review.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_financial_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_focus_reporter.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_focus_shield.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_fundo_identity.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_fundo_release.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_fundo_session.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_goals_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_integration_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_marketing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_momentum_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_morning_inspector.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_morning_push.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_morning_synthesis.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_musiclaw_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_obsidian_sync.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_ops_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_ops_reporter.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_phone_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_publishing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_queue_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_reflection_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_reporter_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_scheduler_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_scout_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_sms_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_trinity_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_validator_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_website_coordinator.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_website_creative.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `chief_website_qa.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `dashboard_gen.py`: `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
+- `docs/doctrine/SURFACE_AUTHORITY.md`: `OpenClaw_Watch`, `mac_eyes`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `docs/navigation_maps/FILE_TERRITORY_CLEANUP_READINESS_MAP.md`: `dashboard_gen.py`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `mac_eyes`
+- `docs/operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `docs/operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md`: `Launchers`, `mac_eyes`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `docs/operations/OPENCLAW_STALE_FOLDER_MANIFEST_DRAFT.md`: `OpenClawLegalPrivate`, `mac_eyes`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
 - `docs/planning/command_atlas/00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md`: `sync_operator_harness_to_mac`, `mac_eyes`, `Launchers`, `OpenClaw_Watch`
-- `docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md`: `Right now.md`, `OpenClaw_Watch`
-- `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`: `mac_eyes`, `OpenClaw_Watch`
-- `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`: `OpenClawLegalPrivate`, `OpenClawShared`, `OpenClaw_Watch`
+- `docs/planning/launch_ladder/06_ROUTING_AND_WORKSPACES.md`: `sync_operator_harness_to_mac`, `OpenClaw_Watch`, `Launchers`, `mac_eyes`
+- `docs/planning/launch_ladder/11_NEXT_IMPLEMENTATION_SEQUENCE.md`: `OpenClaw_Watch`, `Right now.md`
+- `docs/planning/launch_ladder/20_DEPLOYMENT_TOPOLOGY_NODE_PORTABILITY_AND_OS_AGNOSTICISM.md`: `OpenClaw_Watch`, `mac_eyes`
+- `docs/planning/launch_ladder/26_PC_WINDOWS_ROOTS_PRIVATE_DATA_BOUNDARY_BREADCRUMB.md`: `OpenClawLegalPrivate`, `OpenClaw_Watch`, `OpenClawShared`
 - `docs/planning/launch_ladder/27_WINDOWS_ROOT_TRIAGE_AND_DEPENDENCY_MAP_PLAN.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `OpenClawShared`
 - `docs/planning/launch_ladder/28_WINDOWS_ROOT_DEPENDENCY_MAP_TEMPLATE.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`
+- `docs/planning/launch_ladder/29_WINDOWS_ROOT_DEPENDENCY_MAP.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
 - `docs/planning/launch_ladder/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/launch_ladder/LAUNCH_LADDER_INDEX.md`: `mac_eyes`, `Launchers`
-- `docs/planning/launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md`: `mac_eyes`, `Right now.md`, `OpenClaw_Watch`
+- `docs/planning/launch_ladder/LAUNCH_LADDER_INDEX.md`: `Launchers`, `mac_eyes`
+- `docs/planning/launch_ladder/WATCH_PRIOR_ART_CANONICALIZATION.md`: `OpenClaw_Watch`, `Right now.md`, `mac_eyes`
 - `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md`: `OpenClawLegalPrivate`, `OpenClawShared`
 - `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/COMMAND_ATLAS_00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`: `OpenClawLegalPrivate`, `OpenClawShared`
 - `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/MANIFEST.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/VALIDATION_MAP.md`: `sync_operator_harness_to_mac`, `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/launch_ladder_contract_check.py`: `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `Launchers`
-- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_CHAT_HANDOFF.md`: `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `OpenClawLegalPrivate`, `Launchers`
-- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md`: `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `OpenClawLegalPrivate`, `Launchers`
-- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
+- `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/VALIDATION_MAP.md`: `dashboard_gen.py`, `mac_eyes`, `Launchers`, `sync_operator_harness_to_mac`
+- `docs/planning/launch_ladder/source_sets/04_BACKEND_DATA_CONTRACT_READINESS/launch_ladder_contract_check.py`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`
+- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_CHAT_HANDOFF.md`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_LOCAL_ONLY_VALIDATION_PROTOCOL.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_REAL_MATTER_MAC_BRIDGE_VALIDATION_PROTOCOL.md`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `docs/planning/openclaw_legal/law_program/OPENCLAW_LEGAL_SYNTHETIC_DEMO_VALIDATION.md`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
 - `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/06_00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/10_VALIDATION_MAP.md`: `sync_operator_harness_to_mac`, `mac_eyes`, `dashboard_gen.py`, `Launchers`
+- `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/10_VALIDATION_MAP.md`: `dashboard_gen.py`, `mac_eyes`, `Launchers`, `sync_operator_harness_to_mac`
 - `docs/planning/project_packets/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION/24_files/15_30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md`: `OpenClawLegalPrivate`, `OpenClawShared`
 - `docs/planning/project_packets_archive/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION_SNAPSHOT/24_files/06_00_COMMAND_ATLAS_SYSTEM_PROGRAM_MAP.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/planning/project_packets_archive/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION_SNAPSHOT/24_files/10_VALIDATION_MAP.md`: `sync_operator_harness_to_mac`, `mac_eyes`, `dashboard_gen.py`, `Launchers`
+- `docs/planning/project_packets_archive/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION_SNAPSHOT/24_files/10_VALIDATION_MAP.md`: `dashboard_gen.py`, `mac_eyes`, `Launchers`, `sync_operator_harness_to_mac`
 - `docs/planning/project_packets_archive/05_BACKEND_SQLITE_SCHEMA_ORCHESTRATION_SNAPSHOT/24_files/15_30_BACKEND_SOURCE_SET_BRIDGE_AND_EXCLUSION_PLAN.md`: `OpenClawLegalPrivate`, `OpenClawShared`
-- `docs/security/security_warnings_from_feynman_2026-04-12.md`: `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `docs/testing/VALIDATION_MAP.md`: `sync_operator_harness_to_mac`, `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `eyes_closeout.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `eyes_queue_push.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `eyes_sync.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `harness_config.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `hitl_flowchart_gen.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `inbox_parser.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `docs/security/security_warnings_from_feynman_2026-04-12.md`: `OpenClaw_Watch`, `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `docs/testing/VALIDATION_MAP.md`: `dashboard_gen.py`, `mac_eyes`, `Launchers`, `sync_operator_harness_to_mac`
+- `eyes_closeout.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `eyes_queue_push.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `eyes_sync.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `harness_config.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `hitl_flowchart_gen.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `inbox_parser.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `launch_chief_layout.sh`: `mac_eyes`, `Right now.md`
-- `launch_ladder_contract_check.py`: `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `Launchers`
+- `launch_ladder_contract_check.py`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`
 - `launch_window1_layout.sh`: `mac_eyes`, `Right now.md`
-- `loop_dashboard_watchdog.sh`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`, `Right now.md`
-- `loop_supervisor.sh`: `/mnt/c/OpenClaw`, `dashboard_gen.py`
+- `loop_dashboard_watchdog.sh`: `dashboard_gen.py`, `mac_eyes`, `Right now.md`, `/mnt/c/OpenClaw`
+- `loop_supervisor.sh`: `dashboard_gen.py`, `/mnt/c/OpenClaw`
 - `monitoring/update_builder_status.sh`: `mac_eyes`, `Right now.md`
 - `monitoring/update_builder_status.sh.checkpoint-20260409T020000`: `mac_eyes`, `Right now.md`
 - `monitoring/update_planner_status.sh`: `mac_eyes`, `Right now.md`
-- `observer.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `observer.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `openclaw_arko_review/ARKO_REVIEW_README.md`: `mac_eyes`, `OpenClawShared`
-- `openclaw_arko_review/CURRENT_STATE.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/KNOWN_GAPS.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/OPENCLAW_RUNTIME.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Launchers`
-- `openclaw_arko_review/RUNBOOK.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Launchers`
-- `openclaw_arko_review/autonomy_qualification.py`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/brain_dump_parser.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/cassandra_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/cassandra_briefing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/cassandra_briefing_morning_context.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/cassandra_watcher.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_album_batch.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_album_io.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_album_mixer.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_analytics_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_approval_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_approval_bridge.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_backup_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_brainstorm_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_brainstorm_router.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_brainstorm_watcher.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_brand_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_calendar_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_ceo_briefing.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_content_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_cpa_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_email_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_financial_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_focus_shield.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_fundo_identity.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_fundo_release.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_fundo_session.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_goals_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_integration_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_marketing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_momentum_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_morning_push.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_musiclaw_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_obsidian_sync.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_ops_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_phone_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_publishing_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_queue_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_reflection_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_reporter_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_scheduler_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_scout_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_sms_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_trinity_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_validator_brain.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_website_coordinator.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_website_creative.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/chief_website_qa.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/dashboard_gen.py`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `openclaw_arko_review/docs/security/security_warnings_from_feynman_2026-04-12.md`: `/mnt/c/OpenClaw`, `OpenClaw_Watch`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `openclaw_arko_review/docs/specs/hitl_architecture_diagram.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/docs/specs/spec-worker-mode-governance.md`: `mac_eyes`, `dashboard_gen.py`
-- `openclaw_arko_review/eyes_closeout.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/eyes_queue_push.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/eyes_sync.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/hitl_flowchart_gen.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/inbox_parser.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `openclaw_arko_review/CURRENT_STATE.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/KNOWN_GAPS.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/OPENCLAW_RUNTIME.md`: `Launchers`, `mac_eyes`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/RUNBOOK.md`: `Launchers`, `mac_eyes`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/autonomy_qualification.py`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/brain_dump_parser.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/cassandra_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/cassandra_briefing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/cassandra_briefing_morning_context.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/cassandra_watcher.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_album_batch.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_album_io.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_album_mixer.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_analytics_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_approval_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_approval_bridge.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_backup_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_brainstorm_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_brainstorm_router.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_brainstorm_watcher.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_brand_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_calendar_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_ceo_briefing.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_content_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_cpa_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_email_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_financial_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_focus_shield.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_fundo_identity.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_fundo_release.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_fundo_session.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_goals_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_integration_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_marketing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_momentum_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_morning_push.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_musiclaw_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_obsidian_sync.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_ops_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_phone_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_publishing_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_queue_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_reflection_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_reporter_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_scheduler_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_scout_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_sms_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_trinity_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_validator_brain.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_website_coordinator.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_website_creative.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/chief_website_qa.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/dashboard_gen.py`: `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/docs/security/security_warnings_from_feynman_2026-04-12.md`: `OpenClaw_Watch`, `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/docs/specs/hitl_architecture_diagram.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/docs/specs/spec-worker-mode-governance.md`: `dashboard_gen.py`, `mac_eyes`
+- `openclaw_arko_review/eyes_closeout.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/eyes_queue_push.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/eyes_sync.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/hitl_flowchart_gen.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/inbox_parser.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `openclaw_arko_review/launch_chief_layout.sh`: `mac_eyes`, `Right now.md`
 - `openclaw_arko_review/launch_window1_layout.sh`: `mac_eyes`, `Right now.md`
-- `openclaw_arko_review/loop_dashboard_watchdog.sh`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`, `Right now.md`
-- `openclaw_arko_review/loop_supervisor.sh`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `openclaw_arko_review/observer.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/polish_loop/POLISH_PROMPT.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/polish_loop/flip_to_mac.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `openclaw_arko_review/loop_dashboard_watchdog.sh`: `dashboard_gen.py`, `mac_eyes`, `Right now.md`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/loop_supervisor.sh`: `dashboard_gen.py`, `mac_eyes`, `Launchers`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/observer.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/polish_loop/POLISH_PROMPT.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/polish_loop/flip_to_mac.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `openclaw_arko_review/polish_loop/orchestrator.py`: `mac_eyes`, `/mnt/c/OpenClaw`
-- `openclaw_arko_review/polish_loop/pc_context.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/queue_balancer.py`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `openclaw_arko_review/sentry_ticker.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/sync_to_mobile.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/system_audit.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/test_utils.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `openclaw_arko_review/tools/bank_summary.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/POLISH_PROMPT.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/mac_review_orch-008_20260326T180038.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/mac_review_orch008_stale_20260326T181053.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/mac_review_stale_sys003_.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/mac_review_sys-001_20260328T182758.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_Validation — email intent minimal repeatability_20260408T153902.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_Validation — phone intent redundant verification guard_20260408T150424.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T203847.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T214405.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T214826.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T215142.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T215512.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T215859.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T220248.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T220638.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T221025.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T221343.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T221936.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T222355.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T224456.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T225922.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T232615.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T233953.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_ar-001_20260330T235222.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_atp-chief-20260412-001-end-of-day-review-harness-retest_20260412T054807.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T002139.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T014511.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T020125.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T021942.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T022737.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-103-blocked-transition-hardening_20260331T023501.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-104-pc-review-unit-tests_20260331T023833.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_auto-105-dashboard-accuracy-audit_20260331T024658.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_cas-003-outreach-intro-emails_20260331T040213.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_cas-004-partial-response-gap-detection_20260331T041710.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T163927_20260418T210534.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T164135_20260418T210850.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T171840_20260418T212231.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_chief-cassandra-failure-20260425T163614_20260425T203916.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_doc-001-system-flowchart-gen_20260401T040851.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_env-001-skill-pipeline-smoke_20260331T025347.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_env-001-skill-vetter_20260331T025737.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_impl-drift-control-scanner_20260403T171711.md`: `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/pc_output_orch-007_20260327T032319.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_orch-007_20260327T033120.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_orch-008_20260326T180038.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_orch003.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_orch008_stale_20260326T181053.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_quick-runtime-health-check_20260402T034247.md`: `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/pc_output_runner-replacement-proof-20260404T234827_p2_20260405T035640.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_stale_sys003_.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_std-approval-replay-observability_20260402T045756.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_std-cascade-recovery-guard_p1_20260402T051905.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_std-cascade-recovery-guard_p2_20260402T053130.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_std-chief-router-table-tests_20260402T201112.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_sys-001_20260328T182758.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_task-cas-build-grounded-email-review-gate_20260405T113945.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_task-cas-fix-payment-verify-regressions_20260405T130805.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_task_test-inner-circle-integration_p1_builder_timeout_20260404T172024_20260405T034337.md`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-001-scout-intent-edge-cases_20260408T054516.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-001-scout-intent-edge-cases_20260408T055113.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-002-billing-mode-edge-cases_20260408T055655.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-002-scout-intent-tests_20260408T044053.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-002-scout-intent-tests_20260408T044658.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases-report_20260408T192613.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T142547.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T162701.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T175346.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-005-cancel-intent-one-case_20260408T201958.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-005-cancel-intent-one-case_20260409T003151.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-008-correction-intent-full-table_20260409T030712.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/pc_output_val-008-correction-intent-full-table_20260409T051649.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/skipped_interrupted_runner-replacement-proof_20260405T044414Z.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/skipped_pc_output_runner-replacement-proof_20260405T044414Z.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/sys-003-automation-roi-audit.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_impl-cost-truth-and-headroom-surface_p4_builder_timeout_20260403T033647.md`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/task_impl-drift-control-scanner_20260403T171711.md`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/task_impl-mode-dashboard-section_20260403T185531.md`: `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/task_orch-015_20260329T035625.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_orch004.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_orch004_rerun_archived.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_quick-runtime-health-check_20260402T034247.md`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/task_sys-001_20260328T182442.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_sys-002_20260328T183345.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_sys-002_20260328T184250.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_sys-004_20260328T185612.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_sys-004_20260328T190521.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_test-orch_20260328T184840.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_test-orch_20260328T184936.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_test-orch_20260328T185128.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/archive/task_test-orch_p1_builder_timeout_20260403T162943.md`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/archive/task_test-orch_p1_builder_timeout_20260403T164212.md`: `/mnt/c/OpenClaw`, `mac_eyes`, `dashboard_gen.py`
-- `polish_loop/flip_to_mac.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/history/triage_20260329/task.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/logs/orchestrator.log`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `openclaw_arko_review/polish_loop/pc_context.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/queue_balancer.py`: `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
+- `openclaw_arko_review/sentry_ticker.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/sync_to_mobile.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/system_audit.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/test_utils.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `openclaw_arko_review/tools/bank_summary.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/POLISH_PROMPT.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/mac_review_orch-008_20260326T180038.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/mac_review_orch008_stale_20260326T181053.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/mac_review_stale_sys003_.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/mac_review_sys-001_20260328T182758.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_Validation — email intent minimal repeatability_20260408T153902.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_Validation — phone intent redundant verification guard_20260408T150424.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T203847.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T214405.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T214826.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T215142.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T215512.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T215859.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T220248.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T220638.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T221025.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T221343.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T221936.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T222355.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T224456.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T225922.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T232615.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T233953.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_ar-001_20260330T235222.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_atp-chief-20260412-001-end-of-day-review-harness-retest_20260412T054807.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T002139.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T014511.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T020125.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T021942.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-102-planner-review-reliability_20260331T022737.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-103-blocked-transition-hardening_20260331T023501.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-104-pc-review-unit-tests_20260331T023833.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_auto-105-dashboard-accuracy-audit_20260331T024658.md`: `mac_eyes`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_cas-003-outreach-intro-emails_20260331T040213.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_cas-004-partial-response-gap-detection_20260331T041710.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T163927_20260418T210534.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T164135_20260418T210850.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_chief-cassandra-failure-20260418T171840_20260418T212231.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_chief-cassandra-failure-20260425T163614_20260425T203916.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_doc-001-system-flowchart-gen_20260401T040851.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_env-001-skill-pipeline-smoke_20260331T025347.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_env-001-skill-vetter_20260331T025737.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_impl-drift-control-scanner_20260403T171711.md`: `dashboard_gen.py`, `mac_eyes`
+- `polish_loop/archive/pc_output_orch-007_20260327T032319.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_orch-007_20260327T033120.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_orch-008_20260326T180038.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_orch003.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_orch008_stale_20260326T181053.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_quick-runtime-health-check_20260402T034247.md`: `dashboard_gen.py`, `mac_eyes`
+- `polish_loop/archive/pc_output_runner-replacement-proof-20260404T234827_p2_20260405T035640.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_stale_sys003_.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_std-approval-replay-observability_20260402T045756.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_std-cascade-recovery-guard_p1_20260402T051905.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_std-cascade-recovery-guard_p2_20260402T053130.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_std-chief-router-table-tests_20260402T201112.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_sys-001_20260328T182758.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_task-cas-build-grounded-email-review-gate_20260405T113945.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_task-cas-fix-payment-verify-regressions_20260405T130805.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_task_test-inner-circle-integration_p1_builder_timeout_20260404T172024_20260405T034337.md`: `dashboard_gen.py`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-001-scout-intent-edge-cases_20260408T054516.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-001-scout-intent-edge-cases_20260408T055113.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-002-billing-mode-edge-cases_20260408T055655.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-002-scout-intent-tests_20260408T044053.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-002-scout-intent-tests_20260408T044658.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases-report_20260408T192613.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T142547.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T162701.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-004-phone-intent-edge-cases_20260408T175346.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-005-cancel-intent-one-case_20260408T201958.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-005-cancel-intent-one-case_20260409T003151.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-008-correction-intent-full-table_20260409T030712.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/pc_output_val-008-correction-intent-full-table_20260409T051649.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/skipped_interrupted_runner-replacement-proof_20260405T044414Z.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/skipped_pc_output_runner-replacement-proof_20260405T044414Z.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/sys-003-automation-roi-audit.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_impl-cost-truth-and-headroom-surface_p4_builder_timeout_20260403T033647.md`: `dashboard_gen.py`, `mac_eyes`, `/mnt/c/OpenClaw`
+- `polish_loop/archive/task_impl-drift-control-scanner_20260403T171711.md`: `dashboard_gen.py`, `mac_eyes`, `/mnt/c/OpenClaw`
+- `polish_loop/archive/task_impl-mode-dashboard-section_20260403T185531.md`: `dashboard_gen.py`, `mac_eyes`
+- `polish_loop/archive/task_orch-015_20260329T035625.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_orch004.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_orch004_rerun_archived.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_quick-runtime-health-check_20260402T034247.md`: `dashboard_gen.py`, `mac_eyes`, `/mnt/c/OpenClaw`
+- `polish_loop/archive/task_sys-001_20260328T182442.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_sys-002_20260328T183345.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_sys-002_20260328T184250.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_sys-004_20260328T185612.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_sys-004_20260328T190521.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_test-orch_20260328T184840.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_test-orch_20260328T184936.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_test-orch_20260328T185128.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/archive/task_test-orch_p1_builder_timeout_20260403T162943.md`: `dashboard_gen.py`, `mac_eyes`, `/mnt/c/OpenClaw`
+- `polish_loop/archive/task_test-orch_p1_builder_timeout_20260403T164212.md`: `dashboard_gen.py`, `mac_eyes`, `/mnt/c/OpenClaw`
+- `polish_loop/flip_to_mac.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/history/triage_20260329/task.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/logs/orchestrator.log`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `polish_loop/orchestrator.py`: `mac_eyes`, `/mnt/c/OpenClaw`
 - `polish_loop/orchestrator.py.checkpoint-20260409T134000`: `mac_eyes`, `/mnt/c/OpenClaw`
-- `polish_loop/pc_context.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `polish_loop/tasks_parked/recovery_bound_prep/sys-003-automation-roi-audit.md`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `queue_balancer.py`: `/mnt/c/OpenClaw`, `dashboard_gen.py`, `OpenClawShared`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`
-- `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json`: `reports/mac_watch_index`, `sync_legal_planning_to_mac`, `dashboard_gen.py`, `/mnt/c/OpenClaw`, `sync_legal`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `Operator Watch.md`, `/mnt/c/OpenClawShared`, `Right now.md`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `watch_legal_planning_to_mac`, `Launchers`
-- `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md`: `reports/mac_watch_index`, `sync_legal_planning_to_mac`, `dashboard_gen.py`, `/mnt/c/OpenClaw`, `sync_legal`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `Operator Watch.md`, `/mnt/c/OpenClawShared`, `Right now.md`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `watch_legal_planning_to_mac`, `Launchers`
-- `reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json`: `reports/mac_watch_index`, `sync_legal_planning_to_mac`, `dashboard_gen.py`, `/mnt/c/OpenClaw`, `sync_legal`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `Operator Watch.md`, `/mnt/c/OpenClawShared`, `Right now.md`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `watch_legal_planning_to_mac`, `Launchers`
-- `reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.md`: `dashboard_gen.py`, `OpenClaw_Watch`, `mac_eyes`, `Operator Watch.md`, `Right now.md`, `sync_operator_harness_to_mac`
-- `scripts/evidence_packet_generator.py`: `MAC_WATCH_MARKDOWN_INDEX`, `OpenClaw_Watch`
-- `scripts/file_path_dependency_scan.py`: `reports/mac_watch_index`, `sync_legal_planning_to_mac`, `dashboard_gen.py`, `/mnt/c/OpenClaw`, `sync_legal`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `Operator Watch.md`, `/mnt/c/OpenClawShared`, `Right now.md`, `OpenClawLegalPrivate`, `sync_operator_harness_to_mac`, `watch_legal_planning_to_mac`, `Launchers`
-- `scripts/mac_watch_markdown_index.py`: `dashboard_gen.py`, `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`, `mac_eyes`, `Operator Watch.md`, `Right now.md`, `sync_operator_harness_to_mac`
-- `scripts/openclaw_receipts.py`: `mac_eyes`, `MAC_WATCH_MARKDOWN_INDEX`, `Right now.md`, `OpenClaw_Watch`
-- `scripts/run_legal_pipeline_v0.sh`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `sentry_ticker.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `settings_suite_registry.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes/agent/file_safety.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`
-- `sidecars/hermes/tests/test_openclaw_gateway_policy.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `mac_eyes`, `/mnt/c/OpenClawShared`, `Right now.md`, `OpenClawLegalPrivate`
+- `polish_loop/pc_context.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `polish_loop/tasks_parked/recovery_bound_prep/sys-003-automation-roi-audit.md`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `queue_balancer.py`: `mac_eyes`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClaw`
+- `reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.md`: `OpenClaw_Watch`, `mac_eyes`, `Right now.md`, `sync_operator_harness_to_mac`, `Operator Watch.md`, `dashboard_gen.py`
+- `scripts/evidence_packet_generator.py`: `OpenClaw_Watch`, `MAC_WATCH_MARKDOWN_INDEX`
+- `scripts/file_path_dependency_scan.py`: `Launchers`, `OpenClaw_Watch`, `mac_eyes`, `reports/mac_watch_index`, `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `watch_legal_planning_to_mac`, `sync_legal`, `sync_legal_planning_to_mac`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `OpenClawShared`, `dashboard_gen.py`, `/mnt/c/OpenClawShared`, `/mnt/c/OpenClaw`
+- `scripts/mac_watch_markdown_index.py`: `OpenClaw_Watch`, `mac_eyes`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `Operator Watch.md`, `sync_operator_harness_to_mac`, `dashboard_gen.py`
+- `scripts/openclaw_receipts.py`: `OpenClaw_Watch`, `Right now.md`, `MAC_WATCH_MARKDOWN_INDEX`, `mac_eyes`
+- `scripts/run_legal_pipeline_v0.sh`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `sentry_ticker.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `settings_suite_registry.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes/agent/file_safety.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `sidecars/hermes/tests/test_openclaw_gateway_policy.py`: `OpenClawLegalPrivate`, `mac_eyes`, `/mnt/c/OpenClawLegalPrivate`, `Right now.md`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
 - `sidecars/hermes_home/sessions/20260422_234458_32a308a2.jsonl`: `mac_eyes`, `/mnt/c/OpenClaw`
-- `sidecars/hermes_home/sessions/session_20260421_222623_548155.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_224823_65fe6d.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_230734_4116a3.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_231433_d85340.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_232258_9983f1.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_233530_6dafd6.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_233859_26efe0.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_234350_8673fc.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260421_235218_6c832f.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260422_050018_84debc.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260422_093933_286c1c.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260422_094404_ed9bcf.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_222623_548155.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_224823_65fe6d.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_230734_4116a3.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_231433_d85340.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_232258_9983f1.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_233530_6dafd6.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_233859_26efe0.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_234350_8673fc.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260421_235218_6c832f.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260422_050018_84debc.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260422_093933_286c1c.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260422_094404_ed9bcf.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 - `sidecars/hermes_home/sessions/session_20260422_234458_32a308a2.json`: `mac_eyes`, `/mnt/c/OpenClaw`
-- `sidecars/hermes_home/sessions/session_20260423_050040_b5e98f.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260424_050032_380dfe.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260425_050026_0d43a9.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `sidecars/hermes_home/sessions/session_20260426_050035_f6ad6d.json`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `staging/chief_eod_harness/fixtures/sample_eod.json`: `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `staging/chief_eod_harness/runs/20260412T223153/input_fixture_copy.json`: `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `staging/chief_eod_harness/runs/20260412T223320/input_fixture_copy.json`: `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `staging/chief_eod_harness/runs/20260412T223400/input_fixture_copy.json`: `mac_eyes`, `dashboard_gen.py`, `Launchers`
-- `sync_to_mobile.sh`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `system_audit.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `test_utils.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `tests/test_cassandra_briefing_context.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `tests/test_dashboard_evidence_adapter.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_dashboard_report_snapshot.py`: `sync_legal_planning_to_mac`, `/mnt/c/OpenClaw`, `sync_legal`, `/mnt/c/OpenClawLegalPrivate`, `OpenClawLegalPrivate`
-- `tests/test_expert_approval_packet.py`: `mac_eyes`, `sync_legal_planning_to_mac`, `sync_legal`
-- `tests/test_expert_escalation_job_manifest.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_expert_escalation_lane_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_expert_escalation_packet.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_expert_evidence_chain_static_contract.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_expert_provider_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_expert_staged_packet_flow.py`: `mac_eyes`, `sync_legal_planning_to_mac`, `sync_legal`
-- `tests/test_mcp_progressive_discovery_profiles.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawLegalPrivate`
-- `tests/test_non_runner_cloud_bypass_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_overnight_run_manifest.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
-- `tests/test_runner_cloud_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tests/test_runtime_service_model_backlog_static_contract.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClaw`, `/mnt/c/OpenClawLegalPrivate`
-- `tools/bank_summary.py`: `/mnt/c/OpenClaw`, `OpenClawShared`, `/mnt/c/OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260423_050040_b5e98f.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260424_050032_380dfe.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260425_050026_0d43a9.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `sidecars/hermes_home/sessions/session_20260426_050035_f6ad6d.json`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `staging/chief_eod_harness/fixtures/sample_eod.json`: `dashboard_gen.py`, `mac_eyes`, `Launchers`
+- `staging/chief_eod_harness/runs/20260412T223153/input_fixture_copy.json`: `dashboard_gen.py`, `mac_eyes`, `Launchers`
+- `staging/chief_eod_harness/runs/20260412T223320/input_fixture_copy.json`: `dashboard_gen.py`, `mac_eyes`, `Launchers`
+- `staging/chief_eod_harness/runs/20260412T223400/input_fixture_copy.json`: `dashboard_gen.py`, `mac_eyes`, `Launchers`
+- `sync_to_mobile.sh`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `system_audit.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `test_utils.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `tests/test_cassandra_briefing_context.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `tests/test_dashboard_evidence_adapter.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_dashboard_report_snapshot.py`: `/mnt/c/OpenClawLegalPrivate`, `OpenClawLegalPrivate`, `sync_legal`, `sync_legal_planning_to_mac`, `/mnt/c/OpenClaw`
+- `tests/test_expert_approval_packet.py`: `sync_legal`, `mac_eyes`, `sync_legal_planning_to_mac`
+- `tests/test_expert_escalation_job_manifest.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_expert_escalation_lane_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_expert_escalation_packet.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_expert_evidence_chain_static_contract.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_expert_provider_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_expert_staged_packet_flow.py`: `sync_legal`, `mac_eyes`, `sync_legal_planning_to_mac`
+- `tests/test_mcp_progressive_discovery_profiles.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClawShared`, `OpenClawShared`, `/mnt/c/OpenClaw`
+- `tests/test_non_runner_cloud_bypass_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_overnight_run_manifest.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
+- `tests/test_runner_cloud_policy.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tests/test_runtime_service_model_backlog_static_contract.py`: `OpenClawLegalPrivate`, `/mnt/c/OpenClawLegalPrivate`, `/mnt/c/OpenClaw`
+- `tools/bank_summary.py`: `/mnt/c/OpenClaw`, `/mnt/c/OpenClawShared`, `OpenClawShared`
 
 ## Cleanup Risk Classes
 ### High Risk
@@ -728,6 +731,7 @@
 - `docs/_ai/AI_WORKING_CONTEXT.md`
 - `docs/archives/2026/cassandra_correspondence_audit_20260405.md`
 - `docs/doctrine/SURFACE_AUTHORITY.md`
+- `docs/navigation_maps/DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md`
 - `docs/navigation_maps/FILE_TERRITORY_CLEANUP_READINESS_MAP.md`
 - `docs/operations/DOC_GOVERNANCE.md`
 - `docs/operations/DOC_LIFECYCLE.md`
@@ -974,6 +978,8 @@
 - `polish_loop/orch-001-spec.md`
 - `polish_loop/pc_context.md`
 - `polish_loop/tasks_parked/recovery_bound_prep/sys-003-automation-roi-audit.md`
+- `reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.json`
+- `reports/file_path_dependency_scan/DEPENDENCY_OWNER_REVIEW.md`
 - `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json`
 - `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md`
 - `reports/mac_watch_index/MAC_WATCH_MARKDOWN_INDEX.json`
