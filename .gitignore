@@ -456,3 +456,5 @@
 !Operator/*.md
 !scripts/mac_watch_markdown_index.py
 !tests/test_mac_watch_markdown_index.py
+!scripts/evidence_packet_generator.py
+!tests/test_evidence_packet_generator.py
