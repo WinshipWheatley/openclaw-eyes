@@ -470,3 +470,7 @@
 # Operator Harness planning specs
 !/docs/planning/operator_harness/
 !/docs/planning/operator_harness/COMPILED_KNOWLEDGE_SUBSTRATE_NORTH_STAR.md
+
+# Operator Frontier Map
+!/operator_frontier_map.py
+!/tests/test_operator_frontier_map.py
