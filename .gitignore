@@ -478,6 +478,8 @@
 !/tests/test_operator_frontier_map.py
 !scripts/file_path_dependency_scan.py
 !tests/test_file_path_dependency_scan.py
+!plugin_domain_registry.py
+!tests/test_plugin_domain_registry.py
 !reports/file_path_dependency_scan/
 !reports/file_path_dependency_scan/*.md
 !reports/file_path_dependency_scan/*.json

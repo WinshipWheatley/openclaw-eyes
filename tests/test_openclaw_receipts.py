@@ -902,6 +902,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "operator-evidence-bridge-status",
         "operator-frontier-map-status",
         "map-room-query-status",
+        "plugin-domain-registry-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -1153,6 +1154,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "operator_extension_simulator",
         "operator_intent_core",
         "operator_frontier_map",
+        "plugin_domain_registry",
         "pathlib",
         "subprocess",
         "sys",

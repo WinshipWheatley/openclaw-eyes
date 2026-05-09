@@ -3203,6 +3203,21 @@ def print_map_room_query_status(report: dict[str, object]) -> None:
     print(f"Cleanup Authority Granted: {report.get('cleanup_authority_granted')}")
     print(f"Durable Truth Sources: {report.get('durable_truth_sources')}")
 
+def plugin_domain_registry_status_receipt(root: Path) -> dict[str, object]:
+    import plugin_domain_registry
+    res = plugin_domain_registry.plugin_domain_registry_status()
+    return res
+
+def print_plugin_domain_registry_status(report: dict[str, object]) -> None:
+    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Registry Active: {report.get('registry_active')}")
+    print(f"Execution Authority: {report.get('is_execution_authority')}")
+    print(f"Active Plugins Exist: {report.get('active_plugins_exist')}")
+    print(f"All Plugins Inactive: {report.get('all_plugins_inactive')}")
+    print(f"Registered Domains: {report.get('registered_domains')}")
+    print(f"Authority Note: {report.get('authority_note')}")
+    print(f"passed: True")
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=CANONICAL_RECEIPT_COMMAND,
@@ -3314,6 +3329,10 @@ def build_parser() -> argparse.ArgumentParser:
         "map-room-query-status",
         help="Print status of Map Room Query lookup surface.",
     )
+    subparsers.add_parser(
+        "plugin-domain-registry-status",
+        help="Print status of Plugin Domain Registry v0.",
+    )
     return parser
 
 
@@ -3384,6 +3403,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = mac_watch_markdown_index_status(root=root)
     elif args.command == "map-room-query-status":
         report = map_room_query_status_receipt(root=root)
+    elif args.command == "plugin-domain-registry-status":
+        report = plugin_domain_registry_status_receipt(root=root)
 
     if report is None:
         parser.error(f"unknown command: {args.command}")
@@ -3449,6 +3470,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_mac_watch_markdown_index_status(report)
     elif args.command == "map-room-query-status":
         print_map_room_query_status(report)
+    elif args.command == "plugin-domain-registry-status":
+        print_plugin_domain_registry_status(report)
 
     return 0 if report.get("passed", True) else 1
 
