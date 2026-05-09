@@ -154,7 +154,7 @@ def evaluate_architecture_request(request_text: str) -> ArchitectureGateResult:
 def architecture_map_gate_status() -> dict:
     """Return the status of the architecture map gate."""
     return {
-        "status": "scaffolded",
+        "status": "implemented_substrate",
         "passed": True,
         "read_only": True,
         "no_runtime": True,
@@ -162,6 +162,6 @@ def architecture_map_gate_status() -> dict:
         "no_mcp": True,
         "no_cleanup": True,
         "no_active_plugin": True,
-        "authority_note": "This gate is a read-only intake surface. It grants no execution authority.",
+        "authority_note": "This gate is an implemented substrate, inactive plugin, read-only, and grants no execution authority.",
         "registered_domain": "architecture_map_gate"
     }

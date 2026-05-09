@@ -56,11 +56,25 @@ def test_unknown_manual_review():
 
 def test_architecture_map_gate_status():
     status = architecture_map_gate_status()
-    assert status["status"] == "scaffolded"
+    assert status["status"] == "implemented_substrate"
     assert status["read_only"] is True
     assert status["no_active_plugin"] is True
     assert status["no_runtime"] is True
     assert status["no_provider"] is True
+
+def test_implemented_substrate_not_active_plugin():
+    status = architecture_map_gate_status()
+    # Prove implemented substrate != active plugin
+    assert status["status"] == "implemented_substrate"
+    assert status["no_active_plugin"] is True
+
+    # Prove no execution authority
+    assert "grants no execution authority" in status["authority_note"]
+
+    # Result from evaluation also confirms
+    result = evaluate_architecture_request("Design architecture slice")
+    assert result.active_plugin_claimed is False
+    assert result.execution_authority_granted is False
 
 def test_no_forbidden_imports():
     import ast

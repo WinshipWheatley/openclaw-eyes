@@ -37,7 +37,7 @@
 
 ### 1. Architecture & Map Gate
 - **Domain name:** Architecture & Map Gate
-- **Artifact type:** candidate plugin/workflow domain, not active plugin
+- **Artifact type:** implemented substrate, inactive plugin
 - **Value space:** Ensures safe codebase navigation by looking up built/unbuilt territory before planning, preventing duplicated work and unapproved custom builds.
 - **Job owned:** Architecture intake, Map Room lookup, frontier check, duplicate-work prevention, no-build/prior-art check, boundary framing.
 - **Does not own:** Editing files directly, moving folders, runtime launch, approval, private-root access, or final commit authority.
@@ -46,10 +46,10 @@
 - **Outputs:** Safe navigation path, prior-art warnings, and boundary framing context.
 - **Required maps:** Map Room Index, Frontier Maps, No-Build / Prior-Art Sources.
 - **Required scripts/hooks/checks:** `map_room_query.py`, `operator_frontier_map.py`, receipt checks.
-- **Authority boundaries:** Strictly read-only navigation lookup.
+- **Authority boundaries:** Strictly read-only navigation lookup; no execution authority.
 - **Forbidden actions:** Mutating maps, directly editing code, granting approval, launching execution.
 - **Right-size check:** One coherent workflow validating "what exists and what is allowed" before any work begins. It does not mix validation with execution.
-- **Current status:** implemented
+- **Current status:** implemented substrate
 - **Proof required before activation:** Deterministic lookup tests, Map Room Query v0 completion, receipt integration.
 
 ### 2. File Territory / Cleanup
