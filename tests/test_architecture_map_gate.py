@@ -1,0 +1,87 @@
+import pytest
+from architecture_map_gate import evaluate_architecture_request, architecture_map_gate_status, ArchitectureGateResult
+
+def test_rebuild_compiled_knowledge_substrate():
+    request = "Rebuild the compiled knowledge substrate"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "already_built_review_required"
+    assert result.already_built_risk is True
+    assert result.execution_authority_granted is False
+    assert result.active_plugin_claimed is False
+
+def test_ready_for_bounded_architecture_slice():
+    request = "Design the next small architecture slice for Map Room query"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "ready_for_bounded_architecture_slice"
+    assert result.ready_for_bounded_slice is True
+    assert result.execution_authority_granted is False
+
+def test_prior_art_check_required():
+    request = "Build a new dashboard from scratch"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "prior_art_check_required"
+    assert result.needs_prior_art_check is True
+    assert "prior-art check" in result.decision_reason.lower()
+
+def test_blocked_sensitive_boundary():
+    request = "Move files in OpenClawLegalPrivate"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "blocked_sensitive_boundary"
+    assert result.blocked is True
+    assert result.sensitive_boundary_risk is True
+
+def test_too_broad_manual_review():
+    request = "Plan architecture, cleanup files, and commit it"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "too_broad_manual_review"
+    assert result.too_broad is True
+    assert "multiple plugin domains" in result.decision_reason.lower()
+
+def test_where_is_mac_eyes_too_broad():
+    # "Where is" (map room query) + "can I move it" (cleanup)
+    request = "Where is mac_eyes and can I move it?"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision in {
+        "too_broad_manual_review",
+        "blocked_sensitive_boundary",
+        "unknown_manual_review",
+    }
+    assert result.cleanup_allowed is False if hasattr(result, "cleanup_allowed") else result.execution_authority_granted is False
+
+def test_unknown_manual_review():
+    request = "Some totally unrelated thing"
+    result = evaluate_architecture_request(request)
+    assert result.gate_decision == "unknown_manual_review"
+    assert "unknown task type" in result.decision_reason.lower()
+
+def test_architecture_map_gate_status():
+    status = architecture_map_gate_status()
+    assert status["status"] == "scaffolded"
+    assert status["read_only"] is True
+    assert status["no_active_plugin"] is True
+    assert status["no_runtime"] is True
+    assert status["no_provider"] is True
+
+def test_no_forbidden_imports():
+    import ast
+    from pathlib import Path
+
+    tree = ast.parse(Path("architecture_map_gate.py").read_text())
+    imported_modules = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_modules.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module.split(".")[0])
+
+    forbidden = {"requests", "sqlite3", "subprocess", "socket", "http", "urllib"}
+    assert imported_modules.isdisjoint(forbidden)
+
+def test_result_structure():
+    request = "Design architecture slice"
+    result = evaluate_architecture_request(request)
+    assert isinstance(result, ArchitectureGateResult)
+    assert result.request_text == request
+    assert isinstance(result.required_maps_checked, list)
+    assert isinstance(result.forbidden_actions, list)
