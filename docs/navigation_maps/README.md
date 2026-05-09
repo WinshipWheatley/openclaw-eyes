@@ -22,6 +22,7 @@ Future workers must enter the Map Room and consult the relevant artifacts before
 - [Dependency Owner Candidate Move Map](./DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md) - [Readiness Map] Classifies file path dependencies by ownership and risk to safely plan future cleanup candidates.
 - [Targeted Dry-Run Candidate Move Plan v0](./TARGETED_DRY_RUN_CANDIDATE_MOVE_PLAN_V0.md) - [Readiness Map] A dry-run candidate plan targeting low-risk generated index noise.
 - [Plugin Domain Registry v0](./PLUGIN_DOMAIN_REGISTRY.md) - [Registry] A durable registry for future OpenClaw plugin/workflow-package domains defining value spaces and boundaries before implementation. Includes a read-only callable module (`plugin_domain_registry.py`).
+- **Architecture & Map Gate v0:** A read-only callable intake gate (`architecture_map_gate.py`) for architecture and build requests to prevent duplicate work and protect sensitive boundaries.
 - **Map Room Query v0:** The read-only lookup surface (`map_room_query.py`) that answers file territory questions purely from durable truth.
 
 ## Core Navigation Doctrine

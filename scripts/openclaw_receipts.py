@@ -3189,6 +3189,20 @@ def print_mac_watch_markdown_index_status(report: dict[str, object]) -> None:
     print(f"Passed: {'YES' if report.get('passed') else 'NO'}")
 
 
+def architecture_map_gate_status_receipt(root: Path) -> dict[str, object]:
+    import architecture_map_gate
+    res = architecture_map_gate.architecture_map_gate_status()
+    res["receipt_type"] = "openclaw.architecture_map_gate_status"
+    return res
+
+def print_architecture_map_gate_status(report: dict[str, object]) -> None:
+    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Status: {report.get('status')}")
+    print(f"passed: {report.get('passed', True)}")
+    print(f"Read-Only: {report.get('read_only')}")
+    print(f"No Active Plugin: {report.get('no_active_plugin')}")
+    print(f"Authority Note: {report.get('authority_note')}")
+
 def map_room_query_status_receipt(root: Path) -> dict[str, object]:
     import map_room_query
     res = map_room_query.map_room_query_status()
@@ -3330,6 +3344,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print status of Map Room Query lookup surface.",
     )
     subparsers.add_parser(
+        "architecture-map-gate-status",
+        help="Print status of Architecture & Map Gate v0.",
+    )
+    subparsers.add_parser(
         "plugin-domain-registry-status",
         help="Print status of Plugin Domain Registry v0.",
     )
@@ -3403,6 +3421,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = mac_watch_markdown_index_status(root=root)
     elif args.command == "map-room-query-status":
         report = map_room_query_status_receipt(root=root)
+    elif args.command == "architecture-map-gate-status":
+        report = architecture_map_gate_status_receipt(root=root)
     elif args.command == "plugin-domain-registry-status":
         report = plugin_domain_registry_status_receipt(root=root)
 
@@ -3470,6 +3490,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_mac_watch_markdown_index_status(report)
     elif args.command == "map-room-query-status":
         print_map_room_query_status(report)
+    elif args.command == "architecture-map-gate-status":
+        print_architecture_map_gate_status(report)
     elif args.command == "plugin-domain-registry-status":
         print_plugin_domain_registry_status(report)
 

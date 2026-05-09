@@ -49,7 +49,7 @@
 - **Authority boundaries:** Strictly read-only navigation lookup.
 - **Forbidden actions:** Mutating maps, directly editing code, granting approval, launching execution.
 - **Right-size check:** One coherent workflow validating "what exists and what is allowed" before any work begins. It does not mix validation with execution.
-- **Current status:** scaffolded
+- **Current status:** implemented
 - **Proof required before activation:** Deterministic lookup tests, Map Room Query v0 completion, receipt integration.
 
 ### 2. File Territory / Cleanup
