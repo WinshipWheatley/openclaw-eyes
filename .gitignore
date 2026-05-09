@@ -476,3 +476,14 @@
 # Operator Frontier Map
 !/operator_frontier_map.py
 !/tests/test_operator_frontier_map.py
+!scripts/file_path_dependency_scan.py
+!tests/test_file_path_dependency_scan.py
+!reports/file_path_dependency_scan/
+!reports/file_path_dependency_scan/*.md
+!reports/file_path_dependency_scan/*.json
+
+# File Path Dependency Scan reports
+!/reports/
+!/reports/file_path_dependency_scan/
+!/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md
+!/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json

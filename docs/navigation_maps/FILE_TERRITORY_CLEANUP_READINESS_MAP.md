@@ -52,5 +52,7 @@ No cleanup can proceed unless it passes these strict gates:
 - No AI-only "looks stale" decisions.
 
 ## 7. Next Safe Edge
-- Build or run a read-only dependency/reference scan before any cleanup.
+- **Completed:** A read-only dependency/reference scan has been built and executed. See `reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md` for results.
+- Review high-risk references identified in the scan.
+- Create candidate move map only after dependency owners are understood.
 - Proposed cleanup actions must remain candidate-only.
