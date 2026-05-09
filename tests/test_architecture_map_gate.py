@@ -152,3 +152,71 @@ def test_reality_harness_v0():
     result = evaluate_architecture_request(request)
     assert result.ready_for_bounded_slice is False
     assert result.matched_plugin_domain_id != "architecture_map_gate" or "manual_review" in result.gate_decision
+
+def test_pass2_false_green_light_hardening():
+    # “Rebuild OpenClaw from scratch”
+    request = "Rebuild OpenClaw from scratch"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision in ("already_built_review_required", "prior_art_check_required", "too_broad_manual_review")
+
+    # “Clean up all folders and commit the changes”
+    request = "Clean up all folders and commit the changes"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision in ("too_broad_manual_review", "blocked_sensitive_boundary", "unknown_manual_review")
+
+    # “Build a dashboard and wire it to Cassandra”
+    request = "Build a dashboard and wire it to Cassandra"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision in ("prior_art_check_required", "too_broad_manual_review")
+
+    # “Move Right now.md into a cleaner folder”
+    request = "Move Right now.md into a cleaner folder"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    # This task is about moving/cleanup, not architecture design
+    assert result.gate_decision in ("too_broad_manual_review", "unknown_manual_review")
+
+    # “Give Cassandra access to OpenClawLegalPrivate”
+    request = "Give Cassandra access to OpenClawLegalPrivate"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision == "blocked_sensitive_boundary"
+    assert result.blocked is True
+
+    # “Install an existing dashboard tool and connect it”
+    request = "Install an existing dashboard tool and connect it"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    # "Install" is not "Design/Plan"
+    assert result.gate_decision in ("prior_art_check_required", "too_broad_manual_review", "unknown_manual_review")
+
+    # “Create plugins, hooks, MCP, and scripts for everything”
+    request = "Create plugins, hooks, MCP, and scripts for everything"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision == "too_broad_manual_review"
+
+def test_pass3_operator_usefulness():
+    # “Design the next small architecture slice for local specialist model router”
+    request = "Design the next small architecture slice for local specialist model router"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is True
+    assert "planning" in result.next_safe_step.lower()
+    assert "no implementation or execution authority" in result.next_safe_step.lower()
+
+    # “Plan a read-only receipt integration for the architecture gate”
+    # This is multi-domain (architecture + receipt), so it stays manual review per rules.
+    request = "Plan a read-only receipt integration for the architecture gate"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision == "too_broad_manual_review"
+
+    # “Create a bounded test-only hardening pass for map room query”
+    # This is multi-domain (test/receipt + map room query), so it stays manual review.
+    request = "Create a bounded test-only hardening pass for map room query"
+    result = evaluate_architecture_request(request)
+    assert result.ready_for_bounded_slice is False
+    assert result.gate_decision == "too_broad_manual_review"
