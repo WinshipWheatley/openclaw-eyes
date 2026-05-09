@@ -20,6 +20,7 @@ def test_frontier_map_reports_built_compiled_substrate_territory():
         "answer_packet_exists",
         "truth_boundary_behaviors_exist",
         "static_status_function_exists",
+        "frontier_map_receipt_command_exists",
     }
     assert built["north_star_spec_exists"].state == "built"
     assert "COMPILED_KNOWLEDGE_SUBSTRATE_NORTH_STAR.md" in built[
@@ -30,6 +31,9 @@ def test_frontier_map_reports_built_compiled_substrate_territory():
     assert "compiled_knowledge_substrate_status" in built[
         "static_status_function_exists"
     ].evidence
+    assert "operator-frontier-map-status" in built[
+        "frontier_map_receipt_command_exists"
+    ].evidence[0]
 
 
 def test_frontier_map_reports_partial_pending_territory():
@@ -37,14 +41,10 @@ def test_frontier_map_reports_partial_pending_territory():
     partial = {item.item_id: item for item in status.partially_built}
 
     assert set(partial) == {
-        "receipt_command_may_be_missing",
         "context_export_integration_pending",
         "operator_question_response_substrate_consumption_unproven",
     }
-    assert partial["receipt_command_may_be_missing"].state == "partial"
-    assert "operator-frontier-map-status" in partial[
-        "receipt_command_may_be_missing"
-    ].evidence[0]
+    assert "receipt_command_may_be_missing" not in partial
     assert "backend_knowledge_packet.py" in partial[
         "context_export_integration_pending"
     ].evidence
@@ -148,7 +148,7 @@ def test_frontier_map_status_exposes_next_unfinished_edges_and_forbidden_behavio
     status = frontier.operator_frontier_map_status()
 
     assert status.next_unfinished_edges
-    assert any("receipt command" in edge for edge in status.next_unfinished_edges)
+    assert not any("receipt command" in edge for edge in status.next_unfinished_edges)
     assert any("question-response" in edge for edge in status.next_unfinished_edges)
     assert any("backend_knowledge_packet.py" in edge for edge in status.next_unfinished_edges)
     assert "provider/model/API call" in status.forbidden_live_behaviors
@@ -251,3 +251,17 @@ def test_module_has_no_live_imports_or_runtime_provider_storage_behavior():
     assert "sqlite3" not in source
     assert "requests" not in source
     assert "subprocess" not in source
+
+
+def test_completed_receipt_command_is_not_listed_as_pending():
+    status = frontier.operator_frontier_map_status()
+
+    partial_ids = {item.item_id for item in status.partially_built}
+    pending_edges = "\n".join(status.next_unfinished_edges)
+
+    assert "receipt_command_may_be_missing" not in partial_ids
+    assert "Add a narrow receipt command" not in pending_edges
+    assert any(
+        item.item_id == "frontier_map_receipt_command_exists"
+        for item in status.built
+    )

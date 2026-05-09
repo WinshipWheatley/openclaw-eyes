@@ -197,19 +197,22 @@ def built_territory_items() -> tuple[FrontierTerritoryItem, ...]:
             evidence=("compiled_knowledge_substrate_status",),
             note="The fixture contract has a static non-live status proof.",
         ),
+        FrontierTerritoryItem(
+            item_id="frontier_map_receipt_command_exists",
+            label="Operator Frontier Map receipt command exists",
+            state="built",
+            evidence=(
+                "./scripts/openclaw_receipts.py operator-frontier-map-status",
+                "ea23632 feat(receipts): expose operator frontier map status",
+            ),
+            note="The explored-territory guard is exposed through the receipt/read-model CLI.",
+        ),
     )
 
 
 def partially_built_territory_items() -> tuple[FrontierTerritoryItem, ...]:
     """Return known partial/pending Compiled Knowledge Substrate territory."""
     return (
-        FrontierTerritoryItem(
-            item_id="receipt_command_may_be_missing",
-            label="Receipt command may be missing until added",
-            state="partial",
-            evidence=("future command: ./scripts/openclaw_receipts.py operator-frontier-map-status",),
-            note="The frontier map can be exposed through receipts later; this module is import-safe and read-only now.",
-        ),
         FrontierTerritoryItem(
             item_id="context_export_integration_pending",
             label="Substrate not yet integrated into existing context/export surfaces",
@@ -299,7 +302,6 @@ def not_built_territory_items() -> tuple[FrontierTerritoryItem, ...]:
 def next_unfinished_edges() -> tuple[str, ...]:
     """Return safe next edge candidates without granting authority."""
     return (
-        "Add a narrow receipt command for the frontier map if review wants CLI proof.",
         "Review how substrate answer packets should remain import-safe before any question-response / operator_question_response.py integration.",
         "Review backend_knowledge_packet.py context/export bridge fit before creating any new broad bridge.",
         "Keep SQLite authority spine, ingestion, embeddings, MCP, providers, runtime, and private-root access future-gated.",
@@ -424,10 +426,10 @@ def operator_frontier_map_status(
             "answer_packet_exists",
             "truth_boundary_behaviors_exist",
             "static_status_function_exists",
+            "frontier_map_receipt_command_exists",
         ),
         "partial_items_present": partial_ids
         == (
-            "receipt_command_may_be_missing",
             "context_export_integration_pending",
             "operator_question_response_substrate_consumption_unproven",
         ),
