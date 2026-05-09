@@ -487,3 +487,5 @@
 !/reports/file_path_dependency_scan/
 !/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md
 !/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json
+!map_room_query.py
+!tests/test_map_room_query.py

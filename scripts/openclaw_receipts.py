@@ -3188,6 +3188,21 @@ def print_mac_watch_markdown_index_status(report: dict[str, object]) -> None:
         print(f"{icon} {k}")
     print(f"Passed: {'YES' if report.get('passed') else 'NO'}")
 
+
+def map_room_query_status_receipt(root: Path) -> dict[str, object]:
+    import map_room_query
+    res = map_room_query.map_room_query_status()
+    res["receipt_type"] = "openclaw.map_room_query"
+    return res
+
+def print_map_room_query_status(report: dict[str, object]) -> None:
+    print(f"Receipt: {report.get('receipt_type')}")
+    print(f"Status: {report.get('status')}")
+    print(f"passed: {report.get('passed', True)}")
+    print(f"Read-Only: {report.get('read_only')}")
+    print(f"Cleanup Authority Granted: {report.get('cleanup_authority_granted')}")
+    print(f"Durable Truth Sources: {report.get('durable_truth_sources')}")
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=CANONICAL_RECEIPT_COMMAND,
@@ -3295,6 +3310,10 @@ def build_parser() -> argparse.ArgumentParser:
         "mac-watch-markdown-index-status",
         help="Print status of Mac Watch Markdown Index v0.",
     )
+    subparsers.add_parser(
+        "map-room-query-status",
+        help="Print status of Map Room Query lookup surface.",
+    )
     return parser
 
 
@@ -3363,6 +3382,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = operator_frontier_map_status(root=root)
     elif args.command == "mac-watch-markdown-index-status":
         report = mac_watch_markdown_index_status(root=root)
+    elif args.command == "map-room-query-status":
+        report = map_room_query_status_receipt(root=root)
 
     if report is None:
         parser.error(f"unknown command: {args.command}")
@@ -3426,6 +3447,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_operator_frontier_map_status(report)
     elif args.command == "mac-watch-markdown-index-status":
         print_mac_watch_markdown_index_status(report)
+    elif args.command == "map-room-query-status":
+        print_map_room_query_status(report)
 
     return 0 if report.get("passed", True) else 1
 

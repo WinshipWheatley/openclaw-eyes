@@ -901,6 +901,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "operator-extension-simulator-status",
         "operator-evidence-bridge-status",
         "operator-frontier-map-status",
+        "map-room-query-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -1145,6 +1146,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "ast",
         "dataclasses",
         "json",
+        "map_room_query",
         "openclaw_sensitive_policy",
         "operator_action_covenant",
         "operator_evidence_bridge",
