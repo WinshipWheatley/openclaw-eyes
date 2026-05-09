@@ -56,4 +56,5 @@ No cleanup can proceed unless it passes these strict gates:
 - **Completed:** Dependency owners reviewed and risk classified. See [Dependency Owner Candidate Move Map](./DEPENDENCY_OWNER_CANDIDATE_MOVE_MAP.md).
 - **Completed:** Formulated targeted, dry-run candidate move plans for specific safe categories with explicit validation commands and rollback procedures. See [Targeted Dry-Run Candidate Move Plan v0](./TARGETED_DRY_RUN_CANDIDATE_MOVE_PLAN_V0.md).
 - **Completed:** Built Map Room Query layer (`map_room_query.py`) to answer file territory queries directly from durable truth.
+- **Completed:** Created the [Plugin Domain Registry v0](./PLUGIN_DOMAIN_REGISTRY.md) to define the boundaries of future workflows (like File Territory / Cleanup) before any live execution is built.
 - Proposed cleanup actions must remain candidate-only.
