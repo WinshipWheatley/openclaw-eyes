@@ -845,6 +845,48 @@ def test_operator_evidence_bridge_command_passes_without_authorizing_runtime(
     assert "bridge_remains_non_live_non_executing: True" in output
 
 
+
+def test_operator_frontier_map_status_command_exposes_explored_territory_guard(
+    tmp_path,
+    capsys,
+):
+    _write_packet_fixture(tmp_path)
+
+    report = receipts.operator_frontier_map_status(root=tmp_path)
+
+    assert report["passed"] is True
+    assert report["receipt_type"] == "openclaw.operator_frontier_map_status"
+    assert report["mode"] == "read-only/static-frontier-map/no-execution"
+    assert report["lane"] == "compiled_knowledge_substrate"
+    assert report["execution_authority_granted"] is False
+    assert report["provider_or_model_called"] is False
+    assert report["sqlite_used"] is False
+    assert report["ingestion_used"] is False
+    assert report["embeddings_used"] is False
+    assert report["vector_retrieval_used"] is False
+    assert report["mcp_called"] is False
+    assert report["private_root_access_used"] is False
+    assert report["runtime_or_process_inspection_used"] is False
+    assert report["cassandra_chief_telegram_wired"] is False
+    assert report["external_send_used"] is False
+    assert report["commit_or_push_used"] is False
+    assert report["built"]
+    assert report["partially_built"]
+    assert report["not_built"]
+    assert report["checks"]["duplicate_guard_available"] is True
+    assert report["checks"]["bridge_overlap_guard_available"] is True
+
+    exit_code = receipts.main(["--root", str(tmp_path), "operator-frontier-map-status"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "OpenClaw Operator Frontier Map Status Receipt" in output
+    assert "receipt_type: openclaw.operator_frontier_map_status" in output
+    assert "lane: compiled_knowledge_substrate" in output
+    assert "execution_authority_granted: False" in output
+    assert "duplicate_guard_available: True" in output
+    assert "bridge_overlap_guard_available: True" in output
+
 def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
     _write_packet_fixture(tmp_path)
 
@@ -858,6 +900,7 @@ def test_new_static_receipt_commands_exist_and_pass(tmp_path, capsys):
         "operator-action-covenant-status",
         "operator-extension-simulator-status",
         "operator-evidence-bridge-status",
+        "operator-frontier-map-status",
     ):
         exit_code = receipts.main(["--root", str(tmp_path), command])
         output = capsys.readouterr().out
@@ -921,6 +964,7 @@ def test_operator_harness_read_model_combines_receipts_without_runtime_authority
         receipts.OPERATOR_INTAKE_REQUIRED_INTENTS
     )
     assert cards["operator_intent_core"]["passed"] is True
+    "operator_frontier_map",
     assert cards["operator_intent_core"]["status_command"].endswith(
         "operator-intent-core-status"
     )
@@ -1106,6 +1150,7 @@ def test_receipt_module_has_no_broad_walk_or_live_service_calls():
         "operator_evidence_bridge",
         "operator_extension_simulator",
         "operator_intent_core",
+        "operator_frontier_map",
         "pathlib",
         "subprocess",
         "sys",

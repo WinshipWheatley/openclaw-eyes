@@ -66,6 +66,7 @@ from operator_evidence_bridge import (
     bridge_phrase_matrix,
     render_operator_evidence_bridge_result,
 )
+from operator_frontier_map import operator_frontier_map_status_dict
 
 
 CANONICAL_RECEIPT_COMMAND = "./scripts/openclaw_receipts.py"
@@ -3087,6 +3088,55 @@ def _paths_from_args_or_changes(args: argparse.Namespace, root: Path) -> tuple[s
 
 
 
+def operator_frontier_map_status(root: Path = ROOT) -> dict[str, object]:
+    """Return the static Operator Frontier Map status for receipt CLI use."""
+    return operator_frontier_map_status_dict()
+
+
+def print_operator_frontier_map_status(report: dict[str, object]) -> None:
+    _print_scalar_lines(
+        "OpenClaw Operator Frontier Map Status Receipt",
+        (
+            ("receipt_type", report["receipt_type"]),
+            ("mode", report["mode"]),
+            ("lane", report["lane"]),
+            ("authority_note", report["authority_note"]),
+            ("execution_authority_granted", report["execution_authority_granted"]),
+            ("provider_or_model_called", report["provider_or_model_called"]),
+            ("sqlite_used", report["sqlite_used"]),
+            ("ingestion_used", report["ingestion_used"]),
+            ("embeddings_used", report["embeddings_used"]),
+            ("vector_retrieval_used", report["vector_retrieval_used"]),
+            ("mcp_called", report["mcp_called"]),
+            ("private_root_access_used", report["private_root_access_used"]),
+            (
+                "runtime_or_process_inspection_used",
+                report["runtime_or_process_inspection_used"],
+            ),
+            (
+                "cassandra_chief_telegram_wired",
+                report["cassandra_chief_telegram_wired"],
+            ),
+            ("external_send_used", report["external_send_used"]),
+            ("commit_or_push_used", report["commit_or_push_used"]),
+            ("passed", report["passed"]),
+        ),
+    )
+    _print_list("built", (item["item_id"] for item in report["built"]))
+    _print_list(
+        "partially_built",
+        (item["item_id"] for item in report["partially_built"]),
+    )
+    _print_list("not_built", (item["item_id"] for item in report["not_built"]))
+    print("duplicate_work_finding:")
+    for key, value in report["duplicate_work_finding"].items():
+        print(f"- {key}: {value}")
+    _print_list("next_unfinished_edges", report["next_unfinished_edges"])
+    print("checks:")
+    for key, value in report["checks"].items():
+        print(f"- {key}: {value}")
+
+
 def mac_watch_markdown_index_status(root: Path = ROOT) -> dict[str, object]:
     script_path = root / "scripts" / "mac_watch_markdown_index.py"
     report_json = root / "reports" / "mac_watch_index" / "MAC_WATCH_MARKDOWN_INDEX.json"
@@ -3238,6 +3288,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print shared Operator Evidence Bridge v0 status.",
     )
     subparsers.add_parser(
+        "operator-frontier-map-status",
+        help="Print static Operator Frontier Map / explored territory status.",
+    )
+    subparsers.add_parser(
         "mac-watch-markdown-index-status",
         help="Print status of Mac Watch Markdown Index v0.",
     )
@@ -3305,6 +3359,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = operator_extension_simulator_status(root=root)
     elif args.command == "operator-evidence-bridge-status":
         report = operator_evidence_bridge_status(root=root)
+    elif args.command == "operator-frontier-map-status":
+        report = operator_frontier_map_status(root=root)
     elif args.command == "mac-watch-markdown-index-status":
         report = mac_watch_markdown_index_status(root=root)
 
@@ -3366,6 +3422,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print_operator_extension_simulator_status(report)
     elif args.command == "operator-evidence-bridge-status":
         print_operator_evidence_bridge_status(report)
+    elif args.command == "operator-frontier-map-status":
+        print_operator_frontier_map_status(report)
     elif args.command == "mac-watch-markdown-index-status":
         print_mac_watch_markdown_index_status(report)
 
