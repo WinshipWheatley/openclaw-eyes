@@ -68,6 +68,8 @@
 !docs/testing/*.md
 !docs/operations/
 !docs/operations/*.md
+!docs/navigation_maps/
+!docs/navigation_maps/*.md
 !docs/playbooks/
 !docs/playbooks/*.md
 !docs/specs/
