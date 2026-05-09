@@ -1,22 +1,31 @@
-# Navigation Maps and Charts Doctrine
+# OpenClaw Map Room Index & Legend
 
-This directory contains durable navigation maps and charts for OpenClaw. Future workers must check these maps before proposing work to avoid duplication. A false map is worse than no map.
+This directory is the durable Map Room for OpenClaw. It contains navigation artifacts that establish ground truth about what is built, what is pending, what to check before building, and how to route next actions.
 
-## Map Catalog
+Future workers must enter the Map Room and consult the relevant artifacts before proposing work, to ensure deterministic navigation and prevent duplication.
 
-- [Compiled Knowledge Substrate Frontier Map](./COMPILED_KNOWLEDGE_SUBSTRATE_FRONTIER_MAP.md) - Tracks the built, partial, and not-built territory of the Compiled Knowledge Substrate.
-- [No-Build / Prior-Art Sources Map](./NO_BUILD_PRIOR_ART_SOURCES.md) - A durable check-before-building map to prevent reinventing existing tools, requiring prior-art research for common application categories.
+**Important:** Not every artifact in the Map Room is itself a map. The room contains different types of artifacts, each with a specific purpose.
 
-## Core Principles
+## Artifact Taxonomy
 
-- **Truth Surfaces, Not Authority:** Navigation maps/charts are truth surfaces, not authority grants.
-- **No Execution:** Maps do not execute, approve, build, ingest, call providers, or mutate runtime.
-- **Named Territory:** Each map must name its territory or lane explicitly.
-- **Categorization:** Each map must distinguish built, partial, not-built, blocked, unknown, and candidate territory.
-- **Cited Proof:** Every built claim must cite proof: a commit, file/module, test, receipt command, or explicit operator promotion.
-- **State Hygiene:** 
-  - Completed work must not remain pending.
-  - Unproven work must not be listed as built.
-  - Stale map entries are defects.
-- **Updates Require Proof:** Map updates require proof.
-- **Check Before Proposing:** Future workers must check maps before proposing duplicate work.
+- **Frontier Map:** An actual territory map documenting built, partial, not-built, blocked, unknown, and next unfinished edges for a specific lane. Built claims must cite exact proof.
+- **Discovery Guide:** A prior-art or no-build source guide. It lists sources to check before proposing custom builds. It is **not** a full territory map and does **not** grant approval to install, connect, or execute.
+- **Route Card:** (Future) A deterministic routing artifact for next steps.
+- **Atlas:** (Future) A cross-map inventory.
+- **Doctrine / Legend:** Rules for how navigation artifacts stay true (this document).
+
+## Map Room Catalog
+
+- [Compiled Knowledge Substrate Frontier Map](./COMPILED_KNOWLEDGE_SUBSTRATE_FRONTIER_MAP.md) - [Frontier Map] Tracks the compiled_knowledge_substrate territory.
+- [No-Build / Prior-Art Sources](./NO_BUILD_PRIOR_ART_SOURCES.md) - [Discovery Guide] A check-before-building guide to prevent reinventing existing tools.
+
+## Core Navigation Doctrine
+
+- **Truth Surfaces, Not Authority:** Navigation maps and guides are truth surfaces. They do **not** grant execution authority. Install, use, call, and execute actions still require normal operator gates and covenants.
+- **Defects:**
+  - A false map is worse than no map and is a defect.
+  - Stale map entries are defects. Completed work must not remain pending; unproven work must not be listed as built.
+- **Map Requirements:**
+  - Each Frontier Map must explicitly name its territory/lane.
+  - Every built claim in a Frontier Map must cite proof (a commit, file/module, test, receipt command, or explicit operator promotion).
+- **Updates Require Proof:** Modifying a map's "built" territory requires citing the proof that justifies the change.

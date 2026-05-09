@@ -1,7 +1,9 @@
-# No-Build / Prior-Art Sources Map
+# No-Build / Prior-Art Sources Guide
+
+**Artifact Type:** Discovery Guide
+**Status:** This is a prior-art discovery artifact. It does **not** map full territory and does **not** grant approval to install, connect, download, or use any listed tool or platform.
 
 **Purpose:** Prevent reinventing existing tools. Future workers must consult these sources to check for existing prior art before proposing custom builds.
-**Status:** This is a navigation map and discovery source map only. It does **not** grant approval to install, connect, download, or use any listed tool or platform. 
 
 ## Rules
 
@@ -13,7 +15,7 @@
 
 ## Replaceable Source Families
 
-These sources are current as of creation but are subject to replacement based on freshness and quality.\n\n**Review basis:** Added during Navigation Maps creation as operator-supplied prior-art discovery sources. Treat as recommended discovery categories until a future freshness review demotes, replaces, or expands them.
+These sources are current as of creation but are subject to replacement based on freshness and quality.
 
 ### 1. Awesome Ecosystem
 - [Awesome Self-Hosted](https://github.com/awesome-selfhosted/awesome-selfhosted)
@@ -37,25 +39,17 @@ These sources are current as of creation but are subject to replacement based on
 
 ## Required Prior-Art Checks
 
-A prior-art check using the sources above is **mandatory** before proposing or building custom solutions for any of the following categories:
-- Dashboards
-- Internal tools
-- Auth
-- CRUD apps
-- File sharing
-- Schedulers
-- Webhook/cron logic
-- CMS
-- Admin panels
-- Logging
-- Monitoring
-- Search
-- Document management
-- Workflow automation
+A prior-art check using the sources above is **mandatory** before proposing or building custom solutions. Use the following table to map categories to required constraints:
+
+| Build Category | Sources to Check | Fit Constraints | Rejection Proof Required |
+| :--- | :--- | :--- | :--- |
+| Dashboards / Internal Tools | Awesome Self-Hosted, OpenAlternative | Privacy, self-hostable, low maintenance | Why existing low-code/dashboard builders fail requirements |
+| Auth | OpenAlternative, GitHub Topics | License, data residency, integration ease | Why existing self-hosted auth (e.g. Authelia, Keycloak) is unfit |
+| CRUD / Admin Apps | Awesome OSS Alternatives, Selfh.st | Operator-control, local database support | Why existing admin panels (e.g. Appsmith, ToolJet) cannot be adapted |
+| Workflow Automation / Webhooks / Cron | Awesome Self-Hosted, GitHub Topics | Local execution, webhook security | Why existing tools (e.g. n8n, Node-RED) are rejected |
+| CMS / Document Management | SaaSHub, Awesome Self-Hosted | File-based backing, markdown support | Why existing headless CMS or doc engines fail |
+| Logging / Monitoring / Search | OpenAlternative, Free-for-Dev | Privacy, resource footprint | Why existing local observability stacks are rejected |
+| File Sharing | Awesome Self-Hosted, Selfh.st | Local-only access, secure links | Why existing file-sharing tools fail OpenClaw constraints |
 
 ## Freshness and Replacement Protocol
-
-- Recommended sources need a review date or proof basis.
-- Stale sources must become candidates for demotion or removal.
-- Source categories matter more than permanent brand worship.
-- Update this map when a better directory, list, or source appears. This map is not permanent authority and must remain a fresh reflection of the best discovery paths.\n
+Update this guide when a better directory, list, or source appears. This guide is not permanent authority and must remain a fresh reflection of the best discovery paths. Stale sources must be demoted or removed.
