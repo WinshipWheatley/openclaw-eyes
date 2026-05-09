@@ -114,6 +114,8 @@ def classify_file(info: dict[str, object]) -> dict[str, object]:
     # Precise matching based on path keywords overrides top-level check
     if "watch" in path_lower or "dashboard" in path_lower or "right now.md" in path_lower or "operator watch" in path_lower:
         group = "generated watch surfaces"
+    elif "active_handoff" in path_lower or "active handoff" in path_lower or "rail" in path_lower:
+        group = "active packets and rails"
     elif "research" in path_lower or "source" in path_lower:
         group = "research/source material"
     elif "legal" in path_lower or "vault" in path_lower:
@@ -124,11 +126,21 @@ def classify_file(info: dict[str, object]) -> dict[str, object]:
         group = "mirrors"
     elif "handoff" in path_lower or "history" in path_lower:
         group = "historical handoffs"
+    elif "operator_harness" in path_lower:
+        group = "operator harness planning"
         
     # 3. Tags
     tags = []
     if "todo" in content_preview or "fixme" in content_preview:
         tags.append("has_todos")
+    if "harness" in path_lower:
+        tags.append("harness")
+    if "operator" in path_lower:
+        tags.append("operator")
+    if "packet" in path_lower:
+        tags.append("packet")
+    if "roadmap" in path_lower or "rail" in path_lower:
+        tags.append("roadmap")
         
     # 4. Authority guess
     authority_guess = "none"
@@ -138,6 +150,8 @@ def classify_file(info: dict[str, object]) -> dict[str, object]:
         authority_guess = "read_only_mirror"
     elif group == "ingest packets":
         authority_guess = "source_truth"
+    elif group == "active packets and rails":
+        authority_guess = "project_authority"
         
     # 5. Freshness class
     freshness_class = "stale"

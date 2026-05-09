@@ -35,3 +35,16 @@ def test_freshness():
     info_stale = {"relative_path": "a/b.md", "modified_time": now - 86400 * 10}
     res_stale = classify_file(info_stale)
     assert res_stale["freshness_class"] == "stale"
+
+def test_classify_active_handoff():
+    info = {"relative_path": "07_OPERATOR_HARNESS/00_ACTIVE_HANDOFF.md"}
+    res = classify_file(info)
+    assert res["group"] == "active packets and rails"
+    assert res["authority_guess"] == "project_authority"
+    assert "operator" in res["tags"]
+
+def test_classify_rail():
+    info = {"relative_path": "07_OPERATOR_HARNESS/24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md"}
+    res = classify_file(info)
+    assert res["group"] == "active packets and rails"
+    assert "roadmap" in res["tags"]

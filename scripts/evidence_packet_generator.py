@@ -25,7 +25,7 @@ DEFAULT_INDEX_PATH = ROOT / "reports" / "mac_watch_index" / "MAC_WATCH_MARKDOWN_
 DEFAULT_OUT_DIR = Path("/tmp/openclaw_evidence")
 
 STOP_WORDS = {
-    "what", "should", "we", "build", "next", "for", "are", "but", "to", "which",
+    "what", "should", "we", "for", "are", "but", "to", "which",
     "docs", "feed", "a", "the", "of", "in", "and", "is", "it", "on", "with",
     "this", "that", "these", "those", "how", "do", "can", "you", "me", "my",
     "i", "or", "as", "at", "be", "by", "from", "an", "was"
@@ -82,6 +82,28 @@ def score_file(info: dict, tokens: list[str]) -> tuple[int, list[str]]:
         if token in excerpt:
             score += 1
             matched_fields.add("excerpt")
+
+    # Boosts based on classification metadata
+    if info.get("group") == "active packets and rails":
+        score += 15
+        matched_fields.add("active_group_boost")
+    if info.get("freshness_class") in ("fresh", "recent"):
+        score += 5
+        matched_fields.add("freshness_boost")
+    if info.get("authority_guess") not in ("none", "", None):
+        score += 5
+        matched_fields.add("authority_boost")
+
+    # Hardcoded deterministic boosts for critical roadmap patterns
+    if "active handoff" in first_heading or "active_handoff" in rel_path or "active handoff" in rel_path:
+        score += 20
+        matched_fields.add("active_handoff_boost")
+    if "rail_map" in rel_path or "rail map" in first_heading or "rail_map" in first_heading or "source_set_index" in rel_path:
+        score += 20
+        matched_fields.add("rail_map_boost")
+    if "packet 07" in first_heading or "07_operator_harness" in rel_path:
+        score += 20
+        matched_fields.add("packet_07_boost")
 
     return score, sorted(list(matched_fields))
 

@@ -53,7 +53,7 @@ def test_tokenize_topic():
     tokens = tokenize_topic("What should we build next for Operator Harness?")
     assert "operator" in tokens
     assert "harness" in tokens
-    assert "build" not in tokens  # 'build' is in STOP_WORDS
+    assert "build" in tokens  # 'build' is no longer in STOP_WORDS
     assert "what" not in tokens   # 'what' is in STOP_WORDS
 
 def test_is_safe_path():
@@ -180,3 +180,20 @@ def test_generate_packet_rejects_unsafe_paths(tmp_path):
         # Only safe_file.md should be selected
         assert data["selected_count"] == 1
         assert data["files"][0]["source_path"] == "safe_file.md"
+
+def test_score_file_boosts():
+    file_info = {
+        "relative_path": "packet/active_handoff.md",
+        "group": "active packets and rails",
+        "authority_guess": "project_authority",
+        "freshness_class": "fresh",
+        "tags": ["packet"]
+    }
+    # Topic doesn"t even match keywords, but it should get boosts if tokens match? 
+    # Wait, score_file only adds boosts if score > 0 from keywords? No, current implementation adds them always.
+    # Actually, current implementation adds them regardless of keyword matches.
+    score, matched = score_file(file_info, ["nonexistent"])
+    assert score == 15 + 5 + 5 + 20 # active_group + freshness + authority + active_handoff
+    assert "active_group_boost" in matched
+    assert "freshness_boost" in matched
+    assert "authority_boost" in matched
