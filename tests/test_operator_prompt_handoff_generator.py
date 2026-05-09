@@ -11,6 +11,10 @@ SAMPLE_OPERATOR_HARNESS_PROMPT_REQUEST = (
     "Review the next safe Operator Harness slice and produce the bounded worker prompt"
 )
 
+SAMPLE_STABILIZATION_REVIEW_REQUEST = (
+    "Review the current Operator Harness state and recommend the next smallest useful stabilization slice."
+)
+
 
 def _evidence_packet() -> dict[str, object]:
     return {
@@ -72,6 +76,48 @@ def test_bounded_operator_harness_prompt_request_is_not_unsafe_or_ambiguous():
     assert handoff.request_category == "prompt_generation"
     assert "The generated prompt grants no execution authority." in handoff.prompt_text
     assert "Current covenant posture:" in handoff.prompt_text
+
+
+def test_stabilization_review_request_is_non_authorizing_next_safe_action():
+    handoff = generator.generate_operator_prompt_handoff(
+        target_worker_profile="gemini_planning",
+        operator_text=SAMPLE_STABILIZATION_REVIEW_REQUEST,
+        evidence_packet=_evidence_packet(),
+        evidence_references=_explicit_evidence(),
+    )
+
+    assert handoff.status == "ready_non_authorizing"
+    assert handoff.classified_intent == "next_safe_action"
+    assert handoff.classified_intent != "unsafe_or_ambiguous_action"
+    assert handoff.bridge_domain == "status_orientation"
+    assert handoff.request_category == "read_only_status"
+    assert "The generated prompt grants no execution authority." in handoff.prompt_text
+    assert "Evidence grounds the response" in handoff.prompt_text
+    assert "Current covenant posture:" in handoff.prompt_text
+
+
+def test_next_safe_stabilization_handoff_phrases_are_non_authorizing():
+    phrases = (
+        "Review the current Operator Harness state and recommend the next smallest useful stabilization slice.",
+        "Recommend the next safe stabilization slice.",
+        "What is the next smallest useful stabilization move?",
+        "Review current state and tell me the next safe action.",
+    )
+
+    for phrase in phrases:
+        handoff = generator.generate_operator_prompt_handoff(
+            target_worker_profile="gemini_review",
+            operator_text=phrase,
+            evidence_packet=_evidence_packet(),
+            evidence_references=_explicit_evidence(),
+        )
+
+        assert handoff.status == "ready_non_authorizing"
+        assert handoff.classified_intent == "next_safe_action"
+        assert handoff.request_category == "read_only_status"
+        assert handoff.no_execution_authority_statement == (
+            "The generated prompt grants no execution authority."
+        )
 
 
 def test_gemini_and_codex_profiles_have_different_prompt_framing():
@@ -234,6 +280,29 @@ def test_generated_prompt_has_readable_worker_handoff_sections():
         "COVENANT AND AUTHORITY",
     ):
         assert section in handoff.prompt_text
+
+
+def test_stabilization_handoff_retains_evidence_boundary_validation_and_stop_language():
+    handoff = generator.generate_operator_prompt_handoff(
+        target_worker_profile="codex_review",
+        operator_text=SAMPLE_STABILIZATION_REVIEW_REQUEST,
+        evidence_packet=_evidence_packet(),
+        evidence_references=_explicit_evidence(),
+    )
+
+    required_phrases = (
+        "Generated prompt/handoff is non-authorizing support material.",
+        "Evidence grounds the response",
+        "Canonical repo evidence / proof snapshots:",
+        "Mac Watch / Evidence Packet v0 support material:",
+        "FORBIDDEN LANES",
+        "VALIDATION COMMANDS / REVIEW CHECKS",
+        "STOP CONDITIONS",
+        "The generated prompt grants no execution authority.",
+    )
+
+    for phrase in required_phrases:
+        assert phrase in handoff.prompt_text
 
 
 def test_taste_polish_preserves_required_authority_and_covenant_language():

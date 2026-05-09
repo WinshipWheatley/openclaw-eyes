@@ -454,7 +454,7 @@ def _intent_from_frame_or_bridge(
         bridge.restricted_block is False
         and bridge.bridge_domain == "unsafe_ambiguous_handle_it"
         and frame.intent_name != "unsafe_or_ambiguous_action"
-        and frame.request_category in {"prompt_generation", "review"}
+        and frame.request_category in {"prompt_generation", "review", "read_only_status"}
     ):
         bridge_domain, covenant_posture = _domain_and_posture_for_intent_frame(frame)
         return (

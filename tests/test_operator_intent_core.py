@@ -13,6 +13,11 @@ if str(ROOT) not in sys.path:
 import operator_intent_core as core
 
 
+STABILIZATION_SAMPLE = (
+    "Review the current Operator Harness state and recommend the next smallest useful stabilization slice."
+)
+
+
 def test_required_phrase_to_intent_coverage():
     rows = core.classify_phrase_matrix()
 
@@ -46,6 +51,41 @@ def test_bounded_worker_prompt_language_maps_to_non_authorizing_handoff_request(
     assert frame.execution_authority is False
     assert frame.tool_route == "operator_handoff_draft"
     assert frame.current_authority == "classification_and_response_framing_only"
+
+
+def test_stabilization_planning_language_maps_to_non_authorizing_next_safe_action():
+    intent = core.classify_operator_intent(STABILIZATION_SAMPLE)
+    frame = core.frame_operator_intent(intent)
+
+    assert intent.name == "next_safe_action"
+    assert intent.name != "unsafe_or_ambiguous_action"
+    assert intent.request_category == "read_only_status"
+    assert intent.execution_authority is False
+    assert frame.intent_name == "next_safe_action"
+    assert frame.request_category == "read_only_status"
+    assert frame.execution_authority is False
+    assert frame.current_authority == "classification_and_response_framing_only"
+    assert "Name the next safe move" in frame.recommended_response_frame
+
+
+def test_next_safe_stabilization_review_phrases_are_non_authorizing():
+    phrases = (
+        "Review the current Operator Harness state and recommend the next smallest useful stabilization slice.",
+        "Recommend the next safe stabilization slice.",
+        "What is the next smallest useful stabilization move?",
+        "Review current state and tell me the next safe action.",
+    )
+
+    for phrase in phrases:
+        intent = core.classify_operator_intent(phrase)
+        frame = core.frame_operator_intent(intent)
+
+        assert intent.name == "next_safe_action"
+        assert intent.request_category == "read_only_status"
+        assert intent.execution_authority is False
+        assert frame.execution_authority is False
+        assert frame.follow_up_required is False
+        assert "live runtime launch" in frame.forbidden_actions
 
 
 def test_dangerous_phrases_do_not_become_execution_authority():
