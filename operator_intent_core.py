@@ -181,6 +181,7 @@ _RULES: tuple[_Rule, ...] = (
         "exact",
         (
             "what's next",
+            "what's the next safe move",
             "what should i do",
             "do the next thing",
             "next safe action",
