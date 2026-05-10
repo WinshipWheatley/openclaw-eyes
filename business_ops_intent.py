@@ -30,7 +30,11 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
     if any(phrase in q for phrase in ("no gmail", "no email", "no tools", "without gmail", "without email")):
         return IntentFrame("deny", "stop", "none", 1.0)
 
-    # 2. Email / Gmail
+    # 2. Background / Automated (Internal use)
+    if q == "monitored_email_conversation":
+        return IntentFrame("monitored_email_conversation", "automated", "email", 1.0)
+
+    # 3. Email / Gmail
     email_terms = (
         "email", "gmail", "inbox", "message", "unread", "sender",
         "subject", "from", "reply", "draft", "thread", "attachment"

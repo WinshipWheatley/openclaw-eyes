@@ -40,6 +40,28 @@ def test_assemble_business_ops_packet_no_intent():
     assert "calendar_read" not in capability_names
     assert "ops_notes_read" in capability_names or "ops_log_write" in capability_names
 
+def test_assemble_business_ops_packet_monitored_email():
+    # Test with monitored_email_conversation intent
+    packet = assemble_business_ops_packet(
+        query="monitored_email_conversation",
+        actor_name="cassandra"
+    )
+
+    assert packet.intent_name == "monitored_email_conversation"
+    assert packet.actor_name == "cassandra"
+
+    capability_names = [c.name for c in packet.permitted_capabilities]
+    # Should have read/draft
+    assert "gmail_metadata" in capability_names
+    assert "email_draft" in capability_names
+    # Should NOT have send
+    assert "email_send" not in capability_names
+
+    # Safety posture checks
+    assert packet.execution_authority is False
+    assert packet.approval_required is True
+    assert packet.action_status == "draft_only_until_guardian_approval"
+
 @pytest.fixture
 def mock_deps(monkeypatch):
     # Mock broker

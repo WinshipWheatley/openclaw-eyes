@@ -48,7 +48,7 @@ from finance_state import (
     get_finance_status_answer,
 )
 from capability_registry import get_actor, registry_context_for_query
-from business_ops_packet import assemble_business_ops_packet
+from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_pii_hooks import (
@@ -4101,7 +4101,14 @@ def _create_inner_circle_email_reply_draft(
     verified_contact: dict,
     analysis: dict,
     draft_body: str,
+    ops_packet: BusinessOpsPacket | None = None,
 ) -> dict:
+    # Check for email draft permission if ops_packet is provided
+    if ops_packet:
+        has_draft_cap = any(c.name == "email_draft" for c in ops_packet.permitted_capabilities)
+        if not has_draft_cap:
+            return {"ok": False, "error": "email_draft capability missing from ops_packet"}
+
     subject = str(message.get("subject", "")).strip() or "Follow-up"
     if not subject.lower().startswith("re:"):
         subject = f"Re: {subject}"
@@ -4246,7 +4253,21 @@ def process_inbound_email_replies() -> list[dict]:
     lock_handle = _try_acquire_inbound_email_reply_lock()
     if lock_handle is None:
         return []
+
+    # Business Ops Spine integration (Background Monitored Conversation)
+    ops_packet = assemble_business_ops_packet(
+        query="monitored_email_conversation",
+        actor_name="cassandra"
+    )
+
     try:
+        # Check for Gmail metadata read permission in the packet
+        has_read_cap = any(c.name == "gmail_metadata" for c in ops_packet.permitted_capabilities)
+        if not has_read_cap:
+            print("[cassandra] inbound email reply poll denied: gmail_metadata capability missing from ops_packet", flush=True)
+            _release_inbound_email_reply_lock(lock_handle)
+            return []
+
         call_fn = broker_call if broker_call is not None else __import__("google_access_broker").call
         result = call_fn("cassandra", "google.gmail.read.metadata", {"max_results": 20})
     except Exception as exc:
@@ -4348,6 +4369,7 @@ def process_inbound_email_replies() -> list[dict]:
                 verified_contact=verified,
                 analysis=analysis,
                 draft_body=draft_body,
+                ops_packet=ops_packet,
             )
             if draft_result.get("ok"):
                 if operator_update:

@@ -49,6 +49,8 @@ class BusinessOpsPacket:
     # Safety posture
     safety_covenant_required: bool = True
     execution_authority: bool = False
+    approval_required: bool = False
+    action_status: str = "read_only"
     
     # Metadata
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -64,6 +66,8 @@ class BusinessOpsPacket:
             "permitted_capability_names": [c.name for c in self.permitted_capabilities],
             "safety_covenant_required": self.safety_covenant_required,
             "execution_authority": self.execution_authority,
+            "approval_required": self.approval_required,
+            "action_status": self.action_status,
             "created_at": self.created_at,
         }
 
@@ -112,6 +116,17 @@ def assemble_business_ops_packet(
             if "read" in cap.scope and cap.domain in ("logging", "notes"):
                 permitted.append(cap)
 
+    # Defaults
+    approval_required = False
+    action_status = "read_only"
+    execution_authority = False
+
+    # Intent-specific overrides
+    if intent.intent_name == "monitored_email_conversation":
+        approval_required = True
+        action_status = "draft_only_until_guardian_approval"
+        execution_authority = False
+
     return BusinessOpsPacket(
         packet_id=str(uuid.uuid4()),
         query=query,
@@ -120,4 +135,7 @@ def assemble_business_ops_packet(
         actor_name=actor_name,
         context=context,
         permitted_capabilities=tuple(permitted),
+        approval_required=approval_required,
+        action_status=action_status,
+        execution_authority=execution_authority,
     )
