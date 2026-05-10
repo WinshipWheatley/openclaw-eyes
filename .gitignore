@@ -375,6 +375,7 @@
 !tests/test_hitl_transaction_limit_gate.py
 !tests/test_cassandra_email_thread_analysis.py
 !tests/test_inner_circle_integration.py
+!tests/test_gmail_intent_gate.py
 !tests/test_agent_task_proposals.py
 
 # tools/ — standalone utility modules

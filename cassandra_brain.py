@@ -459,7 +459,7 @@ def _rotate_convo_log() -> None:
     except Exception as e:
         print(f"[cassandra_convo] rotation error: {e}", flush=True)
 
-def _log_conversation(user_text: str, replies: list[str], route: str = "llm") -> None:
+def _log_conversation(user_text: str, replies: list[str], route: str = "llm", metadata: dict | None = None) -> None:
     """Append one exchange to the conversation JSONL log. Fails open.
 
     If route='error', also queues a debug task so the loop can investigate.
@@ -471,6 +471,9 @@ def _log_conversation(user_text: str, replies: list[str], route: str = "llm") ->
             "replies": [_redact_pii(r) for r in replies],
             "route": route,
         }
+        if metadata:
+            entry.update(metadata)
+
         with open(_CONVO_LOG, "a") as f:
             f.write(json.dumps(entry) + "\n")
             f.flush()
@@ -4355,6 +4358,62 @@ def process_inbound_email_replies() -> list[dict]:
         _release_inbound_email_reply_lock(lock_handle)
 
 
+# ── Gmail intent gate ─────────────────────────────────────────────────────────
+
+class GmailIntentDecision:
+    def __init__(self, allowed: bool, reason: str, category: str = "none", trigger: str | None = None):
+        self.allowed = allowed
+        self.reason = reason
+        self.category = category
+        self.trigger = trigger
+
+    def to_dict(self) -> dict:
+        return {
+            "allowed": self.allowed,
+            "reason": self.reason,
+            "category": self.category,
+            "trigger": self.trigger,
+        }
+
+
+def decide_gmail_intent(query: str, *, scheduled_triage: bool = False) -> GmailIntentDecision:
+    """
+    Deterministic gate for Gmail API access.
+    Default-deny unless explicit email or business objects are present.
+    """
+    if scheduled_triage:
+        return GmailIntentDecision(True, "Scheduled email triage explicitly running.", "scheduled_triage")
+
+    q = (query or "").lower().strip()
+
+    # Explicit user denial
+    if any(phrase in q for phrase in ("no gmail", "no email", "no tools", "without gmail", "without email")):
+        return GmailIntentDecision(False, "User explicitly requested no Gmail/tools.", "none")
+
+    # Explicit email terms: allowed
+    email_terms = (
+        "email", "gmail", "inbox", "message", "unread", "sender",
+        "subject", "from", "reply", "draft", "thread", "attachment"
+    )
+    for term in email_terms:
+        if term in q:
+            return GmailIntentDecision(True, f"Explicit email term trigger: '{term}'", "email_search", term)
+
+    # Materially specific business/payment terms: allowed
+    business_terms = (
+        "invoice", "payment", "paid", "unpaid", "receivable",
+        "owes", "owed", "client follow-up", "balance", "overdue"
+    )
+    for term in business_terms:
+        if term in q:
+            return GmailIntentDecision(True, f"Material business term trigger: '{term}'", "payment_verify", term)
+
+    # Do not allow generic verbs alone: check, verify, status, health, look, find, search.
+    # These are already implicitly denied by falling through, but we could be explicit if needed.
+
+    return GmailIntentDecision(False, "No explicit email or business intent detected; defaulting to deny.", "none")
+
+
 # ── Gmail context injection ───────────────────────────────────────────────────
 
 _GMAIL_QUERY_WORDS = (
@@ -4364,12 +4423,15 @@ _GMAIL_QUERY_WORDS = (
 )
 
 
-def _fetch_gmail_context(query: str) -> str:
+def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None) -> str:
     """
     If the query has Gmail intent, call the broker and return a formatted
     inbox context block for prompt injection.
     Returns "" if not applicable, broker denied, or an error occurs.
     """
+    if decision and not decision.allowed:
+        return ""
+
     if not any(w in query.lower() for w in _GMAIL_QUERY_WORDS):
         return ""
     try:
@@ -4510,14 +4572,18 @@ def _rescue_payment_verify_reply(query: str, reply: str) -> str | None:
     return "I can't confirm the current payment status from the live record I have."
 
 
-def _fetch_payment_verify_context(query: str) -> str:
+def _fetch_payment_verify_context(query: str, decision: GmailIntentDecision | None = None) -> str:
     """
     If the query has payment verification intent, search Gmail metadata for
     recent payment notifications (Zelle, Venmo, Hilton, etc.) and return
     a formatted block for prompt injection.
     """
+    if decision and not decision.allowed:
+        return ""
+
     q_low = query.lower()
-    if not _looks_like_payment_verify_query(q_low):
+    # Trust the decision gate category if it already identified payment_verify intent
+    if not _looks_like_payment_verify_query(q_low) and not (decision and decision.category == "payment_verify"):
         return ""
 
     try:
@@ -5306,11 +5372,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     ]
     query = _strip_prefix(text)
     t_query = query.lower().strip()
+    gmail_decision = decide_gmail_intent(query)
+
     # Always initialize state for logging and saving
     state = load_state()
-    if t_query in (p.lower() for p in inbox_list_patterns) or (
+    if gmail_decision.allowed and (t_query in (p.lower() for p in inbox_list_patterns) or (
         t_query.startswith("list my ") and "unread inbox" in t_query and "sender" in t_query and "subject" in t_query
-    ):
+    )):
         try:
             from cassandra_outreach import poll_gmail_unread_count, poll_gmail_recent_metadata
             # Use direct unread count for count queries
@@ -5342,19 +5410,28 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                         lines.append("(No unread inbox emails)")
                     reply = ["\n".join(lines)]
             save_state(state)
-            _log_conversation(text, reply, route="gmail_live")
+            _log_conversation(text, reply, route="gmail_live", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return reply
         except Exception as e:
             reply = ["[GMAIL] Inbox is empty or unreachable."]
             save_state(state)
-            _log_conversation(text, reply, route="gmail_live_error")
+            _log_conversation(text, reply, route="gmail_live_error", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return reply
-    if _detect_inner_circle_email_reply_intent(query):
+    if gmail_decision.allowed and _detect_inner_circle_email_reply_intent(query):
         bridge_reply = _handle_inner_circle_email_reply_bridge(query)
         if bridge_reply is not None:
             reply = [bridge_reply]
             save_state(state)
-            _log_conversation(text, reply, route="email_reply_bridge")
+            _log_conversation(text, reply, route="email_reply_bridge", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return reply
     """
     Main Cassandra conversational handler.
@@ -5525,19 +5602,25 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     # fall through to LLM if extraction failed or unclear
 
     # Outreach intro email routing — bypass LLM, creates brokered Gmail drafts
-    if _detect_outreach_email_intent(query):
+    if gmail_decision.allowed and _detect_outreach_email_intent(query):
         outreach_reply = _handle_outreach_email_request(query)
         if outreach_reply is not None:
             save_state(state)
-            _log_conversation(text, [outreach_reply], route="outreach_email_draft")
+            _log_conversation(text, [outreach_reply], route="outreach_email_draft", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return [outreach_reply]
 
     # Email routing — bypass LLM, creates brokered review drafts instead of sending
-    if _detect_send_email_intent(query):
+    if gmail_decision.allowed and _detect_send_email_intent(query):
         email_reply = _handle_send_email(query)
         if email_reply is not None:
             save_state(state)
-            _log_conversation(text, [email_reply], route="email_send")
+            _log_conversation(text, [email_reply], route="email_send", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return [email_reply]
     # fall through to LLM if parsing failed
 
@@ -5565,11 +5648,14 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [finance_reply]
 
     # Payment verification — bypass LLM, direct Gmail/log check
-    if _detect_payment_verify_intent(query):
+    if gmail_decision.allowed and _detect_payment_verify_intent(query):
         pay_reply = _handle_payment_verification_request(query)
         if pay_reply is not None:
             save_state(state)
-            _log_conversation(text, [pay_reply], route="payment_verify")
+            _log_conversation(text, [pay_reply], route="payment_verify", metadata={
+                "gmail_intent": gmail_decision.to_dict(),
+                "gmail_polled": True
+            })
             return [pay_reply]
 
     if not _looks_like_payment_verify_query(query) and detect_finance_status_intent(query):
@@ -5605,7 +5691,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     calendar_ctx   = _fetch_calendar_context(query)
     calendar_block = f"{calendar_ctx}\n\n" if calendar_ctx else ""
 
-    gmail_ctx   = _fetch_gmail_context(query)
+    gmail_ctx   = _fetch_gmail_context(query, decision=gmail_decision)
     gmail_block = f"{gmail_ctx}\n\n" if gmail_ctx else ""
 
     contacts_ctx   = _fetch_contacts_context(query)
@@ -5614,8 +5700,11 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     finance_ctx   = format_finance_context(query)
     finance_block = f"{finance_ctx}\n\n" if finance_ctx else ""
 
-    payment_verify_ctx   = _fetch_payment_verify_context(query)
+    payment_verify_ctx   = _fetch_payment_verify_context(query, decision=gmail_decision)
     payment_verify_block = f"{payment_verify_ctx}\n\n" if payment_verify_ctx else ""
+
+    # Check if Gmail was actually polled (attempted)
+    gmail_polled = bool(gmail_ctx or payment_verify_ctx)
     reality_ctx   = _format_reality_context(query)
     reality_block = f"{reality_ctx}\n\n" if reality_ctx else ""
     session_override_ctx = _format_session_fact_override_context(query, state)
@@ -5652,7 +5741,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     if safe_prompt is None:
         save_state(state)
         blocked_reply = ["I need to protect some sensitive context before replying. Please try again in a moment."]
-        _log_conversation(text, blocked_reply, route="pii_block")
+        _log_conversation(text, blocked_reply, route="pii_block", metadata={
+            "gmail_intent": gmail_decision.to_dict(),
+            "gmail_polled": gmail_polled
+        })
         return blocked_reply
 
     try:
@@ -5666,7 +5758,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         print(f"[cassandra] _call error: {e}", flush=True)
         save_state(state)
         error_reply = ["I'm here, but I hit a snag thinking that through. Try again in a moment."]
-        _log_conversation(text, error_reply, route="error")
+        _log_conversation(text, error_reply, route="error", metadata={
+            "gmail_intent": gmail_decision.to_dict(),
+            "gmail_polled": gmail_polled
+        })
         return error_reply
     route_override = None
     reply = _pii_rehydrate_reply(reply, _pii_ctx)
@@ -5706,5 +5801,11 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         text,
         result,
         route=route_override or ("llm_deep" if allow_deep_escalation else "llm"),
+        metadata={
+            "gmail_intent": gmail_decision.to_dict(),
+            "gmail_polled": gmail_polled,
+            "model_path": "nemotron" if cloud_ok else "local",
+            "reply_task_class": reply_task_class
+        }
     )
     return result

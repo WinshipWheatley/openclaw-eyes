@@ -244,12 +244,13 @@ def test_cassandra_contact_gap_detection_queues_upgrade_and_followup(tmp_path, m
     monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *args, **kwargs: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state=None: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query, **kwargs: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
     monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda text: False, raising=False)
     monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda text: False, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query, **kwargs: "", raising=False)
     def fake_call(prompt, **kwargs):
         assert kwargs.get("task_class") in {
             "cassandra_user_reply",
@@ -431,10 +432,11 @@ def test_cassandra_gap_followup_is_not_used_for_non_designated_sender(tmp_path, 
     monkeypatch.setattr(cassandra_brain, "_log_conversation", lambda *args, **kwargs: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state=None: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query, **kwargs: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query, **kwargs: "", raising=False)
     monkeypatch.setattr(
         cassandra_brain,
         "_call",

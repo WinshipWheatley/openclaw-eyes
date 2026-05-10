@@ -13,9 +13,9 @@ def _stub_llm_path(monkeypatch, cassandra_brain, llm_reply: str):
     monkeypatch.setattr(cassandra_brain, "process_pending_followups", lambda: [], raising=False)
     monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state=None: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query, **kwargs: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query, **kwargs: "", raising=False)
     monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None, raising=False)
     monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False, raising=False)
     monkeypatch.setattr(cassandra_brain, "_call", lambda prompt, *args, **kwargs: llm_reply, raising=False)
@@ -40,10 +40,9 @@ def test_hilton_payment_question_routes_directly(monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Did the Hilton payment come through?")
 
     assert replies == ["I checked the Hilton payment directly."]
@@ -69,10 +68,9 @@ def test_payment_question_rescues_file_style_llm_fallback(monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Did the Hilton payment come through?")
 
     assert replies == ["I checked your recent Gmail notifications but didn't see any matching that payment yet."]
@@ -100,10 +98,9 @@ def test_payment_question_rescues_generic_payment_limit_reply(monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Did the Hilton payment come through?")
 
     assert replies == ["I tried to check your Gmail for payment notifications but the service is unreachable right now."]
@@ -140,9 +137,10 @@ def test_hilton_payment_question_prefers_canonical_reality(tmp_path, monkeypatch
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
+
     monkeypatch.setattr(
         cassandra_brain,
         "_fetch_payment_verify_context",
@@ -249,10 +247,9 @@ def test_hilton_status_question_routes_directly_from_finance_state(tmp_path, mon
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Where are we with Capital Hilton?")
 
     assert replies == [
@@ -315,10 +312,9 @@ def test_session_fact_correction_overrides_stale_finance_status_in_followup(tmp_
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     correction = cassandra_brain.handle(
         "Capital Hilton update: Will is not talking to Chyna on Monday anymore. "
         "That step has been consumed and is stale. Current truth is only: waiting for Coupa to verify me, then PO orders can come through."
@@ -390,10 +386,9 @@ def test_implicit_same_session_correction_uses_last_finance_entity(tmp_path, mon
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     baseline = cassandra_brain.handle("Where are we with Capital Hilton?")
     assert "Chyna" in baseline[0]
     assert shared_state["last_finance_entity"]["key"] == "capital_hilton"
@@ -456,10 +451,9 @@ def test_st_annes_january_23_status_stays_specific(tmp_path, monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("What is the update on St. Anne's at The Studio on January 23?")
 
     assert "2026-01-23" in replies[0]
@@ -513,10 +507,9 @@ def test_iranian_band_status_stays_specific(tmp_path, monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("What is the update on the Iranian band tech payment?")
 
     assert "Iranian band tech work" in replies[0]
@@ -565,10 +558,9 @@ def test_st_annes_general_status_uses_recurring_lane(tmp_path, monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Where are we with St. Anne's?")
 
     assert "recurring Sunday-services and parish-tech lane" in replies[0]
@@ -616,10 +608,9 @@ def test_live_arts_general_status_uses_recurring_lane(tmp_path, monkeypatch):
     monkeypatch.setattr(
         cassandra_brain,
         "_log_conversation",
-        lambda user_text, replies, route="llm": logged.append({"route": route, "replies": replies}),
+        lambda user_text, replies, route="llm", **kwargs: logged.append({"route": route, "replies": replies}),
         raising=False,
     )
-
     replies = cassandra_brain.handle("Where are we with Live Arts Maryland?")
 
     assert "event-based and rental-based lane" in replies[0]
