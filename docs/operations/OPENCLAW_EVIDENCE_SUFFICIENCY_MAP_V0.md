@@ -16,7 +16,13 @@ OpenClaw knowledge must be anchored to one or more of the following deterministi
 - **Chief/Hermes/Cassandra lane receipts**: Explicit completion signals from specific agent lanes.
 - **file/location inventory receipts**: Non-recursive, bounded directory listings or file existence proofs.
 - **device/peripheral inventory receipts**: Verified connection status of local hardware (future).
-- **network/node inventory receipts**: Verified status of internal network nodes (future).
+- **peripheral/music-gear awareness receipts**: Verified status of specialized hardware nodes (future).
+- **local network/node inventory receipts**: Verified status of internal network nodes (future).
+- **trusted remote network receipts**: Verified connectivity and state of known/trusted remote systems (future).
+- **external service/account connectivity receipts**: Verified API or auth status for managed external services (future).
+- **unknown device / unknown connection receipts**: Logs or alerts regarding unmapped nodes on the network (future).
+- **network permission-map receipts**: Deterministic proof of firewall/routing rules and network access limits (future).
+- **security watch / anomaly receipts**: Active logs of intrusion detection or unusual network behavior (future).
 - **permission/capability receipts**: Validated access tokens or OS-level permission checks.
 - **external share/GitHub/email-thread scoped permission receipts**: Evidence of specific shared context (future).
 - **operator promotion receipts**: Explicit instructions from the operator to promote a state or policy.
@@ -44,9 +50,10 @@ Based on the current repository state, the following domains are mapped:
 | Cassandra Status Answer Path | Confirmed | test/proof receipts, ledger receipts |
 | Broad Runtime Health | Unsafe to Claim | Unknown (No live heartbeat) |
 | Whole-File-System Knowledge | Unknown | No broad scan allowed |
-| Peripheral/Device Inventory | Unknown | No device probing implemented |
-| Network/Node Map | Unknown | No network discovery implemented |
-| Guardian Morning Security Brief | Planned/Partial | Needs doctrine/manifesto receipts |
+| Live Network Awareness | Unsafe to Claim | No live network probing implemented |
+| Trusted Remote Monitoring | Unsafe to Claim | No remote monitoring implemented |
+| Intrusion/Anomaly Monitoring | Unsafe to Claim | No security watch receipts implemented |
+| Peripheral/Music-Gear Awareness | Unsafe to Claim | No peripheral probing implemented |
 | GitHub/Email-Thread Sharing | Future | No permission receipts implemented |
 
 ## 4. Grounding Rule
@@ -64,7 +71,7 @@ The path to human-readable synthesis must be built on a machine-contract layer f
 4. **Chief Synthesis**: High-level alignment check and prioritization.
 5. **Cassandra Tasteful Human Report**: Final concise, grounded briefing for the operator.
 
-## 6. Future Growth Pattern
+## 6. Future Growth and Layered Evidence
 
 1. Identify a small, reliable evidence loop.
 2. Prove the loop with a test/receipt.
@@ -72,11 +79,17 @@ The path to human-readable synthesis must be built on a machine-contract layer f
 4. Inspect the evidence and generate read models.
 5. Expose the domain to agents via gated capability checks.
 
+### 6.1 Layered Network Awareness
+
+Network awareness must be treated as layered evidence, not a single capability. Each layer requires its own deterministic probe and receipt before it can be moved from "Unsafe to Claim" to "Confirmed".
+
 ## 7. Explicit Non-Goals
 
 - No runtime activation of unmonitored services.
 - No broad, recursive file system scans.
 - No unauthorized private data access.
 - No active device probing or network discovery.
+- No network scanning, port scanning, or remote monitoring.
+- No external service/account polling or security automation.
 - No automated external sharing without explicit operator promotion.
-- No silent permission expansion.
+- No silent permission expansion or permission changes.
