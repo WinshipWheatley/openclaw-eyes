@@ -26,6 +26,7 @@ import threading
 import fcntl
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from chief_file_io import load_json, save_json
 from chief_llm import external_model_packet_policy, ollama_call, nemotron_call, resolve_local_model
@@ -47,6 +48,8 @@ from finance_state import (
     get_finance_status_answer,
 )
 from capability_registry import get_actor, registry_context_for_query
+from business_ops_packet import assemble_business_ops_packet
+from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
@@ -1691,12 +1694,18 @@ _CALENDAR_CREATE_WORDS = (
 )
 
 
-def _fetch_calendar_context(query: str) -> str:
+def _fetch_calendar_context(query: str, ops_packet: Any = None) -> str:
     """
     If the query has calendar intent, call the broker and return a formatted
     calendar context block for prompt injection.
     Returns "" if not applicable, broker denied, or no data.
     """
+    # Use formal ops_packet if provided
+    if ops_packet is not None:
+        has_cal_cap = any(c.domain == "calendar" for c in ops_packet.permitted_capabilities)
+        if not has_cal_cap:
+            return ""
+
     t = query.lower().translate(str.maketrans({
         "\u2018": "'",
         "\u2019": "'",
@@ -4423,13 +4432,18 @@ _GMAIL_QUERY_WORDS = (
 )
 
 
-def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None) -> str:
+def _fetch_gmail_context(query: str, decision: GmailIntentDecision | None = None, ops_packet: Any = None) -> str:
     """
     If the query has Gmail intent, call the broker and return a formatted
     inbox context block for prompt injection.
     Returns "" if not applicable, broker denied, or an error occurs.
     """
-    if decision and not decision.allowed:
+    # Use formal ops_packet if provided; fallback to gmail_decision
+    if ops_packet is not None:
+        has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
+        if not has_email_cap:
+            return ""
+    elif decision and not decision.allowed:
         return ""
 
     if not any(w in query.lower() for w in _GMAIL_QUERY_WORDS):
@@ -4491,12 +4505,18 @@ _CONTACTS_QUERY_WORDS = (
 )
 
 
-def _fetch_contacts_context(query: str) -> str:
+def _fetch_contacts_context(query: str, ops_packet: Any = None) -> str:
     """
     If the query has contacts intent, search Google Contacts via the broker
     and return a formatted block for prompt injection.
     Returns "" if not applicable, broker denied, or an error occurs.
     """
+    # Use formal ops_packet if provided
+    if ops_packet is not None:
+        has_contacts_cap = any(c.domain == "contacts" for c in ops_packet.permitted_capabilities)
+        if not has_contacts_cap:
+            return ""
+
     if not any(w in query.lower() for w in _CONTACTS_QUERY_WORDS):
         return ""
     try:
@@ -4580,13 +4600,18 @@ def _rescue_payment_verify_reply(query: str, reply: str) -> str | None:
     return "I can't confirm the current payment status from the live record I have."
 
 
-def _fetch_payment_verify_context(query: str, decision: GmailIntentDecision | None = None) -> str:
+def _fetch_payment_verify_context(query: str, decision: GmailIntentDecision | None = None, ops_packet: Any = None) -> str:
     """
     If the query has payment verification intent, search Gmail metadata for
     recent payment notifications (Zelle, Venmo, Hilton, etc.) and return
     a formatted block for prompt injection.
     """
-    if decision and not decision.allowed:
+    # Use formal ops_packet if provided
+    if ops_packet is not None:
+        has_pay_cap = any(c.domain == "payment" for c in ops_packet.permitted_capabilities)
+        if not has_pay_cap:
+            return ""
+    elif decision and not decision.allowed:
         return ""
 
     q_low = query.lower()
@@ -5380,11 +5405,27 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     ]
     query = _strip_prefix(text)
     t_query = query.lower().strip()
+    
+    # Deterministic Intent (Business Ops Spine Step 2)
+    ops_intent = classify_business_ops_intent(query)
+    
+    # Formalize the Context/Capability Packet (Business Ops Spine Step 3)
+    ops_packet = assemble_business_ops_packet(
+        query=query,
+        actor_name="cassandra",
+        intent=ops_intent
+    )
+
+    # Legacy gmail_decision for backward compatibility in this handler
     gmail_decision = decide_gmail_intent(query)
 
     # Always initialize state for logging and saving
     state = load_state()
-    if gmail_decision.allowed and (t_query in (p.lower() for p in inbox_list_patterns) or (
+    
+    # Check for email capability in the packet
+    has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
+
+    if has_email_cap and (t_query in (p.lower() for p in inbox_list_patterns) or (
         t_query.startswith("list my ") and "unread inbox" in t_query and "sender" in t_query and "subject" in t_query
     )):
         try:
@@ -5420,6 +5461,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, reply, route="gmail_live", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
                 "gmail_polled": True
             })
             return reply
@@ -5428,16 +5470,18 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, reply, route="gmail_live_error", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
                 "gmail_polled": True
             })
             return reply
-    if gmail_decision.allowed and _detect_inner_circle_email_reply_intent(query):
+    if has_email_cap and _detect_inner_circle_email_reply_intent(query):
         bridge_reply = _handle_inner_circle_email_reply_bridge(query)
         if bridge_reply is not None:
             reply = [bridge_reply]
             save_state(state)
             _log_conversation(text, reply, route="email_reply_bridge", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
                 "gmail_polled": True
             })
             return reply
@@ -5696,19 +5740,19 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     registry_ctx = registry_context_for_query(query)
     registry_block = f"{registry_ctx}\n\n" if registry_ctx else ""
 
-    calendar_ctx   = _fetch_calendar_context(query)
+    calendar_ctx   = _fetch_calendar_context(query, ops_packet=ops_packet)
     calendar_block = f"{calendar_ctx}\n\n" if calendar_ctx else ""
 
-    gmail_ctx   = _fetch_gmail_context(query, decision=gmail_decision)
+    gmail_ctx   = _fetch_gmail_context(query, decision=gmail_decision, ops_packet=ops_packet)
     gmail_block = f"{gmail_ctx}\n\n" if gmail_ctx else ""
 
-    contacts_ctx   = _fetch_contacts_context(query)
+    contacts_ctx   = _fetch_contacts_context(query, ops_packet=ops_packet)
     contacts_block = f"{contacts_ctx}\n\n" if contacts_ctx else ""
 
     finance_ctx   = format_finance_context(query)
     finance_block = f"{finance_ctx}\n\n" if finance_ctx else ""
 
-    payment_verify_ctx   = _fetch_payment_verify_context(query, decision=gmail_decision)
+    payment_verify_ctx   = _fetch_payment_verify_context(query, decision=gmail_decision, ops_packet=ops_packet)
     payment_verify_block = f"{payment_verify_ctx}\n\n" if payment_verify_ctx else ""
 
     # Check if Gmail was actually polled (attempted)
@@ -5768,6 +5812,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         error_reply = ["I'm here, but I hit a snag thinking that through. Try again in a moment."]
         _log_conversation(text, error_reply, route="error", metadata={
             "gmail_intent": gmail_decision.to_dict(),
+            "ops_packet": ops_packet.to_dict(),
             "gmail_polled": gmail_polled
         })
         return error_reply
@@ -5811,6 +5856,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         route=route_override or ("llm_deep" if allow_deep_escalation else "llm"),
         metadata={
             "gmail_intent": gmail_decision.to_dict(),
+            "ops_packet": ops_packet.to_dict(),
             "gmail_polled": gmail_polled,
             "model_path": "nemotron" if cloud_ok else "local",
             "reply_task_class": reply_task_class

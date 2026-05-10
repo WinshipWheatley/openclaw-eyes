@@ -104,6 +104,17 @@ REGISTRY: dict = {
                 ),
             ),
             Capability(
+                "gmail_metadata", "email",
+                "Read Gmail inbox metadata (sender, subject, date)",
+                connected=True, scope=["read"],
+                caveats="Metadata only via google_access_broker.py — no body content access",
+            ),
+            Capability(
+                "contacts_read", "contacts",
+                "Read Google Contacts",
+                connected=True, scope=["read"],
+            ),
+            Capability(
                 "email_send", "email_send",
                 "Send email via SMTP or API",
                 connected=False, scope=[],
