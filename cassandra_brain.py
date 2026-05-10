@@ -24,6 +24,7 @@ import os
 import re
 import threading
 import fcntl
+import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -489,6 +490,50 @@ def _log_conversation(user_text: str, replies: list[str], route: str = "llm", me
             _queue_error_debug_task(user_text, replies)
         except Exception as e:
             print(f"[cassandra_convo] error task creation failed: {e}", flush=True)
+
+
+def record_cassandra_packet_event(
+    user_text: str,
+    ops_packet: BusinessOpsPacket,
+    route_hint: str | None = None,
+    operator_visible_summary: str | None = None,
+) -> str | None:
+    """
+    Safely records a Cassandra Business Ops Spine event and packet receipt.
+    Fails open — never raises to caller.
+    """
+    try:
+        from business_ops_ledger import append_event, append_packet_receipt
+
+        # Safe prompt handling (hash only)
+        # We do not store raw prompt text in the ledger for sensitive reasons.
+        prompt_hash = hashlib.sha256(user_text.encode("utf-8")).hexdigest()
+
+        # Link event to packet. In v0, we use the packet_id as the primary event identifier.
+        event_id = ops_packet.packet_id
+
+        append_event(
+            event_id=event_id,
+            event_type="cassandra_handle",
+            actor="cassandra",
+            prompt_hash=prompt_hash,
+            operator_visible_summary=operator_visible_summary or f"Cassandra handling: {ops_packet.intent_name}",
+        )
+
+        # Redact the query in the packet dictionary before storage to ensure sensitive data
+        # boundary is maintained in the SQLite receipts.
+        p_dict = ops_packet.to_dict()
+        p_dict["query"] = f"[REDACTED:{prompt_hash[:8]}]"
+
+        append_packet_receipt(
+            packet=p_dict,
+            event_id=event_id,
+        )
+
+        return event_id
+    except Exception as e:
+        print(f"[cassandra_ledger] write failure: {e}", flush=True)
+        return None
 
 
 def _log_correspondence_state(
@@ -5438,6 +5483,9 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         intent=ops_intent
     )
 
+    # Record the event and packet receipt in the SQLite Ledger (Business Ops Spine Step 7)
+    event_id = record_cassandra_packet_event(query, ops_packet)
+
     # Legacy gmail_decision for backward compatibility in this handler
     gmail_decision = decide_gmail_intent(query)
 
@@ -5484,6 +5532,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, reply, route="gmail_live", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
                 "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return reply
@@ -5493,6 +5542,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, reply, route="gmail_live_error", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
                 "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return reply
@@ -5504,6 +5554,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             _log_conversation(text, reply, route="email_reply_bridge", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
                 "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return reply
@@ -5522,20 +5573,20 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     toggle = _check_toggle(text)
     if toggle:
         save_state(state)
-        _log_conversation(text, [toggle], route="toggle")
+        _log_conversation(text, [toggle], route="toggle", metadata={"event_id": event_id})
         return [toggle]
 
     # Payment follow-up commands — pre-LLM, bypasses capability gate
     pay_cmd = _check_payments_command(text, state)
     if pay_cmd:
         save_state(state)
-        _log_conversation(text, [pay_cmd], route="payment_cmd")
+        _log_conversation(text, [pay_cmd], route="payment_cmd", metadata={"event_id": event_id})
         return [pay_cmd]
 
     correction_reply = _detect_session_fact_correction(text, state)
     if correction_reply is not None:
         save_state(state)
-        _log_conversation(text, [correction_reply], route="session_fact_correction")
+        _log_conversation(text, [correction_reply], route="session_fact_correction", metadata={"event_id": event_id})
         return [correction_reply]
 
     # Briefing recall — no LLM needed
@@ -5544,7 +5595,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         if is_recall_request(text):
             save_state(state)
             recall_reply = handle_recall(text)
-            _log_conversation(text, [recall_reply], route="briefing_recall")
+            _log_conversation(text, [recall_reply], route="briefing_recall", metadata={"event_id": event_id})
             return [recall_reply]
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
@@ -5571,7 +5622,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                 )
                 log_chirp("unverified_sender", state)
                 save_state(state)
-                _log_conversation(text, [_identity_reply], route="identity_challenge")
+                _log_conversation(text, [_identity_reply], route="identity_challenge", metadata={"event_id": event_id})
                 return [_identity_reply]
             _contact_entry = _verified_contact
     if _contact_entry is None:
@@ -5597,7 +5648,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             except Exception as _e:
                 print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
             save_state(state)
-            _log_conversation(text, [_hold_reply], route="topic_gate_hold")
+            _log_conversation(text, [_hold_reply], route="topic_gate_hold", metadata={"event_id": event_id})
             return [_hold_reply]
         if _lane == "escalate":
             _escalate_reply = (
@@ -5615,7 +5666,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             except Exception as _e:
                 print(f"[cassandra] topic-gate notify error: {_e}", flush=True)
             save_state(state)
-            _log_conversation(text, [_escalate_reply], route="topic_gate_escalate")
+            _log_conversation(text, [_escalate_reply], route="topic_gate_escalate", metadata={"event_id": event_id})
             return [_escalate_reply]
         # _lane == "allowed" → fall through to normal dispatch
     # ── End topic-sensitivity gate ────────────────────────────────────────────
@@ -5626,7 +5677,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         followup_reply = _handle_income_followup(query, pending, state)
         if followup_reply:
             save_state(state)
-            _log_conversation(text, [followup_reply], route="income_followup")
+            _log_conversation(text, [followup_reply], route="income_followup", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [followup_reply]
         # pending cleared by handler; fall through if it was a new financial event
 
@@ -5634,7 +5685,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     if _detect_lookup_intent(query):
         save_state(state)
         lookup_reply = _handle_lookup(query)
-        _log_conversation(text, [lookup_reply], route="financial_lookup")
+        _log_conversation(text, [lookup_reply], route="financial_lookup", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
         return [lookup_reply]
 
     # Financial event routing — bypass LLM for speed and reliability
@@ -5643,7 +5694,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         fin_reply = _handle_financial_event(query, fin_intent, state)
         if fin_reply:
             save_state(state)
-            _log_conversation(text, [fin_reply], route="financial_event")
+            _log_conversation(text, [fin_reply], route="financial_event", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [fin_reply]
     # fall through to LLM if detection or parsing failed
 
@@ -5653,7 +5704,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         future_reply = _handle_future_action_queue_request(query, sender_chat_id=session_meta.get("sender_chat_id"))
         if future_reply is not None:
             save_state(state)
-            _log_conversation(text, [future_reply], route="future_action")
+            _log_conversation(text, [future_reply], route="future_action", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [future_reply]
     # fall through to LLM if enqueue returned None
 
@@ -5662,7 +5713,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         cal_delete_reply = _handle_calendar_delete(query)
         if cal_delete_reply is not None:
             save_state(state)
-            _log_conversation(text, [cal_delete_reply], route="calendar_delete")
+            _log_conversation(text, [cal_delete_reply], route="calendar_delete", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [cal_delete_reply]
     # fall through to LLM if extraction failed or unclear
 
@@ -5671,7 +5722,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         cal_reply = _handle_calendar_create(query)
         if cal_reply is not None:
             save_state(state)
-            _log_conversation(text, [cal_reply], route="calendar_create")
+            _log_conversation(text, [cal_reply], route="calendar_create", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [cal_reply]
     # fall through to LLM if extraction failed or unclear
 
@@ -5682,6 +5733,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [outreach_reply], route="outreach_email_draft", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return [outreach_reply]
@@ -5693,6 +5746,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [email_reply], route="email_send", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return [email_reply]
@@ -5703,7 +5758,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         invoice_reply = _handle_create_invoice(query, state)
         if invoice_reply is not None:
             save_state(state)
-            _log_conversation(text, [invoice_reply], route="invoice_create")
+            _log_conversation(text, [invoice_reply], route="invoice_create", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [invoice_reply]
 
     # File verification — bypass LLM, direct filesystem check
@@ -5711,14 +5766,14 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         file_reply = _handle_file_verification_request(query)
         if file_reply is not None:
             save_state(state)
-            _log_conversation(text, [file_reply], route="file_verify")
+            _log_conversation(text, [file_reply], route="file_verify", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [file_reply]
 
     if _get_session_fact_override(query, state) is not None:
         finance_reply = _handle_finance_status_request(query, state)
         if finance_reply is not None:
             save_state(state)
-            _log_conversation(text, [finance_reply], route="finance_status")
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [finance_reply]
 
     # Payment verification — bypass LLM, direct Gmail/log check
@@ -5728,6 +5783,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [pay_reply], route="payment_verify", metadata={
                 "gmail_intent": gmail_decision.to_dict(),
+                "ops_packet": ops_packet.to_dict(),
+                "event_id": event_id,
                 "gmail_polled": True
             })
             return [pay_reply]
@@ -5736,7 +5793,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         finance_reply = _handle_finance_status_request(query, state)
         if finance_reply is not None:
             save_state(state)
-            _log_conversation(text, [finance_reply], route="finance_status")
+            _log_conversation(text, [finance_reply], route="finance_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [finance_reply]
 
     context  = build_context_snapshot(state)
@@ -5817,6 +5874,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         blocked_reply = ["I need to protect some sensitive context before replying. Please try again in a moment."]
         _log_conversation(text, blocked_reply, route="pii_block", metadata={
             "gmail_intent": gmail_decision.to_dict(),
+            "ops_packet": ops_packet.to_dict(),
+            "event_id": event_id,
             "gmail_polled": gmail_polled
         })
         return blocked_reply
@@ -5835,6 +5894,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         _log_conversation(text, error_reply, route="error", metadata={
             "gmail_intent": gmail_decision.to_dict(),
             "ops_packet": ops_packet.to_dict(),
+            "event_id": event_id,
             "gmail_polled": gmail_polled
         })
         return error_reply
@@ -5879,6 +5939,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         metadata={
             "gmail_intent": gmail_decision.to_dict(),
             "ops_packet": ops_packet.to_dict(),
+            "event_id": event_id,
             "gmail_polled": gmail_polled,
             "model_path": "nemotron" if cloud_ok else "local",
             "reply_task_class": reply_task_class

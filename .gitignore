@@ -382,6 +382,7 @@
 !tests/test_agent_task_proposals.py
 !tests/test_business_ops_packet.py
 !tests/test_business_ops_ledger.py
+!tests/test_cassandra_ledger_write.py
 
 # tools/ — standalone utility modules
 !tools/
