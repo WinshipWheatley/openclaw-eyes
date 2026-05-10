@@ -36,9 +36,10 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Current Evidence Coverage Audit](./operations/OPENCLAW_CURRENT_EVIDENCE_COVERAGE_AUDIT.md) — Read-only audit of what the current SQLite ledger and repository state can support.
 - [Business Ops Ledger Inspection](./operations/OPENCLAW_SQLITE_LEDGER_V0.md#inspection-cli) — Guide for using the read-only CLI to audit execution receipts.
 - [Business Ops Receipt Taxonomy v0](./operations/OPENCLAW_RECEIPT_TAXONOMY_V0.md) — Definitive taxonomy and safety boundaries for durable evidence records.
-- [Test/Proof Receipts v0](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.
-- [Evidence Sufficiency Map v0](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
-- [Dependency Hygiene](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
+- [**Test/Proof Receipts v0**](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.
+- [**Evidence Sufficiency Map v0**](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
+- [**Morning Brief Proof Chain v0**](./operations/OPENCLAW_MORNING_BRIEF_PROOF_CHAIN_V0.md) — Architectural guidance for building deterministic morning briefs from evidence layers.
+- [**Dependency Hygiene**](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
 - [Navigation Maps](./navigation_maps/README.md) — Durable truth surfaces mapping built, partial, and not-built territory.
 - [Intent and Control Map](./operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md) — Cross-lane authority map, progressive discovery contract, and integration-readiness notes.
 - [MCP Progressive Discovery Profiles](./operations/MCP_PROGRESSIVE_DISCOVERY_PROFILES.md) — Hardened default filesystem profile and explicit unlock contracts.
