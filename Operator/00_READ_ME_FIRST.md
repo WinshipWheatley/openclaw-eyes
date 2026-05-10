@@ -25,4 +25,4 @@ Operate at this altitude unless explicitly instructed otherwise:
 - **Taste Matters**: OpenClaw is built with devotion to quality and heart. Do not produce corporate sludge.
 
 ## Current Frontier
-Refer to the `Active Handoff` and `WHAT_IS_BUILT.md` (if present) to understand the current implementation boundary. Do not re-implement existing proof.
+Start with the **Orientation Snapshot** (`python scripts/orientation_snapshot.py`) to understand the current implementation boundary. You can also refer to the `Active Handoff` for specific context. Do not re-implement existing proof.

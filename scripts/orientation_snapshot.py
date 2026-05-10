@@ -223,7 +223,9 @@ def render_markdown(snapshot: Dict[str, Any]):
     print(snapshot['next_safe_move'])
 
     print("\n## 9. Visible Road Horizon")
-    print(f"- **Visible Moves**: {', '.join(snapshot['visible_road_horizon']['visible_moves'])}")
+    print("- **Visible Moves**:")
+    for move in snapshot['visible_road_horizon']['visible_moves']:
+        print(f"   - {move}")
     print(f"- **Branch After**: {snapshot['visible_road_horizon']['branch_after']}")
     print(f"- **Unsafe Beyond**: {snapshot['visible_road_horizon']['unsafe_beyond']}")
 

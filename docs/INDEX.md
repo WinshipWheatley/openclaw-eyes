@@ -16,8 +16,8 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 
 - [**Runbook**](../RUNBOOK.md) — Exact bash commands for stack management and smoke tests.
 - [**Unified Restart**](../scripts/start_all.sh) — authoritative one-liner to restart the full OpenClaw environment.
-- [**Current State**](../CURRENT_STATE.md) — Latest technical snapshot and active constraints.
-- [**Next Actions**](../NEXT_ACTIONS.md) — High-level roadmap and pending tasks.
+- [**Current State (Legacy/Static)**](../CURRENT_STATE.md) — Manual technical snapshot; prone to staleness.
+- [**Next Actions (Legacy/Static)**](../NEXT_ACTIONS.md) — Manual high-level roadmap; prone to staleness.
 
 ## Knowledge Lanes
 

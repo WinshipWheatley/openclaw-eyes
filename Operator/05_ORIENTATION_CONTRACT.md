@@ -42,13 +42,13 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
    - External provider/model APIs without an Action Covenant.
    - Credentials, tokens, and billing logic.
 
-8. What is the next safe move?
+8. **What is the next safe move?**
    Review Orientation Snapshot v0 for five-second usefulness, then choose one bounded next lane:
    1. taste-polish snapshot wording,
    2. record snapshot summaries to SQLite Ledger in a later slice,
    3. wire Cassandra "where are we?" to the snapshot after proof.
 
-9. How many moves ahead are clearly visible, what are they, and where does safe recommendation stop?
+9. **How many moves ahead are clearly visible, what are they, and where does safe recommendation stop?**
    - **Visible moves**:
      1. Taste-polish Orientation Snapshot v0 wording until it is clear and durable.
      2. Optionally record snapshot summaries to SQLite Ledger.
