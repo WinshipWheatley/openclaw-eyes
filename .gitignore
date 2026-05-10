@@ -501,6 +501,7 @@
 !scripts/orientation_snapshot.py
 !scripts/inspect_business_ops_ledger.py
 !scripts/generate_operator_status.py
+!scripts/record_test_proof_receipt.py
 !tests/test_orientation_snapshot.py
 !tests/test_orientation_snapshot_receipt.py
 !tests/test_orientation_snapshot_horizon.py
@@ -508,6 +509,7 @@
 !tests/test_docs_taxonomy.py
 !tests/test_evidence_map_taxonomy.py
 !tests/test_test_proof_receipts_contract.py
+!tests/test_record_test_proof_receipt.py
 !Operator/GENERATED_CURRENT_STATE.md
 !Operator/GENERATED_NEXT_ACTIONS.md
 !map_room_query.py
