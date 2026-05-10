@@ -58,11 +58,12 @@ Durable truth comes from receipts, tests, and committed source.
 def get_recent_proof_receipts(limit=5):
     """
     Fetch recent test_proof_receipt events from the ledger.
-    Excludes 'generated_status_check' to avoid self-invalidation.
+    Excludes 'generated_status_check' from the list to avoid self-invalidation,
+    but considers it for the 'strongest_clean' summary.
     """
     db_path = ".openclaw/business_ops/ledger.sqlite"
     if not os.path.exists(db_path):
-        return []
+        return {"list": [], "strongest_clean": None}
 
     try:
         # Use URI for read-only to avoid any side-effects
@@ -79,28 +80,65 @@ def get_recent_proof_receipts(limit=5):
         conn.close()
 
         proofs = []
+        strongest_clean = None
         for ts, summ_raw in rows:
-            formatted = format_test_proof_summary(summ_raw)
-            # Filter out self-referential status checks to keep --check stable
-            if "generated_status_check" in formatted:
+            import re
+            
+            # Default values
+            status = "UNKNOWN"
+            label = "unknown"
+            exit_code = "?"
+            head = "unknown"
+            is_dirty = False
+            
+            if summ_raw and summ_raw.strip().startswith('{'):
+                try:
+                    data = json.loads(summ_raw)
+                    status = data.get("status", "unknown").upper()
+                    label = data.get("command_label", "unknown")
+                    exit_code = data.get("exit_code", "?")
+                    head = data.get("git_head", "unknown")[:8]
+                    is_dirty = data.get("git_dirty", False)
+                except:
+                    pass
+            else:
+                # Parse string: "PASS label exit=0 head=sha dirty=true"
+                if "PASS" in summ_raw: status = "PASS"
+                elif "FAIL" in summ_raw: status = "FAIL"
+                
+                label_match = re.search(r"(?:PASS|FAIL) (.*?) exit=", summ_raw)
+                if label_match: label = label_match.group(1)
+                else: label = summ_raw # Fallback
+                
+                exit_match = re.search(r"exit=(\d+)", summ_raw)
+                if exit_match: exit_code = exit_match.group(1)
+                
+                head_match = re.search(r"head=(\w+)", summ_raw)
+                if head_match: head = head_match.group(1)[:8]
+                
+                is_dirty = "dirty=true" in summ_raw
+
+            # Track strongest clean proof (first PASS with dirty=false)
+            if status == "PASS" and not is_dirty and not strongest_clean:
+                strongest_clean = f"[{status}] {label} head={head}"
+
+            # Filter out self-referential status checks for the LIST
+            if label == "generated_status_check":
                 continue
 
-            # Format: YYYY-MM-DD HH:MM [PASS/FAIL] label ...
+            # Format: YYYY-MM-DD HH:MM [PASS/FAIL] [DIRTY] label ...
             display_ts = ts.replace('T', ' ')[:16]
-
-            # Polish: Make status stand out
-            if formatted.startswith("PASS "):
-                formatted = "[PASS] " + formatted[5:]
-            elif formatted.startswith("FAIL "):
-                formatted = "[FAIL] " + formatted[5:]
-
+            dirty_marker = " [DIRTY]" if is_dirty else ""
+            formatted = f"[{status}]{dirty_marker} {label} exit={exit_code} head={head}"
+            
             proofs.append(f"{display_ts} {formatted}")
 
-            if len(proofs) >= limit:
+            if len(proofs) >= limit and strongest_clean:
                 break
-        return proofs
+        
+        return {"list": proofs, "strongest_clean": strongest_clean}
     except Exception:
-        return []
+        return {"list": [], "strongest_clean": None}
 
 def generate_current_state(snapshot):
     lines = [
@@ -113,11 +151,17 @@ def generate_current_state(snapshot):
 
     # Section 2: Recent Verification Receipts
     proofs = snapshot.get('recent_proofs', [])
+    strongest = snapshot.get('strongest_clean_proof')
     lines.extend([
         "",
         "## 2. Recent Verification Receipts",
         "Deterministic evidence proofs from the ledger (excludes status self-checks).",
     ])
+
+    if strongest:
+        lines.append(f"Strongest recent clean proof: {strongest}")
+        lines.append("")
+
     if proofs:
         for p in proofs:
             lines.append(f"- {p}")
@@ -197,7 +241,9 @@ def main():
 
     snapshot = get_orientation_snapshot()
     # Inject recent proofs into snapshot for the generator
-    snapshot['recent_proofs'] = get_recent_proof_receipts()
+    results = get_recent_proof_receipts()
+    snapshot['recent_proofs'] = results['list']
+    snapshot['strongest_clean_proof'] = results['strongest_clean']
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)

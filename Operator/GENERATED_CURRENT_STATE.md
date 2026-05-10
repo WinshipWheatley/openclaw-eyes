@@ -16,8 +16,11 @@ Durable truth comes from receipts, tests, and committed source.
 
 ## 2. Recent Verification Receipts
 Deterministic evidence proofs from the ledger (excludes status self-checks).
-- 2026-05-10 13:05 [PASS] polish_verification exit=0 head=ef935325 dirty=true
-- 2026-05-10 13:00 [PASS] manual_verification exit=0 head=5d8ba36e dirty=true
+Strongest recent clean proof: [PASS] generated_status_check head=8ad23e5e
+
+- 2026-05-10 13:10 [PASS] [DIRTY] clean_proof_test exit=0 head=bdc5f5dd
+- 2026-05-10 13:05 [PASS] [DIRTY] polish_verification exit=0 head=ef935325
+- 2026-05-10 13:00 [PASS] [DIRTY] manual_verification exit=0 head=5d8ba36e
 
 > **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.
 
