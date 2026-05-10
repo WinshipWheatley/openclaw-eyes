@@ -94,7 +94,7 @@ def print_latest(events: List[Dict[str, Any]]):
         ts = ev['ts'][:19] # Truncate microseconds
         etype = truncate(ev['event_type'], 23)
         actor = truncate(ev['actor'], 8)
-        summ = truncate(ev['operator_visible_summary'], 40) if ev['operator_visible_summary'] else ""
+        summ = truncate(ev['operator_visible_summary'], 80) if ev['operator_visible_summary'] else ""
         print(f"{eid:<12} {ts:<20} {etype:<25} {actor:<10} {summ}")
     print("=" * (len(header)))
 

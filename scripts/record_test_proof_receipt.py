@@ -95,6 +95,9 @@ def record_receipt(
     redaction_marker = (redacted_command != " ".join(command)) or (redacted_tail != output_tail)
 
     status = "pass" if exit_code == 0 else "fail"
+    status_upper = status.upper()
+    git_dirty_str = "true" if git_info["git_dirty"] else "false"
+    concise_summary = f"{status_upper} {label} exit={exit_code} head={git_info['git_head']} dirty={git_dirty_str}"
 
     receipt = {
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -107,15 +110,15 @@ def record_receipt(
         "git_head": git_info["git_head"],
         "git_dirty": git_info["git_dirty"],
         "duration_ms": duration_ms,
-        "summary": f"{label} {status} (exit {exit_code})",
+        "summary": concise_summary,
         "output_hash": output_hash,
         "output_tail": redacted_tail,
         "redaction_marker": redaction_marker,
         "actor_source": "test_proof_recorder_v0"
     }
 
-    # Store JSON in operator_visible_summary (compacted)
-    visible_summary = json.dumps(receipt, separators=(',', ':'))
+    # Store concise summary in operator_visible_summary
+    visible_summary = concise_summary
 
     # Record Event
     success = append_event(
@@ -128,9 +131,9 @@ def record_receipt(
     )
 
     if success:
-        # Record Explanation (Human Readable)
+        # Record Detailed Receipt in Explanations (Human Readable JSON)
         append_operator_explanation(
-            summary=receipt["summary"],
+            summary=json.dumps(receipt, separators=(',', ':')),
             event_id=event_id,
             safe_for_telegram=True,
             db_path=db_path

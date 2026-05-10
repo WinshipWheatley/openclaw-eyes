@@ -38,21 +38,20 @@ def test_successful_command_records_receipt(temp_ledger):
     cursor.execute("SELECT event_type, actor, operator_visible_summary FROM events")
     rows = cursor.fetchall()
     assert len(rows) == 1
-    etype, actor, summary_json = rows[0]
+    etype, actor, summary = rows[0]
     assert etype == "test_proof_receipt"
     assert actor == "test_proof_recorder_v0"
-
-    receipt = json.loads(summary_json)
-    assert receipt["command_label"] == label
-    assert receipt["status"] == "pass"
-    assert receipt["exit_code"] == 0
-    assert "hello world" in receipt["output_tail"]
+    assert "PASS test_pass exit=0" in summary
 
     # Check operator_explanations table
     cursor.execute("SELECT summary FROM operator_explanations")
     rows = cursor.fetchall()
     assert len(rows) == 1
-    assert "test_pass pass" in rows[0][0]
+    receipt = json.loads(rows[0][0])
+    assert receipt["command_label"] == label
+    assert receipt["status"] == "pass"
+    assert receipt["exit_code"] == 0
+    assert "hello world" in receipt["output_tail"]
 
     conn.close()
 
@@ -75,7 +74,11 @@ def test_failing_command_records_receipt(temp_ledger):
     cursor.execute("SELECT operator_visible_summary FROM events")
     rows = cursor.fetchall()
     assert len(rows) == 1
-    receipt = json.loads(rows[0][0])
+    summary = rows[0][0]
+    assert "FAIL test_fail exit=" in summary
+
+    cursor.execute("SELECT summary FROM operator_explanations")
+    receipt = json.loads(cursor.fetchone()[0])
     assert receipt["status"] == "fail"
     assert receipt["exit_code"] != 0
     assert "/nonexistent_path_openclaw_test" in receipt["output_tail"]
@@ -97,7 +100,7 @@ def test_output_is_hashed_and_tail_is_bounded(temp_ledger):
 
     conn = sqlite3.connect(temp_ledger)
     cursor = conn.cursor()
-    cursor.execute("SELECT operator_visible_summary FROM events")
+    cursor.execute("SELECT summary FROM operator_explanations")
     receipt = json.loads(cursor.fetchone()[0])
 
     # Check hash exists
@@ -126,7 +129,7 @@ def test_redaction_of_secrets(temp_ledger):
 
     conn = sqlite3.connect(temp_ledger)
     cursor = conn.cursor()
-    cursor.execute("SELECT operator_visible_summary FROM events")
+    cursor.execute("SELECT summary FROM operator_explanations")
     receipt = json.loads(cursor.fetchone()[0])
 
     # Check redaction in tail
