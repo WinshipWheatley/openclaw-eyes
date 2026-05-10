@@ -26,6 +26,17 @@ No raw sensitive data should enter the ledger. Use summaries, hashes, or boolean
 ## Recording Receipts
 The Orientation Snapshot tool (`scripts/orientation_snapshot.py`) can record receipts to this ledger using the `--record` flag. This creates an `orientation_snapshot_receipt` event with a compact summary of the system state.
 
+## Inspection CLI
+A read-only CLI tool is available for auditing the ledger: `scripts/inspect_business_ops_ledger.py`.
+
+### Usage
+- `python scripts/inspect_business_ops_ledger.py --summary`: Shows table row counts and event type distribution.
+- `python scripts/inspect_business_ops_ledger.py --latest 10`: Shows the 10 most recent events.
+- `python scripts/inspect_business_ops_ledger.py --latest 5 --event-type orientation_snapshot_receipt`: Filters by event type.
+- `python scripts/inspect_business_ops_ledger.py --summary --json`: Outputs the summary in machine-readable JSON format.
+
+The tool is strictly read-only and truncates long fields for safer terminal display.
+
 ## Why Append-Only First?
 Append-only receipts ensure that we don't accidentally corrupt or overwrite historical audits. It simplifies the implementation and minimizes the risk of side effects on the core system.
 

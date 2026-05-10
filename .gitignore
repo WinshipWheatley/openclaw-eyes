@@ -382,6 +382,7 @@
 !tests/test_agent_task_proposals.py
 !tests/test_business_ops_packet.py
 !tests/test_business_ops_ledger.py
+!tests/test_inspect_business_ops_ledger.py
 !tests/test_cassandra_ledger_write.py
 
 # tools/ — standalone utility modules
@@ -497,6 +498,7 @@
 !/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.md
 !/reports/file_path_dependency_scan/FILE_PATH_DEPENDENCY_SCAN.json
 !scripts/orientation_snapshot.py
+!scripts/inspect_business_ops_ledger.py
 !scripts/generate_operator_status.py
 !tests/test_orientation_snapshot.py
 !tests/test_orientation_snapshot_receipt.py
