@@ -13,7 +13,7 @@ Future current-state and next-actions surfaces should be generated programmatica
 
 ### Inputs for Generation
 The generated read-models should be sourced from:
-- **SQLite Ledger Receipts:** Confirmed events and state transitions (e.g., `orientation_snapshot` receipts).
+- **SQLite Ledger Receipts:** Confirmed events and state transitions (e.g., `orientation_snapshot_receipt` receipts).
 - **Repository Evidence:** `git HEAD`, `git status`, and committed source.
 - **Orientation Contract/Snapshot:** Doctrine compliance and high-level orientation.
 - **Runtime/Readiness Maps:** Verified health and capability checks.

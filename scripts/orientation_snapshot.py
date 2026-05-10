@@ -61,11 +61,15 @@ def get_ledger_status() -> Dict[str, Any]:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]
 
-        # Get event count if events table exists
+        # Get event count and check for specific receipts if events table exists
         event_count = 0
+        has_snapshot_receipt = False
         if "events" in tables:
             cursor.execute("SELECT COUNT(*) FROM events")
             event_count = cursor.fetchone()[0]
+
+            cursor.execute("SELECT 1 FROM events WHERE event_type = 'orientation_snapshot_receipt' LIMIT 1")
+            has_snapshot_receipt = cursor.fetchone() is not None
 
         conn.close()
         return {
@@ -73,10 +77,55 @@ def get_ledger_status() -> Dict[str, Any]:
             "path": LEDGER_DB_PATH,
             "table_count": len(tables),
             "event_count": event_count,
+            "has_snapshot_receipt": has_snapshot_receipt,
             "tables": tables
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+def get_horizon(ledger_info: Dict[str, Any]) -> Dict[str, Any]:
+    """Builds a deterministic roadmap horizon based on evidence."""
+    has_receipt = ledger_info.get("has_snapshot_receipt", False)
+
+    visible_moves = [
+        "Taste-polish Orientation Snapshot v0 wording until it is clear and durable"
+    ]
+
+    if not has_receipt:
+        visible_moves.append("Optionally record snapshot summaries to SQLite Ledger")
+
+    # Next moves after receipt exists or as valid alternatives
+    visible_moves.extend([
+        "Consider Cassandra \"where are we?\" read-only wiring to Orientation Snapshot",
+        "Prototyping generated CURRENT_STATE / NEXT_ACTIONS read-model",
+        "Pause / choose a different priority"
+    ])
+
+    return {
+        "visible_moves": visible_moves,
+        "branch_after": "Orientation Snapshot v0 proof results",
+        "unsafe_beyond": "Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, runtime/service changes, Mission Control UI implementation, or broad doctrine expansion"
+    }
+
+
+def get_next_safe_move(ledger_info: Dict[str, Any]) -> str:
+    """Builds a deterministic next safe move string."""
+    has_receipt = ledger_info.get("has_snapshot_receipt", False)
+
+    base = "Review Orientation Snapshot v0 for five-second usefulness, then choose one bounded next lane:"
+    choices = [
+        "1. taste-polish snapshot wording,"
+    ]
+
+    if not has_receipt:
+        choices.append("2. record snapshot summaries to SQLite Ledger in a later slice,")
+        choices.append("3. wire Cassandra \"where are we?\" to the snapshot after proof.")
+    else:
+        choices.append("2. wire Cassandra \"where are we?\" read-only wiring to Orientation Snapshot after proof,")
+        choices.append("3. prototyping generated CURRENT_STATE / NEXT_ACTIONS read-model.")
+
+    return f"{base}\n   " + "\n   ".join(choices)
 
 
 def parse_markdown_section(content: str, search_text: str) -> str:
@@ -182,16 +231,8 @@ def get_orientation_snapshot() -> Dict[str, Any]:
         "blocked_or_unknown": parse_markdown_section(contract_content, "What is blocked or unknown?"),
         "allowed_tools": parse_markdown_section(contract_content, "What tools/capabilities are allowed?"),
         "forbidden_surfaces": parse_markdown_section(contract_content, "What should not be touched?"),
-        "next_safe_move": parse_markdown_section(contract_content, "What is the next safe move?"),
-        "visible_road_horizon": {
-            "visible_moves": [
-                "Taste-polish Orientation Snapshot v0 wording until it is clear and durable",
-                "Optionally record snapshot summaries to SQLite Ledger",
-                "Consider Cassandra \"where are we?\" wiring after snapshot proof"
-            ],
-            "branch_after": "Orientation Snapshot v0 proof results",
-            "unsafe_beyond": "Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, runtime/service changes, Mission Control UI implementation, or broad doctrine expansion"
-        },
+        "next_safe_move": get_next_safe_move(ledger_info),
+        "visible_road_horizon": get_horizon(ledger_info),
         "north_star": parse_markdown_section(contract_content, "What is the North Star?"),
         "manifesto_posture": parse_markdown_section(contract_content, "What is the operator/Winship manifesto"),
         "runtime_status": "Not checked by this read-only snapshot (refer to docs/operations/)"

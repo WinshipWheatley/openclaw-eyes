@@ -499,6 +499,7 @@
 !scripts/orientation_snapshot.py
 !tests/test_orientation_snapshot.py
 !tests/test_orientation_snapshot_receipt.py
+!tests/test_orientation_snapshot_horizon.py
 !map_room_query.py
 !tests/test_map_room_query.py
 !architecture_map_gate.py
