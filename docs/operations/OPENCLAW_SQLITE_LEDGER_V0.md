@@ -3,6 +3,8 @@
 ## Purpose
 The SQLite Ledger v0 serves as an append-only receipt layer for the Business Ops Spine. It records operator events, context packets, capability decisions, retrieval attempts, and side effects to provide a deterministic and auditable trail of system behavior.
 
+See the [Business Ops Receipt Taxonomy v0](./OPENCLAW_RECEIPT_TAXONOMY_V0.md) for the definitive list of event types and safety boundaries.
+
 ## Non-Goals
 - **State Management**: This is NOT a replacement for live runtime state (e.g., HITL pending stores, active email thread state).
 - **Migration**: Existing JSON/JSONL logs are not being migrated to this ledger in v0.

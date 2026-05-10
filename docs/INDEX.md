@@ -33,6 +33,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Doc Lifecycle](./operations/DOC_LIFECYCLE.md) — Rules for identifying and archiving stale material.
 - [Generated Status Breadcrumb](./operations/OPENCLAW_GENERATED_STATUS_BREADCRUMB.md) — Future direction for replacing manual status files with deterministic generated read-models.
 - [Business Ops Ledger Inspection](./operations/OPENCLAW_SQLITE_LEDGER_V0.md#inspection-cli) — Guide for using the read-only CLI to audit execution receipts.
+- [Business Ops Receipt Taxonomy v0](./operations/OPENCLAW_RECEIPT_TAXONOMY_V0.md) — Definitive taxonomy and safety boundaries for durable evidence records.
 - [Dependency Hygiene](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
 - [Navigation Maps](./navigation_maps/README.md) — Durable truth surfaces mapping built, partial, and not-built territory.
 - [Intent and Control Map](./operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md) — Cross-lane authority map, progressive discovery contract, and integration-readiness notes.

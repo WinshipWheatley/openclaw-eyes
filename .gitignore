@@ -504,6 +504,7 @@
 !tests/test_orientation_snapshot_receipt.py
 !tests/test_orientation_snapshot_horizon.py
 !tests/test_generate_operator_status.py
+!tests/test_docs_taxonomy.py
 !Operator/GENERATED_CURRENT_STATE.md
 !Operator/GENERATED_NEXT_ACTIONS.md
 !map_room_query.py
