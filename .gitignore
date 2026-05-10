@@ -48,6 +48,7 @@
 !backend_storage_intelligence.py
 !business_ops_packet.py
 !business_ops_intent.py
+!business_ops_ledger.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -380,6 +381,7 @@
 !tests/test_gmail_intent_gate.py
 !tests/test_agent_task_proposals.py
 !tests/test_business_ops_packet.py
+!tests/test_business_ops_ledger.py
 
 # tools/ — standalone utility modules
 !tools/
