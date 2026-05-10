@@ -85,16 +85,36 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
 
     # 7. Status / Orientation
     # Explicit OpenClaw orientation/status questions (High confidence)
-    if any(phrase in q for phrase in ("where are we", "openclaw status", "system status")):
-        return IntentFrame("ops_status", "read_only", "logging", 1.0, "explicit_status")
+    explicit_status_phrases = (
+        "where are we", "openclaw status", "system status", "orientation",
+        "lay of the land", "where do things stand", "what's the move",
+        "catch me up", "orient me"
+    )
+    if any(phrase in q for phrase in explicit_status_phrases):
+        # Prevent false positives with specific context blockers
+        if not any(blocker in q for blocker in ("weather", "invoice", "email", "dinner", "lunch")):
+            return IntentFrame("ops_status", "read_only", "logging", 1.0, "explicit_status")
 
-    if q == "orientation":
-        return IntentFrame("ops_status", "read_only", "logging", 1.0, "orientation")
+    # Fuzzy/Natural Operator Phrases (High confidence if specific/short)
+    fuzzy_status_phrases = (
+        "what's up", "where are we at", "how are things looking",
+        "what should i know", "what's going on", "remind me what's current",
+        "what did we just finish", "coming back in cold"
+    )
+    # Trigger if it's a short, direct orientation question
+    if any(q.startswith(phrase) for phrase in fuzzy_status_phrases) or \
+       any(q == phrase for phrase in fuzzy_status_phrases):
+        if not any(blocker in q for blocker in ("weather", "invoice", "email", "dinner", "lunch")):
+            # If it's very short (e.g. "what's up?"), we only trigger if it's the whole query or clearly a greeting-as-status
+            if len(q.split()) < 6 or "openclaw" in q or "system" in q:
+                return IntentFrame("ops_status", "read_only", "logging", 0.9, "fuzzy_status")
 
     # Bounded fallback for status/next/summary (Lower confidence)
     status_terms = ("status", "what's next", "summary")
     for term in status_terms:
         if term in q:
-            return IntentFrame("ops_status", "read_only", "logging", 0.7, term)
+            # Again, check for payment/email keywords that should override this
+            if not any(p in q for p in ("invoice", "payment", "email", "gmail", "receipt")):
+                return IntentFrame("ops_status", "read_only", "logging", 0.7, term)
 
     return IntentFrame("none", "none", "none", 0.0)

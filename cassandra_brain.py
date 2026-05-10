@@ -2111,6 +2111,7 @@ def _handle_ops_status_inquiry(query: str) -> str:
 
         lane = extract_section(current_md, "Active Lane")
         next_move = extract_section(next_md, "Next Safe Move")
+        unsafe_beyond = extract_section(next_md, "Unsafe Beyond")
         confirmed = extract_section(current_md, "Confirmed System State")
 
         # Fallback to get_orientation_snapshot if extraction fails to find something
@@ -2134,11 +2135,20 @@ def _handle_ops_status_inquiry(query: str) -> str:
             "• Next Safe Move:",
             next_move or "Unknown",
             "",
+        ]
+        if unsafe_beyond:
+            reply.extend([
+                "• Unsafe Beyond:",
+                unsafe_beyond,
+                "",
+            ])
+
+        reply.extend([
             "• Confirmed Facts:",
             confirmed or "None recorded",
             "",
             "NOTE: No live runtime health is claimed. This is a read-only orientation snapshot."
-        ]
+        ])
         return "\n".join(reply)
     except Exception:
         return "Orientation status surfaces could not be read safely. Run the generated status check, then retry."
@@ -5680,6 +5690,15 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     except Exception as _e:
         pass  # briefing module unavailable — fall through to LLM
 
+    # Deterministic Status Inquiry (Business Ops Spine Step 5)
+    # Priority: Must come before fuzzy intent matching for financial/future-action
+    # to ensure "remind me what's current" routes to status, not a reminder.
+    if ops_intent.intent_name == "ops_status":
+        save_state(state)
+        status_reply = _handle_ops_status_inquiry(query)
+        _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+        return [status_reply]
+
     query = _strip_prefix(text)
     _update_cues(state, query)
     _remember_finance_entity(query, state)
@@ -5840,13 +5859,6 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [invoice_reply], route="invoice_create", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [invoice_reply]
-
-    # Deterministic Status Inquiry (Business Ops Spine Step 5)
-    if ops_intent.intent_name == "ops_status":
-        save_state(state)
-        status_reply = _handle_ops_status_inquiry(query)
-        _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
-        return [status_reply]
 
     # File verification — bypass LLM, direct filesystem check
     if _detect_file_verify_intent(query):
