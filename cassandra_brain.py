@@ -4527,12 +4527,12 @@ _PAY_VERIFY_QUERY_WORDS = (
     "payment", "deposit", "invoice", "cleared", "posted",
     "arrived", "came in", "paid", "payment status", "come through",
     "hilton", "zelle", "venmo", "square", "check", "funds", "hit the account",
-    "did it land", "did we get"
+    "did it land", "did we get", "owes", "owed", "receivable", "balance", "overdue"
 )
 
 _PAY_VERIFY_VERBS = (
     "did", "verify", "check", "confirm", "has", "status", "any", "search",
-    "see the", "find the", "land", "arrived", "come through"
+    "see the", "find the", "land", "arrived", "come through", "owes", "owed"
 )
 
 _PAYMENT_VERIFY_RESCUE_MARKERS = (
@@ -4551,6 +4551,14 @@ _PAYMENT_VERIFY_RESCUE_MARKERS = (
 
 def _looks_like_payment_verify_query(text: str) -> bool:
     t = (text or "").lower()
+    # Explicitly exclude general email checks from being treated as payment verification
+    # even if "check" is present.
+    if "email" in t and "check" in t:
+        # If "payment", "paid", "invoice" etc are NOT present, it's likely just email.
+        business_markers = ("payment", "paid", "invoice", "deposit", "hilton", "zelle", "venmo", "owes", "owed")
+        if not any(bm in t for bm in business_markers):
+            return False
+
     if not any(w in t for w in _PAY_VERIFY_QUERY_WORDS):
         return False
     return any(v in t for v in _PAY_VERIFY_VERBS)
@@ -5648,7 +5656,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             return [finance_reply]
 
     # Payment verification — bypass LLM, direct Gmail/log check
-    if gmail_decision.allowed and _detect_payment_verify_intent(query):
+    if gmail_decision.allowed and gmail_decision.category == "payment_verify" and _detect_payment_verify_intent(query):
         pay_reply = _handle_payment_verification_request(query)
         if pay_reply is not None:
             save_state(state)

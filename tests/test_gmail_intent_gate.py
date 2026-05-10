@@ -18,6 +18,31 @@ def mock_broker(monkeypatch):
     monkeypatch.setattr(cassandra_brain, "broker_call", mock)
     return mock
 
+@pytest.fixture
+def mock_deps(monkeypatch):
+    # Mock broker
+    mock_broker = MagicMock()
+    mock_broker.return_value = {"ok": True, "data": [], "error": ""}
+    import google_access_broker
+    monkeypatch.setattr(google_access_broker, "call", mock_broker)
+    monkeypatch.setattr(cassandra_brain, "broker_call", mock_broker)
+
+    # Mock _log_conversation to capture the route
+    captured_logs = []
+    def fake_log(text, replies, route="llm", metadata=None):
+        captured_logs.append({"text": text, "route": route, "metadata": metadata})
+
+    monkeypatch.setattr(cassandra_brain, "_log_conversation", fake_log)
+
+    # Mock LLM call to avoid actual overhead
+    monkeypatch.setattr(cassandra_brain, "_call", lambda prompt, **kwargs: "Mocked LLM reply")
+
+    # Mock state
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+
+    return captured_logs
+
 def test_math_prompt_no_gmail_polling(mock_broker):
     cassandra_brain.handle("What is 2+2?")
     # broker_call should NOT have been called with gmail metadata or unread count
@@ -84,3 +109,23 @@ def test_scheduled_triage_override(mock_broker):
     decision = cassandra_brain.decide_gmail_intent("any prompt", scheduled_triage=True)
     assert decision.allowed
     assert decision.category == "scheduled_triage"
+
+def test_check_my_email_route(mock_deps):
+    cassandra_brain.handle("check my email")
+    routes = [log["route"] for log in mock_deps]
+    assert "payment_verify" not in routes
+
+def test_hilton_payment_route(mock_deps):
+    cassandra_brain.handle("Did the Hilton payment come through?")
+    routes = [log["route"] for log in mock_deps]
+    assert "payment_verify" in routes
+
+def test_who_owes_me_money_route(mock_deps):
+    cassandra_brain.handle("Who owes me money?")
+    routes = [log["route"] for log in mock_deps]
+    assert "payment_verify" in routes
+
+def test_find_emails_from_experian_route(mock_deps):
+    cassandra_brain.handle("Find emails from Experian")
+    routes = [log["route"] for log in mock_deps]
+    assert "payment_verify" not in routes
