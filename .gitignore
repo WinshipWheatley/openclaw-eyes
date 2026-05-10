@@ -384,6 +384,7 @@
 !tests/test_business_ops_ledger.py
 !tests/test_inspect_business_ops_ledger.py
 !tests/test_cassandra_ledger_write.py
+!tests/test_cassandra_status_wiring.py
 
 # tools/ — standalone utility modules
 !tools/

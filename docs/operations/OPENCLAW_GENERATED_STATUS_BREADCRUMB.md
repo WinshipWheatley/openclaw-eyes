@@ -40,10 +40,10 @@ Generated status should clearly separate:
 - **Stability**: Volatile metadata (timestamps, Git HEAD) is excluded from tracked files to prevent repository churn; it is displayed in the CLI preview instead.
 - **Evidence Sources**: git, SQLite ledger (`orientation_snapshot_receipt` preferred), orientation contract.
 - **Verification**: `tests/test_generate_operator_status.py`.
+- **Cassandra Wiring**: Cassandra `handle()` now responds to "where are we?" and status inquiries using these deterministic surfaces (read-only).
 
 ## Stopping Boundaries
 This breadcrumb is for planning and direction only. It **does not** authorize:
 - Scheduler writes or runtime mutations.
 - Ledger schema changes or broad database migrations.
-- Integration with Cassandra or Chief for automated status reporting.
 - Deletion of existing legacy `CURRENT_STATE.md` or `NEXT_ACTIONS.md` files until the generated versions are fully promoted.

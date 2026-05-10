@@ -84,7 +84,15 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
             return IntentFrame("contacts_read", "read_only", "contacts", 0.9, term)
 
     # 7. Status / Orientation
-    status_terms = ("status", "orientation", "where are we", "what's next", "summary")
+    # Explicit OpenClaw orientation/status questions (High confidence)
+    if any(phrase in q for phrase in ("where are we", "openclaw status", "system status")):
+        return IntentFrame("ops_status", "read_only", "logging", 1.0, "explicit_status")
+
+    if q == "orientation":
+        return IntentFrame("ops_status", "read_only", "logging", 1.0, "orientation")
+
+    # Bounded fallback for status/next/summary (Lower confidence)
+    status_terms = ("status", "what's next", "summary")
     for term in status_terms:
         if term in q:
             return IntentFrame("ops_status", "read_only", "logging", 0.7, term)

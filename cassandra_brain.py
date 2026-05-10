@@ -2068,6 +2068,82 @@ def _handle_file_verification_request(text: str) -> str | None:
         return "I tried to check that path but hit a problem. You may need to verify it directly."
 
 
+def _handle_ops_status_inquiry(query: str) -> str:
+    """Answers status inquiries using deterministic orientation/status surfaces."""
+    current_state_path = Path("Operator/GENERATED_CURRENT_STATE.md")
+    next_actions_path = Path("Operator/GENERATED_NEXT_ACTIONS.md")
+
+    if not current_state_path.exists() or not next_actions_path.exists():
+        return (
+            "Orientation status surfaces are missing. "
+            "Please run 'python scripts/generate_operator_status.py --check', "
+            "then '--write' only if stale."
+        )
+
+    try:
+        current_md = current_state_path.read_text(encoding="utf-8")
+        next_md = next_actions_path.read_text(encoding="utf-8")
+
+        def extract_section(md: str, header: str) -> str:
+            lines = md.splitlines()
+            section = []
+            found = False
+            header_level = 0
+            for line in lines:
+                clean_line = line.strip()
+                # Use leading heading depth (only actual Markdown headings)
+                match = re.match(r'^(#+)\s+', clean_line)
+                if match:
+                    current_level = len(match.group(1))
+                    if not found:
+                        if header.lower() in clean_line.lower():
+                            found = True
+                            header_level = current_level
+                            continue
+                    else:
+                        if current_level <= header_level:
+                            break
+
+                if found:
+                    section.append(line)
+
+            return "\n".join(section).strip()
+
+        lane = extract_section(current_md, "Active Lane")
+        next_move = extract_section(next_md, "Next Safe Move")
+        confirmed = extract_section(current_md, "Confirmed System State")
+
+        # Fallback to get_orientation_snapshot if extraction fails to find something
+        # (This is a read-only fallback, does not write files)
+        if not lane or not next_move:
+            try:
+                from scripts.orientation_snapshot import get_orientation_snapshot
+                snapshot = get_orientation_snapshot()
+                lane = lane or snapshot.get("active_lane")
+                next_move = next_move or snapshot.get("next_safe_move")
+            except Exception:
+                pass
+
+        reply = [
+            "--- OpenClaw Orientation Status ---",
+            "Based on the latest deterministic surfaces:",
+            "",
+            "• Active Lane:",
+            lane or "Unknown (status surfaces may be incomplete)",
+            "",
+            "• Next Safe Move:",
+            next_move or "Unknown",
+            "",
+            "• Confirmed Facts:",
+            confirmed or "None recorded",
+            "",
+            "NOTE: No live runtime health is claimed. This is a read-only orientation snapshot."
+        ]
+        return "\n".join(reply)
+    except Exception:
+        return "Orientation status surfaces could not be read safely. Run the generated status check, then retry."
+
+
 def _detect_payment_verify_intent(text: str) -> bool:
     """Return True if the message is asking to verify an external payment status."""
     from cassandra_capability import PAYMENT_METADATA_CONNECTED
@@ -5472,10 +5548,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     ]
     query = _strip_prefix(text)
     t_query = query.lower().strip()
-    
+
     # Deterministic Intent (Business Ops Spine Step 2)
     ops_intent = classify_business_ops_intent(query)
-    
+
     # Formalize the Context/Capability Packet (Business Ops Spine Step 3)
     ops_packet = assemble_business_ops_packet(
         query=query,
@@ -5484,14 +5560,18 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     )
 
     # Record the event and packet receipt in the SQLite Ledger (Business Ops Spine Step 7)
-    event_id = record_cassandra_packet_event(query, ops_packet)
+    # Skip ledger write for deterministic status inquiries (Step 5) to ensure pure read-only behavior.
+    if ops_intent.intent_name == "ops_status":
+        event_id = None
+    else:
+        event_id = record_cassandra_packet_event(query, ops_packet)
 
     # Legacy gmail_decision for backward compatibility in this handler
     gmail_decision = decide_gmail_intent(query)
 
     # Always initialize state for logging and saving
     state = load_state()
-    
+
     # Check for email capability in the packet
     has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
 
@@ -5760,6 +5840,13 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             save_state(state)
             _log_conversation(text, [invoice_reply], route="invoice_create", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
             return [invoice_reply]
+
+    # Deterministic Status Inquiry (Business Ops Spine Step 5)
+    if ops_intent.intent_name == "ops_status":
+        save_state(state)
+        status_reply = _handle_ops_status_inquiry(query)
+        _log_conversation(text, [status_reply], route="ops_status", metadata={"event_id": event_id, "ops_packet": ops_packet.to_dict()})
+        return [status_reply]
 
     # File verification — bypass LLM, direct filesystem check
     if _detect_file_verify_intent(query):
