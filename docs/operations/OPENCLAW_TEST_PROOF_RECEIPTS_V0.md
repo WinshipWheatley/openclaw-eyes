@@ -52,3 +52,9 @@ Failures are critical evidence. Do not suppress or hide failed tests. Record the
 - **No Discovery**: This is not a test discovery engine; it is a receipt-recording contract.
 - **No CI Replacement**: This ledger is for local "Operator Lane" evidence, not a replacement for GitHub Actions or other CI.
 - **No Schema Change**: This lane does not modify the `business_ops` SQLite schema.
+
+## 9. Self-Interaction and Stability
+Proof targets (the commands being wrapped) SHOULD be stable and not self-invalidate when a receipt is recorded to the ledger.
+- **Ledger Sensitivity**: If a check (like `generate_operator_status.py --check`) is sensitive to the ledger event count, it may become stale immediately after a successful proof is recorded.
+- **Recommended Practice**: Avoid including non-deterministic metadata like exact ledger event counts in tracked generated files if they are used as proof targets.
+- **Recorder Behavior**: The recorder executes the command *before* writing the receipt. This ensures the command sees the state as it was, but subsequent runs will see the new receipt.

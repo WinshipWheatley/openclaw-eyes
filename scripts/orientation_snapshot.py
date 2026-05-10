@@ -224,7 +224,7 @@ def get_orientation_snapshot() -> Dict[str, Any]:
         "ledger_info": ledger_info,
         "active_lane": parse_markdown_section(contract_content, "What lane is active?"),
         "confirmed_current": [
-            f"Ledger Status: {ledger_info['status']} ({ledger_info.get('event_count', 0)} events)",
+            f"Ledger Status: {ledger_info['status']}",
             f"Active Handoff: {handoff_summary}"
         ] + confirmed_list,
         "historical_context": parse_markdown_section(contract_content, "What is historical/non-authoritative?"),

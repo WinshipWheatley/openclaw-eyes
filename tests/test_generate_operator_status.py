@@ -20,7 +20,7 @@ def mock_snapshot():
         },
         "confirmed_current": [
             "Git HEAD: 0de27a6 feat(operator)",
-            "Ledger Status: active (2 events)",
+            "Ledger Status: active",
             "Active Handoff: context"
         ],
         "active_lane": "Hardening the spine.",

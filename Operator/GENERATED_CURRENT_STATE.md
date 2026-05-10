@@ -6,7 +6,7 @@ Durable truth comes from receipts, tests, and committed source.
 
 # GENERATED CURRENT STATE
 ## 1. Confirmed System State
-- Ledger Status: active (13 events)
+- Ledger Status: active
 - Active Handoff: This handoff is the train. The roadmap authority is 24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md.
 - SQLite Ledger v0 exists, and Cassandra `handle()` is wired to record event/packet receipts.
 - Business Ops Packet v0 is defined for intent-based capability gating.
@@ -35,5 +35,5 @@ Make daily life lighter without becoming hidden authority. The computer becomes 
 
 ## 5. Safety & Staleness
 - **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.
-- **Staleness**: This file is stale if the git HEAD has changed or if new receipts have been recorded since the generation timestamp.
+- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.
 - **Privacy**: No PII or raw sensitive data is stored in this read-model.

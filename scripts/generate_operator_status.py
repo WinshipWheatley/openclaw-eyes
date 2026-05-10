@@ -60,7 +60,7 @@ def generate_current_state(snapshot):
         "",
         "## 5. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
-        "- **Staleness**: This file is stale if the git HEAD has changed or if new receipts have been recorded since the generation timestamp.",
+        "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
     ])
 
