@@ -8,20 +8,18 @@ import sqlite3
 import json
 import argparse
 import sys
+import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 DEFAULT_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
 
 def get_connection(db_path: str):
-    try:
-        # Use uri=True and mode=ro for read-only if supported, 
-        # but standard sqlite3.connect is fine for simple reads.
-        # We'll just be careful not to execute any writes.
-        return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-    except sqlite3.OperationalError:
-        # Fallback if URI mode is not supported or file doesn't exist
-        return sqlite3.connect(db_path)
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"Ledger database not found at: {db_path}")
+
+    # Use uri=True and mode=ro for strict read-only access
+    return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
 
 def truncate(text: Any, length: int = 50) -> str:
     s = str(text)
@@ -30,10 +28,10 @@ def truncate(text: Any, length: int = 50) -> str:
 def get_summary(conn: sqlite3.Connection) -> Dict[str, Any]:
     summary = {"tables": {}, "event_types": {}}
     cursor = conn.cursor()
-    
+
     # Table counts
     tables = [
-        "events", "packets", "capability_decisions", 
+        "events", "packets", "capability_decisions",
         "retrieval_receipts", "side_effects", "operator_explanations"
     ]
     for table in tables:
@@ -50,7 +48,7 @@ def get_summary(conn: sqlite3.Connection) -> Dict[str, Any]:
             summary["event_types"][row[0]] = row[1]
     except sqlite3.OperationalError:
         pass
-        
+
     return summary
 
 def get_latest_events(conn: sqlite3.Connection, limit: int, event_type: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -62,7 +60,7 @@ def get_latest_events(conn: sqlite3.Connection, limit: int, event_type: Optional
         params.append(event_type)
     query += " ORDER BY ts DESC LIMIT ?"
     params.append(limit)
-    
+
     cursor.execute(query, params)
     columns = [col[0] for col in cursor.description]
     results = []
@@ -76,7 +74,7 @@ def print_summary(summary: Dict[str, Any]):
     print("\n[Table Row Counts]")
     for table, count in summary["tables"].items():
         print(f"  {table:25}: {count}")
-    
+
     print("\n[Event Type Distribution]")
     for etype, count in summary["event_types"].items():
         print(f"  {etype:25}: {count}")
@@ -107,21 +105,22 @@ def main():
     parser.add_argument("--latest", type=int, metavar="N", help="Show latest N events")
     parser.add_argument("--event-type", help="Filter latest events by type")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
-    
+
     args = parser.parse_args()
 
-    conn = get_connection(args.db)
-    
     output_data = {}
+    conn = None
 
     try:
+        conn = get_connection(args.db)
+
         if args.summary:
             summary = get_summary(conn)
             if args.json:
                 output_data["summary"] = summary
             else:
                 print_summary(summary)
-                
+
         if args.latest:
             events = get_latest_events(conn, args.latest, args.event_type)
             if args.json:
@@ -144,7 +143,8 @@ def main():
         print(f"Error inspecting ledger: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 if __name__ == "__main__":
     main()

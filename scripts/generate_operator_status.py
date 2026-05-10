@@ -27,7 +27,7 @@ except ImportError:
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
 
-DISCLAIMER = """<!-- 
+DISCLAIMER = """<!--
 GENERATED FILE - DO NOT EDIT MANUALLY
 This file is programmatically generated from repository evidence.
 Durable truth comes from receipts, tests, and committed source.
@@ -39,10 +39,10 @@ def generate_current_state(snapshot):
         "# GENERATED CURRENT STATE",
         "## 1. Confirmed System State",
     ]
-    
+
     for fact in snapshot['confirmed_current']:
         lines.append(f"- {fact}")
-    
+
     lines.extend([
         "",
         "## 2. Active Lane & Doctrine",
@@ -63,7 +63,7 @@ def generate_current_state(snapshot):
         "- **Staleness**: This file is stale if the git HEAD has changed or if new receipts have been recorded since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
     ])
-    
+
     return "\n".join(lines)
 
 def generate_next_actions(snapshot):
@@ -77,10 +77,10 @@ def generate_next_actions(snapshot):
         "## 2. Visible Road Horizon",
         "### Visible Moves",
     ]
-    
+
     for move in horizon['visible_moves']:
         lines.append(f"- {move}")
-        
+
     lines.extend([
         "",
         f"- **Branch After**: {horizon['branch_after']}",
@@ -88,7 +88,7 @@ def generate_next_actions(snapshot):
         "",
         "## 3. Completed Lanes (Inferred)",
     ])
-    
+
     # Canonical signal: orientation_snapshot_receipt
     ledger_info = snapshot.get('ledger_info', {})
     if ledger_info.get('has_snapshot_receipt', False):
@@ -103,7 +103,7 @@ def generate_next_actions(snapshot):
         "## 4. Promotion Rules",
         "A 'TODO' item is only promoted to 'DONE' when a corresponding receipt exists in the SQLite Ledger or the implementation is verified by committed tests.",
     ])
-    
+
     return "\n".join(lines)
 
 def main():
@@ -113,10 +113,10 @@ def main():
     args = parser.parse_args()
 
     snapshot = get_orientation_snapshot()
-    
+
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
-    
+
     print(f"--- Operator Status Preview ---")
     print(f"Timestamp: {snapshot['timestamp']}")
     print(f"Source: Git HEAD {snapshot['where_are_we']['git_head']}")
