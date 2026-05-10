@@ -23,6 +23,9 @@ def mock_snapshot():
             "Ledger Status: active",
             "Active Handoff: context"
         ],
+        "recent_proofs": [
+            "2026-05-10 09:00 PASS static_contract_check exit=0 head=0de27a6f dirty=false"
+        ],
         "active_lane": "Hardening the spine.",
         "allowed_tools": "Reading files.",
         "forbidden_surfaces": "Secrets.",
@@ -38,12 +41,22 @@ def mock_snapshot():
 def test_generate_current_state(mock_snapshot):
     output = generate_current_state(mock_snapshot)
     assert "# GENERATED CURRENT STATE" in output
-    # Volatile metadata should NOT be in the output string
+    # Volatile timestamp should NOT be in the output string
     assert "2026-05-10T10:00:00" not in output
-    assert "0de27a6f" not in output
+    # The snapshot's head SHA (0de27a6f) is now allowed IF it appears in a proof
+    assert "static_contract_check" in output
+    assert "0de27a6f" in output 
     assert "Hardening the spine." in output
     assert "Lighter life." in output
     assert "Runtime Health" in output
+    assert "## 2. Recent Proof Receipts" in output
+    assert "2026-05-10 09:00" in output
+
+def test_generate_current_state_no_proofs(mock_snapshot):
+    mock_snapshot["recent_proofs"] = []
+    output = generate_current_state(mock_snapshot)
+    assert "## 2. Recent Proof Receipts" in output
+    assert "No recent proof receipts found." in output
 
 def test_generate_next_actions(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
@@ -59,12 +72,14 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
+@patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
+    mock_get_proofs.return_value = mock_snapshot["recent_proofs"]
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -73,18 +88,24 @@ def test_main_write(mock_args, mock_open, mock_get, mock_snapshot):
     mock_open.assert_any_call("Operator/GENERATED_CURRENT_STATE.md", "w")
     mock_open.assert_any_call("Operator/GENERATED_NEXT_ACTIONS.md", "w")
 
+@patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
+    mock_get_proofs.return_value = mock_snapshot["recent_proofs"]
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
-    curr_content = DISCLAIMER + "\n" + generate_current_state(mock_snapshot)
-    next_content = DISCLAIMER + "\n" + generate_next_actions(mock_snapshot)
+    # Ensure snapshot has the proofs for comparison
+    snapshot_with_proofs = mock_snapshot.copy()
+    snapshot_with_proofs["recent_proofs"] = mock_snapshot["recent_proofs"]
+
+    curr_content = DISCLAIMER + "\n" + generate_current_state(snapshot_with_proofs)
+    next_content = DISCLAIMER + "\n" + generate_next_actions(snapshot_with_proofs)
 
     # Mock reading the files
     mock_open.return_value.__enter__.return_value.read.side_effect = [curr_content, next_content]
@@ -93,13 +114,15 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_snapsho
         main()
         mock_exit.assert_not_called()
 
+@patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
+    mock_get_proofs.return_value = mock_snapshot["recent_proofs"]
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import argparse
+import sqlite3
 from datetime import datetime
 
 # Add CWD to sys.path to allow importing from scripts and root
@@ -23,6 +24,26 @@ except ImportError:
         get_horizon
     )
 
+try:
+    from scripts.inspect_business_ops_ledger import format_test_proof_summary
+except ImportError:
+    try:
+        from inspect_business_ops_ledger import format_test_proof_summary
+    except ImportError:
+        def format_test_proof_summary(summary_text):
+            if not summary_text or not summary_text.strip().startswith('{'):
+                return summary_text
+            try:
+                data = json.loads(summary_text)
+                status = data.get("status", "unknown").upper()
+                label = data.get("command_label", "unknown")
+                exit_code = data.get("exit_code", "?")
+                head = data.get("git_head", "unknown")[:8]
+                dirty = str(data.get("git_dirty", "unknown")).lower()
+                return f"{status} {label} exit={exit_code} head={head} dirty={dirty}"
+            except:
+                return summary_text
+
 # --- Configuration ---
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
@@ -34,6 +55,46 @@ Durable truth comes from receipts, tests, and committed source.
 -->
 """
 
+def get_recent_proof_receipts(limit=5):
+    """
+    Fetch recent test_proof_receipt events from the ledger.
+    Excludes 'generated_status_check' to avoid self-invalidation.
+    """
+    db_path = ".openclaw/business_ops/ledger.sqlite"
+    if not os.path.exists(db_path):
+        return []
+
+    try:
+        # Use URI for read-only to avoid any side-effects
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cursor = conn.cursor()
+        # Fetch more than limit to allow filtering out meta-checks
+        cursor.execute("""
+            SELECT ts, operator_visible_summary 
+            FROM events 
+            WHERE event_type = 'test_proof_receipt'
+            ORDER BY ts DESC LIMIT 20
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+
+        proofs = []
+        for ts, summ_raw in rows:
+            formatted = format_test_proof_summary(summ_raw)
+            # Filter out self-referential status checks to keep --check stable
+            if "generated_status_check" in formatted:
+                continue
+            
+            # Format: YYYY-MM-DD HH:MM [PASS/FAIL] label ...
+            display_ts = ts.replace('T', ' ')[:16]
+            proofs.append(f"{display_ts} {formatted}")
+            
+            if len(proofs) >= limit:
+                break
+        return proofs
+    except Exception:
+        return []
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -43,22 +104,36 @@ def generate_current_state(snapshot):
     for fact in snapshot['confirmed_current']:
         lines.append(f"- {fact}")
 
+    # Section 2: Recent Proof Receipts
+    proofs = snapshot.get('recent_proofs', [])
     lines.extend([
         "",
-        "## 2. Active Lane & Doctrine",
+        "## 2. Recent Proof Receipts",
+    ])
+    if proofs:
+        for p in proofs:
+            lines.append(f"- {p}")
+    else:
+        lines.append("- No recent proof receipts found.")
+    
+    lines.extend([
+        "",
+        "> **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.",
+        "",
+        "## 3. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 3. Tool & Surface Boundaries",
+        "## 4. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 4. North Star",
+        "## 5. North Star",
         snapshot['north_star'],
         "",
-        "## 5. Safety & Staleness",
+        "## 6. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -113,6 +188,8 @@ def main():
     args = parser.parse_args()
 
     snapshot = get_orientation_snapshot()
+    # Inject recent proofs into snapshot for the generator
+    snapshot['recent_proofs'] = get_recent_proof_receipts()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
