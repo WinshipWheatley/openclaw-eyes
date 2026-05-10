@@ -25,6 +25,28 @@ def truncate(text: Any, length: int = 50) -> str:
     s = str(text)
     return (s[:length] + '...') if len(s) > length else s
 
+def format_test_proof_summary(summary_text: str) -> str:
+    """
+    Formats test_proof_receipt summaries.
+    If it looks like legacy JSON, parses and formats it into the modern concise string.
+    Otherwise, returns as-is.
+    """
+    if not summary_text or not summary_text.strip().startswith('{'):
+        return summary_text
+
+    try:
+        data = json.loads(summary_text)
+        # Check for legacy JSON keys
+        status = data.get("status", "unknown").upper()
+        label = data.get("command_label", "unknown")
+        exit_code = data.get("exit_code", "?")
+        head = data.get("git_head", "unknown")[:8]
+        dirty = str(data.get("git_dirty", "unknown")).lower()
+
+        return f"{status} {label} exit={exit_code} head={head} dirty={dirty}"
+    except (json.JSONDecodeError, TypeError, AttributeError):
+        return summary_text
+
 def get_summary(conn: sqlite3.Connection) -> Dict[str, Any]:
     summary = {"tables": {}, "event_types": {}}
     cursor = conn.cursor()
@@ -94,7 +116,12 @@ def print_latest(events: List[Dict[str, Any]]):
         ts = ev['ts'][:19] # Truncate microseconds
         etype = truncate(ev['event_type'], 23)
         actor = truncate(ev['actor'], 8)
-        summ = truncate(ev['operator_visible_summary'], 80) if ev['operator_visible_summary'] else ""
+
+        summ_raw = ev['operator_visible_summary'] or ""
+        if ev['event_type'] == 'test_proof_receipt':
+            summ_raw = format_test_proof_summary(summ_raw)
+
+        summ = truncate(summ_raw, 80)
         print(f"{eid:<12} {ts:<20} {etype:<25} {actor:<10} {summ}")
     print("=" * (len(header)))
 

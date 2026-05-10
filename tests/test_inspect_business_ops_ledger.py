@@ -61,6 +61,40 @@ def test_cli_event_type_filter(clean_db):
     assert "type_b" in result.stdout
     assert "type_a" not in result.stdout
 
+def test_test_proof_receipt_formatting(clean_db):
+    # Modern format
+    modern_summ = "PASS test_modern exit=0 head=abc12345 dirty=false"
+    append_event("tpr_mod", "test_proof_receipt", "actor", operator_visible_summary=modern_summ, db_path=clean_db)
+
+    # Legacy JSON format
+    legacy_json = json.dumps({
+        "status": "pass",
+        "command_label": "test_legacy",
+        "exit_code": 0,
+        "git_head": "fedcba98",
+        "git_dirty": True
+    })
+    append_event("tpr_leg", "test_proof_receipt", "actor", operator_visible_summary=legacy_json, db_path=clean_db)
+
+    # Malformed JSON
+    bad_json = '{"status": "fail", "incomplete": '
+    append_event("tpr_bad", "test_proof_receipt", "actor", operator_visible_summary=bad_json, db_path=clean_db)
+
+    result = subprocess.run(
+        ["python3", "scripts/inspect_business_ops_ledger.py", "--db", clean_db, "--latest", "5"],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0
+
+    # Verify modern is left alone
+    assert modern_summ in result.stdout
+
+    # Verify legacy is formatted
+    assert "PASS test_legacy exit=0 head=fedcba98 dirty=true" in result.stdout
+
+    # Verify malformed is safe (returns as-is if short)
+    assert '{"status": "fail", "incomplete": ' in result.stdout
+
 def test_cli_read_only_guarantee(clean_db):
     # Verify no new events are added by running inspection
     conn = sqlite3.connect(clean_db)
