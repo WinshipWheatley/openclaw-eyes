@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import argparse
 from datetime import datetime
 
 # Add CWD to sys.path to allow importing from scripts and root
@@ -36,9 +37,6 @@ Durable truth comes from receipts, tests, and committed source.
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
-        f"*Generated: {snapshot['timestamp']}*",
-        f"*Source Evidence: Git HEAD {snapshot['where_are_we']['git_head']}, SQLite Ledger*",
-        "",
         "## 1. Confirmed System State",
     ]
     
@@ -72,7 +70,6 @@ def generate_next_actions(snapshot):
     horizon = snapshot['visible_road_horizon']
     lines = [
         "# GENERATED NEXT ACTIONS",
-        f"*Generated: {snapshot['timestamp']}*",
         "",
         "## 1. Next Safe Move",
         snapshot['next_safe_move'],
@@ -92,9 +89,9 @@ def generate_next_actions(snapshot):
         "## 3. Completed Lanes (Inferred)",
     ])
     
-    # Simple inference: if ledger has events, we assume some progress
-    ledger_status = snapshot['confirmed_current'][1]
-    if "active" in ledger_status and "0 events" not in ledger_status:
+    # Canonical signal: orientation_snapshot_receipt
+    ledger_info = snapshot.get('ledger_info', {})
+    if ledger_info.get('has_snapshot_receipt', False):
         lines.append("- [DONE] Orientation Snapshot Receipt recorded to Ledger")
     else:
         lines.append("- [TODO] Record initial Orientation Snapshot Receipt")
@@ -110,18 +107,57 @@ def generate_next_actions(snapshot):
     return "\n".join(lines)
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate operator status read-models.")
+    parser.add_argument("--write", action="store_true", help="Explicitly write generated files.")
+    parser.add_argument("--check", action="store_true", help="Check if generated files are current without writing. Exits nonzero if stale.")
+    args = parser.parse_args()
+
     snapshot = get_orientation_snapshot()
     
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
     
-    with open(CURRENT_STATE_OUT, "w") as f:
-        f.write(current_state_md)
-    print(f"Updated {CURRENT_STATE_OUT}")
-        
-    with open(NEXT_ACTIONS_OUT, "w") as f:
-        f.write(next_actions_md)
-    print(f"Updated {NEXT_ACTIONS_OUT}")
+    print(f"--- Operator Status Preview ---")
+    print(f"Timestamp: {snapshot['timestamp']}")
+    print(f"Source: Git HEAD {snapshot['where_are_we']['git_head']}")
+    print(f"Ledger: {snapshot['ledger_info']['status']} ({snapshot['ledger_info'].get('event_count', 0)} events)")
+    print(f"-------------------------------")
+
+    if args.write:
+        with open(CURRENT_STATE_OUT, "w") as f:
+            f.write(current_state_md)
+        print(f"Updated {CURRENT_STATE_OUT}")
+
+        with open(NEXT_ACTIONS_OUT, "w") as f:
+            f.write(next_actions_md)
+        print(f"Updated {NEXT_ACTIONS_OUT}")
+    elif args.check:
+        stale = False
+        if os.path.exists(CURRENT_STATE_OUT):
+            with open(CURRENT_STATE_OUT, "r") as f:
+                if f.read() != current_state_md:
+                    print(f"STALE: {CURRENT_STATE_OUT} differs from generated content.")
+                    stale = True
+        else:
+            print(f"MISSING: {CURRENT_STATE_OUT}")
+            stale = True
+
+        if os.path.exists(NEXT_ACTIONS_OUT):
+            with open(NEXT_ACTIONS_OUT, "r") as f:
+                if f.read() != next_actions_md:
+                    print(f"STALE: {NEXT_ACTIONS_OUT} differs from generated content.")
+                    stale = True
+        else:
+            print(f"MISSING: {NEXT_ACTIONS_OUT}")
+            stale = True
+
+        if stale:
+            print("\nError: Generated files are stale or missing. Run with --write to update.")
+            sys.exit(1)
+        else:
+            print("OK: Generated files are current.")
+    else:
+        print("\nRead-only preview mode. Use --write to update files or --check to verify.")
 
 if __name__ == "__main__":
     main()

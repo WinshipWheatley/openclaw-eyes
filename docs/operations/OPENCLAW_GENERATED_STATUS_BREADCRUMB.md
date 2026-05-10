@@ -35,8 +35,10 @@ Generated status should clearly separate:
 5. **visible_road_horizon:** Bounded near-term moves, stop boundary, and evidence required to extend the horizon.
 
 ## Implementation Status
-- **Prototype Implemented**: `scripts/generate_operator_status.py` generates `Operator/GENERATED_CURRENT_STATE.md` and `Operator/GENERATED_NEXT_ACTIONS.md`.
-- **Evidence Sources**: git, SQLite ledger (orientation_snapshot_receipt), orientation contract.
+- **Hardenened Prototype Implemented**: `scripts/generate_operator_status.py` generates `Operator/GENERATED_CURRENT_STATE.md` and `Operator/GENERATED_NEXT_ACTIONS.md`.
+- **Explicit Write Control**: Use `--write` to update files; `--check` for CI/proof runs (non-destructive).
+- **Stability**: Volatile metadata (timestamps, Git HEAD) is excluded from tracked files to prevent repository churn; it is displayed in the CLI preview instead.
+- **Evidence Sources**: git, SQLite ledger (`orientation_snapshot_receipt` preferred), orientation contract.
 - **Verification**: `tests/test_generate_operator_status.py`.
 
 ## Stopping Boundaries

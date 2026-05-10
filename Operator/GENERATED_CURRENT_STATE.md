@@ -5,11 +5,7 @@ Durable truth comes from receipts, tests, and committed source.
 -->
 
 # GENERATED CURRENT STATE
-*Generated: 2026-05-10T10:32:05.713094*
-*Source Evidence: Git HEAD 0de27a6f, SQLite Ledger*
-
 ## 1. Confirmed System State
-- Git HEAD: 0de27a6 feat(operator): derive orientation snapshot horizon
 - Ledger Status: active (2 events)
 - Active Handoff: This handoff is the train. The roadmap authority is 24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md.
 - SQLite Ledger v0 exists, and Cassandra `handle()` is wired to record event/packet receipts.

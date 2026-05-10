@@ -55,7 +55,7 @@ def test_get_orientation_snapshot_basic(mock_connect, mock_exists, mock_git):
     assert snapshot["where_are_we"]["git_head"] == "12345678"
     assert snapshot["where_are_we"]["git_status"] == "Clean"
     assert snapshot["active_lane"] == ""
-    assert "Ledger Status: missing" in snapshot["confirmed_current"][1]
+    assert "Ledger Status: missing" in snapshot["confirmed_current"][0]
 
 
 @patch("scripts.orientation_snapshot.run_git_command")
@@ -88,8 +88,8 @@ Lighter life.
 
     assert snapshot["active_lane"] == "Hardening the spine."
     assert snapshot["north_star"] == "Lighter life."
-    assert "Ledger Status: active (42 events)" in snapshot["confirmed_current"][1]
-    assert "Active Handoff: The train is moving." in snapshot["confirmed_current"][2]
+    assert "Ledger Status: active (42 events)" in snapshot["confirmed_current"][0]
+    assert "Active Handoff: The train is moving." in snapshot["confirmed_current"][1]
 
 
 def test_json_mode_smoke(capsys):

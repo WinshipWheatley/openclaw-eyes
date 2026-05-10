@@ -221,9 +221,9 @@ def get_orientation_snapshot() -> Dict[str, Any]:
             "git_head": git_info["head_commit"][:8],
             "git_status": "Clean" if not git_info["status_summary"] else "Modified"
         },
+        "ledger_info": ledger_info,
         "active_lane": parse_markdown_section(contract_content, "What lane is active?"),
         "confirmed_current": [
-            f"Git HEAD: {git_info['recent_commit']}",
             f"Ledger Status: {ledger_info['status']} ({ledger_info.get('event_count', 0)} events)",
             f"Active Handoff: {handoff_summary}"
         ] + confirmed_list,

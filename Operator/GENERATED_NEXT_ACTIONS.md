@@ -5,7 +5,6 @@ Durable truth comes from receipts, tests, and committed source.
 -->
 
 # GENERATED NEXT ACTIONS
-*Generated: 2026-05-10T10:32:05.713094*
 
 ## 1. Next Safe Move
 Review Orientation Snapshot v0 for five-second usefulness, then choose one bounded next lane:
