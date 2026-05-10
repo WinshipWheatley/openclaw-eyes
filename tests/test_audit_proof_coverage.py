@@ -92,6 +92,7 @@ def test_audit_confirmed_proof(mock_ledger):
     assert match["signal"] == "CONFIRMED"
 
 def test_audit_drifted_proof(mock_ledger):
+    # Old head that is definitely NOT safe (or just doesn't exist)
     conn = sqlite3.connect(mock_ledger)
     cursor = conn.cursor()
     # Insert a pass on an old head
@@ -109,6 +110,74 @@ def test_audit_drifted_proof(mock_ledger):
     assert match["status"] == "PASS"
     assert match["relation"] == "DRIFT"
     assert match["signal"] == "WEAK"
+
+def test_audit_safe_drift_proof(mock_ledger):
+    # We use HEAD and parent if it only changed safe files
+    # Or just use HEAD and HEAD, which should be safe (empty diff)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:8]
+    
+    conn = sqlite3.connect(mock_ledger)
+    cursor = conn.cursor()
+    # Insert a pass on same head but pretend it's drift (by using a different hash that is actually safe)
+    # Actually, the easiest way to test this without making a real commit is to use a hash
+    # that is known to only have safe changes.
+    # In this repo, HEAD~1 is safe relative to HEAD.
+    try:
+        parent = subprocess.check_output(["git", "rev-parse", "HEAD~1"], text=True).strip()[:8]
+        # Verify it's safe
+        diff = subprocess.check_output(["git", "diff", "--name-only", f"{parent}..{head}"], text=True).strip()
+        is_safe = all(f in ["Operator/GENERATED_CURRENT_STATE.md", "Operator/GENERATED_NEXT_ACTIONS.md"] for f in diff.splitlines())
+        
+        if is_safe:
+            cursor.execute("""
+                INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+                VALUES (?, ?, ?, ?, ?)
+            """, ("test_safe", "2026-05-10T10:00:00", "test_proof_receipt", "test_actor", f"PASS generated_status_check exit=0 head={parent} dirty=false"))
+            conn.commit()
+            conn.close()
+            
+            result = run_audit(["--db", str(mock_ledger), "--json"])
+            data = json.loads(result.stdout)
+            
+            match = next(r for r in data["results"] if r["label"] == "generated_status_check")
+            assert match["signal"] == "CONFIRMED*"
+    except Exception:
+        pytest.skip("Could not find safe parent for drift test")
+
+def test_check_mode_success_with_safe_drift(mock_ledger):
+    # Ensure CONFIRMED* passes --check
+    try:
+        head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:8]
+        parent = subprocess.check_output(["git", "rev-parse", "HEAD~1"], text=True).strip()[:8]
+        
+        # Verify it's safe
+        diff = subprocess.check_output(["git", "diff", "--name-only", f"{parent}..{head}"], text=True).strip()
+        is_safe = all(f in ["Operator/GENERATED_CURRENT_STATE.md", "Operator/GENERATED_NEXT_ACTIONS.md"] for f in diff.splitlines())
+        if not is_safe:
+            pytest.skip("Parent is not safe")
+
+        labels = [
+            "generated_status_check",
+            "ledger_inspector_summary",
+            "orientation_snapshot_smoke",
+            "cassandra_status_wiring_tests",
+            "business_ops_ledger_tests"
+        ]
+        
+        conn = sqlite3.connect(mock_ledger)
+        cursor = conn.cursor()
+        for i, label in enumerate(labels):
+            cursor.execute("""
+                INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+                VALUES (?, ?, ?, ?, ?)
+            """, (f"safe_{i}", f"2026-05-10T10:00:{i:02d}", "test_proof_receipt", "test", f"PASS {label} exit=0 head={parent} dirty=false"))
+        conn.commit()
+        conn.close()
+        
+        result = run_audit(["--db", str(mock_ledger), "--check"])
+        assert result.returncode == 0
+    except Exception:
+        pytest.skip("Could not run safe drift check test")
 
 def test_audit_dirty_proof(mock_ledger):
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:8]

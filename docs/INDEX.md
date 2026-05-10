@@ -40,6 +40,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [**Evidence Sufficiency Map v0**](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
 - [**Morning Brief Proof Chain v0**](./operations/OPENCLAW_MORNING_BRIEF_PROOF_CHAIN_V0.md) — Architectural guidance for building deterministic morning briefs from evidence layers.
 - [**Expected Proof Manifest v0**](./operations/OPENCLAW_EXPECTED_PROOF_MANIFEST_V0.md) — Deterministic map of proof labels to verification commands and evidence classes.
+- [**Proof Drift Semantics v0**](./operations/OPENCLAW_PROOF_DRIFT_SEMANTICS_V0.md) — Rules for distinguishing safe read-model refreshes from unsafe source/test drift.
 - [**Dependency Hygiene**](./operations/DEPENDENCY_HYGIENE.md) — Architectural boundaries and import rules.
 - [Navigation Maps](./navigation_maps/README.md) — Durable truth surfaces mapping built, partial, and not-built territory.
 - [Intent and Control Map](./operations/OPENCLAW_INTENT_AND_CONTROL_MAP.md) — Cross-lane authority map, progressive discovery contract, and integration-readiness notes.

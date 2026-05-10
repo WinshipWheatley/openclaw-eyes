@@ -118,6 +118,31 @@ def get_latest_receipts(conn: sqlite3.Connection, labels: List[str]) -> Dict[str
     
     return receipts
 
+SAFE_GENERATED_FILES = [
+    "Operator/GENERATED_CURRENT_STATE.md",
+    "Operator/GENERATED_NEXT_ACTIONS.md"
+]
+
+def is_safe_drift(proof_head: str, current_head: str) -> bool:
+    if proof_head == "unknown" or current_head == "unknown":
+        return False
+    try:
+        # Get names of files changed between proof_head and current_head
+        diff_output = subprocess.check_output(
+            ["git", "diff", "--name-only", f"{proof_head}..{current_head}"],
+            text=True
+        ).strip()
+        if not diff_output:
+            return True # No changes is definitely safe (should have been MATCH though)
+        
+        changed_files = diff_output.splitlines()
+        for f in changed_files:
+            if f not in SAFE_GENERATED_FILES:
+                return False
+        return True
+    except Exception:
+        return False
+
 def audit_coverage(manifest_proofs: List[Dict[str, str]], receipts: Dict[str, Dict[str, Any]], current_head: str) -> List[Dict[str, Any]]:
     results = []
     for p in manifest_proofs:
@@ -139,6 +164,7 @@ def audit_coverage(manifest_proofs: List[Dict[str, str]], receipts: Dict[str, Di
             parsed = receipt["parsed"]
             res["ts"] = receipt["ts"]
             res["status"] = parsed["status"]
+            res["head"] = parsed["head"]
             
             # Relation (MATCH/DRIFT)
             if parsed["head"] == current_head:
@@ -158,6 +184,8 @@ def audit_coverage(manifest_proofs: List[Dict[str, str]], receipts: Dict[str, Di
             elif res["status"] == "PASS":
                 if res["relation"] == "MATCH" and res["repo"] == "CLEAN":
                     res["signal"] = "CONFIRMED"
+                elif res["relation"] == "DRIFT" and res["repo"] == "CLEAN" and is_safe_drift(parsed["head"], current_head):
+                    res["signal"] = "CONFIRMED*" # Safe drift
                 else:
                     res["signal"] = "WEAK"
         
@@ -178,12 +206,18 @@ def print_table(results: List[Dict[str, Any]], current_head: str):
     for r in results:
         print(f"{r['label']:<30} {r['status']:<8} {r['relation']:<10} {r['repo']:<8} {r['signal']:<12}")
     
+    print("\nSignal Legend:")
+    print("  CONFIRMED   : PASS + MATCH + CLEAN")
+    print("  CONFIRMED*  : PASS + DRIFT (Safe read-model refresh only) + CLEAN")
+    print("  WEAK        : PASS but DRIFT (unsafe) or DIRTY")
+    print("  FAILING     : FAIL")
+    print("  MISSING     : No receipt found")
     print("\nNote: Proof coverage audits expected receipts only. It does not claim whole-system health.")
 
 def main():
     parser = argparse.ArgumentParser(description="Audit Proof Coverage")
     parser.add_argument("--db", help="Path to the ledger database")
-    parser.add_argument("--check", action="store_true", help="Exit nonzero if any proof is MISSING, FAILING, or DRIFT")
+    parser.add_argument("--check", action="store_true", help="Exit nonzero if any proof is MISSING, FAILING, or WEAK")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
     
     args = parser.parse_args()
@@ -210,12 +244,14 @@ def main():
             print_table(results, current_head)
             
         if args.check:
-            # Check for MISSING, FAILING, or DRIFT (WEAK due to drift)
-            failed = [r for r in results if r["signal"] in ("MISSING", "FAILING") or r["relation"] == "DRIFT"]
+            # Check for MISSING, FAILING, or WEAK
+            # CONFIRMED and CONFIRMED* are allowed
+            failed = [r for r in results if r["signal"] in ("MISSING", "FAILING", "WEAK")]
             if failed:
                 if not args.json:
-                    print(f"\nCHECK FAILED: {len(failed)} proof(s) missing, failing, or drifted.", file=sys.stderr)
+                    print(f"\nCHECK FAILED: {len(failed)} proof(s) missing, failing, or weak.", file=sys.stderr)
                 sys.exit(1)
+
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
