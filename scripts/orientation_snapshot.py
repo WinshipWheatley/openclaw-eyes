@@ -268,7 +268,7 @@ def record_receipt(snapshot: Dict[str, Any], db_path: Optional[str] = None) -> b
 
     success = append_event(
         event_id=event_id,
-        event_type="orientation_snapshot",
+        event_type="orientation_snapshot_receipt",
         actor="orientation_snapshot_v0",
         operator_visible_summary=summary,
         replay_safe=True,
@@ -276,6 +276,13 @@ def record_receipt(snapshot: Dict[str, Any], db_path: Optional[str] = None) -> b
     )
 
     if success:
+        from business_ops_ledger import append_operator_explanation
+        append_operator_explanation(
+            summary=summary,
+            event_id=event_id,
+            safe_for_telegram=True,
+            db_path=db_path
+        )
         print(f"\n[Ledger] Receipt recorded: {event_id}")
     else:
         print("\n[Ledger] Error: Failed to record receipt.")

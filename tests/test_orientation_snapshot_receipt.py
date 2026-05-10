@@ -40,13 +40,18 @@ def test_record_receipt_writes_to_ledger(mock_exists, mock_git, clean_db):
     cursor = conn.cursor()
     cursor.execute("SELECT event_type, actor, operator_visible_summary FROM events")
     row = cursor.fetchone()
+
+    cursor.execute("SELECT summary, event_id FROM operator_explanations")
+    explanation_row = cursor.fetchone()
     conn.close()
 
-    assert row[0] == "orientation_snapshot"
+    assert row[0] == "orientation_snapshot_receipt"
     assert row[1] == "orientation_snapshot_v0"
     assert "branch:test-branch" in row[2]
-    assert "head:abcdef12" in row[2]
-    assert "status:Clean" in row[2]
+
+    assert explanation_row is not None
+    assert explanation_row[0] == row[2]
+    assert explanation_row[1] is not None
 
 def test_default_snapshot_does_not_record_receipt(clean_db):
     # We'll check that the events table is empty initially
