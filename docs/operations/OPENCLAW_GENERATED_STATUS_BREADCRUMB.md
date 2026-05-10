@@ -34,10 +34,14 @@ Generated status should clearly separate:
 4. **next_safe_move:** Recommended actions based on doctrine and current state.
 5. **visible_road_horizon:** Bounded near-term moves, stop boundary, and evidence required to extend the horizon.
 
+## Implementation Status
+- **Prototype Implemented**: `scripts/generate_operator_status.py` generates `Operator/GENERATED_CURRENT_STATE.md` and `Operator/GENERATED_NEXT_ACTIONS.md`.
+- **Evidence Sources**: git, SQLite ledger (orientation_snapshot_receipt), orientation contract.
+- **Verification**: `tests/test_generate_operator_status.py`.
+
 ## Stopping Boundaries
 This breadcrumb is for planning and direction only. It **does not** authorize:
-- Implementation of generation tools.
 - Scheduler writes or runtime mutations.
 - Ledger schema changes or broad database migrations.
 - Integration with Cassandra or Chief for automated status reporting.
-- Replacement of existing `CURRENT_STATE.md` or `NEXT_ACTIONS.md` files yet.
+- Deletion of existing legacy `CURRENT_STATE.md` or `NEXT_ACTIONS.md` files until the generated versions are fully promoted.
