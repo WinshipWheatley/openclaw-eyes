@@ -28,7 +28,8 @@ def test_ops_status_inquiry_triggers_deterministic_path():
          patch("cassandra_brain.is_focus_mode", return_value=False), \
          patch("cassandra_brain.is_social_mode", return_value=False), \
          patch("cassandra_brain._pii_tokenize", return_value=("safe prompt", MockPIIContext())), \
-         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r):
+         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
+         patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
 
         replies = handle(user_text)
 
@@ -68,6 +69,11 @@ def test_ops_status_missing_surfaces():
     "what did we just finish and what's next?",
     "I'm coming back in cold, orient me",
     "Hey Cassandra, I'm coming back in cold after a few hours away. Can you orient me and tell me what the move is?",
+    "I'm lost, orient me",
+    "what did we finish and what should I do next",
+    "been gone a while, where are we",
+    "what should I know before I keep going",
+    "Hey Cassandra, I've been away from my desk for a bit and I'm losing the thread of what we were doing with the ledger and the snapshot. Could you catch me up and give me the orientation status so I know where to pick up?",
 ])
 def test_fuzzy_status_intents_positive(query):
     """
@@ -79,7 +85,8 @@ def test_fuzzy_status_intents_positive(query):
          patch("cassandra_brain.is_focus_mode", return_value=False), \
          patch("cassandra_brain.is_social_mode", return_value=False), \
          patch("cassandra_brain._pii_tokenize", return_value=("safe", MockPIIContext())), \
-         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r):
+         patch("cassandra_brain._pii_rehydrate_reply", side_effect=lambda r, c: r), \
+         patch("cassandra_brain.record_cassandra_packet_event", return_value=123):
 
         replies = handle(query)
         assert mock_handle.called
@@ -92,6 +99,10 @@ def test_fuzzy_status_intents_positive(query):
     "what's the move for dinner?",
     "is the payment status clear?",
     "gmail status update",
+    "remind me to buy milk",
+    "what's for lunch?",
+    "Hey, what's up?", # Social/General greeting without OpenClaw context
+    "How's it going today?",
 ])
 def test_fuzzy_status_intents_negative(query, mock_state):
     """
