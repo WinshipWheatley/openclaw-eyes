@@ -14,8 +14,10 @@ Durable truth comes from receipts, tests, and committed source.
 - Orientation Snapshot v0 tool exists and is verified (read-only).
 - The current checkpoint may use the active handoff, but durable truth comes from committed repo docs/source, receipts, tests, and explicit operator promotions.
 
-## 2. Recent Proof Receipts
-- 2026-05-10 13:00 PASS manual_verification exit=0 head=5d8ba36e dirty=true
+## 2. Recent Verification Receipts
+Deterministic evidence proofs from the ledger (excludes status self-checks).
+- 2026-05-10 13:05 [PASS] polish_verification exit=0 head=ef935325 dirty=true
+- 2026-05-10 13:00 [PASS] manual_verification exit=0 head=5d8ba36e dirty=true
 
 > **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.
 

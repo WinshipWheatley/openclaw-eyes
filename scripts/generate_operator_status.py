@@ -70,8 +70,8 @@ def get_recent_proof_receipts(limit=5):
         cursor = conn.cursor()
         # Fetch more than limit to allow filtering out meta-checks
         cursor.execute("""
-            SELECT ts, operator_visible_summary 
-            FROM events 
+            SELECT ts, operator_visible_summary
+            FROM events
             WHERE event_type = 'test_proof_receipt'
             ORDER BY ts DESC LIMIT 20
         """)
@@ -84,11 +84,18 @@ def get_recent_proof_receipts(limit=5):
             # Filter out self-referential status checks to keep --check stable
             if "generated_status_check" in formatted:
                 continue
-            
+
             # Format: YYYY-MM-DD HH:MM [PASS/FAIL] label ...
             display_ts = ts.replace('T', ' ')[:16]
+
+            # Polish: Make status stand out
+            if formatted.startswith("PASS "):
+                formatted = "[PASS] " + formatted[5:]
+            elif formatted.startswith("FAIL "):
+                formatted = "[FAIL] " + formatted[5:]
+
             proofs.append(f"{display_ts} {formatted}")
-            
+
             if len(proofs) >= limit:
                 break
         return proofs
@@ -104,18 +111,19 @@ def generate_current_state(snapshot):
     for fact in snapshot['confirmed_current']:
         lines.append(f"- {fact}")
 
-    # Section 2: Recent Proof Receipts
+    # Section 2: Recent Verification Receipts
     proofs = snapshot.get('recent_proofs', [])
     lines.extend([
         "",
-        "## 2. Recent Proof Receipts",
+        "## 2. Recent Verification Receipts",
+        "Deterministic evidence proofs from the ledger (excludes status self-checks).",
     ])
     if proofs:
         for p in proofs:
             lines.append(f"- {p}")
     else:
-        lines.append("- No recent proof receipts found.")
-    
+        lines.append("- No recent verification receipts found.")
+
     lines.extend([
         "",
         "> **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.",

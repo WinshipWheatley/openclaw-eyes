@@ -24,7 +24,7 @@ def mock_snapshot():
             "Active Handoff: context"
         ],
         "recent_proofs": [
-            "2026-05-10 09:00 PASS static_contract_check exit=0 head=0de27a6f dirty=false"
+            "2026-05-10 09:00 [PASS] static_contract_check exit=0 head=0de27a6f dirty=false"
         ],
         "active_lane": "Hardening the spine.",
         "allowed_tools": "Reading files.",
@@ -45,18 +45,19 @@ def test_generate_current_state(mock_snapshot):
     assert "2026-05-10T10:00:00" not in output
     # The snapshot's head SHA (0de27a6f) is now allowed IF it appears in a proof
     assert "static_contract_check" in output
-    assert "0de27a6f" in output 
+    assert "0de27a6f" in output
     assert "Hardening the spine." in output
     assert "Lighter life." in output
     assert "Runtime Health" in output
-    assert "## 2. Recent Proof Receipts" in output
+    assert "## 2. Recent Verification Receipts" in output
+    assert "[PASS]" in output
     assert "2026-05-10 09:00" in output
 
 def test_generate_current_state_no_proofs(mock_snapshot):
     mock_snapshot["recent_proofs"] = []
     output = generate_current_state(mock_snapshot)
-    assert "## 2. Recent Proof Receipts" in output
-    assert "No recent proof receipts found." in output
+    assert "## 2. Recent Verification Receipts" in output
+    assert "No recent verification receipts found." in output
 
 def test_generate_next_actions(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
