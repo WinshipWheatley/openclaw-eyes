@@ -1,4 +1,4 @@
-<!-- 
+<!--
 GENERATED FILE - DO NOT EDIT MANUALLY
 This file is programmatically generated from repository evidence.
 Durable truth comes from receipts, tests, and committed source.
