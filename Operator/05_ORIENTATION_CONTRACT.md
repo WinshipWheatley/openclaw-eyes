@@ -59,7 +59,7 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
     Make daily life lighter without becoming hidden authority. The computer becomes a natural extension of the operator. The machine carries the weight; the operator keeps the crown.
 
 11. **What is the operator/Winship manifesto, and how do we implement it without drifting or faking progress with slop?**
-    Build with devotion to ideals, quality, and heart. Implementation must feel human, not corporate sludge. Avoid "No UI Before Grounding" and "No Live Surface Without Gates." Move with big, bounded strides on clear rails.
+    Build with devotion to ideals, quality, and heart. Implementation must feel human, not corporate sludge. Preserve grounding before UI. Preserve gates before live surfaces. Move with big, bounded strides on clear rails.
 
 ## Authority Rules
 - **Old chats are historical context, not authority.**
@@ -82,7 +82,7 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
 ## Anti-Drift Rules
 - **Stop the Slop**: Big bounded strides on clear rails. No micro-prompts for visible work.
 - **Implementation > Doctrine**: Stop writing once the rail is settled.
-- **No Fake Progress**: No UI before grounding. No live surface without gates. No stale steering from transient watch files.
+- **No Fake Progress**: Preserve grounding before UI. Preserve gates before live surfaces. No stale steering from transient watch files.
 
 ## Slop/Fake-Progress Warnings
 - If the work feels "floaty," return to the Operator Loop: Intent -> Evidence -> Covenant -> Visible Frame.

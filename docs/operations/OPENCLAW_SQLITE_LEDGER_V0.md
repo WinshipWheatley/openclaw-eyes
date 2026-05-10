@@ -16,12 +16,15 @@ The SQLite Ledger v0 serves as an append-only receipt layer for the Business Ops
 No raw sensitive data should enter the ledger. Use summaries, hashes, or boolean flags (`raw_sensitive_data_stored=False`) to indicate that sensitive data was handled elsewhere.
 
 ## Table Overview
-1.  **events**: Root table for every operator interaction.
+1.  **events**: Root table for every operator interaction. Includes `orientation_snapshot` events.
 2.  **packets**: Captures the `BusinessOpsPacket` snapshot (intent, actor, permitted capabilities).
 3.  **capability_decisions**: Explicit logs of which capabilities were allowed or forbidden.
 4.  **retrieval_receipts**: Logs data retrieval attempts (e.g., "Tried to fetch Gmail metadata").
 5.  **side_effects**: Logs external actions taken or proposed (e.g., "Drafted an email").
 6.  **operator_explanations**: Natural language summaries of what happened, safe for display to users.
+
+## Recording Receipts
+The Orientation Snapshot tool (`scripts/orientation_snapshot.py`) can record receipts to this ledger using the `--record` flag. This creates an `orientation_snapshot` event with a compact summary of the system state.
 
 ## Why Append-Only First?
 Append-only receipts ensure that we don't accidentally corrupt or overwrite historical audits. It simplifies the implementation and minimizes the risk of side effects on the core system.

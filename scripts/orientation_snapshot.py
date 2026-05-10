@@ -3,8 +3,17 @@ import subprocess
 import sqlite3
 import json
 import sys
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+# Import ledger functions
+try:
+    from business_ops_ledger import append_event, init_business_ops_ledger
+except ImportError:
+    # Handle cases where the script might be run from a different context
+    sys.path.append(os.getcwd())
+    from business_ops_ledger import append_event, init_business_ops_ledger
 
 # --- Configuration ---
 CONTRACT_PATH = "Operator/05_ORIENTATION_CONTRACT.md"
@@ -238,14 +247,54 @@ def render_markdown(snapshot: Dict[str, Any]):
     print("\n---\n*Status: READY_FOR_CHAT_GATED_PROMOTION*")
 
 
+def record_receipt(snapshot: Dict[str, Any], db_path: Optional[str] = None) -> bool:
+    """Records a safe, compact summary receipt to the Business Ops Ledger."""
+    init_business_ops_ledger(db_path)
+
+    ledger_info = get_ledger_status()
+    event_count = ledger_info.get("event_count", 0)
+
+    # Compact summary for the ledger
+    lane_preview = (snapshot["active_lane"][:50] + "...") if len(snapshot["active_lane"]) > 50 else snapshot["active_lane"]
+    summary = (
+        f"branch:{snapshot['where_are_we']['git_branch']} "
+        f"head:{snapshot['where_are_we']['git_head']} "
+        f"status:{snapshot['where_are_we']['git_status']} "
+        f"prev_events:{event_count} "
+        f"lane:{lane_preview}"
+    )
+
+    event_id = f"os_{uuid.uuid4().hex[:8]}"
+
+    success = append_event(
+        event_id=event_id,
+        event_type="orientation_snapshot",
+        actor="orientation_snapshot_v0",
+        operator_visible_summary=summary,
+        replay_safe=True,
+        db_path=db_path
+    )
+
+    if success:
+        print(f"\n[Ledger] Receipt recorded: {event_id}")
+    else:
+        print("\n[Ledger] Error: Failed to record receipt.")
+
+    return success
+
+
 def main():
     use_json = "--json" in sys.argv
+    record = "--record" in sys.argv
     snapshot = get_orientation_snapshot()
 
     if use_json:
         print(json.dumps(snapshot, indent=2))
     else:
         render_markdown(snapshot)
+
+    if record:
+        record_receipt(snapshot)
 
 
 if __name__ == "__main__":
