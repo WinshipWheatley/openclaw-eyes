@@ -25,6 +25,9 @@ def classify_business_ops_intent(query: str) -> IntentFrame:
     Deterministic intent classification based on keywords and phrases.
     """
     q = (query or "").lower().strip()
+    # Normalize curly apostrophes and strip common sentence-ending/prefix-separating punctuation
+    q = q.replace("’", "'").replace("‘", "'")
+    q = q.strip("?.!,").strip()
 
     # 1. User denial phrases (Highest priority)
     if any(phrase in q for phrase in ("no gmail", "no email", "no tools", "without gmail", "without email")):
