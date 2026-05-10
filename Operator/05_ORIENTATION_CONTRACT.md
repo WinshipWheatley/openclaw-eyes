@@ -42,7 +42,7 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
    - Credentials, tokens, and billing logic.
 
 8. **What is the next safe move?**
-   Complete the Orientation Contract v0, then build Orientation Snapshot v0 as a read-only status/orientation surface.
+   Commit Orientation Snapshot v0 after review.
 
 9. **How many moves ahead are clearly visible, what are they, and where does safe recommendation stop?**
    - **Visible moves**: Create Orientation Contract (1), Build read-only Orientation Snapshot v0 (2), then consider Cassandra `where are we?` wiring after snapshot proof (3).
