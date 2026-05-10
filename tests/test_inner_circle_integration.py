@@ -32,9 +32,9 @@ def stub_side_effects(monkeypatch, tmp_path):
     monkeypatch.setattr(cb, "_call", _smart_call)
     
     # Stub context fetchers
-    monkeypatch.setattr(cb, "_fetch_calendar_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cb, "_fetch_gmail_context", lambda query: "", raising=False)
-    monkeypatch.setattr(cb, "_fetch_contacts_context", lambda query: "", raising=False)
+    monkeypatch.setattr(cb, "_fetch_calendar_context", lambda query, **kwargs: "", raising=False)
+    monkeypatch.setattr(cb, "_fetch_gmail_context", lambda query, **kwargs: "", raising=False)
+    monkeypatch.setattr(cb, "_fetch_contacts_context", lambda query, **kwargs: "", raising=False)
     
     # Stub handlers that aren't under test
     # (using raising=False in case they are renamed or moved)
