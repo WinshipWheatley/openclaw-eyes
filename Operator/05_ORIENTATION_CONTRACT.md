@@ -15,7 +15,8 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
    - SQLite Ledger v0 exists, and Cassandra `handle()` is wired to record event/packet receipts.
    - Business Ops Packet v0 is defined for intent-based capability gating.
    - Operator Doctrine root files exist in `Operator/`.
-   - The current session state is grounded in the `Active Handoff` and repository evidence.
+   - Orientation Snapshot v0 tool exists and is verified (read-only).
+   - The current checkpoint may use the active handoff, but durable truth comes from committed repo docs/source, receipts, tests, and explicit operator promotions.
 
 4. **What is historical/non-authoritative?**
    - Old chats and model memory.
@@ -32,7 +33,7 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
 6. **What tools/capabilities are allowed?**
    - Repository-local file reading and surgical editing.
    - Shell commands for status, testing, and non-destructive operations.
-   - Business Ops Ledger append-only writes.
+   - Read-only repo inspection and test commands are allowed for Orientation Snapshot; ledger writes require a separate bounded lane.
    - Classification of intent via `operator_intent_core.py`.
 
 7. **What should not be touched?**
@@ -41,12 +42,18 @@ This is the five-second orientation contract for any participant in OpenClaw (Hu
    - External provider/model APIs without an Action Covenant.
    - Credentials, tokens, and billing logic.
 
-8. **What is the next safe move?**
-   Commit Orientation Snapshot v0 after review.
+8. What is the next safe move?
+   Review Orientation Snapshot v0 for five-second usefulness, then choose one bounded next lane:
+   1. taste-polish snapshot wording,
+   2. record snapshot summaries to SQLite Ledger in a later slice,
+   3. wire Cassandra "where are we?" to the snapshot after proof.
 
-9. **How many moves ahead are clearly visible, what are they, and where does safe recommendation stop?**
-   - **Visible moves**: Create Orientation Contract (1), Build read-only Orientation Snapshot v0 (2), then consider Cassandra `where are we?` wiring after snapshot proof (3).
-   - **Safe recommendation stops** before Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, or runtime/service changes.
+9. How many moves ahead are clearly visible, what are they, and where does safe recommendation stop?
+   - **Visible moves**:
+     1. Taste-polish Orientation Snapshot v0 wording until it is clear and durable.
+     2. Optionally record snapshot summaries to SQLite Ledger.
+     3. Consider Cassandra "where are we?" wiring after snapshot proof.
+   - **Safe recommendation stops** before Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, runtime/service changes, Mission Control UI implementation, or broad doctrine expansion.
 
 10. **What is the North Star?**
     Make daily life lighter without becoming hidden authority. The computer becomes a natural extension of the operator. The machine carries the weight; the operator keeps the crown.

@@ -100,13 +100,13 @@ def parse_markdown_section(content: str, search_text: str) -> str:
     # 2. Try as Numbered List Item (for the 11 questions)
     found = False
     for i, line in enumerate(lines):
-        # Look for "1. **Where are we?**" or similar
-        if search_text.lower() in line.lower() and (line.strip().startswith(tuple(f"{n}." for n in range(1, 13)))):
+        # Look for "1. **Where are we?**" or similar at the START of the line
+        if (line.startswith(tuple(f"{n}." for n in range(1, 13)))) and search_text.lower() in line.lower():
             found = True
             continue
         if found:
-            # Stop if we hit the next numbered item or a header
-            if line.strip().startswith(tuple(f"{n}." for n in range(1, 13))) or line.strip().startswith("#"):
+            # Stop if we hit the next numbered item (no indentation) or a header
+            if (line.startswith(tuple(f"{n}." for n in range(1, 13)))) or line.startswith("#"):
                 break
             section.append(line)
 
@@ -130,17 +130,30 @@ def get_orientation_snapshot() -> Dict[str, Any]:
     git_info = get_git_info()
     ledger_info = get_ledger_status()
 
-    # Try to find Active Handoff context
-    handoff_path = "docs/planning/project_packets/07_OPERATOR_HARNESS_PROMPT_DOCTRINE_AND_GATED_ACTIVATION/00_ACTIVE_HANDOFF.md"
+    # Try to find Active Handoff context dynamically
+    packets_dir = "docs/planning/project_packets"
     handoff_summary = "Not found"
-    if os.path.exists(handoff_path):
-        with open(handoff_path, "r") as f:
-            # Just take the first few lines of content
-            handoff_lines = f.readlines()
-            for line in handoff_lines:
-                if line.strip() and not line.startswith("#"):
-                    handoff_summary = line.strip()
+    if os.path.exists(packets_dir):
+        # Look for 00_ACTIVE_HANDOFF.md in subdirectories, sorted by name descending (highest number first)
+        packet_dirs = sorted([d for d in os.listdir(packets_dir) if os.path.isdir(os.path.join(packets_dir, d))], reverse=True)
+        for d in packet_dirs:
+            potential_handoff = os.path.join(packets_dir, d, "00_ACTIVE_HANDOFF.md")
+            if os.path.exists(potential_handoff):
+                with open(potential_handoff, "r") as f:
+                    handoff_lines = f.readlines()
+                    for line in handoff_lines:
+                        if line.strip() and not line.startswith("#"):
+                            handoff_summary = line.strip()
+                            break
+                if handoff_summary != "Not found":
                     break
+
+    # Parse confirmed facts from contract
+    contract_confirmed = parse_markdown_section(contract_content, "What is confirmed?")
+    confirmed_list = []
+    if contract_confirmed:
+        # Simple extraction of bullet points
+        confirmed_list = [line.strip("- ").strip() for line in contract_confirmed.splitlines() if line.strip().startswith("-")]
 
     snapshot = {
         "timestamp": datetime.now().isoformat(),
@@ -155,7 +168,7 @@ def get_orientation_snapshot() -> Dict[str, Any]:
             f"Git HEAD: {git_info['recent_commit']}",
             f"Ledger Status: {ledger_info['status']} ({ledger_info.get('event_count', 0)} events)",
             f"Active Handoff: {handoff_summary}"
-        ],
+        ] + confirmed_list,
         "historical_context": parse_markdown_section(contract_content, "What is historical/non-authoritative?"),
         "blocked_or_unknown": parse_markdown_section(contract_content, "What is blocked or unknown?"),
         "allowed_tools": parse_markdown_section(contract_content, "What tools/capabilities are allowed?"),
@@ -163,12 +176,12 @@ def get_orientation_snapshot() -> Dict[str, Any]:
         "next_safe_move": parse_markdown_section(contract_content, "What is the next safe move?"),
         "visible_road_horizon": {
             "visible_moves": [
-                "Commit Orientation Snapshot v0 after review",
-                "Optionally record snapshot summaries to SQLite Ledger in a later slice",
-                "Consider Cassandra `where are we?` wiring after snapshot proof"
+                "Taste-polish Orientation Snapshot v0 wording until it is clear and durable",
+                "Optionally record snapshot summaries to SQLite Ledger",
+                "Consider Cassandra \"where are we?\" wiring after snapshot proof"
             ],
             "branch_after": "Orientation Snapshot v0 proof results",
-            "unsafe_beyond": "Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, runtime/service changes, or Mission Control UI implementation"
+            "unsafe_beyond": "Chief Router ledger integration, HITL migration, retrieval receipts, side-effect receipts, runtime/service changes, Mission Control UI implementation, or broad doctrine expansion"
         },
         "north_star": parse_markdown_section(contract_content, "What is the North Star?"),
         "manifesto_posture": parse_markdown_section(contract_content, "What is the operator/Winship manifesto"),

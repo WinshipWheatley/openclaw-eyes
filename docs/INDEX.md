@@ -1,5 +1,9 @@
 # OpenClaw Documentation Index
 
+> **START HERE / Orientation**
+> Start with Orientation Snapshot: `python scripts/orientation_snapshot.py`
+> It gives the current repo/doctrine/ledger orientation and visible-road boundary. Do not infer live runtime state from it.
+
 Central entry point for OpenClaw knowledge, repository structure, and operational guides.
 
 ## Repository Law & Identity

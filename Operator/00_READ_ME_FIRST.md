@@ -1,5 +1,9 @@
 # 00 READ ME FIRST: Worker Orientation
 
+> **START HERE / Orientation**
+> Start with Orientation Snapshot: `python scripts/orientation_snapshot.py`
+> It gives the current repo/doctrine/ledger orientation and visible-road boundary. Do not infer live runtime state from it.
+
 ## Mission
 OpenClaw exists to make daily life lighter without becoming hidden authority.
 The computer becomes a natural extension of the operator.
