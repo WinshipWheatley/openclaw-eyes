@@ -19,7 +19,7 @@
 
 | Template Path | packet_type | Owner/Lane | required_receipts / expected_receipts | provenance_refs | Receipt Status | Known Writer / Evidence | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `templates/agent/action_intent_packet_template.json` | `agent.action_intent_packet` | Universal | `action_intent_gate_receipt` | [] | DECLARED_ONLY | - | Records intent evaluation only. |
+| `templates/agent/action_intent_packet_template.json` | `agent.action_intent_packet` | Universal | `action_intent_gate_receipt` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records intent evaluation only. |
 | `templates/agent/agent_intake_packet_template.json` | `agent.intake_packet` | Universal | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/cassandra_email_triage_packet_template.json` | `cassandra.email_triage_packet` | Cassandra | `email_triage_classification` | `gmail_thread_id` | WRITER_VERIFIED | `cassandra_email_triage.py` | Writes to JSONL, not SQLite. |
 | `templates/agent/cassandra_outreach_draft_packet_template.json` | `cassandra.outreach_draft_packet` | Cassandra | `outreach_email_draft_receipt` | `draft_id`, `thread_id` | DECLARED_ONLY | - | - |
@@ -81,9 +81,9 @@
 ### Universal agent intake/action
 - **Packet templates**: `agent_intake`, `action_intent`.
 - **Receipt expectations**: `action_intent_gate_receipt`.
-- **Writer terrain**: Not verified.
-- **SQLite terrain**: Not verified.
-- **Current status**: DECLARED_ONLY.
+- **Writer terrain**: `record_action_intent_gate_receipt` verified.
+- **SQLite terrain**: Verified in `events` and `packets` tables.
+- **Current status**: SQLITE_VERIFIED.
 
 ## Known Receipt Names
 

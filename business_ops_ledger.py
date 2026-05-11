@@ -315,3 +315,49 @@ def get_packet_summary(packet_id: str, db_path: str | None = None) -> Optional[d
     except Exception as e:
         logger.error(f"Failed to get packet summary: {e}")
         return None
+
+def record_action_intent_gate_receipt(
+    packet_id: str,
+    packet_type: str,
+    gate_result: str,
+    evaluation_summary: str,
+    actor: str = "OpenClaw",
+    db_path: str | None = None,
+    **kwargs: Any,
+) -> bool:
+    """
+    Records an action_intent_gate_receipt to the ledger.
+    This records the gate/evaluation handling only and does NOT imply execution.
+    """
+    import uuid
+    event_id = f"aig_{uuid.uuid4().hex[:8]}"
+
+    # 1. Append the base event
+    success = append_event(
+        event_id=event_id,
+        event_type="action_intent_gate_receipt",
+        actor=actor,
+        operator_visible_summary=evaluation_summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 2. Append the packet record for more structured lookup
+    packet_data = {
+        "packet_id": packet_id,
+        "packet_type": packet_type,
+        "intent_name": packet_type,
+        "request_category": "action_intent",
+        "actor_name": actor,
+        "execution_authority": 0,  # Explicit: no execution
+        "approval_required": kwargs.get("approval_required", 0),
+        "action_status": f"gate_{gate_result}",
+        "gate_result": gate_result,
+        "evaluation_summary": evaluation_summary,
+        "recorded_at": datetime.now().isoformat(),
+        "no_execution_without_approval": True,
+        **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

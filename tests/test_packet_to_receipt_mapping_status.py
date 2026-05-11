@@ -31,10 +31,10 @@ def test_mapping_doc_conservative_guarantees():
 def test_receipt_status_consistencies():
     content = read_mapping_doc()
     
-    # 1. action_intent_gate_receipt -> DECLARED_ONLY
+    # 1. action_intent_gate_receipt -> SQLITE_VERIFIED
     lines = get_lines_for_receipt(content, "action_intent_gate_receipt")
-    assert any("DECLARED_ONLY" in line for line in lines), \
-        "action_intent_gate_receipt must be marked DECLARED_ONLY in the mapping doc"
+    assert any("SQLITE_VERIFIED" in line for line in lines), \
+        "action_intent_gate_receipt must be marked SQLITE_VERIFIED in the mapping doc"
 
     # 2. approval_log_entry -> NOT SQLITE_VERIFIED
     lines = get_lines_for_receipt(content, "approval_log_entry")
