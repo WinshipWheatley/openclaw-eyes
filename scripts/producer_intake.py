@@ -1,6 +1,7 @@
 import argparse
 import sys
 import json
+from pathlib import Path
 import re
 
 # We will import the reviewer directly
@@ -62,8 +63,24 @@ def extract_constraints(text):
 
     return constraints
 
+def load_compiled_context():
+    context_path = Path("generated/producer/producer_compiled_context.json")
+    if not context_path.exists():
+        return {"used": False, "error": "File not found"}
+    try:
+        with open(context_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return {
+                "used": True,
+                "version": data.get("compiled_context_version", "unknown"),
+                "producer_identity_id": data.get("producer_identity", {}).get("id", "unknown")
+            }
+    except Exception as e:
+        return {"used": False, "error": str(e)}
+
 def build_producer_input(text):
     data = {
+        "compiled_context": load_compiled_context(),
         "artifact_type": "production_question",
         "title": "Untitled Producer Intake",
         "user_intent": text,

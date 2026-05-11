@@ -3,6 +3,14 @@ import json
 from scripts.producer_intake import build_producer_input, generate_human_response, generate_tool_intent_packet
 from scripts.producer_review import run_review
 
+def test_producer_intake_compiled_context():
+    data = build_producer_input("test")
+    assert "compiled_context" in data
+    ctx = data["compiled_context"]
+    assert ctx["used"] is True
+    assert ctx["version"] == "0.1"
+    assert ctx["producer_identity_id"] == "rhythm_governed_cinematic_alt_producer"
+
 def test_producer_intake_basic_parsing():
     text = "this chorus feels boring and I want it to hit harder but stay spacious"
     data = build_producer_input(text)
