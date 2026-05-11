@@ -19,7 +19,7 @@
 
 | Template Path | packet_type | Owner/Lane | required_receipts / expected_receipts | provenance_refs | Receipt Status | Known Writer / Evidence | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `templates/agent/action_intent_packet_template.json` | `agent.action_intent_packet` | Universal | `action_receipt_placeholder` | [] | DECLARED_ONLY | - | Uses placeholder. |
+| `templates/agent/action_intent_packet_template.json` | `agent.action_intent_packet` | Universal | `action_intent_gate_receipt` | [] | DECLARED_ONLY | - | Records intent evaluation only. |
 | `templates/agent/agent_intake_packet_template.json` | `agent.intake_packet` | Universal | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/cassandra_email_triage_packet_template.json` | `cassandra.email_triage_packet` | Cassandra | `email_triage_classification` | `gmail_thread_id` | WRITER_VERIFIED | `cassandra_email_triage.py` | Writes to JSONL, not SQLite. |
 | `templates/agent/cassandra_outreach_draft_packet_template.json` | `cassandra.outreach_draft_packet` | Cassandra | `outreach_email_draft_receipt` | `draft_id`, `thread_id` | DECLARED_ONLY | - | - |
@@ -80,10 +80,10 @@
 
 ### Universal agent intake/action
 - **Packet templates**: `agent_intake`, `action_intent`.
-- **Receipt expectations**: `action_receipt_placeholder`.
+- **Receipt expectations**: `action_intent_gate_receipt`.
 - **Writer terrain**: Not verified.
 - **SQLite terrain**: Not verified.
-- **Current status**: DECLARED_ONLY (with placeholders).
+- **Current status**: DECLARED_ONLY.
 
 ## Known Receipt Names
 
@@ -103,23 +103,24 @@
 - (None currently declared)
 
 ### Universal/Intake
-- (None currently declared)
-
-### Placeholders Needing Replacement
-- `action_receipt_placeholder` (In `action_intent_packet_template.json`)
+- `action_intent_gate_receipt` (In `action_intent_packet_template.json`)
 
 ## Risks
 - **Template declaration mistaken for durable truth**: Agents may claim a receipt is "required" without any runtime code actually enforcing or writing it.
-- **Placeholder receipt names fossilizing**: Using `action_receipt_placeholder` in templates may lead to it being used in actual packets if not caught by tests.
+- **Non-deterministic receipt names**: If agents or scripts invent receipt names that are not in the mapping table, the deterministic spine is weakened.
 - **Duplicate receipt names across ledgers**: Lack of a central registry could lead to name collisions.
 - **Generated read-models consuming partial terrain**: Read-models might only look for `test_proof_receipt` and miss other valid evidence.
 - **Sensitive-data receipt leakage**: Receipts might inadvertently store PII if not properly gated (see `pii_vault_record` intent).
 - **Map Room overclaiming terrain**: Navigational maps might claim the system is "RECEIPTED" when only templates exist.
 
 ## Recommended Next Slice
-**B. Add tests that reject placeholder receipt names except in explicitly legacy/deferred templates.**
+**Read-only receipt writer audit for declared receipt names.**
 
-**Rationale**: Preventing the "fossilization" of placeholders like `action_receipt_placeholder` is the highest priority for maintaining a clean deterministic spine. Wiring (D) or replacement (A) is premature until the validation gates (B) are in place to prevent regression.
+**Rationale**: The mapping now distinguishes declared receipt expectations from verified terrain. The next safe move is to inspect actual writer paths for `approval_log_entry`, `approval_request_record`, `outreach_email_draft_receipt`, and `pii_vault_record` before adding runtime wiring or claiming SQLite-backed receipt status.
+
+## Completed Gates
+- **Placeholder Rejection**: `tests/test_packet_template_receipt_provenance_fields.py` now rejects all placeholder/stub/todo/tbd receipt names.
+- **Doctrine Alignment**: `action_receipt_placeholder` replaced with `action_intent_gate_receipt`.
 
 ## Do Not Build Yet
 - Broad RAG ingestion

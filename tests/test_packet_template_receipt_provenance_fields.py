@@ -140,7 +140,6 @@ def test_advisory_and_intake_templates_posture():
 def test_no_placeholder_receipts():
     """
     Fail if any receipt name contains obvious placeholder/stub/todo language.
-    Exception: action_receipt_placeholder in action_intent_packet_template.json (with boundary_notes check).
     """
     placeholders = ["placeholder", "stub", "todo", "tbd", "example", "dummy"]
     templates = get_all_templates()
@@ -158,27 +157,12 @@ def test_no_placeholder_receipts():
                 all_receipts.extend(data[field])
 
         for receipt in all_receipts:
-            is_legacy_exception = (
-                path.name == "action_intent_packet_template.json" and
-                receipt == "action_receipt_placeholder"
-            )
-
-            if is_legacy_exception:
-                # Validate boundary_notes clarification
-                notes = data.get("boundary_notes", "").lower()
-                required_clarification = "legacy/deferred placeholder"
-                assert required_clarification in notes, \
-                    f"Template {path.name} uses action_receipt_placeholder but boundary_notes lack clarification"
-
-                # Ensure no other template uses it
-                continue
-
             # Fail if any placeholder keyword is in the receipt name
             for p in placeholders:
                 assert p not in receipt.lower(), \
                     f"Template {path.name} contains placeholder receipt: {receipt} (matched '{p}')"
 
-        # Explicit check: no other template may contain action_receipt_placeholder
-        if path.name != "action_intent_packet_template.json":
-            assert "action_receipt_placeholder" not in all_receipts, \
-                f"Template {path.name} uses action_receipt_placeholder (only allowed in action_intent_packet_template.json)"
+        # Explicit check: action_intent_packet_template.json must use action_intent_gate_receipt
+        if path.name == "action_intent_packet_template.json":
+            assert "action_intent_gate_receipt" in all_receipts, \
+                f"Template {path.name} must use action_intent_gate_receipt"

@@ -20,13 +20,13 @@
   "chief_execution_required": true,
   "evidence_required_before_execution": [],
   "required_receipts": [
-    "action_receipt_placeholder"
+    "action_intent_gate_receipt"
   ],
   "expected_receipts": [
-    "action_receipt_placeholder"
+    "action_intent_gate_receipt"
   ],
   "provenance_refs": [],
-  "boundary_notes": "This packet proposes intent and does not execute. Approval required. `action_receipt_placeholder` is a legacy/deferred placeholder and must be replaced with a specific receipt name before runtime use.",
+  "boundary_notes": "This packet proposes intent and does not execute. `action_intent_gate_receipt` records gate/evaluation handling only; it does not prove runtime execution.",
   "reversible": false,
   "no_execution_without_approval": true
 }
