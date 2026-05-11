@@ -1,0 +1,32 @@
+{
+  "contract_version": "0.1",
+  "packet_type": "chief.acceptance_verdict_packet",
+  "packet_id": "",
+  "created_at": "",
+  "source_basis": "chief_acceptance_gate.py",
+  "status": "BUILT_BEHAVIOR_IMPLIED_PACKET_NOT_FORMALIZED",
+  "owner_lane": "chief",
+  "input_evidence": {
+    "task_name": "",
+    "pass_number": "",
+    "planner_verdict": "",
+    "pc_output_summary": "",
+    "harness_manifest_ref": ""
+  },
+  "output": {
+    "verdict": "",
+    "evidence_summary": ""
+  },
+  "allowed_actions": [
+    "approve_completion_signal",
+    "request_rework"
+  ],
+  "blocked_actions": [
+    "mark_done_without_evidence",
+    "override_guardian_operator_or_proof_requirements",
+    "llm_override_policy"
+  ],
+  "required_receipts": [],
+  "provenance_refs": [],
+  "boundary_notes": "Acceptance verdict based on task evidence. Verdict must be one of: APPROVE, REWORK, INSUFFICIENT_EVIDENCE."
+}

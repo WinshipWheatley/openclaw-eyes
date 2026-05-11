@@ -1,0 +1,35 @@
+{
+  "contract_version": "0.1",
+  "packet_type": "chief.approval_decision_packet",
+  "packet_id": "",
+  "created_at": "",
+  "source_basis": "chief_approval_brain.py",
+  "status": "BUILT_BEHAVIOR_IMPLIED_PACKET_NOT_FORMALIZED",
+  "owner_lane": "chief",
+  "input_evidence": {
+    "action_intent_ref": "",
+    "risk_tier": "",
+    "operator_decision": ""
+  },
+  "output": {
+    "guardian_required": true,
+    "guardian_response_ref": "",
+    "hmac_action_hash": "",
+    "decision_timestamp": ""
+  },
+  "allowed_actions": [
+    "record_decision",
+    "signal_execution_lane_after_approval"
+  ],
+  "blocked_actions": [
+    "modify_action_after_approval",
+    "bypass_guardian_for_tier_2",
+    "approve_without_receipt",
+    "llm_override_policy"
+  ],
+  "required_receipts": [
+    "approval_log_entry"
+  ],
+  "provenance_refs": [],
+  "boundary_notes": "Approval decision record. Requires durable receipt."
+}
