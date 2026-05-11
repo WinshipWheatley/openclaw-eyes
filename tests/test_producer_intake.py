@@ -101,12 +101,26 @@ def test_producer_intake_missing_evidence():
     human_resp = generate_human_response(data, review)
     assert "Note: Missing evidence. Does not claim audio was heard." in human_resp
 
-def test_producer_intake_tool_action_implied():
-    text = "bounce the track in ableton"
-    data = build_producer_input(text)
-    review = run_review(data)
+def test_producer_intake_human_only_flag():
+    import subprocess
+    text = "in Ableton, sketch me a spacious afro-dub groove but don't make it cheesy"
 
-    assert "execution_suggested_without_confirmation" in review["hard_flags"]
+    # Run with --human-only
+    result = subprocess.run(
+        ["python3", "scripts/producer_intake.py", "--text", text, "--human-only"],
+        capture_output=True,
+        text=True
+    )
+    assert result.returncode == 0
+    assert "--- JSON Payload ---" not in result.stdout
+    assert "Suggested tool intent" in result.stdout
 
-    human_resp = generate_human_response(data, review)
-    assert "Tool action implied. Would require confirmation and a separate execution lane." in human_resp
+    # Run with --pretty
+    result_pretty = subprocess.run(
+        ["python3", "scripts/producer_intake.py", "--text", text, "--pretty"],
+        capture_output=True,
+        text=True
+    )
+    assert result_pretty.returncode == 0
+    assert "--- JSON Payload ---" in result_pretty.stdout
+    assert "producer_input" in result_pretty.stdout

@@ -214,6 +214,7 @@ def main():
     group.add_argument("--file", help="Path to text file containing request")
     parser.add_argument("--pretty", action="store_true", help="Format JSON output and print text")
     parser.add_argument("--json-only", action="store_true", help="Only output JSON")
+    parser.add_argument("--human-only", action="store_true", help="Only output human readable text, no JSON")
     args = parser.parse_args()
 
     if args.file:
@@ -243,6 +244,8 @@ def main():
             print(json.dumps(output_payload, indent=2))
         else:
             print(json.dumps(output_payload))
+    elif args.human_only:
+        print(generate_human_response(producer_input, review, tool_packet))
     else:
         human_text = generate_human_response(producer_input, review, tool_packet)
         if args.pretty:
