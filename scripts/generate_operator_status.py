@@ -73,7 +73,7 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         cursor.execute("""
             SELECT ts, event_type, operator_visible_summary
             FROM events
-            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry')
+            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry', 'approval_request_record')
             ORDER BY ts DESC LIMIT 20
         """)
         rows = cursor.fetchall()
@@ -95,6 +95,14 @@ def get_recent_proof_receipts(limit=5, db_path=None):
             if etype == 'approval_log_entry':
                 # Format: YYYY-MM-DD HH:MM [APPROVAL_RECORD] [SQLITE_VERIFIED] summ_raw (No Execution)
                 formatted = f"[APPROVAL_RECORD] [SQLITE_VERIFIED] {summ_raw} (No Execution)"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
+
+            if etype == 'approval_request_record':
+                # Format: YYYY-MM-DD HH:MM [APPROVAL_REQUEST] [SQLITE_VERIFIED] summ_raw (No Decision/No Execution)
+                formatted = f"[APPROVAL_REQUEST] [SQLITE_VERIFIED] {summ_raw} (No Decision/No Execution)"
                 proofs.append(f"{display_ts} {formatted}")
                 if len(proofs) >= limit:
                     break

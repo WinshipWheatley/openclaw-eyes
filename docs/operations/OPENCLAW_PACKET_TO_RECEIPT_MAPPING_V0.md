@@ -29,7 +29,7 @@
 | `templates/agent/chief_approval_decision_packet_template.json` | `chief.approval_decision_packet` | Chief | `approval_log_entry` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval decision only; does not prove execution. |
 | `templates/agent/chief_routing_decision_packet_template.json` | `chief.routing_decision_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/guardian_approval_decision_packet_template.json` | `guardian.approval_decision_packet` | Guardian | `approval_log_entry` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval decision only; does not prove execution. |
-| `templates/agent/guardian_approval_request_packet_template.json` | `guardian.approval_request_packet` | Guardian | `approval_request_record` | [] | DECLARED_ONLY | - | - |
+| `templates/agent/guardian_approval_request_packet_template.json` | `guardian.approval_request_packet` | Guardian | `approval_request_record` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval request only; does not prove decision, execution, or operator acknowledgement. |
 | `templates/agent/hermes_advisory_output_memo_template.json` | `hermes.advisory_output_memo` | Hermes | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/hermes_advisory_packet_template.json` | `hermes.advisory_packet` | Hermes | [] | [] | DECLARED_ONLY | - | - |
 | `templates/producer/producer_review_template.json` | `producer.review_packet` | Producer | [] | [] | DECLARED_ONLY | - | - |

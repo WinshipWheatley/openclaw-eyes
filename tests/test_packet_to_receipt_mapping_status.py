@@ -41,11 +41,10 @@ def test_receipt_status_consistencies():
     assert any("SQLITE_VERIFIED" in line for line in lines), \
         "approval_log_entry must be marked SQLITE_VERIFIED in the mapping doc"
 
-    # 3. approval_request_record -> NOT SQLITE_VERIFIED
+    # 3. approval_request_record -> SQLITE_VERIFIED
     lines = get_lines_for_receipt(content, "approval_request_record")
-    for line in lines:
-        assert "SQLITE_VERIFIED" not in line, \
-            f"approval_request_record must not be marked SQLITE_VERIFIED: {line}"
+    assert any("SQLITE_VERIFIED" in line for line in lines), \
+        "approval_request_record must be marked SQLITE_VERIFIED in the mapping doc"
 
     # 4. outreach_email_draft_receipt -> NOT SQLITE_VERIFIED
     lines = get_lines_for_receipt(content, "outreach_email_draft_receipt")

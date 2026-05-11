@@ -362,6 +362,7 @@ def record_action_intent_gate_receipt(
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
 
+
 def record_approval_log_entry(
     packet_id: str,
     packet_type: str,
@@ -403,6 +404,63 @@ def record_approval_log_entry(
         "request_id": request_id,
         "action_status": "approval_decision_recorded",
         "decision_record_only": True,
+        "execution_recorded": False,
+        "mutation_recorded": False,
+        "no_execution_recorded": True,
+        "execution_authority": 0,  # Explicit: no execution
+        "recorded_at": datetime.now().isoformat(),
+        **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+
+def record_approval_request_record(
+    packet_id: str,
+    packet_type: str,
+    approval_id: str,
+    approval_request_summary: str,
+    requester_agent: str,
+    action_intent_ref: str | None = None,
+    risk_tier: str | None = None,
+    db_path: str | None = None,
+    **kwargs: Any,
+) -> bool:
+    """
+    Records an approval_request_record to the ledger.
+    This records the formal request only and does NOT imply a decision or execution.
+    """
+    import uuid
+    from datetime import datetime
+    event_id = f"arr_{uuid.uuid4().hex[:8]}"
+
+    # 1. Append the base event
+    success = append_event(
+        event_id=event_id,
+        event_type="approval_request_record",
+        actor=requester_agent,
+        operator_visible_summary=approval_request_summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 2. Append the packet record
+    packet_data = {
+        "packet_id": packet_id,
+        "packet_type": packet_type,
+        "intent_name": packet_type,
+        "receipt_type": "approval_request_record",
+        "approval_id": approval_id,
+        "action_intent_ref": action_intent_ref,
+        "risk_tier": risk_tier,
+        "requester_agent": requester_agent,
+        "approval_request_summary": approval_request_summary,
+        "action_status": "approval_request_recorded",
+        "request_status": "approval_request_recorded",
+        "decision_status": "no_decision_recorded",
+        "decision_recorded": False,
+        "decision_record_only": False,
         "execution_recorded": False,
         "mutation_recorded": False,
         "no_execution_recorded": True,

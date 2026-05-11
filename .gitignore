@@ -562,3 +562,4 @@
 !tests/test_packet_to_receipt_mapping_status.py
 !tests/test_action_intent_gate_receipt.py
 !tests/test_approval_log_entry.py
+!tests/test_approval_request_record.py
