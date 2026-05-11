@@ -1,4 +1,7 @@
 {
+  "packet_type": "producer.review_packet",
+  "packet_id": "",
+  "contract_version": "0.1",
   "producer_contract_version": "0.1",
   "review_id": "",
   "artifact_type": "",
@@ -46,6 +49,10 @@
     "questions_for_agent": []
   },
   "optional_tool_intent_packet": null,
+  "input_evidence": [],
+  "required_receipts": [],
+  "provenance_refs": [],
+  "boundary_notes": "Producer/Niles review is judgment/suggestion only and does not mutate DAW/hardware/audio state.",
   "confidence": "low",
   "no_side_effects": true
 }
