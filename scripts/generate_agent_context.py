@@ -28,10 +28,11 @@ class AgentContextAssembler:
         except Exception:
             return "unknown"
 
-    def get_verified_receipts(self) -> List[Dict[str, Any]]:
+    def get_verified_receipt_rows(self) -> List[Dict[str, Any]]:
         """
-        Queries the ledger for SQLITE_VERIFIED receipts.
-        Focuses on action_intent_gate_receipt, approval_request_record, and approval_log_entry.
+        Queries the ledger for SQLITE_VERIFIED receipt instances.
+        Includes action_intent_gate_receipt, approval_request_record, approval_log_entry,
+        orientation_snapshot_receipt, and test_proof_receipt.
         """
         if not os.path.exists(self.db_path):
             return []
@@ -42,16 +43,16 @@ class AgentContextAssembler:
             conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
             cursor = conn.cursor()
             
-            # Query for the three verified receipt types
-            # We join with packets to get the execution_authority field if possible,
-            # but for v0 we focus on the truth labels.
+            # Query for the SQLITE_VERIFIED receipt types
             cursor.execute("""
                 SELECT ts, event_type, operator_visible_summary
                 FROM events
                 WHERE event_type IN (
                     'action_intent_gate_receipt',
                     'approval_request_record',
-                    'approval_log_entry'
+                    'approval_log_entry',
+                    'orientation_snapshot_receipt',
+                    'test_proof_receipt'
                 )
                 ORDER BY ts DESC LIMIT 10
             """)
@@ -73,6 +74,10 @@ class AgentContextAssembler:
                     receipt["decision"] = False
                 elif etype == "approval_log_entry":
                     receipt["truth"] = "approval decision recorded only"
+                elif etype == "orientation_snapshot_receipt":
+                    receipt["truth"] = "orientation terrain recorded only"
+                elif etype == "test_proof_receipt":
+                    receipt["truth"] = "test/proof terrain recorded only"
                 
                 receipts.append(receipt)
                 
@@ -90,7 +95,14 @@ class AgentContextAssembler:
             "actor_id": "cassandra",
             "purpose": "orientation_only",
             "source_commit": self.get_git_head(),
-            "verified_receipts": self.get_verified_receipts(),
+            "verified_capability_types": [
+                "action_intent_gate_receipt",
+                "approval_request_record",
+                "approval_log_entry",
+                "orientation_snapshot_receipt",
+                "test_proof_receipt"
+            ],
+            "verified_receipt_rows": self.get_verified_receipt_rows(),
             "allowed_context": {
                 "orientation": True,
                 "receipt_spine_status": True

@@ -37,7 +37,14 @@ def test_cassandra_packet_generation_basic():
     assert packet["actor_id"] == "cassandra"
     assert packet["purpose"] == "orientation_only"
     assert "source_commit" in packet
-    assert packet["verified_receipts"] == []
+    assert packet["verified_capability_types"] == [
+        "action_intent_gate_receipt",
+        "approval_request_record",
+        "approval_log_entry",
+        "orientation_snapshot_receipt",
+        "test_proof_receipt"
+    ]
+    assert packet["verified_receipt_rows"] == []
     assert packet["authority"]["execution_authority"] == 0
     assert packet["authority"]["context_packet_only"] is True
 
@@ -57,28 +64,40 @@ def test_cassandra_packet_includes_receipts(clean_db):
         INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
         VALUES (?, ?, ?, ?, ?)
     """, ("ev3", "2026-05-11T10:10:00", "approval_log_entry", "tester", "Approved"))
+    cursor.execute("""
+        INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+        VALUES (?, ?, ?, ?, ?)
+    """, ("ev4", "2026-05-11T10:15:00", "orientation_snapshot_receipt", "tester", "Snapshot"))
+    cursor.execute("""
+        INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+        VALUES (?, ?, ?, ?, ?)
+    """, ("ev5", "2026-05-11T10:20:00", "test_proof_receipt", "tester", "Proof"))
     conn.commit()
     conn.close()
 
     assembler = AgentContextAssembler(db_path=clean_db)
     packet = assembler.assemble_cassandra_orientation_packet()
     
-    receipts = packet["verified_receipts"]
-    assert len(receipts) == 3
+    rows = packet["verified_receipt_rows"]
+    assert len(rows) == 5
     
     # Ordered by ts DESC in the query
-    assert receipts[0]["receipt_type"] == "approval_log_entry"
-    assert receipts[1]["receipt_type"] == "approval_request_record"
-    assert receipts[2]["receipt_type"] == "action_intent_gate_receipt"
+    assert rows[0]["receipt_type"] == "test_proof_receipt"
+    assert rows[1]["receipt_type"] == "orientation_snapshot_receipt"
+    assert rows[2]["receipt_type"] == "approval_log_entry"
+    assert rows[3]["receipt_type"] == "approval_request_record"
+    assert rows[4]["receipt_type"] == "action_intent_gate_receipt"
     
     # Check truth labels
-    assert receipts[2]["truth"] == "gate/evaluation handling recorded only"
-    assert receipts[1]["truth"] == "approval request formally recorded only"
-    assert receipts[1]["decision"] is False
-    assert receipts[0]["truth"] == "approval decision recorded only"
+    assert rows[4]["truth"] == "gate/evaluation handling recorded only"
+    assert rows[3]["truth"] == "approval request formally recorded only"
+    assert rows[3]["decision"] is False
+    assert rows[2]["truth"] == "approval decision recorded only"
+    assert rows[1]["truth"] == "orientation terrain recorded only"
+    assert rows[0]["truth"] == "test/proof terrain recorded only"
     
     # Check non-execution
-    for r in receipts:
+    for r in rows:
         assert r["execution"] is False
 
 def test_cassandra_packet_enforces_boundaries():
