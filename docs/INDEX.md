@@ -37,6 +37,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Business Ops Ledger Inspection](./operations/OPENCLAW_SQLITE_LEDGER_V0.md#inspection-cli) — Guide for using the read-only CLI to audit execution receipts.
 - [Business Ops Receipt Taxonomy v0](./operations/OPENCLAW_RECEIPT_TAXONOMY_V0.md) — Definitive taxonomy and safety boundaries for durable evidence records.
 - [**Agent Intake and Action Intent Contract v0**](./operations/OPENCLAW_AGENT_INTAKE_AND_ACTION_INTENT_CONTRACT_V0.md) — Universal pattern for intake, decision, and gating intent.
+- [**Agent Packet Doctrine Inventory v0**](./operations/OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md) — Repo-grounded inventory of active, proposed, and doctrine-only agent packets.
 - [**Test/Proof Receipts v0**](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.
 - [**Evidence Sufficiency Map v0**](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
 - [**Morning Brief Proof Chain v0**](./operations/OPENCLAW_MORNING_BRIEF_PROOF_CHAIN_V0.md) — Architectural guidance for building deterministic morning briefs from evidence layers.

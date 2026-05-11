@@ -123,7 +123,7 @@ Implemented MCP hardening note: `.mcp.json` now defaults filesystem MCP access t
 | Dashboard/report surfaces | INFERRED FROM CODE/DOCS: deterministic dashboard/report snapshot. | Raw private logs, full correspondence, secrets, service control, write authority, and model-facing broad context dumps. | Operator/report schedule requests a bounded display artifact. | Snapshot builder limits, redaction/bounded-excerpt rules, read-only report policy, and future structured snapshot schema. | Markdown dashboard/report, bounded snapshot metadata, source list, and redaction note. |
 | MCP/skills/tool disclosure | INFERRED FROM CODE/DOCS: narrow tool/skill manifest or selected skill view before tool expansion. | Broad filesystem roots, vaults, logs, private sessions, messaging sends, terminal/process tools, external MCP/plugin discovery, and provider fallback. | Explicit lane-specific need for a tool, skill, or MCP surface after first packet review. | Toolset allowlist, skill vetting, OpenClaw gateway/lab policy, provider disablement, and future `.mcp.json` hardening. | Tool disclosure manifest, selected skill record, denied-surface reason, MCP audit note, or approval record. |
 
-Contract rule: if a lane cannot name its first packet, withheld surfaces, unlock trigger, gate, and artifact, it should stay in read-only/advisory mode until those fields are explicit and reviewed.
+Contract rule: if a lane cannot name its first packet, withheld surfaces, unlock trigger, gate, and artifact, it should stay in read-only/advisory mode until those fields are explicit and reviewed. See [Agent Packet Doctrine Inventory v0](./OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md) for the current state of these surfaces.
 
 ## Integration Readiness Batch -- 2026-04-30
 
