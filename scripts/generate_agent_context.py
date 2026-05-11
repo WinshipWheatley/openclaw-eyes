@@ -254,6 +254,79 @@ class AgentContextAssembler:
             }
         }
 
+    def assemble_niles_producer_packet(self) -> Dict[str, Any]:
+        """Assembles the v0 Niles producer context packet."""
+
+        return {
+            "substrate_version": "v0",
+            "actor_id": "niles",
+            "purpose": "creative_orientation_only",
+            "source_commit": self.get_git_head(),
+            "producer_context": {
+                "six_pillars": [
+                    "Rhythmic Spine",
+                    "Spatial Cinematic Architecture",
+                    "Controlled Chaos / Emotional Rawness",
+                    "Polished Indie Illusion",
+                    "Mythic + Social Lyricism",
+                    "Healing Dance Transcendence"
+                ],
+                "reference_extraction_principle": "Reference Extraction Principle: References are used to extract functions, techniques, and qualities, not to imitate artists. Goal is synthesis, not mimicry.",
+                "artifact_types": [
+                    "lyric", "song_brief", "arrangement_map", "mix_notes", "ableton_clip_summary",
+                    "logic_project_summary", "daw_session_summary", "plugin_chain_summary",
+                    "hardware_routing_summary", "demo_review", "setlist", "production_question"
+                ],
+                "suggested_moves": [
+                    "add_arrival_point_without_clutter",
+                    "widen_delay_return_preserve_vocal_clarity",
+                    "sketch_spacious_groove_suggestion_only",
+                    "production_optimization_suggestion"
+                ]
+            },
+            "verified_capability_types": [
+                "action_intent_gate_receipt",
+                "approval_request_record",
+                "approval_log_entry",
+                "orientation_snapshot_receipt",
+                "test_proof_receipt"
+            ],
+            "verified_receipt_rows": self.get_verified_receipt_rows(),
+            "allowed_context": {
+                "creative_critique": True,
+                "pillar_alignment_review": True,
+                "reference_extraction_analysis": True,
+                "artifact_review": True,
+                "taste_governor_framing": True
+            },
+            "blocked_context": {
+                "daw_live_state": True,
+                "hardware_live_state": True,
+                "ableton_execution": True,
+                "logic_execution": True,
+                "audio_analysis_claims": True,
+                "file_mutation": True,
+                "gmail": True,
+                "pii": True,
+                "outreach": True,
+                "legal_sensitive_data": True,
+                "business_sensitive_data": True,
+                "runtime_execution": True,
+                "runtime_mutation": True,
+                "send_authority": True,
+                "self_permission_expansion": True
+            },
+            "authority": {
+                "execution_authority": 0,
+                "mutation_authority": 0,
+                "approval_authority": 0,
+                "daw_execution_authority": 0,
+                "hardware_authority": 0,
+                "recommendation_only": True,
+                "context_packet_only": True
+            }
+        }
+
 def main():
     assembler = AgentContextAssembler()
 
@@ -265,6 +338,8 @@ def main():
         actor = "chief"
     elif "--guardian" in sys.argv:
         actor = "guardian"
+    elif "--niles" in sys.argv:
+        actor = "niles"
     elif "--actor" in sys.argv:
         try:
             idx = sys.argv.index("--actor")
@@ -281,8 +356,11 @@ def main():
     elif actor == "guardian":
         packet = assembler.assemble_guardian_safety_packet()
         print(json.dumps(packet, indent=2))
+    elif actor == "niles":
+        packet = assembler.assemble_niles_producer_packet()
+        print(json.dumps(packet, indent=2))
     else:
-        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --guardian | --actor [cassandra|chief|guardian]")
+        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --guardian | --niles | --actor [cassandra|chief|guardian|niles]")
         sys.exit(1)
 
 if __name__ == "__main__":

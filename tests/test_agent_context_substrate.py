@@ -274,3 +274,58 @@ def test_guardian_packet_enforces_boundaries():
     assert allowed["approval_request_review"] is True
     assert allowed["approval_decision_review"] is True
     assert allowed["truth_label_verification"] is True
+
+def test_niles_packet_generation_basic():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_niles_producer_packet()
+
+    assert packet["substrate_version"] == "v0"
+    assert packet["actor_id"] == "niles"
+    assert packet["purpose"] == "creative_orientation_only"
+    assert "source_commit" in packet
+
+    # Producer Context
+    prod = packet["producer_context"]
+    assert len(prod["six_pillars"]) == 6
+    assert "Rhythmic Spine" in prod["six_pillars"]
+    assert "Reference Extraction Principle" in prod["reference_extraction_principle"]
+    assert "lyric" in prod["artifact_types"]
+    assert "add_arrival_point_without_clutter" in prod["suggested_moves"]
+
+    # Authority check
+    auth = packet["authority"]
+    assert auth["execution_authority"] == 0
+    assert auth["mutation_authority"] == 0
+    assert auth["approval_authority"] == 0
+    assert auth["daw_execution_authority"] == 0
+    assert auth["hardware_authority"] == 0
+    assert auth["recommendation_only"] is True
+    assert auth["context_packet_only"] is True
+
+def test_niles_packet_enforces_boundaries():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_niles_producer_packet()
+
+    blocked = packet["blocked_context"]
+    assert blocked["daw_live_state"] is True
+    assert blocked["hardware_live_state"] is True
+    assert blocked["ableton_execution"] is True
+    assert blocked["logic_execution"] is True
+    assert blocked["audio_analysis_claims"] is True
+    assert blocked["file_mutation"] is True
+    assert blocked["gmail"] is True
+    assert blocked["pii"] is True
+    assert blocked["outreach"] is True
+    assert blocked["legal_sensitive_data"] is True
+    assert blocked["business_sensitive_data"] is True
+    assert blocked["runtime_execution"] is True
+    assert blocked["runtime_mutation"] is True
+    assert blocked["send_authority"] is True
+    assert blocked["self_permission_expansion"] is True
+
+    allowed = packet["allowed_context"]
+    assert allowed["creative_critique"] is True
+    assert allowed["pillar_alignment_review"] is True
+    assert allowed["reference_extraction_analysis"] is True
+    assert allowed["artifact_review"] is True
+    assert allowed["taste_governor_framing"] is True
