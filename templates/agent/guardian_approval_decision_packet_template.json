@@ -1,0 +1,37 @@
+{
+  "contract_version": "0.1",
+  "packet_type": "guardian.approval_decision_packet",
+  "packet_id": "",
+  "created_at": "",
+  "source_basis": "chief_guardian_listener.py",
+  "status": "BUILT_BEHAVIOR_IMPLIED_PACKET_NOT_FORMALIZED",
+  "owner_lane": "guardian",
+  "input_evidence": {
+    "approval_id": "",
+    "decision": "",
+    "operator_id_ref": "",
+    "callback_or_message_ref": ""
+  },
+  "output": {
+    "hmac_action_hash": "",
+    "decided_at": "",
+    "yes_for_all_scope_ref": ""
+  },
+  "allowed_actions": [
+    "record_operator_decision",
+    "signal_chief_approval_brain"
+  ],
+  "blocked_actions": [
+    "approve_modified_payload",
+    "approve_without_matching_hmac",
+    "approve_broad_future_class",
+    "bypass_action_hash_integrity",
+    "bypass_guardian_for_tier_2",
+    "llm_override_policy"
+  ],
+  "required_receipts": [
+    "approval_log_entry"
+  ],
+  "provenance_refs": [],
+  "boundary_notes": "Accepted decisions: YES, NO, DELAY, WHY. YES_FOR_ALL is repo-observed but requires separate scope audit and is NOT a blanket future approval."
+}
