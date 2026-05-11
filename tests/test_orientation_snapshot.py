@@ -88,7 +88,7 @@ Lighter life.
 
     assert snapshot["active_lane"] == "Hardening the spine."
     assert snapshot["north_star"] == "Lighter life."
-    assert "Ledger Status: active (42 events)" in snapshot["confirmed_current"][0]
+    assert snapshot["confirmed_current"][0] == "Ledger Status: active"
     assert "Active Handoff: The train is moving." in snapshot["confirmed_current"][1]
 
 
