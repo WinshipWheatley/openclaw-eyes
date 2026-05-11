@@ -33,6 +33,7 @@ from pathlib import Path as _Path
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
+from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
 from cassandra_brain import (
     handle as cassandra_handle,
     pin_telegram_chat_id,
@@ -80,25 +81,12 @@ async def _run_producer_intake(payload: str) -> str:
             output = stdout.decode().strip()
             if not output:
                 return "Producer returned no output."
-
-            if len(output) > 3500:
-                output = output[:3500] + "\n\n(Truncated to 3500 chars)"
-            return output
+            return truncate_producer_output(output)
         except asyncio.TimeoutError:
             proc.terminate()
             return "❌ Producer request timed out."
     except Exception as e:
         return f"❌ Producer system error: {str(e)}"
-
-
-def _extract_producer_payload(text: str) -> str | None:
-    """Extracts payload from /producer <text> or producer: <text>."""
-    lower = text.lower()
-    if lower.startswith("/producer "):
-        return text[len("/producer "):].strip()
-    if lower.startswith("producer: "):
-        return text[len("producer: "):].strip()
-    return None
 
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
@@ -371,7 +359,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(reply_text)
 
     # Producer: Handle intake
-    producer_payload = _extract_producer_payload(text)
+    producer_payload = extract_producer_payload(text)
     if producer_payload:
         if not is_authorized_user:
             return
