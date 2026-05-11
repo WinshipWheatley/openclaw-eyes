@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.1",
+  "packet_type": "cassandra.outreach_draft_packet",
+  "packet_id": "",
+  "created_at": "",
+  "source_basis": "google.gmail.draft.create",
+  "status": "BUILT_BEHAVIOR_IMPLIED_PACKET_NOT_FORMALIZED",
+  "owner_lane": "cassandra",
+  "input_evidence": {
+    "recipient_email": "",
+    "display_name": "",
+    "subject": "",
+    "body": "",
+    "thread_id": ""
+  },
+  "output": {
+    "draft_id": "",
+    "route": "outreach_email_draft",
+    "review_status": "draft"
+  },
+  "allowed_actions": [
+    "create_draft",
+    "prepare_for_review"
+  ],
+  "blocked_actions": [
+    "send",
+    "modify_existing_non_cassandra_drafts",
+    "bypass_approval_gate"
+  ],
+  "required_receipts": [
+    "outreach_email_draft_receipt"
+  ],
+  "provenance_refs": [
+    "draft_id",
+    "thread_id"
+  ],
+  "boundary_notes": "Draft-only outreach. Outbound sending requires Chief/Guardian approval receipt."
+}
