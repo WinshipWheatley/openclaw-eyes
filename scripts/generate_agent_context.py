@@ -42,7 +42,7 @@ class AgentContextAssembler:
             # Use URI for read-only
             conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
             cursor = conn.cursor()
-            
+
             # Query for the SQLITE_VERIFIED receipt types
             cursor.execute("""
                 SELECT ts, event_type, operator_visible_summary
@@ -66,7 +66,7 @@ class AgentContextAssembler:
                     "summary": summary,
                     "execution": False
                 }
-                
+
                 if etype == "action_intent_gate_receipt":
                     receipt["truth"] = "gate/evaluation handling recorded only"
                 elif etype == "approval_request_record":
@@ -78,18 +78,18 @@ class AgentContextAssembler:
                     receipt["truth"] = "orientation terrain recorded only"
                 elif etype == "test_proof_receipt":
                     receipt["truth"] = "test/proof terrain recorded only"
-                
+
                 receipts.append(receipt)
-                
+
         except Exception:
             # Silently fail for read-only robustness in v0
             pass
-            
+
         return receipts
 
     def assemble_cassandra_orientation_packet(self) -> Dict[str, Any]:
         """Assembles the v0 Cassandra orientation context packet."""
-        
+
         return {
             "substrate_version": "v0",
             "actor_id": "cassandra",
@@ -123,15 +123,89 @@ class AgentContextAssembler:
             }
         }
 
+    def assemble_chief_operational_packet(self) -> Dict[str, Any]:
+        """Assembles the v0 Chief operational review context packet."""
+
+        rows = self.get_verified_receipt_rows()
+
+        # Derive operational summary
+        pending_count = sum(1 for r in rows if r["receipt_type"] == "approval_request_record")
+
+        latest_gate = None
+        for r in rows:
+            if r["receipt_type"] == "action_intent_gate_receipt":
+                latest_gate = r["summary"]
+                break
+
+        return {
+            "substrate_version": "v0",
+            "actor_id": "chief",
+            "purpose": "operational_review_only",
+            "source_commit": self.get_git_head(),
+            "verified_capability_types": [
+                "action_intent_gate_receipt",
+                "approval_request_record",
+                "approval_log_entry",
+                "orientation_snapshot_receipt",
+                "test_proof_receipt"
+            ],
+            "verified_receipt_rows": rows,
+            "operational_summary": {
+                "pending_approval_requests_count": pending_count,
+                "latest_recorded_gate_evaluation": latest_gate
+            },
+            "allowed_context": {
+                "receipt_spine_status": True,
+                "approval_request_review": True,
+                "approval_decision_review": True,
+                "gate_evaluation_review": True,
+                "safe_next_step_recommendation": True
+            },
+            "blocked_context": {
+                "gmail": True,
+                "pii": True,
+                "outreach": True,
+                "send_authority": True,
+                "runtime_execution": True,
+                "runtime_mutation": True,
+                "guardian_runtime_action": True,
+                "hermes_runtime_action": True,
+                "live_service_status": True,
+                "self_permission_expansion": True
+            },
+            "authority": {
+                "execution_authority": 0,
+                "mutation_authority": 0,
+                "approval_authority": 0,
+                "context_packet_only": True,
+                "recommendation_only": True
+            }
+        }
+
 def main():
     assembler = AgentContextAssembler()
-    
-    # Check for --cassandra flag
+
+    # Check for actor flags
+    actor = None
     if "--cassandra" in sys.argv:
+        actor = "cassandra"
+    elif "--chief" in sys.argv:
+        actor = "chief"
+    elif "--actor" in sys.argv:
+        try:
+            idx = sys.argv.index("--actor")
+            actor = sys.argv[idx + 1]
+        except (ValueError, IndexError):
+            pass
+
+    if actor == "cassandra":
         packet = assembler.assemble_cassandra_orientation_packet()
         print(json.dumps(packet, indent=2))
+    elif actor == "chief":
+        packet = assembler.assemble_chief_operational_packet()
+        print(json.dumps(packet, indent=2))
     else:
-        print("Usage: python scripts/generate_agent_context.py --cassandra")
+        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --actor [cassandra|chief]")
         sys.exit(1)
 
 if __name__ == "__main__":
