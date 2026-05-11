@@ -6,7 +6,7 @@ Durable truth comes from receipts, tests, and committed source.
 
 # GENERATED CURRENT STATE
 ## 1. Confirmed System State
-- Ledger Status: active (51 events)
+- Ledger Status: active (61 events)
 - Active Handoff: This handoff is the train. The roadmap authority is 24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md.
 - SQLite Ledger v0 exists, and Cassandra `handle()` is wired to record event/packet receipts.
 - Business Ops Packet v0 is defined for intent-based capability gating.
@@ -16,13 +16,13 @@ Durable truth comes from receipts, tests, and committed source.
 
 ## 2. Recent Verification Receipts
 Deterministic evidence proofs from the ledger (excludes status self-checks).
-Strongest recent clean proof: [PASS] business_ops_ledger_tests head=037ebad4
+Strongest recent clean proof: [PASS] business_ops_ledger_tests head=80225524
 
-- 2026-05-10 20:52 [PASS] business_ops_ledger_tests exit=0 head=037ebad4
-- 2026-05-10 20:52 [PASS] cassandra_status_wiring_tests exit=0 head=037ebad4
-- 2026-05-10 20:52 [PASS] orientation_snapshot_smoke exit=0 head=037ebad4
-- 2026-05-10 20:52 [PASS] ledger_inspector_summary exit=0 head=037ebad4
-- 2026-05-10 13:39 [PASS] business_ops_ledger_tests exit=0 head=b0231197
+- 2026-05-10 21:08 [PASS] business_ops_ledger_tests exit=0 head=80225524
+- 2026-05-10 21:07 [PASS] cassandra_status_wiring_tests exit=0 head=80225524
+- 2026-05-10 21:07 [PASS] orientation_snapshot_smoke exit=0 head=80225524
+- 2026-05-10 21:07 [PASS] ledger_inspector_summary exit=0 head=80225524
+- 2026-05-10 21:06 [PASS] [DIRTY] business_ops_ledger_tests exit=0 head=56ba011b
 
 > **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.
 
