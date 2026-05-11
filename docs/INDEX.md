@@ -42,6 +42,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [**Cassandra Machine Contract**](./operations/CASSANDRA_MACHINE_CONTRACT.md) — Governor contract for Cassandra/Clara triage and outreach packets, distinguishing built behavior from implied/non-formalized schemas.
 - [**Chief Machine Contract**](./operations/CHIEF_MACHINE_CONTRACT.md) — Governor contract for Chief routing, approval-policy, Guardian deference, and acceptance boundaries.
 - [**Guardian Machine Contract**](./operations/GUARDIAN_MACHINE_CONTRACT.md) — Governor contract for Guardian's role as the final human-in-the-loop (HITL) approval boundary for Tier 2/high-risk actions.
+- [**Hermes Machine Contract**](./operations/HERMES_MACHINE_CONTRACT.md) — Governor contract for Hermes's role as an advisory-only systems-engineering consultant and pattern spotter.
 - [**Test/Proof Receipts v0**](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.
 - [**Evidence Sufficiency Map v0**](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
 - [**Morning Brief Proof Chain v0**](./operations/OPENCLAW_MORNING_BRIEF_PROOF_CHAIN_V0.md) — Architectural guidance for building deterministic morning briefs from evidence layers.

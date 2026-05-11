@@ -18,6 +18,7 @@
 - **Cassandra Machine Contract:** `docs/operations/CASSANDRA_MACHINE_CONTRACT.md`
 - **Chief Machine Contract:** `docs/operations/CHIEF_MACHINE_CONTRACT.md`
 - **Guardian Machine Contract:** `docs/operations/GUARDIAN_MACHINE_CONTRACT.md`
+- **Hermes Machine Contract:** `docs/operations/HERMES_MACHINE_CONTRACT.md`
 
 ## Partial Territory
 - **backend_knowledge_packet.py context/export fit review:** Substrate not yet fully integrated into existing context/export surfaces.
