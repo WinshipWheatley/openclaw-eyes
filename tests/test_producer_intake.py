@@ -30,6 +30,7 @@ def test_explain_flag_boring_spacious():
     assert data["original_text"] == "this chorus feels boring but I want it to stay spacious"
     assert "boring" in data["detected_taste_terms"]
     assert "spacious" in data["detected_taste_terms"]
+    assert data["suggested_move"] == "add_arrival_point_without_clutter"
     assert data["evidence_level"] == "text_only_no_audio"
 
 def test_explain_flag_logic_vocal_delay():
@@ -39,5 +40,6 @@ def test_explain_flag_logic_vocal_delay():
     )
     data = json.loads(result.stdout)
     assert data["detected_environment"] == "logic_pro"
+    assert data["suggested_move"] == "widen_delay_return_preserve_vocal_clarity"
     assert "suggestion_only" in data["allowed_actions"]
     assert "audio_analysis_claims" in data["blocked_actions"]

@@ -116,6 +116,16 @@ def main():
     tool_packet = generate_tool_intent_packet(args.text, producer_input)
 
     if args.explain:
+        text_l = args.text.lower()
+        if "boring" in text_l and "spacious" in text_l:
+            move = "add_arrival_point_without_clutter"
+        elif "logic" in text_l and "vocal" in text_l and "delay" in text_l:
+            move = "widen_delay_return_preserve_vocal_clarity"
+        elif any(w in text_l for w in ["sketch", "create", "make"]) and "ableton" in text_l:
+            move = "sketch_spacious_groove_suggestion_only"
+        else:
+            move = "production_optimization_suggestion"
+
         packet = {
             "original_text": args.text,
             "detected_intent": "production_inquiry",
@@ -123,7 +133,7 @@ def main():
             "detected_taste_terms": producer_input["emotional_target"],
             "detected_tools_or_platforms": producer_input["target_environment"],
             "evidence_level": "text_only_no_audio",
-            "suggested_move": "production_optimization_suggestion",
+            "suggested_move": move,
             "allowed_actions": ["suggestion_only"],
             "blocked_actions": ["audio_analysis_claims", "ableton_logic_hardware_execution"],
             "boundary_notes": "no_side_effects",
