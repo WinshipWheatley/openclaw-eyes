@@ -26,7 +26,7 @@
     "action_receipt_placeholder"
   ],
   "provenance_refs": [],
-  "boundary_notes": "This packet proposes intent and does not execute. Approval required.",
+  "boundary_notes": "This packet proposes intent and does not execute. Approval required. `action_receipt_placeholder` is a legacy/deferred placeholder and must be replaced with a specific receipt name before runtime use.",
   "reversible": false,
   "no_execution_without_approval": true
 }

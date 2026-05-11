@@ -112,7 +112,7 @@ def test_advisory_and_intake_templates_posture():
     for path in hermes_files:
         with open(path, 'r') as f:
             data = json.load(f)
-        
+
         # Check boundary_notes or output for advisory keywords
         combined_text = (data.get("boundary_notes", "") + str(data.get("output", ""))).lower()
         advisory_keywords = ["advisory", "non-canonical", "no runtime authority", "proposal"]
@@ -129,10 +129,56 @@ def test_advisory_and_intake_templates_posture():
             continue
         with open(path, 'r') as f:
             data = json.load(f)
-        
+
         # If required_receipts is empty, blocked_actions/boundary_notes must clarify no authority
         if len(data.get("required_receipts", [])) == 0:
             combined_text = (data.get("boundary_notes", "") + str(data.get("blocked_actions", ""))).lower()
             authority_guards = ["no execution", "no mutation", "approval required", "not authorize"]
             assert any(kw in combined_text for kw in authority_guards), \
                 f"Intake/Intent template {path.name} with empty receipts must declare lack of execution authority"
+
+def test_no_placeholder_receipts():
+    """
+    Fail if any receipt name contains obvious placeholder/stub/todo language.
+    Exception: action_receipt_placeholder in action_intent_packet_template.json (with boundary_notes check).
+    """
+    placeholders = ["placeholder", "stub", "todo", "tbd", "example", "dummy"]
+    templates = get_all_templates()
+
+    for path in templates:
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        # Check both required_receipts and expected_receipts (and synonyms)
+        receipt_fields = ["required_receipts", "expected_receipts", "evidence_required_before_execution", "evidence_required"]
+
+        all_receipts = []
+        for field in receipt_fields:
+            if field in data and isinstance(data[field], list):
+                all_receipts.extend(data[field])
+
+        for receipt in all_receipts:
+            is_legacy_exception = (
+                path.name == "action_intent_packet_template.json" and
+                receipt == "action_receipt_placeholder"
+            )
+
+            if is_legacy_exception:
+                # Validate boundary_notes clarification
+                notes = data.get("boundary_notes", "").lower()
+                required_clarification = "legacy/deferred placeholder"
+                assert required_clarification in notes, \
+                    f"Template {path.name} uses action_receipt_placeholder but boundary_notes lack clarification"
+
+                # Ensure no other template uses it
+                continue
+
+            # Fail if any placeholder keyword is in the receipt name
+            for p in placeholders:
+                assert p not in receipt.lower(), \
+                    f"Template {path.name} contains placeholder receipt: {receipt} (matched '{p}')"
+
+        # Explicit check: no other template may contain action_receipt_placeholder
+        if path.name != "action_intent_packet_template.json":
+            assert "action_receipt_placeholder" not in all_receipts, \
+                f"Template {path.name} uses action_receipt_placeholder (only allowed in action_intent_packet_template.json)"
