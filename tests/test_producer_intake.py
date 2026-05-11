@@ -2,15 +2,16 @@ import pytest
 import subprocess
 import json
 
-def test_boring_spacious_human_only():
+def test_logic_vocal_delay_human_only():
     result = subprocess.run(
-        ["python3", "scripts/producer_intake.py", "--text", "this chorus feels boring but I want it to stay spacious", "--human-only"],
+        ["python3", "scripts/producer_intake.py", "--text", "make the vocal delay feel wider but keep the words clear in Logic", "--human-only"],
         capture_output=True, text=True
     )
     output = result.stdout
-    assert "arrival point" in output or "clutter" in output
     assert "Niles:" in output
-    assert "{" not in output # Verify no JSON
+    assert "Logic" in output or "return track" in output
+    assert "clear" in output or "clarity" in output
+    assert "{" not in output
 
 def test_pretty_json_output():
     result = subprocess.run(

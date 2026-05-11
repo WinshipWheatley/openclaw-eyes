@@ -87,6 +87,10 @@ def get_niles_response(text, producer_input):
     if any(w in text_l for w in ["groove", "dub", "afro-dub"]):
         return "Dub's all about what you take away. Keep it locked, keep it sparse, and let the delays do the heavy lifting. Don't add complexity just because it's quiet. Next move: refine your rhythm pocket."
 
+    # Logic Vocal Delay
+    if "logic" in text_l and any(w in text_l for w in ["vocal", "word"]) and any(w in text_l for w in ["delay", "reverb"]) and any(w in text_l for w in ["wide", "width"]) and any(w in text_l for w in ["clear", "clarity"]):
+        return "For vocal delay width in Logic, keep the dry vocal dead center. Put your delay on a return track, apply a high-pass and low-pass filter to the return to keep the core vocal words clear, and use a stereo widener or slight pitch-shift offset on the return only. Keep it out of the dry vocal's way."
+
     # General
     return "Let's keep it practical. What's the main goal: groove, melody, or arrangement? Don't stack more layers until you've stripped back the ones that aren't working."
 
