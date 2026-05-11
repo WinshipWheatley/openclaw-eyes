@@ -388,6 +388,7 @@
 !tests/test_cassandra_packet_templates.py
 !tests/test_chief_packet_templates.py
 !tests/test_guardian_packet_templates.py
+!tests/test_hermes_packet_templates.py
 
 # tools/ — standalone utility modules
 !tools/

@@ -1,0 +1,43 @@
+{
+  "contract_version": "0.1",
+  "packet_type": "hermes.advisory_output_memo",
+  "packet_id": "",
+  "created_at": "",
+  "source_basis": "hermes_advisory_packet.py",
+  "status": "BUILT_BEHAVIOR_FORMALIZED_ADVISORY_NOT_RUNTIME_AUTHORITY",
+  "owner_lane": "hermes_advisory",
+  "input_evidence": {
+    "packet_id_ref": "",
+    "source_set_name": "",
+    "reviewed_sources": []
+  },
+  "output": {
+    "observations": [],
+    "risks": [],
+    "suggested_next_slices": [],
+    "evidence_refs": [],
+    "assumptions": [],
+    "withheld_surfaces": [],
+    "non_canonical_notice": "Non-canonical advisory memo. Hermes made no decisions, executed no commands, and made no canonical writes.",
+    "commands_executed": false,
+    "decisions_made": false,
+    "canonical_writes_made": false,
+    "authority_level": "advisory_only"
+  },
+  "allowed_actions": [
+    "present_recommendation",
+    "identify_risks",
+    "suggest_next_slice"
+  ],
+  "blocked_actions": [
+    "directly_apply_recommendation",
+    "promote_to_shared_doctrine",
+    "mutate_runtime",
+    "approve_or_deny",
+    "write_canonical_memory",
+    "bypass_operator_or_chief"
+  ],
+  "required_receipts": [],
+  "provenance_refs": [],
+  "boundary_notes": "Hermes memos are non-canonical advisory outputs; Chief/operator must decide any action, and Guardian remains required for gated actions."
+}
