@@ -553,3 +553,4 @@
 
 !scripts/
 !scripts/run_producer_listener.sh
+!producer_listener.py
