@@ -519,3 +519,15 @@
 !tests/test_map_room_query.py
 !architecture_map_gate.py
 !tests/test_architecture_map_gate.py
+!tests/test_producer_contract_package.py
+
+# Producer Agent Contract
+!docs/producer/
+!docs/producer/*.md
+!config/
+!config/producer/
+!config/producer/*.yaml
+!templates/
+!templates/producer/
+!templates/producer/*.json
+

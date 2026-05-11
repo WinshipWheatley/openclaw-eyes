@@ -1,0 +1,51 @@
+{
+  "producer_contract_version": "0.1",
+  "review_id": "",
+  "artifact_type": "",
+  "target_environment": "unknown",
+  "song_identity": "",
+  "primary_strength": "",
+  "main_weakness": "",
+  "scores": {
+    "rhythmic_spine": null,
+    "spatial_architecture": null,
+    "emotional_truth": null,
+    "controlled_chaos": null,
+    "polished_indie_illusion": null,
+    "mythic_social_lyricism": null,
+    "healing_dance_transcendence": null,
+    "accessibility": null,
+    "restraint": null,
+    "identity_alignment": null,
+    "structure_motion": null
+  },
+  "hard_flags": [],
+  "arrangement_diagnosis": {
+    "intro": "",
+    "verse": "",
+    "pre_chorus": "",
+    "chorus": "",
+    "bridge": "",
+    "outro": ""
+  },
+  "pillar_alignment": {
+    "rhythmic_spine": "",
+    "spatial_architecture": "",
+    "controlled_chaos": "",
+    "polished_indie_illusion": "",
+    "mythic_social_lyricism": "",
+    "healing_dance_transcendence": ""
+  },
+  "tool_environment_notes": "",
+  "producer_notes": [],
+  "do_not_change": [],
+  "next_best_move": "",
+  "agentic_prompt_packet": {
+    "allowed_agentic_behavior": "critique_only",
+    "summary_for_agent": "",
+    "questions_for_agent": []
+  },
+  "optional_tool_intent_packet": null,
+  "confidence": "low",
+  "no_side_effects": true
+}
