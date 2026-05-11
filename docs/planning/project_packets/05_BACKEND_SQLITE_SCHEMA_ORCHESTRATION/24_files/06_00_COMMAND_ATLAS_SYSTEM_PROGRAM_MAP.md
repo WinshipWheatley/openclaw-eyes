@@ -62,7 +62,7 @@ Current Command Atlas lanes include:
 - External Communications / Relationship Judgment: the external-facing judgment lane for customer, client, venue, contractor, friend-of-system, outside-circle, and other relationship-sensitive interactions; it handles tone-reading, reputation, boundary, escalation, and promise-control doctrine without granting send or execution authority.
 - Guardian: the safety, policy, and protective oversight lane.
 - Hermes: the messaging, delivery, bridge, or transport-adjacent lane where applicable, without making transport equal authority.
-- Future PI / local-private assistant lane: a privacy-sensitive personal-intelligence lane that may use local models only after separate fit, data, and routing approval.
+- DEFERRED: Personal Intelligence lane (concept absorbed into Chief/Cassandra).
 - Agentic planner/build/test loop: the bounded execution lane for planning, implementation, validation, and release hygiene.
 - Mac/PC bridge and deployment topology: the portability lane that separates stable contracts from machine-specific adapters.
 - Private data roots: legal, finance/CPA, and music law/publishing roots, each with separate source/private/shared/generated boundaries.

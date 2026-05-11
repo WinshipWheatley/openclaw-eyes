@@ -80,10 +80,10 @@
 - **promotion target**: Hermes pattern-review advisory packet.
 - **hard boundary**: Hermes cannot mutate, approve, or become hidden authority.
 
-### 8. PI / Operator Next Sane Thing Pattern
-- **source_agent**: PI / Operator Clarity
+### 8. Operator Next Sane Thing Pattern (Deferred PI)
+- **source_agent**: DEFERRED (Behavior absorbed into Chief/Cassandra)
 - **useful because**: prevents operator overload and choice bloat.
-- **current status**: future/proposed unless repo evidence proves more.
+- **current status**: DEFERRED / NOT STANDALONE.
 - **reuse decision**: candidate for operator-facing advisory surfaces only.
 - **hard boundary**: advisory only, not runtime authority.
 

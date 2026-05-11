@@ -81,10 +81,10 @@
 - **Known Files**: `docs/operations/HERMES_ADVISORY_PACKET_CONTRACT.md`, `docs/planning/HERMES_FIRST_ADVISORY_TRIAL_PLAN.md`.
 - **Gaps**: Implementation scripts and active runtime lane.
 
-### PI / Operator Clarity
-- **Status**: FUTURE / PROPOSED
-- **Role**: Deterministic next-action advisory (Operator "Next Sane Thing").
-- **Authority Boundary**: Advisory only.
+### Operator Next Sane Thing (Deferred PI Concept)
+- **Status**: DEFERRED / NOT ACTIVE / NOT STANDALONE
+- **Role**: Deterministic next-action advisory pattern.
+- **Authority Boundary**: Advisory only; behavior absorbed into existing agents.
 - **Proposed/Future Packet Surfaces**: `operator_next_sane_thing` packet.
 - **Known Files**: `docs/operations/OPENCLAW_AGENT_INTAKE_AND_ACTION_INTENT_CONTRACT_V0.md`.
 
