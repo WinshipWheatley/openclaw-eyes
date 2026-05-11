@@ -6,7 +6,7 @@ Durable truth comes from receipts, tests, and committed source.
 
 # GENERATED CURRENT STATE
 ## 1. Confirmed System State
-- Ledger Status: active (61 events)
+- Ledger Status: active (62 events)
 - Active Handoff: This handoff is the train. The roadmap authority is 24_files/01_PROJECT_SOURCE_SET_INDEX_AND_RAIL_MAP.md.
 - SQLite Ledger v0 exists, and Cassandra `handle()` is wired to record event/packet receipts.
 - Business Ops Packet v0 is defined for intent-based capability gating.
