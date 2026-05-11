@@ -12,7 +12,7 @@ except ImportError:
 
 def detect_emotional_target(text):
     emotion_words = [
-        "sad", "energetic", "nostalgic", "happy", "angry", 
+        "sad", "energetic", "nostalgic", "happy", "angry",
         "spacious", "hard", "driving", "dark", "bright", "cheesy", "boring"
     ]
     found = [word for word in emotion_words if word in text.lower()]
@@ -25,23 +25,23 @@ def detect_target_environment(text):
     if "logic" in text_lower:
         return "logic_pro"
     if "th-u" in text_lower:
-        return "thu"
+        return "th_u"
     if "moog model 15" in text_lower:
         return "moog_model_15"
     if "model d" in text_lower:
         return "moog_model_d"
-    if "struna obscura" in text_lower:
+    if "struna obscura" in text_lower or "struna" in text_lower:
         return "struna_obscura"
     if "slate" in text_lower:
         return "slate_digital"
     if "ozone" in text_lower:
-        return "izotope_ozone"
+        return "ozone_12"
     if "djay" in text_lower:
         return "djay_pro"
     if "x32" in text_lower:
-        return "behringer_x32"
+        return "x32_rack"
     if "dl16" in text_lower:
-        return "midas_dl16"
+        return "dl16"
     return "unknown"
 
 def detect_groove(text):
@@ -52,14 +52,14 @@ def detect_groove(text):
 def extract_constraints(text):
     constraints = []
     text_lower = text.lower()
-    
+
     # Split by common punctuation to find clauses
     clauses = re.split(r'[,.;?!]|\band\b|\bbut\b', text_lower)
     for clause in clauses:
         clause = clause.strip()
         if any(word in clause for word in ["don't", "do not", "avoid", "without", "not"]):
             constraints.append(clause)
-    
+
     return constraints
 
 def build_producer_input(text):
@@ -75,7 +75,7 @@ def build_producer_input(text):
         "constraints": extract_constraints(text),
         "open_questions": []
     }
-    
+
     if "x32" in text.lower() or "dl16" in text.lower():
         data["hardware_context"] = "mentioned"
 
@@ -85,12 +85,69 @@ def build_producer_input(text):
 
     return data
 
-def generate_human_response(producer_input, review):
+def generate_tool_intent_packet(text, producer_input):
+    text_lower = text.lower()
+
+    # We only trigger this if an action verb implies a tool change.
+    action_verbs = ["sketch", "create", "make", "build", "try", "add", "suggest", "audition", "route", "record", "mix", "master", "transition"]
+
+    if not any(verb in text_lower for verb in action_verbs):
+        return None
+
+    intent_type = "unknown"
+
+    if any(w in text_lower for w in ["groove", "drums", "beat", "pulse"]):
+        intent_type = "suggest_groove"
+    elif any(w in text_lower for w in ["clip", "midi", "loop"]):
+        intent_type = "create_clip"
+    elif any(w in text_lower for w in ["arrangement", "section", "chorus", "bridge", "intro", "outro"]):
+        intent_type = "suggest_arrangement"
+    elif any(w in text_lower for w in ["plugin", "chain", "effects", "delay", "reverb", "saturation", "compressor"]):
+        intent_type = "suggest_plugin_chain"
+    elif any(w in text_lower for w in ["mix", "balance", "eq", "compression", "space"]):
+        intent_type = "suggest_mix_move"
+    elif any(w in text_lower for w in ["master", "ozone", "loudness"]):
+        intent_type = "suggest_plugin_chain"
+    elif any(w in text_lower for w in ["dj", "transition", "blend"]):
+        intent_type = "suggest_dj_transition"
+    elif any(w in text_lower for w in ["routing", "x32", "dl16", "input", "output", "record setup"]):
+        if "record" in text_lower:
+            intent_type = "suggest_recording_setup"
+        else:
+            intent_type = "suggest_routing_plan"
+
+    packet = {
+        "contract_version": "v0",
+        "intent_type": intent_type,
+        "target_environment": producer_input.get("target_environment", "unknown"),
+        "title": f"Suggested {intent_type}",
+        "musical_goal": "unknown",
+        "bpm": "unknown",
+        "time_signature": "unknown",
+        "key": "unknown",
+        "track_type": "unknown",
+        "clip_length_bars": "unknown",
+        "groove_description": producer_input.get("groove_description") or "unknown",
+        "note_density": "unknown",
+        "rhythmic_reference": "unknown",
+        "emotional_target": producer_input.get("emotional_target") or "unknown",
+        "suggested_tools": "unknown",
+        "hardware_context": "mentioned" if producer_input.get("hardware_context") else "unknown",
+        "constraints": producer_input.get("constraints") or [],
+        "human_confirmation_required": True,
+        "generated_by": "producer_agent",
+        "source_review_id": "unknown",
+        "no_execution_without_approval": True
+    }
+
+    return packet
+
+def generate_human_response(producer_input, review, tool_packet=None):
     missing_info = review.get("producer_notes", [""])[0]
     next_move = review.get("next_best_move", "")
-    
+
     hardware_claim = review.get("hard_flags", [])
-    
+
     # Text output
     lines = []
     lines.append("=== Producer Intake ===")
@@ -102,24 +159,32 @@ def generate_human_response(producer_input, review):
     lines.append(f"Groove detected: {producer_input['groove_description'] or 'None'}")
     if producer_input["constraints"]:
         lines.append(f"Constraints: {', '.join(producer_input['constraints'])}")
-    
+
     lines.append("")
     lines.append("--- What is still missing ---")
     if missing_info.startswith("Please provide:"):
         lines.append(missing_info)
     else:
         lines.append("Need to ground this in actual audio receipts next.")
-        
+
     lines.append("")
     lines.append("--- Next best move ---")
     lines.append(next_move)
     lines.append("")
-    
+
+    if tool_packet:
+        lines.append("--- Suggested tool intent ---")
+        lines.append(f"Action: {tool_packet['intent_type']}")
+        lines.append(f"Target: {tool_packet['target_environment']}")
+        lines.append("Why: Based on explicit action verbs in your request.")
+        lines.append("[!] This is a suggestion only. Confirmation is required before execution.")
+        lines.append("")
+
     if "hardware_routing_claim_without_receipt" in hardware_claim or "hardware_context" in producer_input:
          lines.append("[!] Note: Hardware mentioned, but does not claim live state without explicit receipts.")
     elif review.get("confidence") == "low":
          lines.append("[!] Note: Missing evidence. Does not claim audio was heard.")
-         
+
     if any(word in producer_input["user_intent"].lower() for word in ["execute", "bounce", "render", "save", "sketch"]):
         lines.append("[!] Tool action implied. Would require confirmation and a separate execution lane.")
 
@@ -146,19 +211,23 @@ def main():
 
     producer_input = build_producer_input(text)
     review = run_review(producer_input)
-    
+    tool_packet = generate_tool_intent_packet(text, producer_input)
+
     output_payload = {
         "producer_input": producer_input,
         "producer_review": review
     }
-    
+
+    if tool_packet:
+        output_payload["optional_tool_intent_packet"] = tool_packet
+
     if args.json_only:
         if args.pretty:
             print(json.dumps(output_payload, indent=2))
         else:
             print(json.dumps(output_payload))
     else:
-        human_text = generate_human_response(producer_input, review)
+        human_text = generate_human_response(producer_input, review, tool_packet)
         if args.pretty:
             print(human_text)
             print("\n--- JSON Payload ---")
