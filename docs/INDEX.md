@@ -40,6 +40,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [**Agent Capability Pattern Inventory v0**](./operations/OPENCLAW_AGENT_CAPABILITY_PATTERN_INVENTORY_V0.md) — Manual inventory of reusable agent-specific capability patterns for future Hermes advisory review.
 - [**Agent Packet Doctrine Inventory v0**](./operations/OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md) — Repo-grounded inventory of active, proposed, and doctrine-only agent packets.
 - [**Cassandra Machine Contract**](./operations/CASSANDRA_MACHINE_CONTRACT.md) — Governor contract for Cassandra/Clara triage and outreach packets, distinguishing built behavior from implied/non-formalized schemas.
+- [**Chief Machine Contract**](./operations/CHIEF_MACHINE_CONTRACT.md) — Governor contract for Chief routing, approval-policy, Guardian deference, and acceptance boundaries.
 - [**Test/Proof Receipts v0**](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.
 - [**Evidence Sufficiency Map v0**](./operations/OPENCLAW_EVIDENCE_SUFFICIENCY_MAP_V0.md) — Deterministic evidence classes, confidence levels, and current coverage map.
 - [**Morning Brief Proof Chain v0**](./operations/OPENCLAW_MORNING_BRIEF_PROOF_CHAIN_V0.md) — Architectural guidance for building deterministic morning briefs from evidence layers.

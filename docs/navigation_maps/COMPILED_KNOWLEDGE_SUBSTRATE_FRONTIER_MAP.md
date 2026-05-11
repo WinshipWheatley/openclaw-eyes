@@ -16,6 +16,7 @@
 - **Agent Packet Doctrine Inventory:** Managed in `docs/operations/OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md`
 - **Agent Capability Pattern Inventory:** Managed in `docs/operations/OPENCLAW_AGENT_CAPABILITY_PATTERN_INVENTORY_V0.md`
 - **Cassandra Machine Contract:** `docs/operations/CASSANDRA_MACHINE_CONTRACT.md`
+- **Chief Machine Contract:** `docs/operations/CHIEF_MACHINE_CONTRACT.md`
 
 ## Partial Territory
 - **backend_knowledge_packet.py context/export fit review:** Substrate not yet fully integrated into existing context/export surfaces.
