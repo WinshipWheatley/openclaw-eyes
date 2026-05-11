@@ -84,9 +84,9 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         for ts, etype, summ_raw in rows:
             if etype == 'action_intent_gate_receipt':
                 display_ts = ts.replace('T', ' ')[:16]
-                # Canonical: "GATE PASS for agent.action_intent_packet"
-                # We append (No Execution) to ensure safe read-model visibility.
-                formatted = f"{summ_raw} (No Execution)"
+                # Format: YYYY-MM-DD HH:MM [GATE] [SQLITE_VERIFIED] summ_raw (No Execution)
+                # We use specific labels to distinguish from test proofs.
+                formatted = f"[GATE] [SQLITE_VERIFIED] {summ_raw} (No Execution)"
                 proofs.append(f"{display_ts} {formatted}")
                 if len(proofs) >= limit:
                     break

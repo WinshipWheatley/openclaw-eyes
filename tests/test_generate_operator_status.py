@@ -26,7 +26,7 @@ def mock_snapshot():
         ],
         "recent_proofs": [
             "2026-05-10 09:00 [PASS] static_contract_check exit=0 head=0de27a6f",
-            "2026-05-10 09:05 GATE [PASS] agent.action_intent_packet (No Execution)"
+            "2026-05-10 09:05 [GATE] [SQLITE_VERIFIED] GATE PASS for agent.action_intent_packet (No Execution)"
         ],
         "strongest_clean_proof": "[PASS] static_contract_check head=0de27a6f",
         "active_lane": "Hardening the spine.",
@@ -56,7 +56,7 @@ def test_generate_current_state(mock_snapshot):
     assert "Strongest recent clean proof: [PASS] static_contract_check head=0de27a6f" in output
     assert "[PASS]" in output
     assert "2026-05-10 09:00" in output
-    assert "GATE [PASS] agent.action_intent_packet (No Execution)" in output
+    assert "[GATE] [SQLITE_VERIFIED] GATE PASS for agent.action_intent_packet (No Execution)" in output
     # Ensure gate receipt line is safe and does not imply execution/completion
     gate_lines = [line for line in output.splitlines() if "GATE" in line and "(No Execution)" in line]
     assert len(gate_lines) > 0
@@ -134,6 +134,7 @@ def test_get_recent_receipts_integration(tmp_path):
     assert len(proofs) == 2
     # Verify the gate receipt is formatted correctly
     gate_entry = [p for p in proofs if "GATE PASS" in p][0]
+    assert "[GATE] [SQLITE_VERIFIED]" in gate_entry
     assert "(No Execution)" in gate_entry
     assert "GATE PASS for agent.action_intent_packet" in gate_entry
     
