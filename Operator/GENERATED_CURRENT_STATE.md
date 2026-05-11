@@ -16,13 +16,13 @@ Durable truth comes from receipts, tests, and committed source.
 
 ## 2. Recent Verification Receipts
 Deterministic evidence proofs from the ledger (excludes status self-checks).
-Strongest recent clean proof: [PASS] business_ops_ledger_tests head=222d7e5c
+Strongest recent clean proof: [PASS] business_ops_ledger_tests head=942d3e00
 
+- 2026-05-10 22:37 [PASS] business_ops_ledger_tests exit=0 head=942d3e00
+- 2026-05-10 22:37 [PASS] cassandra_status_wiring_tests exit=0 head=942d3e00
+- 2026-05-10 22:37 [PASS] orientation_snapshot_smoke exit=0 head=942d3e00
+- 2026-05-10 22:37 [PASS] ledger_inspector_summary exit=0 head=942d3e00
 - 2026-05-10 22:31 [PASS] business_ops_ledger_tests exit=0 head=222d7e5c
-- 2026-05-10 22:31 [PASS] cassandra_status_wiring_tests exit=0 head=222d7e5c
-- 2026-05-10 22:31 [PASS] orientation_snapshot_smoke exit=0 head=222d7e5c
-- 2026-05-10 22:31 [PASS] ledger_inspector_summary exit=0 head=222d7e5c
-- 2026-05-10 22:24 [PASS] business_ops_ledger_tests exit=0 head=40d2883e
 
 > **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.
 
