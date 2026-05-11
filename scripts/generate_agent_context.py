@@ -1,0 +1,126 @@
+import os
+import sys
+import json
+import sqlite3
+import subprocess
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+# Add CWD to sys.path to allow importing from root
+sys.path.append(os.getcwd())
+
+# --- Configuration ---
+DEFAULT_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
+
+class AgentContextAssembler:
+    """
+    Deterministic, read-only context substrate assembler v0.
+    Generates context packets for agent orientation without execution authority.
+    """
+
+    def __init__(self, db_path: Optional[str] = None):
+        self.db_path = db_path or DEFAULT_DB_PATH
+
+    def get_git_head(self) -> str:
+        """Returns the current git HEAD commit hash."""
+        try:
+            return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        except Exception:
+            return "unknown"
+
+    def get_verified_receipts(self) -> List[Dict[str, Any]]:
+        """
+        Queries the ledger for SQLITE_VERIFIED receipts.
+        Focuses on action_intent_gate_receipt, approval_request_record, and approval_log_entry.
+        """
+        if not os.path.exists(self.db_path):
+            return []
+
+        receipts = []
+        try:
+            # Use URI for read-only
+            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
+            cursor = conn.cursor()
+            
+            # Query for the three verified receipt types
+            # We join with packets to get the execution_authority field if possible,
+            # but for v0 we focus on the truth labels.
+            cursor.execute("""
+                SELECT ts, event_type, operator_visible_summary
+                FROM events
+                WHERE event_type IN (
+                    'action_intent_gate_receipt',
+                    'approval_request_record',
+                    'approval_log_entry'
+                )
+                ORDER BY ts DESC LIMIT 10
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            for ts, etype, summary in rows:
+                receipt = {
+                    "receipt_type": etype,
+                    "timestamp": ts,
+                    "summary": summary,
+                    "execution": False
+                }
+                
+                if etype == "action_intent_gate_receipt":
+                    receipt["truth"] = "gate/evaluation handling recorded only"
+                elif etype == "approval_request_record":
+                    receipt["truth"] = "approval request formally recorded only"
+                    receipt["decision"] = False
+                elif etype == "approval_log_entry":
+                    receipt["truth"] = "approval decision recorded only"
+                
+                receipts.append(receipt)
+                
+        except Exception:
+            # Silently fail for read-only robustness in v0
+            pass
+            
+        return receipts
+
+    def assemble_cassandra_orientation_packet(self) -> Dict[str, Any]:
+        """Assembles the v0 Cassandra orientation context packet."""
+        
+        return {
+            "substrate_version": "v0",
+            "actor_id": "cassandra",
+            "purpose": "orientation_only",
+            "source_commit": self.get_git_head(),
+            "verified_receipts": self.get_verified_receipts(),
+            "allowed_context": {
+                "orientation": True,
+                "receipt_spine_status": True
+            },
+            "blocked_context": {
+                "gmail": True,
+                "pii": True,
+                "outreach": True,
+                "send_authority": True,
+                "runtime_execution": True,
+                "guardian_runtime_action": True,
+                "hermes_runtime_action": True
+            },
+            "authority": {
+                "execution_authority": 0,
+                "mutation_authority": 0,
+                "context_packet_only": True
+            }
+        }
+
+def main():
+    assembler = AgentContextAssembler()
+    
+    # Check for --cassandra flag
+    if "--cassandra" in sys.argv:
+        packet = assembler.assemble_cassandra_orientation_packet()
+        print(json.dumps(packet, indent=2))
+    else:
+        print("Usage: python scripts/generate_agent_context.py --cassandra")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
