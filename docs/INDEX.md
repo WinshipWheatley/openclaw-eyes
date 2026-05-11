@@ -37,6 +37,7 @@ Central entry point for OpenClaw knowledge, repository structure, and operationa
 - [Business Ops Ledger Inspection](./operations/OPENCLAW_SQLITE_LEDGER_V0.md#inspection-cli) — Guide for using the read-only CLI to audit execution receipts.
 - [Business Ops Receipt Taxonomy v0](./operations/OPENCLAW_RECEIPT_TAXONOMY_V0.md) — Definitive taxonomy and safety boundaries for durable evidence records.
 - [**Agent Intake and Action Intent Contract v0**](./operations/OPENCLAW_AGENT_INTAKE_AND_ACTION_INTENT_CONTRACT_V0.md) — Universal pattern for intake, decision, and gating intent.
+- [**Agent Capability Pattern Inventory v0**](./operations/OPENCLAW_AGENT_CAPABILITY_PATTERN_INVENTORY_V0.md) — Manual inventory of reusable agent-specific capability patterns for future Hermes advisory review.
 - [**Agent Packet Doctrine Inventory v0**](./operations/OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md) — Repo-grounded inventory of active, proposed, and doctrine-only agent packets.
 - [**Cassandra Machine Contract**](./operations/CASSANDRA_MACHINE_CONTRACT.md) — Governor contract for Cassandra/Clara triage and outreach packets, distinguishing built behavior from implied/non-formalized schemas.
 - [**Test/Proof Receipts v0**](./operations/OPENCLAW_TEST_PROOF_RECEIPTS_V0.md) — Deterministic evidence contract for recording local test and verification results.

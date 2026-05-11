@@ -14,6 +14,7 @@
 - **Static status function:** `compiled_knowledge_substrate_status` in `compiled_knowledge_substrate.py`
 - **Operator-frontier-map-status receipt command:** Built and verified via `./scripts/openclaw_receipts.py operator-frontier-map-status`
 - **Agent Packet Doctrine Inventory:** Managed in `docs/operations/OPENCLAW_AGENT_PACKET_DOCTRINE_INVENTORY_V0.md`
+- **Agent Capability Pattern Inventory:** Managed in `docs/operations/OPENCLAW_AGENT_CAPABILITY_PATTERN_INVENTORY_V0.md`
 - **Cassandra Machine Contract:** `docs/operations/CASSANDRA_MACHINE_CONTRACT.md`
 
 ## Partial Territory
