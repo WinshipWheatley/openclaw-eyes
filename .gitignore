@@ -530,6 +530,8 @@
 !templates/
 !templates/producer/
 !templates/producer/*.json
+!templates/agent/
+!templates/agent/*.json
 
 
 !scripts/producer_review.py
@@ -540,4 +542,3 @@
 !fixtures/producer/*.json
 !fixtures/producer/*.txt
 !fixtures/
-
