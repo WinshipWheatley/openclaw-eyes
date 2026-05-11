@@ -542,3 +542,8 @@
 !fixtures/producer/*.json
 !fixtures/producer/*.txt
 !fixtures/
+!scripts/compile_producer_context.py
+!tests/test_compile_producer_context.py
+!generated/
+!generated/producer/
+!generated/producer/*.json
