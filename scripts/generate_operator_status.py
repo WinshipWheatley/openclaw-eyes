@@ -73,7 +73,7 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         cursor.execute("""
             SELECT ts, event_type, operator_visible_summary
             FROM events
-            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt')
+            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry')
             ORDER BY ts DESC LIMIT 20
         """)
         rows = cursor.fetchall()
@@ -82,11 +82,19 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         proofs = []
         strongest_clean = None
         for ts, etype, summ_raw in rows:
+            display_ts = ts.replace('T', ' ')[:16]
+
             if etype == 'action_intent_gate_receipt':
-                display_ts = ts.replace('T', ' ')[:16]
                 # Format: YYYY-MM-DD HH:MM [GATE] [SQLITE_VERIFIED] summ_raw (No Execution)
-                # We use specific labels to distinguish from test proofs.
                 formatted = f"[GATE] [SQLITE_VERIFIED] {summ_raw} (No Execution)"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
+
+            if etype == 'approval_log_entry':
+                # Format: YYYY-MM-DD HH:MM [APPROVAL_RECORD] [SQLITE_VERIFIED] summ_raw (No Execution)
+                formatted = f"[APPROVAL_RECORD] [SQLITE_VERIFIED] {summ_raw} (No Execution)"
                 proofs.append(f"{display_ts} {formatted}")
                 if len(proofs) >= limit:
                     break

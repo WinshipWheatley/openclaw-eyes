@@ -361,3 +361,54 @@ def record_action_intent_gate_receipt(
     }
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+def record_approval_log_entry(
+    packet_id: str,
+    packet_type: str,
+    approval_verdict: str,
+    approval_summary: str,
+    approver_name: str,
+    request_id: str | None = None,
+    db_path: str | None = None,
+    **kwargs: Any,
+) -> bool:
+    """
+    Records an approval_log_entry to the ledger.
+    This records the decision only and does NOT imply execution or completion.
+    """
+    import uuid
+    from datetime import datetime
+    event_id = f"ale_{uuid.uuid4().hex[:8]}"
+
+    # 1. Append the base event
+    display_summary = f"{approval_verdict}: {approval_summary}"
+    success = append_event(
+        event_id=event_id,
+        event_type="approval_log_entry",
+        actor=approver_name,
+        operator_visible_summary=display_summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 2. Append the packet record
+    packet_data = {
+        "packet_id": packet_id,
+        "packet_type": packet_type,
+        "receipt_type": "approval_log_entry",
+        "approval_verdict": approval_verdict,
+        "approval_summary": approval_summary,
+        "approver_name": approver_name,
+        "request_id": request_id,
+        "action_status": "approval_decision_recorded",
+        "decision_record_only": True,
+        "execution_recorded": False,
+        "mutation_recorded": False,
+        "no_execution_recorded": True,
+        "execution_authority": 0,  # Explicit: no execution
+        "recorded_at": datetime.now().isoformat(),
+        **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

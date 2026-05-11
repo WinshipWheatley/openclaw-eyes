@@ -104,7 +104,7 @@ def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_snapsh
 
 def test_get_recent_receipts_integration(tmp_path):
     from scripts.generate_operator_status import get_recent_proof_receipts
-    from business_ops_ledger import init_business_ops_ledger, append_event, record_action_intent_gate_receipt
+    from business_ops_ledger import init_business_ops_ledger, append_event, record_action_intent_gate_receipt, record_approval_log_entry
     
     db_path = str(tmp_path / "test_visibility.sqlite")
     init_business_ops_ledger(db_path)
@@ -126,17 +126,33 @@ def test_get_recent_receipts_integration(tmp_path):
         evaluation_summary="GATE PASS for agent.action_intent_packet",
         db_path=db_path
     )
+
+    # Record an approval log entry
+    record_approval_log_entry(
+        packet_id="p-789",
+        packet_type="chief.approval_decision_packet",
+        approval_verdict="APPROVED",
+        approval_summary="Approved outreach to Bob",
+        approver_name="Chief",
+        db_path=db_path
+    )
     
     # No need to patch os.path.exists or sqlite3.connect anymore
     results = get_recent_proof_receipts(limit=5, db_path=db_path)
                 
     proofs = results["list"]
-    assert len(proofs) == 2
+    assert len(proofs) == 3
     # Verify the gate receipt is formatted correctly
     gate_entry = [p for p in proofs if "GATE PASS" in p][0]
     assert "[GATE] [SQLITE_VERIFIED]" in gate_entry
     assert "(No Execution)" in gate_entry
     assert "GATE PASS for agent.action_intent_packet" in gate_entry
+
+    # Verify the approval record is formatted correctly
+    approval_entry = [p for p in proofs if "Approved outreach to Bob" in p][0]
+    assert "[APPROVAL_RECORD] [SQLITE_VERIFIED]" in approval_entry
+    assert "(No Execution)" in approval_entry
+    assert "APPROVED: Approved outreach to Bob" in approval_entry
     
     # Verify the test proof is still there
     proof_entry = [p for p in proofs if "[PASS]" in p and "test_cmd" in p][0]

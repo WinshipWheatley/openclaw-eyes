@@ -26,9 +26,9 @@
 | `templates/agent/cassandra_pii_handling_packet_template.json` | `cassandra.pii_handling_packet` | Cassandra | `pii_vault_record` | `token_mapping_id` | DECLARED_ONLY | - | - |
 | `templates/agent/chief_acceptance_verdict_packet_template.json` | `chief.acceptance_verdict_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/chief_action_intent_evaluation_packet_template.json` | `chief.action_intent_evaluation_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
-| `templates/agent/chief_approval_decision_packet_template.json` | `chief.approval_decision_packet` | Chief | `approval_log_entry` | [] | DECLARED_ONLY | - | - |
+| `templates/agent/chief_approval_decision_packet_template.json` | `chief.approval_decision_packet` | Chief | `approval_log_entry` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval decision only; does not prove execution. |
 | `templates/agent/chief_routing_decision_packet_template.json` | `chief.routing_decision_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
-| `templates/agent/guardian_approval_decision_packet_template.json` | `guardian.approval_decision_packet` | Guardian | `approval_log_entry` | [] | DECLARED_ONLY | - | - |
+| `templates/agent/guardian_approval_decision_packet_template.json` | `guardian.approval_decision_packet` | Guardian | `approval_log_entry` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval decision only; does not prove execution. |
 | `templates/agent/guardian_approval_request_packet_template.json` | `guardian.approval_request_packet` | Guardian | `approval_request_record` | [] | DECLARED_ONLY | - | - |
 | `templates/agent/hermes_advisory_output_memo_template.json` | `hermes.advisory_output_memo` | Hermes | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/hermes_advisory_packet_template.json` | `hermes.advisory_packet` | Hermes | [] | [] | DECLARED_ONLY | - | - |
@@ -60,16 +60,16 @@
 ### Chief
 - **Packet templates**: `acceptance_verdict`, `action_intent_evaluation`, `approval_decision`, `routing_decision`.
 - **Receipt expectations**: `approval_log_entry`.
-- **Writer terrain**: Not verified.
-- **SQLite terrain**: Not verified.
-- **Current status**: DECLARED_ONLY.
+- **Writer terrain**: `record_approval_log_entry` verified.
+- **SQLite terrain**: Verified in `events` and `packets` tables.
+- **Current status**: SQLITE_VERIFIED (partial).
 
 ### Guardian
 - **Packet templates**: `approval_decision`, `approval_request`.
 - **Receipt expectations**: `approval_log_entry`, `approval_request_record`.
-- **Writer terrain**: Not verified.
-- **SQLite terrain**: Not verified.
-- **Current status**: DECLARED_ONLY.
+- **Writer terrain**: `record_approval_log_entry` verified.
+- **SQLite terrain**: Verified in `events` and `packets` tables.
+- **Current status**: SQLITE_VERIFIED (partial).
 
 ### Hermes
 - **Packet templates**: `advisory_output_memo`, `advisory_packet`.
