@@ -55,13 +55,13 @@ Durable truth comes from receipts, tests, and committed source.
 -->
 """
 
-def get_recent_proof_receipts(limit=5):
+def get_recent_proof_receipts(limit=5, db_path=None):
     """
     Fetch recent test_proof_receipt events from the ledger.
     Excludes 'generated_status_check' from the list to avoid self-invalidation,
     but considers it for the 'strongest_clean' summary.
     """
-    db_path = ".openclaw/business_ops/ledger.sqlite"
+    db_path = db_path or ".openclaw/business_ops/ledger.sqlite"
     if not os.path.exists(db_path):
         return {"list": [], "strongest_clean": None}
 
@@ -71,9 +71,9 @@ def get_recent_proof_receipts(limit=5):
         cursor = conn.cursor()
         # Fetch more than limit to allow filtering out meta-checks
         cursor.execute("""
-            SELECT ts, operator_visible_summary
+            SELECT ts, event_type, operator_visible_summary
             FROM events
-            WHERE event_type = 'test_proof_receipt'
+            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt')
             ORDER BY ts DESC LIMIT 20
         """)
         rows = cursor.fetchall()
@@ -81,7 +81,18 @@ def get_recent_proof_receipts(limit=5):
 
         proofs = []
         strongest_clean = None
-        for ts, summ_raw in rows:
+        for ts, etype, summ_raw in rows:
+            if etype == 'action_intent_gate_receipt':
+                display_ts = ts.replace('T', ' ')[:16]
+                # Canonical: "GATE PASS for agent.action_intent_packet"
+                # We append (No Execution) to ensure safe read-model visibility.
+                formatted = f"{summ_raw} (No Execution)"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
+
+            # etype is 'test_proof_receipt'
             import re
             
             # Default values
