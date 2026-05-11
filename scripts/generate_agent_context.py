@@ -182,6 +182,78 @@ class AgentContextAssembler:
             }
         }
 
+    def assemble_guardian_safety_packet(self) -> Dict[str, Any]:
+        """Assembles the v0 Guardian safety inspection context packet."""
+
+        rows = self.get_verified_receipt_rows()
+
+        # Derive safety summary
+        pending_count = sum(1 for r in rows if r["receipt_type"] == "approval_request_record")
+
+        latest_decision_ts = None
+        for r in rows:
+            if r["receipt_type"] == "approval_log_entry":
+                latest_decision_ts = r["timestamp"]
+                break
+
+        # Safely attempt to get T2 rule count
+        t2_rule_count = None
+        try:
+            from chief_approval_policy import _ALWAYS_T2
+            t2_rule_count = len(_ALWAYS_T2)
+        except Exception:
+            pass
+
+        return {
+            "substrate_version": "v0",
+            "actor_id": "guardian",
+            "purpose": "safety_inspection_only",
+            "source_commit": self.get_git_head(),
+            "verified_capability_types": [
+                "action_intent_gate_receipt",
+                "approval_request_record",
+                "approval_log_entry",
+                "orientation_snapshot_receipt",
+                "test_proof_receipt"
+            ],
+            "verified_receipt_rows": rows,
+            "safety_policy_summary": {
+                "pending_approval_requests_count": pending_count,
+                "latest_safety_decision_timestamp": latest_decision_ts,
+                "active_hard_t2_rule_count": t2_rule_count
+            },
+            "allowed_context": {
+                "safety_gate_inspection": True,
+                "policy_matching_review": True,
+                "approval_request_review": True,
+                "approval_decision_review": True,
+                "truth_label_verification": True
+            },
+            "blocked_context": {
+                "gmail": True,
+                "pii": True,
+                "outreach": True,
+                "send_authority": True,
+                "runtime_execution": True,
+                "runtime_mutation": True,
+                "guardian_runtime_action": True,
+                "chief_operational_authority": True,
+                "cassandra_orientation_authority": True,
+                "hermes_runtime_action": True,
+                "live_service_status": True,
+                "self_permission_expansion": True
+            },
+            "authority": {
+                "execution_authority": 0,
+                "mutation_authority": 0,
+                "approval_authority": 0,
+                "denial_authority": 0,
+                "routing_authority": 0,
+                "context_packet_only": True,
+                "inspection_only": True
+            }
+        }
+
 def main():
     assembler = AgentContextAssembler()
 
@@ -191,6 +263,8 @@ def main():
         actor = "cassandra"
     elif "--chief" in sys.argv:
         actor = "chief"
+    elif "--guardian" in sys.argv:
+        actor = "guardian"
     elif "--actor" in sys.argv:
         try:
             idx = sys.argv.index("--actor")
@@ -204,8 +278,11 @@ def main():
     elif actor == "chief":
         packet = assembler.assemble_chief_operational_packet()
         print(json.dumps(packet, indent=2))
+    elif actor == "guardian":
+        packet = assembler.assemble_guardian_safety_packet()
+        print(json.dumps(packet, indent=2))
     else:
-        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --actor [cassandra|chief]")
+        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --guardian | --actor [cassandra|chief|guardian]")
         sys.exit(1)
 
 if __name__ == "__main__":

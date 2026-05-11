@@ -197,3 +197,80 @@ def test_chief_packet_enforces_boundaries():
     assert allowed["approval_decision_review"] is True
     assert allowed["gate_evaluation_review"] is True
     assert allowed["safe_next_step_recommendation"] is True
+
+def test_guardian_packet_generation_basic():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_guardian_safety_packet()
+
+    assert packet["substrate_version"] == "v0"
+    assert packet["actor_id"] == "guardian"
+    assert packet["purpose"] == "safety_inspection_only"
+    assert "source_commit" in packet
+    assert packet["verified_capability_types"] == [
+        "action_intent_gate_receipt",
+        "approval_request_record",
+        "approval_log_entry",
+        "orientation_snapshot_receipt",
+        "test_proof_receipt"
+    ]
+    assert packet["verified_receipt_rows"] == []
+    assert packet["safety_policy_summary"]["pending_approval_requests_count"] == 0
+    assert packet["safety_policy_summary"]["latest_safety_decision_timestamp"] is None
+    # active_hard_t2_rule_count should be at least 20 based on chief_approval_policy.py
+    assert packet["safety_policy_summary"]["active_hard_t2_rule_count"] >= 20
+
+    # Authority check
+    assert packet["authority"]["execution_authority"] == 0
+    assert packet["authority"]["mutation_authority"] == 0
+    assert packet["authority"]["approval_authority"] == 0
+    assert packet["authority"]["denial_authority"] == 0
+    assert packet["authority"]["routing_authority"] == 0
+    assert packet["authority"]["context_packet_only"] is True
+    assert packet["authority"]["inspection_only"] is True
+
+def test_guardian_packet_safety_summary(clean_db):
+    # Insert mock receipts
+    conn = sqlite3.connect(clean_db)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+        VALUES (?, ?, ?, ?, ?)
+    """, ("ev1", "2026-05-11T10:00:00", "approval_log_entry", "tester", "Approved"))
+    cursor.execute("""
+        INSERT INTO events (event_id, ts, event_type, actor, operator_visible_summary)
+        VALUES (?, ?, ?, ?, ?)
+    """, ("ev2", "2026-05-11T10:05:00", "approval_request_record", "tester", "Request 1"))
+    conn.commit()
+    conn.close()
+
+    assembler = AgentContextAssembler(db_path=clean_db)
+    packet = assembler.assemble_guardian_safety_packet()
+
+    summary = packet["safety_policy_summary"]
+    assert summary["pending_approval_requests_count"] == 1
+    assert summary["latest_safety_decision_timestamp"] == "2026-05-11T10:00:00"
+
+def test_guardian_packet_enforces_boundaries():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_guardian_safety_packet()
+
+    blocked = packet["blocked_context"]
+    assert blocked["gmail"] is True
+    assert blocked["pii"] is True
+    assert blocked["outreach"] is True
+    assert blocked["send_authority"] is True
+    assert blocked["runtime_execution"] is True
+    assert blocked["runtime_mutation"] is True
+    assert blocked["guardian_runtime_action"] is True
+    assert blocked["chief_operational_authority"] is True
+    assert blocked["cassandra_orientation_authority"] is True
+    assert blocked["hermes_runtime_action"] is True
+    assert blocked["live_service_status"] is True
+    assert blocked["self_permission_expansion"] is True
+
+    allowed = packet["allowed_context"]
+    assert allowed["safety_gate_inspection"] is True
+    assert allowed["policy_matching_review"] is True
+    assert allowed["approval_request_review"] is True
+    assert allowed["approval_decision_review"] is True
+    assert allowed["truth_label_verification"] is True
