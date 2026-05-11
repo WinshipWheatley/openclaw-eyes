@@ -533,8 +533,11 @@
 
 
 !scripts/producer_review.py
+!scripts/producer_intake.py
 !tests/test_producer_review.py
+!tests/test_producer_intake.py
 !fixtures/producer/
 !fixtures/producer/*.json
+!fixtures/producer/*.txt
 !fixtures/
 
