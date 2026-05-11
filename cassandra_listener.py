@@ -59,6 +59,47 @@ _APPROVAL_WAIT_NOTICE = "Guardian approval is still pending. Once you approve or
 _APPROVAL_STALLED_NOTICE = "Guardian approval is still pending longer than expected. Chief is investigating while I keep waiting for the result."
 _CHAT_REQUEST_TOKENS: dict[int, int] = {}
 
+# ── Producer integration ─────────────────────────────────────────────────────
+
+async def _run_producer_intake(payload: str) -> str:
+    """Executes producer_intake.py and returns the output."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "python3",
+            "/home/openclaw/scripts/producer_intake.py",
+            "--text",
+            payload,
+            "--human-only",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=20.0)
+            if proc.returncode != 0:
+                return f"❌ Producer error: {stderr.decode().strip() or 'Unknown failure'}"
+            output = stdout.decode().strip()
+            if not output:
+                return "Producer returned no output."
+
+            if len(output) > 3500:
+                output = output[:3500] + "\n\n(Truncated to 3500 chars)"
+            return output
+        except asyncio.TimeoutError:
+            proc.terminate()
+            return "❌ Producer request timed out."
+    except Exception as e:
+        return f"❌ Producer system error: {str(e)}"
+
+
+def _extract_producer_payload(text: str) -> str | None:
+    """Extracts payload from /producer <text> or producer: <text>."""
+    lower = text.lower()
+    if lower.startswith("/producer "):
+        return text[len("/producer "):].strip()
+    if lower.startswith("producer: "):
+        return text[len("producer: "):].strip()
+    return None
+
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
 _RECENT_SENDERS = {}  # sender_name.lower() -> chat_id (int)
@@ -328,6 +369,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def _send_if_current(reply_text: str):
         if _is_current_chat_request(sender_chat_id, request_token):
             await update.message.reply_text(reply_text)
+
+    # Producer: Handle intake
+    producer_payload = _extract_producer_payload(text)
+    if producer_payload:
+        if not is_authorized_user:
+            return
+        if not producer_payload:
+            await _send_if_current("Usage: /producer <message> or producer: <message>")
+        else:
+            typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, sender_chat_id))
+            try:
+                result = await _run_producer_intake(producer_payload)
+                await _send_if_current(result)
+            finally:
+                typing_task.cancel()
+        return
 
     # Admin: Pin chat_id to nickname
     if is_authorized_user and text.lower().startswith("pin chatid "):
