@@ -531,3 +531,10 @@
 !templates/producer/
 !templates/producer/*.json
 
+
+!scripts/producer_review.py
+!tests/test_producer_review.py
+!fixtures/producer/
+!fixtures/producer/*.json
+!fixtures/
+
