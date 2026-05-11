@@ -108,13 +108,29 @@ def main():
     parser.add_argument("--text", required=True)
     parser.add_argument("--human-only", action="store_true")
     parser.add_argument("--pretty", action="store_true")
+    parser.add_argument("--explain", action="store_true")
     args = parser.parse_args()
 
     producer_input = build_producer_input(args.text)
     review = run_review(producer_input)
     tool_packet = generate_tool_intent_packet(args.text, producer_input)
 
-    if args.human_only:
+    if args.explain:
+        packet = {
+            "original_text": args.text,
+            "detected_intent": "production_inquiry",
+            "detected_environment": producer_input["target_environment"],
+            "detected_taste_terms": producer_input["emotional_target"],
+            "detected_tools_or_platforms": producer_input["target_environment"],
+            "evidence_level": "text_only_no_audio",
+            "suggested_move": "production_optimization_suggestion",
+            "allowed_actions": ["suggestion_only"],
+            "blocked_actions": ["audio_analysis_claims", "ableton_logic_hardware_execution"],
+            "boundary_notes": "no_side_effects",
+            "response_template_key": "niles_v0"
+        }
+        print(json.dumps(packet, indent=2))
+    elif args.human_only:
         print(generate_human_response(producer_input, review, tool_packet))
     elif args.pretty:
         print(json.dumps(review, indent=2))
