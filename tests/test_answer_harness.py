@@ -16,48 +16,121 @@ def setup_db():
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
 
-def test_valid_intent_success():
+def test_answer_harness_refused():
+    result = answer_operator_question(DB_PATH, "unknown question")
+    assert result["status"] == "REFUSED"
+
+def test_answer_harness_not_enough_context():
+    result = answer_operator_question(DB_PATH, "where are we?")
+    assert result["status"] == "NOT_ENOUGH_CONTEXT"
+
+def test_valid_intent_gateway_success(monkeypatch):
     # Insert a dummy fact
     record_canonical_fact(
         "f1", "doc1.md", "Status", "commit1",
-        "We are at the checkpoint v1.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc",
+        "Raw fact text.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc",
         "t1", "declared", 1, None, DB_PATH
     )
+
+    # Mock gateway to simulate PASS
+    def mock_packet(db_path, fact_id, question):
+        return {
+            "status": "MODEL_ALLOWED",
+            "state": "MODEL_ALLOWED",
+            "verified_facts": [{
+                "id": fact_id,
+                "text": "Verified fact text from gateway.",
+                "labels": "[REPO-SOURCE] [HASH-CURRENT] [DECLARED] [VERIFY_REQUIRED]",
+                "provenance": {
+                    "fact_id": fact_id,
+                    "source_file": "doc1.md",
+                    "source_commit": "commit1",
+                    "content_hash": "h1",
+                    "truth_source_id": "t1",
+                    "truth_status": "declared",
+                    "verification_required": True,
+                    "verification_evidence_id": None
+                }
+            }],
+            "answer_boundary": "Only answer from verified_facts.",
+            "runtime_authority": False,
+            "transitions": ["CANDIDATE_SURFACED", "CHECK_RUNNING", "NO_DIFF_FOUND", "PACKET_READY", "MODEL_ALLOWED"]
+        }
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet)
+
     result = answer_operator_question(DB_PATH, "where are we?")
     assert result["status"] == "SUCCESS"
-    assert result["intent_matched"] == "WHERE_ARE_WE"
-    assert "We are at the checkpoint v1." in result["answer"]
-    assert len(result["provenance"]) == 1
-    assert result["provenance"][0]["fact_id"] == "f1"
-    # New truth checks
-    assert "truth_source_id" in result["provenance"][0]
-    assert result["provenance"][0]["truth_status"] == "declared"
-    assert "truth_summary" in result
-    assert result["truth_summary"]["verification_required_count"] == 1
+    assert "Verified fact text from gateway." in result["answer"]
+    assert "Raw fact text." not in result["answer"]
+    assert result["provenance"][0]["labels"] == "[REPO-SOURCE] [HASH-CURRENT] [DECLARED] [VERIFY_REQUIRED]"
+    assert result["answer_boundary"] == "Only answer from verified_facts."
+    assert result["runtime_authority"] is False
+    assert result["truth_summary"]["gateway_transitions"][-1] == "MODEL_ALLOWED"
 
-def test_answer_is_from_fact_text():
+def test_valid_intent_gateway_blocked(monkeypatch):
+    # Insert a dummy fact
     record_canonical_fact(
         "f2", "doc2.md", "Mapping Table", "commit2",
-        "Fact text content.", "non_sensitive", ["OpenClaw"], "cat2", "doc", "desc",
-        "t2", "test_verified", 0, "ev2", DB_PATH
+        "Raw fact text.", "non_sensitive", ["OpenClaw"], "cat2", "doc", "desc",
+        "t2", "declared", 1, None, DB_PATH
     )
-    result = answer_operator_question(DB_PATH, "what is built?")
-    assert result["answer"] == "Fact text content."
-    assert result["provenance"][0]["truth_status"] == "test_verified"
-    assert result["provenance"][0]["verification_required"] is False
-    assert result["truth_summary"]["has_test_verified"] is True
 
-def test_provenance_contains_required_fields():
+    # Mock gateway to simulate BLOCK
+    def mock_packet_blocked(db_path, fact_id, question):
+        return {
+            "status": "MODEL_BLOCKED",
+            "state": "MODEL_BLOCKED",
+            "block_reason": "Hash mismatch detected.",
+            "transitions": ["CANDIDATE_SURFACED", "CHECK_RUNNING", "DIFF_FOUND", "MODEL_BLOCKED"],
+            "verified_facts": []
+        }
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet_blocked)
+
+    result = answer_operator_question(DB_PATH, "what is built?")
+    assert result["status"] == "MODEL_BLOCKED"
+    assert "Hash mismatch detected." in result["answer"]
+    assert "Raw fact text." not in result["answer"]
+    assert result["truth_summary"]["blocked"] is True
+    assert len(result["provenance"]) == 0
+
+def test_integration_ish_success(tmp_path, monkeypatch):
+    # Real-ish integration: setup DB and a dummy file on disk
+    db_path = str(tmp_path / "integration.sqlite")
+    init_business_ops_ledger(db_path)
+
+    source_file = tmp_path / "doc3.md"
+    source_content = b"Content of doc3"
+    source_file.write_bytes(source_content)
+    import hashlib
+    source_hash = hashlib.sha256(source_content).hexdigest()
+
+    # Insert into truth registry
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, source_content_hash, hash_status, truth_status,
+            origin_machine, sync_role, sensitivity_class, approval_status,
+            verification_required, canonical_eligible
+        )
+        VALUES ('t3', ?, ?, 'current', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 1, 1)
+    """, (str(source_file), source_hash))
+    conn.commit()
+    conn.close()
+
+    # Insert fact
     record_canonical_fact(
-        "f3", "doc3.md", "Terrain vs Declaration", "commit3",
-        "Boundaries.", "non_sensitive", ["OpenClaw"], "cat3", "doc", "desc",
-        "t3", "declared", 1, None, DB_PATH
+        "f3", str(source_file), "Terrain vs Declaration", "commit3",
+        "Fact 3 text.", "non_sensitive", ["OpenClaw"], "cat3", "doc", "desc",
+        "t3", "doctrine_reference", 1, None, db_path
     )
-    result = answer_operator_question(DB_PATH, "what are the boundaries?")
-    prov = result["provenance"][0]
-    assert "fact_id" in prov
-    assert "source_file" in prov
-    assert "section_heading" in prov
-    assert "source_commit" in prov
-    assert "content_hash" in prov
-    assert "truth_source_id" in prov
+
+    # Mock SOURCE_REGISTRY to include our temp file
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {str(source_file): {}})
+
+    # Now call answer_harness (it should use the real build_llm_truth_packet logic)
+    result = answer_operator_question(db_path, "what are the boundaries?")
+    assert result["status"] == "SUCCESS"
+    assert "Fact 3 text." in result["answer"]
+    assert "[HASH-CURRENT]" in result["provenance"][0]["labels"]
