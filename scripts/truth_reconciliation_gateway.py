@@ -279,6 +279,7 @@ def build_llm_truth_packet(
                         recheck = check_fact_source_integrity(db_path, fact_id)
                         if recheck["status"] == "PASS":
                             transitions.append(RECHECK_PASSED)
+                            integrity = recheck
                             # Continue to packet generation using fresh state
                         else:
                             transitions.append(RECHECK_FAILED)

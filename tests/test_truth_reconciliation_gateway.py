@@ -356,6 +356,7 @@ def test_v1_mechanical_repair_preserves_verification_required(test_env):
     # Status should be MODEL_ALLOWED_UNCERTAIN because repair only fixed the hash, 
     # but verification_required=1 and evidence_id=None remained.
     assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert result["source_content_hash_status"] == "current"
     assert RECONCILIATION_APPLIED in result["transitions"]
 
     # Verify DB: hash_status repaired, verification_required preserved
@@ -454,6 +455,7 @@ def test_source_hash_mismatch_still_blocks(test_env):
 
     result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
     assert result["status"] == MODEL_BLOCKED
+    assert "Disk hash mismatch" in result["block_reason"]
     assert "fact_text" not in result
     assert "verified_facts" in result and result["verified_facts"] == []
 

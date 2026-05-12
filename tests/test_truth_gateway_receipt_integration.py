@@ -98,6 +98,7 @@ def test_build_packet_verified_records_receipt(test_env):
     assert payload["fact_text_crossed_model_boundary"] is True
     assert "fact_text" not in payload
     assert payload["fact_text_redacted_in_receipt"] is True
+    assert payload["external_model_access_granted"] is False
 
 def test_build_packet_uncertain_records_receipt(test_env):
     # Set verification_required=1 and no evidence to make it uncertain
@@ -133,6 +134,7 @@ def test_build_packet_uncertain_records_receipt(test_env):
     assert payload["confidence_band"] == "medium_provisional"
     assert payload["fact_text_crossed_model_boundary"] is True
     assert "fact_text" not in payload
+    assert payload["external_model_access_granted"] is False
 
 def test_build_packet_blocked_records_receipt(test_env):
     # Cause a mismatch
@@ -163,6 +165,44 @@ def test_build_packet_blocked_records_receipt(test_env):
     assert payload["packet_status"] == MODEL_BLOCKED
     assert payload["block_reason"] is not None
     assert payload["fact_text_crossed_model_boundary"] is False
+    assert "fact_text" not in payload
+    assert payload["external_model_access_granted"] is False
+
+def test_repaired_uncertain_receipt_uses_refreshed_hash_status(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE truth_registry_entries SET hash_status = 'changed' WHERE source_id = 's1'")
+    conn.execute("UPDATE canonical_facts SET verification_required = 1 WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    packet = build_llm_truth_packet(
+        test_env["db_path"],
+        test_env["fact_id"],
+        allow_reconciliation=True,
+        record_receipt=True,
+        receipt_db_path=test_env["receipt_db_path"]
+    )
+
+    assert packet["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert packet["source_content_hash_status"] == "current"
+
+    conn = sqlite3.connect(test_env["receipt_db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT packet_json_safe FROM packets")
+    rows = cursor.fetchall()
+    conn.close()
+
+    payload = None
+    for row in rows:
+        p = json.loads(row[0])
+        if p.get("receipt_type") == "truth_packet_decision_receipt":
+            payload = p
+            break
+
+    assert payload is not None
+    assert payload["packet_status"] == MODEL_ALLOWED_UNCERTAIN
+    assert payload["source_content_hash_status"] == "current"
+    assert payload["external_model_access_granted"] is False
     assert "fact_text" not in payload
 
 def test_receipt_logging_does_not_change_status(test_env):

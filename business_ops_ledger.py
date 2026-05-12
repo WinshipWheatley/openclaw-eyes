@@ -996,6 +996,10 @@ def append_truth_packet_decision_receipt(
         if key in kwargs:
             raise ValueError(f"Unsafe key '{key}' is strictly forbidden in truth_packet_decision_receipt.")
 
+    if external_model_access_granted:
+        raise ValueError("external_model_access_granted=True is not available in v0 truth_packet_decision_receipt.")
+    external_model_access_granted = False
+
     # MODEL_BLOCKED forces boundary-crossing false
     if packet_status == "MODEL_BLOCKED":
         fact_text_crossed_model_boundary = False
@@ -1048,6 +1052,7 @@ def append_truth_packet_decision_receipt(
     packet_data["runtime_authority"] = False
     packet_data["execution_authority"] = 0
     packet_data["fact_text_redacted_in_receipt"] = True
+    packet_data["external_model_access_granted"] = False
     packet_data.pop("fact_text", None)
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

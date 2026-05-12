@@ -88,11 +88,29 @@ def test_uncertain_status_can_be_true(temp_ledger):
     assert payload["packet_status"] == "MODEL_ALLOWED_UNCERTAIN"
     assert payload["fact_text_crossed_model_boundary"] is True
 
-def test_external_model_access_granted_override(temp_ledger):
+def test_external_model_access_granted_true_is_rejected(temp_ledger):
+    with pytest.raises(ValueError) as excinfo:
+        append_truth_packet_decision_receipt(
+            packet_status="MODEL_ALLOWED_VERIFIED",
+            fact_id="fact-123",
+            external_model_access_granted=True,
+            db_path=temp_ledger
+        )
+    assert "external_model_access_granted" in str(excinfo.value)
+
+    conn = sqlite3.connect(temp_ledger)
+    cursor = conn.cursor()
+    cursor.execute("SELECT count(*) FROM packets")
+    count = cursor.fetchone()[0]
+    conn.close()
+
+    assert count == 0
+
+
+def test_external_model_access_granted_defaults_false(temp_ledger):
     success = append_truth_packet_decision_receipt(
         packet_status="MODEL_ALLOWED_VERIFIED",
         fact_id="fact-123",
-        external_model_access_granted=True,
         db_path=temp_ledger
     )
     assert success is True
@@ -104,7 +122,7 @@ def test_external_model_access_granted_override(temp_ledger):
     conn.close()
 
     payload = json.loads(row[0])
-    assert payload["external_model_access_granted"] is True
+    assert payload["external_model_access_granted"] is False
 
 def test_rejects_unsafe_overrides(temp_ledger):
     unsafe_attempts = [
@@ -125,4 +143,3 @@ def test_rejects_unsafe_overrides(temp_ledger):
                 **attempt
             )
         assert "strictly forbidden" in str(excinfo.value)
-
