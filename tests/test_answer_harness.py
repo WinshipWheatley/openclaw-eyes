@@ -326,46 +326,121 @@ def test_answer_harness_receipt_integration(tmp_path, monkeypatch):
     assert payload["fact_text_crossed_model_boundary"] is True
     assert "Fact H1 text." not in rows[0][0]
 
-def test_answer_harness_receipt_blocked_redaction(tmp_path, monkeypatch):
-    db_path = str(tmp_path / "harness_blocked.sqlite")
-    receipt_db_path = str(tmp_path / "harness_blocked_log.sqlite")
-    init_business_ops_ledger(db_path)
-    init_business_ops_ledger(receipt_db_path)
-
-    # Fact exists but file is missing -> BLOCKED
+def test_answer_harness_mixed_allowed_blocked_metadata(monkeypatch):
+    # Insert two facts
     record_canonical_fact(
-        "fb1", "missing.md", "Status", "cb1",
-        "Secret fact text.", "public_canonical", ["OpenClaw"], "cat1", "doc", "desc",
-        "tb1", "doctrine_reference", 0, None, db_path
+        "f_ok", "doc_ok.md", "Status", "c1",
+        "Verified fact text.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc",
+        "t_ok", "declared", 0, None, DB_PATH
     )
-    # Registry entry exists
-    conn = sqlite3.connect(db_path)
-    conn.execute("""
-        INSERT INTO truth_registry_entries (
-            source_id, observed_path, source_content_hash, hash_status, truth_status,
-            origin_machine, sync_role, sensitivity_class, approval_status,
-            verification_required, canonical_eligible
-        )
-        VALUES ('tb1', 'missing.md', 'somehash', 'current', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 0, 1)
-    """)
-    conn.commit()
-    conn.close()
-
-    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {"missing.md": {}})
-
-    result = answer_operator_question(
-        db_path,
-        "where are we?",
-        record_receipt=True,
-        receipt_db_path=receipt_db_path
+    record_canonical_fact(
+        "f_blocked", "doc_blocked.md", "Status", "c2",
+        "Secret fact text.", "non_sensitive", ["OpenClaw"], "cat2", "doc", "desc",
+        "t_blocked", "declared", 0, None, DB_PATH
     )
-    assert result["status"] == "MODEL_BLOCKED"
 
-    conn = sqlite3.connect(receipt_db_path)
-    rows = conn.execute("SELECT packet_json_safe FROM packets").fetchall()
-    conn.close()
+    from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_VERIFIED, MODEL_BLOCKED
 
-    payload = json.loads(rows[0][0])
-    assert payload["packet_status"] == "MODEL_BLOCKED"
-    assert payload["fact_text_crossed_model_boundary"] is False
-    assert "Secret fact text." not in rows[0][0]
+    # Mock gateway to return Verified for f_ok and Blocked for f_blocked
+    def mock_packet_mixed(db_path, fact_id, question, **kwargs):
+        if fact_id == "f_ok":
+            return {
+                "status": MODEL_ALLOWED_VERIFIED,
+                "verified_facts": [{
+                    "id": fact_id,
+                    "text": "Verified fact text.",
+                    "labels": "[REPO-SOURCE]",
+                    "provenance": {
+                        "fact_id": fact_id,
+                        "source_file": "doc_ok.md",
+                        "truth_status": "declared",
+                        "verification_required": False
+                    }
+                }],
+                "transitions": ["T1"]
+            }
+        else:
+            return {
+                "status": MODEL_BLOCKED,
+                "block_reason": "Hash mismatch.",
+                "verified_facts": [],
+                "transitions": ["T2"]
+            }
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet_mixed)
+
+    result = answer_operator_question(DB_PATH, "where are we?")
+
+    assert result["status"] == "SUCCESS"
+    assert "Verified fact text." in result["answer"]
+    assert "Secret fact text." not in result["answer"]
+
+    ts = result["truth_summary"]
+    assert ts["allowed_candidate_count"] == 1
+    assert ts["blocked_candidate_count"] == 1
+    assert ts["uncertain_candidate_count"] == 0
+    assert ts["omitted_blocked_candidates_did_not_cross_boundary"] is True
+    assert len(ts["blocked_reasons"]) == 1
+    assert ts["blocked_reasons"][0]["fact_id"] == "f_blocked"
+    assert ts["blocked_reasons"][0]["reason"] == "Hash mismatch."
+
+def test_answer_harness_mixed_verified_uncertain_metadata(monkeypatch):
+    record_canonical_fact(
+        "f_v", "doc_v.md", "Status", "c1",
+        "Verified text.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc",
+        "t_v", "declared", 0, None, DB_PATH
+    )
+    record_canonical_fact(
+        "f_u", "doc_u.md", "Status", "c2",
+        "Uncertain text.", "non_sensitive", ["OpenClaw"], "cat2", "doc", "desc",
+        "t_u", "declared", 1, None, DB_PATH
+    )
+
+    from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_VERIFIED, MODEL_ALLOWED_UNCERTAIN
+
+    def mock_packet_mixed(db_path, fact_id, question, **kwargs):
+        if fact_id == "f_v":
+            return {
+                "status": MODEL_ALLOWED_VERIFIED,
+                "verified_facts": [{
+                    "id": fact_id,
+                    "text": "Verified text.",
+                    "labels": "[REPO-SOURCE]",
+                    "provenance": {
+                        "fact_id": fact_id,
+                        "source_file": "doc_v.md",
+                        "truth_status": "declared",
+                        "verification_required": False
+                    }
+                }],
+                "transitions": ["T1"]
+            }
+        else:
+            return {
+                "status": MODEL_ALLOWED_UNCERTAIN,
+                "uncertainty_status": "no_evidence",
+                "confidence_band": "low",
+                "uncertainty_reason": "missing",
+                "fact_text": "Uncertain text.",
+                "source_file": "doc_u.md",
+                "content_hash": "h2",
+                "truth_source_id": "t_u",
+                "truth_status": "declared",
+                "verification_required": True,
+                "transitions": ["T2"]
+            }
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet_mixed)
+
+    result = answer_operator_question(DB_PATH, "where are we?")
+
+    assert result["status"] == "SUCCESS"
+    assert "Verified text." in result["answer"]
+    assert "Based on currently available evidence" in result["answer"]
+    assert "Uncertain text." in result["answer"]
+
+    ts = result["truth_summary"]
+    assert ts["allowed_candidate_count"] == 1
+    assert ts["uncertain_candidate_count"] == 1
+    assert ts["blocked_candidate_count"] == 0
+    assert ts["omitted_blocked_candidates_did_not_cross_boundary"] is False

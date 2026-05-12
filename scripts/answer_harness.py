@@ -70,6 +70,9 @@ def answer_operator_question(
     # Pass each candidate through the Truth Reconciliation Gateway
     all_processed_facts = []
     blocked_reasons = []
+    allowed_candidate_count = 0
+    uncertain_candidate_count = 0
+    blocked_candidate_count = 0
     has_uncertain = False
     last_packet = None
 
@@ -85,6 +88,7 @@ def answer_operator_question(
         last_packet = packet
 
         if packet["status"] == MODEL_ALLOWED_VERIFIED:
+            allowed_candidate_count += 1
             for f in packet["verified_facts"]:
                 all_processed_facts.append({
                     "text": f["text"],
@@ -94,6 +98,7 @@ def answer_operator_question(
                     "packet": packet
                 })
         elif packet["status"] == MODEL_ALLOWED_UNCERTAIN:
+            uncertain_candidate_count += 1
             has_uncertain = True
             # Construct provenance and labels for uncertain fact
             prov = {
@@ -121,6 +126,7 @@ def answer_operator_question(
                 "packet": packet
             })
         else:
+            blocked_candidate_count += 1
             blocked_reasons.append({
                 "fact_id": fact["fact_id"],
                 "reason": packet.get("block_reason", "Unknown block")
@@ -135,7 +141,11 @@ def answer_operator_question(
             "truth_summary": {
                 "blocked": True,
                 "candidate_count": len(candidate_facts),
-                "blocked_reasons": blocked_reasons
+                "allowed_candidate_count": 0,
+                "uncertain_candidate_count": 0,
+                "blocked_candidate_count": blocked_candidate_count,
+                "blocked_reasons": blocked_reasons,
+                "omitted_blocked_candidates_did_not_cross_boundary": False
             }
         }
 
@@ -179,7 +189,12 @@ def answer_operator_question(
         "has_test_verified": any(f["provenance"]["truth_status"] == "test_verified" for f in all_processed_facts),
         "all_facts_require_verification": all(f["provenance"]["verification_required"] for f in all_processed_facts),
         "has_uncertain_facts": has_uncertain,
-        "gateway_transitions": effective_packet.get("transitions")
+        "gateway_transitions": effective_packet.get("transitions"),
+        "allowed_candidate_count": allowed_candidate_count,
+        "uncertain_candidate_count": uncertain_candidate_count,
+        "blocked_candidate_count": blocked_candidate_count,
+        "blocked_reasons": blocked_reasons,
+        "omitted_blocked_candidates_did_not_cross_boundary": blocked_candidate_count > 0
     }
 
     return {
