@@ -88,7 +88,16 @@ if __name__ == "__main__":
     parser.add_argument("--root-id", required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--db")
+    parser.add_argument("--replace", action="store_true")
     args = parser.parse_args()
+
+    if args.replace and not args.db:
+        print("Error: --replace requires --db")
+        exit(1)
+
+    if args.replace:
+        from business_ops_ledger import delete_file_inventory_by_root
+        delete_file_inventory_by_root(args.root_id, args.db)
 
     data = scan_root(args.root_id, args.dry_run, args.db)
     if not args.db:

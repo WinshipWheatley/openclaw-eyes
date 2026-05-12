@@ -456,6 +456,11 @@ def append_operator_explanation(
     return _execute_write(query, params, db_path)
 
 
+def delete_file_inventory_by_root(root_id: str, db_path: str | None = None) -> None:
+    path = db_path or DEFAULT_DB_PATH
+    query = "DELETE FROM file_inventory WHERE root_id = ?"
+    _execute_write(query, (root_id,), path)
+
 def get_file_inventory_by_root(root_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
     return _query_file_inventory("SELECT * FROM file_inventory WHERE root_id = ?", (root_id,), db_path)
 

@@ -5,7 +5,8 @@ import os
 from business_ops_ledger import (
     get_file_inventory_by_root,
     get_file_inventory_by_extension,
-    get_file_inventory_by_name
+    get_file_inventory_by_name,
+    _query_file_inventory
 )
 
 def main():
