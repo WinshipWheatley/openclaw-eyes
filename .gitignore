@@ -176,8 +176,10 @@
 
 !scripts/query_canonical_facts.py
 !scripts/query_file_inventory.py
+!scripts/generate_inventory_report.py
 !tests/test_query_canonical_facts.py
 !tests/test_query_file_inventory.py
+!tests/test_generate_inventory_report.py
 
 !apps/
 !apps/legal-console-spike/
