@@ -1,8 +1,13 @@
 import argparse
 import sqlite3
+import os
 import sys
 
 def run_report(db_path, truth_status=None, source=None, verification_required=None):
+    if not os.path.exists(db_path):
+        print(f"Error: Database not found at {db_path}")
+        return
+
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -19,10 +24,16 @@ def run_report(db_path, truth_status=None, source=None, verification_required=No
         query += " AND verification_required = ?"
         params.append(1 if verification_required else 0)
 
-    facts = cursor.execute(query, params).fetchall()
+    try:
+        facts = cursor.execute(query, params).fetchall()
+    except sqlite3.OperationalError as e:
+        print(f"Error querying database: {e}")
+        conn.close()
+        return
 
     if not facts:
         print("No canonical facts found matching the criteria.")
+        conn.close()
         return
 
     print("Canonical Fact Truth Report")
@@ -35,35 +46,30 @@ def run_report(db_path, truth_status=None, source=None, verification_required=No
     source_counts = {}
     
     for fact in facts:
-        status_counts[fact['truth_status']] = status_counts.get(fact['truth_status'], 0) + 1
-        ver_counts[fact['verification_required']] = ver_counts.get(fact['verification_required'], 0) + 1
-        source_counts[fact['source_file']] = source_counts.get(fact['source_file'], 0) + 1
-    
+        st = fact['truth_status'] or "None"
+        status_counts[st] = status_counts.get(st, 0) + 1
+
+        vr = 1 if fact['verification_required'] else 0
+        ver_counts[vr] = ver_counts.get(vr, 0) + 1
+
+        sf = fact['source_file']
+        source_counts[sf] = source_counts.get(sf, 0) + 1
+
     print("\nCount by truth_status:")
-    for s, c in status_counts.items():
+    for s, c in sorted(status_counts.items()):
         print(f"  {s}: {c}")
-        
+
     print("\nCount by verification_required:")
-    for v, c in ver_counts.items():
+    for v, c in sorted(ver_counts.items()):
         print(f"  {bool(v)}: {c}")
-        
+
     print("\nCount by source_file:")
-    for s, c in source_counts.items():
+    for s, c in sorted(source_counts.items()):
         print(f"  {s}: {c}")
 
     print("\nFact Listing:")
-    # Group by source_file and section_heading
-    grouped = {}
-    for fact in facts:
-        key = (fact['source_file'], fact['section_heading'])
-        if key not in grouped:
-            grouped[key] = []
-        grouped[key].append(fact)
-    
-    for (sf, sh), fs in grouped.items():
-        print(f"\nSource: {sf} | Section: {sh}")
-        for f in fs:
-            print(f"  - ID: {f['fact_id']} | Status: {f['truth_status']} | SourceID: {f['truth_source_id']} | VerRequired: {bool(f['verification_required'])} | EvidenceID: {f['verification_evidence_id']}")
+    for f in facts:
+        print(f"  - ID: {f['fact_id']} | Source: {f['source_file']} | Section: {f['section_heading']} | Status: {f['truth_status']} | SourceID: {f['truth_source_id']} | VerRequired: {bool(f['verification_required'])} | EvidenceID: {f['verification_evidence_id']}")
 
     print("\nBoundary note: Truth status describes verification posture, not runtime authority.")
     conn.close()
@@ -73,7 +79,11 @@ if __name__ == "__main__":
     parser.add_argument("--db", required=True, help="Path to SQLite DB")
     parser.add_argument("--truth-status", help="Filter by truth status")
     parser.add_argument("--source", help="Filter by source file")
-    parser.add_argument("--verification-required", action="store_true", help="Filter by verification required")
+    parser.add_argument("--verification-required", action="store_true", help="Filter for facts that require verification")
     args = parser.parse_args()
-    
-    run_report(args.db, args.truth_status, args.source, args.verification_required)
+
+    # If the flag is not provided, we don't want to filter by it.
+    # If it is provided, we want verification_required=1.
+    ver_req = 1 if args.verification_required else None
+
+    run_report(args.db, args.truth_status, args.source, ver_req)
