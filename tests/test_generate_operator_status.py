@@ -36,6 +36,14 @@ def mock_snapshot():
         "allowed_tools": "Reading files.",
         "forbidden_surfaces": "Secrets.",
         "north_star": "Lighter life.",
+        "truth_substrate": {
+            "status": "available",
+            "metrics": {
+                "facts": {"total": 83, "by_truth_status": {"doctrine_reference": 71, "historical_checkpoint": 12}},
+                "registry": {"total_sources": 9, "present_sources": 9},
+                "readiness": {"result": "READY"}
+            }
+        },
         "next_safe_move": "Next move.",
         "visible_road_horizon": {
             "visible_moves": ["Move 1", "Move 2"],
@@ -63,6 +71,14 @@ def test_generate_current_state(mock_snapshot):
     assert "[APPROVAL_RECORD] [SQLITE_VERIFIED] APPROVED: Approved outreach to Bob (No Execution)" in output
     assert "[APPROVAL_REQUEST] [SQLITE_VERIFIED] Requesting approval for album creation (No Decision/No Execution)" in output
     assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
+
+    # Truth Substrate Summary check
+    assert "## 3. Truth Substrate Summary" in output
+    assert "**Facts**: 83 (71 doctrine, 12 historical)" in output
+    assert "**Coverage**: 9/9 SOURCE_REGISTRY documents" in output
+    assert "READY" in output
+    assert "Truth substrate status is read-only" in output
+    assert "SECRET_FACT_TEXT" not in output
 
     # Ensure lines are safe and do not imply execution/completion
     for keyword in ["GATE", "APPROVAL_RECORD", "APPROVAL_REQUEST"]:

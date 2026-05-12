@@ -211,24 +211,45 @@ def generate_current_state(snapshot):
     else:
         lines.append("- No recent verification receipts found.")
 
+    # Section 3: Truth Substrate Summary
     lines.extend([
         "",
-        "> **Note**: Proof receipts prove only that specific checks ran at a commit/environment. They do not claim whole-system health.",
+        "## 3. Truth Substrate Summary",
+        "Registry-governed canonical facts and source documents.",
+    ])
+
+    truth = snapshot.get("truth_substrate", {"status": "unavailable"})
+    if truth["status"] == "available":
+        m = truth["metrics"]
+        f = m["facts"]
+        r = m["registry"]
+        rd = m["readiness"]
+        lines.extend([
+            f"- **Facts**: {f['total']} ({f['by_truth_status'].get('doctrine_reference', 0)} doctrine, {f['by_truth_status'].get('historical_checkpoint', 0)} historical)",
+            f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents",
+            f"- **Readiness**: {rd['result']}",
+            "",
+            "> Truth substrate status is read-only. Truth status describes verification posture, not runtime health or agent authority.",
+        ])
+    else:
+        lines.append(f"- Status: UNAVAILABLE ({truth.get('reason', 'unknown')})")
+
+    lines.extend([
         "",
-        "## 3. Active Lane & Doctrine",
+        "## 4. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 4. Tool & Surface Boundaries",
+        "## 5. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 5. North Star",
+        "## 6. North Star",
         snapshot['north_star'],
         "",
-        "## 6. Safety & Staleness",
+        "## 7. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
