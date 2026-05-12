@@ -32,11 +32,13 @@ def test_valid_intent_gateway_success(monkeypatch):
         "t1", "declared", 1, None, DB_PATH
     )
 
+    from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_VERIFIED
+
     # Mock gateway to simulate PASS
     def mock_packet(db_path, fact_id, question, allow_reconciliation=False):
         return {
-            "status": "MODEL_ALLOWED",
-            "state": "MODEL_ALLOWED",
+            "status": MODEL_ALLOWED_VERIFIED,
+            "state": MODEL_ALLOWED_VERIFIED,
             "verified_facts": [{
                 "id": fact_id,
                 "text": "Verified fact text from gateway.",
@@ -54,7 +56,7 @@ def test_valid_intent_gateway_success(monkeypatch):
             }],
             "answer_boundary": "Only answer from verified_facts.",
             "runtime_authority": False,
-            "transitions": ["CANDIDATE_SURFACED", "CHECK_RUNNING", "NO_DIFF_FOUND", "PACKET_READY", "MODEL_ALLOWED"]
+            "transitions": ["CANDIDATE_SURFACED", "CHECK_RUNNING", "NO_DIFF_FOUND", "PACKET_READY", MODEL_ALLOWED_VERIFIED]
         }
 
     monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet)
@@ -66,7 +68,7 @@ def test_valid_intent_gateway_success(monkeypatch):
     assert result["provenance"][0]["labels"] == "[REPO-SOURCE] [HASH-CURRENT] [DECLARED] [VERIFY_REQUIRED]"
     assert result["answer_boundary"] == "Only answer from verified_facts."
     assert result["runtime_authority"] is False
-    assert result["truth_summary"]["gateway_transitions"][-1] == "MODEL_ALLOWED"
+    assert result["truth_summary"]["gateway_transitions"][-1] == MODEL_ALLOWED_VERIFIED
 
 def test_valid_intent_gateway_blocked(monkeypatch):
     # Insert a dummy fact
@@ -181,3 +183,46 @@ def test_answer_harness_allow_reconciliation_integration(tmp_path, monkeypatch):
     row = conn.execute("SELECT hash_status FROM truth_registry_entries WHERE source_id = 't4'").fetchone()
     conn.close()
     assert row[0] == 'current'
+
+def test_uncertain_packet_handling(monkeypatch):
+    # record_canonical_fact is already done by fixtures or manually in previous tests?
+    # Actually setup_db is autouse=True and it clears the DB.
+    # I'll use record_canonical_fact here.
+    from business_ops_ledger import record_canonical_fact
+    record_canonical_fact(
+        "fu1", "u1.md", "Status", "c1",
+        "Uncertain fact text.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc",
+        "tu1", "declared", 1, None, DB_PATH
+    )
+
+    from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_UNCERTAIN
+
+    def mock_packet_uncertain(db_path, fact_id, question, allow_reconciliation=False):
+        return {
+            "status": MODEL_ALLOWED_UNCERTAIN,
+            "uncertainty_status": "verification_required_no_evidence",
+            "confidence_band": "medium_provisional",
+            "uncertainty_reason": "source_integrity_passed_but_verification_evidence_missing",
+            "fact_text": "Uncertain fact text from gateway.",
+            "source_file": "u1.md",
+            "source_commit": "c1",
+            "content_hash": "h1",
+            "source_content_hash_status": "current",
+            "truth_source_id": "tu1",
+            "truth_status": "declared",
+            "verification_required": True,
+            "verification_evidence_id": None,
+            "answer_boundary": "Qualified language required (e.g., 'records indicate', 'provisionally'). Forbid hard-truth phrasing.",
+            "runtime_authority": False,
+            "transitions": ["CANDIDATE_SURFACED", "CHECK_RUNNING", "NO_DIFF_FOUND", "PACKET_READY", MODEL_ALLOWED_UNCERTAIN]
+        }
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.build_llm_truth_packet", mock_packet_uncertain)
+
+    result = answer_operator_question(DB_PATH, "where are we?")
+    assert result["status"] == "SUCCESS"
+    assert "Based on currently available evidence, this appears to be provisional" in result["answer"]
+    assert "Uncertain fact text from gateway." in result["answer"]
+    assert result["truth_summary"]["has_uncertain_facts"] is True
+    assert result["runtime_authority"] is False
+    assert "Qualified language required" in result["answer_boundary"]

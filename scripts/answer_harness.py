@@ -23,7 +23,13 @@ def answer_operator_question(db_path: str, question: str, allow_reconciliation: 
     # Ensure gateway is available
     sys.path.append(os.getcwd())
     try:
-        from scripts.truth_reconciliation_gateway import build_llm_truth_packet, MODEL_ALLOWED, MODEL_BLOCKED
+        from scripts.truth_reconciliation_gateway import (
+            build_llm_truth_packet,
+            MODEL_ALLOWED_VERIFIED,
+            MODEL_ALLOWED_UNCERTAIN,
+            MODEL_BLOCKED,
+            MODEL_ALLOWED # for backward compatibility if needed
+        )
     except ImportError:
         return {
             "intent_matched": None,
@@ -56,20 +62,58 @@ def answer_operator_question(db_path: str, question: str, allow_reconciliation: 
         }
 
     # Pass each candidate through the Truth Reconciliation Gateway
-    allowed_packets = []
+    all_processed_facts = []
     blocked_reasons = []
+    has_uncertain = False
+    last_packet = None
 
     for fact in candidate_facts:
         packet = build_llm_truth_packet(db_path, fact["fact_id"], question, allow_reconciliation=allow_reconciliation)
-        if packet["status"] == MODEL_ALLOWED:
-            allowed_packets.append(packet)
+        last_packet = packet
+
+        if packet["status"] == MODEL_ALLOWED_VERIFIED:
+            for f in packet["verified_facts"]:
+                all_processed_facts.append({
+                    "text": f["text"],
+                    "labels": f["labels"],
+                    "provenance": f["provenance"],
+                    "uncertain": False,
+                    "packet": packet
+                })
+        elif packet["status"] == MODEL_ALLOWED_UNCERTAIN:
+            has_uncertain = True
+            # Construct provenance and labels for uncertain fact
+            prov = {
+                "fact_id": fact["fact_id"],
+                "source_file": packet["source_file"],
+                "source_commit": packet.get("source_commit"),
+                "content_hash": packet["content_hash"],
+                "truth_source_id": packet["truth_source_id"],
+                "truth_status": packet["truth_status"],
+                "verification_required": packet["verification_required"],
+                "verification_evidence_id": packet.get("verification_evidence_id")
+            }
+            hash_status = packet.get("source_content_hash_status", "unknown").upper()
+            truth_status = packet.get("truth_status", "unknown").upper()
+            labels = f"[UNCERTAIN] [REPO-SOURCE] [HASH-{hash_status}] [{truth_status}] [VERIFY_REQUIRED]"
+
+            all_processed_facts.append({
+                "text": packet["fact_text"],
+                "labels": labels,
+                "provenance": prov,
+                "uncertain": True,
+                "uncertainty_status": packet["uncertainty_status"],
+                "confidence_band": packet["confidence_band"],
+                "uncertainty_reason": packet["uncertainty_reason"],
+                "packet": packet
+            })
         else:
             blocked_reasons.append({
                 "fact_id": fact["fact_id"],
                 "reason": packet.get("block_reason", "Unknown block")
             })
 
-    if not allowed_packets:
+    if not all_processed_facts:
         return {
             "intent_matched": intent,
             "status": MODEL_BLOCKED,
@@ -82,29 +126,47 @@ def answer_operator_question(db_path: str, question: str, allow_reconciliation: 
             }
         }
 
-    # Combine allowed facts
-    all_verified_facts = []
-    for packet in allowed_packets:
-        all_verified_facts.extend(packet["verified_facts"])
+    # Combine allowed facts with qualification for uncertain ones
+    formatted_answers = []
+    for f in all_processed_facts:
+        if f["uncertain"]:
+            qualification = f"Based on currently available evidence, this appears to be provisional (status: {f['uncertainty_status']}, confidence: {f['confidence_band']}): "
+            formatted_answers.append(f"{qualification}{f['text']}")
+        else:
+            formatted_answers.append(f["text"])
 
-    answer_text = "\n\n".join([f["text"] for f in all_verified_facts])
+    answer_text = "\n\n".join(formatted_answers)
 
     provenance = []
-    for f in all_verified_facts:
+    for f in all_processed_facts:
         prov = f["provenance"].copy()
         prov["labels"] = f["labels"]
+        if f["uncertain"]:
+            prov["uncertainty_status"] = f["uncertainty_status"]
+            prov["confidence_band"] = f["confidence_band"]
+            prov["uncertainty_reason"] = f["uncertainty_reason"]
         provenance.append(prov)
 
     # Use the last packet's boundary/authority info (they should be consistent)
-    last_packet = allowed_packets[-1]
+    # If we have a mix, the uncertain one's boundary is likely more restrictive
+    # For now, we take the last one processed that was allowed
+    # (Or just use the last_packet if it was allowed)
+
+    # Let's find an uncertain packet if it exists, to be safe with boundaries
+    effective_packet = last_packet
+    for f in all_processed_facts:
+        if f["uncertain"]:
+            effective_packet = f["packet"]
+            break
 
     truth_summary = {
-        "truth_statuses_present": list(set(f["provenance"]["truth_status"] for f in all_verified_facts)),
-        "verification_required_count": sum(1 for f in all_verified_facts if f["provenance"]["verification_required"]),
-        "has_runtime_verified": any(f["provenance"]["truth_status"] == "runtime_verified" for f in all_verified_facts),
-        "has_test_verified": any(f["provenance"]["truth_status"] == "test_verified" for f in all_verified_facts),
-        "all_facts_require_verification": all(f["provenance"]["verification_required"] for f in all_verified_facts),
-        "gateway_transitions": last_packet.get("transitions")
+        "truth_statuses_present": list(set(f["provenance"]["truth_status"] for f in all_processed_facts)),
+        "verification_required_count": sum(1 for f in all_processed_facts if f["provenance"]["verification_required"]),
+        "has_runtime_verified": any(f["provenance"]["truth_status"] == "runtime_verified" for f in all_processed_facts),
+        "has_test_verified": any(f["provenance"]["truth_status"] == "test_verified" for f in all_processed_facts),
+        "all_facts_require_verification": all(f["provenance"]["verification_required"] for f in all_processed_facts),
+        "has_uncertain_facts": has_uncertain,
+        "gateway_transitions": effective_packet.get("transitions")
     }
 
     return {
@@ -113,8 +175,8 @@ def answer_operator_question(db_path: str, question: str, allow_reconciliation: 
         "answer": answer_text,
         "provenance": provenance,
         "truth_summary": truth_summary,
-        "answer_boundary": last_packet.get("answer_boundary"),
-        "runtime_authority": last_packet.get("runtime_authority", False)
+        "answer_boundary": effective_packet.get("answer_boundary"),
+        "runtime_authority": effective_packet.get("runtime_authority", False)
     }
 
 def main():
