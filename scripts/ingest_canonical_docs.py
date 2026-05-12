@@ -6,7 +6,11 @@ import os
 from scripts.extract_canonical_facts import extract_markdown_sections
 from business_ops_ledger import record_canonical_fact, init_business_ops_ledger
 
-ALLOWED_SOURCE = "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md"
+ALLOWED_SOURCES = [
+    "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md",
+    "docs/operations/OPENCLAW_KNOWLEDGE_INGESTION_CHECKPOINT_V2.md",
+    "docs/operations/OPENCLAW_PACKET_TO_RECEIPT_MAPPING_V0.md"
+]
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest a single canonical doc.")
@@ -14,8 +18,8 @@ def main():
     parser.add_argument("--source", required=True, help="Path to source file")
     args = parser.parse_args()
 
-    if args.source != ALLOWED_SOURCE:
-        print(f"Error: Source '{args.source}' is not allowed. Only '{ALLOWED_SOURCE}' is permitted.")
+    if args.source not in ALLOWED_SOURCES:
+        print(f"Error: Source '{args.source}' is not allowed. Permitted sources: {ALLOWED_SOURCES}")
         sys.exit(1)
 
     if not os.path.exists(args.source):
