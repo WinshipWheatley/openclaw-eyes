@@ -4,7 +4,7 @@ import sys
 import subprocess
 import os
 from scripts.extract_canonical_facts import extract_markdown_sections
-from business_ops_ledger import record_canonical_fact, init_business_ops_ledger
+from business_ops_ledger import record_canonical_fact, init_business_ops_ledger, _query_truth_registry
 
 SOURCE_REGISTRY = {
     "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md": {
@@ -104,21 +104,53 @@ def main():
 
     # Ingest
     init_business_ops_ledger(args.db)
+    
+    # Try to find truth registry entry
+    truth_entry = None
+    registry_data = _query_truth_registry("SELECT * FROM truth_registry_entries WHERE observed_path = ?", (args.source,), args.db)
+    if registry_data:
+        truth_entry = registry_data[0]
+
     for fact in facts:
         fact_id = f"fact_{fact['content_hash'][:8]}"
-        record_canonical_fact(
-            fact_id=fact_id,
-            source_file=fact['source_file'],
-            section_heading=fact['section_heading'],
-            source_commit=fact['source_commit'],
-            fact_text=fact['fact_text'],
-            sensitivity_class=metadata["sensitivity_class"],
-            allowed_actors=metadata["allowed_actors"],
-            doc_category=metadata.get("doc_category"),
-            temporal_or_doctrine=metadata.get("temporal_or_doctrine"),
-            source_description=metadata.get("description"),
-            db_path=args.db
-        )
+        
+        if truth_entry:
+            record_canonical_fact(
+                fact_id=fact_id,
+                source_file=fact['source_file'],
+                section_heading=fact['section_heading'],
+                source_commit=fact['source_commit'],
+                fact_text=fact['fact_text'],
+                sensitivity_class=metadata["sensitivity_class"],
+                allowed_actors=metadata["allowed_actors"],
+                doc_category=metadata.get("doc_category"),
+                temporal_or_doctrine=metadata.get("temporal_or_doctrine"),
+                source_description=metadata.get("description"),
+                truth_source_id=truth_entry["source_id"],
+                truth_status=truth_entry["truth_status"],
+                verification_required=truth_entry["verification_required"],
+                verification_evidence_id=truth_entry.get("verification_evidence_id"),
+                db_path=args.db
+            )
+        else:
+            # Conservative fallback
+            record_canonical_fact(
+                fact_id=fact_id,
+                source_file=fact['source_file'],
+                section_heading=fact['section_heading'],
+                source_commit=fact['source_commit'],
+                fact_text=fact['fact_text'],
+                sensitivity_class=metadata["sensitivity_class"],
+                allowed_actors=metadata["allowed_actors"],
+                doc_category=metadata.get("doc_category"),
+                temporal_or_doctrine=metadata.get("temporal_or_doctrine"),
+                source_description=metadata.get("description"),
+                truth_source_id=None,
+                truth_status="declared",
+                verification_required=1,
+                verification_evidence_id=None,
+                db_path=args.db
+            )
     print(f"Successfully ingested {len(facts)} facts from {args.source}")
 
 if __name__ == "__main__":

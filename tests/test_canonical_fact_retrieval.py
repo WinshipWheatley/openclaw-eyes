@@ -23,11 +23,11 @@ def test_retrieval_functions():
     # Insert facts
     record_canonical_fact(
         "f1", "doc1.md", "Header1", "commit1",
-        "Fact text 1", "public_canonical", ["agent1"], "cat1", "doc1", "desc1", DB_PATH
+        "Fact text 1", "public_canonical", ["agent1"], "cat1", "doc1", "desc1", None, "declared", 1, None, DB_PATH
     )
     record_canonical_fact(
         "f2", "doc2.md", "Header2", "commit2",
-        "Fact text 2", "public_canonical", ["agent2"], "cat2", "doc2", "desc2", DB_PATH
+        "Fact text 2", "public_canonical", ["agent2"], "cat2", "doc2", "desc2", None, "declared", 1, None, DB_PATH
     )
 
     # Test source retrieval
@@ -50,7 +50,7 @@ def test_retrieval_functions():
 def test_read_only_mode():
     record_canonical_fact(
         "f3", "doc3.md", "Header3", "commit3",
-        "Fact text 3", "public_canonical", ["agent3"], "cat3", "doc3", "desc3", DB_PATH
+        "Fact text 3", "public_canonical", ["agent3"], "cat3", "doc3", "desc3", None, "declared", 1, None, DB_PATH
     )
     facts = get_canonical_facts_by_source("doc3.md", DB_PATH)
     assert len(facts) == 1

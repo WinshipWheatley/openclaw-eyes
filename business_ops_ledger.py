@@ -119,7 +119,11 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
                 doc_category TEXT,
                 temporal_or_doctrine TEXT,
                 source_description TEXT,
-                ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                truth_source_id TEXT,
+                truth_status TEXT,
+                verification_required INTEGER DEFAULT 1,
+                verification_evidence_id TEXT
             )
         """)
 
@@ -240,6 +244,10 @@ def record_canonical_fact(
     doc_category: str | None = None,
     temporal_or_doctrine: str | None = None,
     source_description: str | None = None,
+    truth_source_id: str | None = None,
+    truth_status: str | None = None,
+    verification_required: int = 1,
+    verification_evidence_id: str | None = None,
     db_path: str | None = None,
 ) -> bool:
     """
@@ -277,8 +285,9 @@ def record_canonical_fact(
         INSERT INTO canonical_facts (
             fact_id, source_file, section_heading, source_commit,
             content_hash, fact_text, sensitivity_class, allowed_actors,
-            doc_category, temporal_or_doctrine, source_description
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            doc_category, temporal_or_doctrine, source_description,
+            truth_source_id, truth_status, verification_required, verification_evidence_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (
         fact_id,
@@ -292,6 +301,10 @@ def record_canonical_fact(
         doc_category,
         temporal_or_doctrine,
         source_description,
+        truth_source_id,
+        truth_status,
+        verification_required,
+        verification_evidence_id,
     )
     return _execute_write(query, params, db_path)
 
