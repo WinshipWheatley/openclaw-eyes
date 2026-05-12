@@ -23,7 +23,7 @@
 | `templates/agent/agent_intake_packet_template.json` | `agent.intake_packet` | Universal | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/cassandra_email_triage_packet_template.json` | `cassandra.email_triage_packet` | Cassandra | `email_triage_classification` | `gmail_thread_id` | WRITER_VERIFIED | `cassandra_email_triage.py` | Writes to JSONL, not SQLite. |
 | `templates/agent/cassandra_outreach_draft_packet_template.json` | `cassandra.outreach_draft_packet` | Cassandra | `outreach_email_draft_receipt` | `draft_id`, `thread_id` | SQLITE_VERIFIED | `business_ops_ledger.py` | Records draft metadata only; does not prove send or delivery. |
-| `templates/agent/cassandra_pii_handling_packet_template.json` | `cassandra.pii_handling_packet` | Cassandra | `pii_vault_record` | `token_mapping_id` | DECLARED_ONLY | - | - |
+| `templates/agent/cassandra_pii_handling_packet_template.json` | `cassandra.pii_handling_packet` | Cassandra | `pii_vault_record` | `token_mapping_id` | SQLITE_VERIFIED | `business_ops_ledger.py` | Records redacted metadata only. |
 | `templates/agent/chief_acceptance_verdict_packet_template.json` | `chief.acceptance_verdict_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/chief_action_intent_evaluation_packet_template.json` | `chief.action_intent_evaluation_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/chief_approval_decision_packet_template.json` | `chief.approval_decision_packet` | Chief | `approval_log_entry` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records approval decision only; does not prove execution. |

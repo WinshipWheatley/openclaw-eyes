@@ -116,6 +116,14 @@ def get_recent_proof_receipts(limit=5, db_path=None):
                     break
                 continue
 
+            if etype == 'pii_vault_record':
+                # Format: YYYY-MM-DD HH:MM [PII_VAULT] [SQLITE_VERIFIED] summ_raw
+                formatted = f"[PII_VAULT] [SQLITE_VERIFIED] {summ_raw}"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
+
             # etype is 'test_proof_receipt'
             import re
 

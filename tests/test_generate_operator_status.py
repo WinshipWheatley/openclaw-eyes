@@ -28,7 +28,8 @@ def mock_snapshot():
             "2026-05-10 09:00 [PASS] static_contract_check exit=0 head=0de27a6f",
             "2026-05-10 09:05 [GATE] [SQLITE_VERIFIED] GATE PASS for agent.action_intent_packet (No Execution)",
             "2026-05-10 09:10 [APPROVAL_RECORD] [SQLITE_VERIFIED] APPROVED: Approved outreach to Bob (No Execution)",
-            "2026-05-10 09:15 [APPROVAL_REQUEST] [SQLITE_VERIFIED] Requesting approval for album creation (No Decision/No Execution)"
+            "2026-05-10 09:15 [APPROVAL_REQUEST] [SQLITE_VERIFIED] Requesting approval for album creation (No Decision/No Execution)",
+            "2026-05-10 09:20 [PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)"
         ],
         "strongest_clean_proof": "[PASS] static_contract_check head=0de27a6f",
         "active_lane": "Hardening the spine.",
@@ -61,6 +62,7 @@ def test_generate_current_state(mock_snapshot):
     assert "[GATE] [SQLITE_VERIFIED] GATE PASS for agent.action_intent_packet (No Execution)" in output
     assert "[APPROVAL_RECORD] [SQLITE_VERIFIED] APPROVED: Approved outreach to Bob (No Execution)" in output
     assert "[APPROVAL_REQUEST] [SQLITE_VERIFIED] Requesting approval for album creation (No Decision/No Execution)" in output
+    assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
 
     # Ensure lines are safe and do not imply execution/completion
     for keyword in ["GATE", "APPROVAL_RECORD", "APPROVAL_REQUEST"]:

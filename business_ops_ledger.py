@@ -523,3 +523,63 @@ def record_outreach_email_draft_receipt(
     }
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+def record_pii_vault_receipt(
+    packet_id: str,
+    token_mapping_id: str,
+    target_intent: str,
+    actor: str = "OpenClaw",
+    db_path: str | None = None,
+    **kwargs
+) -> bool:
+    """
+    Records a pii_vault_record to the ledger.
+    This records vault metadata only and does NOT imply exposure, extraction,
+    or execution authority. It strictly rejects any raw PII or textual content fields.
+    """
+    import uuid
+    from datetime import datetime
+
+    # 1. Strictly reject unsafe keys
+    unsafe_keys = {
+        "raw_text", "pii_text", "email_body", "message_body",
+        "prompt_body", "sensitive_content", "unredacted_text",
+        "original_text", "recipient_email", "phone_number",
+        "ssn", "address"
+    }
+    for key in unsafe_keys:
+        if key in kwargs:
+            raise ValueError(f"Unsafe key '{key}' is strictly forbidden in pii_vault_record.")
+
+    event_id = f"pii_{uuid.uuid4().hex[:8]}"
+
+    # 2. Append the base event
+    summary = f"Vault reference recorded for: {target_intent} (Redacted Metadata Only)"
+    success = append_event(
+        event_id=event_id,
+        event_type="pii_vault_record",
+        actor=actor,
+        operator_visible_summary=summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 3. Append the packet record
+    packet_data = {
+        "packet_id": packet_id,
+        "token_mapping_id": token_mapping_id,
+        "target_intent": target_intent,
+        "packet_type": "pii_vault_record",
+        "action_status": "redacted_metadata_recorded",
+        "redacted_metadata_only": True,
+        "raw_pii_stored": False,
+        "vault_write_verified": False,
+        "external_model_access_granted": False,
+        "execution_authority": 0,
+        "sensitive_content_access": 0,
+        "recorded_at": datetime.now().isoformat(),
+        **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

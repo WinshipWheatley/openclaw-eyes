@@ -51,10 +51,10 @@ def test_receipt_status_consistencies():
     assert any("SQLITE_VERIFIED" in line for line in lines), \
         "outreach_email_draft_receipt must be marked SQLITE_VERIFIED in the mapping doc"
 
-    # 5. pii_vault_record -> DECLARED_ONLY
+    # 5. pii_vault_record -> SQLITE_VERIFIED
     lines = get_lines_for_receipt(content, "pii_vault_record")
-    assert any("DECLARED_ONLY" in line for line in lines), \
-        "pii_vault_record must be marked DECLARED_ONLY in the mapping doc"
+    assert any("SQLITE_VERIFIED" in line for line in lines), \
+        "pii_vault_record must be marked SQLITE_VERIFIED in the mapping doc"
 
     # 6. email_triage_classification -> Notes include JSONL or not SQLite
     lines = get_lines_for_receipt(content, "email_triage_classification")
