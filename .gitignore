@@ -180,6 +180,7 @@
 !scripts/backfill_truth_registry.py
 !scripts/query_truth_registry.py
 !scripts/baseline_truth_registry_hashes.py
+!scripts/check_truth_registry_hashes.py
 !tests/test_query_canonical_facts.py
 !tests/test_query_file_inventory.py
 !tests/test_generate_inventory_report.py
@@ -187,6 +188,7 @@
 !tests/test_truth_registry_backfill.py
 !tests/test_query_truth_registry.py
 !tests/test_baseline_truth_registry_hashes.py
+!tests/test_check_truth_registry_hashes.py
 
 !apps/
 !apps/legal-console-spike/
