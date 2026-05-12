@@ -15,6 +15,15 @@ except ImportError:
     sys.path.append(os.getcwd())
     from business_ops_ledger import append_event, init_business_ops_ledger
 
+try:
+    from scripts.truth_substrate_status import get_truth_substrate_status
+except ImportError:
+    try:
+        from truth_substrate_status import get_truth_substrate_status
+    except ImportError:
+        def get_truth_substrate_status(db_path=None):
+            return {"status": "unavailable", "reason": "Helper module missing"}
+
 # --- Configuration ---
 CONTRACT_PATH = "Operator/05_ORIENTATION_CONTRACT.md"
 RUNTIME_MAP_PATH = "docs/operations/OPENCLAW_CURRENT_RUNTIME_MAP.md"
@@ -187,6 +196,7 @@ def get_orientation_snapshot() -> Dict[str, Any]:
 
     git_info = get_git_info()
     ledger_info = get_ledger_status()
+    truth_substrate = get_truth_substrate_status(LEDGER_DB_PATH)
 
     # Try to find Active Handoff context dynamically
     packets_dir = "docs/planning/project_packets"
@@ -231,6 +241,7 @@ def get_orientation_snapshot() -> Dict[str, Any]:
         "blocked_or_unknown": parse_markdown_section(contract_content, "What is blocked or unknown?"),
         "allowed_tools": parse_markdown_section(contract_content, "What tools/capabilities are allowed?"),
         "forbidden_surfaces": parse_markdown_section(contract_content, "What should not be touched?"),
+        "truth_substrate": truth_substrate,
         "next_safe_move": get_next_safe_move(ledger_info),
         "visible_road_horizon": get_horizon(ledger_info),
         "north_star": parse_markdown_section(contract_content, "What is the North Star?"),
@@ -257,32 +268,46 @@ def render_markdown(snapshot: Dict[str, Any]):
     for fact in snapshot['confirmed_current']:
         print(f"- {fact}")
 
-    print("\n## 4. Historical / Non-Authoritative")
+    print("\n## 4. Truth Substrate Status")
+    truth = snapshot.get("truth_substrate", {"status": "unavailable"})
+    if truth["status"] == "available":
+        m = truth["metrics"]
+        f = m["facts"]
+        r = m["registry"]
+        rd = m["readiness"]
+        print(f"- **Facts**: {f['total']} ({f['by_truth_status'].get('doctrine_reference', 0)} doctrine, {f['by_truth_status'].get('historical_checkpoint', 0)} historical)")
+        print(f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents")
+        print(f"- **Readiness**: {rd['result']}")
+        print("> Truth substrate status is read-only. Truth status describes verification posture, not runtime health or agent authority.")
+    else:
+        print(f"- Status: UNAVAILABLE ({truth.get('reason', 'unknown')})")
+
+    print("\n## 5. Historical / Non-Authoritative")
     print(snapshot['historical_context'])
 
-    print("\n## 5. Blocked or Unknown")
+    print("\n## 6. Blocked or Unknown")
     print(snapshot['blocked_or_unknown'])
 
-    print("\n## 6. Allowed Tools / Capabilities")
+    print("\n## 7. Allowed Tools / Capabilities")
     print(snapshot['allowed_tools'])
 
-    print("\n## 7. What Should Not Be Touched")
+    print("\n## 8. What Should Not Be Touched")
     print(snapshot['forbidden_surfaces'])
 
-    print("\n## 8. Next Safe Move")
+    print("\n## 9. Next Safe Move")
     print(snapshot['next_safe_move'])
 
-    print("\n## 9. Visible Road Horizon")
+    print("\n## 10. Visible Road Horizon")
     print("- **Visible Moves**:")
     for move in snapshot['visible_road_horizon']['visible_moves']:
         print(f"   - {move}")
     print(f"- **Branch After**: {snapshot['visible_road_horizon']['branch_after']}")
     print(f"- **Unsafe Beyond**: {snapshot['visible_road_horizon']['unsafe_beyond']}")
 
-    print("\n## 10. North Star")
+    print("\n## 11. North Star")
     print(snapshot['north_star'])
 
-    print("\n## 11. Manifesto / Anti-Slop Posture")
+    print("\n## 12. Manifesto / Anti-Slop Posture")
     print(snapshot['manifesto_posture'])
 
     print("\n---\n*Status: READY_FOR_CHAT_GATED_PROMOTION*")

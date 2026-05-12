@@ -33,7 +33,8 @@ Sub Content
 @patch("scripts.orientation_snapshot.run_git_command")
 @patch("os.path.exists")
 @patch("sqlite3.connect")
-def test_get_orientation_snapshot_basic(mock_connect, mock_exists, mock_git):
+@patch("scripts.orientation_snapshot.get_truth_substrate_status")
+def test_get_orientation_snapshot_basic(mock_truth, mock_connect, mock_exists, mock_git):
     # Setup mocks
     mock_git.side_effect = lambda args: {
         "rev-parse --abbrev-ref HEAD": "main",
@@ -49,6 +50,8 @@ def test_get_orientation_snapshot_basic(mock_connect, mock_exists, mock_git):
         "docs/planning/project_packets/07_OPERATOR_HARNESS_PROMPT_DOCTRINE_AND_GATED_ACTIVATION/00_ACTIVE_HANDOFF.md": False
     }.get(path, False)
 
+    mock_truth.return_value = {"status": "available", "metrics": {"facts": {"total": 0, "by_truth_status": {}}, "registry": {"total_sources": 0, "present_sources": 0}, "readiness": {"result": "READY"}}}
+
     snapshot = get_orientation_snapshot()
 
     assert snapshot["where_are_we"]["git_branch"] == "main"
@@ -56,13 +59,15 @@ def test_get_orientation_snapshot_basic(mock_connect, mock_exists, mock_git):
     assert snapshot["where_are_we"]["git_status"] == "Clean"
     assert snapshot["active_lane"] == ""
     assert "Ledger Status: missing" in snapshot["confirmed_current"][0]
+    assert snapshot["truth_substrate"]["status"] == "available"
 
 
 @patch("scripts.orientation_snapshot.run_git_command")
 @patch("os.path.exists")
 @patch("sqlite3.connect")
 @patch("builtins.open", new_callable=MagicMock)
-def test_get_orientation_snapshot_with_docs(mock_open, mock_connect, mock_exists, mock_git):
+@patch("scripts.orientation_snapshot.get_truth_substrate_status")
+def test_get_orientation_snapshot_with_docs(mock_truth, mock_open, mock_connect, mock_exists, mock_git):
     # Setup mocks
     mock_git.return_value = ""
     mock_exists.return_value = True
@@ -84,12 +89,70 @@ Lighter life.
     mock_cursor.fetchall.return_value = [("events",), ("packets",)]
     mock_cursor.fetchone.return_value = (42,)
 
+    mock_truth.return_value = {"status": "available", "metrics": {"facts": {"total": 10, "by_truth_status": {"doctrine_reference": 10}}, "registry": {"total_sources": 1, "present_sources": 1}, "readiness": {"result": "READY"}}}
+
     snapshot = get_orientation_snapshot()
 
     assert snapshot["active_lane"] == "Hardening the spine."
     assert snapshot["north_star"] == "Lighter life."
     assert snapshot["confirmed_current"][0] == "Ledger Status: active"
     assert "Active Handoff: The train is moving." in snapshot["confirmed_current"][1]
+    assert snapshot["truth_substrate"]["metrics"]["facts"]["total"] == 10
+
+
+def test_render_markdown_truth_summary(capsys):
+    from scripts.orientation_snapshot import render_markdown
+    snapshot = {
+        "timestamp": "2026-05-12T12:00:00",
+        "where_are_we": {"cwd": "/home/openclaw", "git_branch": "main", "git_head": "f016273", "git_status": "Clean"},
+        "active_lane": "Hardening the spine.",
+        "confirmed_current": ["Ledger Status: active"],
+        "historical_context": "None",
+        "blocked_or_unknown": "None",
+        "allowed_tools": "None",
+        "forbidden_surfaces": "None",
+        "truth_substrate": {
+            "status": "available",
+            "metrics": {
+                "facts": {"total": 83, "by_truth_status": {"doctrine_reference": 71, "historical_checkpoint": 12}},
+                "registry": {"total_sources": 9, "present_sources": 9},
+                "readiness": {"result": "READY"}
+            }
+        },
+        "next_safe_move": "None",
+        "visible_road_horizon": {"visible_moves": [], "branch_after": "None", "unsafe_beyond": "None"},
+        "north_star": "None",
+        "manifesto_posture": "None"
+    }
+    render_markdown(snapshot)
+    captured = capsys.readouterr()
+    assert "## 4. Truth Substrate Status" in captured.out
+    assert "**Facts**: 83 (71 doctrine, 12 historical)" in captured.out
+    assert "READY" in captured.out
+    assert "Truth substrate status is read-only" in captured.out
+    assert "SECRET_FACT_TEXT" not in captured.out
+
+
+def test_render_markdown_truth_unavailable(capsys):
+    from scripts.orientation_snapshot import render_markdown
+    snapshot = {
+        "timestamp": "2026-05-12T12:00:00",
+        "where_are_we": {"cwd": "/home/openclaw", "git_branch": "main", "git_head": "f016273", "git_status": "Clean"},
+        "active_lane": "Hardening the spine.",
+        "confirmed_current": ["Ledger Status: active"],
+        "historical_context": "None",
+        "blocked_or_unknown": "None",
+        "allowed_tools": "None",
+        "forbidden_surfaces": "None",
+        "truth_substrate": {"status": "unavailable", "reason": "Database missing"},
+        "next_safe_move": "None",
+        "visible_road_horizon": {"visible_moves": [], "branch_after": "None", "unsafe_beyond": "None"},
+        "north_star": "None",
+        "manifesto_posture": "None"
+    }
+    render_markdown(snapshot)
+    captured = capsys.readouterr()
+    assert "UNAVAILABLE (Database missing)" in captured.out
 
 
 def test_json_mode_smoke(capsys):
