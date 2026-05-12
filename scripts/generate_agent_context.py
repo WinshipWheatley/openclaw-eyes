@@ -327,6 +327,63 @@ class AgentContextAssembler:
             }
         }
 
+    def assemble_hermes_advisory_packet(self) -> Dict[str, Any]:
+        """Assembles the v0 Hermes advisory context packet."""
+
+        return {
+            "substrate_version": "v0",
+            "actor_id": "hermes",
+            "purpose": "advisory_review_only",
+            "source_commit": self.get_git_head(),
+            "verified_capability_types": [
+                "action_intent_gate_receipt",
+                "approval_request_record",
+                "approval_log_entry",
+                "orientation_snapshot_receipt",
+                "test_proof_receipt"
+            ],
+            "verified_receipt_rows": self.get_verified_receipt_rows(),
+            "allowed_context": {
+                "advisory_review": True,
+                "systems_synthesis": True,
+                "pattern_discovery": True,
+                "non_canonical_proposal": True,
+                "bounded_critique": True
+            },
+            "blocked_context": {
+                "gmail": True,
+                "pii": True,
+                "outreach": True,
+                "legal_sensitive_data": True,
+                "daw_live_state": True,
+                "runtime_execution": True,
+                "runtime_mutation": True,
+                "guardian_runtime_action": True,
+                "chief_runtime_action": True,
+                "cassandra_runtime_action": True,
+                "niles_runtime_action": True,
+                "hermes_runtime_action": True,
+                "sidecar_runtime_access": True,
+                "canonical_write": True,
+                "queue_mutation": True,
+                "tool_execution": True,
+                "shared_memory_expansion": True,
+                "self_permission_expansion": True,
+                "send_authority": True
+            },
+            "authority": {
+                "execution_authority": 0,
+                "mutation_authority": 0,
+                "approval_authority": 0,
+                "canonical_write_authority": 0,
+                "queue_mutation_authority": 0,
+                "tool_execution_authority": 0,
+                "recommendation_only": True,
+                "advisory_only": True,
+                "context_packet_only": True
+            }
+        }
+
 def main():
     assembler = AgentContextAssembler()
 
@@ -340,6 +397,8 @@ def main():
         actor = "guardian"
     elif "--niles" in sys.argv:
         actor = "niles"
+    elif "--hermes" in sys.argv:
+        actor = "hermes"
     elif "--actor" in sys.argv:
         try:
             idx = sys.argv.index("--actor")
@@ -359,8 +418,11 @@ def main():
     elif actor == "niles":
         packet = assembler.assemble_niles_producer_packet()
         print(json.dumps(packet, indent=2))
+    elif actor == "hermes":
+        packet = assembler.assemble_hermes_advisory_packet()
+        print(json.dumps(packet, indent=2))
     else:
-        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --guardian | --niles | --actor [cassandra|chief|guardian|niles]")
+        print("Usage: python scripts/generate_agent_context.py --cassandra | --chief | --guardian | --niles | --hermes | --actor [cassandra|chief|guardian|niles|hermes]")
         sys.exit(1)
 
 if __name__ == "__main__":

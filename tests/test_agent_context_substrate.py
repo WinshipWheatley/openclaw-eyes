@@ -329,3 +329,56 @@ def test_niles_packet_enforces_boundaries():
     assert allowed["reference_extraction_analysis"] is True
     assert allowed["artifact_review"] is True
     assert allowed["taste_governor_framing"] is True
+
+def test_hermes_packet_generation_basic():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_hermes_advisory_packet()
+
+    assert packet["substrate_version"] == "v0"
+    assert packet["actor_id"] == "hermes"
+    assert packet["purpose"] == "advisory_review_only"
+    assert "source_commit" in packet
+    
+    # Authority check
+    auth = packet["authority"]
+    assert auth["execution_authority"] == 0
+    assert auth["mutation_authority"] == 0
+    assert auth["approval_authority"] == 0
+    assert auth["canonical_write_authority"] == 0
+    assert auth["queue_mutation_authority"] == 0
+    assert auth["tool_execution_authority"] == 0
+    assert auth["recommendation_only"] is True
+    assert auth["advisory_only"] is True
+    assert auth["context_packet_only"] is True
+
+def test_hermes_packet_enforces_boundaries():
+    assembler = AgentContextAssembler(db_path="non_existent.sqlite")
+    packet = assembler.assemble_hermes_advisory_packet()
+
+    blocked = packet["blocked_context"]
+    assert blocked["gmail"] is True
+    assert blocked["pii"] is True
+    assert blocked["outreach"] is True
+    assert blocked["legal_sensitive_data"] is True
+    assert blocked["daw_live_state"] is True
+    assert blocked["runtime_execution"] is True
+    assert blocked["runtime_mutation"] is True
+    assert blocked["guardian_runtime_action"] is True
+    assert blocked["chief_runtime_action"] is True
+    assert blocked["cassandra_runtime_action"] is True
+    assert blocked["niles_runtime_action"] is True
+    assert blocked["hermes_runtime_action"] is True
+    assert blocked["sidecar_runtime_access"] is True
+    assert blocked["canonical_write"] is True
+    assert blocked["queue_mutation"] is True
+    assert blocked["tool_execution"] is True
+    assert blocked["shared_memory_expansion"] is True
+    assert blocked["self_permission_expansion"] is True
+    assert blocked["send_authority"] is True
+
+    allowed = packet["allowed_context"]
+    assert allowed["advisory_review"] is True
+    assert allowed["systems_synthesis"] is True
+    assert allowed["pattern_discovery"] is True
+    assert allowed["non_canonical_proposal"] is True
+    assert allowed["bounded_critique"] is True
