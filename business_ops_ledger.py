@@ -128,6 +128,7 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
         return path
 
 
+
 def record_canonical_fact(
     fact_id: str,
     source_file: str,
@@ -186,6 +187,33 @@ def record_canonical_fact(
         json.dumps(allowed_actors),
     )
     return _execute_write(query, params, db_path)
+
+
+def get_canonical_facts_by_source(source_file: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_canonical_facts("SELECT * FROM canonical_facts WHERE source_file = ?", (source_file,), db_path)
+
+def get_canonical_facts_by_heading(section_heading: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_canonical_facts("SELECT * FROM canonical_facts WHERE section_heading = ?", (section_heading,), db_path)
+
+def _query_canonical_facts(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
+    path = db_path or DEFAULT_DB_PATH
+    uri = f"file:{path}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        columns = [d[0] for d in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            fact = dict(zip(columns, row))
+            # Parse JSON back
+            fact["allowed_actors"] = json.loads(fact["allowed_actors"])
+            results.append(fact)
+        conn.close()
+        return results
+    except Exception as e:
+        logger.error(f"Failed to query canonical facts: {e}")
+        return []
 
 
 def _execute_write(query: str, params: tuple, db_path: str | None = None) -> bool:
