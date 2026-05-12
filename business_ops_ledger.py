@@ -363,6 +363,8 @@ def record_action_intent_gate_receipt(
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
 
 
+
+
 def record_approval_log_entry(
     packet_id: str,
     packet_type: str,
@@ -413,6 +415,8 @@ def record_approval_log_entry(
     }
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+
 
 
 def record_approval_request_record(
@@ -467,6 +471,55 @@ def record_approval_request_record(
         "execution_authority": 0,  # Explicit: no execution
         "recorded_at": datetime.now().isoformat(),
         **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+
+
+def record_outreach_email_draft_receipt(
+    packet_id: str,
+    draft_id: str,
+    thread_id: str,
+    target_intent: str,
+    actor: str = "OpenClaw",
+    db_path: str | None = None,
+) -> bool:
+    """
+    Records an outreach_email_draft_receipt to the ledger.
+    This records draft metadata only and does NOT imply send, approval, or delivery.
+    """
+    import uuid
+    from datetime import datetime
+    event_id = f"oed_{uuid.uuid4().hex[:8]}"
+
+    # 1. Append the base event
+    summary = f"Draft created for: {target_intent} (Draft Only/Not Sent)"
+    success = append_event(
+        event_id=event_id,
+        event_type="outreach_email_draft_receipt",
+        actor=actor,
+        operator_visible_summary=summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 2. Append the packet record
+    packet_data = {
+        "packet_id": packet_id,
+        "draft_id": draft_id,
+        "thread_id": thread_id,
+        "target_intent": target_intent,
+        "packet_type": "outreach_email_draft_receipt",
+        "action_status": "draft_metadata_recorded",
+        "draft_only": True,
+        "sent_recorded": False,
+        "approval_required": True,
+        "execution_authority": 0,
+        "send_authority": 0,
+        "no_send_recorded": True,
+        "recorded_at": datetime.now().isoformat()
     }
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

@@ -22,7 +22,7 @@
 | `templates/agent/action_intent_packet_template.json` | `agent.action_intent_packet` | Universal | `action_intent_gate_receipt` | [] | SQLITE_VERIFIED | `business_ops_ledger.py` | Records intent evaluation only. |
 | `templates/agent/agent_intake_packet_template.json` | `agent.intake_packet` | Universal | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/cassandra_email_triage_packet_template.json` | `cassandra.email_triage_packet` | Cassandra | `email_triage_classification` | `gmail_thread_id` | WRITER_VERIFIED | `cassandra_email_triage.py` | Writes to JSONL, not SQLite. |
-| `templates/agent/cassandra_outreach_draft_packet_template.json` | `cassandra.outreach_draft_packet` | Cassandra | `outreach_email_draft_receipt` | `draft_id`, `thread_id` | DECLARED_ONLY | - | - |
+| `templates/agent/cassandra_outreach_draft_packet_template.json` | `cassandra.outreach_draft_packet` | Cassandra | `outreach_email_draft_receipt` | `draft_id`, `thread_id` | SQLITE_VERIFIED | `business_ops_ledger.py` | Records draft metadata only; does not prove send or delivery. |
 | `templates/agent/cassandra_pii_handling_packet_template.json` | `cassandra.pii_handling_packet` | Cassandra | `pii_vault_record` | `token_mapping_id` | DECLARED_ONLY | - | - |
 | `templates/agent/chief_acceptance_verdict_packet_template.json` | `chief.acceptance_verdict_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
 | `templates/agent/chief_action_intent_evaluation_packet_template.json` | `chief.action_intent_evaluation_packet` | Chief | [] | [] | DECLARED_ONLY | - | - |
@@ -53,9 +53,9 @@
 ### Cassandra
 - **Packet templates**: `email_triage`, `outreach_draft`, `pii_handling`.
 - **Receipt expectations**: `email_triage_classification`, `outreach_email_draft_receipt`, `pii_vault_record`.
-- **Writer terrain**: `record_email_triage_classification` verified (JSONL).
-- **SQLite terrain**: Not verified.
-- **Current status**: WRITER_VERIFIED (partially, non-SQLite).
+- **Writer terrain**: `record_email_triage_classification` verified (JSONL), `record_outreach_email_draft_receipt` verified (SQLite).
+- **SQLite terrain**: Verified in `events` and `packets` tables.
+- **Current status**: SQLITE_VERIFIED (partial).
 
 ### Chief
 - **Packet templates**: `acceptance_verdict`, `action_intent_evaluation`, `approval_decision`, `routing_decision`.

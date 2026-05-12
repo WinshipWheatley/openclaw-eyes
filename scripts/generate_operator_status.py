@@ -73,7 +73,7 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         cursor.execute("""
             SELECT ts, event_type, operator_visible_summary
             FROM events
-            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry', 'approval_request_record')
+            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry', 'approval_request_record', 'outreach_email_draft_receipt')
             ORDER BY ts DESC LIMIT 20
         """)
         rows = cursor.fetchall()
@@ -108,16 +108,24 @@ def get_recent_proof_receipts(limit=5, db_path=None):
                     break
                 continue
 
+            if etype == 'outreach_email_draft_receipt':
+                # Format: YYYY-MM-DD HH:MM [OUTREACH_DRAFT] [SQLITE_VERIFIED] summ_raw
+                formatted = f"[OUTREACH_DRAFT] [SQLITE_VERIFIED] {summ_raw}"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
+
             # etype is 'test_proof_receipt'
             import re
-            
+
             # Default values
             status = "UNKNOWN"
             label = "unknown"
             exit_code = "?"
             head = "unknown"
             is_dirty = False
-            
+
             if summ_raw and summ_raw.strip().startswith('{'):
                 try:
                     data = json.loads(summ_raw)
@@ -132,17 +140,17 @@ def get_recent_proof_receipts(limit=5, db_path=None):
                 # Parse string: "PASS label exit=0 head=sha dirty=true"
                 if "PASS" in summ_raw: status = "PASS"
                 elif "FAIL" in summ_raw: status = "FAIL"
-                
+
                 label_match = re.search(r"(?:PASS|FAIL) (.*?) exit=", summ_raw)
                 if label_match: label = label_match.group(1)
                 else: label = summ_raw # Fallback
-                
+
                 exit_match = re.search(r"exit=(\d+)", summ_raw)
                 if exit_match: exit_code = exit_match.group(1)
-                
+
                 head_match = re.search(r"head=(\w+)", summ_raw)
                 if head_match: head = head_match.group(1)[:8]
-                
+
                 is_dirty = "dirty=true" in summ_raw
 
             # Track strongest clean proof (first PASS with dirty=false)
@@ -157,12 +165,12 @@ def get_recent_proof_receipts(limit=5, db_path=None):
             display_ts = ts.replace('T', ' ')[:16]
             dirty_marker = " [DIRTY]" if is_dirty else ""
             formatted = f"[{status}]{dirty_marker} {label} exit={exit_code} head={head}"
-            
+
             proofs.append(f"{display_ts} {formatted}")
 
             if len(proofs) >= limit and strongest_clean:
                 break
-        
+
         return {"list": proofs, "strongest_clean": strongest_clean}
     except Exception:
         return {"list": [], "strongest_clean": None}
