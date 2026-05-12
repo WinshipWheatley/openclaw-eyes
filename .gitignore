@@ -190,6 +190,7 @@
 !tests/test_baseline_truth_registry_hashes.py
 !tests/test_check_truth_registry_hashes.py
 !tests/test_ingestion_guard.py
+!tests/test_truth_substrate_status.py
 
 !apps/
 !apps/legal-console-spike/
@@ -584,4 +585,5 @@
 !scripts/resync_canonical_fact_truth.py
 !tests/test_resync_canonical_fact_truth.py
 !scripts/truth_ingest_readiness_report.py
+!scripts/truth_substrate_status.py
 !tests/test_truth_ingest_readiness_report.py
