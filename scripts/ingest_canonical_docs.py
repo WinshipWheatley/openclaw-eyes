@@ -6,11 +6,29 @@ import os
 from scripts.extract_canonical_facts import extract_markdown_sections
 from business_ops_ledger import record_canonical_fact, init_business_ops_ledger
 
-ALLOWED_SOURCES = [
-    "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md",
-    "docs/operations/OPENCLAW_KNOWLEDGE_INGESTION_CHECKPOINT_V2.md",
-    "docs/operations/OPENCLAW_PACKET_TO_RECEIPT_MAPPING_V0.md"
-]
+SOURCE_REGISTRY = {
+    "docs/operations/OPENCLAW_RECEIPT_SPINE_CHECKPOINT_V9.md": {
+        "doc_category": "receipt_spine_checkpoint",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["cassandra", "chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "temporal_checkpoint",
+        "description": "Checkpoint for receipt spine status"
+    },
+    "docs/operations/OPENCLAW_KNOWLEDGE_INGESTION_CHECKPOINT_V2.md": {
+        "doc_category": "knowledge_ingestion_checkpoint",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["cassandra", "chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "temporal_checkpoint",
+        "description": "Checkpoint for knowledge ingestion state"
+    },
+    "docs/operations/OPENCLAW_PACKET_TO_RECEIPT_MAPPING_V0.md": {
+        "doc_category": "receipt_mapping",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["cassandra", "chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Mapping of agent packets to receipt requirements"
+    }
+}
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest a single canonical doc.")
@@ -18,9 +36,11 @@ def main():
     parser.add_argument("--source", required=True, help="Path to source file")
     args = parser.parse_args()
 
-    if args.source not in ALLOWED_SOURCES:
-        print(f"Error: Source '{args.source}' is not allowed. Permitted sources: {ALLOWED_SOURCES}")
+    if args.source not in SOURCE_REGISTRY:
+        print(f"Error: Source '{args.source}' is not allowed. Permitted sources: {list(SOURCE_REGISTRY.keys())}")
         sys.exit(1)
+
+    metadata = SOURCE_REGISTRY[args.source]
 
     if not os.path.exists(args.source):
         print(f"Error: Source file '{args.source}' not found.")
@@ -50,8 +70,8 @@ def main():
             section_heading=fact['section_heading'],
             source_commit=fact['source_commit'],
             fact_text=fact['fact_text'],
-            sensitivity_class=fact['sensitivity_class'],
-            allowed_actors=fact['allowed_actors'],
+            sensitivity_class=metadata["sensitivity_class"],
+            allowed_actors=metadata["allowed_actors"],
             db_path=args.db
         )
     print(f"Successfully ingested {len(facts)} facts from {args.source}")
