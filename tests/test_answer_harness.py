@@ -33,7 +33,7 @@ def test_valid_intent_gateway_success(monkeypatch):
     )
 
     # Mock gateway to simulate PASS
-    def mock_packet(db_path, fact_id, question):
+    def mock_packet(db_path, fact_id, question, allow_reconciliation=False):
         return {
             "status": "MODEL_ALLOWED",
             "state": "MODEL_ALLOWED",
@@ -77,7 +77,7 @@ def test_valid_intent_gateway_blocked(monkeypatch):
     )
 
     # Mock gateway to simulate BLOCK
-    def mock_packet_blocked(db_path, fact_id, question):
+    def mock_packet_blocked(db_path, fact_id, question, allow_reconciliation=False):
         return {
             "status": "MODEL_BLOCKED",
             "state": "MODEL_BLOCKED",
@@ -134,3 +134,50 @@ def test_integration_ish_success(tmp_path, monkeypatch):
     assert result["status"] == "SUCCESS"
     assert "Fact 3 text." in result["answer"]
     assert "[HASH-CURRENT]" in result["provenance"][0]["labels"]
+
+def test_answer_harness_allow_reconciliation_integration(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "reconciliation.sqlite")
+    init_business_ops_ledger(db_path)
+
+    source_file = tmp_path / "doc4.md"
+    source_content = b"Content of doc4"
+    source_file.write_bytes(source_content)
+    import hashlib
+    source_hash = hashlib.sha256(source_content).hexdigest()
+
+    # Insert into truth registry with 'changed' status
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, source_content_hash, hash_status, truth_status,
+            origin_machine, sync_role, sensitivity_class, approval_status,
+            verification_required, canonical_eligible
+        )
+        VALUES ('t4', ?, ?, 'changed', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 1, 1)
+    """, (str(source_file), source_hash))
+    conn.commit()
+    conn.close()
+
+    # Insert fact
+    record_canonical_fact(
+        "f4", str(source_file), "Status", "commit4",
+        "Fact 4 text.", "non_sensitive", ["OpenClaw"], "cat4", "doc", "desc",
+        "t4", "doctrine_reference", 1, None, db_path
+    )
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {str(source_file): {}})
+
+    # Default (no reconciliation) should fail
+    result = answer_operator_question(db_path, "where are we?")
+    assert result["status"] == "MODEL_BLOCKED"
+
+    # With reconciliation allowed, it should pass
+    result = answer_operator_question(db_path, "where are we?", allow_reconciliation=True)
+    assert result["status"] == "SUCCESS"
+    assert "RECONCILIATION_APPLIED" in result["truth_summary"]["gateway_transitions"]
+
+    # Verify DB was repaired
+    conn = sqlite3.connect(db_path)
+    row = conn.execute("SELECT hash_status FROM truth_registry_entries WHERE source_id = 't4'").fetchone()
+    conn.close()
+    assert row[0] == 'current'

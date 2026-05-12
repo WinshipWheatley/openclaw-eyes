@@ -19,7 +19,7 @@ PHRASE_INTENT_MAP = {
     "what are the boundaries?": "WHAT_ARE_THE_BOUNDARIES",
 }
 
-def answer_operator_question(db_path: str, question: str) -> dict:
+def answer_operator_question(db_path: str, question: str, allow_reconciliation: bool = False) -> dict:
     # Ensure gateway is available
     sys.path.append(os.getcwd())
     try:
@@ -60,7 +60,7 @@ def answer_operator_question(db_path: str, question: str) -> dict:
     blocked_reasons = []
 
     for fact in candidate_facts:
-        packet = build_llm_truth_packet(db_path, fact["fact_id"], question)
+        packet = build_llm_truth_packet(db_path, fact["fact_id"], question, allow_reconciliation=allow_reconciliation)
         if packet["status"] == MODEL_ALLOWED:
             allowed_packets.append(packet)
         else:
@@ -121,10 +121,11 @@ def main():
     parser = argparse.ArgumentParser(description="Deterministic operator question answer harness with Truth Gateway.")
     parser.add_argument("--db", required=True, help="Path to the SQLite database file.")
     parser.add_argument("--question", required=True, help="Operator question.")
+    parser.add_argument("--allow-reconciliation", action="store_true", help="Allow mechanical metadata repairs")
 
     args = parser.parse_args()
 
-    result = answer_operator_question(args.db, args.question)
+    result = answer_operator_question(args.db, args.question, allow_reconciliation=args.allow_reconciliation)
     print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":

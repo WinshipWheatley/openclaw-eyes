@@ -18,6 +18,13 @@ CANDIDATE_SURFACED = "CANDIDATE_SURFACED"
 CHECK_RUNNING = "CHECK_RUNNING"
 NO_DIFF_FOUND = "NO_DIFF_FOUND"
 DIFF_FOUND = "DIFF_FOUND"
+RECONCILIATION_ALLOWED = "RECONCILIATION_ALLOWED"
+RECONCILIATION_BLOCKED = "RECONCILIATION_BLOCKED"
+RECONCILIATION_APPLIED = "RECONCILIATION_APPLIED"
+RECALLED_AFTER_RECONCILIATION = "RECALLED_AFTER_RECONCILIATION"
+RECHECK_RUNNING = "RECHECK_RUNNING"
+RECHECK_PASSED = "RECHECK_PASSED"
+RECHECK_FAILED = "RECHECK_FAILED"
 PACKET_READY = "PACKET_READY"
 MODEL_ALLOWED = "MODEL_ALLOWED"
 CHECK_FAILED = "CHECK_FAILED"
@@ -44,7 +51,9 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         "verification_required": None,
         "source_content_hash": None,
         "disk_content_hash": None,
-        "block_reason": None
+        "hash_status": None,
+        "block_reason": None,
+        "repairable": False
     }
 
     if not os.path.exists(db_path):
@@ -82,6 +91,7 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
             return result
 
         result["source_content_hash"] = reg_row["source_content_hash"]
+        result["hash_status"] = reg_row["hash_status"]
 
         # 3. Alignment Checks
         if fact_row["source_file"] != reg_row["observed_path"]:
@@ -91,12 +101,6 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
 
         if fact_row["source_file"] not in SOURCE_REGISTRY:
             result["block_reason"] = f"Source file not in SOURCE_REGISTRY: {fact_row['source_file']}"
-            conn.close()
-            return result
-
-        if reg_row["hash_status"] != "current":
-            result["state"] = "DIFF_FOUND"
-            result["block_reason"] = f"Registry hash_status is '{reg_row['hash_status']}', expected 'current'"
             conn.close()
             return result
 
@@ -121,6 +125,15 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
             conn.close()
             return result
 
+        # 5. Hash Status Check
+        if reg_row["hash_status"] != "current":
+            result["state"] = "DIFF_FOUND"
+            result["block_reason"] = f"Registry hash_status is '{reg_row['hash_status']}', expected 'current'"
+            # Disk hash matches source_content_hash, so it is repairable
+            result["repairable"] = True
+            conn.close()
+            return result
+
         # All checks passed
         result["status"] = "PASS"
         result["state"] = "NO_DIFF_FOUND"
@@ -131,9 +144,9 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         result["block_reason"] = f"Internal error: {str(e)}"
         return result
 
-def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None) -> Dict[str, Any]:
+def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, allow_reconciliation: bool = False) -> Dict[str, Any]:
     """
-    Builds a final LLM truth packet only after integrity checks pass.
+    Builds a final LLM truth packet with v1 reconciliation support.
     """
     transitions = [CANDIDATE_SURFACED, CHECK_RUNNING]
 
@@ -141,26 +154,90 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None) -> 
     integrity = check_fact_source_integrity(db_path, fact_id)
 
     if integrity["status"] == "BLOCK":
-        state = MODEL_BLOCKED
         if integrity["state"] == "DIFF_FOUND":
             transitions.append(DIFF_FOUND)
+
+            # Reconciliation Attempt
+            if allow_reconciliation and integrity["repairable"]:
+                transitions.append(RECONCILIATION_ALLOWED)
+
+                try:
+                    # OPEN SQLite for writing (reconciliation)
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+
+                    # Repair hash_status to 'current'
+                    cursor.execute(
+                        "UPDATE truth_registry_entries SET hash_status = 'current' WHERE source_id = ?",
+                        (integrity["truth_source_id"],)
+                    )
+                    conn.commit()
+                    conn.close()
+
+                    transitions.append(RECONCILIATION_APPLIED)
+
+                    # MANDATORY RE-QUERY / RE-CHECK LOOP
+                    transitions.append(RECALLED_AFTER_RECONCILIATION)
+                    transitions.append(RECHECK_RUNNING)
+
+                    recheck = check_fact_source_integrity(db_path, fact_id)
+                    if recheck["status"] == "PASS":
+                        transitions.append(RECHECK_PASSED)
+                        # Continue to packet generation using fresh state
+                        # Note: We re-query the fact row below anyway
+                    else:
+                        transitions.append(RECHECK_FAILED)
+                        transitions.append(MODEL_BLOCKED)
+                        return {
+                            "status": MODEL_BLOCKED,
+                            "state": MODEL_BLOCKED,
+                            "transitions": transitions,
+                            "question": question,
+                            "block_reason": f"Recheck failed after reconciliation: {recheck['block_reason']}",
+                            "fact_id": fact_id,
+                            "verified_facts": []
+                        }
+                except Exception as e:
+                    transitions.append(CHECK_FAILED)
+                    transitions.append(MODEL_BLOCKED)
+                    return {
+                        "status": MODEL_BLOCKED,
+                        "state": MODEL_BLOCKED,
+                        "transitions": transitions,
+                        "question": question,
+                        "block_reason": f"Reconciliation error: {str(e)}",
+                        "fact_id": fact_id,
+                        "verified_facts": []
+                    }
+            else:
+                if integrity["repairable"]:
+                    transitions.append(RECONCILIATION_BLOCKED)
+                transitions.append(MODEL_BLOCKED)
+                return {
+                    "status": MODEL_BLOCKED,
+                    "state": MODEL_BLOCKED,
+                    "transitions": transitions,
+                    "question": question,
+                    "block_reason": integrity["block_reason"],
+                    "fact_id": fact_id,
+                    "verified_facts": []
+                }
         else:
             transitions.append(CHECK_FAILED)
-        transitions.append(MODEL_BLOCKED)
+            transitions.append(MODEL_BLOCKED)
+            return {
+                "status": MODEL_BLOCKED,
+                "state": MODEL_BLOCKED,
+                "transitions": transitions,
+                "question": question,
+                "block_reason": integrity["block_reason"],
+                "fact_id": fact_id,
+                "verified_facts": []
+            }
+    else:
+        transitions.append(NO_DIFF_FOUND)
 
-        return {
-            "status": MODEL_BLOCKED,
-            "state": state,
-            "transitions": transitions,
-            "question": question,
-            "block_reason": integrity["block_reason"],
-            "fact_id": fact_id,
-            "verified_facts": []
-        }
-
-    transitions.append(NO_DIFF_FOUND)
-
-    # 2. Build Packet
+    # 2. Build Packet (Recalled from SQLite to ensure fresh state)
     try:
         conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
@@ -178,7 +255,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None) -> 
                 "state": MODEL_BLOCKED,
                 "transitions": transitions,
                 "question": question,
-                "block_reason": "Fact disappeared between check and recall",
+                "block_reason": "Fact disappeared during recall",
                 "fact_id": fact_id,
                 "verified_facts": []
             }
@@ -240,16 +317,17 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None) -> 
         }
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Truth Reconciliation Gateway - JIT Integrity & Packet Generation")
+    parser = argparse.ArgumentParser(description="Truth Reconciliation Gateway v1 - JIT Integrity & Mechanical Repair")
     parser.add_argument("--db", default=".openclaw/business_ops/ledger.sqlite", help="Path to SQLite DB")
     parser.add_argument("--fact-id", required=True, help="Fact ID to check")
     parser.add_argument("--packet", action="store_true", help="Generate final LLM truth packet")
+    parser.add_argument("--allow-reconciliation", action="store_true", help="Allow mechanical metadata repairs")
     parser.add_argument("--question", help="Question associated with the packet")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     if args.packet:
-        result = build_llm_truth_packet(args.db, args.fact_id, args.question)
+        result = build_llm_truth_packet(args.db, args.fact_id, args.question, allow_reconciliation=args.allow_reconciliation)
     else:
         result = check_fact_source_integrity(args.db, args.fact_id)
 
@@ -274,5 +352,7 @@ if __name__ == "__main__":
             print(f"Source File: {result['source_file']}")
             if result['status'] == "BLOCK":
                 print(f"Block Reason: {result['block_reason']}")
+                if result.get("repairable"):
+                    print("Status is REPAIRABLE with --allow-reconciliation")
             else:
                 print("Integrity check PASSED.")
