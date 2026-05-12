@@ -954,3 +954,88 @@ def record_pii_vault_receipt(
     }
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
+
+def append_truth_packet_decision_receipt(
+    packet_status: str,
+    fact_id: str | None = None,
+    question: str | None = None,
+    query_text: str | None = None,
+    truth_source_id: str | None = None,
+    source_file: str | None = None,
+    source_commit: str | None = None,
+    content_hash: str | None = None,
+    source_content_hash_status: str | None = None,
+    truth_status: str | None = None,
+    verification_required: bool | int | None = None,
+    verification_evidence_id: str | None = None,
+    uncertainty_status: str | None = None,
+    confidence_band: str | None = None,
+    block_reason: str | None = None,
+    transitions: list | None = None,
+    fact_text_crossed_model_boundary: bool | None = None,
+    external_model_access_granted: bool = False,
+    actor: str = "OpenClaw",
+    db_path: str | None = None,
+    **kwargs: Any,
+) -> bool:
+    """
+    Records a truth_packet_decision_receipt to the ledger.
+    This records the model-boundary decision only and MUST NOT store fact_text.
+    MODEL_BLOCKED strictly forces fact_text_crossed_model_boundary to False.
+    """
+    import uuid
+    from datetime import datetime
+
+    # 1. Safety Enforcements
+    # Strictly omit fact_text even if passed in kwargs
+    kwargs.pop("fact_text", None)
+
+    # MODEL_BLOCKED forces boundary-crossing false
+    if packet_status == "MODEL_BLOCKED":
+        fact_text_crossed_model_boundary = False
+
+    event_id = f"tpd_{uuid.uuid4().hex[:8]}"
+    packet_id = f"tpk_{uuid.uuid4().hex[:8]}"
+
+    # 2. Append the base event
+    summary = f"Truth Decision: {packet_status} (Fact: {fact_id or 'unknown'})"
+    success = append_event(
+        event_id=event_id,
+        event_type="truth_packet_decision_receipt",
+        actor=actor,
+        operator_visible_summary=summary,
+        db_path=db_path
+    )
+    if not success:
+        return False
+
+    # 3. Build packet payload
+    packet_data = {
+        "packet_id": packet_id,
+        "receipt_type": "truth_packet_decision_receipt",
+        "packet_status": packet_status,
+        "question": question,
+        "query_text": query_text,
+        "fact_id": fact_id,
+        "truth_source_id": truth_source_id,
+        "source_file": source_file,
+        "source_commit": source_commit,
+        "content_hash": content_hash,
+        "source_content_hash_status": source_content_hash_status,
+        "truth_status": truth_status,
+        "verification_required": verification_required,
+        "verification_evidence_id": verification_evidence_id,
+        "uncertainty_status": uncertainty_status,
+        "confidence_band": confidence_band,
+        "block_reason": block_reason,
+        "transitions": transitions,
+        "fact_text_crossed_model_boundary": fact_text_crossed_model_boundary,
+        "fact_text_redacted_in_receipt": True,
+        "runtime_authority": False,
+        "execution_authority": 0,
+        "external_model_access_granted": external_model_access_granted,
+        "recorded_at": datetime.now().isoformat(),
+        **kwargs
+    }
+
+    return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)

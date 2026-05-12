@@ -591,3 +591,4 @@
 !tests/test_truth_reconciliation_gateway.py
 !tests/test_truth_gateway_boundary_audit.py
 !tests/test_truth_packet_decision_receipts_contract.py
+!tests/test_truth_packet_decision_receipts_writer.py
