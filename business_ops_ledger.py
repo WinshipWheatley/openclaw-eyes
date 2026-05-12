@@ -105,12 +105,87 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
             )
         """)
 
+        # 7. canonical_facts
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS canonical_facts (
+                fact_id TEXT PRIMARY KEY,
+                source_file TEXT NOT NULL,
+                section_heading TEXT NOT NULL,
+                source_commit TEXT NOT NULL,
+                content_hash TEXT NOT NULL,
+                fact_text TEXT NOT NULL,
+                sensitivity_class TEXT NOT NULL,
+                allowed_actors TEXT NOT NULL,
+                ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         conn.close()
         return path
     except Exception as e:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
         return path
+
+
+def record_canonical_fact(
+    fact_id: str,
+    source_file: str,
+    section_heading: str,
+    source_commit: str,
+    fact_text: str,
+    sensitivity_class: str,
+    allowed_actors: list[str],
+    db_path: str | None = None,
+) -> bool:
+    """
+    Records a canonical fact to the ledger.
+    Validates inputs for safety, content constraints, and PII presence.
+    """
+    import hashlib
+    import re
+
+    # 1. Validation
+    if not fact_text or len(fact_text.strip()) == 0:
+        raise ValueError("fact_text cannot be empty.")
+    if not all([source_file, section_heading, source_commit]):
+        raise ValueError("Missing mandatory provenance fields.")
+
+    allowed_sensitivity = {"public_canonical", "operational_canonical", "non_sensitive"}
+    if sensitivity_class not in allowed_sensitivity:
+        raise ValueError(f"Invalid sensitivity_class: {sensitivity_class}")
+
+    # 2. PII Check
+    pii_patterns = [
+        r"\d{3}-\d{2}-\d{4}",  # SSN
+        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+",  # Email
+        r"\d{3}-\d{3}-\d{4}"  # Phone
+    ]
+    for pattern in pii_patterns:
+        if re.search(pattern, fact_text):
+            raise ValueError("PII detected in fact_text.")
+
+    # 3. Hash
+    content_hash = hashlib.sha256(fact_text.encode("utf-8")).hexdigest()
+
+    # 4. Write
+    query = """
+        INSERT INTO canonical_facts (
+            fact_id, source_file, section_heading, source_commit,
+            content_hash, fact_text, sensitivity_class, allowed_actors
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        fact_id,
+        source_file,
+        section_heading,
+        source_commit,
+        content_hash,
+        fact_text,
+        sensitivity_class,
+        json.dumps(allowed_actors),
+    )
+    return _execute_write(query, params, db_path)
 
 
 def _execute_write(query: str, params: tuple, db_path: str | None = None) -> bool:
