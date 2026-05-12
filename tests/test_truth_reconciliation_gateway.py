@@ -61,6 +61,16 @@ def test_env(tmp_path, monkeypatch):
             invalidation_reason TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE verification_evidence (
+            evidence_id TEXT PRIMARY KEY,
+            source_id TEXT,
+            evidence_type TEXT,
+            evidence_ref TEXT,
+            evidence_summary TEXT,
+            source_commit TEXT
+        )
+    """)
 
     # Valid setup
     conn.execute("""
@@ -438,8 +448,12 @@ def test_uncertain_path_classification(test_env):
     assert result["runtime_authority"] is False
     assert MODEL_ALLOWED_UNCERTAIN in result["transitions"]
 
-def test_verified_path_with_evidence_id(test_env):
+def test_verified_path_with_resolvable_evidence_id(test_env):
     conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("""
+        INSERT INTO verification_evidence (evidence_id, source_id, evidence_type, evidence_ref, evidence_summary, source_commit)
+        VALUES ('ev1', 's1', 'manual_review', 'review-log', 'Reviewed source', 'c1')
+    """)
     conn.execute("UPDATE canonical_facts SET verification_evidence_id = 'ev1' WHERE fact_id = 'f1'")
     conn.commit()
     conn.close()
@@ -449,7 +463,53 @@ def test_verified_path_with_evidence_id(test_env):
     assert len(result["verified_facts"]) == 1
     assert result["verified_facts"][0]["provenance"]["verification_evidence_id"] == "ev1"
 
+def test_required_nonexistent_evidence_id_is_uncertain(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE canonical_facts SET verification_evidence_id = 'ev_missing' WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert result["uncertainty_status"] == "verification_required_invalid_evidence"
+    assert result["verification_evidence_id"] == "ev_missing"
+    assert "fact_text" in result
+
+def test_required_mismatched_evidence_id_is_uncertain(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("""
+        INSERT INTO verification_evidence (evidence_id, source_id, evidence_type, evidence_ref, evidence_summary, source_commit)
+        VALUES ('ev_other', 's_other', 'manual_review', 'review-log', 'Reviewed another source', 'c1')
+    """)
+    conn.execute("UPDATE canonical_facts SET verification_evidence_id = 'ev_other' WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert result["uncertainty_status"] == "verification_required_invalid_evidence"
+    assert result["verification_evidence_id"] == "ev_other"
+
+def test_required_empty_evidence_id_is_uncertain(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE canonical_facts SET verification_evidence_id = '   ' WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert result["uncertainty_status"] == "verification_required_no_evidence"
+
 def test_source_hash_mismatch_still_blocks(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("""
+        INSERT INTO verification_evidence (evidence_id, source_id, evidence_type, evidence_ref, evidence_summary, source_commit)
+        VALUES ('ev1', 's1', 'manual_review', 'review-log', 'Reviewed source', 'c1')
+    """)
+    conn.execute("UPDATE canonical_facts SET verification_evidence_id = 'ev1' WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
     # Change file content to cause mismatch
     test_env["source_file"].write_bytes(b"Mismatch")
 

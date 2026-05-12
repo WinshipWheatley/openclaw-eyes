@@ -205,6 +205,46 @@ def test_repaired_uncertain_receipt_uses_refreshed_hash_status(test_env):
     assert payload["external_model_access_granted"] is False
     assert "fact_text" not in payload
 
+def test_invalid_evidence_receipt_records_uncertain_status(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("""
+        UPDATE canonical_facts
+        SET verification_required = 1,
+            verification_evidence_id = 'ev_missing'
+        WHERE fact_id = 'f1'
+    """)
+    conn.commit()
+    conn.close()
+
+    packet = build_llm_truth_packet(
+        test_env["db_path"],
+        test_env["fact_id"],
+        record_receipt=True,
+        receipt_db_path=test_env["receipt_db_path"]
+    )
+
+    assert packet["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert packet["uncertainty_status"] == "verification_required_invalid_evidence"
+
+    conn = sqlite3.connect(test_env["receipt_db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT packet_json_safe FROM packets")
+    rows = cursor.fetchall()
+    conn.close()
+
+    payload = None
+    for row in rows:
+        p = json.loads(row[0])
+        if p.get("receipt_type") == "truth_packet_decision_receipt":
+            payload = p
+            break
+
+    assert payload is not None
+    assert payload["packet_status"] == MODEL_ALLOWED_UNCERTAIN
+    assert payload["verification_evidence_id"] == "ev_missing"
+    assert payload["external_model_access_granted"] is False
+    assert "fact_text" not in payload
+
 def test_receipt_logging_does_not_change_status(test_env):
     # record_receipt=False
     res_no = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], record_receipt=False)

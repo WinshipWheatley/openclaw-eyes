@@ -45,6 +45,42 @@ def calculate_sha256(file_path: str) -> str:
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
+def _is_blank(value: Any) -> bool:
+    return value is None or str(value).strip() == ""
+
+def _verification_evidence_matches_fact(
+    db_path: str,
+    verification_evidence_id: Any,
+    truth_source_id: Any
+) -> bool:
+    """
+    Read-only validation that a fact's evidence id resolves to evidence for
+    the same truth source.
+    """
+    if _is_blank(verification_evidence_id) or _is_blank(truth_source_id):
+        return False
+
+    conn = None
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT source_id
+            FROM verification_evidence
+            WHERE evidence_id = ?
+            """,
+            (str(verification_evidence_id).strip(),)
+        )
+        evidence = cursor.fetchone()
+        return bool(evidence and evidence["source_id"] == truth_source_id)
+    except sqlite3.Error:
+        return False
+    finally:
+        if conn is not None:
+            conn.close()
+
 def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
     """
     Read-only JIT source integrity checker for a specific canonical fact.
@@ -417,18 +453,37 @@ def build_llm_truth_packet(
         # 3. Classification
         verification_required = bool(fact["verification_required"])
         evidence_id = fact["verification_evidence_id"]
+        evidence_missing = _is_blank(evidence_id)
+        evidence_valid = (
+            not verification_required
+            or _verification_evidence_matches_fact(
+                db_path,
+                evidence_id,
+                fact["truth_source_id"]
+            )
+        )
 
-        is_uncertain = verification_required and (evidence_id is None or str(evidence_id).strip() == "")
+        is_uncertain = verification_required and (evidence_missing or not evidence_valid)
 
         if is_uncertain:
+            uncertainty_status = (
+                "verification_required_no_evidence"
+                if evidence_missing
+                else "verification_required_invalid_evidence"
+            )
+            uncertainty_reason = (
+                "source_integrity_passed_but_verification_evidence_missing"
+                if evidence_missing
+                else "source_integrity_passed_but_verification_evidence_invalid_or_mismatched"
+            )
             transitions.append(PACKET_READY)
             transitions.append(MODEL_ALLOWED_UNCERTAIN)
             packet = {
                 "status": MODEL_ALLOWED_UNCERTAIN,
                 "question": question,
-                "uncertainty_status": "verification_required_no_evidence",
+                "uncertainty_status": uncertainty_status,
                 "confidence_band": "medium_provisional",
-                "uncertainty_reason": "source_integrity_passed_but_verification_evidence_missing",
+                "uncertainty_reason": uncertainty_reason,
                 "fact_text": fact["fact_text"],
                 "source_file": fact["source_file"],
                 "source_commit": fact["source_commit"],

@@ -227,6 +227,44 @@ def test_uncertain_packet_handling(monkeypatch):
     assert result["runtime_authority"] is False
     assert "Qualified language required" in result["answer_boundary"]
 
+def test_answer_harness_invalid_evidence_is_qualified_uncertain(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "invalid_evidence.sqlite")
+    init_business_ops_ledger(db_path)
+
+    source_file = tmp_path / "invalid_evidence.md"
+    source_content = b"Invalid evidence source"
+    source_file.write_bytes(source_content)
+    import hashlib
+    source_hash = hashlib.sha256(source_content).hexdigest()
+
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, source_content_hash, hash_status, truth_status,
+            origin_machine, sync_role, sensitivity_class, approval_status,
+            verification_required, canonical_eligible
+        )
+        VALUES ('ti1', ?, ?, 'current', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 1, 1)
+    """, (str(source_file), source_hash))
+    conn.commit()
+    conn.close()
+
+    record_canonical_fact(
+        "fi1", str(source_file), "Status", "ci1",
+        "Invalid evidence fact text.", "public_canonical", ["OpenClaw"], "cat1", "doc", "desc",
+        "ti1", "doctrine_reference", 1, "ev_missing", db_path
+    )
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {str(source_file): {}})
+
+    result = answer_operator_question(db_path, "where are we?")
+    assert result["status"] == "SUCCESS"
+    assert "Based on currently available evidence, this appears to be provisional" in result["answer"]
+    assert "Invalid evidence fact text." in result["answer"]
+    assert result["truth_summary"]["has_uncertain_facts"] is True
+    assert result["provenance"][0]["uncertainty_status"] == "verification_required_invalid_evidence"
+    assert result["runtime_authority"] is False
+
 def test_answer_harness_receipt_integration(tmp_path, monkeypatch):
     # Real integration test for receipts through the harness
     db_path = str(tmp_path / "harness_receipts.sqlite")
