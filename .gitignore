@@ -594,3 +594,5 @@
 !tests/test_truth_packet_decision_receipts_writer.py
 !tests/test_truth_gateway_receipt_integration.py
 !tests/test_truth_packet_visibility.py
+!scripts/operator_truth_query.py
+!tests/test_operator_truth_query.py
