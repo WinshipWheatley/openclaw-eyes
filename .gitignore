@@ -576,3 +576,5 @@
 !tests/test_canonical_fact_truth_report.py
 !scripts/attach_verification_evidence.py
 !tests/test_attach_verification_evidence.py
+!scripts/resync_canonical_fact_truth.py
+!tests/test_resync_canonical_fact_truth.py
