@@ -174,7 +174,9 @@
 !docs/archives/**/*.md
 !docs/archives/**/README.md
 
-# OpenClaw Legal disposable console spike
+!scripts/query_canonical_facts.py
+!tests/test_query_canonical_facts.py
+
 !apps/
 !apps/legal-console-spike/
 !apps/legal-console-spike/README.md
