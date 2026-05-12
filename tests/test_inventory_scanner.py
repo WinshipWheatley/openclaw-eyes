@@ -60,12 +60,22 @@ def test_approval_guard_accepted():
     finally:
         ROOT_REGISTRY["test_fixture_01"] = orig_config
 
-def test_invalid_mode_aborts():
+def test_real_root_dry_run_only():
     from scripts.inventory_scanner import ROOT_REGISTRY
-    orig_config = ROOT_REGISTRY["test_fixture_01"].copy()
-    ROOT_REGISTRY["test_fixture_01"]["scan_mode"] = "invalid"
-    try:
-        with pytest.raises(ValueError, match="not permitted"):
-            scan_root("test_fixture_01")
-    finally:
-        ROOT_REGISTRY["test_fixture_01"] = orig_config
+    assert "openclaw_docs_dryrun_01" in ROOT_REGISTRY
+    
+    # Must use --confirm-real-root
+    with pytest.raises(ValueError, match="requires operator approval"):
+        scan_root("openclaw_docs_dryrun_01", dry_run=True)
+    
+    # Must be dry_run
+    with pytest.raises(ValueError, match="can only be scanned in --dry-run mode"):
+        scan_root("openclaw_docs_dryrun_01", dry_run=False, confirm_real_root=True)
+        
+    # Must not have db
+    with pytest.raises(ValueError, match="can only be scanned in --dry-run mode"):
+        scan_root("openclaw_docs_dryrun_01", dry_run=True, db_path="/tmp/fake.db", confirm_real_root=True)
+    
+    # Success path
+    results = scan_root("openclaw_docs_dryrun_01", dry_run=True, confirm_real_root=True)
+    assert len(results) > 0

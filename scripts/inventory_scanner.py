@@ -18,6 +18,19 @@ ROOT_REGISTRY = {
         "requires_operator_approval": False,
         "content_read_allowed": False,
         "hashing_allowed": False
+    },
+    "openclaw_docs_dryrun_01": {
+        "root_path": "/home/openclaw/docs/operations",
+        "drive_label": "OpenClaw Operations Docs",
+        "root_category": "project_drive",
+        "sensitivity_class": "operational",
+        "scan_mode": "metadata_only",
+        "max_depth": 1,
+        "allowed_extensions": [".md"],
+        "excluded_patterns": [],
+        "requires_operator_approval": True,
+        "content_read_allowed": False,
+        "hashing_allowed": False
     }
 }
 
@@ -35,25 +48,29 @@ def is_excluded(path: Path):
         return True
     return False
 
-def validate_root_config(config, confirm_real_root=False):
+def validate_root_config(config, confirm_real_root=False, dry_run=False, db_path=None):
     if config["scan_mode"] != "metadata_only":
         raise ValueError(f"Scan mode {config['scan_mode']} is not permitted.")
     if config["content_read_allowed"]:
         raise ValueError("Content reading is not permitted.")
     if config["hashing_allowed"]:
         raise ValueError("Hashing is not permitted.")
+
     if config.get("requires_operator_approval", True):
         if not confirm_real_root:
             raise ValueError(f"Root requires operator approval. Please use --confirm-real-root.")
+        if not dry_run or db_path:
+            raise ValueError("Real roots can only be scanned in --dry-run mode without persistence.")
 
 def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False):
     if root_id not in ROOT_REGISTRY:
         raise ValueError(f"Unknown root_id: {root_id}")
 
     config = ROOT_REGISTRY[root_id]
-    validate_root_config(config, confirm_real_root)
+    validate_root_config(config, confirm_real_root, dry_run, db_path)
 
     root_path = Path(config["root_path"])
+
     results = []
 
     if db_path and not dry_run:
