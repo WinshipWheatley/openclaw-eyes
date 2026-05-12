@@ -58,7 +58,7 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
         """)
         receipt_status_counts = {}
         latest_receipt = None
-        
+
         rows = cursor.fetchall()
         for i, row in enumerate(rows):
             payload = json.loads(row[0])
@@ -71,15 +71,41 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
                     latest_receipt["recorded_at"] = row["ts"]
 
         # 3. Gateway Packet Posture (Inferred from DB state)
-        # VERIFIED: verification_required=0 or (verification_required=1 and verification_evidence_id is present)
-        # UNCERTAIN: verification_required=1 and verification_evidence_id is NULL/empty
+        # VERIFIED: verification_required=0 or (verification_required=1 and verification_evidence_id resolves to evidence for the same source)
+        # UNCERTAIN: verification_required=1 and (verification_evidence_id is NULL/empty or does not resolve)
         # BLOCKED: hash_status != 'current' (This is a simplified view for status)
 
         cursor.execute("""
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN verification_required = 0 OR (verification_required = 1 AND verification_evidence_id IS NOT NULL AND verification_evidence_id != '') THEN 1 ELSE 0 END) as verified_candidate,
-                SUM(CASE WHEN verification_required = 1 AND (verification_evidence_id IS NULL OR verification_evidence_id = '') THEN 1 ELSE 0 END) as uncertain_candidate
+                SUM(CASE
+                    WHEN verification_required = 0
+                    THEN 1
+                    WHEN verification_required = 1
+                         AND verification_evidence_id IS NOT NULL
+                         AND verification_evidence_id != ''
+                         AND EXISTS (
+                             SELECT 1 FROM verification_evidence ve
+                             WHERE ve.evidence_id = canonical_facts.verification_evidence_id
+                             AND ve.source_id = canonical_facts.truth_source_id
+                         )
+                    THEN 1
+                    ELSE 0
+                END) as verified_candidate,
+                SUM(CASE
+                    WHEN verification_required = 1
+                         AND (
+                             verification_evidence_id IS NULL
+                             OR verification_evidence_id = ''
+                             OR NOT EXISTS (
+                                 SELECT 1 FROM verification_evidence ve
+                                 WHERE ve.evidence_id = canonical_facts.verification_evidence_id
+                                 AND ve.source_id = canonical_facts.truth_source_id
+                             )
+                         )
+                    THEN 1
+                    ELSE 0
+                END) as uncertain_candidate
             FROM canonical_facts
         """)
         posture_row = cursor.fetchone()
@@ -200,7 +226,7 @@ def main():
         print(f"  - Total Decisions Recorded: {dr['total']}")
         for s, c in sorted(dr["by_status"].items()):
             print(f"    - {s}: {c}")
-        
+
         latest = dr.get("latest")
         if latest:
             print(f"  - Latest Decision ({latest['recorded_at']}):")
@@ -209,7 +235,7 @@ def main():
             print(f"    - Content Redacted: {bool(latest['fact_text_redacted_in_receipt'])}")
             print(f"    - Runtime Authority: {bool(latest['runtime_authority'])}")
             print(f"    - External Model Access: {bool(latest['external_model_access_granted'])}")
-        
+
         # Warning if recent blocks/uncertainties
         if dr["by_status"].get("MODEL_BLOCKED", 0) > 0 or dr["by_status"].get("MODEL_ALLOWED_UNCERTAIN", 0) > 0:
             print(f"  - NOTICE: Recent BLOCKED or UNCERTAIN decisions exist. Review gateway audit logs.")
