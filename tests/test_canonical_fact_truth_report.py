@@ -11,7 +11,7 @@ def temp_db(tmp_path):
     conn = sqlite3.connect(db_path)
     conn.execute("""
         CREATE TABLE canonical_facts (
-            id INTEGER PRIMARY KEY,
+            fact_id INTEGER PRIMARY KEY,
             source_file TEXT,
             section_heading TEXT,
             fact_text TEXT,
@@ -60,7 +60,7 @@ def test_report_filters(temp_db, capsys):
 def test_report_empty_db(tmp_path, capsys):
     db_path = tmp_path / "empty.db"
     conn = sqlite3.connect(db_path)
-    conn.execute("CREATE TABLE canonical_facts (id INTEGER PRIMARY KEY, source_file TEXT, section_heading TEXT, fact_text TEXT, truth_source_id TEXT, truth_status TEXT, verification_required INTEGER, verification_evidence_id TEXT)")
+    conn.execute("CREATE TABLE canonical_facts (fact_id INTEGER PRIMARY KEY, source_file TEXT, section_heading TEXT, fact_text TEXT, truth_source_id TEXT, truth_status TEXT, verification_required INTEGER, verification_evidence_id TEXT)")
     conn.commit()
     conn.close()
     
