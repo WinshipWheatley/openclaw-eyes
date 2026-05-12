@@ -9,9 +9,15 @@ ROOT_REGISTRY = {
     "test_fixture_01": {
         "root_path": "tests/fixtures/dummy_drive_root",
         "drive_label": "Synthetic Test Drive",
+        "root_category": "synthetic_fixture",
         "sensitivity_class": "non_sensitive",
+        "scan_mode": "metadata_only",
         "max_depth": 3,
-        "allowed_extensions": [".md", ".txt", ".json"]
+        "allowed_extensions": [".md", ".txt", ".json"],
+        "excluded_patterns": [],
+        "requires_operator_approval": False,
+        "content_read_allowed": False,
+        "hashing_allowed": False
     }
 }
 
@@ -29,11 +35,24 @@ def is_excluded(path: Path):
         return True
     return False
 
-def scan_root(root_id, dry_run=False, db_path=None):
+def validate_root_config(config, confirm_real_root=False):
+    if config["scan_mode"] != "metadata_only":
+        raise ValueError(f"Scan mode {config['scan_mode']} is not permitted.")
+    if config["content_read_allowed"]:
+        raise ValueError("Content reading is not permitted.")
+    if config["hashing_allowed"]:
+        raise ValueError("Hashing is not permitted.")
+    if config.get("requires_operator_approval", True):
+        if not confirm_real_root:
+            raise ValueError(f"Root requires operator approval. Please use --confirm-real-root.")
+
+def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False):
     if root_id not in ROOT_REGISTRY:
         raise ValueError(f"Unknown root_id: {root_id}")
 
     config = ROOT_REGISTRY[root_id]
+    validate_root_config(config, confirm_real_root)
+
     root_path = Path(config["root_path"])
     results = []
 
@@ -89,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--db")
     parser.add_argument("--replace", action="store_true")
+    parser.add_argument("--confirm-real-root", action="store_true")
     args = parser.parse_args()
 
     if args.replace and not args.db:
@@ -99,6 +119,6 @@ if __name__ == "__main__":
         from business_ops_ledger import delete_file_inventory_by_root
         delete_file_inventory_by_root(args.root_id, args.db)
 
-    data = scan_root(args.root_id, args.dry_run, args.db)
+    data = scan_root(args.root_id, args.dry_run, args.db, args.confirm_real_root)
     if not args.db:
         print(json.dumps(data, indent=2))

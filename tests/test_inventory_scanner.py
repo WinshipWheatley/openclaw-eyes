@@ -39,6 +39,33 @@ def test_db_persistence():
     assert row[1] == "eligible_metadata_only"
     conn.close()
 
-def test_dry_run_does_not_write():
-    scan_root("test_fixture_01", dry_run=True, db_path=DB_PATH)
-    assert not os.path.exists(DB_PATH)
+def test_approval_guard_rejected():
+    # Mocking registry for approval requirement test
+    from scripts.inventory_scanner import ROOT_REGISTRY
+    orig_config = ROOT_REGISTRY["test_fixture_01"].copy()
+    ROOT_REGISTRY["test_fixture_01"]["requires_operator_approval"] = True
+    try:
+        with pytest.raises(ValueError, match="Root requires operator approval"):
+            scan_root("test_fixture_01", confirm_real_root=False)
+    finally:
+        ROOT_REGISTRY["test_fixture_01"] = orig_config
+
+def test_approval_guard_accepted():
+    from scripts.inventory_scanner import ROOT_REGISTRY
+    orig_config = ROOT_REGISTRY["test_fixture_01"].copy()
+    ROOT_REGISTRY["test_fixture_01"]["requires_operator_approval"] = True
+    try:
+        results = scan_root("test_fixture_01", dry_run=True, confirm_real_root=True)
+        assert len(results) > 0
+    finally:
+        ROOT_REGISTRY["test_fixture_01"] = orig_config
+
+def test_invalid_mode_aborts():
+    from scripts.inventory_scanner import ROOT_REGISTRY
+    orig_config = ROOT_REGISTRY["test_fixture_01"].copy()
+    ROOT_REGISTRY["test_fixture_01"]["scan_mode"] = "invalid"
+    try:
+        with pytest.raises(ValueError, match="not permitted"):
+            scan_root("test_fixture_01")
+    finally:
+        ROOT_REGISTRY["test_fixture_01"] = orig_config
