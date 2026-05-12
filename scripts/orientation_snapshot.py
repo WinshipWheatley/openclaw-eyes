@@ -275,7 +275,11 @@ def render_markdown(snapshot: Dict[str, Any]):
         f = m["facts"]
         r = m["registry"]
         rd = m["readiness"]
+        gp = m.get("gateway_posture", {})
         print(f"- **Facts**: {f['total']} ({f['by_truth_status'].get('doctrine_reference', 0)} doctrine, {f['by_truth_status'].get('historical_checkpoint', 0)} historical)")
+        if gp:
+            print(f"- **Gateway Posture**: {gp.get('verified_candidate_facts', 0)} VERIFIED, {gp.get('uncertain_candidate_facts', 0)} UNCERTAIN, {gp.get('blocked_sources_count', 0)} BLOCKED sources")
+            print(f"- **Runtime Authority**: {gp.get('runtime_authority', False)}")
         print(f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents")
         print(f"- **Readiness**: {rd['result']}")
         print("> Truth substrate status is read-only. Truth status describes verification posture, not runtime health or agent authority.")

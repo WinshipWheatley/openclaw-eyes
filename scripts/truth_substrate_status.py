@@ -31,7 +31,7 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
         # Check for required tables
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]
-        
+
         required_tables = ["canonical_facts", "truth_registry_entries"]
         missing_tables = [t for t in required_tables if t not in tables]
         if missing_tables:
@@ -48,7 +48,25 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
         cursor.execute("SELECT verification_required, COUNT(*) as count FROM canonical_facts GROUP BY verification_required")
         ver_req_counts = {bool(row["verification_required"]): row["count"] for row in cursor.fetchall()}
 
-        # 2. SOURCE_REGISTRY Coverage & Hash Metrics
+        # 3. Gateway Packet Posture (Inferred from DB state)
+        # VERIFIED: verification_required=0 or (verification_required=1 and verification_evidence_id is present)
+        # UNCERTAIN: verification_required=1 and verification_evidence_id is NULL/empty
+        # BLOCKED: hash_status != 'current' (This is a simplified view for status)
+
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total,
+                SUM(CASE WHEN verification_required = 0 OR (verification_required = 1 AND verification_evidence_id IS NOT NULL AND verification_evidence_id != '') THEN 1 ELSE 0 END) as verified_candidate,
+                SUM(CASE WHEN verification_required = 1 AND (verification_evidence_id IS NULL OR verification_evidence_id = '') THEN 1 ELSE 0 END) as uncertain_candidate
+            FROM canonical_facts
+        """)
+        posture_row = cursor.fetchone()
+
+        # We also need to check registry for blocked status (hash mismatch)
+        cursor.execute("SELECT COUNT(*) FROM truth_registry_entries WHERE hash_status != 'current'")
+        blocked_sources_count = cursor.fetchone()[0]
+
+        # 4. SOURCE_REGISTRY Coverage & Hash Metrics
         registry_total = len(SOURCE_REGISTRY)
         registry_present = 0
         hash_status_counts = {}
@@ -76,7 +94,7 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
                     is_unsafe = True
                 elif truth_status in ("test_verified", "runtime_verified") and hash_status != "current":
                     is_unsafe = True
-                
+
                 if is_unsafe:
                     unsafe_entries.append(source_path)
             else:
@@ -93,6 +111,13 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
                     "total": total_facts,
                     "by_truth_status": truth_status_counts,
                     "by_verification_required": ver_req_counts
+                },
+                "gateway_posture": {
+                    "verified_candidate_facts": posture_row["verified_candidate"] or 0,
+                    "uncertain_candidate_facts": posture_row["uncertain_candidate"] or 0,
+                    "blocked_sources_count": blocked_sources_count,
+                    "runtime_authority": False,
+                    "note": "MODEL_BLOCKED takes precedence over candidate status if hash mismatch exists."
                 },
                 "registry": {
                     "total_sources": registry_total,
@@ -137,13 +162,22 @@ def main():
     print(f"Canonical Facts: {facts['total']}")
     print(f"  - Verification Required: {facts['by_verification_required'].get(True, 0)}")
     print(f"  - Verification Not Required: {facts['by_verification_required'].get(False, 0)}")
-    
-    print("\nFact Posture Breakdown:")
+
+    print(f"\nFact Posture Breakdown:")
     for s, c in sorted(facts["by_truth_status"].items()):
         print(f"  - {s}: {c}")
 
+    gp = metrics["gateway_posture"]
+    print(f"\nTruth Gateway Packet Posture (Boundary View):")
+    print(f"  - MODEL_ALLOWED_VERIFIED: {gp['verified_candidate_facts']} candidate facts")
+    print(f"  - MODEL_ALLOWED_UNCERTAIN: {gp['uncertain_candidate_facts']} candidate facts")
+    print(f"  - MODEL_BLOCKED: {gp['blocked_sources_count']} sources with hash mismatch")
+    print(f"  - Runtime Authority: {gp['runtime_authority']}")
+    print(f"  - {gp['note']}")
+
     print(f"\nSource Registry Coverage: {registry['present_sources']}/{registry['total_sources']}")
-    
+
+
     print("\nRegistry Hash Status:")
     if not registry["hash_status_counts"]:
         print("  - (No entries)")
@@ -153,7 +187,7 @@ def main():
     print(f"\nReadiness: {readiness['result']}")
     if not readiness["is_ready"]:
         print(f"  - Unsafe/Missing sources: {readiness['unsafe_count']}")
-    
+
     print("\nBoundary note: Truth status describes verification posture, not runtime authority.")
 
 if __name__ == "__main__":

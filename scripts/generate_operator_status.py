@@ -224,8 +224,16 @@ def generate_current_state(snapshot):
         f = m["facts"]
         r = m["registry"]
         rd = m["readiness"]
+        gp = m.get("gateway_posture", {})
         lines.extend([
             f"- **Facts**: {f['total']} ({f['by_truth_status'].get('doctrine_reference', 0)} doctrine, {f['by_truth_status'].get('historical_checkpoint', 0)} historical)",
+        ])
+        if gp:
+            lines.extend([
+                f"- **Gateway Posture**: {gp.get('verified_candidate_facts', 0)} VERIFIED, {gp.get('uncertain_candidate_facts', 0)} UNCERTAIN, {gp.get('blocked_sources_count', 0)} BLOCKED sources",
+                f"- **Runtime Authority**: {gp.get('runtime_authority', False)}",
+            ])
+        lines.extend([
             f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents",
             f"- **Readiness**: {rd['result']}",
             "",

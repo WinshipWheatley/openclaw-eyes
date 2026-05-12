@@ -27,6 +27,8 @@ Strongest recent clean proof: [PASS] business_ops_ledger_tests head=942d3e00
 ## 3. Truth Substrate Summary
 Registry-governed canonical facts and source documents.
 - **Facts**: 83 (71 doctrine, 12 historical)
+- **Gateway Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
+- **Runtime Authority**: False
 - **Coverage**: 9/9 SOURCE_REGISTRY documents
 - **Readiness**: READY
 
