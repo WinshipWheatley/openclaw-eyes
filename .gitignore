@@ -572,3 +572,5 @@
 !producer_listener.py
 !scripts/answer_harness.py
 !tests/test_answer_harness.py
+!scripts/generate_canonical_fact_truth_report.py
+!tests/test_canonical_fact_truth_report.py
