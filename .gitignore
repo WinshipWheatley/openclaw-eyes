@@ -175,7 +175,9 @@
 !docs/archives/**/README.md
 
 !scripts/query_canonical_facts.py
+!scripts/query_file_inventory.py
 !tests/test_query_canonical_facts.py
+!tests/test_query_file_inventory.py
 
 !apps/
 !apps/legal-console-spike/

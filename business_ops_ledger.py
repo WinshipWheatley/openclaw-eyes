@@ -456,6 +456,33 @@ def append_operator_explanation(
     return _execute_write(query, params, db_path)
 
 
+def get_file_inventory_by_root(root_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_file_inventory("SELECT * FROM file_inventory WHERE root_id = ?", (root_id,), db_path)
+
+def get_file_inventory_by_extension(extension: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_file_inventory("SELECT * FROM file_inventory WHERE extension = ?", (extension,), db_path)
+
+def get_file_inventory_by_name(file_name: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_file_inventory("SELECT * FROM file_inventory WHERE file_name = ?", (file_name,), db_path)
+
+def _query_file_inventory(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
+    path = db_path or DEFAULT_DB_PATH
+    uri = f"file:{path}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        columns = [d[0] for d in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        conn.close()
+        return results
+    except Exception as e:
+        logger.error(f"Failed to query file_inventory: {e}")
+        return []
+
+
 def get_last_event_summary(db_path: str | None = None) -> Optional[str]:
     path = db_path or DEFAULT_DB_PATH
     try:
