@@ -37,6 +37,7 @@ def test_env(tmp_path, monkeypatch):
         CREATE TABLE canonical_facts (
             fact_id TEXT PRIMARY KEY,
             source_file TEXT,
+            section_heading TEXT,
             source_commit TEXT,
             content_hash TEXT,
             truth_source_id TEXT,
@@ -51,19 +52,23 @@ def test_env(tmp_path, monkeypatch):
             source_id TEXT PRIMARY KEY,
             observed_path TEXT,
             source_content_hash TEXT,
-            hash_status TEXT
+            hash_status TEXT,
+            truth_status TEXT,
+            verification_required INTEGER,
+            verification_invalidated_at TEXT,
+            invalidation_reason TEXT
         )
     """)
 
     # Valid setup
     conn.execute("""
-        INSERT INTO canonical_facts (fact_id, source_file, source_commit, content_hash, truth_source_id, truth_status, verification_required, fact_text)
-        VALUES ('f1', ?, 'c1', 'h1', 's1', 'doctrine_reference', 1, 'fact text content')
+        INSERT INTO canonical_facts (fact_id, source_file, section_heading, source_commit, content_hash, truth_source_id, truth_status, verification_required, fact_text)
+        VALUES ('f1', ?, 'Status', 'c1', 'h1', 's1', 'doctrine_reference', 1, 'fact text content')
     """, (str(source_file),))
 
     conn.execute("""
-        INSERT INTO truth_registry_entries (source_id, observed_path, source_content_hash, hash_status)
-        VALUES ('s1', ?, ?, 'current')
+        INSERT INTO truth_registry_entries (source_id, observed_path, source_content_hash, hash_status, truth_status, verification_required)
+        VALUES ('s1', ?, ?, 'current', 'doctrine_reference', 1)
     """, (str(source_file), source_hash))
 
     conn.commit()
@@ -239,9 +244,16 @@ def test_v1_mechanical_repair_refused_on_hash_mismatch(test_env):
     result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
 
     assert result["status"] == MODEL_BLOCKED
-    # Should not have applied reconciliation because hashes don't match
-    assert RECONCILIATION_APPLIED not in result["transitions"]
-    assert "Disk hash mismatch" in result["block_reason"]
+    # It should have attempted mismatch invalidation instead of repair
+    assert RECONCILIATION_APPLIED in result["transitions"]
+    assert "Hash mismatch detected" in result["block_reason"]
+
+    # Verify DB was invalidated
+    conn = sqlite3.connect(test_env["db_path"])
+    row = conn.execute("SELECT hash_status, invalidation_reason FROM truth_registry_entries WHERE source_id = 's1'").fetchone()
+    conn.close()
+    assert row[0] == 'changed'
+    assert row[1] == 'JIT hash mismatch detected'
 
 def test_v1_mechanical_repair_refused_when_not_allowed(test_env):
     conn = sqlite3.connect(test_env["db_path"])
@@ -255,34 +267,68 @@ def test_v1_mechanical_repair_refused_when_not_allowed(test_env):
     assert result["status"] == MODEL_BLOCKED
     assert RECONCILIATION_BLOCKED in result["transitions"]
 
-def test_v1_recheck_failure_if_file_deleted_during_repair(test_env, monkeypatch):
+def test_v1_mismatch_invalidation_success(test_env):
+    # Setup a high-confidence status in BOTH tables
     conn = sqlite3.connect(test_env["db_path"])
-    conn.execute("UPDATE truth_registry_entries SET hash_status = 'changed' WHERE source_id = 's1'")
+    conn.execute("UPDATE truth_registry_entries SET truth_status = 'test_verified' WHERE source_id = 's1'")
+    conn.execute("UPDATE canonical_facts SET truth_status = 'test_verified' WHERE truth_source_id = 's1'")
     conn.commit()
     conn.close()
 
-    # We need to delete the file BETWEEN apply and recheck.
-    # We can mock calculate_sha256 or os.path.exists to simulate this.
-    original_exists = os.path.exists
-    def flaky_exists(path):
-        if str(path) == str(test_env["source_file"]) and "RECONCILIATION_APPLIED" in getattr(flaky_exists, "transitions", []):
-             return False
-        return original_exists(path)
+    # Change file
+    test_env["source_file"].write_bytes(b"Dirty content")
 
-    # This is getting complex, maybe just mock the integrity check results in build_llm_truth_packet if needed.
-    # But let's try a simpler way: mock calculate_sha256 to throw error if called twice? No.
+    # Build packet with reconciliation allowed
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
 
-    # Let's just trust the logic for now or add a more surgical test if required.
+    assert result["status"] == MODEL_BLOCKED
+    assert RECONCILIATION_APPLIED in result["transitions"]
+    assert "Hash mismatch detected" in result["block_reason"]
 
-def test_v1_forced_recall_verifies_fresh_data(test_env):
+    # Verify DB updates in registry
     conn = sqlite3.connect(test_env["db_path"])
-    conn.execute("UPDATE truth_registry_entries SET hash_status = 'changed' WHERE source_id = 's1'")
+    row = conn.execute("""
+        SELECT hash_status, truth_status, verification_required, verification_invalidated_at, invalidation_reason, source_content_hash
+        FROM truth_registry_entries WHERE source_id = 's1'
+    """).fetchone()
+
+    assert row[0] == 'changed'
+    assert row[1] == 'stale_possible'  # Downgraded
+    assert row[2] == 1  # verification_required set
+    assert row[3] is not None  # verification_invalidated_at set
+    assert row[4] == 'JIT hash mismatch detected'
+    assert row[5] == test_env["source_hash"]  # source_content_hash NOT replaced
+
+    # Verify DB updates in canonical_facts
+    row_f = conn.execute("SELECT truth_status, verification_required FROM canonical_facts WHERE fact_id = 'f1'").fetchone()
+    assert row_f[0] == 'stale_possible'
+    assert row_f[1] == 1
+
+    conn.close()
+
+def test_v1_mismatch_invalidation_no_downgrade_for_doctrine(test_env):
+    # doctrine_reference should not downgrade to stale_possible
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE truth_registry_entries SET truth_status = 'doctrine_reference' WHERE source_id = 's1'")
+    conn.execute("UPDATE canonical_facts SET truth_status = 'doctrine_reference' WHERE truth_source_id = 's1'")
     conn.commit()
     conn.close()
 
-    # Modify fact text in DB after loading but before re-query would happen?
-    # build_llm_truth_packet loads facts AFTER recheck passed.
+    test_env["source_file"].write_bytes(b"Dirty content")
 
     result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
-    assert result["status"] == MODEL_ALLOWED
-    assert result["verified_facts"][0]["text"] == "fact text content"
+
+    conn = sqlite3.connect(test_env["db_path"])
+    row = conn.execute("SELECT truth_status FROM truth_registry_entries WHERE source_id = 's1'").fetchone()
+    conn.close()
+    assert row[0] == 'doctrine_reference'
+
+def test_v1_mismatch_no_exposure_of_fact_text(test_env):
+    test_env["source_file"].write_bytes(b"Dirty content")
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
+
+    assert result["status"] == MODEL_BLOCKED
+    assert result["verified_facts"] == []
+    # Fact text must not be in the top level either (it shouldn't be anyway)
+    assert "text" not in str(result) or "fact text content" not in str(result)

@@ -4,6 +4,7 @@ import os
 import sys
 import hashlib
 import json
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 # Attempt to import SOURCE_REGISTRY
@@ -158,7 +159,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
             transitions.append(DIFF_FOUND)
 
             # Reconciliation Attempt
-            if allow_reconciliation and integrity["repairable"]:
+            if allow_reconciliation:
                 transitions.append(RECONCILIATION_ALLOWED)
 
                 try:
@@ -166,37 +167,87 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                     conn = sqlite3.connect(db_path)
                     cursor = conn.cursor()
 
-                    # Repair hash_status to 'current'
-                    cursor.execute(
-                        "UPDATE truth_registry_entries SET hash_status = 'current' WHERE source_id = ?",
-                        (integrity["truth_source_id"],)
-                    )
-                    conn.commit()
-                    conn.close()
+                    if integrity["repairable"]:
+                        # Repair hash_status to 'current'
+                        cursor.execute(
+                            "UPDATE truth_registry_entries SET hash_status = 'current' WHERE source_id = ?",
+                            (integrity["truth_source_id"],)
+                        )
+                        # Also update any facts linked to this source
+                        cursor.execute(
+                            "UPDATE canonical_facts SET verification_required = 0 WHERE truth_source_id = ?",
+                            (integrity["truth_source_id"],)
+                        )
+                        conn.commit()
+                        conn.close()
+                        transitions.append(RECONCILIATION_APPLIED)
 
-                    transitions.append(RECONCILIATION_APPLIED)
+                        # MANDATORY RE-QUERY / RE-CHECK LOOP
+                        transitions.append(RECALLED_AFTER_RECONCILIATION)
+                        transitions.append(RECHECK_RUNNING)
 
-                    # MANDATORY RE-QUERY / RE-CHECK LOOP
-                    transitions.append(RECALLED_AFTER_RECONCILIATION)
-                    transitions.append(RECHECK_RUNNING)
-
-                    recheck = check_fact_source_integrity(db_path, fact_id)
-                    if recheck["status"] == "PASS":
-                        transitions.append(RECHECK_PASSED)
-                        # Continue to packet generation using fresh state
-                        # Note: We re-query the fact row below anyway
+                        recheck = check_fact_source_integrity(db_path, fact_id)
+                        if recheck["status"] == "PASS":
+                            transitions.append(RECHECK_PASSED)
+                            # Continue to packet generation using fresh state
+                        else:
+                            transitions.append(RECHECK_FAILED)
+                            transitions.append(MODEL_BLOCKED)
+                            return {
+                                "status": MODEL_BLOCKED,
+                                "state": MODEL_BLOCKED,
+                                "transitions": transitions,
+                                "question": question,
+                                "block_reason": f"Recheck failed after reconciliation: {recheck['block_reason']}",
+                                "fact_id": fact_id,
+                                "verified_facts": []
+                            }
                     else:
-                        transitions.append(RECHECK_FAILED)
+                        # Mismatch Invalidation
+                        now = datetime.now(timezone.utc).isoformat()
+                        new_truth_status = integrity["truth_status"]
+                        # Downgrade only if test_verified or runtime_verified
+                        if integrity["truth_status"] in ("test_verified", "runtime_verified"):
+                            new_truth_status = "stale_possible"
+
+                        # Update Registry
+                        cursor.execute(
+                            """
+                            UPDATE truth_registry_entries
+                            SET hash_status = 'changed',
+                                verification_invalidated_at = ?,
+                                invalidation_reason = ?,
+                                verification_required = 1,
+                                truth_status = ?
+                            WHERE source_id = ?
+                            """,
+                            (now, "JIT hash mismatch detected", new_truth_status, integrity["truth_source_id"])
+                        )
+                        # Update Canonical Facts
+                        cursor.execute(
+                            """
+                            UPDATE canonical_facts
+                            SET truth_status = ?,
+                                verification_required = 1
+                            WHERE truth_source_id = ?
+                            """,
+                            (new_truth_status, integrity["truth_source_id"])
+                        )
+                        conn.commit()
+                        conn.close()
+                        transitions.append(RECONCILIATION_APPLIED)
                         transitions.append(MODEL_BLOCKED)
+
                         return {
                             "status": MODEL_BLOCKED,
                             "state": MODEL_BLOCKED,
                             "transitions": transitions,
                             "question": question,
-                            "block_reason": f"Recheck failed after reconciliation: {recheck['block_reason']}",
+                            "block_reason": f"Hash mismatch detected. Invalidation applied: {integrity['block_reason']}",
                             "fact_id": fact_id,
                             "verified_facts": []
                         }
+
                 except Exception as e:
                     transitions.append(CHECK_FAILED)
                     transitions.append(MODEL_BLOCKED)
@@ -354,5 +405,7 @@ if __name__ == "__main__":
                 print(f"Block Reason: {result['block_reason']}")
                 if result.get("repairable"):
                     print("Status is REPAIRABLE with --allow-reconciliation")
+                else:
+                    print("Status is INVALIDATABLE with --allow-reconciliation")
             else:
                 print("Integrity check PASSED.")
