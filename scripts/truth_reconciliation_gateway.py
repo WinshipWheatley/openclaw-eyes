@@ -4,7 +4,7 @@ import os
 import sys
 import hashlib
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 # Attempt to import SOURCE_REGISTRY
 sys.path.append(os.getcwd())
@@ -12,6 +12,16 @@ try:
     from scripts.ingest_canonical_docs import SOURCE_REGISTRY
 except ImportError:
     SOURCE_REGISTRY = {}
+
+# State constants
+CANDIDATE_SURFACED = "CANDIDATE_SURFACED"
+CHECK_RUNNING = "CHECK_RUNNING"
+NO_DIFF_FOUND = "NO_DIFF_FOUND"
+DIFF_FOUND = "DIFF_FOUND"
+PACKET_READY = "PACKET_READY"
+MODEL_ALLOWED = "MODEL_ALLOWED"
+CHECK_FAILED = "CHECK_FAILED"
+MODEL_BLOCKED = "MODEL_BLOCKED"
 
 def calculate_sha256(file_path: str) -> str:
     sha256_hash = hashlib.sha256()
@@ -121,23 +131,148 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         result["block_reason"] = f"Internal error: {str(e)}"
         return result
 
+def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None) -> Dict[str, Any]:
+    """
+    Builds a final LLM truth packet only after integrity checks pass.
+    """
+    transitions = [CANDIDATE_SURFACED, CHECK_RUNNING]
+
+    # 1. Integrity Check
+    integrity = check_fact_source_integrity(db_path, fact_id)
+
+    if integrity["status"] == "BLOCK":
+        state = MODEL_BLOCKED
+        if integrity["state"] == "DIFF_FOUND":
+            transitions.append(DIFF_FOUND)
+        else:
+            transitions.append(CHECK_FAILED)
+        transitions.append(MODEL_BLOCKED)
+
+        return {
+            "status": MODEL_BLOCKED,
+            "state": state,
+            "transitions": transitions,
+            "question": question,
+            "block_reason": integrity["block_reason"],
+            "fact_id": fact_id,
+            "verified_facts": []
+        }
+
+    transitions.append(NO_DIFF_FOUND)
+
+    # 2. Build Packet
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM canonical_facts WHERE fact_id = ?", (fact_id,))
+        fact = cursor.fetchone()
+        conn.close()
+
+        if not fact:
+            transitions.append(CHECK_FAILED)
+            transitions.append(MODEL_BLOCKED)
+            return {
+                "status": MODEL_BLOCKED,
+                "state": MODEL_BLOCKED,
+                "transitions": transitions,
+                "question": question,
+                "block_reason": "Fact disappeared between check and recall",
+                "fact_id": fact_id,
+                "verified_facts": []
+            }
+
+        # Labels
+        truth_status = fact["truth_status"] or "UNKNOWN"
+        labels = [
+            "[REPO-SOURCE]",
+            "[HASH-CURRENT]",
+            f"[{truth_status.upper()}]"
+        ]
+        if fact["verification_required"]:
+            labels.append("[VERIFY_REQUIRED]")
+
+        # Provenance
+        provenance = {
+            "fact_id": fact["fact_id"],
+            "source_file": fact["source_file"],
+            "source_commit": fact["source_commit"],
+            "content_hash": fact["content_hash"],
+            "truth_source_id": fact["truth_source_id"],
+            "truth_status": fact["truth_status"],
+            "verification_required": bool(fact["verification_required"]),
+            "verification_evidence_id": fact["verification_evidence_id"]
+        }
+
+        verified_fact = {
+            "id": fact["fact_id"],
+            "text": fact["fact_text"],
+            "labels": " ".join(labels),
+            "provenance": provenance
+        }
+
+        transitions.append(PACKET_READY)
+        transitions.append(MODEL_ALLOWED)
+
+        return {
+            "status": MODEL_ALLOWED,
+            "state": MODEL_ALLOWED,
+            "transitions": transitions,
+            "question": question,
+            "substrate_status": "READY",
+            "verified_facts": [verified_fact],
+            "runtime_authority": False,
+            "answer_boundary": "Answer only from verified_facts. Truth status describes verification posture, not runtime health or agent authority."
+        }
+
+    except Exception as e:
+        transitions.append(CHECK_FAILED)
+        transitions.append(MODEL_BLOCKED)
+        return {
+            "status": MODEL_BLOCKED,
+            "state": MODEL_BLOCKED,
+            "transitions": transitions,
+            "question": question,
+            "block_reason": f"Internal packet generation error: {str(e)}",
+            "fact_id": fact_id,
+            "verified_facts": []
+        }
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Truth Reconciliation Gateway - Chunk 1 JIT Integrity")
+    parser = argparse.ArgumentParser(description="Truth Reconciliation Gateway - JIT Integrity & Packet Generation")
     parser.add_argument("--db", default=".openclaw/business_ops/ledger.sqlite", help="Path to SQLite DB")
     parser.add_argument("--fact-id", required=True, help="Fact ID to check")
+    parser.add_argument("--packet", action="store_true", help="Generate final LLM truth packet")
+    parser.add_argument("--question", help="Question associated with the packet")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    check_result = check_fact_source_integrity(args.db, args.fact_id)
+    if args.packet:
+        result = build_llm_truth_packet(args.db, args.fact_id, args.question)
+    else:
+        result = check_fact_source_integrity(args.db, args.fact_id)
 
     if args.json:
-        print(json.dumps(check_result, indent=2))
+        print(json.dumps(result, indent=2))
     else:
-        print(f"Status: {check_result['status']}")
-        print(f"State: {check_result['state']}")
-        print(f"Fact ID: {check_result['fact_id']}")
-        print(f"Source File: {check_result['source_file']}")
-        if check_result['status'] == "BLOCK":
-            print(f"Block Reason: {check_result['block_reason']}")
+        if args.packet:
+            print(f"Status: {result['status']}")
+            print(f"State: {result['state']}")
+            print(f"Transitions: {' -> '.join(result['transitions'])}")
+            if result['status'] == MODEL_BLOCKED:
+                print(f"Block Reason: {result['block_reason']}")
+            else:
+                for f in result['verified_facts']:
+                    print(f"\nFact ID: {f['id']}")
+                    print(f"Labels: {f['labels']}")
+                    print(f"Text: {f['text']}")
         else:
-            print("Integrity check PASSED.")
+            print(f"Status: {result['status']}")
+            print(f"State: {result['state']}")
+            print(f"Fact ID: {result['fact_id']}")
+            print(f"Source File: {result['source_file']}")
+            if result['status'] == "BLOCK":
+                print(f"Block Reason: {result['block_reason']}")
+            else:
+                print("Integrity check PASSED.")
