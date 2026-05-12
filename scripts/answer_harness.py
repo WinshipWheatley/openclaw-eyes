@@ -19,7 +19,13 @@ PHRASE_INTENT_MAP = {
     "what are the boundaries?": "WHAT_ARE_THE_BOUNDARIES",
 }
 
-def answer_operator_question(db_path: str, question: str, allow_reconciliation: bool = False) -> dict:
+def answer_operator_question(
+    db_path: str,
+    question: str,
+    allow_reconciliation: bool = False,
+    record_receipt: bool = False,
+    receipt_db_path: str | None = None
+) -> dict:
     # Ensure gateway is available
     sys.path.append(os.getcwd())
     try:
@@ -68,7 +74,14 @@ def answer_operator_question(db_path: str, question: str, allow_reconciliation: 
     last_packet = None
 
     for fact in candidate_facts:
-        packet = build_llm_truth_packet(db_path, fact["fact_id"], question, allow_reconciliation=allow_reconciliation)
+        packet = build_llm_truth_packet(
+            db_path,
+            fact["fact_id"],
+            question,
+            allow_reconciliation=allow_reconciliation,
+            record_receipt=record_receipt,
+            receipt_db_path=receipt_db_path
+        )
         last_packet = packet
 
         if packet["status"] == MODEL_ALLOWED_VERIFIED:
@@ -184,10 +197,18 @@ def main():
     parser.add_argument("--db", required=True, help="Path to the SQLite database file.")
     parser.add_argument("--question", required=True, help="Operator question.")
     parser.add_argument("--allow-reconciliation", action="store_true", help="Allow mechanical metadata repairs")
+    parser.add_argument("--record-receipt", action="store_true", help="Record truth decision receipt to ledger")
+    parser.add_argument("--receipt-db", help="Target DB for receipt logging (defaults to --db)")
 
     args = parser.parse_args()
 
-    result = answer_operator_question(args.db, args.question, allow_reconciliation=args.allow_reconciliation)
+    result = answer_operator_question(
+        args.db,
+        args.question,
+        allow_reconciliation=args.allow_reconciliation,
+        record_receipt=args.record_receipt,
+        receipt_db_path=args.receipt_db
+    )
     print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":

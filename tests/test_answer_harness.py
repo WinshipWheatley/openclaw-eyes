@@ -35,7 +35,7 @@ def test_valid_intent_gateway_success(monkeypatch):
     from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_VERIFIED
 
     # Mock gateway to simulate PASS
-    def mock_packet(db_path, fact_id, question, allow_reconciliation=False):
+    def mock_packet(db_path, fact_id, question, allow_reconciliation=False, **kwargs):
         return {
             "status": MODEL_ALLOWED_VERIFIED,
             "state": MODEL_ALLOWED_VERIFIED,
@@ -79,7 +79,7 @@ def test_valid_intent_gateway_blocked(monkeypatch):
     )
 
     # Mock gateway to simulate BLOCK
-    def mock_packet_blocked(db_path, fact_id, question, allow_reconciliation=False):
+    def mock_packet_blocked(db_path, fact_id, question, allow_reconciliation=False, **kwargs):
         return {
             "status": "MODEL_BLOCKED",
             "state": "MODEL_BLOCKED",
@@ -197,7 +197,7 @@ def test_uncertain_packet_handling(monkeypatch):
 
     from scripts.truth_reconciliation_gateway import MODEL_ALLOWED_UNCERTAIN
 
-    def mock_packet_uncertain(db_path, fact_id, question, allow_reconciliation=False):
+    def mock_packet_uncertain(db_path, fact_id, question, allow_reconciliation=False, **kwargs):
         return {
             "status": MODEL_ALLOWED_UNCERTAIN,
             "uncertainty_status": "verification_required_no_evidence",
@@ -226,3 +226,108 @@ def test_uncertain_packet_handling(monkeypatch):
     assert result["truth_summary"]["has_uncertain_facts"] is True
     assert result["runtime_authority"] is False
     assert "Qualified language required" in result["answer_boundary"]
+
+def test_answer_harness_receipt_integration(tmp_path, monkeypatch):
+    # Real integration test for receipts through the harness
+    db_path = str(tmp_path / "harness_receipts.sqlite")
+    receipt_db_path = str(tmp_path / "harness_receipt_log.sqlite")
+    init_business_ops_ledger(db_path)
+    init_business_ops_ledger(receipt_db_path)
+
+    source_file = tmp_path / "harness_doc.md"
+    source_content = b"Harness content"
+    source_file.write_bytes(source_content)
+    import hashlib
+    source_hash = hashlib.sha256(source_content).hexdigest()
+
+    # Insert into truth registry
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, source_content_hash, hash_status, truth_status,
+            origin_machine, sync_role, sensitivity_class, approval_status,
+            verification_required, canonical_eligible
+        )
+        VALUES ('th1', ?, ?, 'current', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 0, 1)
+    """, (str(source_file), source_hash))
+    conn.commit()
+    conn.close()
+
+    # Insert fact
+    record_canonical_fact(
+        "fh1", str(source_file), "Status", "ch1",
+        "Fact H1 text.", "public_canonical", ["OpenClaw"], "cat1", "doc", "desc",
+        "th1", "doctrine_reference", 0, None, db_path
+    )
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {str(source_file): {}})
+
+    # 1. Default (no receipt)
+    answer_operator_question(db_path, "where are we?")
+    conn = sqlite3.connect(db_path)
+    count = conn.execute("SELECT count(*) FROM events WHERE event_type = 'truth_packet_decision_receipt'").fetchone()[0]
+    conn.close()
+    assert count == 0
+
+    # 2. Opt-in verified receipt
+    result = answer_operator_question(
+        db_path,
+        "where are we?",
+        record_receipt=True,
+        receipt_db_path=receipt_db_path
+    )
+    assert result["status"] == "SUCCESS"
+
+    conn = sqlite3.connect(receipt_db_path)
+    rows = conn.execute("SELECT packet_json_safe FROM packets").fetchall()
+    conn.close()
+    assert len(rows) > 0
+    payload = json.loads(rows[0][0])
+    assert payload["packet_status"] == "MODEL_ALLOWED_VERIFIED"
+    assert payload["fact_id"] == "fh1"
+    assert payload["fact_text_crossed_model_boundary"] is True
+    assert "Fact H1 text." not in rows[0][0]
+
+def test_answer_harness_receipt_blocked_redaction(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "harness_blocked.sqlite")
+    receipt_db_path = str(tmp_path / "harness_blocked_log.sqlite")
+    init_business_ops_ledger(db_path)
+    init_business_ops_ledger(receipt_db_path)
+
+    # Fact exists but file is missing -> BLOCKED
+    record_canonical_fact(
+        "fb1", "missing.md", "Status", "cb1",
+        "Secret fact text.", "public_canonical", ["OpenClaw"], "cat1", "doc", "desc",
+        "tb1", "doctrine_reference", 0, None, db_path
+    )
+    # Registry entry exists
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, source_content_hash, hash_status, truth_status,
+            origin_machine, sync_role, sensitivity_class, approval_status,
+            verification_required, canonical_eligible
+        )
+        VALUES ('tb1', 'missing.md', 'somehash', 'current', 'doctrine_reference', 'pc', 'source', 'operational_canonical', 'approved', 0, 1)
+    """)
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr("scripts.truth_reconciliation_gateway.SOURCE_REGISTRY", {"missing.md": {}})
+
+    result = answer_operator_question(
+        db_path,
+        "where are we?",
+        record_receipt=True,
+        receipt_db_path=receipt_db_path
+    )
+    assert result["status"] == "MODEL_BLOCKED"
+
+    conn = sqlite3.connect(receipt_db_path)
+    rows = conn.execute("SELECT packet_json_safe FROM packets").fetchall()
+    conn.close()
+
+    payload = json.loads(rows[0][0])
+    assert payload["packet_status"] == "MODEL_BLOCKED"
+    assert payload["fact_text_crossed_model_boundary"] is False
+    assert "Secret fact text." not in rows[0][0]
