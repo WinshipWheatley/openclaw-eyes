@@ -27,6 +27,34 @@ SOURCE_REGISTRY = {
         "allowed_actors": ["cassandra", "chief", "guardian", "hermes"],
         "temporal_or_doctrine": "doctrine_reference",
         "description": "Mapping of agent packets to receipt requirements"
+    },
+    "docs/operations/CASSANDRA_MACHINE_CONTRACT.md": {
+        "doc_category": "machine_contract",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["cassandra", "chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Cassandra agent machine contract"
+    },
+    "docs/operations/CHIEF_MACHINE_CONTRACT.md": {
+        "doc_category": "machine_contract",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["chief", "guardian", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Chief agent machine contract"
+    },
+    "docs/operations/GUARDIAN_MACHINE_CONTRACT.md": {
+        "doc_category": "machine_contract",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["guardian", "chief", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Guardian agent machine contract"
+    },
+    "docs/operations/HERMES_MACHINE_CONTRACT.md": {
+        "doc_category": "machine_contract",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["hermes", "chief", "guardian"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "Hermes agent machine contract"
     }
 }
 
