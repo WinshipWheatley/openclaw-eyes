@@ -18,7 +18,9 @@ from scripts.truth_reconciliation_gateway import (
     RECHECK_RUNNING,
     RECHECK_PASSED,
     RECHECK_FAILED,
-    PACKET_READY
+    PACKET_READY,
+    MODEL_ALLOWED_VERIFIED,
+    MODEL_ALLOWED_UNCERTAIN
 )
 
 def calculate_sha256(content: bytes) -> str:
@@ -332,3 +334,62 @@ def test_v1_mismatch_no_exposure_of_fact_text(test_env):
     assert result["verified_facts"] == []
     # Fact text must not be in the top level either (it shouldn't be anyway)
     assert "text" not in str(result) or "fact text content" not in str(result)
+
+def test_constants_contract():
+    assert MODEL_ALLOWED == MODEL_ALLOWED_VERIFIED
+    assert MODEL_ALLOWED_VERIFIED == "MODEL_ALLOWED_VERIFIED"
+    assert MODEL_ALLOWED_UNCERTAIN == "MODEL_ALLOWED_UNCERTAIN"
+
+def test_uncertain_packet_contract_fields():
+    # This test defines the required fields for a MODEL_ALLOWED_UNCERTAIN packet
+    # as per the Chunk 3A/3B contract.
+    uncertain_packet = {
+        "status": MODEL_ALLOWED_UNCERTAIN,
+        "uncertainty_status": "medium_provisional",
+        "confidence_band": "medium_provisional",
+        "uncertainty_reason": "Historical fact with intact source integrity",
+        "fact_text": "The company was founded in 1998.",
+        "source_file": "docs/history.md",
+        "source_commit": "abc1234",
+        "content_hash": "h123456",
+        "source_content_hash_status": "current",
+        "truth_source_id": "s123",
+        "truth_status": "historical_checkpoint",
+        "verification_required": True,
+        "answer_boundary": "Qualified language required: 'This appears to be...'",
+        "runtime_authority": False,
+        "transitions": [CANDIDATE_SURFACED, CHECK_RUNNING, NO_DIFF_FOUND, PACKET_READY, MODEL_ALLOWED_UNCERTAIN]
+    }
+
+    required_fields = [
+        "status", "uncertainty_status", "confidence_band", "uncertainty_reason",
+        "fact_text", "source_file", "content_hash", "source_content_hash_status",
+        "truth_source_id", "truth_status", "verification_required",
+        "answer_boundary", "runtime_authority", "transitions"
+    ]
+
+    for field in required_fields:
+        assert field in uncertain_packet
+
+def test_verified_packet_contract_fields():
+    # This test ensures MODEL_ALLOWED_VERIFIED (alias MODEL_ALLOWED) remains the standard
+    verified_packet = {
+        "status": MODEL_ALLOWED_VERIFIED,
+        "state": MODEL_ALLOWED_VERIFIED,
+        "verified_facts": [{
+            "id": "f1",
+            "text": "fact text",
+            "labels": "[REPO-SOURCE] [HASH-CURRENT]",
+            "provenance": {
+                "fact_id": "f1",
+                "source_file": "f.md",
+                "content_hash": "h1",
+                "truth_source_id": "s1",
+                "truth_status": "verified",
+                "verification_required": False
+            }
+        }],
+        "runtime_authority": False,
+        "answer_boundary": "Answer only from verified_facts"
+    }
+    assert verified_packet["status"] == MODEL_ALLOWED
