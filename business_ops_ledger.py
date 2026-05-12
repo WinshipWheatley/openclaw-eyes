@@ -144,9 +144,46 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
             )
         """)
 
+        # 9. truth_registry_entries
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS truth_registry_entries (
+                source_id TEXT PRIMARY KEY,
+                observed_path TEXT NOT NULL,
+                canonical_path TEXT,
+                origin_machine TEXT NOT NULL CHECK (origin_machine IN ('pc','mac','external_drive','unknown')),
+                sync_role TEXT NOT NULL CHECK (sync_role IN ('source','mirror','copied_export','review_surface')),
+                content_hash TEXT,
+                mirror_hash_match INTEGER CHECK (mirror_hash_match IN (0,1)),
+                source_commit TEXT,
+                doc_type TEXT,
+                machine_scope TEXT,
+                sensitivity_class TEXT NOT NULL,
+                approval_status TEXT NOT NULL CHECK (approval_status IN ('candidate','approved','rejected')),
+                truth_status TEXT NOT NULL CHECK (truth_status IN ('declared','doctrine_reference','test_verified','runtime_verified','historical_checkpoint','stale_possible','rejected')),
+                verification_source TEXT,
+                verification_evidence_id TEXT,
+                verification_required INTEGER NOT NULL CHECK (verification_required IN (0,1)),
+                canonical_eligible INTEGER NOT NULL CHECK (canonical_eligible IN (0,1)),
+                rejection_reason TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                verified_at TEXT
+            )
+        """)
+
+        # 10. verification_evidence
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS verification_evidence (
+                evidence_id TEXT PRIMARY KEY,
+                source_id TEXT NOT NULL,
+                evidence_type TEXT NOT NULL CHECK (evidence_type IN ('test_proof','runtime_receipt','checkpoint','manual_review','commit_proof')),
+                evidence_ref TEXT NOT NULL,
+                evidence_summary TEXT,
+                source_commit TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
-        conn.close()
-        return path
     except Exception as e:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
         return path
@@ -456,10 +493,100 @@ def append_operator_explanation(
     return _execute_write(query, params, db_path)
 
 
-def delete_file_inventory_by_root(root_id: str, db_path: str | None = None) -> None:
+def record_truth_registry_entry(
+    source_id: str,
+    observed_path: str,
+    origin_machine: str,
+    sync_role: str,
+    sensitivity_class: str,
+    approval_status: str,
+    truth_status: str,
+    verification_required: bool,
+    canonical_eligible: bool,
+    canonical_path: str | None = None,
+    content_hash: str | None = None,
+    source_commit: str | None = None,
+    doc_type: str | None = None,
+    machine_scope: str | None = None,
+    verification_source: str | None = None,
+    verification_evidence_id: str | None = None,
+    rejection_reason: str | None = None,
+    verified_at: str | None = None,
+    db_path: str | None = None,
+) -> bool:
+    """Records a new truth registry entry with strict validation."""
+    if truth_status in ['runtime_verified', 'test_verified'] and not (verification_evidence_id or verification_source):
+        raise ValueError(f"truth_status '{truth_status}' requires verification_evidence_id or verification_source.")
+
+    query = """
+        INSERT INTO truth_registry_entries (
+            source_id, observed_path, canonical_path, origin_machine, sync_role,
+            content_hash, source_commit, doc_type, machine_scope, sensitivity_class,
+            approval_status, truth_status, verification_source, verification_evidence_id,
+            verification_required, canonical_eligible, rejection_reason, verified_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        source_id, observed_path, canonical_path, origin_machine, sync_role,
+        content_hash, source_commit, doc_type, machine_scope, sensitivity_class,
+        approval_status, truth_status, verification_source, verification_evidence_id,
+        1 if verification_required else 0, 1 if canonical_eligible else 0, rejection_reason, verified_at
+    )
+    return _execute_write(query, params, db_path)
+
+def record_verification_evidence(
+    evidence_id: str,
+    source_id: str,
+    evidence_type: str,
+    evidence_ref: str,
+    evidence_summary: str | None = None,
+    source_commit: str | None = None,
+    db_path: str | None = None,
+) -> bool:
+    query = """
+        INSERT INTO verification_evidence (
+            evidence_id, source_id, evidence_type, evidence_ref, evidence_summary, source_commit
+        ) VALUES (?, ?, ?, ?, ?, ?)
+    """
+    params = (evidence_id, source_id, evidence_type, evidence_ref, evidence_summary, source_commit)
+    return _execute_write(query, params, db_path)
+
+def get_truth_registry_entries_by_status(truth_status: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_truth_registry("SELECT * FROM truth_registry_entries WHERE truth_status = ?", (truth_status,), db_path)
+
+def get_truth_registry_entry(source_id: str, db_path: str | None = None) -> dict[str, Any] | None:
+    results = _query_truth_registry("SELECT * FROM truth_registry_entries WHERE source_id = ?", (source_id,), db_path)
+    return results[0] if results else None
+
+def get_verification_evidence_for_source(source_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
     path = db_path or DEFAULT_DB_PATH
-    query = "DELETE FROM file_inventory WHERE root_id = ?"
-    _execute_write(query, (root_id,), path)
+    uri = f"file:{path}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM verification_evidence WHERE source_id = ?", (source_id,))
+        columns = [d[0] for d in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        conn.close()
+        return results
+    except Exception as e:
+        logger.error(f"Failed to query verification evidence: {e}")
+        return []
+
+def _query_truth_registry(query: str, params: tuple, db_path: str | None = None) -> list[dict[str, Any]]:
+    path = db_path or DEFAULT_DB_PATH
+    uri = f"file:{path}?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        columns = [d[0] for d in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        conn.close()
+        return results
+    except Exception as e:
+        logger.error(f"Failed to query truth registry: {e}")
+        return []
 
 def get_file_inventory_by_root(root_id: str, db_path: str | None = None) -> list[dict[str, Any]]:
     return _query_file_inventory("SELECT * FROM file_inventory WHERE root_id = ?", (root_id,), db_path)
