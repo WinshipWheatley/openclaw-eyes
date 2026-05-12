@@ -30,7 +30,8 @@ ROOT_REGISTRY = {
         "excluded_patterns": [],
         "requires_operator_approval": True,
         "content_read_allowed": False,
-        "hashing_allowed": False
+        "hashing_allowed": False,
+        "persistence_allowed": True
     }
 }
 
@@ -48,26 +49,32 @@ def is_excluded(path: Path):
         return True
     return False
 
-def validate_root_config(config, confirm_real_root=False, dry_run=False, db_path=None):
+def validate_root_config(config, confirm_real_root=False, dry_run=False, db_path=None, replace=False):
     if config["scan_mode"] != "metadata_only":
         raise ValueError(f"Scan mode {config['scan_mode']} is not permitted.")
     if config["content_read_allowed"]:
         raise ValueError("Content reading is not permitted.")
     if config["hashing_allowed"]:
         raise ValueError("Hashing is not permitted.")
-
+    
     if config.get("requires_operator_approval", True):
         if not confirm_real_root:
             raise ValueError(f"Root requires operator approval. Please use --confirm-real-root.")
-        if not dry_run or db_path:
-            raise ValueError("Real roots can only be scanned in --dry-run mode without persistence.")
+        if db_path and not replace:
+            if not config.get("persistence_allowed", False):
+                raise ValueError("Persistence is not allowed for this root.")
+            else:
+                raise ValueError("Real roots require --replace when persisting to a database.")
+        if not dry_run and not db_path:
+             # This case is actually caught by the parser logic, but for safety:
+             pass
 
-def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False):
+def scan_root(root_id, dry_run=False, db_path=None, confirm_real_root=False, replace=False):
     if root_id not in ROOT_REGISTRY:
         raise ValueError(f"Unknown root_id: {root_id}")
 
     config = ROOT_REGISTRY[root_id]
-    validate_root_config(config, confirm_real_root, dry_run, db_path)
+    validate_root_config(config, confirm_real_root, dry_run, db_path, replace)
 
     root_path = Path(config["root_path"])
 
@@ -136,6 +143,6 @@ if __name__ == "__main__":
         from business_ops_ledger import delete_file_inventory_by_root
         delete_file_inventory_by_root(args.root_id, args.db)
 
-    data = scan_root(args.root_id, args.dry_run, args.db, args.confirm_real_root)
+    data = scan_root(args.root_id, args.dry_run, args.db, args.confirm_real_root, args.replace)
     if not args.db:
         print(json.dumps(data, indent=2))

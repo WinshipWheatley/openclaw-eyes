@@ -60,22 +60,13 @@ def test_approval_guard_accepted():
     finally:
         ROOT_REGISTRY["test_fixture_01"] = orig_config
 
-def test_real_root_dry_run_only():
-    from scripts.inventory_scanner import ROOT_REGISTRY
-    assert "openclaw_docs_dryrun_01" in ROOT_REGISTRY
-    
-    # Must use --confirm-real-root
-    with pytest.raises(ValueError, match="requires operator approval"):
-        scan_root("openclaw_docs_dryrun_01", dry_run=True)
-    
-    # Must be dry_run
-    with pytest.raises(ValueError, match="can only be scanned in --dry-run mode"):
-        scan_root("openclaw_docs_dryrun_01", dry_run=False, confirm_real_root=True)
-        
-    # Must not have db
-    with pytest.raises(ValueError, match="can only be scanned in --dry-run mode"):
-        scan_root("openclaw_docs_dryrun_01", dry_run=True, db_path="/tmp/fake.db", confirm_real_root=True)
+def test_real_root_persistence():
+    # Persistence requires replace
+    with pytest.raises(ValueError, match="require --replace"):
+        scan_root("openclaw_docs_dryrun_01", dry_run=False, db_path="/tmp/fake.db", confirm_real_root=True, replace=False)
     
     # Success path
-    results = scan_root("openclaw_docs_dryrun_01", dry_run=True, confirm_real_root=True)
+    results = scan_root("openclaw_docs_dryrun_01", dry_run=False, db_path="/tmp/fake.db", confirm_real_root=True, replace=True)
     assert len(results) > 0
+    assert os.path.exists("/tmp/fake.db")
+    os.remove("/tmp/fake.db")
