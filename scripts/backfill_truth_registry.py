@@ -32,10 +32,17 @@ def record_truth_registry_entry_idempotent(
     rejection_reason: str | None = None,
     verified_at: str | None = None,
     db_path: str | None = None,
-) -> bool:
-    from business_ops_ledger import _execute_write
+) -> str:
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT source_id FROM truth_registry_entries WHERE source_id = ?", (source_id,))
+    if cursor.fetchone():
+        conn.close()
+        return "skipped"
+
     query = """
-        INSERT OR REPLACE INTO truth_registry_entries (
+        INSERT INTO truth_registry_entries (
             source_id, observed_path, canonical_path, origin_machine, sync_role,
             content_hash, source_commit, doc_type, machine_scope, sensitivity_class,
             approval_status, truth_status, verification_source, verification_evidence_id,
@@ -48,13 +55,16 @@ def record_truth_registry_entry_idempotent(
         approval_status, truth_status, verification_source, verification_evidence_id,
         1 if verification_required else 0, 1 if canonical_eligible else 0, rejection_reason, verified_at
     )
-    return _execute_write(query, params, db_path)
+    cursor.execute(query, params)
+    conn.commit()
+    conn.close()
+    return "inserted"
 
 def backfill(db_path, dry_run=False):
     if not dry_run:
         init_business_ops_ledger(db_path)
 
-    entries = []
+    stats = {"inserted": 0, "skipped": 0}
     for source_path, metadata in SOURCE_REGISTRY.items():
         source_id = hashlib.sha256(source_path.encode()).hexdigest()[:16]
         
@@ -74,10 +84,20 @@ def backfill(db_path, dry_run=False):
             "machine_scope": metadata.get("temporal_or_doctrine") or metadata.get("doc_category")
         }
         
-        if not dry_run:
-            record_truth_registry_entry_idempotent(**entry, db_path=db_path)
-        entries.append(entry)
-    return entries
+        if dry_run:
+            # Check existence in dry run
+            conn = sqlite3.connect(db_path)
+            exists = conn.execute("SELECT 1 FROM truth_registry_entries WHERE source_id = ?", (source_id,)).fetchone()
+            conn.close()
+            if exists:
+                stats["skipped"] += 1
+            else:
+                stats["inserted"] += 1
+        else:
+            result = record_truth_registry_entry_idempotent(**entry, db_path=db_path)
+            stats[result] += 1
+            
+    return stats
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,9 +105,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    data = backfill(args.db, args.dry_run)
-    for entry in data:
-        print(entry)
+    stats = backfill(args.db, args.dry_run)
+    print(f"Stats: {stats}")
 
 if __name__ == "__main__":
     main()
