@@ -554,6 +554,15 @@ def record_verification_evidence(
 def get_truth_registry_entries_by_status(truth_status: str, db_path: str | None = None) -> list[dict[str, Any]]:
     return _query_truth_registry("SELECT * FROM truth_registry_entries WHERE truth_status = ?", (truth_status,), db_path)
 
+def get_truth_registry_entries_by_approval_status(approval_status: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_truth_registry("SELECT * FROM truth_registry_entries WHERE approval_status = ?", (approval_status,), db_path)
+
+def get_truth_registry_entries_by_doc_type(doc_type: str, db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_truth_registry("SELECT * FROM truth_registry_entries WHERE doc_type = ?", (doc_type,), db_path)
+
+def get_truth_registry_entries_requiring_verification(db_path: str | None = None) -> list[dict[str, Any]]:
+    return _query_truth_registry("SELECT * FROM truth_registry_entries WHERE verification_required = 1", (), db_path)
+
 def get_truth_registry_entry(source_id: str, db_path: str | None = None) -> dict[str, Any] | None:
     results = _query_truth_registry("SELECT * FROM truth_registry_entries WHERE source_id = ?", (source_id,), db_path)
     return results[0] if results else None
