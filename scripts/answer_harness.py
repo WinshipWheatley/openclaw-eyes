@@ -5,10 +5,10 @@ from business_ops_ledger import get_canonical_facts_by_heading
 
 # Mapping intents to headings in canonical facts
 INTENT_HEADING_MAP = {
-    "WHERE_ARE_WE": "WHERE_ARE_WE",
-    "WHAT_IS_BUILT": "WHAT_IS_BUILT",
-    "WHAT_IS_NOT_BUILT": "WHAT_IS_NOT_BUILT",
-    "WHAT_ARE_THE_BOUNDARIES": "WHAT_ARE_THE_BOUNDARIES",
+    "WHERE_ARE_WE": "1. Overview",
+    "WHAT_IS_BUILT": "2. Receipt Spine Status",
+    "WHAT_IS_NOT_BUILT": "7. Next Lanes",
+    "WHAT_ARE_THE_BOUNDARIES": "3. Truth Boundary (Phase A Only)",
 }
 
 # Mapping phrases to intents

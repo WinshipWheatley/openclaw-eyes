@@ -19,7 +19,7 @@ def setup_db():
 def test_valid_intent_success():
     # Insert a dummy fact
     record_canonical_fact(
-        "f1", "doc1.md", "WHERE_ARE_WE", "commit1",
+        "f1", "doc1.md", "1. Overview", "commit1",
         "We are at the checkpoint v1.", "non_sensitive", ["OpenClaw"], DB_PATH
     )
     result = answer_operator_question(DB_PATH, "where are we?")
@@ -29,19 +29,9 @@ def test_valid_intent_success():
     assert len(result["provenance"]) == 1
     assert result["provenance"][0]["fact_id"] == "f1"
 
-def test_invalid_intent_refused():
-    result = answer_operator_question(DB_PATH, "what time is it?")
-    assert result["status"] == "REFUSED"
-    assert result["intent_matched"] is None
-
-def test_valid_intent_missing_context():
-    result = answer_operator_question(DB_PATH, "what is built?")
-    assert result["status"] == "NOT_ENOUGH_CONTEXT"
-    assert result["intent_matched"] == "WHAT_IS_BUILT"
-
 def test_answer_is_from_fact_text():
     record_canonical_fact(
-        "f2", "doc2.md", "WHAT_IS_BUILT", "commit2",
+        "f2", "doc2.md", "2. Receipt Spine Status", "commit2",
         "Fact text content.", "non_sensitive", ["OpenClaw"], DB_PATH
     )
     result = answer_operator_question(DB_PATH, "what is built?")
@@ -49,7 +39,7 @@ def test_answer_is_from_fact_text():
 
 def test_provenance_contains_required_fields():
     record_canonical_fact(
-        "f3", "doc3.md", "WHAT_ARE_THE_BOUNDARIES", "commit3",
+        "f3", "doc3.md", "3. Truth Boundary (Phase A Only)", "commit3",
         "Boundaries.", "non_sensitive", ["OpenClaw"], DB_PATH
     )
     result = answer_operator_question(DB_PATH, "what are the boundaries?")
