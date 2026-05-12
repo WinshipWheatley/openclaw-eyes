@@ -170,9 +170,16 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
                 canonical_eligible INTEGER NOT NULL CHECK (canonical_eligible IN (0,1)),
                 rejection_reason TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                verified_at TEXT
+                verified_at TEXT,
+                source_content_hash TEXT,
+                hash_algorithm TEXT DEFAULT 'sha256',
+                hash_recorded_at TEXT,
+                hash_status TEXT NOT NULL DEFAULT 'not_recorded' CHECK (hash_status IN ('not_recorded','current','changed','unknown')),
+                verification_invalidated_at TEXT,
+                invalidation_reason TEXT
             )
         """)
+
 
         # 10. verification_evidence
         cursor.execute("""
@@ -525,6 +532,12 @@ def record_truth_registry_entry(
     verification_evidence_id: str | None = None,
     rejection_reason: str | None = None,
     verified_at: str | None = None,
+    source_content_hash: str | None = None,
+    hash_algorithm: str = 'sha256',
+    hash_recorded_at: str | None = None,
+    hash_status: str = 'not_recorded',
+    verification_invalidated_at: str | None = None,
+    invalidation_reason: str | None = None,
     db_path: str | None = None,
 ) -> bool:
     """Records a new truth registry entry with strict validation."""
@@ -536,14 +549,18 @@ def record_truth_registry_entry(
             source_id, observed_path, canonical_path, origin_machine, sync_role,
             content_hash, source_commit, doc_type, machine_scope, sensitivity_class,
             approval_status, truth_status, verification_source, verification_evidence_id,
-            verification_required, canonical_eligible, rejection_reason, verified_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            verification_required, canonical_eligible, rejection_reason, verified_at,
+            source_content_hash, hash_algorithm, hash_recorded_at, hash_status,
+            verification_invalidated_at, invalidation_reason
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (
         source_id, observed_path, canonical_path, origin_machine, sync_role,
         content_hash, source_commit, doc_type, machine_scope, sensitivity_class,
         approval_status, truth_status, verification_source, verification_evidence_id,
-        1 if verification_required else 0, 1 if canonical_eligible else 0, rejection_reason, verified_at
+        1 if verification_required else 0, 1 if canonical_eligible else 0, rejection_reason, verified_at,
+        source_content_hash, hash_algorithm, hash_recorded_at, hash_status,
+        verification_invalidated_at, invalidation_reason
     )
     return _execute_write(query, params, db_path)
 
