@@ -114,6 +114,9 @@ def main():
             fact_text=fact['fact_text'],
             sensitivity_class=metadata["sensitivity_class"],
             allowed_actors=metadata["allowed_actors"],
+            doc_category=metadata.get("doc_category"),
+            temporal_or_doctrine=metadata.get("temporal_or_doctrine"),
+            source_description=metadata.get("description"),
             db_path=args.db
         )
     print(f"Successfully ingested {len(facts)} facts from {args.source}")

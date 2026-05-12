@@ -20,7 +20,7 @@ def test_valid_intent_success():
     # Insert a dummy fact
     record_canonical_fact(
         "f1", "doc1.md", "1. Overview", "commit1",
-        "We are at the checkpoint v1.", "non_sensitive", ["OpenClaw"], DB_PATH
+        "We are at the checkpoint v1.", "non_sensitive", ["OpenClaw"], "cat1", "doc", "desc", DB_PATH
     )
     result = answer_operator_question(DB_PATH, "where are we?")
     assert result["status"] == "SUCCESS"
@@ -32,7 +32,7 @@ def test_valid_intent_success():
 def test_answer_is_from_fact_text():
     record_canonical_fact(
         "f2", "doc2.md", "2. Receipt Spine Status", "commit2",
-        "Fact text content.", "non_sensitive", ["OpenClaw"], DB_PATH
+        "Fact text content.", "non_sensitive", ["OpenClaw"], "cat2", "doc", "desc", DB_PATH
     )
     result = answer_operator_question(DB_PATH, "what is built?")
     assert result["answer"] == "Fact text content."
@@ -40,7 +40,7 @@ def test_answer_is_from_fact_text():
 def test_provenance_contains_required_fields():
     record_canonical_fact(
         "f3", "doc3.md", "3. Truth Boundary (Phase A Only)", "commit3",
-        "Boundaries.", "non_sensitive", ["OpenClaw"], DB_PATH
+        "Boundaries.", "non_sensitive", ["OpenClaw"], "cat3", "doc", "desc", DB_PATH
     )
     result = answer_operator_question(DB_PATH, "what are the boundaries?")
     prov = result["provenance"][0]

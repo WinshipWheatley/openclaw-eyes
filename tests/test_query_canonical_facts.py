@@ -14,7 +14,7 @@ def setup_db():
     init_business_ops_ledger(DB_PATH)
     record_canonical_fact(
         "f1", "doc1.md", "Header1", "commit1", 
-        "Fact text 1", "public_canonical", ["agent1"], DB_PATH
+        "Fact text 1", "public_canonical", ["agent1"], "cat1", "doc1", "desc1", DB_PATH
     )
     yield
     if os.path.exists(DB_PATH):
