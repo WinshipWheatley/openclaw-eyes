@@ -73,7 +73,7 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         cursor.execute("""
             SELECT ts, event_type, operator_visible_summary
             FROM events
-            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry', 'approval_request_record', 'outreach_email_draft_receipt')
+            WHERE event_type IN ('test_proof_receipt', 'action_intent_gate_receipt', 'approval_log_entry', 'approval_request_record', 'outreach_email_draft_receipt', 'truth_packet_decision_receipt')
             ORDER BY ts DESC LIMIT 20
         """)
         rows = cursor.fetchall()
@@ -83,6 +83,14 @@ def get_recent_proof_receipts(limit=5, db_path=None):
         strongest_clean = None
         for ts, etype, summ_raw in rows:
             display_ts = ts.replace('T', ' ')[:16]
+
+            if etype == 'truth_packet_decision_receipt':
+                # Format: YYYY-MM-DD HH:MM [TRUTH_DECISION] [SQLITE_VERIFIED] summ_raw (Audit Only)
+                formatted = f"[TRUTH_DECISION] [SQLITE_VERIFIED] {summ_raw} (Audit Only)"
+                proofs.append(f"{display_ts} {formatted}")
+                if len(proofs) >= limit:
+                    break
+                continue
 
             if etype == 'action_intent_gate_receipt':
                 # Format: YYYY-MM-DD HH:MM [GATE] [SQLITE_VERIFIED] summ_raw (No Execution)
@@ -225,9 +233,13 @@ def generate_current_state(snapshot):
         r = m["registry"]
         rd = m["readiness"]
         gp = m.get("gateway_posture", {})
+        dr = m.get("decision_receipts", {})
         lines.extend([
             f"- **Facts**: {f['total']} ({f['by_truth_status'].get('doctrine_reference', 0)} doctrine, {f['by_truth_status'].get('historical_checkpoint', 0)} historical)",
         ])
+        if dr and dr.get("total", 0) > 0:
+            lines.append(f"- **Truth Decision Receipts**: {dr['total']} recorded ({dr['by_status'].get('MODEL_ALLOWED_VERIFIED', 0)} VERIFIED, {dr['by_status'].get('MODEL_ALLOWED_UNCERTAIN', 0)} UNCERTAIN, {dr['by_status'].get('MODEL_BLOCKED', 0)} BLOCKED)")
+        
         if gp:
             lines.extend([
                 f"- **Gateway Posture**: {gp.get('verified_candidate_facts', 0)} VERIFIED, {gp.get('uncertain_candidate_facts', 0)} UNCERTAIN, {gp.get('blocked_sources_count', 0)} BLOCKED sources",

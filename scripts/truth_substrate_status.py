@@ -48,6 +48,28 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
         cursor.execute("SELECT verification_required, COUNT(*) as count FROM canonical_facts GROUP BY verification_required")
         ver_req_counts = {bool(row["verification_required"]): row["count"] for row in cursor.fetchall()}
 
+        # 2. Decision Receipts Metrics
+        cursor.execute("""
+            SELECT p.packet_json_safe, e.ts
+            FROM packets p
+            JOIN events e ON p.event_id = e.event_id
+            WHERE e.event_type = 'truth_packet_decision_receipt'
+            ORDER BY e.ts DESC
+        """)
+        receipt_status_counts = {}
+        latest_receipt = None
+        
+        rows = cursor.fetchall()
+        for i, row in enumerate(rows):
+            payload = json.loads(row[0])
+            status = payload.get("packet_status", "unknown")
+            receipt_status_counts[status] = receipt_status_counts.get(status, 0) + 1
+            if i == 0:
+                latest_receipt = payload
+                # ensure recorded_at is present
+                if "recorded_at" not in latest_receipt:
+                    latest_receipt["recorded_at"] = row["ts"]
+
         # 3. Gateway Packet Posture (Inferred from DB state)
         # VERIFIED: verification_required=0 or (verification_required=1 and verification_evidence_id is present)
         # UNCERTAIN: verification_required=1 and verification_evidence_id is NULL/empty
@@ -112,6 +134,11 @@ def get_truth_substrate_status(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]
                     "by_truth_status": truth_status_counts,
                     "by_verification_required": ver_req_counts
                 },
+                "decision_receipts": {
+                    "by_status": receipt_status_counts,
+                    "latest": latest_receipt,
+                    "total": sum(receipt_status_counts.values())
+                },
                 "gateway_posture": {
                     "verified_candidate_facts": posture_row["verified_candidate"] or 0,
                     "uncertain_candidate_facts": posture_row["uncertain_candidate"] or 0,
@@ -166,6 +193,26 @@ def main():
     print(f"\nFact Posture Breakdown:")
     for s, c in sorted(facts["by_truth_status"].items()):
         print(f"  - {s}: {c}")
+
+    dr = metrics.get("decision_receipts", {})
+    if dr and dr.get("total", 0) > 0:
+        print(f"\nTruth Packet Decision Receipts (Audit Ledger):")
+        print(f"  - Total Decisions Recorded: {dr['total']}")
+        for s, c in sorted(dr["by_status"].items()):
+            print(f"    - {s}: {c}")
+        
+        latest = dr.get("latest")
+        if latest:
+            print(f"  - Latest Decision ({latest['recorded_at']}):")
+            print(f"    - Status: {latest['packet_status']}")
+            print(f"    - Crossed Model Boundary: {bool(latest['fact_text_crossed_model_boundary'])}")
+            print(f"    - Content Redacted: {bool(latest['fact_text_redacted_in_receipt'])}")
+            print(f"    - Runtime Authority: {bool(latest['runtime_authority'])}")
+            print(f"    - External Model Access: {bool(latest['external_model_access_granted'])}")
+        
+        # Warning if recent blocks/uncertainties
+        if dr["by_status"].get("MODEL_BLOCKED", 0) > 0 or dr["by_status"].get("MODEL_ALLOWED_UNCERTAIN", 0) > 0:
+            print(f"  - NOTICE: Recent BLOCKED or UNCERTAIN decisions exist. Review gateway audit logs.")
 
     gp = metrics["gateway_posture"]
     print(f"\nTruth Gateway Packet Posture (Boundary View):")
