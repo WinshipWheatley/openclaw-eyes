@@ -184,8 +184,8 @@ def main():
     registry = metrics["registry"]
     readiness = metrics["readiness"]
 
-    print("Truth Substrate Status Summary")
-    print("==============================")
+    print("Candidate Truth Substrate Status Summary")
+    print("========================================")
     print(f"Canonical Facts: {facts['total']}")
     print(f"  - Verification Required: {facts['by_verification_required'].get(True, 0)}")
     print(f"  - Verification Not Required: {facts['by_verification_required'].get(False, 0)}")
@@ -215,7 +215,7 @@ def main():
             print(f"  - NOTICE: Recent BLOCKED or UNCERTAIN decisions exist. Review gateway audit logs.")
 
     gp = metrics["gateway_posture"]
-    print(f"\nTruth Gateway Packet Posture (Boundary View):")
+    print(f"\nCandidate Truth Gateway Packet Posture (Boundary View):")
     print(f"  - MODEL_ALLOWED_VERIFIED: {gp['verified_candidate_facts']} candidate facts")
     print(f"  - MODEL_ALLOWED_UNCERTAIN: {gp['uncertain_candidate_facts']} candidate facts")
     print(f"  - MODEL_BLOCKED: {gp['blocked_sources_count']} sources with hash mismatch")
@@ -235,7 +235,7 @@ def main():
     if not readiness["is_ready"]:
         print(f"  - Unsafe/Missing sources: {readiness['unsafe_count']}")
 
-    print("\nBoundary note: Truth status describes verification posture, not runtime authority.")
+    print("\nBoundary note: Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.")
 
 if __name__ == "__main__":
     main()

@@ -160,8 +160,8 @@ def test_boundary_audit_status_boundary_note():
     # Check orientation_snapshot (indirectly via capture or just checking script content)
     with open("scripts/orientation_snapshot.py", "r") as f:
         content = f.read()
-        assert "Truth status describes verification posture, not runtime health or agent authority." in content
+        assert "Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions." in content
 
     with open("scripts/generate_operator_status.py", "r") as f:
         content = f.read()
-        assert "Truth status describes verification posture, not runtime health or agent authority." in content
+        assert "Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions." in content

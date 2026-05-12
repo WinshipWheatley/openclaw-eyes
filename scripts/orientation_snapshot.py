@@ -268,7 +268,7 @@ def render_markdown(snapshot: Dict[str, Any]):
     for fact in snapshot['confirmed_current']:
         print(f"- {fact}")
 
-    print("\n## 4. Truth Substrate Status")
+    print("\n## 4. Candidate Truth Substrate Status")
     truth = snapshot.get("truth_substrate", {"status": "unavailable"})
     if truth["status"] == "available":
         m = truth["metrics"]
@@ -283,11 +283,11 @@ def render_markdown(snapshot: Dict[str, Any]):
             print(f"- **Truth Decision Receipts**: {dr['total']} recorded ({dr['by_status'].get('MODEL_ALLOWED_VERIFIED', 0)} VERIFIED, {dr['by_status'].get('MODEL_ALLOWED_UNCERTAIN', 0)} UNCERTAIN, {dr['by_status'].get('MODEL_BLOCKED', 0)} BLOCKED)")
         
         if gp:
-            print(f"- **Gateway Posture**: {gp.get('verified_candidate_facts', 0)} VERIFIED, {gp.get('uncertain_candidate_facts', 0)} UNCERTAIN, {gp.get('blocked_sources_count', 0)} BLOCKED sources")
+            print(f"- **Candidate Truth Posture**: {gp.get('verified_candidate_facts', 0)} VERIFIED, {gp.get('uncertain_candidate_facts', 0)} UNCERTAIN, {gp.get('blocked_sources_count', 0)} BLOCKED sources")
             print(f"- **Runtime Authority**: {gp.get('runtime_authority', False)}")
         print(f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents")
         print(f"- **Readiness**: {rd['result']}")
-        print("> Truth substrate status is read-only. Truth status describes verification posture, not runtime health or agent authority.")
+        print("> Truth substrate status is a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.")
     else:
         print(f"- Status: UNAVAILABLE ({truth.get('reason', 'unknown')})")
 

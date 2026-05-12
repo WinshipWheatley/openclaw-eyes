@@ -27,12 +27,12 @@ Strongest recent clean proof: [PASS] business_ops_ledger_tests head=942d3e00
 ## 3. Truth Substrate Summary
 Registry-governed canonical facts and source documents.
 - **Facts**: 83 (71 doctrine, 12 historical)
-- **Gateway Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
+- **Candidate Truth Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
 - **Runtime Authority**: False
 - **Coverage**: 9/9 SOURCE_REGISTRY documents
 - **Readiness**: READY
 
-> Truth substrate status is read-only. Truth status describes verification posture, not runtime health or agent authority.
+> Truth substrate status is a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.
 
 ## 4. Active Lane & Doctrine
 Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQLite Ledger) and canonicalizing the "Operator Doctrine" (North Star, Manifesto, Anti-drift) into a concise Orientation Contract.
