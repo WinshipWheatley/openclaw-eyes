@@ -587,3 +587,5 @@
 !scripts/truth_ingest_readiness_report.py
 !scripts/truth_substrate_status.py
 !tests/test_truth_ingest_readiness_report.py
+!scripts/truth_reconciliation_gateway.py
+!tests/test_truth_reconciliation_gateway.py
