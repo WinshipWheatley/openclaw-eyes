@@ -115,6 +115,21 @@ def main():
         fact_id = f"fact_{fact['content_hash'][:8]}"
         
         if truth_entry:
+            # Hash-aware ingestion guard
+            hash_status = truth_entry.get("hash_status") or "not_recorded"
+            truth_status = truth_entry["truth_status"]
+            verification_required = truth_entry["verification_required"]
+            verification_evidence_id = truth_entry.get("verification_evidence_id")
+
+            if hash_status == "changed":
+                truth_status = "stale_possible"
+                verification_required = 1
+            elif hash_status != "current":
+                # not_recorded, unknown, or null
+                if truth_status in ("test_verified", "runtime_verified"):
+                    truth_status = "stale_possible"
+                    verification_required = 1
+
             record_canonical_fact(
                 fact_id=fact_id,
                 source_file=fact['source_file'],
@@ -127,9 +142,9 @@ def main():
                 temporal_or_doctrine=metadata.get("temporal_or_doctrine"),
                 source_description=metadata.get("description"),
                 truth_source_id=truth_entry["source_id"],
-                truth_status=truth_entry["truth_status"],
-                verification_required=truth_entry["verification_required"],
-                verification_evidence_id=truth_entry.get("verification_evidence_id"),
+                truth_status=truth_status,
+                verification_required=verification_required,
+                verification_evidence_id=verification_evidence_id,
                 db_path=args.db
             )
         else:

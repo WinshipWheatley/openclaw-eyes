@@ -189,6 +189,7 @@
 !tests/test_query_truth_registry.py
 !tests/test_baseline_truth_registry_hashes.py
 !tests/test_check_truth_registry_hashes.py
+!tests/test_ingestion_guard.py
 
 !apps/
 !apps/legal-console-spike/
