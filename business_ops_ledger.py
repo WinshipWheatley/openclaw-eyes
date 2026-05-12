@@ -123,6 +123,27 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
             )
         """)
 
+        # 8. file_inventory
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS file_inventory (
+                file_id TEXT PRIMARY KEY,
+                root_id TEXT NOT NULL,
+                drive_label TEXT,
+                absolute_path TEXT NOT NULL,
+                relative_path TEXT NOT NULL,
+                file_name TEXT NOT NULL,
+                extension TEXT,
+                file_type_guess TEXT,
+                size_bytes INTEGER NOT NULL,
+                modified_at TEXT NOT NULL,
+                discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                content_hash TEXT,
+                sensitivity_guess TEXT,
+                ingest_eligibility TEXT CHECK(ingest_eligibility IN ('eligible_metadata_only', 'excluded', 'unknown')),
+                exclusion_reason TEXT
+            )
+        """)
+
         conn.commit()
         conn.close()
         return path
@@ -130,6 +151,45 @@ def init_business_ops_ledger(db_path: str | None = None) -> str:
         logger.error(f"Failed to initialize ledger at {path}: {e}")
         return path
 
+
+def record_file_inventory_entry(
+    file_id: str,
+    root_id: str,
+    drive_label: str | None,
+    absolute_path: str,
+    relative_path: str,
+    file_name: str,
+    extension: str | None,
+    file_type_guess: str | None,
+    size_bytes: int,
+    modified_at: str,
+    content_hash: str | None,
+    sensitivity_guess: str | None,
+    ingest_eligibility: str,
+    exclusion_reason: str | None,
+    db_path: str | None = None,
+) -> bool:
+    """
+    Persists a file inventory metadata entry.
+    """
+    if size_bytes < 0:
+        raise ValueError("size_bytes cannot be negative")
+    if ingest_eligibility not in ['eligible_metadata_only', 'excluded', 'unknown']:
+        raise ValueError("Invalid ingest_eligibility")
+
+    query = """
+        INSERT INTO file_inventory (
+            file_id, root_id, drive_label, absolute_path, relative_path,
+            file_name, extension, file_type_guess, size_bytes, modified_at,
+            content_hash, sensitivity_guess, ingest_eligibility, exclusion_reason
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        file_id, root_id, drive_label, absolute_path, relative_path,
+        file_name, extension, file_type_guess, size_bytes, modified_at,
+        content_hash, sensitivity_guess, ingest_eligibility, exclusion_reason
+    )
+    return _execute_write(query, params, db_path)
 
 
 def record_canonical_fact(
