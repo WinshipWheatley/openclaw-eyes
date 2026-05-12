@@ -583,3 +583,5 @@
 !tests/test_attach_verification_evidence.py
 !scripts/resync_canonical_fact_truth.py
 !tests/test_resync_canonical_fact_truth.py
+!scripts/truth_ingest_readiness_report.py
+!tests/test_truth_ingest_readiness_report.py
