@@ -52,6 +52,7 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         "truth_source_id": None,
         "truth_status": None,
         "verification_required": None,
+        "verification_evidence_id": None,
         "source_content_hash": None,
         "disk_content_hash": None,
         "hash_status": None,
@@ -81,6 +82,7 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         result["truth_source_id"] = fact_row["truth_source_id"]
         result["truth_status"] = fact_row["truth_status"]
         result["verification_required"] = bool(fact_row["verification_required"])
+        result["verification_evidence_id"] = fact_row["verification_evidence_id"]
 
         # 2. Load matching truth_registry_entries row
         cursor.execute(
@@ -313,7 +315,35 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                 "verified_facts": []
             }
 
-        # Labels
+        # 3. Classification
+        verification_required = bool(fact["verification_required"])
+        evidence_id = fact["verification_evidence_id"]
+
+        is_uncertain = verification_required and (evidence_id is None or str(evidence_id).strip() == "")
+
+        if is_uncertain:
+            transitions.append(PACKET_READY)
+            transitions.append(MODEL_ALLOWED_UNCERTAIN)
+            return {
+                "status": MODEL_ALLOWED_UNCERTAIN,
+                "uncertainty_status": "verification_required_no_evidence",
+                "confidence_band": "medium_provisional",
+                "uncertainty_reason": "source_integrity_passed_but_verification_evidence_missing",
+                "fact_text": fact["fact_text"],
+                "source_file": fact["source_file"],
+                "source_commit": fact["source_commit"],
+                "content_hash": fact["content_hash"],
+                "source_content_hash_status": integrity["hash_status"],
+                "truth_source_id": fact["truth_source_id"],
+                "truth_status": fact["truth_status"],
+                "verification_required": verification_required,
+                "verification_evidence_id": evidence_id,
+                "answer_boundary": "Qualified language required (e.g., 'records indicate', 'provisionally'). Forbid hard-truth phrasing.",
+                "runtime_authority": False,
+                "transitions": transitions
+            }
+
+        # Standard Verified Path
         truth_status = fact["truth_status"] or "UNKNOWN"
         labels = [
             "[REPO-SOURCE]",

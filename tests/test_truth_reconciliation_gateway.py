@@ -164,6 +164,12 @@ def test_check_integrity_file_missing(test_env):
     assert "Source file missing from disk" in result["block_reason"]
 
 def test_build_packet_pass(test_env):
+    # Ensure it's not uncertain by setting verification_required=0
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE canonical_facts SET verification_required = 0 WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
     result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], question="What is built?")
     assert result["status"] == MODEL_ALLOWED
     assert result["state"] == MODEL_ALLOWED
@@ -177,7 +183,7 @@ def test_build_packet_pass(test_env):
     assert "[REPO-SOURCE]" in fact["labels"]
     assert "[HASH-CURRENT]" in fact["labels"]
     assert "[DOCTRINE_REFERENCE]" in fact["labels"]
-    assert "[VERIFY_REQUIRED]" in fact["labels"]
+    # assert "[VERIFY_REQUIRED]" in fact["labels"]  <-- Removed because verification_required is 0
 
     assert fact["provenance"]["fact_id"] == "f1"
     assert fact["provenance"]["truth_status"] == "doctrine_reference"
@@ -393,3 +399,50 @@ def test_verified_packet_contract_fields():
         "answer_boundary": "Answer only from verified_facts"
     }
     assert verified_packet["status"] == MODEL_ALLOWED
+
+def test_uncertain_path_classification(test_env):
+    # f1 is already verification_required=1 and verification_evidence_id=None
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert result["uncertainty_status"] == "verification_required_no_evidence"
+    assert result["confidence_band"] == "medium_provisional"
+    assert result["fact_text"] == "fact text content"
+    assert "Qualified language required" in result["answer_boundary"]
+    assert result["runtime_authority"] is False
+    assert MODEL_ALLOWED_UNCERTAIN in result["transitions"]
+
+def test_verified_path_with_evidence_id(test_env):
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE canonical_facts SET verification_evidence_id = 'ev1' WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_ALLOWED_VERIFIED
+    assert len(result["verified_facts"]) == 1
+    assert result["verified_facts"][0]["provenance"]["verification_evidence_id"] == "ev1"
+
+def test_source_hash_mismatch_still_blocks(test_env):
+    # Change file content to cause mismatch
+    test_env["source_file"].write_bytes(b"Mismatch")
+
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+    assert result["status"] == MODEL_BLOCKED
+    assert "fact_text" not in result
+    assert "verified_facts" in result and result["verified_facts"] == []
+
+def test_uncertain_packet_contains_all_required_fields(test_env):
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"])
+
+    required_fields = [
+        "status", "uncertainty_status", "confidence_band", "uncertainty_reason",
+        "fact_text", "source_file", "source_commit", "content_hash",
+        "source_content_hash_status", "truth_source_id", "truth_status",
+        "verification_required", "verification_evidence_id",
+        "answer_boundary", "runtime_authority", "transitions"
+    ]
+
+    for field in required_fields:
+        assert field in result, f"Field '{field}' missing from uncertain packet"
+
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
