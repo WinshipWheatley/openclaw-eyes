@@ -55,6 +55,20 @@ SOURCE_REGISTRY = {
         "allowed_actors": ["hermes", "chief", "guardian"],
         "temporal_or_doctrine": "doctrine_reference",
         "description": "Hermes agent machine contract"
+    },
+    "docs/producer/PRODUCER_ARCHETYPE.md": {
+        "doc_category": "producer_archetype",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["niles", "cassandra", "chief", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "canonical creative/taste archetype for Niles/Producer"
+    },
+    "docs/producer/PRODUCER_MACHINE_CONTRACT.md": {
+        "doc_category": "producer_machine_contract",
+        "sensitivity_class": "operational_canonical",
+        "allowed_actors": ["niles", "chief", "hermes"],
+        "temporal_or_doctrine": "doctrine_reference",
+        "description": "machine-readable boundaries and artifact contract for Niles/Producer"
     }
 }
 
