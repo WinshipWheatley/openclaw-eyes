@@ -1,11 +1,10 @@
-
 import pytest
 import sqlite3
 import os
 from business_ops_ledger import (
-    init_business_ops_ledger, 
-    record_canonical_fact, 
-    get_canonical_facts_by_source, 
+    init_business_ops_ledger,
+    record_canonical_fact,
+    get_canonical_facts_by_source,
     get_canonical_facts_by_heading
 )
 
@@ -23,11 +22,11 @@ def setup_db():
 def test_retrieval_functions():
     # Insert facts
     record_canonical_fact(
-        "f1", "doc1.md", "Header1", "commit1", 
+        "f1", "doc1.md", "Header1", "commit1",
         "Fact text 1", "public_canonical", ["agent1"], DB_PATH
     )
     record_canonical_fact(
-        "f2", "doc2.md", "Header2", "commit2", 
+        "f2", "doc2.md", "Header2", "commit2",
         "Fact text 2", "public_canonical", ["agent2"], DB_PATH
     )
 
@@ -47,11 +46,8 @@ def test_retrieval_functions():
     assert len(facts) == 0
 
 def test_read_only_mode():
-    # Attempt a manual write to check read-only mode, but ledger writes happen via write path.
-    # The test is to verify the URI mode logic.
-    # Mocking or testing write protection is tricky, so focus on successful read.
     record_canonical_fact(
-        "f3", "doc3.md", "Header3", "commit3", 
+        "f3", "doc3.md", "Header3", "commit3",
         "Fact text 3", "public_canonical", ["agent3"], DB_PATH
     )
     facts = get_canonical_facts_by_source("doc3.md", DB_PATH)
