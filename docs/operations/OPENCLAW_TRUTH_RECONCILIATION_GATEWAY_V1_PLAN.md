@@ -61,10 +61,36 @@ V1 must **NOT**:
 - `MODEL_ALLOWED`: Terminal Success.
 - `MODEL_BLOCKED`: Terminal Failure.
 
-## 8. Implementation Recommendation: Chunk 1
-The first implementation phase should focus on **Mechanical Repair** only:
-- Add the `--allow-reconciliation` flag to the gateway and harness.
-- Preserve default read-only/blocking behavior.
-- Implement the "Repair to Current" path (`disk_hash == source_hash`).
-- Implement the mandatory **discard / re-query / re-check** loop.
-- Add focused tests proving that no stale candidate data crosses the model boundary after a repair.
+## 8. Uncertainty-Aware Model Packets
+Deterministic reconciliation distinguishes between three model-boundary outcomes:
+
+- **MODEL_ALLOWED_VERIFIED**: Hard verified (e.g., `NO_DIFF_FOUND`). `fact_text` may be used directly by the agent.
+- **MODEL_ALLOWED_UNCERTAIN**: Provisional/unresolved truth. `fact_text` may be exposed ONLY with explicit uncertainty metadata and qualifies answer boundaries.
+- **MODEL_BLOCKED**: Unsafe/corrupt/mismatched. `fact_text` MUST NOT cross the model boundary.
+
+### Principles:
+- **Not every non-verified fact is blocked.** Facts with intact provenance but incomplete/lower-confidence verification should be allowed through as uncertainty-aware packets.
+- **No silent certainty.** The model must not treat uncertain data as verified truth.
+- **Uncertain Packet Metadata:** Must include `truth_status` label, confidence score/band, reason for uncertainty, source provenance (`file`, `commit`, `hash`), and `runtime_authority=false`.
+- **Qualified Answer Boundary:** Requires the model to use language like:
+    - "Based on currently available evidence..."
+    - "This appears to be..."
+    - "I would treat this as provisional..."
+    - "I cannot verify this as hard truth from the current deterministic checks..."
+- **Safety Boundary:** Source hash mismatch against an approved registry source remains `MODEL_BLOCKED` for now. Provenance corruption or missing registry entries always result in `MODEL_BLOCKED`.
+
+## 9. Implementation Recommendations
+
+### Chunk 1: Mechanical Repair (COMPLETED)
+- Add `--allow-reconciliation` flag.
+- Implement "Repair to Current" path (`disk_hash == source_hash`).
+- Implement mandatory **discard / re-query / re-check** loop.
+
+### Chunk 2: Mismatch Invalidation
+- Implement mismatch invalidation as **MODEL_BLOCKED** for source hash mismatch.
+- Downgrade truth status where applicable (e.g., to `stale_possible`).
+- Do not generalize mismatch blocking to all uncertainty cases.
+
+### Chunk 3: Uncertainty-Aware Packets
+- Implement `MODEL_ALLOWED_UNCERTAIN` for cases where provenance is intact but verification is incomplete or lower-confidence.
+- Enrich packets with confidence scores and qualified answer boundaries.
