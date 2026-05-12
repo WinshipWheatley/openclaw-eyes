@@ -58,22 +58,33 @@ def test_recent_proof_receipts_includes_truth_decisions(temp_ledger):
     assert "(Audit Only)" in proofs[0]
 
 def test_visibility_does_not_expose_fact_text(temp_ledger):
-    # Even if we tried to pass it (which the writer blocks anyway), 
-    # the visibility tools only read from the packets/events tables.
+    # 1. Record a safe receipt
     append_truth_packet_decision_receipt(
-        packet_status="MODEL_BLOCKED",
-        fact_id="secret-fact",
-        fact_text="THIS IS SECRET", # The writer pops this
+        packet_status="MODEL_ALLOWED_VERIFIED",
+        fact_id="safe-fact",
         db_path=temp_ledger
     )
+
+    # 2. Attempt unsafe receipt (must fail)
+    with pytest.raises(ValueError):
+        append_truth_packet_decision_receipt(
+            packet_status="MODEL_BLOCKED",
+            fact_id="secret-fact",
+            fact_text="THIS IS SECRET", 
+            db_path=temp_ledger
+        )
     
     status = get_truth_substrate_status(temp_ledger)
-    latest = status["metrics"]["decision_receipts"]["latest"]
+    dr = status["metrics"]["decision_receipts"]
+    assert dr["total"] == 1 # Only the safe one
     
-    # Check that the actual secret content is NOT present
+    latest = dr["latest"]
+    assert latest["fact_id"] == "safe-fact"
+    
+    # Check that the actual secret content is NOT present anywhere
     assert "THIS IS SECRET" not in str(status)
-    # Check that the key 'fact_text' (which would hold content) is not in the latest receipt payload
     assert "fact_text" not in latest
     
     results = get_recent_proof_receipts(limit=5, db_path=temp_ledger)
     assert "THIS IS SECRET" not in str(results)
+

@@ -58,23 +58,16 @@ def test_blocked_receipt_forces_boundary_false(temp_ledger):
     assert payload["fact_text_crossed_model_boundary"] is False
 
 def test_redacts_fact_text_even_if_passed(temp_ledger):
-    success = append_truth_packet_decision_receipt(
-        packet_status="MODEL_ALLOWED_VERIFIED",
-        fact_id="fact-123",
-        fact_text="THIS SHOULD BE REDACTED",
-        db_path=temp_ledger
-    )
-    assert success is True
+    # Now raises ValueError instead of just popping
+    with pytest.raises(ValueError) as excinfo:
+        append_truth_packet_decision_receipt(
+            packet_status="MODEL_ALLOWED_VERIFIED",
+            fact_id="fact-123",
+            fact_text="THIS SHOULD BE REDACTED",
+            db_path=temp_ledger
+        )
+    assert "strictly forbidden" in str(excinfo.value)
 
-    conn = sqlite3.connect(temp_ledger)
-    cursor = conn.cursor()
-    cursor.execute("SELECT packet_json_safe FROM packets")
-    row = cursor.fetchone()
-    conn.close()
-
-    payload = json.loads(row[0])
-    assert "fact_text" not in payload
-    assert payload["fact_text_redacted_in_receipt"] is True
 
 def test_uncertain_status_can_be_true(temp_ledger):
     success = append_truth_packet_decision_receipt(
@@ -112,3 +105,24 @@ def test_external_model_access_granted_override(temp_ledger):
 
     payload = json.loads(row[0])
     assert payload["external_model_access_granted"] is True
+
+def test_rejects_unsafe_overrides(temp_ledger):
+    unsafe_attempts = [
+        {"runtime_authority": True},
+        {"execution_authority": 1},
+        {"fact_text": "Sensitive Info"},
+        {"fact_text_redacted_in_receipt": False},
+        {"sensitive_content_access": 1},
+        {"vault_write_verified": True}
+    ]
+    
+    for attempt in unsafe_attempts:
+        with pytest.raises(ValueError) as excinfo:
+            append_truth_packet_decision_receipt(
+                packet_status="MODEL_ALLOWED_VERIFIED",
+                fact_id="fact-123",
+                db_path=temp_ledger,
+                **attempt
+            )
+        assert "strictly forbidden" in str(excinfo.value)
+

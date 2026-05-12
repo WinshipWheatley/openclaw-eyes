@@ -268,11 +268,6 @@ def build_llm_truth_packet(
                             "UPDATE truth_registry_entries SET hash_status = 'current' WHERE source_id = ?",
                             (integrity["truth_source_id"],)
                         )
-                        # Also update any facts linked to this source
-                        cursor.execute(
-                            "UPDATE canonical_facts SET verification_required = 0 WHERE truth_source_id = ?",
-                            (integrity["truth_source_id"],)
-                        )
                         conn.commit()
                         conn.close()
                         transitions.append(RECONCILIATION_APPLIED)

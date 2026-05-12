@@ -220,16 +220,17 @@ def test_build_packet_no_mutation_by_default(test_env):
     assert row[0] == 'changed'
 
 def test_v1_mechanical_repair_success(test_env):
-    # Set status to changed
+    # Set status to changed and set verification_required=0 so it reaches verified path
     conn = sqlite3.connect(test_env["db_path"])
     conn.execute("UPDATE truth_registry_entries SET hash_status = 'changed' WHERE source_id = 's1'")
+    conn.execute("UPDATE canonical_facts SET verification_required = 0 WHERE fact_id = 'f1'")
     conn.commit()
     conn.close()
 
     # Build packet with reconciliation allowed
     result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
 
-    assert result["status"] == MODEL_ALLOWED
+    assert result["status"] == MODEL_ALLOWED_VERIFIED
     assert RECONCILIATION_APPLIED in result["transitions"]
     assert RECALLED_AFTER_RECONCILIATION in result["transitions"]
     assert RECHECK_PASSED in result["transitions"]
@@ -340,6 +341,31 @@ def test_v1_mismatch_no_exposure_of_fact_text(test_env):
     assert result["verified_facts"] == []
     # Fact text must not be in the top level either (it shouldn't be anyway)
     assert "text" not in str(result) or "fact text content" not in str(result)
+
+def test_v1_mechanical_repair_preserves_verification_required(test_env):
+    # Set status to changed and ensure verification_required is 1
+    conn = sqlite3.connect(test_env["db_path"])
+    conn.execute("UPDATE truth_registry_entries SET hash_status = 'changed' WHERE source_id = 's1'")
+    conn.execute("UPDATE canonical_facts SET verification_required = 1 WHERE fact_id = 'f1'")
+    conn.commit()
+    conn.close()
+
+    # Build packet with reconciliation allowed
+    result = build_llm_truth_packet(test_env["db_path"], test_env["fact_id"], allow_reconciliation=True)
+
+    # Status should be MODEL_ALLOWED_UNCERTAIN because repair only fixed the hash, 
+    # but verification_required=1 and evidence_id=None remained.
+    assert result["status"] == MODEL_ALLOWED_UNCERTAIN
+    assert RECONCILIATION_APPLIED in result["transitions"]
+
+    # Verify DB: hash_status repaired, verification_required preserved
+    conn = sqlite3.connect(test_env["db_path"])
+    reg_row = conn.execute("SELECT hash_status FROM truth_registry_entries WHERE source_id = 's1'").fetchone()
+    fact_row = conn.execute("SELECT verification_required FROM canonical_facts WHERE fact_id = 'f1'").fetchone()
+    conn.close()
+    
+    assert reg_row[0] == 'current'
+    assert fact_row[0] == 1
 
 def test_constants_contract():
     assert MODEL_ALLOWED == MODEL_ALLOWED_VERIFIED

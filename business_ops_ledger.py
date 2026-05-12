@@ -987,8 +987,14 @@ def append_truth_packet_decision_receipt(
     from datetime import datetime
 
     # 1. Safety Enforcements
-    # Strictly omit fact_text even if passed in kwargs
-    kwargs.pop("fact_text", None)
+    # Strictly reject unsafe keys in kwargs
+    unsafe_keys = {
+        "runtime_authority", "execution_authority", "fact_text_redacted_in_receipt",
+        "fact_text", "sensitive_content_access", "vault_write_verified"
+    }
+    for key in unsafe_keys:
+        if key in kwargs:
+            raise ValueError(f"Unsafe key '{key}' is strictly forbidden in truth_packet_decision_receipt.")
 
     # MODEL_BLOCKED forces boundary-crossing false
     if packet_status == "MODEL_BLOCKED":
@@ -1037,5 +1043,11 @@ def append_truth_packet_decision_receipt(
         "recorded_at": datetime.now().isoformat(),
         **kwargs
     }
+
+    # Re-enforce safety-critical fields after kwargs merge to prevent silent shadowing
+    packet_data["runtime_authority"] = False
+    packet_data["execution_authority"] = 0
+    packet_data["fact_text_redacted_in_receipt"] = True
+    packet_data.pop("fact_text", None)
 
     return append_packet_receipt(packet_data, event_id=event_id, db_path=db_path)
