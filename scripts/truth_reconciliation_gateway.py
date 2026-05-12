@@ -14,6 +14,11 @@ try:
 except ImportError:
     SOURCE_REGISTRY = {}
 
+try:
+    from business_ops_ledger import append_truth_packet_decision_receipt
+except ImportError:
+    append_truth_packet_decision_receipt = None
+
 # State constants
 CANDIDATE_SURFACED = "CANDIDATE_SURFACED"
 CHECK_RUNNING = "CHECK_RUNNING"
@@ -149,9 +154,95 @@ def check_fact_source_integrity(db_path: str, fact_id: str) -> Dict[str, Any]:
         result["block_reason"] = f"Internal error: {str(e)}"
         return result
 
-def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, allow_reconciliation: bool = False) -> Dict[str, Any]:
+def _emit_gateway_receipt(
+    packet: Dict[str, Any],
+    fact_id: str,
+    integrity: Dict[str, Any],
+    record_receipt: bool,
+    receipt_db_path: str | None,
+    db_path: str
+) -> None:
+    """Internal helper to emit a truth_packet_decision_receipt."""
+    if not record_receipt or not append_truth_packet_decision_receipt:
+        return
+
+    # Deterministic db_path
+    target_db = receipt_db_path or db_path
+
+    # Extract status
+    packet_status = packet.get("status")
+    
+    # Boundary crossing safety
+    crossed = False
+    if packet_status in (MODEL_ALLOWED_VERIFIED, MODEL_ALLOWED_UNCERTAIN):
+        crossed = True
+    elif packet_status == MODEL_BLOCKED:
+        crossed = False
+
+    # Extract provenance from verified_facts if present
+    truth_source_id = integrity.get("truth_source_id")
+    source_file = integrity.get("source_file")
+    source_commit = integrity.get("source_commit")
+    content_hash = integrity.get("source_content_hash")
+    truth_status = integrity.get("truth_status")
+    verification_required = integrity.get("verification_required")
+    verification_evidence_id = integrity.get("verification_evidence_id")
+    source_content_hash_status = integrity.get("hash_status")
+
+    # If it's a verified packet, we might have better provenance in the verified_facts
+    if packet_status == MODEL_ALLOWED_VERIFIED and packet.get("verified_facts"):
+        prov = packet["verified_facts"][0].get("provenance", {})
+        if prov:
+            truth_source_id = prov.get("truth_source_id")
+            source_file = prov.get("source_file")
+            source_commit = prov.get("source_commit")
+            content_hash = prov.get("content_hash")
+            truth_status = prov.get("truth_status")
+            verification_required = prov.get("verification_required")
+            verification_evidence_id = prov.get("verification_evidence_id")
+
+    # If it's an uncertain packet, extract from packet top level
+    if packet_status == MODEL_ALLOWED_UNCERTAIN:
+        truth_source_id = packet.get("truth_source_id")
+        source_file = packet.get("source_file")
+        source_commit = packet.get("source_commit")
+        content_hash = packet.get("content_hash")
+        truth_status = packet.get("truth_status")
+        verification_required = packet.get("verification_required")
+        verification_evidence_id = packet.get("verification_evidence_id")
+        source_content_hash_status = packet.get("source_content_hash_status")
+
+    append_truth_packet_decision_receipt(
+        packet_status=packet_status,
+        fact_id=fact_id,
+        question=packet.get("question"),
+        query_text=packet.get("question"),
+        truth_source_id=truth_source_id,
+        source_file=source_file,
+        source_commit=source_commit,
+        content_hash=content_hash,
+        source_content_hash_status=source_content_hash_status,
+        truth_status=truth_status,
+        verification_required=verification_required,
+        verification_evidence_id=verification_evidence_id,
+        uncertainty_status=packet.get("uncertainty_status"),
+        confidence_band=packet.get("confidence_band"),
+        block_reason=packet.get("block_reason"),
+        transitions=packet.get("transitions"),
+        fact_text_crossed_model_boundary=crossed,
+        db_path=target_db
+    )
+
+def build_llm_truth_packet(
+    db_path: str,
+    fact_id: str,
+    question: str = None,
+    allow_reconciliation: bool = False,
+    record_receipt: bool = False,
+    receipt_db_path: str | None = None
+) -> Dict[str, Any]:
     """
-    Builds a final LLM truth packet with v1 reconciliation support.
+    Builds a final LLM truth packet with v1 reconciliation support and optional receipt logging.
     """
     transitions = [CANDIDATE_SURFACED, CHECK_RUNNING]
 
@@ -197,7 +288,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                         else:
                             transitions.append(RECHECK_FAILED)
                             transitions.append(MODEL_BLOCKED)
-                            return {
+                            packet = {
                                 "status": MODEL_BLOCKED,
                                 "state": MODEL_BLOCKED,
                                 "transitions": transitions,
@@ -206,6 +297,8 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                                 "fact_id": fact_id,
                                 "verified_facts": []
                             }
+                            _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+                            return packet
                     else:
                         # Mismatch Invalidation
                         now = datetime.now(timezone.utc).isoformat()
@@ -242,7 +335,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                         transitions.append(RECONCILIATION_APPLIED)
                         transitions.append(MODEL_BLOCKED)
 
-                        return {
+                        packet = {
                             "status": MODEL_BLOCKED,
                             "state": MODEL_BLOCKED,
                             "transitions": transitions,
@@ -251,11 +344,13 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                             "fact_id": fact_id,
                             "verified_facts": []
                         }
+                        _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+                        return packet
 
                 except Exception as e:
                     transitions.append(CHECK_FAILED)
                     transitions.append(MODEL_BLOCKED)
-                    return {
+                    packet = {
                         "status": MODEL_BLOCKED,
                         "state": MODEL_BLOCKED,
                         "transitions": transitions,
@@ -264,11 +359,13 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                         "fact_id": fact_id,
                         "verified_facts": []
                     }
+                    _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+                    return packet
             else:
                 if integrity["repairable"]:
                     transitions.append(RECONCILIATION_BLOCKED)
                 transitions.append(MODEL_BLOCKED)
-                return {
+                packet = {
                     "status": MODEL_BLOCKED,
                     "state": MODEL_BLOCKED,
                     "transitions": transitions,
@@ -277,10 +374,12 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                     "fact_id": fact_id,
                     "verified_facts": []
                 }
+                _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+                return packet
         else:
             transitions.append(CHECK_FAILED)
             transitions.append(MODEL_BLOCKED)
-            return {
+            packet = {
                 "status": MODEL_BLOCKED,
                 "state": MODEL_BLOCKED,
                 "transitions": transitions,
@@ -289,6 +388,8 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                 "fact_id": fact_id,
                 "verified_facts": []
             }
+            _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+            return packet
     else:
         transitions.append(NO_DIFF_FOUND)
 
@@ -305,7 +406,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
         if not fact:
             transitions.append(CHECK_FAILED)
             transitions.append(MODEL_BLOCKED)
-            return {
+            packet = {
                 "status": MODEL_BLOCKED,
                 "state": MODEL_BLOCKED,
                 "transitions": transitions,
@@ -314,6 +415,8 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                 "fact_id": fact_id,
                 "verified_facts": []
             }
+            _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+            return packet
 
         # 3. Classification
         verification_required = bool(fact["verification_required"])
@@ -324,8 +427,9 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
         if is_uncertain:
             transitions.append(PACKET_READY)
             transitions.append(MODEL_ALLOWED_UNCERTAIN)
-            return {
+            packet = {
                 "status": MODEL_ALLOWED_UNCERTAIN,
+                "question": question,
                 "uncertainty_status": "verification_required_no_evidence",
                 "confidence_band": "medium_provisional",
                 "uncertainty_reason": "source_integrity_passed_but_verification_evidence_missing",
@@ -342,6 +446,8 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
                 "runtime_authority": False,
                 "transitions": transitions
             }
+            _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+            return packet
 
         # Standard Verified Path
         truth_status = fact["truth_status"] or "UNKNOWN"
@@ -375,7 +481,7 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
         transitions.append(PACKET_READY)
         transitions.append(MODEL_ALLOWED)
 
-        return {
+        packet = {
             "status": MODEL_ALLOWED,
             "state": MODEL_ALLOWED,
             "transitions": transitions,
@@ -385,11 +491,13 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
             "runtime_authority": False,
             "answer_boundary": "Answer only from verified_facts. Truth status describes verification posture, not runtime health or agent authority."
         }
+        _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+        return packet
 
     except Exception as e:
         transitions.append(CHECK_FAILED)
         transitions.append(MODEL_BLOCKED)
-        return {
+        packet = {
             "status": MODEL_BLOCKED,
             "state": MODEL_BLOCKED,
             "transitions": transitions,
@@ -398,6 +506,8 @@ def build_llm_truth_packet(db_path: str, fact_id: str, question: str = None, all
             "fact_id": fact_id,
             "verified_facts": []
         }
+        _emit_gateway_receipt(packet, fact_id, integrity, record_receipt, receipt_db_path, db_path)
+        return packet
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Truth Reconciliation Gateway v1 - JIT Integrity & Mechanical Repair")
@@ -405,12 +515,21 @@ if __name__ == "__main__":
     parser.add_argument("--fact-id", required=True, help="Fact ID to check")
     parser.add_argument("--packet", action="store_true", help="Generate final LLM truth packet")
     parser.add_argument("--allow-reconciliation", action="store_true", help="Allow mechanical metadata repairs")
+    parser.add_argument("--record-receipt", action="store_true", help="Record truth decision receipt to ledger")
+    parser.add_argument("--receipt-db", help="Target DB for receipt logging (defaults to --db)")
     parser.add_argument("--question", help="Question associated with the packet")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     if args.packet:
-        result = build_llm_truth_packet(args.db, args.fact_id, args.question, allow_reconciliation=args.allow_reconciliation)
+        result = build_llm_truth_packet(
+            args.db, 
+            args.fact_id, 
+            args.question, 
+            allow_reconciliation=args.allow_reconciliation,
+            record_receipt=args.record_receipt,
+            receipt_db_path=args.receipt_db
+        )
     else:
         result = check_fact_source_integrity(args.db, args.fact_id)
 
