@@ -8,7 +8,42 @@ from scripts.generate_operator_status import (
     MODULE_ATLAS_BOOTSTRAP_COMMAND,
     generate_current_state,
     generate_next_actions,
+    get_source_inventory_operator_status,
 )
+
+SOURCE_INVENTORY_STATUS = """Bounded Source Inventory v0
+
+Evidence:
+- 13 explicit allowlisted source records are known as metadata-only context.
+- Records carry path, type, size, Git status when available, sensitivity label, authority label, and inclusion reason.
+- Source groups: operator_status_script=1, validation_test=1.
+- Body ingest is `false` for every record.
+
+Boundary:
+- Inventory is allowlist-only; it does not scan the whole repo or hard drives.
+- `body_ingested=false`; SQLite is untouched; records are source metadata, not source bodies.
+- Authority labels describe documentation/receipt/validation posture only; they do not grant runtime authority.
+
+Blocked:
+- 8 no-go boundary examples are represented without stat, scan, or body read.
+- Secrets, private data, legal, tax, CPA/finance, AppData, and runtime logs remain outside source inventory.
+- Blocked examples: `.chief.env`; `.google-secrets/`; `Private/`.
+- No agents, modules, brokers, customer deployment, external tools, or runtime behavior are activated.
+
+Next safe move:
+- Use `--format json` as metadata-only agent context; promote any body access or accepted working context in a separate approved lane."""
+
+
+def _extract_section(output, header):
+    lines = output.splitlines()
+    start = lines.index(header)
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    return "\n".join(lines[start:end])
+
 
 @pytest.fixture
 def mock_snapshot():
@@ -54,7 +89,8 @@ def mock_snapshot():
             "visible_moves": ["Move 1", "Move 2"],
             "branch_after": "Proof",
             "unsafe_beyond": "Unsafe"
-        }
+        },
+        "source_inventory_operator_status": SOURCE_INVENTORY_STATUS,
     }
 
 def test_generate_current_state(mock_snapshot):
@@ -78,7 +114,7 @@ def test_generate_current_state(mock_snapshot):
     assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
 
     # Truth Substrate Summary check
-    assert "## 3. Truth Substrate Summary" in output
+    assert "## 4. Truth Substrate Summary" in output
     assert "**Facts**: 83 (71 doctrine, 12 historical)" in output
     assert "**Coverage**: 9/9 SOURCE_REGISTRY documents" in output
     assert "READY" in output
@@ -94,6 +130,52 @@ def test_generate_current_state(mock_snapshot):
             # 'approved' is allowed in the summary text for APPROVAL_RECORD but not as a status label
             # However, for safety, we check if it implies 'executed'
             assert word not in line, f"Misleading word '{word}' found in {keyword} receipt line: {line}"
+
+
+def test_generate_current_state_includes_source_inventory_section(mock_snapshot):
+    output = generate_current_state(mock_snapshot)
+    section = _extract_section(output, "## 3. Source Inventory")
+
+    assert "Bounded Source Inventory v0" in section
+    assert "Evidence:" in section
+    assert "Boundary:" in section
+    assert "Blocked:" in section
+    assert "Next safe move:" in section
+    assert section.index("Evidence:") < section.index("Boundary:")
+    assert section.index("Boundary:") < section.index("Blocked:")
+    assert section.index("Blocked:") < section.index("Next safe move:")
+    assert "metadata-only context" in section
+    assert "allowlist-only" in section
+    assert "`body_ingested=false`" in section
+    assert "source metadata, not source bodies" in section
+    assert "do not grant runtime authority" in section
+    assert "No agents, modules, brokers, customer deployment, external tools, or runtime behavior are activated." in section
+    assert "[SOURCE_INVENTORY]" not in section
+    assert '"records"' not in section
+
+    section_lower = section.lower()
+    for forbidden_claim in [
+        "runtime ready",
+        "runtime-ready",
+        "module active",
+        "modules active",
+        "agent wired",
+        "broker connected",
+        "customer deployment active",
+        "live runtime health",
+    ]:
+        assert forbidden_claim not in section_lower
+
+
+def test_source_inventory_status_uses_existing_metadata_only_read_model():
+    output = get_source_inventory_operator_status()
+
+    assert "Bounded Source Inventory v0" in output
+    assert "metadata-only context" in output
+    assert "`body_ingested=false`" in output
+    assert "SQLite is untouched" in output
+    assert "No agents, modules, brokers, customer deployment, external tools, or runtime behavior are activated." in output
+
 
 def test_generate_current_state_no_proofs(mock_snapshot):
     mock_snapshot["recent_proofs"] = []
@@ -140,16 +222,18 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
+@patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
+    mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -238,17 +322,19 @@ def test_get_recent_receipts_integration(tmp_path):
     assert "exit=0" in proof_entry
     assert "abc1234" in proof_entry
 
+@patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
+    mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
@@ -270,17 +356,19 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
         main()
         mock_exit.assert_not_called()
 
+@patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
+    mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

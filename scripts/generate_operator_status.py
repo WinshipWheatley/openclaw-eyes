@@ -55,6 +55,11 @@ except ImportError:
         MODULE_ATLAS_BOOTSTRAP_COMMAND,
     )
 
+try:
+    from scripts.build_source_inventory import build_inventory, format_operator_inventory
+except ImportError:
+    from build_source_inventory import build_inventory, format_operator_inventory
+
 # --- Configuration ---
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
@@ -321,6 +326,22 @@ def format_module_atlas_artifact_checkpoint_section(
     return lines
 
 
+def get_source_inventory_operator_status():
+    """Build the bounded metadata-only source inventory operator read model."""
+    return format_operator_inventory(build_inventory())
+
+
+def format_source_inventory_section(source_inventory_operator_status):
+    if not source_inventory_operator_status:
+        return []
+
+    return [
+        "",
+        "## 3. Source Inventory",
+        *source_inventory_operator_status.splitlines(),
+    ]
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -362,10 +383,16 @@ def generate_current_state(snapshot):
             )
         )
 
-    # Section 3: Truth Substrate Summary
+    lines.extend(
+        format_source_inventory_section(
+            snapshot.get('source_inventory_operator_status')
+        )
+    )
+
+    # Section 4: Truth Substrate Summary
     lines.extend([
         "",
-        "## 3. Truth Substrate Summary",
+        "## 4. Truth Substrate Summary",
         "Registry-governed canonical facts and source documents.",
     ])
 
@@ -399,20 +426,20 @@ def generate_current_state(snapshot):
 
     lines.extend([
         "",
-        "## 4. Active Lane & Doctrine",
+        "## 5. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 5. Tool & Surface Boundaries",
+        "## 6. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 6. North Star",
+        "## 7. North Star",
         snapshot['north_star'],
         "",
-        "## 7. Safety & Staleness",
+        "## 8. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -476,6 +503,7 @@ def main():
     )
     snapshot['artifact_checkpoint_expected_total'] = len(MODULE_ATLAS_ARTIFACT_PATHS)
     snapshot['artifact_checkpoint_bootstrap_command'] = MODULE_ATLAS_BOOTSTRAP_COMMAND
+    snapshot['source_inventory_operator_status'] = get_source_inventory_operator_status()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
