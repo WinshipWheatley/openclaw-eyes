@@ -8,6 +8,7 @@ from scripts.generate_operator_status import (
     MODULE_ATLAS_BOOTSTRAP_COMMAND,
     generate_current_state,
     generate_next_actions,
+    get_context_gates_operator_status,
     get_source_inventory_operator_status,
 )
 
@@ -32,6 +33,26 @@ Blocked:
 
 Next safe move:
 - Use `--format json` as metadata-only agent context; promote any body access or accepted working context in a separate approved lane."""
+
+CONTEXT_GATES_STATUS = """Accepted Context Substrate Gates v0
+
+Evidence:
+- 6/6 deterministic backend/read-model gates are available as local scripts.
+- Available gates: Promotion Gate=`accepted_context_promotion_gate_v0`; Safe Extraction=`safe_body_extraction_v0`; Source Cards=`source_cards_v0`; Working Packets=`accepted_working_context_packets_v0`; Retrieval Gate=`agent_context_retrieval_gate_v0`; Activation Gate=`runtime_module_activation_gate_v0`.
+- Gate chain preserves separate states: metadata captured, promoted, extracted, summarized, packetized, retrieved, and activation-blocked.
+
+Boundary:
+- Generated status reports gate availability only; it does not promote, extract, summarize, packetize, retrieve, or activate context.
+- Generated status performs `body_ingested=false` for this section and does not read extraction artifacts or raw source bodies.
+- SQLite behavior is unchanged; `runtime_authority=false`; activation remains a blocked readiness contract.
+
+Blocked:
+- Missing gate scripts: none.
+- Full repo scans, hard-drive scans, secrets/private/legal/tax/CPA/AppData/log access, broad RAG, vector DB, and raw body retrieval remain blocked.
+- No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated.
+
+Next safe move:
+- Use the gates in order on explicit allowlisted records with a promotion reason; keep runtime/module activation in the blocked readiness lane."""
 
 
 def _extract_section(output, header):
@@ -91,6 +112,7 @@ def mock_snapshot():
             "unsafe_beyond": "Unsafe"
         },
         "source_inventory_operator_status": SOURCE_INVENTORY_STATUS,
+        "context_gates_operator_status": CONTEXT_GATES_STATUS,
     }
 
 def test_generate_current_state(mock_snapshot):
@@ -114,7 +136,7 @@ def test_generate_current_state(mock_snapshot):
     assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
 
     # Truth Substrate Summary check
-    assert "## 4. Truth Substrate Summary" in output
+    assert "## 5. Truth Substrate Summary" in output
     assert "**Facts**: 83 (71 doctrine, 12 historical)" in output
     assert "**Coverage**: 9/9 SOURCE_REGISTRY documents" in output
     assert "READY" in output
@@ -177,6 +199,54 @@ def test_source_inventory_status_uses_existing_metadata_only_read_model():
     assert "No agents, modules, brokers, customer deployment, external tools, or runtime behavior are activated." in output
 
 
+def test_generate_current_state_includes_context_gates_section(mock_snapshot):
+    output = generate_current_state(mock_snapshot)
+    section = _extract_section(output, "## 4. Context Gates")
+
+    assert "Accepted Context Substrate Gates v0" in section
+    assert "Evidence:" in section
+    assert "Boundary:" in section
+    assert "Blocked:" in section
+    assert "Next safe move:" in section
+    assert "Promotion Gate=`accepted_context_promotion_gate_v0`" in section
+    assert "Safe Extraction=`safe_body_extraction_v0`" in section
+    assert "Source Cards=`source_cards_v0`" in section
+    assert "Working Packets=`accepted_working_context_packets_v0`" in section
+    assert "Retrieval Gate=`agent_context_retrieval_gate_v0`" in section
+    assert "Activation Gate=`runtime_module_activation_gate_v0`" in section
+    assert "does not promote, extract, summarize, packetize, retrieve, or activate context" in section
+    assert "`body_ingested=false`" in section
+    assert "does not read extraction artifacts or raw source bodies" in section
+    assert "SQLite behavior is unchanged" in section
+    assert "`runtime_authority=false`" in section
+    assert "broad RAG" in section
+    assert "vector DB" in section
+    assert "No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated." in section
+    assert '"packets"' not in section
+    assert '"records"' not in section
+
+    section_lower = section.lower()
+    for forbidden_claim in [
+        "runtime ready",
+        "runtime-ready",
+        "modules active",
+        "agent wired",
+        "broker connected",
+        "customer deployment active",
+    ]:
+        assert forbidden_claim not in section_lower
+
+
+def test_context_gates_status_is_compact_and_non_activating():
+    output = get_context_gates_operator_status()
+
+    assert "Accepted Context Substrate Gates v0" in output
+    assert "6/6 deterministic backend/read-model gates are available" in output
+    assert "Generated status performs `body_ingested=false`" in output
+    assert "`runtime_authority=false`" in output
+    assert "No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated." in output
+
+
 def test_generate_current_state_no_proofs(mock_snapshot):
     mock_snapshot["recent_proofs"] = []
     mock_snapshot["strongest_clean_proof"] = None
@@ -222,18 +292,20 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
+@patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
+    mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -322,6 +394,7 @@ def test_get_recent_receipts_integration(tmp_path):
     assert "exit=0" in proof_entry
     assert "abc1234" in proof_entry
 
+@patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
@@ -329,12 +402,13 @@ def test_get_recent_receipts_integration(tmp_path):
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
+    mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
@@ -345,6 +419,8 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
     snapshot_with_proofs["artifact_checkpoint_receipts"] = []
     snapshot_with_proofs["artifact_checkpoint_expected_total"] = len(MODULE_ATLAS_ARTIFACT_PATHS)
     snapshot_with_proofs["artifact_checkpoint_bootstrap_command"] = MODULE_ATLAS_BOOTSTRAP_COMMAND
+    snapshot_with_proofs["source_inventory_operator_status"] = SOURCE_INVENTORY_STATUS
+    snapshot_with_proofs["context_gates_operator_status"] = CONTEXT_GATES_STATUS
 
     curr_content = DISCLAIMER + "\n" + generate_current_state(snapshot_with_proofs)
     next_content = DISCLAIMER + "\n" + generate_next_actions(snapshot_with_proofs)
@@ -356,6 +432,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
         main()
         mock_exit.assert_not_called()
 
+@patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
@@ -363,12 +440,13 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
+    mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

@@ -62,7 +62,28 @@ Blocked:
 Next safe move:
 - Use `--format json` as metadata-only agent context; promote any body access or accepted working context in a separate approved lane.
 
-## 4. Truth Substrate Summary
+## 4. Context Gates
+Accepted Context Substrate Gates v0
+
+Evidence:
+- 6/6 deterministic backend/read-model gates are available as local scripts.
+- Available gates: Promotion Gate=`accepted_context_promotion_gate_v0`; Safe Extraction=`safe_body_extraction_v0`; Source Cards=`source_cards_v0`; Working Packets=`accepted_working_context_packets_v0`; Retrieval Gate=`agent_context_retrieval_gate_v0`; Activation Gate=`runtime_module_activation_gate_v0`.
+- Gate chain preserves separate states: metadata captured, promoted, extracted, summarized, packetized, retrieved, and activation-blocked.
+
+Boundary:
+- Generated status reports gate availability only; it does not promote, extract, summarize, packetize, retrieve, or activate context.
+- Generated status performs `body_ingested=false` for this section and does not read extraction artifacts or raw source bodies.
+- SQLite behavior is unchanged; `runtime_authority=false`; activation remains a blocked readiness contract.
+
+Blocked:
+- Missing gate scripts: none.
+- Full repo scans, hard-drive scans, secrets/private/legal/tax/CPA/AppData/log access, broad RAG, vector DB, and raw body retrieval remain blocked.
+- No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated.
+
+Next safe move:
+- Use the gates in order on explicit allowlisted records with a promotion reason; keep runtime/module activation in the blocked readiness lane.
+
+## 5. Truth Substrate Summary
 Registry-governed canonical facts and source documents.
 - **Facts**: 83 (71 doctrine, 12 historical)
 - **Candidate Truth Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
@@ -72,10 +93,10 @@ Registry-governed canonical facts and source documents.
 
 > Truth substrate status is read-only, a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.
 
-## 5. Active Lane & Doctrine
+## 6. Active Lane & Doctrine
 Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQLite Ledger) and canonicalizing the "Operator Doctrine" (North Star, Manifesto, Anti-drift) into a concise Orientation Contract.
 
-## 6. Tool & Surface Boundaries
+## 7. Tool & Surface Boundaries
 ### Allowed Tools
 - Repository-local file reading and surgical editing.
    - Shell commands for status, testing, and non-destructive operations.
@@ -88,10 +109,10 @@ Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQ
    - External provider/model APIs without an Action Covenant.
    - Credentials, tokens, and billing logic.
 
-## 7. North Star
+## 8. North Star
 Make daily life lighter without becoming hidden authority. The computer becomes a natural extension of the operator. The machine carries the weight; the operator keeps the crown.
 
-## 8. Safety & Staleness
+## 9. Safety & Staleness
 - **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.
 - **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.
 - **Privacy**: No PII or raw sensitive data is stored in this read-model.

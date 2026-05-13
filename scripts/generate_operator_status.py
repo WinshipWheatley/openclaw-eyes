@@ -60,6 +60,15 @@ try:
 except ImportError:
     from build_source_inventory import build_inventory, format_operator_inventory
 
+CONTEXT_GATE_SCRIPTS = (
+    ("Promotion Gate", "accepted_context_promotion_gate_v0", "scripts/promote_accepted_context.py"),
+    ("Safe Extraction", "safe_body_extraction_v0", "scripts/extract_accepted_sources.py"),
+    ("Source Cards", "source_cards_v0", "scripts/build_source_cards.py"),
+    ("Working Packets", "accepted_working_context_packets_v0", "scripts/build_working_context_packets.py"),
+    ("Retrieval Gate", "agent_context_retrieval_gate_v0", "scripts/query_context_packets.py"),
+    ("Activation Gate", "runtime_module_activation_gate_v0", "scripts/check_runtime_activation_gate.py"),
+)
+
 # --- Configuration ---
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
@@ -342,6 +351,60 @@ def format_source_inventory_section(source_inventory_operator_status):
     ]
 
 
+def get_context_gates_operator_status():
+    """Build a compact status for deterministic context substrate gates."""
+    gates = [
+        {
+            "label": label,
+            "version": version,
+            "path": path,
+            "available": os.path.exists(path),
+        }
+        for label, version, path in CONTEXT_GATE_SCRIPTS
+    ]
+    available = sum(1 for gate in gates if gate["available"])
+    gate_text = "; ".join(
+        f"{gate['label']}=`{gate['version']}`" for gate in gates if gate["available"]
+    ) or "none"
+    missing_text = "; ".join(
+        f"`{gate['path']}`" for gate in gates if not gate["available"]
+    ) or "none"
+
+    lines = [
+        "Accepted Context Substrate Gates v0",
+        "",
+        "Evidence:",
+        f"- {available}/{len(gates)} deterministic backend/read-model gates are available as local scripts.",
+        f"- Available gates: {gate_text}.",
+        "- Gate chain preserves separate states: metadata captured, promoted, extracted, summarized, packetized, retrieved, and activation-blocked.",
+        "",
+        "Boundary:",
+        "- Generated status reports gate availability only; it does not promote, extract, summarize, packetize, retrieve, or activate context.",
+        "- Generated status performs `body_ingested=false` for this section and does not read extraction artifacts or raw source bodies.",
+        "- SQLite behavior is unchanged; `runtime_authority=false`; activation remains a blocked readiness contract.",
+        "",
+        "Blocked:",
+        f"- Missing gate scripts: {missing_text}.",
+        "- Full repo scans, hard-drive scans, secrets/private/legal/tax/CPA/AppData/log access, broad RAG, vector DB, and raw body retrieval remain blocked.",
+        "- No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated.",
+        "",
+        "Next safe move:",
+        "- Use the gates in order on explicit allowlisted records with a promotion reason; keep runtime/module activation in the blocked readiness lane.",
+    ]
+    return "\n".join(lines)
+
+
+def format_context_gates_section(context_gates_operator_status):
+    if not context_gates_operator_status:
+        return []
+
+    return [
+        "",
+        "## 4. Context Gates",
+        *context_gates_operator_status.splitlines(),
+    ]
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -389,10 +452,16 @@ def generate_current_state(snapshot):
         )
     )
 
-    # Section 4: Truth Substrate Summary
+    lines.extend(
+        format_context_gates_section(
+            snapshot.get('context_gates_operator_status')
+        )
+    )
+
+    # Section 5: Truth Substrate Summary
     lines.extend([
         "",
-        "## 4. Truth Substrate Summary",
+        "## 5. Truth Substrate Summary",
         "Registry-governed canonical facts and source documents.",
     ])
 
@@ -426,20 +495,20 @@ def generate_current_state(snapshot):
 
     lines.extend([
         "",
-        "## 5. Active Lane & Doctrine",
+        "## 6. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 6. Tool & Surface Boundaries",
+        "## 7. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 7. North Star",
+        "## 8. North Star",
         snapshot['north_star'],
         "",
-        "## 8. Safety & Staleness",
+        "## 9. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -504,6 +573,7 @@ def main():
     snapshot['artifact_checkpoint_expected_total'] = len(MODULE_ATLAS_ARTIFACT_PATHS)
     snapshot['artifact_checkpoint_bootstrap_command'] = MODULE_ATLAS_BOOTSTRAP_COMMAND
     snapshot['source_inventory_operator_status'] = get_source_inventory_operator_status()
+    snapshot['context_gates_operator_status'] = get_context_gates_operator_status()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
