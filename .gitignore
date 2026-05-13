@@ -596,3 +596,5 @@
 !tests/test_truth_packet_visibility.py
 !scripts/operator_truth_query.py
 !tests/test_operator_truth_query.py
+!scripts/promote_accepted_context.py
+!tests/test_accepted_context_promotion.py
