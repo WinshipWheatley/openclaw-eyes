@@ -47,6 +47,14 @@ except ImportError:
 # --- Configuration ---
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
+MODULE_ATLAS_ARTIFACT_PATHS = (
+    "docs/module_atlas/OPENCLAW_MODULE_ATLAS_V0.md",
+    "docs/module_atlas/OPENCLAW_MODULE_MANIFEST_DRAFT_SCHEMA_V0.md",
+    "docs/module_atlas/OPENCLAW_SYNTHETIC_MODULE_MANIFEST_EXAMPLES_V0.md",
+    "docs/module_atlas/OPENCLAW_MODULE_MANIFEST_VALIDATION_CONTRACT_V0.md",
+    "scripts/validate_module_manifests.py",
+    "tests/test_module_manifest_validation.py",
+)
 
 DISCLAIMER = """<!--
 GENERATED FILE - DO NOT EDIT MANUALLY
@@ -191,6 +199,78 @@ def get_recent_proof_receipts(limit=5, db_path=None):
     except Exception:
         return {"list": [], "strongest_clean": None}
 
+
+def _status_display(value):
+    if value is None:
+        return "unknown"
+    return str(value).replace("_", "-")
+
+
+def format_artifact_checkpoint_receipt(ts, packet_json_safe):
+    try:
+        packet = json.loads(packet_json_safe or "{}")
+    except Exception:
+        packet = {}
+
+    artifact_path = packet.get("artifact_path", "unknown")
+    artifact_status = _status_display(packet.get("artifact_status"))
+    authority_status = _status_display(packet.get("authority_status"))
+    sqlite_meaning = _status_display(packet.get("sqlite_meaning"))
+    runtime_activation = "true" if packet.get("runtime_activation") is True else "false"
+    display_ts = ts.replace('T', ' ')[:16]
+    return (
+        f"{display_ts} [ARTIFACT_CHECKPOINT] [SQLITE_VERIFIED] {artifact_path} "
+        f"status={artifact_status} authority={authority_status} "
+        f"runtime_activation={runtime_activation} sqlite={sqlite_meaning} "
+        "(Metadata Only/No Runtime Authority)"
+    )
+
+
+def get_artifact_checkpoint_receipts(limit=20, db_path=None, artifact_paths=None):
+    """
+    Fetch generic artifact_checkpoint receipts from the ledger.
+    Reads receipt metadata only from events/packets; artifact bodies are not read.
+    """
+    db_path = db_path or ".openclaw/business_ops/ledger.sqlite"
+    if not os.path.exists(db_path):
+        return []
+
+    artifact_path_set = set(artifact_paths or [])
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT e.ts, p.packet_json_safe
+            FROM events e
+            JOIN packets p ON p.event_id = e.event_id
+            WHERE e.event_type = 'artifact_checkpoint'
+            ORDER BY e.ts DESC
+            LIMIT 100
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+    except Exception:
+        return []
+
+    receipts = []
+    seen_paths = set()
+    for ts, packet_json_safe in rows:
+        try:
+            packet = json.loads(packet_json_safe or "{}")
+        except Exception:
+            packet = {}
+        artifact_path = packet.get("artifact_path")
+        if artifact_path_set and artifact_path not in artifact_path_set:
+            continue
+        if artifact_path in seen_paths:
+            continue
+        receipts.append(format_artifact_checkpoint_receipt(ts, packet_json_safe))
+        seen_paths.add(artifact_path)
+        if len(receipts) >= limit:
+            break
+
+    return receipts
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -218,6 +298,16 @@ def generate_current_state(snapshot):
             lines.append(f"- {p}")
     else:
         lines.append("- No recent verification receipts found.")
+
+    artifact_checkpoints = snapshot.get('artifact_checkpoint_receipts', [])
+    if artifact_checkpoints:
+        lines.extend([
+            "",
+            "### Module Atlas Artifact Checkpoints",
+            "Metadata-only SQLite artifact receipts; no runtime authority, module activation, broker connection, agent wiring, or customer deployment.",
+        ])
+        for receipt in artifact_checkpoints:
+            lines.append(f"- {receipt}")
 
     # Section 3: Truth Substrate Summary
     lines.extend([
@@ -249,7 +339,7 @@ def generate_current_state(snapshot):
             f"- **Coverage**: {r['present_sources']}/{r['total_sources']} SOURCE_REGISTRY documents",
             f"- **Readiness**: {rd['result']}",
             "",
-            "> Truth substrate status is a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.",
+            "> Truth substrate status is read-only, a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.",
         ])
     else:
         lines.append(f"- Status: UNAVAILABLE ({truth.get('reason', 'unknown')})")
@@ -328,6 +418,9 @@ def main():
     results = get_recent_proof_receipts()
     snapshot['recent_proofs'] = results['list']
     snapshot['strongest_clean_proof'] = results['strongest_clean']
+    snapshot['artifact_checkpoint_receipts'] = get_artifact_checkpoint_receipts(
+        artifact_paths=MODULE_ATLAS_ARTIFACT_PATHS
+    )
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
