@@ -3,6 +3,8 @@ import json
 from scripts.build_artifact_registry import (
     EXPECTED_CORE_ARTIFACT_IDS,
     EXPECTED_GENERATED_STATUS_SECTION_IDS,
+    EXPECTED_STANDARDIZED_EXPORT_IDS,
+    EXPECTED_STANDARDIZED_EXPORT_PATHS,
     READ_MODEL_VERSION,
     build_artifact_registry,
     format_operator_artifact_registry,
@@ -136,11 +138,33 @@ def test_registry_marks_intended_consumers():
     artifacts = _artifact_by_id(_registry())
 
     assert artifacts["generated_current_state"]["safe_for_mac_app"] is True
-    assert artifacts["helm_state_json_concept"]["safe_for_mac_app"] is True
-    assert artifacts["world_domain_registry_json_concept"]["safe_for_mac_app"] is True
-    assert artifacts["source_cards_json_concept"]["safe_for_codex_context"] is True
-    assert artifacts["working_context_packets_json_concept"]["safe_for_nohup_workers"] is True
-    assert artifacts["context_packet_retrieval_json_concept"]["safe_for_agent_context"] is True
+    assert artifacts["helm_state_json_export"]["safe_for_mac_app"] is True
+    assert artifacts["world_domain_registry_json_export"]["safe_for_mac_app"] is True
+    assert artifacts["source_inventory_operator_export"]["safe_for_codex_context"] is True
+    assert artifacts["runtime_activation_gate_operator_export"]["safe_for_nohup_workers"] is True
+    assert artifacts["generated_next_actions_markdown_export"]["safe_for_agent_context"] is True
+
+
+def test_standardized_export_paths_are_registered_and_present():
+    artifacts = _artifact_by_id(_registry())
+
+    assert EXPECTED_STANDARDIZED_EXPORT_IDS <= set(artifacts)
+    export_records = [
+        artifact
+        for artifact in artifacts.values()
+        if artifact["artifact_type"] == "standardized_export_path"
+    ]
+    assert {artifact["path_or_command"] for artifact in export_records} == set(
+        EXPECTED_STANDARDIZED_EXPORT_PATHS
+    )
+    for artifact in export_records:
+        assert artifact["producer_script"] == "scripts/export_read_models.py"
+        assert artifact["producer_command"] == "python3 scripts/export_read_models.py --format json"
+        assert artifact["current_status_source"] == "python3 scripts/export_read_models.py --check"
+        assert artifact["verification_command"] == "python3 scripts/export_read_models.py --check"
+        assert artifact["artifact_present"] is True
+        assert artifact["content_sha256"] is None
+        assert artifact["hash_basis"] == "explicit_standardized_export_path_presence_only_body_not_read"
 
 
 def test_operator_output_uses_cockpit_grammar():
@@ -148,9 +172,9 @@ def test_operator_output_uses_cockpit_grammar():
 
     assert "Read-Model Artifact Registry v0" in output
     assert (
-        "Registered 22 metadata/read-model artifact records: "
+        "Registered 27 metadata/read-model artifact records: "
         "2 generated Markdown files, 9 producer contracts, "
-        "4 generated-status sections, and 7 recommended export paths."
+        "4 generated-status sections, and 12 standardized export paths."
     ) in output
     assert "Evidence:" in output
     assert "Boundary:" in output

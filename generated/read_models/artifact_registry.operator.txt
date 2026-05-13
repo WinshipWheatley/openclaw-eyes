@@ -1,8 +1,8 @@
 Read-Model Artifact Registry v0
 
 Evidence:
-- Registered 22 metadata/read-model artifact records: 2 generated Markdown files, 9 producer contracts, 4 generated-status sections, and 7 recommended export paths.
-- Consumer-safe records: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- Registered 27 metadata/read-model artifact records: 2 generated Markdown files, 9 producer contracts, 4 generated-status sections, and 12 standardized export paths.
+- Consumer-safe records: Mac app=24; Codex context=26; nohup/background workers=26; agent context=26.
 - Registered artifacts carry tags, authority labels, freshness basis, verification command, and explicit no-claims.
 
 Boundary:
@@ -17,4 +17,4 @@ Blocked:
 - Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
 
 Next safe move:
-- Standardize export/sync locations under `generated/read_models/` so the Mac app, Codex-on-Mac, and nohup/background workers consume registered read-model artifacts instead of guessing paths.
+- Keep `generated/read_models/` current with `python3 scripts/export_read_models.py --check` before app consumption.

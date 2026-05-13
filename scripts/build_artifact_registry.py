@@ -60,6 +60,36 @@ EXPECTED_GENERATED_STATUS_SECTION_IDS = {
 
 READ_MODEL_OUTPUT_DIR = "generated/read_models"
 
+EXPECTED_STANDARDIZED_EXPORT_PATHS = (
+    "generated/read_models/source_inventory.json",
+    "generated/read_models/source_inventory.operator.txt",
+    "generated/read_models/helm_state.json",
+    "generated/read_models/helm_state.operator.txt",
+    "generated/read_models/world_domain_registry.json",
+    "generated/read_models/world_domain_registry.operator.txt",
+    "generated/read_models/artifact_registry.json",
+    "generated/read_models/artifact_registry.operator.txt",
+    "generated/read_models/runtime_activation_gate.json",
+    "generated/read_models/runtime_activation_gate.operator.txt",
+    "generated/read_models/generated_current_state.md",
+    "generated/read_models/generated_next_actions.md",
+)
+
+EXPECTED_STANDARDIZED_EXPORT_IDS = {
+    "source_inventory_json_export",
+    "source_inventory_operator_export",
+    "helm_state_json_export",
+    "helm_state_operator_export",
+    "world_domain_registry_json_export",
+    "world_domain_registry_operator_export",
+    "artifact_registry_json_export",
+    "artifact_registry_operator_export",
+    "runtime_activation_gate_json_export",
+    "runtime_activation_gate_operator_export",
+    "generated_current_state_markdown_export",
+    "generated_next_actions_markdown_export",
+}
+
 
 def _tags(*items: str) -> list[str]:
     base = {
@@ -72,6 +102,178 @@ def _tags(*items: str) -> list[str]:
         "next_safe_move",
     }
     return sorted(base | set(items))
+
+
+def _standardized_export_definition(
+    *,
+    artifact_id: str,
+    label: str,
+    relative_path: str,
+    expected_format: str,
+    source_artifact_id: str,
+    source_producer_script: str,
+    source_producer_command: str,
+    tags: list[str],
+    authority_label: str,
+) -> dict[str, Any]:
+    return {
+        "artifact_id": artifact_id,
+        "label": label,
+        "artifact_type": "standardized_export_path",
+        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/{relative_path}",
+        "producer_script": "scripts/export_read_models.py",
+        "producer_command": "python3 scripts/export_read_models.py --format json",
+        "source_artifact_id": source_artifact_id,
+        "source_producer_script": source_producer_script,
+        "source_producer_command": source_producer_command,
+        "expected_format": expected_format,
+        "tags": tags,
+        "authority_label": authority_label,
+        "generated_on_demand": False,
+        "current_status_source": "python3 scripts/export_read_models.py --check",
+        "safe_for_mac_app": True,
+        "safe_for_codex_context": True,
+        "safe_for_nohup_workers": True,
+        "safe_for_agent_context": True,
+        "freshness_basis": "current when export_read_models.py --check passes and the standardized path exists",
+        "verification_command": "python3 scripts/export_read_models.py --check",
+    }
+
+
+STANDARDIZED_EXPORT_DEFINITIONS: tuple[dict[str, Any], ...] = (
+    _standardized_export_definition(
+        artifact_id="source_inventory_json_export",
+        label="Source Inventory JSON Export",
+        relative_path="source_inventory.json",
+        expected_format="json",
+        source_artifact_id="source_inventory_output_contract",
+        source_producer_script="scripts/build_source_inventory.py",
+        source_producer_command="python3 scripts/build_source_inventory.py --format json",
+        tags=_tags("source_inventory", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_metadata_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="source_inventory_operator_export",
+        label="Source Inventory Operator Export",
+        relative_path="source_inventory.operator.txt",
+        expected_format="operator_text",
+        source_artifact_id="source_inventory_output_contract",
+        source_producer_script="scripts/build_source_inventory.py",
+        source_producer_command="python3 scripts/build_source_inventory.py --format operator",
+        tags=_tags("source_inventory", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_metadata_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="helm_state_json_export",
+        label="Helm State JSON Export",
+        relative_path="helm_state.json",
+        expected_format="json",
+        source_artifact_id="helm_state_output_contract",
+        source_producer_script="scripts/build_helm_state.py",
+        source_producer_command="python3 scripts/build_helm_state.py --format json",
+        tags=_tags("helm_state", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_inspect_only_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="helm_state_operator_export",
+        label="Helm State Operator Export",
+        relative_path="helm_state.operator.txt",
+        expected_format="operator_text",
+        source_artifact_id="helm_state_output_contract",
+        source_producer_script="scripts/build_helm_state.py",
+        source_producer_command="python3 scripts/build_helm_state.py --format operator",
+        tags=_tags("helm_state", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_inspect_only_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="world_domain_registry_json_export",
+        label="World / Domain Registry JSON Export",
+        relative_path="world_domain_registry.json",
+        expected_format="json",
+        source_artifact_id="world_domain_registry_output_contract",
+        source_producer_script="scripts/build_world_domain_registry.py",
+        source_producer_command="python3 scripts/build_world_domain_registry.py --format json",
+        tags=_tags("world_registry", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_registry_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="world_domain_registry_operator_export",
+        label="World / Domain Registry Operator Export",
+        relative_path="world_domain_registry.operator.txt",
+        expected_format="operator_text",
+        source_artifact_id="world_domain_registry_output_contract",
+        source_producer_script="scripts/build_world_domain_registry.py",
+        source_producer_command="python3 scripts/build_world_domain_registry.py --format operator",
+        tags=_tags("world_registry", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_registry_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="artifact_registry_json_export",
+        label="Read-Model Artifact Registry JSON Export",
+        relative_path="artifact_registry.json",
+        expected_format="json",
+        source_artifact_id="artifact_registry_output_contract",
+        source_producer_script="scripts/build_artifact_registry.py",
+        source_producer_command="python3 scripts/build_artifact_registry.py --format json",
+        tags=_tags("artifact_registry", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_registry_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="artifact_registry_operator_export",
+        label="Read-Model Artifact Registry Operator Export",
+        relative_path="artifact_registry.operator.txt",
+        expected_format="operator_text",
+        source_artifact_id="artifact_registry_output_contract",
+        source_producer_script="scripts/build_artifact_registry.py",
+        source_producer_command="python3 scripts/build_artifact_registry.py --format operator",
+        tags=_tags("artifact_registry", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_registry_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="runtime_activation_gate_json_export",
+        label="Runtime Activation Gate JSON Export",
+        relative_path="runtime_activation_gate.json",
+        expected_format="json",
+        source_artifact_id="runtime_activation_gate_output_contract",
+        source_producer_script="scripts/check_runtime_activation_gate.py",
+        source_producer_command="python3 scripts/check_runtime_activation_gate.py --format json",
+        tags=_tags("activation_gate", "standardized_export", "app_fixture_safe", "codex_context_safe", "nohup_context_safe"),
+        authority_label="standardized_blocked_gate_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="runtime_activation_gate_operator_export",
+        label="Runtime Activation Gate Operator Export",
+        relative_path="runtime_activation_gate.operator.txt",
+        expected_format="operator_text",
+        source_artifact_id="runtime_activation_gate_output_contract",
+        source_producer_script="scripts/check_runtime_activation_gate.py",
+        source_producer_command="python3 scripts/check_runtime_activation_gate.py --format operator",
+        tags=_tags("activation_gate", "standardized_export", "app_fixture_safe", "codex_context_safe", "nohup_context_safe"),
+        authority_label="standardized_blocked_gate_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="generated_current_state_markdown_export",
+        label="Generated Current State Markdown Export",
+        relative_path="generated_current_state.md",
+        expected_format="markdown",
+        source_artifact_id="generated_current_state",
+        source_producer_script="scripts/generate_operator_status.py",
+        source_producer_command="python3 scripts/generate_operator_status.py --write",
+        tags=_tags("generated_status", "operator_status", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_generated_status_export",
+    ),
+    _standardized_export_definition(
+        artifact_id="generated_next_actions_markdown_export",
+        label="Generated Next Actions Markdown Export",
+        relative_path="generated_next_actions.md",
+        expected_format="markdown",
+        source_artifact_id="generated_next_actions",
+        source_producer_script="scripts/generate_operator_status.py",
+        source_producer_command="python3 scripts/generate_operator_status.py --write",
+        tags=_tags("generated_status", "next_actions", "standardized_export", "app_fixture_safe", "codex_context_safe"),
+        authority_label="standardized_generated_status_export",
+    ),
+)
 
 
 ARTIFACT_DEFINITIONS: tuple[dict[str, Any], ...] = (
@@ -364,139 +566,7 @@ ARTIFACT_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "verification_command": "python3 scripts/generate_operator_status.py --check",
         "section_heading": "## 6. World / Domain Registry",
     },
-    {
-        "artifact_id": "source_inventory_json_concept",
-        "label": "Source Inventory JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/source_inventory.json",
-        "producer_script": "scripts/build_source_inventory.py",
-        "producer_command": f"python3 scripts/build_source_inventory.py --format json > {READ_MODEL_OUTPUT_DIR}/source_inventory.json",
-        "expected_format": "json",
-        "tags": _tags("source_inventory", "app_fixture_safe", "codex_context_safe"),
-        "authority_label": "recommended_metadata_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is producer command",
-        "verification_command": "python3 scripts/build_source_inventory.py --format json | python3 -m json.tool",
-    },
-    {
-        "artifact_id": "helm_state_json_concept",
-        "label": "Helm State JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/helm_state.json",
-        "producer_script": "scripts/build_helm_state.py",
-        "producer_command": f"python3 scripts/build_helm_state.py --format json > {READ_MODEL_OUTPUT_DIR}/helm_state.json",
-        "expected_format": "json",
-        "tags": _tags("helm_state", "app_fixture_safe", "codex_context_safe"),
-        "authority_label": "recommended_inspect_only_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is producer command",
-        "verification_command": "python3 scripts/build_helm_state.py --format json | python3 -m json.tool",
-    },
-    {
-        "artifact_id": "world_domain_registry_json_concept",
-        "label": "World / Domain Registry JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/world_domain_registry.json",
-        "producer_script": "scripts/build_world_domain_registry.py",
-        "producer_command": f"python3 scripts/build_world_domain_registry.py --format json > {READ_MODEL_OUTPUT_DIR}/world_domain_registry.json",
-        "expected_format": "json",
-        "tags": _tags("world_registry", "app_fixture_safe", "codex_context_safe"),
-        "authority_label": "recommended_registry_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is producer command",
-        "verification_command": "python3 scripts/build_world_domain_registry.py --format json | python3 -m json.tool",
-    },
-    {
-        "artifact_id": "runtime_activation_gate_json_concept",
-        "label": "Runtime Activation Gate JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/runtime_activation_gate.json",
-        "producer_script": "scripts/check_runtime_activation_gate.py",
-        "producer_command": f"python3 scripts/check_runtime_activation_gate.py --format json > {READ_MODEL_OUTPUT_DIR}/runtime_activation_gate.json",
-        "expected_format": "json",
-        "tags": _tags("activation_gate", "app_fixture_safe", "codex_context_safe", "nohup_context_safe"),
-        "authority_label": "recommended_blocked_gate_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is producer command",
-        "verification_command": "python3 scripts/check_runtime_activation_gate.py --format json | python3 -m json.tool",
-    },
-    {
-        "artifact_id": "source_cards_json_concept",
-        "label": "Source Cards JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/source_cards.json",
-        "producer_script": "scripts/build_source_cards.py",
-        "producer_command": f"python3 scripts/build_source_cards.py --extraction-artifact <extraction.json> --format json > {READ_MODEL_OUTPUT_DIR}/source_cards.json",
-        "expected_format": "json",
-        "tags": _tags("source_cards", "app_fixture_safe", "codex_context_safe", "nohup_context_safe"),
-        "authority_label": "recommended_source_card_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is safe extraction artifact",
-        "verification_command": "python3 -m pytest tests/test_source_cards.py",
-    },
-    {
-        "artifact_id": "working_context_packets_json_concept",
-        "label": "Working Context Packets JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/working_context_packets.json",
-        "producer_script": "scripts/build_working_context_packets.py",
-        "producer_command": f"python3 scripts/build_working_context_packets.py --source-cards <source_cards.json> --format json > {READ_MODEL_OUTPUT_DIR}/working_context_packets.json",
-        "expected_format": "json",
-        "tags": _tags("working_context_packets", "codex_context_safe", "nohup_context_safe"),
-        "authority_label": "recommended_packet_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": True,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is source cards artifact",
-        "verification_command": "python3 -m pytest tests/test_working_context_packets.py",
-    },
-    {
-        "artifact_id": "context_packet_retrieval_json_concept",
-        "label": "Context Packet Retrieval JSON Concept",
-        "artifact_type": "recommended_export_path",
-        "path_or_command": f"{READ_MODEL_OUTPUT_DIR}/context_packet_retrieval.json",
-        "producer_script": "scripts/query_context_packets.py",
-        "producer_command": f"python3 scripts/query_context_packets.py --packets <packets.json> --module <module> --format json > {READ_MODEL_OUTPUT_DIR}/context_packet_retrieval.json",
-        "expected_format": "json",
-        "tags": _tags("retrieval_gate", "codex_context_safe", "nohup_context_safe"),
-        "authority_label": "recommended_retrieval_export",
-        "generated_on_demand": True,
-        "current_status_source": "recommended_export_not_required_in_v0",
-        "safe_for_mac_app": False,
-        "safe_for_codex_context": True,
-        "safe_for_nohup_workers": True,
-        "safe_for_agent_context": True,
-        "freshness_basis": "future standardized export path; current source is exact retrieval query",
-        "verification_command": "python3 -m pytest tests/test_context_packet_retrieval.py",
-    },
+    *STANDARDIZED_EXPORT_DEFINITIONS,
 )
 
 
@@ -542,10 +612,41 @@ def _file_metadata(path_or_command: str, root: Path) -> dict[str, Any]:
     }
 
 
+def _path_presence_metadata(path_or_command: str, root: Path) -> dict[str, Any]:
+    path = Path(path_or_command)
+    if path.is_absolute() or ".." in path.parts:
+        return {
+            "artifact_present": False,
+            "content_sha256": None,
+            "size_bytes": None,
+            "hash_basis": "not_applicable_non_repo_path",
+        }
+
+    full_path = (root / path).resolve()
+    try:
+        full_path.relative_to(root.resolve())
+    except ValueError:
+        return {
+            "artifact_present": False,
+            "content_sha256": None,
+            "size_bytes": None,
+            "hash_basis": "not_applicable_outside_repo",
+        }
+
+    return {
+        "artifact_present": full_path.is_file(),
+        "content_sha256": None,
+        "size_bytes": None,
+        "hash_basis": "explicit_standardized_export_path_presence_only_body_not_read",
+    }
+
+
 def _artifact_record(definition: dict[str, Any], root: Path) -> dict[str, Any]:
     record = deepcopy(definition)
     if record["artifact_type"] in {"generated_status_markdown", "generated_status_section"}:
         file_metadata = _file_metadata(record["path_or_command"], root)
+    elif record["artifact_type"] == "standardized_export_path":
+        file_metadata = _path_presence_metadata(record["path_or_command"], root)
     else:
         file_metadata = {
             "artifact_present": False,
@@ -628,7 +729,7 @@ def format_operator_artifact_registry(read_model: dict[str, Any]) -> str:
     export_count = sum(
         1
         for artifact in read_model["artifacts"]
-        if artifact["artifact_type"] == "recommended_export_path"
+        if artifact["artifact_type"] == "standardized_export_path"
     )
     lines = [
         "Read-Model Artifact Registry v0",
@@ -638,7 +739,7 @@ def format_operator_artifact_registry(read_model: dict[str, Any]) -> str:
             f"- Registered {read_model['artifact_count']} metadata/read-model artifact records: "
             f"{generated_markdown_count} generated Markdown files, "
             f"{contract_count} producer contracts, {section_count} generated-status sections, "
-            f"and {export_count} recommended export paths."
+            f"and {export_count} standardized export paths."
         ),
         (
             "- Consumer-safe records: "
@@ -662,8 +763,7 @@ def format_operator_artifact_registry(read_model: dict[str, Any]) -> str:
         "",
         "Next safe move:",
         (
-            f"- Standardize export/sync locations under `{READ_MODEL_OUTPUT_DIR}/` so the Mac app, "
-            "Codex-on-Mac, and nohup/background workers consume registered read-model artifacts instead of guessing paths."
+            f"- Keep `{READ_MODEL_OUTPUT_DIR}/` current with `python3 scripts/export_read_models.py --check` before app consumption."
         ),
     ]
     return "\n".join(lines)

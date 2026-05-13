@@ -130,8 +130,8 @@ Next safe move:
 Read-Model Artifact Registry v0
 
 Evidence:
-- `artifact_count=22` metadata/read-model artifact records are registered for deterministic discovery.
-- Intended consumers: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- `artifact_count=27` metadata/read-model artifact records are registered for deterministic discovery.
+- Intended consumers: Mac app=24; Codex context=26; nohup/background workers=26; agent context=26.
 - Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.
 
 Boundary:
