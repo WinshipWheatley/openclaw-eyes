@@ -112,14 +112,16 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
+@patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
+    mock_get_artifacts.return_value = []
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -208,15 +210,17 @@ def test_get_recent_receipts_integration(tmp_path):
     assert "exit=0" in proof_entry
     assert "abc1234" in proof_entry
 
+@patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
+    mock_get_artifacts.return_value = []
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
@@ -235,15 +239,17 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
         main()
         mock_exit.assert_not_called()
 
+@patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
+    mock_get_artifacts.return_value = []
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

@@ -219,10 +219,9 @@ def format_artifact_checkpoint_receipt(ts, packet_json_safe):
     runtime_activation = "true" if packet.get("runtime_activation") is True else "false"
     display_ts = ts.replace('T', ' ')[:16]
     return (
-        f"{display_ts} [ARTIFACT_CHECKPOINT] [SQLITE_VERIFIED] {artifact_path} "
-        f"status={artifact_status} authority={authority_status} "
-        f"runtime_activation={runtime_activation} sqlite={sqlite_meaning} "
-        "(Metadata Only/No Runtime Authority)"
+        f"| `{artifact_path}` | {display_ts} | recorded `{artifact_status}` | "
+        f"`authority={authority_status}`; `runtime_activation={runtime_activation}`; "
+        f"`sqlite={sqlite_meaning}`; `body=not-ingested` |"
     )
 
 
@@ -304,10 +303,16 @@ def generate_current_state(snapshot):
         lines.extend([
             "",
             "### Module Atlas Artifact Checkpoints",
-            "Metadata-only SQLite artifact receipts; no runtime authority, module activation, broker connection, agent wiring, or customer deployment.",
+            "**Evidence:** committed docs/code artifacts have metadata-only SQLite checkpoint receipts.",
+            "**Boundary:** recorded checkpoint only; not runtime authority. No full Markdown/code body is ingested.",
+            "**Blocked:** no module, agent, broker, customer deployment, or runtime behavior is activated or authorized by these receipts.",
+            "**Next safe move:** review docs/tests/receipts; runtime activation still requires a separate approved lane.",
+            "",
+            "| Artifact | Receipt Time | Checkpoint | Authority Boundary |",
+            "| --- | --- | --- | --- |",
         ])
         for receipt in artifact_checkpoints:
-            lines.append(f"- {receipt}")
+            lines.append(receipt)
 
     # Section 3: Truth Substrate Summary
     lines.extend([

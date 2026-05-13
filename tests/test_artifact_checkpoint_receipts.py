@@ -153,11 +153,35 @@ def test_generated_status_surfaces_module_atlas_artifact_receipts(temp_ledger):
     output = generate_current_state(_snapshot_with_artifacts(receipts))
 
     assert "### Module Atlas Artifact Checkpoints" in output
-    assert "Metadata-only SQLite artifact receipts" in output
+    assert "**Evidence:** committed docs/code artifacts have metadata-only SQLite checkpoint receipts." in output
+    assert "**Boundary:** recorded checkpoint only; not runtime authority." in output
+    assert "**Blocked:** no module, agent, broker, customer deployment, or runtime behavior is activated or authorized by these receipts." in output
+    assert "**Next safe move:** review docs/tests/receipts; runtime activation still requires a separate approved lane." in output
+    assert "No full Markdown/code body is ingested" in output
+    assert "| Artifact | Receipt Time | Checkpoint | Authority Boundary |" in output
+    assert "recorded `docs-only`" in output
+    assert "recorded `inert`" in output
     assert ATLAS_DOC in output
     assert SCHEMA_DOC in output
-    assert "status=docs-only" in output
-    assert "status=inert" in output
-    assert "authority=no-runtime-authority" in output
-    assert "runtime_activation=false" in output
-    assert "No Runtime Authority" in output
+    assert "`authority=no-runtime-authority`" in output
+    assert "`runtime_activation=false`" in output
+    assert "`sqlite=receipt-record-only`" in output
+    assert "`body=not-ingested`" in output
+    assert "no module, agent, broker, customer deployment, or runtime behavior is activated or authorized" in output.lower()
+    forbidden_claims = [
+        "runtime ready",
+        "runtime-ready",
+        "module active",
+        "modules active",
+        "broker connected",
+        "agent wired",
+        "customer deployment active",
+    ]
+    output_lower = output.lower()
+    for claim in forbidden_claims:
+        assert claim not in output_lower
+
+    artifact_section = output.split("### Module Atlas Artifact Checkpoints", 1)[1].split("## 3.", 1)[0]
+    assert "[ARTIFACT_CHECKPOINT]" not in artifact_section
+    assert "[MODULE_ATLAS_ARTIFACT]" not in artifact_section
+    assert len(artifact_section.splitlines()) <= 11
