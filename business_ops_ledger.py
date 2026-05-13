@@ -5,12 +5,43 @@ SQLite Ledger v0 - Append-only receipt layer for Business Ops Spine events.
 import sqlite3
 import json
 import logging
+import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_DB_PATH = ".openclaw/business_ops/ledger.sqlite"
+
+GENERIC_RECEIPT_TYPES = {
+    "artifact_checkpoint",
+    "validation_result",
+    "approval_record",
+    "generated_status",
+}
+
+GENERIC_RECEIPT_SQLITE_MEANING = "receipt_record_only"
+
+GENERIC_RECEIPT_AUTHORITY_STATUSES = {
+    "no_runtime_authority",
+    "approval_record_only",
+    "validation_evidence_only",
+    "generated_status_only",
+    "artifact_checkpoint_only",
+}
+
+UNSAFE_RECEIPT_PAYLOAD_KEYS = {
+    "artifact_body",
+    "artifact_contents",
+    "document_body",
+    "document_text",
+    "file_contents",
+    "full_markdown",
+    "full_markdown_body",
+    "markdown_body",
+    "raw_markdown",
+}
 
 
 def init_business_ops_ledger(db_path: str | None = None) -> str:
@@ -423,6 +454,130 @@ def append_packet_receipt(
     except Exception as e:
         logger.error(f"Failed to append packet receipt: {e}")
         return False
+
+
+def _contains_unsafe_receipt_payload_key(value: Any) -> bool:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if str(key).lower() in UNSAFE_RECEIPT_PAYLOAD_KEYS:
+                return True
+            if _contains_unsafe_receipt_payload_key(child):
+                return True
+    elif isinstance(value, list):
+        return any(_contains_unsafe_receipt_payload_key(item) for item in value)
+    return False
+
+
+def _json_safe(value: Any, field_name: str) -> Any:
+    try:
+        return json.loads(json.dumps(value, sort_keys=True))
+    except TypeError as exc:
+        raise ValueError(f"{field_name} must be JSON serializable") from exc
+
+
+def _artifact_path_exists(artifact_path: str) -> bool:
+    if not artifact_path or "\x00" in artifact_path:
+        return False
+    path = Path(artifact_path)
+    if path.is_absolute():
+        return False
+    return path.is_file()
+
+
+def record_receipt(
+    receipt_type: str,
+    payload: dict[str, Any] | None = None,
+    artifact_path: str | None = None,
+    commit_hash: str | None = None,
+    artifact_type: str | None = None,
+    artifact_status: str | None = None,
+    authority_status: str = "no_runtime_authority",
+    runtime_activation: bool = False,
+    sqlite_meaning: str = GENERIC_RECEIPT_SQLITE_MEANING,
+    source_basis: Any = None,
+    receipt_id: str | None = None,
+    actor: str = "generic_receipt_spine_v0",
+    created_at: str | None = None,
+    db_path: str | None = None,
+) -> str:
+    """
+    Records one generic metadata-only receipt in the existing events/packets ledger.
+
+    The receipt is evidence only. It does not activate modules, agents, brokers,
+    runtime paths, customer deployment, or SQLite semantics beyond receipt storage.
+    """
+    receipt_type = receipt_type.strip()
+    if not receipt_type:
+        raise ValueError("receipt_type is required")
+    if not receipt_type.replace("_", "").isalnum():
+        raise ValueError("receipt_type must use letters, numbers, and underscores")
+    if runtime_activation:
+        raise ValueError("generic receipts cannot record runtime_activation=True")
+    if sqlite_meaning != GENERIC_RECEIPT_SQLITE_MEANING:
+        raise ValueError("generic receipts are limited to receipt_record_only SQLite meaning")
+    if authority_status not in GENERIC_RECEIPT_AUTHORITY_STATUSES:
+        raise ValueError(f"unsupported authority_status: {authority_status}")
+    if artifact_path is not None and not _artifact_path_exists(artifact_path):
+        return ""
+
+    payload_json = payload or {}
+    if not isinstance(payload_json, dict):
+        raise ValueError("payload must be a JSON object")
+    if _contains_unsafe_receipt_payload_key(payload_json):
+        raise ValueError("payload_json must not include full document or artifact body fields")
+
+    safe_payload = _json_safe(payload_json, "payload")
+    safe_source_basis = _json_safe(source_basis if source_basis is not None else [], "source_basis")
+    created_at = created_at or datetime.now().isoformat()
+    receipt_id = receipt_id or f"rct_{uuid.uuid4().hex[:12]}"
+
+    summary_target = artifact_path or receipt_type
+    summary = f"{receipt_type}: {summary_target} ({sqlite_meaning}, no runtime authority)"
+
+    success = append_event(
+        event_id=receipt_id,
+        event_type=receipt_type,
+        actor=actor,
+        operator_visible_summary=summary,
+        raw_sensitive_data_stored=False,
+        replay_safe=True,
+        db_path=db_path,
+    )
+    if not success:
+        return ""
+
+    receipt_envelope = {
+        "packet_id": receipt_id,
+        "receipt_id": receipt_id,
+        "receipt_type": receipt_type,
+        "artifact_path": artifact_path,
+        "commit_hash": commit_hash,
+        "artifact_type": artifact_type,
+        "artifact_status": artifact_status,
+        "authority_status": authority_status,
+        "runtime_activation": False,
+        "sqlite_meaning": sqlite_meaning,
+        "source_basis": safe_source_basis,
+        "payload_json": safe_payload,
+        "created_at": created_at,
+        "intent_name": receipt_type,
+        "request_category": "generic_receipt",
+        "actor_name": actor,
+        "execution_authority": 0,
+        "approval_required": False,
+        "approval_tier": None,
+        "action_status": "receipt_recorded",
+        "metadata_only": True,
+        "full_markdown_body_stored": False,
+        "module_activation_recorded": False,
+        "broker_connection_recorded": False,
+        "agent_wiring_recorded": False,
+        "customer_deployment_recorded": False,
+    }
+
+    if not append_packet_receipt(receipt_envelope, event_id=receipt_id, db_path=db_path):
+        return ""
+    return receipt_id
 
 
 def append_capability_decision(
