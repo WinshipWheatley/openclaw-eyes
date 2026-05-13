@@ -602,3 +602,5 @@
 !tests/test_safe_body_extraction.py
 !scripts/build_source_cards.py
 !tests/test_source_cards.py
+!scripts/build_working_context_packets.py
+!tests/test_working_context_packets.py
