@@ -5,11 +5,16 @@ import pytest
 
 from business_ops_ledger import init_business_ops_ledger
 from scripts.generate_operator_status import (
+    MODULE_ATLAS_BOOTSTRAP_COMMAND,
     get_artifact_checkpoint_receipts,
     generate_current_state,
 )
 from scripts.record_artifact_checkpoint_receipts import (
     ArtifactCheckpoint,
+    MODULE_ATLAS_ARTIFACT_CHECKPOINTS,
+    MODULE_ATLAS_ARTIFACT_PATHS,
+    ensure_module_atlas_artifact_checkpoints,
+    main as record_artifact_checkpoint_main,
     record_artifact_checkpoints,
 )
 
@@ -55,6 +60,8 @@ def _snapshot_with_artifacts(artifact_receipts):
         "recent_proofs": [],
         "strongest_clean_proof": None,
         "artifact_checkpoint_receipts": artifact_receipts,
+        "artifact_checkpoint_expected_total": len(artifact_receipts),
+        "artifact_checkpoint_bootstrap_command": MODULE_ATLAS_BOOTSTRAP_COMMAND,
         "active_lane": "Receipt spine validation.",
         "allowed_tools": "Repo and ledger metadata reads.",
         "forbidden_surfaces": "Private/no-go paths.",
@@ -84,6 +91,63 @@ def test_recording_explicit_artifact_checkpoints_writes_generic_receipts(temp_le
     payloads = _packet_payloads(temp_ledger)
     assert {payload["receipt_type"] for payload in payloads} == {"artifact_checkpoint"}
     assert {payload["artifact_path"] for payload in payloads} == {ATLAS_DOC, SCHEMA_DOC}
+
+
+def test_module_atlas_bootstrap_records_expected_artifact_checkpoint_receipts(temp_ledger):
+    results = ensure_module_atlas_artifact_checkpoints(
+        commit_hash=COMMIT_HASH,
+        db_path=temp_ledger,
+    )
+
+    assert len(results) == len(MODULE_ATLAS_ARTIFACT_CHECKPOINTS)
+    assert {result["action"] for result in results} == {"recorded"}
+    payloads = _packet_payloads(temp_ledger)
+    assert {payload["artifact_path"] for payload in payloads} == set(MODULE_ATLAS_ARTIFACT_PATHS)
+    assert {payload["receipt_type"] for payload in payloads} == {"artifact_checkpoint"}
+    assert {payload["authority_status"] for payload in payloads} == {"no_runtime_authority"}
+
+
+def test_module_atlas_bootstrap_is_idempotent_on_rerun(temp_ledger):
+    first = ensure_module_atlas_artifact_checkpoints(
+        commit_hash=COMMIT_HASH,
+        db_path=temp_ledger,
+    )
+    second = ensure_module_atlas_artifact_checkpoints(
+        commit_hash=COMMIT_HASH,
+        db_path=temp_ledger,
+    )
+
+    assert {result["action"] for result in first} == {"recorded"}
+    assert {result["action"] for result in second} == {"present"}
+    conn = sqlite3.connect(temp_ledger)
+    try:
+        event_count = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        packet_count = conn.execute("SELECT COUNT(*) FROM packets").fetchone()[0]
+    finally:
+        conn.close()
+    assert event_count == len(MODULE_ATLAS_ARTIFACT_CHECKPOINTS)
+    assert packet_count == len(MODULE_ATLAS_ARTIFACT_CHECKPOINTS)
+
+
+def test_module_atlas_bootstrap_cli_is_operator_readable_and_idempotent(temp_ledger, capsys):
+    first_exit = record_artifact_checkpoint_main(
+        ["--module-atlas", "--ensure", "--commit-hash", COMMIT_HASH, "--db", temp_ledger]
+    )
+    first_output = capsys.readouterr().out
+    second_exit = record_artifact_checkpoint_main(
+        ["--module-atlas", "--ensure", "--commit-hash", COMMIT_HASH, "--db", temp_ledger]
+    )
+    second_output = capsys.readouterr().out
+
+    assert first_exit == 0
+    assert second_exit == 0
+    assert "Module Atlas receipt bootstrap" in first_output
+    assert "Evidence: committed docs/code artifacts are checked against metadata-only receipts." in first_output
+    assert "Boundary: receipt-record-only; no runtime authority or full body ingest." in first_output
+    assert "RECORDED docs/module_atlas/OPENCLAW_MODULE_ATLAS_V0.md" in first_output
+    assert "Summary: ensured=6 recorded=6 present=0 failed=0" in first_output
+    assert "PRESENT docs/module_atlas/OPENCLAW_MODULE_ATLAS_V0.md" in second_output
+    assert "Summary: ensured=6 recorded=0 present=6 failed=0" in second_output
 
 
 def test_missing_artifact_path_fails_safely(temp_ledger):
@@ -121,6 +185,7 @@ def test_artifact_checkpoint_receipts_store_metadata_only(temp_ledger):
     assert "# OpenClaw Module Atlas v0" not in packet_json
     assert "## 4. Candidate Module Families" not in packet_json
     assert '"full_body_ingested": false' in packet_json
+    assert '"body_ingest_status": "not_ingested"' in packet_json
 
 
 def test_artifact_checkpoint_receipts_are_non_runtime_no_authority(temp_ledger):
@@ -185,3 +250,25 @@ def test_generated_status_surfaces_module_atlas_artifact_receipts(temp_ledger):
     assert "[ARTIFACT_CHECKPOINT]" not in artifact_section
     assert "[MODULE_ATLAS_ARTIFACT]" not in artifact_section
     assert len(artifact_section.splitlines()) <= 11
+
+
+def test_generated_status_missing_receipts_shows_bootstrap_next_safe_move():
+    snapshot = _snapshot_with_artifacts([])
+    snapshot["artifact_checkpoint_expected_total"] = len(MODULE_ATLAS_ARTIFACT_PATHS)
+
+    output = generate_current_state(snapshot)
+
+    assert "### Module Atlas Artifact Checkpoints" in output
+    assert "no local Module Atlas checkpoint receipts found for 6 committed docs/code artifacts" in output
+    assert f"run `{MODULE_ATLAS_BOOTSTRAP_COMMAND}`" in output
+    assert "recorded checkpoint only; not runtime authority" in output
+    assert "No full Markdown/code body is ingested" in output
+    output_lower = output.lower()
+    for claim in [
+        "runtime ready",
+        "module active",
+        "modules active",
+        "broker connected",
+        "customer deployment active",
+    ]:
+        assert claim not in output_lower

@@ -44,17 +44,20 @@ except ImportError:
             except:
                 return summary_text
 
+try:
+    from scripts.record_artifact_checkpoint_receipts import (
+        MODULE_ATLAS_ARTIFACT_PATHS,
+        MODULE_ATLAS_BOOTSTRAP_COMMAND,
+    )
+except ImportError:
+    from record_artifact_checkpoint_receipts import (
+        MODULE_ATLAS_ARTIFACT_PATHS,
+        MODULE_ATLAS_BOOTSTRAP_COMMAND,
+    )
+
 # --- Configuration ---
 CURRENT_STATE_OUT = "Operator/GENERATED_CURRENT_STATE.md"
 NEXT_ACTIONS_OUT = "Operator/GENERATED_NEXT_ACTIONS.md"
-MODULE_ATLAS_ARTIFACT_PATHS = (
-    "docs/module_atlas/OPENCLAW_MODULE_ATLAS_V0.md",
-    "docs/module_atlas/OPENCLAW_MODULE_MANIFEST_DRAFT_SCHEMA_V0.md",
-    "docs/module_atlas/OPENCLAW_SYNTHETIC_MODULE_MANIFEST_EXAMPLES_V0.md",
-    "docs/module_atlas/OPENCLAW_MODULE_MANIFEST_VALIDATION_CONTRACT_V0.md",
-    "scripts/validate_module_manifests.py",
-    "tests/test_module_manifest_validation.py",
-)
 
 DISCLAIMER = """<!--
 GENERATED FILE - DO NOT EDIT MANUALLY
@@ -270,6 +273,54 @@ def get_artifact_checkpoint_receipts(limit=20, db_path=None, artifact_paths=None
 
     return receipts
 
+
+def format_module_atlas_artifact_checkpoint_section(
+    artifact_checkpoints,
+    expected_total=None,
+    bootstrap_command=MODULE_ATLAS_BOOTSTRAP_COMMAND,
+):
+    expected_total = expected_total if expected_total is not None else len(artifact_checkpoints)
+    recorded_total = len(artifact_checkpoints)
+    missing_total = max(expected_total - recorded_total, 0)
+
+    if recorded_total == 0:
+        evidence = (
+            f"no local Module Atlas checkpoint receipts found for {expected_total} "
+            "committed docs/code artifacts."
+        )
+        next_safe_move = f"run `{bootstrap_command}` to record metadata-only checkpoints."
+    elif missing_total:
+        evidence = (
+            f"{recorded_total}/{expected_total} committed Module Atlas docs/code artifacts "
+            "have metadata-only SQLite checkpoint receipts."
+        )
+        next_safe_move = f"run `{bootstrap_command}` to fill missing metadata-only checkpoints."
+    else:
+        evidence = "committed docs/code artifacts have metadata-only SQLite checkpoint receipts."
+        next_safe_move = "review docs/tests/receipts; runtime activation still requires a separate approved lane."
+
+    lines = [
+        "",
+        "### Module Atlas Artifact Checkpoints",
+        f"**Evidence:** {evidence}",
+        "**Boundary:** recorded checkpoint only; not runtime authority. No full Markdown/code body is ingested.",
+        "**Blocked:** no module, agent, broker, customer deployment, or runtime behavior is activated or authorized by these receipts.",
+        f"**Next safe move:** {next_safe_move}",
+    ]
+
+    if artifact_checkpoints:
+        lines.extend(
+            [
+                "",
+                "| Artifact | Receipt Time | Checkpoint | Authority Boundary |",
+                "| --- | --- | --- | --- |",
+            ]
+        )
+        lines.extend(artifact_checkpoints)
+
+    return lines
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -298,21 +349,18 @@ def generate_current_state(snapshot):
     else:
         lines.append("- No recent verification receipts found.")
 
-    artifact_checkpoints = snapshot.get('artifact_checkpoint_receipts', [])
-    if artifact_checkpoints:
-        lines.extend([
-            "",
-            "### Module Atlas Artifact Checkpoints",
-            "**Evidence:** committed docs/code artifacts have metadata-only SQLite checkpoint receipts.",
-            "**Boundary:** recorded checkpoint only; not runtime authority. No full Markdown/code body is ingested.",
-            "**Blocked:** no module, agent, broker, customer deployment, or runtime behavior is activated or authorized by these receipts.",
-            "**Next safe move:** review docs/tests/receipts; runtime activation still requires a separate approved lane.",
-            "",
-            "| Artifact | Receipt Time | Checkpoint | Authority Boundary |",
-            "| --- | --- | --- | --- |",
-        ])
-        for receipt in artifact_checkpoints:
-            lines.append(receipt)
+    artifact_checkpoints = snapshot.get('artifact_checkpoint_receipts')
+    if artifact_checkpoints is not None:
+        lines.extend(
+            format_module_atlas_artifact_checkpoint_section(
+                artifact_checkpoints,
+                expected_total=snapshot.get('artifact_checkpoint_expected_total'),
+                bootstrap_command=snapshot.get(
+                    'artifact_checkpoint_bootstrap_command',
+                    MODULE_ATLAS_BOOTSTRAP_COMMAND,
+                ),
+            )
+        )
 
     # Section 3: Truth Substrate Summary
     lines.extend([
@@ -426,6 +474,8 @@ def main():
     snapshot['artifact_checkpoint_receipts'] = get_artifact_checkpoint_receipts(
         artifact_paths=MODULE_ATLAS_ARTIFACT_PATHS
     )
+    snapshot['artifact_checkpoint_expected_total'] = len(MODULE_ATLAS_ARTIFACT_PATHS)
+    snapshot['artifact_checkpoint_bootstrap_command'] = MODULE_ATLAS_BOOTSTRAP_COMMAND
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)

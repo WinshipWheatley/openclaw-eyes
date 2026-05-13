@@ -3,7 +3,12 @@ import pytest
 import sys
 import sqlite3
 from unittest.mock import patch, MagicMock
-from scripts.generate_operator_status import generate_current_state, generate_next_actions
+from scripts.generate_operator_status import (
+    MODULE_ATLAS_ARTIFACT_PATHS,
+    MODULE_ATLAS_BOOTSTRAP_COMMAND,
+    generate_current_state,
+    generate_next_actions,
+)
 
 @pytest.fixture
 def mock_snapshot():
@@ -97,6 +102,29 @@ def test_generate_current_state_no_proofs(mock_snapshot):
     assert "## 2. Recent Verification Receipts" in output
     assert "No recent verification receipts found." in output
     assert "Strongest recent clean proof" not in output
+
+def test_generate_current_state_missing_module_atlas_receipts_is_operator_readable(mock_snapshot):
+    mock_snapshot["artifact_checkpoint_receipts"] = []
+    mock_snapshot["artifact_checkpoint_expected_total"] = len(MODULE_ATLAS_ARTIFACT_PATHS)
+    mock_snapshot["artifact_checkpoint_bootstrap_command"] = MODULE_ATLAS_BOOTSTRAP_COMMAND
+
+    output = generate_current_state(mock_snapshot)
+
+    assert "### Module Atlas Artifact Checkpoints" in output
+    assert "no local Module Atlas checkpoint receipts found for 6 committed docs/code artifacts" in output
+    assert f"run `{MODULE_ATLAS_BOOTSTRAP_COMMAND}`" in output
+    assert "recorded checkpoint only; not runtime authority" in output
+    assert "No full Markdown/code body is ingested" in output
+    assert "| Artifact | Receipt Time | Checkpoint | Authority Boundary |" not in output
+    output_lower = output.lower()
+    for phrase in [
+        "runtime ready",
+        "module active",
+        "broker connected",
+        "agent wired",
+        "customer deployment active",
+    ]:
+        assert phrase not in output_lower
 
 def test_generate_next_actions(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
@@ -228,6 +256,9 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
     snapshot_with_proofs = mock_snapshot.copy()
     snapshot_with_proofs["recent_proofs"] = mock_snapshot["recent_proofs"]
     snapshot_with_proofs["strongest_clean_proof"] = mock_snapshot["strongest_clean_proof"]
+    snapshot_with_proofs["artifact_checkpoint_receipts"] = []
+    snapshot_with_proofs["artifact_checkpoint_expected_total"] = len(MODULE_ATLAS_ARTIFACT_PATHS)
+    snapshot_with_proofs["artifact_checkpoint_bootstrap_command"] = MODULE_ATLAS_BOOTSTRAP_COMMAND
 
     curr_content = DISCLAIMER + "\n" + generate_current_state(snapshot_with_proofs)
     next_content = DISCLAIMER + "\n" + generate_next_actions(snapshot_with_proofs)
