@@ -613,3 +613,5 @@
 !tests/test_helm_state.py
 !scripts/build_world_domain_registry.py
 !tests/test_world_domain_registry.py
+!scripts/build_artifact_registry.py
+!tests/test_artifact_registry.py
