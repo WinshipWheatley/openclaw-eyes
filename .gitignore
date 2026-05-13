@@ -604,3 +604,5 @@
 !tests/test_source_cards.py
 !scripts/build_working_context_packets.py
 !tests/test_working_context_packets.py
+!scripts/query_context_packets.py
+!tests/test_context_packet_retrieval.py
