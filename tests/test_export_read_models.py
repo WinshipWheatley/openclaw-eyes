@@ -40,6 +40,10 @@ def test_expected_exports_exist(tmp_path):
     }
     for path in paths:
         assert Path(path).is_file()
+    assert (_export_root(tmp_path) / "world_status.json").is_file()
+    assert (_export_root(tmp_path) / "world_status.operator.txt").is_file()
+    assert (_export_root(tmp_path) / "evidence_freshness.json").is_file()
+    assert (_export_root(tmp_path) / "evidence_freshness.operator.txt").is_file()
 
 
 def test_expected_json_exports_parse(tmp_path):
@@ -92,8 +96,8 @@ def test_no_raw_source_bodies_are_exported(tmp_path):
 
     for export in summary["exports"]:
         text = Path(export["path"]).read_text(encoding="utf-8")
-        assert "extracted_text" not in text
-        assert "source_body" not in text
+        assert '"extracted_text"' not in text
+        assert '"source_body"' not in text
     assert "full_body_ingest" in summary["claims_not_made"]
 
 

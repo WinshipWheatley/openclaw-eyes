@@ -1,8 +1,8 @@
 Read-Model Artifact Registry v0
 
 Evidence:
-- Registered 27 metadata/read-model artifact records: 2 generated Markdown files, 9 producer contracts, 4 generated-status sections, and 12 standardized export paths.
-- Consumer-safe records: Mac app=24; Codex context=26; nohup/background workers=26; agent context=26.
+- Registered 34 metadata/read-model artifact records: 2 generated Markdown files, 12 producer contracts, 4 generated-status sections, and 16 standardized export paths.
+- Consumer-safe records: Mac app=31; Codex context=33; nohup/background workers=33; agent context=33.
 - Registered artifacts carry tags, authority labels, freshness basis, verification command, and explicit no-claims.
 
 Boundary:

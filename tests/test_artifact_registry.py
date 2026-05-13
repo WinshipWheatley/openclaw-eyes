@@ -93,6 +93,9 @@ def test_expected_core_artifacts_and_producers_are_registered():
     assert artifacts["source_inventory_output_contract"]["producer_script"] == "scripts/build_source_inventory.py"
     assert artifacts["helm_state_output_contract"]["producer_script"] == "scripts/build_helm_state.py"
     assert artifacts["world_domain_registry_output_contract"]["producer_script"] == "scripts/build_world_domain_registry.py"
+    assert artifacts["world_status_output_contract"]["producer_script"] == "scripts/build_world_status.py"
+    assert artifacts["artifact_registry_output_contract"]["producer_script"] == "scripts/build_artifact_registry.py"
+    assert artifacts["evidence_freshness_output_contract"]["producer_script"] == "scripts/build_evidence_freshness.py"
     assert artifacts["runtime_activation_gate_output_contract"]["producer_script"] == "scripts/check_runtime_activation_gate.py"
 
 
@@ -140,6 +143,8 @@ def test_registry_marks_intended_consumers():
     assert artifacts["generated_current_state"]["safe_for_mac_app"] is True
     assert artifacts["helm_state_json_export"]["safe_for_mac_app"] is True
     assert artifacts["world_domain_registry_json_export"]["safe_for_mac_app"] is True
+    assert artifacts["world_status_json_export"]["safe_for_mac_app"] is True
+    assert artifacts["evidence_freshness_json_export"]["safe_for_mac_app"] is True
     assert artifacts["source_inventory_operator_export"]["safe_for_codex_context"] is True
     assert artifacts["runtime_activation_gate_operator_export"]["safe_for_nohup_workers"] is True
     assert artifacts["generated_next_actions_markdown_export"]["safe_for_agent_context"] is True
@@ -172,9 +177,9 @@ def test_operator_output_uses_cockpit_grammar():
 
     assert "Read-Model Artifact Registry v0" in output
     assert (
-        "Registered 27 metadata/read-model artifact records: "
-        "2 generated Markdown files, 9 producer contracts, "
-        "4 generated-status sections, and 12 standardized export paths."
+        "Registered 34 metadata/read-model artifact records: "
+        "2 generated Markdown files, 12 producer contracts, "
+        "4 generated-status sections, and 16 standardized export paths."
     ) in output
     assert "Evidence:" in output
     assert "Boundary:" in output

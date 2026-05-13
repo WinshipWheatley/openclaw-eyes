@@ -1,0 +1,18 @@
+World Status Read-Model v0
+
+Evidence:
+- 8 worlds have conservative registry-backed status records.
+- World status is inspect-only / registry-only.
+- Worlds: `music_art`, `finance`, `operations`, `security`, `build`, `research`, `communications`, `business_development`.
+
+Boundary:
+- World Status v0 reads the deterministic World / Domain Registry only.
+- `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
+- No dynamic world state, gravity, or agent presence is implemented; live health, runtime action, private-data access, and body ingest are also not implemented.
+
+Blocked:
+- Dynamic world state, strategic gravity scoring, active agent presence, and live health remain unimplemented.
+- Runtime activation, backend execution, agent activation, broker wiring, external tools, networking, and customer deployment remain blocked.
+
+Next safe move:
+- Add evidence freshness / strategic gravity inputs before dynamic attention states.

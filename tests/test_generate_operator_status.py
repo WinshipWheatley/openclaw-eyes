@@ -102,8 +102,8 @@ Next safe move:
 ARTIFACT_REGISTRY_STATUS = """Read-Model Artifact Registry v0
 
 Evidence:
-- `artifact_count=27` metadata/read-model artifact records are registered for deterministic discovery.
-- Intended consumers: Mac app=24; Codex context=26; nohup/background workers=26; agent context=26.
+- `artifact_count=34` metadata/read-model artifact records are registered for deterministic discovery.
+- Intended consumers: Mac app=31; Codex context=33; nohup/background workers=33; agent context=33.
 - Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.
 
 Boundary:
@@ -453,17 +453,17 @@ def test_generate_current_state_includes_artifact_registry_section(mock_snapshot
     assert section.index("Evidence:") < section.index("Boundary:")
     assert section.index("Boundary:") < section.index("Blocked:")
     assert section.index("Blocked:") < section.index("Next safe move:")
-    assert "`artifact_count=27`" in section
+    assert "`artifact_count=34`" in section
     assert "metadata/read-model only" in section
     assert "`body_ingested=false`" in section
     assert "`broad_scan=false`" in section
     assert "`runtime_authority=false`" in section
     assert "`activation_allowed=false`" in section
     assert "`backend_execution_authorized=false`" in section
-    assert "Mac app=24" in section
-    assert "Codex context=26" in section
-    assert "nohup/background workers=26" in section
-    assert "agent context=26" in section
+    assert "Mac app=31" in section
+    assert "Codex context=33" in section
+    assert "nohup/background workers=33" in section
+    assert "agent context=33" in section
     assert "does not authorize runtime/app actions" in section
     assert "generated/read_models/" in section
 
@@ -491,16 +491,16 @@ def test_artifact_registry_status_uses_existing_read_model_and_is_metadata_only(
     output = get_artifact_registry_operator_status()
 
     assert "Read-Model Artifact Registry v0" in output
-    assert "`artifact_count=27`" in output
+    assert "`artifact_count=34`" in output
     assert "`body_ingested=false`" in output
     assert "`broad_scan=false`" in output
     assert "`runtime_authority=false`" in output
     assert "`activation_allowed=false`" in output
     assert "`backend_execution_authorized=false`" in output
-    assert "Mac app=24" in output
-    assert "Codex context=26" in output
-    assert "nohup/background workers=26" in output
-    assert "agent context=26" in output
+    assert "Mac app=31" in output
+    assert "Codex context=33" in output
+    assert "nohup/background workers=33" in output
+    assert "agent context=33" in output
     assert "generated/read_models/" in output
 
 

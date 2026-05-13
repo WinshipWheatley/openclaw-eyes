@@ -18,6 +18,7 @@ try:
     )
     from scripts.build_helm_state import build_helm_state, format_operator_helm_state
     from scripts.build_source_inventory import build_inventory, format_operator_inventory
+    from scripts.build_world_status import build_world_status, format_operator_world_status
     from scripts.build_world_domain_registry import (
         build_world_domain_registry,
         format_operator_world_domain_registry,
@@ -34,6 +35,7 @@ except ImportError:
     )
     from build_helm_state import build_helm_state, format_operator_helm_state
     from build_source_inventory import build_inventory, format_operator_inventory
+    from build_world_status import build_world_status, format_operator_world_status
     from build_world_domain_registry import (
         build_world_domain_registry,
         format_operator_world_domain_registry,
@@ -77,13 +79,22 @@ EXPECTED_EXPORT_PATHS = (
     "helm_state.operator.txt",
     "world_domain_registry.json",
     "world_domain_registry.operator.txt",
+    "world_status.json",
+    "world_status.operator.txt",
     "artifact_registry.json",
     "artifact_registry.operator.txt",
     "runtime_activation_gate.json",
     "runtime_activation_gate.operator.txt",
+    "evidence_freshness.json",
+    "evidence_freshness.operator.txt",
     "generated_current_state.md",
     "generated_next_actions.md",
 )
+
+SELF_REFERENTIAL_EXPORT_IDS = {
+    "evidence_freshness",
+    "evidence_freshness_operator",
+}
 
 
 @dataclass(frozen=True)
@@ -133,12 +144,37 @@ def _world_domain_registry() -> dict[str, Any]:
     return build_world_domain_registry()
 
 
+def _world_status() -> dict[str, Any]:
+    return build_world_status()
+
+
 def _artifact_registry() -> dict[str, Any]:
     return build_artifact_registry()
 
 
 def _activation_gate() -> dict[str, Any]:
     return build_activation_gate_report()
+
+
+def _evidence_freshness() -> dict[str, Any]:
+    try:
+        from scripts.build_evidence_freshness import build_evidence_freshness
+    except ImportError:
+        from build_evidence_freshness import build_evidence_freshness
+
+    return build_evidence_freshness(
+        git_head="omitted_for_standardized_export_stability",
+        git_head_basis="omitted_to_avoid_commit_self_invalidation",
+    )
+
+
+def _format_operator_evidence_freshness(read_model: dict[str, Any]) -> str:
+    try:
+        from scripts.build_evidence_freshness import format_operator_evidence_freshness
+    except ImportError:
+        from build_evidence_freshness import format_operator_evidence_freshness
+
+    return format_operator_evidence_freshness(read_model)
 
 
 def _export_specs() -> tuple[ExportSpec, ...]:
@@ -210,6 +246,28 @@ def _export_specs() -> tuple[ExportSpec, ...]:
             render=lambda: format_operator_world_domain_registry(_world_domain_registry()) + "\n",
         ),
         ExportSpec(
+            artifact_id="world_status",
+            relative_path="world_status.json",
+            output_format="json",
+            producer="scripts/build_world_status.py --format json",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _json_text(_world_status()),
+        ),
+        ExportSpec(
+            artifact_id="world_status_operator",
+            relative_path="world_status.operator.txt",
+            output_format="operator_text",
+            producer="scripts/build_world_status.py --format operator",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: format_operator_world_status(_world_status()) + "\n",
+        ),
+        ExportSpec(
             artifact_id="artifact_registry",
             relative_path="artifact_registry.json",
             output_format="json",
@@ -252,6 +310,28 @@ def _export_specs() -> tuple[ExportSpec, ...]:
             safe_for_nohup_workers=True,
             safe_for_agent_context=True,
             render=lambda: format_operator_activation_gate(_activation_gate()) + "\n",
+        ),
+        ExportSpec(
+            artifact_id="evidence_freshness",
+            relative_path="evidence_freshness.json",
+            output_format="json",
+            producer="scripts/build_evidence_freshness.py --format json",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _json_text(_evidence_freshness()),
+        ),
+        ExportSpec(
+            artifact_id="evidence_freshness_operator",
+            relative_path="evidence_freshness.operator.txt",
+            output_format="operator_text",
+            producer="scripts/build_evidence_freshness.py --format operator",
+            safe_for_mac_app=True,
+            safe_for_codex_context=True,
+            safe_for_nohup_workers=True,
+            safe_for_agent_context=True,
+            render=lambda: _format_operator_evidence_freshness(_evidence_freshness()) + "\n",
         ),
         ExportSpec(
             artifact_id="generated_current_state",
@@ -299,10 +379,14 @@ def _export_record(spec: ExportSpec, path: Path) -> dict[str, Any]:
 def build_expected_exports(
     *,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
+    exclude_artifact_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     root = _export_root_path(export_root)
+    excluded = exclude_artifact_ids or set()
     expected: list[dict[str, Any]] = []
     for spec in _export_specs():
+        if spec.artifact_id in excluded:
+            continue
         path = root / spec.relative_path
         expected.append(
             {
@@ -345,18 +429,36 @@ def export_read_models(
     *,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     check: bool = False,
+    exclude_artifact_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     root = _export_root_path(export_root)
-    expected = build_expected_exports(export_root=root)
+    excluded = exclude_artifact_ids or set()
     stale_exports: list[str] = []
 
     if check:
+        expected = build_expected_exports(export_root=root, exclude_artifact_ids=excluded)
         for item in expected:
             path = item["path"]
             if not path.is_file() or path.read_text(encoding="utf-8") != item["content"]:
                 stale_exports.append(_display_path(path))
     else:
         root.mkdir(parents=True, exist_ok=True)
+        for spec in _export_specs():
+            if spec.artifact_id in excluded:
+                continue
+            path = root / spec.relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch(exist_ok=True)
+
+        non_self_excluded = excluded | SELF_REFERENTIAL_EXPORT_IDS
+        non_self_expected = build_expected_exports(
+            export_root=root,
+            exclude_artifact_ids=non_self_excluded,
+        )
+        for item in non_self_expected:
+            item["path"].write_text(item["content"], encoding="utf-8")
+
+        expected = build_expected_exports(export_root=root, exclude_artifact_ids=excluded)
         for item in expected:
             item["path"].write_text(item["content"], encoding="utf-8")
 

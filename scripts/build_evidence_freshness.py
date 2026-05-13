@@ -317,6 +317,8 @@ def build_evidence_freshness(
     run_generated_status_check: bool = True,
     run_export_check: bool = True,
     expected_export_paths: Iterable[str] | None = None,
+    git_head: str | None = None,
+    git_head_basis: str = "git_rev_parse_head",
 ) -> dict[str, Any]:
     root = root.resolve()
     export_root_path = Path(export_root)
@@ -359,7 +361,8 @@ def build_evidence_freshness(
         "broad_scan": False,
         "hard_drive_scan": False,
         "private_data_access": False,
-        "git_head": _git_head(root),
+        "git_head": git_head if git_head is not None else _git_head(root),
+        "git_head_basis": git_head_basis,
         "generated_status_current": generated_status_check["current"],
         "read_model_exports_current": export_check["current"],
         "generated_status_check": generated_status_check,
