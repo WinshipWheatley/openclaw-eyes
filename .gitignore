@@ -608,3 +608,4 @@
 !tests/test_context_packet_retrieval.py
 !scripts/check_runtime_activation_gate.py
 !tests/test_runtime_activation_gate.py
+!tests/test_context_substrate_pipeline.py
