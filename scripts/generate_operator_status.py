@@ -474,6 +474,33 @@ def format_helm_state_section(helm_state_operator_status):
     ]
 
 
+def get_world_domain_registry_operator_status():
+    """Build compact World / Domain Registry status from the deterministic registry."""
+    try:
+        from scripts.build_world_domain_registry import (
+            build_world_domain_registry,
+            format_operator_world_domain_registry,
+        )
+    except ImportError:
+        from build_world_domain_registry import (
+            build_world_domain_registry,
+            format_operator_world_domain_registry,
+        )
+
+    return format_operator_world_domain_registry(build_world_domain_registry())
+
+
+def format_world_domain_registry_section(world_domain_registry_operator_status):
+    if not world_domain_registry_operator_status:
+        return []
+
+    return [
+        "",
+        "## 6. World / Domain Registry",
+        *world_domain_registry_operator_status.splitlines(),
+    ]
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -533,10 +560,16 @@ def generate_current_state(snapshot):
         )
     )
 
-    # Section 6: Truth Substrate Summary
+    lines.extend(
+        format_world_domain_registry_section(
+            snapshot.get('world_domain_registry_operator_status')
+        )
+    )
+
+    # Section 7: Truth Substrate Summary
     lines.extend([
         "",
-        "## 6. Truth Substrate Summary",
+        "## 7. Truth Substrate Summary",
         "Registry-governed canonical facts and source documents.",
     ])
 
@@ -570,20 +603,20 @@ def generate_current_state(snapshot):
 
     lines.extend([
         "",
-        "## 7. Active Lane & Doctrine",
+        "## 8. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 8. Tool & Surface Boundaries",
+        "## 9. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 9. North Star",
+        "## 10. North Star",
         snapshot['north_star'],
         "",
-        "## 10. Safety & Staleness",
+        "## 11. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -650,6 +683,7 @@ def main():
     snapshot['source_inventory_operator_status'] = get_source_inventory_operator_status()
     snapshot['context_gates_operator_status'] = get_context_gates_operator_status()
     snapshot['helm_state_operator_status'] = get_helm_state_operator_status()
+    snapshot['world_domain_registry_operator_status'] = get_world_domain_registry_operator_status()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
