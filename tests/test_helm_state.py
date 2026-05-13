@@ -62,6 +62,7 @@ def test_json_output_has_required_top_level_fields():
         "worlds",
         "agent_presence",
         "strategic_gravity",
+        "world_status_summary",
         "claims_not_made",
     ]:
         assert key in payload
@@ -153,12 +154,25 @@ def test_state_definitions_include_required_semantics():
         }
 
 
-def test_worlds_are_not_dynamic_backend_records_in_v0():
+def test_world_status_summary_is_registry_backed_without_dynamic_claims():
     payload = _read_model()
+    summary = payload["world_status_summary"]
 
     assert payload["worlds"] == []
-    assert payload["worlds_model"]["supported"] is False
-    assert payload["worlds_model"]["reason"] == "not_yet_implemented"
+    assert payload["worlds_model"]["supported"] is True
+    assert payload["worlds_model"]["source"] == "world_status_v0"
+    assert payload["worlds_model"]["status_mode"] == "inspect_only_registry_backed"
+    assert payload["worlds_model"]["dynamic_world_state"] is False
+    assert summary["world_count"] == 8
+    assert summary["world_status_source"] == "world_status_v0"
+    assert summary["status_mode"] == "inspect_only_registry_backed"
+    assert summary["state_source"] == "registry_only"
+    assert summary["state_counts"] == {"inspect_only": 8}
+    assert summary["dynamic_world_state"] is False
+    assert summary["strategic_gravity"]["supported"] is False
+    assert summary["agent_presence"] == []
+    assert summary["registry_backed"] is True
+    assert summary["live_health_claimed"] is False
 
 
 def test_agent_presence_is_not_claimed_live_or_active():
@@ -195,6 +209,7 @@ def test_operator_output_uses_cockpit_grammar():
     assert output.index("Boundary:") < output.index("Blocked:")
     assert output.index("Blocked:") < output.index("Next safe move:")
     assert "Emitted helm state is `inspect_only`" in output
+    assert "World Status v0 reports 8 registry-backed world records" in output
     assert "`runtime_authority=false`" in output
     assert "`backend_execution=false`" in output
     assert "`activation_allowed=false`" in output

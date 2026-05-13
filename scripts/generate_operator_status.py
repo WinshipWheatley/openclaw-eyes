@@ -410,6 +410,7 @@ def format_helm_state_operator_status(read_model):
     helm_state = read_model["helm_state"]
     strategic_gravity = read_model["strategic_gravity"]
     activation_gate = read_model["activation_gate"]
+    world_status_summary = read_model.get("world_status_summary", {})
     worlds = read_model["worlds"]
     agent_presence = read_model["agent_presence"]
 
@@ -432,6 +433,13 @@ def format_helm_state_operator_status(read_model):
             f"(`{strategic_gravity['reason']}`)."
         ),
         (
+            "- World status summary: "
+            f"`world_count={world_status_summary.get('world_count', 0)}`; "
+            f"`source={world_status_summary.get('world_status_source', 'world_status_v0')}`; "
+            f"`status_mode={world_status_summary.get('status_mode', 'inspect_only_registry_backed')}`; "
+            "`dynamic_world_state=false`."
+        ),
+        (
             f"- Runtime activation gate remains `{activation_gate['gate_state']}` "
             "with activation blocked."
         ),
@@ -443,7 +451,7 @@ def format_helm_state_operator_status(read_model):
         "",
         "Blocked:",
         "- Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.",
-        "- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.",
+        "- Dynamic world state, agent presence records, and strategic gravity scoring remain future-gated backend records.",
         "",
         "Next safe move:",
         f"- {read_model['next_safe_move']}",

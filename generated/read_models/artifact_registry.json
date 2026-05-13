@@ -30,7 +30,7 @@
         "private_data_access",
         "full_body_ingest"
       ],
-      "content_sha256": "5b8a59b9a2effe625fc596af89394eeac116464144ae83bfee6b01e15a592a02",
+      "content_sha256": "811fd657878a3c41baa37ed80ed9ca1b227c59649fd413e0a1b9200356667315",
       "current_status_source": "python3 scripts/generate_operator_status.py --check",
       "expected_format": "markdown",
       "freshness_basis": "current when generate_operator_status.py --check passes",
@@ -46,7 +46,7 @@
       "safe_for_codex_context": true,
       "safe_for_mac_app": true,
       "safe_for_nohup_workers": true,
-      "size_bytes": 12278,
+      "size_bytes": 12400,
       "tags": [
         "app_fixture_safe",
         "blocked",
@@ -687,7 +687,7 @@
         "private_data_access",
         "full_body_ingest"
       ],
-      "content_sha256": "5b8a59b9a2effe625fc596af89394eeac116464144ae83bfee6b01e15a592a02",
+      "content_sha256": "811fd657878a3c41baa37ed80ed9ca1b227c59649fd413e0a1b9200356667315",
       "current_status_source": "python3 scripts/generate_operator_status.py --check",
       "expected_format": "markdown",
       "freshness_basis": "section current when generated status check passes",
@@ -704,7 +704,7 @@
       "safe_for_mac_app": true,
       "safe_for_nohup_workers": true,
       "section_heading": "## 3. Source Inventory",
-      "size_bytes": 12278,
+      "size_bytes": 12400,
       "tags": [
         "app_fixture_safe",
         "blocked",
@@ -748,7 +748,7 @@
         "private_data_access",
         "full_body_ingest"
       ],
-      "content_sha256": "5b8a59b9a2effe625fc596af89394eeac116464144ae83bfee6b01e15a592a02",
+      "content_sha256": "811fd657878a3c41baa37ed80ed9ca1b227c59649fd413e0a1b9200356667315",
       "current_status_source": "python3 scripts/generate_operator_status.py --check",
       "expected_format": "markdown",
       "freshness_basis": "section current when generated status check passes",
@@ -765,7 +765,7 @@
       "safe_for_mac_app": true,
       "safe_for_nohup_workers": true,
       "section_heading": "## 4. Context Gates",
-      "size_bytes": 12278,
+      "size_bytes": 12400,
       "tags": [
         "app_fixture_safe",
         "blocked",
@@ -809,7 +809,7 @@
         "private_data_access",
         "full_body_ingest"
       ],
-      "content_sha256": "5b8a59b9a2effe625fc596af89394eeac116464144ae83bfee6b01e15a592a02",
+      "content_sha256": "811fd657878a3c41baa37ed80ed9ca1b227c59649fd413e0a1b9200356667315",
       "current_status_source": "python3 scripts/generate_operator_status.py --check",
       "expected_format": "markdown",
       "freshness_basis": "section current when generated status check passes",
@@ -826,7 +826,7 @@
       "safe_for_mac_app": true,
       "safe_for_nohup_workers": true,
       "section_heading": "## 5. Helm State",
-      "size_bytes": 12278,
+      "size_bytes": 12400,
       "tags": [
         "app_fixture_safe",
         "blocked",
@@ -870,7 +870,7 @@
         "private_data_access",
         "full_body_ingest"
       ],
-      "content_sha256": "5b8a59b9a2effe625fc596af89394eeac116464144ae83bfee6b01e15a592a02",
+      "content_sha256": "811fd657878a3c41baa37ed80ed9ca1b227c59649fd413e0a1b9200356667315",
       "current_status_source": "python3 scripts/generate_operator_status.py --check",
       "expected_format": "markdown",
       "freshness_basis": "section current when generated status check passes",
@@ -887,7 +887,7 @@
       "safe_for_mac_app": true,
       "safe_for_nohup_workers": true,
       "section_heading": "## 6. World / Domain Registry",
-      "size_bytes": 12278,
+      "size_bytes": 12400,
       "tags": [
         "app_fixture_safe",
         "blocked",

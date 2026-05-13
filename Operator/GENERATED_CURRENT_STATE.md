@@ -90,6 +90,7 @@ Evidence:
 - Emitted state: `inspect_only` (read_only) - The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.
 - Authority flags: `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
 - Dynamic records: `worlds=[]`; `agent_presence=[]`; `strategic_gravity.supported=false` (`not_yet_implemented`).
+- World status summary: `world_count=8`; `source=world_status_v0`; `status_mode=inspect_only_registry_backed`; `dynamic_world_state=false`.
 - Runtime activation gate remains `blocked_v0_contract` with activation blocked.
 
 Boundary:
@@ -99,10 +100,10 @@ Boundary:
 
 Blocked:
 - Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.
-- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.
+- Dynamic world state, agent presence records, and strategic gravity scoring remain future-gated backend records.
 
 Next safe move:
-- Use this read-model as inspect-only cockpit context; add deterministic world/domain, agent-presence, evidence-freshness, and strategic-gravity records before the app claims dynamic helm behavior.
+- Use this read-model as inspect-only cockpit context; add deterministic evidence-freshness, agent-presence, and strategic-gravity records before the app claims dynamic helm behavior.
 
 ## 6. World / Domain Registry
 World / Domain Registry v0

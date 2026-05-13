@@ -63,6 +63,7 @@ Evidence:
 - Emitted state: `inspect_only` (read_only) - The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.
 - Authority flags: `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
 - Dynamic records: `worlds=[]`; `agent_presence=[]`; `strategic_gravity.supported=false` (`not_yet_implemented`).
+- World status summary: `world_count=8`; `source=world_status_v0`; `status_mode=inspect_only_registry_backed`; `dynamic_world_state=false`.
 - Runtime activation gate remains `blocked_v0_contract` with activation blocked.
 
 Boundary:
@@ -72,10 +73,10 @@ Boundary:
 
 Blocked:
 - Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.
-- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.
+- Dynamic world state, agent presence records, and strategic gravity scoring remain future-gated backend records.
 
 Next safe move:
-- Use this read-model as inspect-only cockpit context; add deterministic world/domain, agent-presence, evidence-freshness, and strategic-gravity records before the app claims dynamic helm behavior."""
+- Use this read-model as inspect-only cockpit context; add deterministic evidence-freshness, agent-presence, and strategic-gravity records before the app claims dynamic helm behavior."""
 
 WORLD_DOMAIN_REGISTRY_STATUS = """World / Domain Registry v0
 
@@ -101,8 +102,8 @@ Next safe move:
 ARTIFACT_REGISTRY_STATUS = """Read-Model Artifact Registry v0
 
 Evidence:
-- `artifact_count=22` metadata/read-model artifact records are registered for deterministic discovery.
-- Intended consumers: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- `artifact_count=27` metadata/read-model artifact records are registered for deterministic discovery.
+- Intended consumers: Mac app=24; Codex context=26; nohup/background workers=26; agent context=26.
 - Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.
 
 Boundary:
@@ -116,7 +117,7 @@ Blocked:
 - Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
 
 Next safe move:
-- Standardize export/sync locations under `generated/read_models/` so Mission Control, Codex-on-Mac, and nohup/background workers consume registered artifacts instead of guessing paths."""
+- Keep `generated/read_models/` current with `python3 scripts/export_read_models.py --check` before app consumption."""
 
 
 def _extract_section(output, header):
@@ -333,6 +334,10 @@ def test_generate_current_state_includes_helm_state_section(mock_snapshot):
     assert "`worlds=[]`" in section
     assert "`agent_presence=[]`" in section
     assert "`strategic_gravity.supported=false` (`not_yet_implemented`)" in section
+    assert "`world_count=8`" in section
+    assert "`source=world_status_v0`" in section
+    assert "`status_mode=inspect_only_registry_backed`" in section
+    assert "`dynamic_world_state=false`" in section
     assert "deterministic read-model for inspection, not runtime control" in section
     assert "activation blocked" in section
     assert "not_yet_implemented" in section
@@ -362,6 +367,9 @@ def test_helm_state_status_uses_existing_read_model_and_does_not_claim_dynamic_b
     assert "`worlds=[]`" in output
     assert "`agent_presence=[]`" in output
     assert "`strategic_gravity.supported=false` (`not_yet_implemented`)" in output
+    assert "`world_count=8`" in output
+    assert "`source=world_status_v0`" in output
+    assert "`status_mode=inspect_only_registry_backed`" in output
     assert "not runtime control" in output
     assert "does not claim live runtime health, active agents, dynamic worlds, strategic gravity scoring" in output
 
@@ -445,17 +453,17 @@ def test_generate_current_state_includes_artifact_registry_section(mock_snapshot
     assert section.index("Evidence:") < section.index("Boundary:")
     assert section.index("Boundary:") < section.index("Blocked:")
     assert section.index("Blocked:") < section.index("Next safe move:")
-    assert "`artifact_count=22`" in section
+    assert "`artifact_count=27`" in section
     assert "metadata/read-model only" in section
     assert "`body_ingested=false`" in section
     assert "`broad_scan=false`" in section
     assert "`runtime_authority=false`" in section
     assert "`activation_allowed=false`" in section
     assert "`backend_execution_authorized=false`" in section
-    assert "Mac app=18" in section
-    assert "Codex context=21" in section
-    assert "nohup/background workers=21" in section
-    assert "agent context=21" in section
+    assert "Mac app=24" in section
+    assert "Codex context=26" in section
+    assert "nohup/background workers=26" in section
+    assert "agent context=26" in section
     assert "does not authorize runtime/app actions" in section
     assert "generated/read_models/" in section
 
@@ -483,16 +491,16 @@ def test_artifact_registry_status_uses_existing_read_model_and_is_metadata_only(
     output = get_artifact_registry_operator_status()
 
     assert "Read-Model Artifact Registry v0" in output
-    assert "`artifact_count=22`" in output
+    assert "`artifact_count=27`" in output
     assert "`body_ingested=false`" in output
     assert "`broad_scan=false`" in output
     assert "`runtime_authority=false`" in output
     assert "`activation_allowed=false`" in output
     assert "`backend_execution_authorized=false`" in output
-    assert "Mac app=18" in output
-    assert "Codex context=21" in output
-    assert "nohup/background workers=21" in output
-    assert "agent context=21" in output
+    assert "Mac app=24" in output
+    assert "Codex context=26" in output
+    assert "nohup/background workers=26" in output
+    assert "agent context=26" in output
     assert "generated/read_models/" in output
 
 

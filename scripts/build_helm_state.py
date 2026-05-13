@@ -12,10 +12,12 @@ from typing import Any
 
 try:
     from scripts.build_source_inventory import build_inventory
+    from scripts.build_world_status import build_world_status
     from scripts.check_runtime_activation_gate import build_activation_gate_report
     from scripts.generate_operator_status import CONTEXT_GATE_SCRIPTS
 except ImportError:
     from build_source_inventory import build_inventory
+    from build_world_status import build_world_status
     from check_runtime_activation_gate import build_activation_gate_report
     from generate_operator_status import CONTEXT_GATE_SCRIPTS
 
@@ -269,6 +271,28 @@ def _select_state(
     return STATE_DEFINITIONS["inspect_only"]
 
 
+def _world_status_summary(world_status: dict[str, Any]) -> dict[str, Any]:
+    state_counts: dict[str, int] = {}
+    for world in world_status.get("worlds", []):
+        state = world.get("state", "unknown")
+        state_counts[state] = state_counts.get(state, 0) + 1
+
+    return {
+        "world_status_source": world_status.get("read_model_version", "world_status_v0"),
+        "world_count": world_status.get("world_count", 0),
+        "status_mode": world_status.get("status_mode", "inspect_only_registry_backed"),
+        "state_source": world_status.get("state_source", "registry_only"),
+        "state_counts": state_counts,
+        "dynamic_world_state": False,
+        "strategic_gravity": {
+            "supported": False,
+        },
+        "agent_presence": [],
+        "registry_backed": True,
+        "live_health_claimed": False,
+    }
+
+
 def build_helm_state(
     *,
     root: Path = ROOT,
@@ -276,6 +300,7 @@ def build_helm_state(
     run_generated_status_check: bool = True,
     source_inventory: dict[str, Any] | None = None,
     activation_gate: dict[str, Any] | None = None,
+    world_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     generated_status = (
@@ -289,6 +314,8 @@ def build_helm_state(
     )
     source_inventory = source_inventory or build_inventory(root=root)
     activation_gate = activation_gate or build_activation_gate_report()
+    world_status = world_status or build_world_status()
+    world_summary = _world_status_summary(world_status)
     context_gates = _context_gate_availability(root)
     generated_artifacts = _generated_artifact_state(root)
     helm_state = _select_state(
@@ -323,13 +350,18 @@ def build_helm_state(
             f"Runtime activation gate state is `{activation_gate.get('gate_state')}`; "
             f"activation_allowed={_bool_text(activation_gate.get('activation_allowed') is True)}."
         ),
+        (
+            f"World Status v0 reports {world_summary['world_count']} registry-backed "
+            "world records in inspect-only / registry-only posture."
+        ),
     ]
 
     boundary = [
         "Helm State v0 is a deterministic read-model for inspection, not a runtime control surface.",
         "It does not promote, extract, summarize, packetize, retrieve, or activate context.",
         "It does not call runtime services, agents, brokers, external tools, or customer deployment.",
-        "Dynamic worlds, agent presence, peripheral HUD, and strategic gravity scoring are not supported backend records in v0.",
+        "World Status v0 is consumed as registry-backed inspection context, not dynamic world state.",
+        "Agent presence, peripheral HUD, live health, and strategic gravity scoring are not supported backend records in v0.",
         "`runtime_authority=false`; `backend_execution=false`; `activation_allowed=false`.",
     ]
 
@@ -340,14 +372,14 @@ def build_helm_state(
             + ", ".join(f"`{item}`" for item in missing_prerequisites)
             + "."
         ),
-        "Dynamic world states, agent presence records, and strategic gravity scoring remain future-gated.",
+        "Dynamic world states, agent presence records, live health, and strategic gravity scoring remain future-gated.",
         "No agents, modules, brokers, customer deployment, external tools, or runtime mutation are activated.",
     ]
 
     next_safe_move = (
         "Use this read-model as inspect-only cockpit context; add deterministic "
-        "world/domain, agent-presence, evidence-freshness, and strategic-gravity "
-        "records before the app claims dynamic helm behavior."
+        "evidence-freshness, agent-presence, and strategic-gravity records before "
+        "the app claims dynamic helm behavior."
     )
 
     return {
@@ -364,9 +396,13 @@ def build_helm_state(
         "next_safe_move": next_safe_move,
         "worlds": [],
         "worlds_model": {
-            "supported": False,
-            "reason": "not_yet_implemented",
+            "supported": True,
+            "source": world_summary["world_status_source"],
+            "status_mode": world_summary["status_mode"],
+            "dynamic_world_state": False,
+            "reason": "registry_backed_inspect_only_records_available",
         },
+        "world_status_summary": world_summary,
         "agent_presence": [],
         "agent_presence_model": {
             "supported": False,

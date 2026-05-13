@@ -25,14 +25,15 @@
   "blocked": [
     "Runtime/module activation remains blocked by the v0 readiness contract.",
     "Missing activation prerequisites: `explicit_operator_approval`, `rollback_plan`, `module_manifest_validation`, `runtime_boundary_declaration`, `logging_receipt_path`, `dry_run_proof`.",
-    "Dynamic world states, agent presence records, and strategic gravity scoring remain future-gated.",
+    "Dynamic world states, agent presence records, live health, and strategic gravity scoring remain future-gated.",
     "No agents, modules, brokers, customer deployment, external tools, or runtime mutation are activated."
   ],
   "boundary": [
     "Helm State v0 is a deterministic read-model for inspection, not a runtime control surface.",
     "It does not promote, extract, summarize, packetize, retrieve, or activate context.",
     "It does not call runtime services, agents, brokers, external tools, or customer deployment.",
-    "Dynamic worlds, agent presence, peripheral HUD, and strategic gravity scoring are not supported backend records in v0.",
+    "World Status v0 is consumed as registry-backed inspection context, not dynamic world state.",
+    "Agent presence, peripheral HUD, live health, and strategic gravity scoring are not supported backend records in v0.",
     "`runtime_authority=false`; `backend_execution=false`; `activation_allowed=false`."
   ],
   "claims_not_made": [
@@ -99,7 +100,8 @@
     "Source Inventory reports 13 allowlisted metadata-only records with body_ingested=false.",
     "Source Inventory represents 8 blocked no-go examples without body read.",
     "Context gate scripts available: 6/6.",
-    "Runtime activation gate state is `blocked_v0_contract`; activation_allowed=false."
+    "Runtime activation gate state is `blocked_v0_contract`; activation_allowed=false.",
+    "World Status v0 reports 8 registry-backed world records in inspect-only / registry-only posture."
   ],
   "generated_artifacts": {
     "current_state_exists": true,
@@ -132,7 +134,7 @@
     "state_family": "read_only"
   },
   "mode": "deterministic_read_model",
-  "next_safe_move": "Use this read-model as inspect-only cockpit context; add deterministic world/domain, agent-presence, evidence-freshness, and strategic-gravity records before the app claims dynamic helm behavior.",
+  "next_safe_move": "Use this read-model as inspect-only cockpit context; add deterministic evidence-freshness, agent-presence, and strategic-gravity records before the app claims dynamic helm behavior.",
   "read_model_version": "helm_state_v0",
   "runtime_authority": false,
   "source_inventory": {
@@ -359,9 +361,28 @@
     "reason": "not_yet_implemented",
     "supported": false
   },
+  "world_status_summary": {
+    "agent_presence": [],
+    "dynamic_world_state": false,
+    "live_health_claimed": false,
+    "registry_backed": true,
+    "state_counts": {
+      "inspect_only": 8
+    },
+    "state_source": "registry_only",
+    "status_mode": "inspect_only_registry_backed",
+    "strategic_gravity": {
+      "supported": false
+    },
+    "world_count": 8,
+    "world_status_source": "world_status_v0"
+  },
   "worlds": [],
   "worlds_model": {
-    "reason": "not_yet_implemented",
-    "supported": false
+    "dynamic_world_state": false,
+    "reason": "registry_backed_inspect_only_records_available",
+    "source": "world_status_v0",
+    "status_mode": "inspect_only_registry_backed",
+    "supported": true
   }
 }
