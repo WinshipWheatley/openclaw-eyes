@@ -9,6 +9,7 @@ from scripts.generate_operator_status import (
     generate_current_state,
     generate_next_actions,
     get_context_gates_operator_status,
+    get_helm_state_operator_status,
     get_source_inventory_operator_status,
 )
 
@@ -53,6 +54,26 @@ Blocked:
 
 Next safe move:
 - Use the gates in order on explicit allowlisted records with a promotion reason; keep runtime/module activation in the blocked readiness lane."""
+
+HELM_STATE_STATUS = """Helm State Read-Model v0
+
+Evidence:
+- Emitted state: `inspect_only` (read_only) - The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.
+- Authority flags: `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
+- Dynamic records: `worlds=[]`; `agent_presence=[]`; `strategic_gravity.supported=false` (`not_yet_implemented`).
+- Runtime activation gate remains `blocked_v0_contract` with activation blocked.
+
+Boundary:
+- Helm State v0 is a deterministic read-model for inspection, not runtime control.
+- It does not claim live runtime health, active agents, dynamic worlds, strategic gravity scoring, or peripheral HUD state.
+- It does not promote, extract, summarize, packetize, retrieve, activate context, or write SQLite.
+
+Blocked:
+- Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.
+- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.
+
+Next safe move:
+- Use this read-model as inspect-only cockpit context; add deterministic world/domain, agent-presence, evidence-freshness, and strategic-gravity records before the app claims dynamic helm behavior."""
 
 
 def _extract_section(output, header):
@@ -113,6 +134,7 @@ def mock_snapshot():
         },
         "source_inventory_operator_status": SOURCE_INVENTORY_STATUS,
         "context_gates_operator_status": CONTEXT_GATES_STATUS,
+        "helm_state_operator_status": HELM_STATE_STATUS,
     }
 
 def test_generate_current_state(mock_snapshot):
@@ -136,7 +158,7 @@ def test_generate_current_state(mock_snapshot):
     assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
 
     # Truth Substrate Summary check
-    assert "## 5. Truth Substrate Summary" in output
+    assert "## 6. Truth Substrate Summary" in output
     assert "**Facts**: 83 (71 doctrine, 12 historical)" in output
     assert "**Coverage**: 9/9 SOURCE_REGISTRY documents" in output
     assert "READY" in output
@@ -247,6 +269,58 @@ def test_context_gates_status_is_compact_and_non_activating():
     assert "No agents, modules, brokers, customer deployment, external tools, live runtime health checks, or runtime behavior are activated." in output
 
 
+def test_generate_current_state_includes_helm_state_section(mock_snapshot):
+    output = generate_current_state(mock_snapshot)
+    section = _extract_section(output, "## 5. Helm State")
+
+    assert "Helm State Read-Model v0" in section
+    assert "Evidence:" in section
+    assert "Boundary:" in section
+    assert "Blocked:" in section
+    assert "Next safe move:" in section
+    assert section.index("Evidence:") < section.index("Boundary:")
+    assert section.index("Boundary:") < section.index("Blocked:")
+    assert section.index("Blocked:") < section.index("Next safe move:")
+    assert "`inspect_only`" in section
+    assert "`runtime_authority=false`" in section
+    assert "`activation_allowed=false`" in section
+    assert "`backend_execution=false`" in section
+    assert "`worlds=[]`" in section
+    assert "`agent_presence=[]`" in section
+    assert "`strategic_gravity.supported=false` (`not_yet_implemented`)" in section
+    assert "deterministic read-model for inspection, not runtime control" in section
+    assert "activation blocked" in section
+    assert "not_yet_implemented" in section
+
+    section_lower = section.lower()
+    for forbidden_claim in [
+        "all systems nominal",
+        "runtime healthy",
+        "runtime ready",
+        "modules active",
+        "agent wired",
+        "broker connected",
+        "customer deployment active",
+        "process heartbeat",
+    ]:
+        assert forbidden_claim not in section_lower
+
+
+def test_helm_state_status_uses_existing_read_model_and_does_not_claim_dynamic_backend():
+    output = get_helm_state_operator_status()
+
+    assert "Helm State Read-Model v0" in output
+    assert "`inspect_only`" in output
+    assert "`runtime_authority=false`" in output
+    assert "`activation_allowed=false`" in output
+    assert "`backend_execution=false`" in output
+    assert "`worlds=[]`" in output
+    assert "`agent_presence=[]`" in output
+    assert "`strategic_gravity.supported=false` (`not_yet_implemented`)" in output
+    assert "not runtime control" in output
+    assert "does not claim live runtime health, active agents, dynamic worlds, strategic gravity scoring" in output
+
+
 def test_generate_current_state_no_proofs(mock_snapshot):
     mock_snapshot["recent_proofs"] = []
     mock_snapshot["strongest_clean_proof"] = None
@@ -293,19 +367,21 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
+@patch("scripts.generate_operator_status.get_helm_state_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
+    mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -395,6 +471,7 @@ def test_get_recent_receipts_integration(tmp_path):
     assert "abc1234" in proof_entry
 
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
+@patch("scripts.generate_operator_status.get_helm_state_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
@@ -402,13 +479,14 @@ def test_get_recent_receipts_integration(tmp_path):
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
+    mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
@@ -421,6 +499,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
     snapshot_with_proofs["artifact_checkpoint_bootstrap_command"] = MODULE_ATLAS_BOOTSTRAP_COMMAND
     snapshot_with_proofs["source_inventory_operator_status"] = SOURCE_INVENTORY_STATUS
     snapshot_with_proofs["context_gates_operator_status"] = CONTEXT_GATES_STATUS
+    snapshot_with_proofs["helm_state_operator_status"] = HELM_STATE_STATUS
 
     curr_content = DISCLAIMER + "\n" + generate_current_state(snapshot_with_proofs)
     next_content = DISCLAIMER + "\n" + generate_next_actions(snapshot_with_proofs)
@@ -433,6 +512,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
         mock_exit.assert_not_called()
 
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
+@patch("scripts.generate_operator_status.get_helm_state_operator_status")
 @patch("scripts.generate_operator_status.get_source_inventory_operator_status")
 @patch("scripts.generate_operator_status.get_artifact_checkpoint_receipts")
 @patch("scripts.generate_operator_status.get_recent_proof_receipts")
@@ -440,13 +520,14 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_context_gates, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
     mock_get_artifacts.return_value = []
     mock_get_source_inventory.return_value = SOURCE_INVENTORY_STATUS
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
+    mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

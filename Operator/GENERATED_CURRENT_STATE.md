@@ -83,7 +83,28 @@ Blocked:
 Next safe move:
 - Use the gates in order on explicit allowlisted records with a promotion reason; keep runtime/module activation in the blocked readiness lane.
 
-## 5. Truth Substrate Summary
+## 5. Helm State
+Helm State Read-Model v0
+
+Evidence:
+- Emitted state: `inspect_only` (read_only) - The helm may be inspected as deterministic read-model context, but no backend action or activation is authorized.
+- Authority flags: `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
+- Dynamic records: `worlds=[]`; `agent_presence=[]`; `strategic_gravity.supported=false` (`not_yet_implemented`).
+- Runtime activation gate remains `blocked_v0_contract` with activation blocked.
+
+Boundary:
+- Helm State v0 is a deterministic read-model for inspection, not runtime control.
+- It does not claim live runtime health, active agents, dynamic worlds, strategic gravity scoring, or peripheral HUD state.
+- It does not promote, extract, summarize, packetize, retrieve, activate context, or write SQLite.
+
+Blocked:
+- Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.
+- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.
+
+Next safe move:
+- Use this read-model as inspect-only cockpit context; add deterministic world/domain, agent-presence, evidence-freshness, and strategic-gravity records before the app claims dynamic helm behavior.
+
+## 6. Truth Substrate Summary
 Registry-governed canonical facts and source documents.
 - **Facts**: 83 (71 doctrine, 12 historical)
 - **Candidate Truth Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
@@ -93,10 +114,10 @@ Registry-governed canonical facts and source documents.
 
 > Truth substrate status is read-only, a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.
 
-## 6. Active Lane & Doctrine
+## 7. Active Lane & Doctrine
 Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQLite Ledger) and canonicalizing the "Operator Doctrine" (North Star, Manifesto, Anti-drift) into a concise Orientation Contract.
 
-## 7. Tool & Surface Boundaries
+## 8. Tool & Surface Boundaries
 ### Allowed Tools
 - Repository-local file reading and surgical editing.
    - Shell commands for status, testing, and non-destructive operations.
@@ -109,10 +130,10 @@ Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQ
    - External provider/model APIs without an Action Covenant.
    - Credentials, tokens, and billing logic.
 
-## 8. North Star
+## 9. North Star
 Make daily life lighter without becoming hidden authority. The computer becomes a natural extension of the operator. The machine carries the weight; the operator keeps the crown.
 
-## 9. Safety & Staleness
+## 10. Safety & Staleness
 - **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.
 - **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.
 - **Privacy**: No PII or raw sensitive data is stored in this read-model.

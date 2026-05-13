@@ -405,6 +405,75 @@ def format_context_gates_section(context_gates_operator_status):
     ]
 
 
+def format_helm_state_operator_status(read_model):
+    """Format compact Helm State status for generated operator output."""
+    helm_state = read_model["helm_state"]
+    strategic_gravity = read_model["strategic_gravity"]
+    activation_gate = read_model["activation_gate"]
+    worlds = read_model["worlds"]
+    agent_presence = read_model["agent_presence"]
+
+    lines = [
+        "Helm State Read-Model v0",
+        "",
+        "Evidence:",
+        (
+            f"- Emitted state: `{helm_state['state']}` ({helm_state['state_family']}) "
+            f"- {helm_state['meaning']}"
+        ),
+        (
+            "- Authority flags: `runtime_authority=false`; "
+            "`activation_allowed=false`; `backend_execution=false`."
+        ),
+        (
+            "- Dynamic records: "
+            f"`worlds={worlds}`; `agent_presence={agent_presence}`; "
+            f"`strategic_gravity.supported={str(strategic_gravity['supported']).lower()}` "
+            f"(`{strategic_gravity['reason']}`)."
+        ),
+        (
+            f"- Runtime activation gate remains `{activation_gate['gate_state']}` "
+            "with activation blocked."
+        ),
+        "",
+        "Boundary:",
+        "- Helm State v0 is a deterministic read-model for inspection, not runtime control.",
+        "- It does not claim live runtime health, active agents, dynamic worlds, strategic gravity scoring, or peripheral HUD state.",
+        "- It does not promote, extract, summarize, packetize, retrieve, activate context, or write SQLite.",
+        "",
+        "Blocked:",
+        "- Runtime/module activation, backend execution, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.",
+        "- Dynamic worlds, agent presence records, and strategic gravity scoring remain `not_yet_implemented` backend records.",
+        "",
+        "Next safe move:",
+        f"- {read_model['next_safe_move']}",
+    ]
+    return "\n".join(lines)
+
+
+def get_helm_state_operator_status():
+    """Build compact Helm State status without recursively checking generated status."""
+    try:
+        from scripts.build_helm_state import build_helm_state
+    except ImportError:
+        from build_helm_state import build_helm_state
+
+    return format_helm_state_operator_status(
+        build_helm_state(run_generated_status_check=False)
+    )
+
+
+def format_helm_state_section(helm_state_operator_status):
+    if not helm_state_operator_status:
+        return []
+
+    return [
+        "",
+        "## 5. Helm State",
+        *helm_state_operator_status.splitlines(),
+    ]
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -458,10 +527,16 @@ def generate_current_state(snapshot):
         )
     )
 
-    # Section 5: Truth Substrate Summary
+    lines.extend(
+        format_helm_state_section(
+            snapshot.get('helm_state_operator_status')
+        )
+    )
+
+    # Section 6: Truth Substrate Summary
     lines.extend([
         "",
-        "## 5. Truth Substrate Summary",
+        "## 6. Truth Substrate Summary",
         "Registry-governed canonical facts and source documents.",
     ])
 
@@ -495,20 +570,20 @@ def generate_current_state(snapshot):
 
     lines.extend([
         "",
-        "## 6. Active Lane & Doctrine",
+        "## 7. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 7. Tool & Surface Boundaries",
+        "## 8. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 8. North Star",
+        "## 9. North Star",
         snapshot['north_star'],
         "",
-        "## 9. Safety & Staleness",
+        "## 10. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -574,6 +649,7 @@ def main():
     snapshot['artifact_checkpoint_bootstrap_command'] = MODULE_ATLAS_BOOTSTRAP_COMMAND
     snapshot['source_inventory_operator_status'] = get_source_inventory_operator_status()
     snapshot['context_gates_operator_status'] = get_context_gates_operator_status()
+    snapshot['helm_state_operator_status'] = get_helm_state_operator_status()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)
@@ -619,6 +695,8 @@ def main():
             print("OK: Generated files are current.")
     else:
         print("\nRead-only preview mode. Use --write to update files or --check to verify.")
+        print("")
+        print(current_state_md)
 
 if __name__ == "__main__":
     main()
