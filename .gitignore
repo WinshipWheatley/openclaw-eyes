@@ -615,3 +615,9 @@
 !tests/test_world_domain_registry.py
 !scripts/build_artifact_registry.py
 !tests/test_artifact_registry.py
+!scripts/export_read_models.py
+!tests/test_export_read_models.py
+!generated/read_models/
+!generated/read_models/*.json
+!generated/read_models/*.txt
+!generated/read_models/*.md

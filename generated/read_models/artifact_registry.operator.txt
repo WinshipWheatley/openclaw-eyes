@@ -1,0 +1,20 @@
+Read-Model Artifact Registry v0
+
+Evidence:
+- Registered 22 metadata/read-model artifact records: 2 generated Markdown files, 9 producer contracts, 4 generated-status sections, and 7 recommended export paths.
+- Consumer-safe records: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- Registered artifacts carry tags, authority labels, freshness basis, verification command, and explicit no-claims.
+
+Boundary:
+- Registry records metadata only; file bodies are not ingested, emitted, or stored in SQLite.
+- File hashes are computed only for explicit registered repo-local files; no broad scan is performed.
+- `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.
+- Registry visibility does not authorize app writes, runtime actions, agents, brokers, external tools, networking, or customer deployment.
+
+Blocked:
+- Full body ingest, SQLite body storage, broad repo scan, hard-drive scan, private/legal/tax/CPA/AppData/runtime-log access remain blocked.
+- Runtime activation, backend execution, agent activation, broker wiring, external tool calls, networking, and customer deployment remain blocked.
+- Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
+
+Next safe move:
+- Standardize export/sync locations under `generated/read_models/` so the Mac app, Codex-on-Mac, and nohup/background workers consume registered read-model artifacts instead of guessing paths.

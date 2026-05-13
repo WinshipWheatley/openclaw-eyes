@@ -1,0 +1,20 @@
+World / Domain Registry v0
+
+Evidence:
+- Registered 8 durable worlds/domains as registry-only records.
+- Worlds: `music_art`, `finance`, `operations`, `security`, `build`, `research`, `communications`, `business_development`.
+- Allowed signal types are vocabulary only: `quiet`, `flagged`, `ready`, `glowing`, `hot`, `critical_consequence`, `blocked`, `stale_evidence`, `inspect_only`.
+- Registry basis uses repo-local doctrine/status grammar references; no world file bodies are read.
+
+Boundary:
+- This is a deterministic metadata/read-model registry, not dynamic world status.
+- `runtime_authority=false`; `activation_allowed=false`; `backend_execution=false`.
+- `dynamic_world_state=false`; `strategic_gravity_supported=false`; `agent_presence_supported=false`.
+- It does not claim live health, active agents, peripheral HUD state, external triggers, networking, or customer deployment.
+
+Blocked:
+- Dynamic world state, strategic gravity scoring, and agent presence records are not implemented in this lane.
+- Runtime activation, agent activation, broker wiring, external tools, customer deployment, SQLite writes, and private-data access remain blocked.
+
+Next safe move:
+- Let app surfaces render worlds from this registry; add a separate deterministic world-status or evidence-freshness read-model before claiming live/dynamic world behavior.
