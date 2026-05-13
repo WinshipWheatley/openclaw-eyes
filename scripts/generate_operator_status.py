@@ -501,6 +501,63 @@ def format_world_domain_registry_section(world_domain_registry_operator_status):
     ]
 
 
+def format_artifact_registry_operator_status(read_model):
+    """Format compact Read-Model Artifact Registry status for generated output."""
+    consumers = read_model["consumer_summary"]
+    lines = [
+        "Read-Model Artifact Registry v0",
+        "",
+        "Evidence:",
+        (
+            f"- `artifact_count={read_model['artifact_count']}` metadata/read-model "
+            "artifact records are registered for deterministic discovery."
+        ),
+        (
+            "- Intended consumers: "
+            f"Mac app={consumers['safe_for_mac_app']}; "
+            f"Codex context={consumers['safe_for_codex_context']}; "
+            f"nohup/background workers={consumers['safe_for_nohup_workers']}; "
+            f"agent context={consumers['safe_for_agent_context']}."
+        ),
+        "- Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.",
+        "",
+        "Boundary:",
+        "- Artifact Registry v0 is metadata/read-model only; file bodies are not ingested or emitted.",
+        "- `body_ingested=false`; `broad_scan=false`; `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.",
+        "- Registry visibility does not authorize runtime/app actions, agents, brokers, external tools, networking, customer deployment, SQLite writes, or live health claims.",
+        "",
+        "Blocked:",
+        "- Full body ingest, SQLite body storage, broad repo scan, hard-drive scan, and private/legal/tax/CPA/AppData/runtime-log access remain blocked.",
+        "- Runtime activation, backend execution, agent activation, broker wiring, external tool calls, networking, and customer deployment remain blocked.",
+        "- Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.",
+        "",
+        "Next safe move:",
+        "- Standardize export/sync locations under `generated/read_models/` so Mission Control, Codex-on-Mac, and nohup/background workers consume registered artifacts instead of guessing paths.",
+    ]
+    return "\n".join(lines)
+
+
+def get_artifact_registry_operator_status():
+    """Build compact Read-Model Artifact Registry status from the deterministic registry."""
+    try:
+        from scripts.build_artifact_registry import build_artifact_registry
+    except ImportError:
+        from build_artifact_registry import build_artifact_registry
+
+    return format_artifact_registry_operator_status(build_artifact_registry())
+
+
+def format_artifact_registry_section(artifact_registry_operator_status):
+    if not artifact_registry_operator_status:
+        return []
+
+    return [
+        "",
+        "## 7. Read-Model Artifact Registry",
+        *artifact_registry_operator_status.splitlines(),
+    ]
+
+
 def generate_current_state(snapshot):
     lines = [
         "# GENERATED CURRENT STATE",
@@ -566,10 +623,16 @@ def generate_current_state(snapshot):
         )
     )
 
-    # Section 7: Truth Substrate Summary
+    lines.extend(
+        format_artifact_registry_section(
+            snapshot.get('artifact_registry_operator_status')
+        )
+    )
+
+    # Section 8: Truth Substrate Summary
     lines.extend([
         "",
-        "## 7. Truth Substrate Summary",
+        "## 8. Truth Substrate Summary",
         "Registry-governed canonical facts and source documents.",
     ])
 
@@ -603,20 +666,20 @@ def generate_current_state(snapshot):
 
     lines.extend([
         "",
-        "## 8. Active Lane & Doctrine",
+        "## 9. Active Lane & Doctrine",
         snapshot['active_lane'],
         "",
-        "## 9. Tool & Surface Boundaries",
+        "## 10. Tool & Surface Boundaries",
         "### Allowed Tools",
         snapshot['allowed_tools'],
         "",
         "### Forbidden Surfaces",
         snapshot['forbidden_surfaces'],
         "",
-        "## 10. North Star",
+        "## 11. North Star",
         snapshot['north_star'],
         "",
-        "## 11. Safety & Staleness",
+        "## 12. Safety & Staleness",
         "- **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.",
         "- **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.",
         "- **Privacy**: No PII or raw sensitive data is stored in this read-model.",
@@ -684,6 +747,7 @@ def main():
     snapshot['context_gates_operator_status'] = get_context_gates_operator_status()
     snapshot['helm_state_operator_status'] = get_helm_state_operator_status()
     snapshot['world_domain_registry_operator_status'] = get_world_domain_registry_operator_status()
+    snapshot['artifact_registry_operator_status'] = get_artifact_registry_operator_status()
 
     current_state_md = DISCLAIMER + "\n" + generate_current_state(snapshot)
     next_actions_md = DISCLAIMER + "\n" + generate_next_actions(snapshot)

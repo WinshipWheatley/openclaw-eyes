@@ -8,6 +8,7 @@ from scripts.generate_operator_status import (
     MODULE_ATLAS_BOOTSTRAP_COMMAND,
     generate_current_state,
     generate_next_actions,
+    get_artifact_registry_operator_status,
     get_context_gates_operator_status,
     get_helm_state_operator_status,
     get_source_inventory_operator_status,
@@ -97,6 +98,26 @@ Blocked:
 Next safe move:
 - Let app surfaces render worlds from this registry; add a separate deterministic world-status or evidence-freshness read-model before claiming live/dynamic world behavior."""
 
+ARTIFACT_REGISTRY_STATUS = """Read-Model Artifact Registry v0
+
+Evidence:
+- `artifact_count=22` metadata/read-model artifact records are registered for deterministic discovery.
+- Intended consumers: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.
+
+Boundary:
+- Artifact Registry v0 is metadata/read-model only; file bodies are not ingested or emitted.
+- `body_ingested=false`; `broad_scan=false`; `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.
+- Registry visibility does not authorize runtime/app actions, agents, brokers, external tools, networking, customer deployment, SQLite writes, or live health claims.
+
+Blocked:
+- Full body ingest, SQLite body storage, broad repo scan, hard-drive scan, and private/legal/tax/CPA/AppData/runtime-log access remain blocked.
+- Runtime activation, backend execution, agent activation, broker wiring, external tool calls, networking, and customer deployment remain blocked.
+- Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
+
+Next safe move:
+- Standardize export/sync locations under `generated/read_models/` so Mission Control, Codex-on-Mac, and nohup/background workers consume registered artifacts instead of guessing paths."""
+
 
 def _extract_section(output, header):
     lines = output.splitlines()
@@ -158,6 +179,7 @@ def mock_snapshot():
         "context_gates_operator_status": CONTEXT_GATES_STATUS,
         "helm_state_operator_status": HELM_STATE_STATUS,
         "world_domain_registry_operator_status": WORLD_DOMAIN_REGISTRY_STATUS,
+        "artifact_registry_operator_status": ARTIFACT_REGISTRY_STATUS,
     }
 
 def test_generate_current_state(mock_snapshot):
@@ -181,7 +203,7 @@ def test_generate_current_state(mock_snapshot):
     assert "[PII_VAULT] [SQLITE_VERIFIED] Vault reference recorded for: test (Redacted Metadata Only)" in output
 
     # Truth Substrate Summary check
-    assert "## 7. Truth Substrate Summary" in output
+    assert "## 8. Truth Substrate Summary" in output
     assert "**Facts**: 83 (71 doctrine, 12 historical)" in output
     assert "**Coverage**: 9/9 SOURCE_REGISTRY documents" in output
     assert "READY" in output
@@ -411,6 +433,69 @@ def test_world_domain_registry_status_uses_existing_read_model_and_is_registry_o
     assert "not dynamic world status" in output
 
 
+def test_generate_current_state_includes_artifact_registry_section(mock_snapshot):
+    output = generate_current_state(mock_snapshot)
+    section = _extract_section(output, "## 7. Read-Model Artifact Registry")
+
+    assert "Read-Model Artifact Registry v0" in section
+    assert "Evidence:" in section
+    assert "Boundary:" in section
+    assert "Blocked:" in section
+    assert "Next safe move:" in section
+    assert section.index("Evidence:") < section.index("Boundary:")
+    assert section.index("Boundary:") < section.index("Blocked:")
+    assert section.index("Blocked:") < section.index("Next safe move:")
+    assert "`artifact_count=22`" in section
+    assert "metadata/read-model only" in section
+    assert "`body_ingested=false`" in section
+    assert "`broad_scan=false`" in section
+    assert "`runtime_authority=false`" in section
+    assert "`activation_allowed=false`" in section
+    assert "`backend_execution_authorized=false`" in section
+    assert "Mac app=18" in section
+    assert "Codex context=21" in section
+    assert "nohup/background workers=21" in section
+    assert "agent context=21" in section
+    assert "does not authorize runtime/app actions" in section
+    assert "generated/read_models/" in section
+
+    section_lower = section.lower()
+    for forbidden_claim in [
+        "all systems nominal",
+        "runtime healthy",
+        "runtime ready",
+        "runtime activation is allowed",
+        "agents are active",
+        "dynamic worlds are active",
+        "strategic gravity scoring is implemented",
+        "broker connected",
+        "external tools active",
+        "networking enabled",
+        "customer deployment active",
+        "sqlite writes enabled",
+        "live heartbeat",
+        "process heartbeat",
+    ]:
+        assert forbidden_claim not in section_lower
+
+
+def test_artifact_registry_status_uses_existing_read_model_and_is_metadata_only():
+    output = get_artifact_registry_operator_status()
+
+    assert "Read-Model Artifact Registry v0" in output
+    assert "`artifact_count=22`" in output
+    assert "`body_ingested=false`" in output
+    assert "`broad_scan=false`" in output
+    assert "`runtime_authority=false`" in output
+    assert "`activation_allowed=false`" in output
+    assert "`backend_execution_authorized=false`" in output
+    assert "Mac app=18" in output
+    assert "Codex context=21" in output
+    assert "nohup/background workers=21" in output
+    assert "agent context=21" in output
+    assert "generated/read_models/" in output
+
+
 def test_generate_current_state_no_proofs(mock_snapshot):
     mock_snapshot["recent_proofs"] = []
     mock_snapshot["strongest_clean_proof"] = None
@@ -456,6 +541,7 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
     output = generate_next_actions(mock_snapshot)
     assert "[TODO] Record initial Orientation Snapshot Receipt" in output
 
+@patch("scripts.generate_operator_status.get_artifact_registry_operator_status")
 @patch("scripts.generate_operator_status.get_world_domain_registry_operator_status")
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_helm_state_operator_status")
@@ -465,7 +551,7 @@ def test_generate_next_actions_no_receipt(mock_snapshot):
 @patch("scripts.generate_operator_status.get_orientation_snapshot")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_snapshot):
+def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_get_artifact_registry, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
@@ -474,6 +560,7 @@ def test_main_write(mock_args, mock_open, mock_get, mock_get_proofs, mock_get_ar
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_get_world_domain_registry.return_value = WORLD_DOMAIN_REGISTRY_STATUS
+    mock_get_artifact_registry.return_value = ARTIFACT_REGISTRY_STATUS
     mock_args.return_value = MagicMock(write=True, check=False)
 
     main()
@@ -562,6 +649,7 @@ def test_get_recent_receipts_integration(tmp_path):
     assert "exit=0" in proof_entry
     assert "abc1234" in proof_entry
 
+@patch("scripts.generate_operator_status.get_artifact_registry_operator_status")
 @patch("scripts.generate_operator_status.get_world_domain_registry_operator_status")
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_helm_state_operator_status")
@@ -572,7 +660,7 @@ def test_get_recent_receipts_integration(tmp_path):
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_snapshot):
+def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_get_artifact_registry, mock_snapshot):
     from scripts.generate_operator_status import main, generate_current_state, generate_next_actions, DISCLAIMER
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
@@ -581,6 +669,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_get_world_domain_registry.return_value = WORLD_DOMAIN_REGISTRY_STATUS
+    mock_get_artifact_registry.return_value = ARTIFACT_REGISTRY_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 
@@ -595,6 +684,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
     snapshot_with_proofs["context_gates_operator_status"] = CONTEXT_GATES_STATUS
     snapshot_with_proofs["helm_state_operator_status"] = HELM_STATE_STATUS
     snapshot_with_proofs["world_domain_registry_operator_status"] = WORLD_DOMAIN_REGISTRY_STATUS
+    snapshot_with_proofs["artifact_registry_operator_status"] = ARTIFACT_REGISTRY_STATUS
 
     curr_content = DISCLAIMER + "\n" + generate_current_state(snapshot_with_proofs)
     next_content = DISCLAIMER + "\n" + generate_next_actions(snapshot_with_proofs)
@@ -606,6 +696,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
         main()
         mock_exit.assert_not_called()
 
+@patch("scripts.generate_operator_status.get_artifact_registry_operator_status")
 @patch("scripts.generate_operator_status.get_world_domain_registry_operator_status")
 @patch("scripts.generate_operator_status.get_context_gates_operator_status")
 @patch("scripts.generate_operator_status.get_helm_state_operator_status")
@@ -616,7 +707,7 @@ def test_main_check_ok(mock_args, mock_open, mock_exists, mock_get, mock_get_pro
 @patch("os.path.exists")
 @patch("scripts.generate_operator_status.open", new_callable=MagicMock)
 @patch("argparse.ArgumentParser.parse_args")
-def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_snapshot):
+def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_proofs, mock_get_artifacts, mock_get_source_inventory, mock_get_helm_state, mock_get_context_gates, mock_get_world_domain_registry, mock_get_artifact_registry, mock_snapshot):
     from scripts.generate_operator_status import main
     mock_get.return_value = mock_snapshot
     mock_get_proofs.return_value = {"list": mock_snapshot["recent_proofs"], "strongest_clean": mock_snapshot["strongest_clean_proof"]}
@@ -625,6 +716,7 @@ def test_main_check_stale(mock_args, mock_open, mock_exists, mock_get, mock_get_
     mock_get_context_gates.return_value = CONTEXT_GATES_STATUS
     mock_get_helm_state.return_value = HELM_STATE_STATUS
     mock_get_world_domain_registry.return_value = WORLD_DOMAIN_REGISTRY_STATUS
+    mock_get_artifact_registry.return_value = ARTIFACT_REGISTRY_STATUS
     mock_args.return_value = MagicMock(write=False, check=True)
     mock_exists.return_value = True
 

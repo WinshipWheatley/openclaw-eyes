@@ -126,7 +126,28 @@ Blocked:
 Next safe move:
 - Let app surfaces render worlds from this registry; add a separate deterministic world-status or evidence-freshness read-model before claiming live/dynamic world behavior.
 
-## 7. Truth Substrate Summary
+## 7. Read-Model Artifact Registry
+Read-Model Artifact Registry v0
+
+Evidence:
+- `artifact_count=22` metadata/read-model artifact records are registered for deterministic discovery.
+- Intended consumers: Mac app=18; Codex context=21; nohup/background workers=21; agent context=21.
+- Records include path/command, producer, expected format, tags, authority label, freshness basis, verification command, and explicit no-claims.
+
+Boundary:
+- Artifact Registry v0 is metadata/read-model only; file bodies are not ingested or emitted.
+- `body_ingested=false`; `broad_scan=false`; `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.
+- Registry visibility does not authorize runtime/app actions, agents, brokers, external tools, networking, customer deployment, SQLite writes, or live health claims.
+
+Blocked:
+- Full body ingest, SQLite body storage, broad repo scan, hard-drive scan, and private/legal/tax/CPA/AppData/runtime-log access remain blocked.
+- Runtime activation, backend execution, agent activation, broker wiring, external tool calls, networking, and customer deployment remain blocked.
+- Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
+
+Next safe move:
+- Standardize export/sync locations under `generated/read_models/` so Mission Control, Codex-on-Mac, and nohup/background workers consume registered artifacts instead of guessing paths.
+
+## 8. Truth Substrate Summary
 Registry-governed canonical facts and source documents.
 - **Facts**: 83 (71 doctrine, 12 historical)
 - **Candidate Truth Posture**: 0 VERIFIED, 83 UNCERTAIN, 0 BLOCKED sources
@@ -136,10 +157,10 @@ Registry-governed canonical facts and source documents.
 
 > Truth substrate status is read-only, a read-model of candidate posture. Truth status describes candidate verification posture, not live runtime health, agent authority, or terminal gateway decisions.
 
-## 8. Active Lane & Doctrine
+## 9. Active Lane & Doctrine
 Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQLite Ledger) and canonicalizing the "Operator Doctrine" (North Star, Manifesto, Anti-drift) into a concise Orientation Contract.
 
-## 9. Tool & Surface Boundaries
+## 10. Tool & Surface Boundaries
 ### Allowed Tools
 - Repository-local file reading and surgical editing.
    - Shell commands for status, testing, and non-destructive operations.
@@ -152,10 +173,10 @@ Hardening the "Business Ops Spine" (deterministic intent, bounded capability, SQ
    - External provider/model APIs without an Action Covenant.
    - Credentials, tokens, and billing logic.
 
-## 10. North Star
+## 11. North Star
 Make daily life lighter without becoming hidden authority. The computer becomes a natural extension of the operator. The machine carries the weight; the operator keeps the crown.
 
-## 11. Safety & Staleness
+## 12. Safety & Staleness
 - **Runtime Health**: Not checked by this generator. Refer to `docs/operations/` or live diagnostics.
 - **Staleness**: This file is stale if the git HEAD has changed or if confirmed facts (e.g. active lane, contract items) have been modified since the generation timestamp.
 - **Privacy**: No PII or raw sensitive data is stored in this read-model.
