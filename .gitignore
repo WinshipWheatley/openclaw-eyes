@@ -600,3 +600,5 @@
 !tests/test_accepted_context_promotion.py
 !scripts/extract_accepted_sources.py
 !tests/test_safe_body_extraction.py
+!scripts/build_source_cards.py
+!tests/test_source_cards.py
