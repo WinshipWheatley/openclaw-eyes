@@ -611,3 +611,5 @@
 !tests/test_context_substrate_pipeline.py
 !scripts/build_helm_state.py
 !tests/test_helm_state.py
+!scripts/build_world_domain_registry.py
+!tests/test_world_domain_registry.py
