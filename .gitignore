@@ -51,6 +51,7 @@
 !context_selection.py
 !mac_mirror_atlas.py
 !read_model_shuttle.py
+!report_bridge.py
 !project_capsule.py
 !legacy_repo_intake.py
 !module_registry.py
@@ -653,6 +654,8 @@
 !scripts/import_root_manifest.py
 !scripts/prepare_mac_read_model_shuttle.py
 !scripts/import_mac_read_model_shuttle.py
+!scripts/import_report_bridge_package.py
+!scripts/query_report_bridge.py
 !tests/test_corpus_atlas.py
 !tests/test_evidence_kettle.py
 !tests/test_tool_inventory.py
@@ -669,6 +672,7 @@
 !tests/test_mission_control_read_model_refresh_prompt.py
 !tests/test_mac_mirror_atlas.py
 !tests/test_read_model_shuttle.py
+!tests/test_report_bridge.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
