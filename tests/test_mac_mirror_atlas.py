@@ -48,6 +48,17 @@ def _mac_generated_root(tmp_path: Path) -> Path:
     return root
 
 
+def _complete_mac_generated_root(tmp_path: Path) -> Path:
+    root = tmp_path / "mac_generated_complete"
+    root.mkdir()
+    for name in EXPECTED_GENERATED_READ_MODEL_FILES:
+        if name.endswith(".json"):
+            _write_json(root / name, {"name": name})
+        else:
+            (root / name).write_text(f"{name}\n", encoding="utf-8")
+    return root
+
+
 def _mac_app_root(tmp_path: Path) -> Path:
     root = tmp_path / "mission_control"
     (root / "OpenClaw Mission Control").mkdir(parents=True)
@@ -267,6 +278,44 @@ def test_generated_read_model_mirror_report_lists_missing_extra_and_counts(tmp_p
     assert report["counts"]["observed"] >= 3
     assert report["counts"]["matched_hash"] >= 1
     assert report["counts"]["hash_mismatch"] >= 1
+
+
+def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    mac_root = _complete_mac_generated_root(tmp_path)
+    manifest_path = tmp_path / "mac_generated_manifest.json"
+    build_root_manifest(
+        root=mac_root,
+        root_id="mac_generated_read_models",
+        root_kind="generated_read_model_mirror",
+        host_kind="mac",
+        owner_scope="internal_platform",
+        output=manifest_path,
+    )
+    import_root_manifest(manifest_path=manifest_path, db_path=db_path, run_id="mac_import_run")
+
+    report = query_mac_mirror_report_section(
+        db_path=db_path,
+        section="generated-read-model-mirror",
+    )
+
+    assert len(EXPECTED_GENERATED_READ_MODEL_FILES) == 26
+    assert report["counts"]["observed"] == 26
+    assert report["counts"]["missing_expected"] == 0
+    assert report["counts"]["extra"] == 0
+    assert report["missing_expected_files"] == []
+    assert report["extra_files"] == []
+    for name in (
+        "context_selection.json",
+        "context_selection_OPERATOR.md",
+        "project_capsules.json",
+        "project_capsules_OPERATOR.md",
+        "report_bridge.json",
+        "report_bridge_OPERATOR.md",
+        "tool_inventory_OPERATOR.md",
+        "tool_intake_OPERATOR.md",
+    ):
+        assert name in EXPECTED_GENERATED_READ_MODEL_FILES
 
 
 def test_query_corpus_atlas_mac_reports_work(tmp_path, capsys):

@@ -79,17 +79,32 @@ EXPECTED_MAC_ROOTS = {
 }
 
 EXPECTED_GENERATED_READ_MODEL_FILES = (
-    "source_inventory.json",
-    "helm_state.json",
-    "world_domain_registry.json",
-    "world_status.json",
     "artifact_registry.json",
-    "runtime_activation_gate.json",
+    "artifact_registry.operator.txt",
+    "context_selection.json",
+    "context_selection_OPERATOR.md",
     "evidence_freshness.json",
+    "evidence_freshness.operator.txt",
     "generated_current_state.md",
     "generated_next_actions.md",
+    "helm_state.json",
+    "helm_state.operator.txt",
+    "project_capsules.json",
+    "project_capsules_OPERATOR.md",
+    "report_bridge.json",
+    "report_bridge_OPERATOR.md",
+    "runtime_activation_gate.json",
+    "runtime_activation_gate.operator.txt",
+    "source_inventory.json",
+    "source_inventory.operator.txt",
     "tool_inventory.json",
+    "tool_inventory_OPERATOR.md",
     "tool_intake.json",
+    "tool_intake_OPERATOR.md",
+    "world_domain_registry.json",
+    "world_domain_registry.operator.txt",
+    "world_status.json",
+    "world_status.operator.txt",
 )
 
 NO_DESCEND_DIR_NAMES = {
