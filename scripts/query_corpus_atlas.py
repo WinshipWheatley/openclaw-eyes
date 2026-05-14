@@ -18,6 +18,10 @@ from corpus_atlas import (
     query_report_section,
     stable_json,
 )
+from mac_mirror_atlas import (
+    format_mac_mirror_report,
+    query_mac_mirror_report_section,
+)
 
 
 REPORT_SECTIONS = (
@@ -33,8 +37,12 @@ REPORT_SECTIONS = (
     "unknown-review",
     "canonical-current",
     "overbroad-current",
+    "roots",
     "multi-root",
     "mirrors",
+    "mac-roots",
+    "mirror-mismatches",
+    "generated-read-model-mirror",
     "legacy-root",
 )
 
@@ -112,6 +120,28 @@ def _format_section(payload: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.report == "roots":
+        args.report = "multi-root"
+    if args.report in {
+        "mac-roots",
+        "mirror-mismatches",
+        "generated-read-model-mirror",
+    }:
+        payload = query_mac_mirror_report_section(db_path=args.db, section=args.report)
+        if args.format == "json":
+            print(stable_json(payload), end="")
+        else:
+            print(format_mac_mirror_report(payload))
+        return 0
+    if args.report == "mirrors":
+        payload = query_mac_mirror_report_section(db_path=args.db, section=args.report)
+        if payload.get("items"):
+            if args.format == "json":
+                print(stable_json(payload), end="")
+            else:
+                print(format_mac_mirror_report(payload))
+            return 0
+
     if args.report == "summary" and args.format == "operator":
         report = build_atlas_report(db_path=args.db, run_id=args.run_id)
         print(format_atlas_report(report))
