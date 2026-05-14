@@ -4,6 +4,13 @@ Purpose: move generated read-model exports from canonical PC/WSL backend output
 to the Mac generated-read-model mirror with explicit package metadata and a
 returned importable manifest.
 
+Transfer root standard:
+- Use Windows `E:\openclaw` / WSL `/mnt/e/openclaw` for shuttle packages,
+  returned manifests, and transfer/drop files.
+- `C:\openclaw` / `/mnt/c/openclaw` is deprecated for shuttle use.
+- Do not delete or move old C-drive shuttle files automatically; leave any old
+  C-drive artifacts for an explicit cleanup lane.
+
 ## Boundary
 
 - PC/WSL `/home/openclaw` remains the canonical backend/evidence authority.
@@ -22,7 +29,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/prepare_mac_read_model_shuttle.py --fo
 Default output root:
 
 ```text
-/mnt/c/openclaw/shuttle/to_mac
+/mnt/e/openclaw/shuttle/to_mac
 ```
 
 Each package contains:
@@ -59,11 +66,11 @@ Return the package folder or just `mac_generated_read_models_manifest.json` to
 PC/WSL, then run one of:
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 scripts/import_mac_read_model_shuttle.py --manifest /mnt/c/openclaw/mac_generated_read_models_manifest.json --format operator
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/import_mac_read_model_shuttle.py --manifest /mnt/e/openclaw/mac_generated_read_models_manifest.json --format operator
 ```
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 scripts/import_mac_read_model_shuttle.py --package /mnt/c/openclaw/shuttle/from_mac/read_models_YYYYMMDD_HHMMSS --format operator
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/import_mac_read_model_shuttle.py --package /mnt/e/openclaw/shuttle/from_mac/read_models_YYYYMMDD_HHMMSS --format operator
 ```
 
 The import copies the returned manifest to:

@@ -28,15 +28,17 @@ from mac_mirror_atlas import (
 
 SHUTTLE_VERSION = "openclaw.read_model_shuttle.v0"
 DEFAULT_SOURCE_ROOT = Path("generated/read_models")
-DEFAULT_TO_MAC_ROOT = Path("/mnt/c/openclaw/shuttle/to_mac")
+DEFAULT_TRANSFER_ROOT = Path("/mnt/e/openclaw")
+DEFAULT_TO_MAC_ROOT = DEFAULT_TRANSFER_ROOT / "shuttle" / "to_mac"
+DEFAULT_RETURNED_MANIFEST_PATH = DEFAULT_TRANSFER_ROOT / "mac_generated_read_models_manifest.json"
 DEFAULT_IMPORT_MANIFEST_PATH = Path("/home/openclaw/import_manifests/mac_generated_read_models_manifest.json")
 DEFAULT_MAC_DESTINATION_ROOT = "/Users/hwinshipwheatley/openclaw_generated_read_models"
 MAC_GENERATED_ROOT_ID = "mac_generated_read_models"
 MAC_GENERATED_ROOT_KIND = "generated_read_model_mirror"
 SAFE_READ_MODEL_SUFFIXES = {".json", ".md", ".txt"}
 DEFAULT_FROM_MAC_SEARCH_ROOTS = (
-    Path("/mnt/c/openclaw/shuttle/from_mac"),
-    Path("/mnt/c/openclaw"),
+    DEFAULT_TRANSFER_ROOT / "shuttle" / "from_mac",
+    DEFAULT_TRANSFER_ROOT,
     Path("/home/openclaw/import_manifests"),
 )
 
@@ -731,8 +733,10 @@ def format_import_result(result: ShuttleImportResult) -> str:
 __all__ = [
     "DEFAULT_FROM_MAC_SEARCH_ROOTS",
     "DEFAULT_MAC_DESTINATION_ROOT",
+    "DEFAULT_RETURNED_MANIFEST_PATH",
     "DEFAULT_SOURCE_ROOT",
     "DEFAULT_TO_MAC_ROOT",
+    "DEFAULT_TRANSFER_ROOT",
     "NO_AUTHORITY_FLAGS",
     "ShuttleImportResult",
     "ShuttlePrepareResult",

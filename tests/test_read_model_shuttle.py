@@ -4,6 +4,10 @@ from pathlib import Path
 
 from corpus_atlas import run_corpus_atlas
 from read_model_shuttle import (
+    DEFAULT_FROM_MAC_SEARCH_ROOTS,
+    DEFAULT_RETURNED_MANIFEST_PATH,
+    DEFAULT_TO_MAC_ROOT,
+    DEFAULT_TRANSFER_ROOT,
     NO_AUTHORITY_FLAGS,
     build_mac_generated_read_model_manifest,
     import_mac_read_model_shuttle,
@@ -65,6 +69,19 @@ def test_prepare_creates_package_manifest_readme_and_apply_script(tmp_path):
     assert (package / "APPLY_ON_MAC.sh").is_file()
     assert (package / "README.md").is_file()
     assert result.file_count >= 15
+
+
+def test_default_transfer_paths_use_e_drive_not_c_drive():
+    assert DEFAULT_TRANSFER_ROOT.as_posix() == "/mnt/e/openclaw"
+    assert DEFAULT_TO_MAC_ROOT.as_posix() == "/mnt/e/openclaw/shuttle/to_mac"
+    assert DEFAULT_RETURNED_MANIFEST_PATH.as_posix() == "/mnt/e/openclaw/mac_generated_read_models_manifest.json"
+    assert "/mnt/e/openclaw/shuttle/from_mac" in {
+        path.as_posix() for path in DEFAULT_FROM_MAC_SEARCH_ROOTS
+    }
+    assert all(
+        not path.as_posix().startswith("/mnt/c/openclaw")
+        for path in DEFAULT_FROM_MAC_SEARCH_ROOTS
+    )
 
 
 def test_package_manifest_lists_sizes_hashes_and_no_authority_flags(tmp_path):

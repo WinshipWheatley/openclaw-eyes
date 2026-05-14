@@ -32,7 +32,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--output-root",
         default=DEFAULT_TO_MAC_ROOT.as_posix(),
-        help="Package output root. Defaults to /mnt/c/openclaw/shuttle/to_mac.",
+        help="Package output root. Defaults to /mnt/e/openclaw/shuttle/to_mac.",
     )
     parser.add_argument("--package-name", help="Optional package folder name.")
     parser.add_argument(
