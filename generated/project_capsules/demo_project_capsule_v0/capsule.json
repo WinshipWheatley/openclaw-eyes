@@ -1,0 +1,207 @@
+{
+  "approval_status": "not_approved",
+  "authority_flags": {
+    "agent_activation_allowed": false,
+    "client_data_access": false,
+    "deployment_authority": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false
+  },
+  "boundaries": [
+    {
+      "authority_status": "metadata_only",
+      "boundary_kind": "allowed",
+      "data_class": "generated_read_model_metadata",
+      "notes": "Generated read-model metadata may be referenced without treating it as truth."
+    },
+    {
+      "authority_status": "metadata_only",
+      "boundary_kind": "allowed",
+      "data_class": "public_project_metadata",
+      "notes": "Public/internal project metadata may be referenced for planning."
+    },
+    {
+      "authority_status": "metadata_only",
+      "boundary_kind": "allowed",
+      "data_class": "synthetic_demo_metadata",
+      "notes": "Synthetic project planning data is allowed inside this demo capsule."
+    },
+    {
+      "authority_status": "blocked",
+      "boundary_kind": "forbidden",
+      "data_class": "credentials_secrets_tokens",
+      "notes": "Credentials, secrets, tokens, and auth material remain no-go."
+    },
+    {
+      "authority_status": "blocked",
+      "boundary_kind": "forbidden",
+      "data_class": "private_legal_tax_finance",
+      "notes": "Private, legal, tax, CPA, and finance material is not in scope."
+    },
+    {
+      "authority_status": "blocked",
+      "boundary_kind": "forbidden",
+      "data_class": "real_client_data",
+      "notes": "No real client data is allowed in Project Capsule v0."
+    },
+    {
+      "authority_status": "blocked",
+      "boundary_kind": "forbidden",
+      "data_class": "runtime_logs_production_data",
+      "notes": "Runtime logs and production customer data are not in scope."
+    }
+  ],
+  "client_id": "demo_client",
+  "next_moves": [
+    {
+      "authority_required": "operator_review_before_authority",
+      "move_label": "review_demo_capsule_boundaries",
+      "move_text": "Review synthetic capsule boundaries before using it as a prompt substrate.",
+      "sequence": 1,
+      "status": "open"
+    },
+    {
+      "authority_required": "operator_review_before_authority",
+      "move_label": "export_project_capsule_read_model",
+      "move_text": "Generate standalone project capsule read-model files.",
+      "sequence": 2,
+      "status": "open"
+    },
+    {
+      "authority_required": "operator_review_before_authority",
+      "move_label": "export_synthetic_template",
+      "move_text": "Create a synthetic demo starter folder without deployment authority.",
+      "sequence": 3,
+      "status": "open"
+    }
+  ],
+  "project_goal": "Synthetic local planning capsule for a small operations helper; no real client data, deployment, or runtime authority.",
+  "project_id": "demo_project_capsule_v0",
+  "project_name": "Demo Client Operations Helper",
+  "read_model_requirements": [
+    {
+      "purpose": "Use context packet posture as bounded evidence context.",
+      "read_model_name": "context_selection.json",
+      "required": 1
+    },
+    {
+      "purpose": "Expose capsule posture as a generated read-model.",
+      "read_model_name": "project_capsules.json",
+      "required": 1
+    },
+    {
+      "purpose": "Use tool candidate policy without approving tools.",
+      "read_model_name": "tool_intake.json",
+      "required": 1
+    },
+    {
+      "purpose": "Inspect installed-tool posture without executing tools.",
+      "read_model_name": "tool_inventory.json",
+      "required": 1
+    }
+  ],
+  "receipt_requirements": [
+    {
+      "notes": "Required before any future deployment or client-data lane.",
+      "receipt_type": "approval_gate_receipt",
+      "required": 1
+    },
+    {
+      "notes": "Record any future operator boundary review.",
+      "receipt_type": "boundary_review_receipt",
+      "required": 1
+    },
+    {
+      "notes": "Record capsule creation and authority posture.",
+      "receipt_type": "capsule_creation_receipt",
+      "required": 1
+    }
+  ],
+  "selected_modules": [
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "context_selection",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "corpus_atlas",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "evidence_kettle",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "project_capsule",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "read_model_shuttle",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "tool_intake",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    },
+    {
+      "activation_status": "not_activated",
+      "authority_posture": "planning_only",
+      "module_id": "tool_inventory",
+      "notes": "Selected for planning context only; no module activation or runtime authority.",
+      "operator_review_required": 0,
+      "runtime_authority": 0,
+      "selection_status": "selected_planning_safe",
+      "source_basis": "project_capsule_module_selection_v0"
+    }
+  ],
+  "selected_tool_candidates": [
+    "copier",
+    "datasette",
+    "pocketbase",
+    "sqlite_utils"
+  ],
+  "selected_worlds": [
+    "build",
+    "communications",
+    "operations"
+  ],
+  "synthetic_demo_only": true,
+  "target_user_company": "Synthetic demo operations team",
+  "template_version": "project_capsule_template_v0"
+}
