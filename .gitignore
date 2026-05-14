@@ -46,6 +46,7 @@
 !backend_sqlite_repository.py
 !backend_knowledge_packet.py
 !backend_storage_intelligence.py
+!corpus_atlas.py
 !business_ops_packet.py
 !business_ops_intent.py
 !business_ops_ledger.py
@@ -617,6 +618,10 @@
 !tests/test_artifact_registry.py
 !scripts/export_read_models.py
 !tests/test_export_read_models.py
+!scripts/build_corpus_atlas.py
+!scripts/query_corpus_atlas.py
+!tests/test_corpus_atlas.py
+!docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
 !generated/read_models/*.txt
