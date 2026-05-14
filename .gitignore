@@ -633,6 +633,7 @@
 !scripts/build_tool_intake.py
 !scripts/query_tool_intake.py
 !scripts/export_tool_intake_read_model.py
+!scripts/export_context_selection_read_model.py
 !scripts/build_context_packet.py
 !scripts/query_context_selection.py
 !scripts/build_root_manifest.py
@@ -644,6 +645,7 @@
 !tests/test_tool_intake.py
 !tests/test_tool_intake_read_model.py
 !tests/test_context_selection.py
+!tests/test_context_selection_read_model.py
 !tests/test_mac_mirror_atlas.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
