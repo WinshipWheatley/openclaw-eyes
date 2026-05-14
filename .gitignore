@@ -47,6 +47,7 @@
 !backend_knowledge_packet.py
 !backend_storage_intelligence.py
 !corpus_atlas.py
+!evidence_kettle.py
 !business_ops_packet.py
 !business_ops_intent.py
 !business_ops_ledger.py
@@ -620,7 +621,10 @@
 !tests/test_export_read_models.py
 !scripts/build_corpus_atlas.py
 !scripts/query_corpus_atlas.py
+!scripts/build_evidence_kettle.py
+!scripts/query_evidence_kettle.py
 !tests/test_corpus_atlas.py
+!tests/test_evidence_kettle.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
