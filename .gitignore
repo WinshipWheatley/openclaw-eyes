@@ -649,3 +649,6 @@
 !generated/context_packets/
 !generated/context_packets/*.json
 !generated/context_packets/*.md
+!generated/full_suite_failure_baselines/
+!generated/full_suite_failure_baselines/*.json
+!generated/full_suite_failure_baselines/*.md
