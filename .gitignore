@@ -626,9 +626,11 @@
 !scripts/query_evidence_kettle.py
 !scripts/build_tool_inventory.py
 !scripts/query_tool_inventory.py
+!scripts/export_tool_inventory_read_model.py
 !tests/test_corpus_atlas.py
 !tests/test_evidence_kettle.py
 !tests/test_tool_inventory.py
+!tests/test_tool_inventory_read_model.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
