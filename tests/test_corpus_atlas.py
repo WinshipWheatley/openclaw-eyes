@@ -46,6 +46,7 @@ def _sample_root(tmp_path: Path) -> Path:
     (root / "NEXT_ACTIONS.md").write_text("# Legacy next actions\n", encoding="utf-8")
     (root / "OPENCLAW_RUNTIME.md").write_text("# Runtime law\n", encoding="utf-8")
     (root / "business_ops_ledger.py").write_text("DEFAULT_DB_PATH = 'x'\n", encoding="utf-8")
+    (root / "loose.unknown").write_text("unclassified fixture\n", encoding="utf-8")
     (root / "scripts").mkdir()
     (root / "scripts" / "build_source_inventory.py").write_text("print('metadata')\n", encoding="utf-8")
     (root / "tests").mkdir()
@@ -159,6 +160,14 @@ def _rows(db_path: Path, sql: str, params=()):
         conn.close()
 
 
+def _columns(db_path: Path, table_name: str):
+    conn = sqlite3.connect(db_path)
+    try:
+        return {row[1] for row in conn.execute(f"PRAGMA table_info({table_name})")}
+    finally:
+        conn.close()
+
+
 def test_schema_initializes_corpus_namespace(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     tables = set(corpus_table_names(db_path))
@@ -175,6 +184,27 @@ def test_schema_initializes_corpus_namespace(tmp_path):
         "corpus_mirror_candidates",
         "corpus_atlas_runs",
     } <= tables
+    assert {
+        "retrieval_eligibility",
+        "ingestion_eligibility",
+        "canonicality",
+    } <= _columns(db_path, "corpus_paths")
+    assert {
+        "root_kind",
+        "owner_scope",
+        "project_id",
+        "client_id",
+        "instance_id",
+        "repo_url",
+        "repo_name",
+        "branch",
+        "commit_sha",
+        "remote_origin",
+        "canonical_status",
+        "import_status",
+        "mirror_of_root_id",
+        "lineage_source",
+    } <= _columns(db_path, "corpus_roots")
 
 
 def test_atlas_run_records_provenance_and_no_runtime_authority(tmp_path):
@@ -192,7 +222,7 @@ WHERE run_id = ?
     )
 
     assert row[0] == DEFAULT_ROOT_ID
-    assert row[1] == "corpus_atlas_v0_5"
+    assert row[1] == "corpus_atlas_v0_6"
     assert row[2] == result.path_count
     assert row[3:] == (0, 0, 0, 0, 0)
 
@@ -203,7 +233,8 @@ def test_no_go_paths_are_registered_without_hashing_or_descent(tmp_path):
     rows = _rows(
         db_path,
         """
-SELECT relative_path, raw_content_eligibility, sensitivity_label, content_hash
+SELECT relative_path, raw_content_eligibility, sensitivity_label, retrieval_eligibility,
+       ingestion_eligibility, canonicality, content_hash
 FROM corpus_paths
 WHERE relative_path IN ('.ssh', '.chief.env', 'finance')
 ORDER BY relative_path
@@ -211,9 +242,30 @@ ORDER BY relative_path
     )
     by_path = {row[0]: row for row in rows}
 
-    assert by_path[".ssh"][1:] == ("no_go", "credential_boundary", None)
-    assert by_path[".chief.env"][1:] == ("no_go", "credential_boundary", None)
-    assert by_path["finance"][1:] == ("no_go", "finance_boundary", None)
+    assert by_path[".ssh"][1:] == (
+        "no_go",
+        "credential_boundary",
+        "blocked_no_go",
+        "no_go",
+        "no_go_boundary",
+        None,
+    )
+    assert by_path[".chief.env"][1:] == (
+        "no_go",
+        "credential_boundary",
+        "blocked_no_go",
+        "no_go",
+        "no_go_boundary",
+        None,
+    )
+    assert by_path["finance"][1:] == (
+        "no_go",
+        "finance_boundary",
+        "blocked_no_go",
+        "no_go",
+        "no_go_boundary",
+        None,
+    )
     assert ".ssh/id_rsa" not in {row[0] for row in _rows(db_path, "SELECT relative_path FROM corpus_paths")}
     assert all(not path.startswith((".ssh", "finance")) for path in hashed)
 
@@ -229,10 +281,23 @@ FROM corpus_paths
 WHERE relative_path = 'generated/read_models/world_domain_registry.json'
 """,
     )
+    gates = _row(
+        db_path,
+        """
+SELECT retrieval_eligibility, ingestion_eligibility, canonicality
+FROM corpus_paths
+WHERE relative_path = 'generated/read_models/world_domain_registry.json'
+""",
+    )
     link_count = _row(db_path, "SELECT COUNT(*) FROM corpus_artifact_links")[0]
     freshness_count = _row(db_path, "SELECT COUNT(*) FROM corpus_freshness_signals")[0]
 
     assert row == ("generated_read_model", "generated_current", "eligible", "hash-generated_read_models_world_domain_registry.json")
+    assert gates == (
+        "generated_read_model_only",
+        "generated_snapshot_only",
+        "generated_current",
+    )
     assert link_count >= 1
     assert freshness_count >= 1
 
@@ -261,6 +326,71 @@ WHERE relative_path IN (
     assert labels["docs/operations/OPENCLAW_CURRENT_EVIDENCE_COVERAGE_AUDIT.md"] == "stale_possible"
     assert labels["OpenClaw"] == "historical"
 
+    canonicality = dict(
+        _rows(
+            db_path,
+            """
+SELECT relative_path, canonicality
+FROM corpus_paths
+WHERE relative_path IN (
+  'CURRENT_STATE.md',
+  'NEXT_ACTIONS.md',
+  'docs/operations/OPENCLAW_CURRENT_EVIDENCE_COVERAGE_AUDIT.md',
+  'OpenClaw'
+)
+""",
+        )
+    )
+    assert canonicality["CURRENT_STATE.md"] == "superseded"
+    assert canonicality["NEXT_ACTIONS.md"] == "superseded"
+    assert canonicality["docs/operations/OPENCLAW_CURRENT_EVIDENCE_COVERAGE_AUDIT.md"] == "superseded"
+    assert canonicality["OpenClaw"] == "historical"
+
+
+def test_unknown_paths_are_blocked_and_need_review(tmp_path):
+    _, db_path, _, _ = _run(tmp_path)
+
+    row = _row(
+        db_path,
+        """
+SELECT raw_content_eligibility, retrieval_eligibility, ingestion_eligibility,
+       canonicality, requires_operator_review
+FROM corpus_paths
+WHERE relative_path = 'loose.unknown'
+""",
+    )
+
+    assert row == ("unknown", "blocked_unknown", "needs_review", "unknown_review", 1)
+
+
+def test_source_code_is_not_automatically_current_source_of_truth(tmp_path):
+    _, db_path, _, _ = _run(tmp_path)
+
+    source_row = _row(
+        db_path,
+        """
+SELECT freshness_label, canonicality, retrieval_eligibility
+FROM corpus_paths
+WHERE relative_path = 'business_ops_ledger.py'
+""",
+    )
+    canonical_row = _row(
+        db_path,
+        """
+SELECT freshness_label, canonicality, retrieval_eligibility, ingestion_eligibility
+FROM corpus_paths
+WHERE relative_path = 'OPENCLAW_RUNTIME.md'
+""",
+    )
+
+    assert source_row == ("source_claim", "tracked_source", "needs_operator_review")
+    assert canonical_row == (
+        "current_source_of_truth",
+        "canonical_current",
+        "retrievable",
+        "ingest_allowed",
+    )
+
 
 def test_duplicate_run_dedupes_paths_by_root_path_run(tmp_path):
     root = _sample_root(tmp_path)
@@ -287,6 +417,21 @@ def test_safe_eligible_files_receive_hashes_and_no_go_files_do_not(tmp_path):
     assert no_go_hash is None
 
 
+def test_metadata_only_paths_are_not_raw_ingestible(tmp_path):
+    _, db_path, _, _ = _run(tmp_path)
+
+    row = _row(
+        db_path,
+        """
+SELECT raw_content_eligibility, retrieval_eligibility, ingestion_eligibility
+FROM corpus_paths
+WHERE relative_path = 'scripts'
+""",
+    )
+
+    assert row == ("metadata_only", "metadata_only", "metadata_only")
+
+
 def test_all_eight_worlds_can_be_represented_as_bindings(tmp_path):
     _, db_path, _, _ = _run(tmp_path)
 
@@ -304,6 +449,50 @@ WHERE world_id NOT IN ('unknown', 'no_world', 'cross_world')
 
     assert set(WORLD_IDS) <= world_ids
     assert world_ids <= WORLD_BINDINGS
+
+
+def test_multi_root_fields_and_future_roots_are_represented_without_scanning(tmp_path):
+    _, db_path, _, _ = _run(tmp_path)
+
+    initial = _row(
+        db_path,
+        """
+SELECT root_kind, host_kind, owner_scope, absolute_root, canonical_status, import_status
+FROM corpus_roots
+WHERE root_id = 'pc_wsl_home_openclaw'
+""",
+    )
+    future_roots = {
+        row[0]: row[1:]
+        for row in _rows(
+            db_path,
+            """
+SELECT root_id, root_kind, owner_scope, canonical_status, import_status
+FROM corpus_roots
+WHERE root_id IN (
+  'mac_openclaw_mirror',
+  'mac_mission_control_app',
+  'mac_generated_read_models',
+  'github_legacy_openclaw',
+  'client_project_root',
+  'client_runtime_root'
+)
+""",
+        )
+    }
+
+    assert initial[0:3] == ("operating_home_repo", "pc_wsl", "internal_platform")
+    assert initial[3].endswith("/openclaw")
+    assert initial[4:] == ("canonical_current", "scanned_metadata_only")
+    assert future_roots["github_legacy_openclaw"] == (
+        "legacy_git_repo",
+        "internal_platform",
+        "non_canonical_until_promoted",
+        "not_imported",
+    )
+    assert future_roots["client_project_root"][1] == "client_project"
+    assert future_roots["client_runtime_root"][1] == "client_runtime"
+    assert len(future_roots) == 6
 
 
 def test_reorg_candidates_are_advisory_and_do_not_move_files(tmp_path):
@@ -333,6 +522,9 @@ def test_report_includes_required_count_groups_and_query_sections(tmp_path, caps
         "freshness_label",
         "sensitivity_label",
         "raw_content_eligibility",
+        "retrieval_eligibility",
+        "ingestion_eligibility",
+        "canonicality",
         "world_binding",
         "reorg_bucket",
     ):
@@ -343,11 +535,19 @@ def test_report_includes_required_count_groups_and_query_sections(tmp_path, caps
     generated = query_report_section(db_path=db_path, run_id=result.run_id, section="generated-read-models")
     stale = query_report_section(db_path=db_path, run_id=result.run_id, section="stale")
     reorg = query_report_section(db_path=db_path, run_id=result.run_id, section="reorg")
+    retrieval = query_report_section(db_path=db_path, run_id=result.run_id, section="retrieval")
+    unknown = query_report_section(db_path=db_path, run_id=result.run_id, section="unknown-review")
+    roots = query_report_section(db_path=db_path, run_id=result.run_id, section="multi-root")
+    legacy = query_report_section(db_path=db_path, run_id=result.run_id, section="legacy-root")
 
     assert any(item["relative_path"] == ".chief.env" for item in no_go["items"])
     assert any(item["relative_path"].startswith("generated/read_models/") for item in generated["items"])
     assert any(item["relative_path"] == "CURRENT_STATE.md" for item in stale["items"])
     assert any(item["relative_path"] == "OpenClaw" for item in reorg["items"])
+    assert any(item["retrieval_eligibility"] == "blocked_unknown" for item in retrieval["items"])
+    assert any(item["relative_path"] == "loose.unknown" for item in unknown["items"])
+    assert any(item["root_id"] == "mac_generated_read_models" for item in roots["items"])
+    assert legacy["items"][0]["root_kind"] == "legacy_git_repo"
 
     exit_code = query_main(
         ["--db", str(db_path), "--run-id", result.run_id, "--report", "no-go", "--format", "json"]

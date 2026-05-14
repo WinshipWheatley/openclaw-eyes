@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the bounded OpenClaw Corpus Atlas v0.5 metadata scan."""
+"""Run the bounded OpenClaw Corpus Atlas v0.6 metadata scan."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from corpus_atlas import (
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build a metadata-first Corpus Atlas v0.5 in the existing ledger."
+        description="Build a metadata-first Corpus Atlas v0.6 in the existing ledger."
     )
     parser.add_argument("--db", default=DEFAULT_DB_PATH, help="SQLite ledger path.")
     parser.add_argument("--root", default=DEFAULT_ROOT.as_posix(), help="Root to classify.")

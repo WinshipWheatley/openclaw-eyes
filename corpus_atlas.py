@@ -1,4 +1,4 @@
-"""Metadata-first Corpus Atlas v0.5 for OpenClaw.
+"""Metadata-first Corpus Atlas v0.6 for OpenClaw.
 
 The atlas records path/location metadata and classification labels in the
 existing Business Ops ledger under a separate ``corpus_*`` namespace. It does
@@ -21,7 +21,7 @@ from typing import Any, Callable, Iterable
 from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 
 
-ATLAS_VERSION = "corpus_atlas_v0_5"
+ATLAS_VERSION = "corpus_atlas_v0_6"
 DEFAULT_ROOT_ID = "pc_wsl_home_openclaw"
 DEFAULT_HOST_KIND = "pc_wsl"
 DEFAULT_ROOT = Path("/home/openclaw")
@@ -54,6 +54,40 @@ FRESHNESS_LABELS = {
     "future_gated_capability",
     "unsupported_claim",
     "unknown",
+}
+
+RETRIEVAL_ELIGIBILITY = {
+    "retrievable",
+    "metadata_only",
+    "blocked_no_go",
+    "blocked_sensitive",
+    "blocked_unknown",
+    "needs_operator_review",
+    "generated_read_model_only",
+    "receipt_metadata_only",
+}
+
+INGESTION_ELIGIBILITY = {
+    "ingest_allowed",
+    "metadata_only",
+    "no_go",
+    "needs_review",
+    "generated_snapshot_only",
+    "receipt_summary_only",
+    "not_for_ingestion",
+}
+
+CANONICALITY_LABELS = {
+    "canonical_current",
+    "generated_current",
+    "tracked_source",
+    "operator_note",
+    "historical",
+    "superseded",
+    "scratch",
+    "experiment",
+    "unknown_review",
+    "no_go_boundary",
 }
 
 SOURCE_ROLES = {
@@ -300,6 +334,92 @@ READ_MODEL_SEED_FILES = (
     "evidence_freshness.json",
 )
 
+CANONICAL_CURRENT_PATHS = {
+    "AGENTS.md",
+    "CORE_ARCHITECTURE_PRINCIPLES.md",
+    "OPENCLAW_RUNTIME.md",
+    "USER.md",
+}
+
+CONCEPTUAL_ROOTS = (
+    {
+        "root_id": "mac_openclaw_mirror",
+        "root_kind": "mirror_root",
+        "host_kind": "mac",
+        "owner_scope": "internal_platform",
+        "absolute_root": "not_scanned://mac/openclaw_mirror",
+        "root_label": "Future Mac OpenClaw mirror",
+        "status": "future_placeholder",
+        "canonical_status": "mirror_candidate",
+        "import_status": "not_scanned",
+        "mirror_of_root_id": DEFAULT_ROOT_ID,
+        "lineage_source": "pc_wsl_home_openclaw",
+    },
+    {
+        "root_id": "mac_mission_control_app",
+        "root_kind": "app_root",
+        "host_kind": "mac",
+        "owner_scope": "internal_platform",
+        "absolute_root": "not_scanned://mac/mission_control_app",
+        "root_label": "Future Mac Mission Control app root",
+        "status": "future_placeholder",
+        "canonical_status": "non_canonical_read_surface",
+        "import_status": "not_scanned",
+        "mirror_of_root_id": DEFAULT_ROOT_ID,
+        "lineage_source": "pc_wsl_home_openclaw",
+    },
+    {
+        "root_id": "mac_generated_read_models",
+        "root_kind": "generated_read_model_mirror",
+        "host_kind": "mac",
+        "owner_scope": "internal_platform",
+        "absolute_root": "not_scanned://mac/generated_read_models",
+        "root_label": "Future Mac generated read-model mirror",
+        "status": "future_placeholder",
+        "canonical_status": "mirror_candidate",
+        "import_status": "not_scanned",
+        "mirror_of_root_id": DEFAULT_ROOT_ID,
+        "lineage_source": "generated/read_models",
+    },
+    {
+        "root_id": "github_legacy_openclaw",
+        "root_kind": "legacy_git_repo",
+        "host_kind": "github",
+        "owner_scope": "internal_platform",
+        "absolute_root": "not_imported://github/legacy_openclaw",
+        "root_label": "Legacy GitHub OpenClaw repo",
+        "status": "future_placeholder",
+        "canonical_status": "non_canonical_until_promoted",
+        "import_status": "not_imported",
+        "repo_name": "github_legacy_openclaw",
+        "lineage_source": "legacy_external_repo",
+    },
+    {
+        "root_id": "client_project_root",
+        "root_kind": "client_project_root",
+        "host_kind": "unknown",
+        "owner_scope": "client_project",
+        "absolute_root": "not_scanned://client/project_root",
+        "root_label": "Future client project root",
+        "status": "future_placeholder",
+        "canonical_status": "requires_client_allowlist",
+        "import_status": "not_scanned",
+        "lineage_source": "future_client_project_capsule",
+    },
+    {
+        "root_id": "client_runtime_root",
+        "root_kind": "client_runtime_root",
+        "host_kind": "unknown",
+        "owner_scope": "client_runtime",
+        "absolute_root": "not_scanned://client/runtime_root",
+        "root_label": "Future client runtime root",
+        "status": "future_placeholder",
+        "canonical_status": "requires_client_allowlist",
+        "import_status": "not_scanned",
+        "lineage_source": "future_client_runtime_capsule",
+    },
+)
+
 
 @dataclass(frozen=True)
 class CorpusPathRecord:
@@ -322,6 +442,9 @@ class CorpusPathRecord:
     freshness_label: str
     sensitivity_label: str
     raw_content_eligibility: str
+    retrieval_eligibility: str
+    ingestion_eligibility: str
+    canonicality: str
     world_binding: str
     evidence_category: str
     reorg_status: str
@@ -362,10 +485,24 @@ def _sql_statements() -> tuple[str, ...]:
         """
 CREATE TABLE IF NOT EXISTS corpus_roots (
   root_id TEXT PRIMARY KEY,
+  root_kind TEXT NOT NULL DEFAULT 'unknown',
   host_kind TEXT NOT NULL,
+  owner_scope TEXT NOT NULL DEFAULT 'internal_platform',
+  project_id TEXT,
+  client_id TEXT,
+  instance_id TEXT,
   absolute_root TEXT NOT NULL,
   root_label TEXT,
   status TEXT NOT NULL,
+  repo_url TEXT,
+  repo_name TEXT,
+  branch TEXT,
+  commit_sha TEXT,
+  remote_origin TEXT,
+  canonical_status TEXT NOT NULL DEFAULT 'unknown',
+  import_status TEXT NOT NULL DEFAULT 'unknown',
+  mirror_of_root_id TEXT,
+  lineage_source TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   notes TEXT
@@ -416,6 +553,9 @@ CREATE TABLE IF NOT EXISTS corpus_paths (
   freshness_label TEXT NOT NULL,
   sensitivity_label TEXT NOT NULL,
   raw_content_eligibility TEXT NOT NULL,
+  retrieval_eligibility TEXT NOT NULL DEFAULT 'blocked_unknown',
+  ingestion_eligibility TEXT NOT NULL DEFAULT 'needs_review',
+  canonicality TEXT NOT NULL DEFAULT 'unknown_review',
   world_binding TEXT NOT NULL,
   evidence_category TEXT NOT NULL,
   reorg_status TEXT NOT NULL,
@@ -533,6 +673,51 @@ CREATE TABLE IF NOT EXISTS corpus_mirror_candidates (
     )
 
 
+def _ensure_column(
+    conn: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+    column_definition: str,
+) -> None:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing = {row[1] for row in rows}
+    if column_name not in existing:
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")
+
+
+def _ensure_v0_6_columns(conn: sqlite3.Connection) -> None:
+    for column_name, column_definition in (
+        ("root_kind", "root_kind TEXT NOT NULL DEFAULT 'unknown'"),
+        ("owner_scope", "owner_scope TEXT NOT NULL DEFAULT 'internal_platform'"),
+        ("project_id", "project_id TEXT"),
+        ("client_id", "client_id TEXT"),
+        ("instance_id", "instance_id TEXT"),
+        ("repo_url", "repo_url TEXT"),
+        ("repo_name", "repo_name TEXT"),
+        ("branch", "branch TEXT"),
+        ("commit_sha", "commit_sha TEXT"),
+        ("remote_origin", "remote_origin TEXT"),
+        ("canonical_status", "canonical_status TEXT NOT NULL DEFAULT 'unknown'"),
+        ("import_status", "import_status TEXT NOT NULL DEFAULT 'unknown'"),
+        ("mirror_of_root_id", "mirror_of_root_id TEXT"),
+        ("lineage_source", "lineage_source TEXT"),
+    ):
+        _ensure_column(conn, "corpus_roots", column_name, column_definition)
+
+    for column_name, column_definition in (
+        (
+            "retrieval_eligibility",
+            "retrieval_eligibility TEXT NOT NULL DEFAULT 'blocked_unknown'",
+        ),
+        (
+            "ingestion_eligibility",
+            "ingestion_eligibility TEXT NOT NULL DEFAULT 'needs_review'",
+        ),
+        ("canonicality", "canonicality TEXT NOT NULL DEFAULT 'unknown_review'"),
+    ):
+        _ensure_column(conn, "corpus_paths", column_name, column_definition)
+
+
 def init_corpus_atlas_schema(db_path: str | Path | None = None) -> str:
     path = str(db_path or DEFAULT_DB_PATH)
     db_parent = Path(path).parent
@@ -544,6 +729,7 @@ def init_corpus_atlas_schema(db_path: str | Path | None = None) -> str:
         conn.execute("PRAGMA foreign_keys = ON")
         for statement in _sql_statements():
             conn.execute(statement)
+        _ensure_v0_6_columns(conn)
         conn.commit()
     finally:
         conn.close()
@@ -578,11 +764,13 @@ def git_context(root: Path) -> dict[str, str]:
         "git_head": "unknown",
         "git_branch": "unknown",
         "repo_root": "unknown",
+        "remote_origin": "unknown",
     }
     try:
         head = _run_git(["rev-parse", "--short=12", "HEAD"], root)
         branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], root)
         repo_root = _run_git(["rev-parse", "--show-toplevel"], root)
+        remote_origin = _run_git(["remote", "get-url", "origin"], root)
     except (OSError, subprocess.SubprocessError):
         return context
     if head.returncode == 0:
@@ -591,6 +779,8 @@ def git_context(root: Path) -> dict[str, str]:
         context["git_branch"] = branch.stdout.decode().strip() or "unknown"
     if repo_root.returncode == 0:
         context["repo_root"] = repo_root.stdout.decode().strip() or "unknown"
+    if remote_origin.returncode == 0:
+        context["remote_origin"] = remote_origin.stdout.decode().strip() or "unknown"
     return context
 
 
@@ -992,15 +1182,105 @@ def _freshness_for(
         return "generated_read_model_fact"
     if evidence_category == "runtime_gate":
         return "future_gated_capability"
+    if relative_path in CANONICAL_CURRENT_PATHS:
+        return "current_source_of_truth"
     if source_role in {"source_code", "script", "test"}:
-        return "current_source_of_truth"
-    if relative_path in {"OPENCLAW_RUNTIME.md", "USER.md", "CORE_ARCHITECTURE_PRINCIPLES.md", "AGENTS.md"}:
-        return "current_source_of_truth"
+        return "source_claim"
     if source_role in {"docs", "handoff", "ux_product_synthesis"}:
         return "source_claim"
     if source_role == "receipt":
         return "historical"
     return "unknown"
+
+
+def _canonicality_for(
+    relative_path: str,
+    source_role: str,
+    freshness_label: str,
+    sensitivity_label: str,
+) -> str:
+    if sensitivity_label in {
+        "credential_boundary",
+        "finance_boundary",
+        "legal_tax_boundary",
+        "private",
+        "runtime_log_boundary",
+        "no_go",
+    }:
+        return "no_go_boundary"
+    if freshness_label in {"generated_current", "generated_read_model_fact"}:
+        return "generated_current"
+    if relative_path in CANONICAL_CURRENT_PATHS:
+        return "canonical_current"
+    if freshness_label in {"stale_possible", "superseded", "deprecated"}:
+        return "superseded"
+    if freshness_label == "historical" or source_role in {"receipt", "legacy", "backup"}:
+        return "historical"
+    if freshness_label == "scratch" or source_role == "scratch":
+        return "scratch"
+    if freshness_label == "experiment":
+        return "experiment"
+    if source_role in {"source_code", "script", "test"}:
+        return "tracked_source"
+    if source_role in {"docs", "handoff", "ux_product_synthesis"}:
+        return "operator_note"
+    return "unknown_review"
+
+
+def _retrieval_eligibility_for(
+    *,
+    source_role: str,
+    sensitivity_label: str,
+    raw_content_eligibility: str,
+    freshness_label: str,
+    canonicality: str,
+) -> str:
+    if raw_content_eligibility == "no_go":
+        return "blocked_no_go"
+    if sensitivity_label in {
+        "credential_boundary",
+        "finance_boundary",
+        "legal_tax_boundary",
+        "private",
+        "runtime_log_boundary",
+        "no_go",
+    }:
+        return "blocked_sensitive"
+    if source_role in {"generated_read_model", "source_inventory", "artifact_registry", "evidence_freshness"}:
+        return "generated_read_model_only"
+    if source_role in {"receipt", "test_result"}:
+        return "receipt_metadata_only"
+    if raw_content_eligibility == "metadata_only":
+        return "metadata_only"
+    if raw_content_eligibility == "unknown" or freshness_label == "unknown":
+        return "blocked_unknown"
+    if canonicality == "canonical_current" and raw_content_eligibility == "eligible":
+        return "retrievable"
+    return "needs_operator_review"
+
+
+def _ingestion_eligibility_for(
+    *,
+    source_role: str,
+    raw_content_eligibility: str,
+    retrieval_eligibility: str,
+    canonicality: str,
+) -> str:
+    if retrieval_eligibility in {"blocked_no_go", "blocked_sensitive"}:
+        return "no_go"
+    if source_role in {"generated_read_model", "source_inventory", "artifact_registry", "evidence_freshness"}:
+        return "generated_snapshot_only"
+    if source_role in {"receipt", "test_result"}:
+        return "receipt_summary_only"
+    if raw_content_eligibility == "metadata_only":
+        return "metadata_only"
+    if raw_content_eligibility == "unknown":
+        return "needs_review"
+    if canonicality == "canonical_current" and raw_content_eligibility == "eligible":
+        return "ingest_allowed"
+    if retrieval_eligibility == "needs_operator_review":
+        return "needs_review"
+    return "not_for_ingestion"
 
 
 def _raw_eligibility_for(
@@ -1097,7 +1377,11 @@ def classify_path(
         sensitivity_label,
         boundary_eligibility,
     )
-    if raw_eligibility == "eligible" and tracked_status == "ignored":
+    if (
+        raw_eligibility == "eligible"
+        and tracked_status == "ignored"
+        and relative_path not in CANONICAL_CURRENT_PATHS
+    ):
         raw_eligibility = "metadata_only"
 
     freshness_label = _freshness_for(
@@ -1107,6 +1391,25 @@ def classify_path(
         evidence_category,
         seeds,
     )
+    canonicality = _canonicality_for(
+        relative_path,
+        source_role,
+        freshness_label,
+        sensitivity_label,
+    )
+    retrieval_eligibility = _retrieval_eligibility_for(
+        source_role=source_role,
+        sensitivity_label=sensitivity_label,
+        raw_content_eligibility=raw_eligibility,
+        freshness_label=freshness_label,
+        canonicality=canonicality,
+    )
+    ingestion_eligibility = _ingestion_eligibility_for(
+        source_role=source_role,
+        raw_content_eligibility=raw_eligibility,
+        retrieval_eligibility=retrieval_eligibility,
+        canonicality=canonicality,
+    )
     world_binding = _world_binding_for(relative_path, source_role, evidence_category)
     reorg_status, reorg_bucket, reorg_reason, reorg_confidence, requires_review = _reorg_for(
         relative_path,
@@ -1114,12 +1417,25 @@ def classify_path(
         freshness_label,
         sensitivity_label,
     )
+    if retrieval_eligibility in {"blocked_unknown", "needs_operator_review"}:
+        requires_review = True
 
     return {
         "source_role": source_role if source_role in SOURCE_ROLES else "unknown",
         "freshness_label": freshness_label if freshness_label in FRESHNESS_LABELS else "unknown",
         "sensitivity_label": sensitivity_label if sensitivity_label in SENSITIVITY_LABELS else "unknown",
         "raw_content_eligibility": raw_eligibility if raw_eligibility in RAW_CONTENT_ELIGIBILITY else "unknown",
+        "retrieval_eligibility": (
+            retrieval_eligibility
+            if retrieval_eligibility in RETRIEVAL_ELIGIBILITY
+            else "blocked_unknown"
+        ),
+        "ingestion_eligibility": (
+            ingestion_eligibility
+            if ingestion_eligibility in INGESTION_ELIGIBILITY
+            else "needs_review"
+        ),
+        "canonicality": canonicality if canonicality in CANONICALITY_LABELS else "unknown_review",
         "world_binding": world_binding if world_binding in WORLD_BINDINGS else "unknown",
         "evidence_category": evidence_category if evidence_category in EVIDENCE_CATEGORIES else "unknown",
         "reorg_status": reorg_status,
@@ -1253,32 +1569,107 @@ def _insert_root(
     conn: sqlite3.Connection,
     *,
     root_id: str,
+    root_kind: str,
     host_kind: str,
+    owner_scope: str,
     absolute_root: str,
+    root_label: str,
+    status: str,
+    project_id: str | None = None,
+    client_id: str | None = None,
+    instance_id: str | None = None,
+    repo_url: str | None = None,
+    repo_name: str | None = None,
+    branch: str | None = None,
+    commit_sha: str | None = None,
+    remote_origin: str | None = None,
+    canonical_status: str = "unknown",
+    import_status: str = "unknown",
+    mirror_of_root_id: str | None = None,
+    lineage_source: str | None = None,
     now: str,
+    notes: str | None = None,
 ) -> None:
     conn.execute(
         """
 INSERT INTO corpus_roots (
-  root_id, host_kind, absolute_root, root_label, status, created_at, updated_at, notes
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  root_id, root_kind, host_kind, owner_scope, project_id, client_id, instance_id,
+  absolute_root, root_label, status, repo_url, repo_name, branch, commit_sha,
+  remote_origin, canonical_status, import_status, mirror_of_root_id,
+  lineage_source, created_at, updated_at, notes
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(root_id) DO UPDATE SET
+  root_kind = excluded.root_kind,
   host_kind = excluded.host_kind,
+  owner_scope = excluded.owner_scope,
+  project_id = excluded.project_id,
+  client_id = excluded.client_id,
+  instance_id = excluded.instance_id,
   absolute_root = excluded.absolute_root,
+  root_label = excluded.root_label,
+  status = excluded.status,
+  repo_url = excluded.repo_url,
+  repo_name = excluded.repo_name,
+  branch = excluded.branch,
+  commit_sha = excluded.commit_sha,
+  remote_origin = excluded.remote_origin,
+  canonical_status = excluded.canonical_status,
+  import_status = excluded.import_status,
+  mirror_of_root_id = excluded.mirror_of_root_id,
+  lineage_source = excluded.lineage_source,
   updated_at = excluded.updated_at,
   notes = excluded.notes
 """.strip(),
         (
             root_id,
+            root_kind,
             host_kind,
+            owner_scope,
+            project_id,
+            client_id,
+            instance_id,
             absolute_root,
-            "PC WSL /home/openclaw operating home",
-            "active_metadata_root",
+            root_label,
+            status,
+            repo_url,
+            repo_name,
+            branch,
+            commit_sha,
+            remote_origin,
+            canonical_status,
+            import_status,
+            mirror_of_root_id,
+            lineage_source,
             now,
             now,
-            "Initial root for Corpus Atlas v0.5; future Mac roots can be added without scanning them here.",
+            notes,
         ),
     )
+
+
+def _register_conceptual_roots(conn: sqlite3.Connection, now: str) -> None:
+    for root in CONCEPTUAL_ROOTS:
+        _insert_root(
+            conn,
+            root_id=root["root_id"],
+            root_kind=root["root_kind"],
+            host_kind=root["host_kind"],
+            owner_scope=root["owner_scope"],
+            absolute_root=root["absolute_root"],
+            root_label=root["root_label"],
+            status=root["status"],
+            repo_url=root.get("repo_url"),
+            repo_name=root.get("repo_name"),
+            branch=root.get("branch"),
+            commit_sha=root.get("commit_sha"),
+            remote_origin=root.get("remote_origin"),
+            canonical_status=root["canonical_status"],
+            import_status=root["import_status"],
+            mirror_of_root_id=root.get("mirror_of_root_id"),
+            lineage_source=root.get("lineage_source"),
+            now=now,
+            notes="Conceptual future root only; not scanned in Corpus Atlas v0.6.",
+        )
 
 
 def _insert_run_start(
@@ -1333,10 +1724,11 @@ INSERT INTO corpus_paths (
   path_id, run_id, root_id, absolute_path, relative_path, parent_relative_path,
   path_name, path_type, tracked_status, git_head, size_bytes, mtime, ctime,
   content_hash, hash_algorithm, source_role, freshness_label, sensitivity_label,
-  raw_content_eligibility, world_binding, evidence_category, reorg_status,
+  raw_content_eligibility, retrieval_eligibility, ingestion_eligibility,
+  canonicality, world_binding, evidence_category, reorg_status,
   reorg_bucket, reorg_reason, reorg_confidence, requires_operator_review,
   metadata_basis, body_read, runtime_authority, created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(run_id, root_id, relative_path) DO UPDATE SET
   absolute_path = excluded.absolute_path,
   parent_relative_path = excluded.parent_relative_path,
@@ -1353,6 +1745,9 @@ ON CONFLICT(run_id, root_id, relative_path) DO UPDATE SET
   freshness_label = excluded.freshness_label,
   sensitivity_label = excluded.sensitivity_label,
   raw_content_eligibility = excluded.raw_content_eligibility,
+  retrieval_eligibility = excluded.retrieval_eligibility,
+  ingestion_eligibility = excluded.ingestion_eligibility,
+  canonicality = excluded.canonicality,
   world_binding = excluded.world_binding,
   evidence_category = excluded.evidence_category,
   reorg_status = excluded.reorg_status,
@@ -1384,6 +1779,9 @@ ON CONFLICT(run_id, root_id, relative_path) DO UPDATE SET
             record.freshness_label,
             record.sensitivity_label,
             record.raw_content_eligibility,
+            record.retrieval_eligibility,
+            record.ingestion_eligibility,
+            record.canonicality,
             record.world_binding,
             record.evidence_category,
             record.reorg_status,
@@ -1408,6 +1806,9 @@ def _insert_standard_labels(conn: sqlite3.Connection, record: CorpusPathRecord, 
         "evidence_category": record.evidence_category,
         "tracked_status": record.tracked_status,
         "reorg_bucket": record.reorg_bucket,
+        "retrieval_eligibility": record.retrieval_eligibility,
+        "ingestion_eligibility": record.ingestion_eligibility,
+        "canonicality": record.canonicality,
     }
     for name, value in labels.items():
         label_id = _row_id("clabel", record.path_id, name, value, record.metadata_basis)
@@ -1610,10 +2011,23 @@ def store_corpus_atlas_records(
         _insert_root(
             conn,
             root_id=root_id,
+            root_kind="operating_home_repo",
             host_kind=host_kind,
+            owner_scope="internal_platform",
             absolute_root=root.as_posix(),
+            root_label="PC WSL /home/openclaw operating home",
+            status="active_metadata_root",
+            repo_name="openclaw",
+            branch=git_context_payload.get("git_branch"),
+            commit_sha=git_context_payload.get("git_head"),
+            remote_origin=git_context_payload.get("remote_origin"),
+            canonical_status="canonical_current",
+            import_status="scanned_metadata_only",
+            lineage_source="local_operating_home",
             now=now,
+            notes="Initial active root for Corpus Atlas v0.6; future roots are registered conceptually but not scanned here.",
         )
+        _register_conceptual_roots(conn, now)
         source_basis = {
             "read_model_seed_files": sorted(seeds.get("read_models", {}).keys()),
             "truth_registry_seeded": bool(seeds.get("truth_registry_by_path")),
@@ -1684,6 +2098,9 @@ def _count_records(records: list[CorpusPathRecord]) -> dict[str, dict[str, int]]
         "freshness_label": "freshness_label",
         "sensitivity_label": "sensitivity_label",
         "raw_content_eligibility": "raw_content_eligibility",
+        "retrieval_eligibility": "retrieval_eligibility",
+        "ingestion_eligibility": "ingestion_eligibility",
+        "canonicality": "canonicality",
         "world_binding": "world_binding",
         "reorg_bucket": "reorg_bucket",
     }
@@ -1758,6 +2175,9 @@ def _group_counts(conn: sqlite3.Connection, run_id: str, column: str) -> dict[st
         "reorg_bucket",
         "path_type",
         "tracked_status",
+        "retrieval_eligibility",
+        "ingestion_eligibility",
+        "canonicality",
     }
     if column not in allowed:
         raise ValueError(f"unsupported count column: {column}")
@@ -1778,9 +2198,10 @@ def _sample_paths(
     rows = conn.execute(
         f"""
 SELECT relative_path, path_type, source_role, freshness_label, sensitivity_label,
-       raw_content_eligibility, world_binding, reorg_bucket
+       raw_content_eligibility, retrieval_eligibility, ingestion_eligibility,
+       canonicality, world_binding, reorg_bucket
 FROM corpus_paths
-WHERE run_id = ? AND {where_sql}
+WHERE run_id = ? AND ({where_sql})
 ORDER BY relative_path
 LIMIT ?
 """.strip(),
@@ -1793,8 +2214,70 @@ LIMIT ?
         "freshness_label",
         "sensitivity_label",
         "raw_content_eligibility",
+        "retrieval_eligibility",
+        "ingestion_eligibility",
+        "canonicality",
         "world_binding",
         "reorg_bucket",
+    )
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def _root_registry(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+SELECT root_id, root_kind, host_kind, owner_scope, project_id, client_id,
+       instance_id, absolute_root, root_label, status, repo_url, repo_name,
+       branch, commit_sha, remote_origin, canonical_status, import_status,
+       mirror_of_root_id, lineage_source
+FROM corpus_roots
+ORDER BY root_id
+""".strip()
+    ).fetchall()
+    keys = (
+        "root_id",
+        "root_kind",
+        "host_kind",
+        "owner_scope",
+        "project_id",
+        "client_id",
+        "instance_id",
+        "absolute_root",
+        "root_label",
+        "status",
+        "repo_url",
+        "repo_name",
+        "branch",
+        "commit_sha",
+        "remote_origin",
+        "canonical_status",
+        "import_status",
+        "mirror_of_root_id",
+        "lineage_source",
+    )
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def _mirror_candidates(conn: sqlite3.Connection, run_id: str, limit: int = 30) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+SELECT p.relative_path, m.mirror_root_id, m.suggested_relative_path, m.mirror_kind,
+       m.status, m.basis
+FROM corpus_mirror_candidates m
+JOIN corpus_paths p ON p.path_id = m.path_id
+WHERE p.run_id = ?
+ORDER BY p.relative_path, m.mirror_root_id
+LIMIT ?
+""".strip(),
+        (run_id, limit),
+    ).fetchall()
+    keys = (
+        "relative_path",
+        "mirror_root_id",
+        "suggested_relative_path",
+        "mirror_kind",
+        "status",
+        "basis",
     )
     return [dict(zip(keys, row)) for row in rows]
 
@@ -1824,7 +2307,10 @@ WHERE run_id = ?
         ).fetchone()
         root = conn.execute(
             """
-SELECT root_id, host_kind, absolute_root, status
+SELECT root_id, root_kind, host_kind, owner_scope, project_id, client_id,
+       instance_id, absolute_root, root_label, status, repo_url, repo_name,
+       branch, commit_sha, remote_origin, canonical_status, import_status,
+       mirror_of_root_id, lineage_source
 FROM corpus_roots
 WHERE root_id = ?
 """.strip(),
@@ -1835,6 +2321,9 @@ WHERE root_id = ?
             "freshness_label": _group_counts(conn, run_id, "freshness_label"),
             "sensitivity_label": _group_counts(conn, run_id, "sensitivity_label"),
             "raw_content_eligibility": _group_counts(conn, run_id, "raw_content_eligibility"),
+            "retrieval_eligibility": _group_counts(conn, run_id, "retrieval_eligibility"),
+            "ingestion_eligibility": _group_counts(conn, run_id, "ingestion_eligibility"),
+            "canonicality": _group_counts(conn, run_id, "canonicality"),
             "world_binding": _group_counts(conn, run_id, "world_binding"),
             "reorg_bucket": _group_counts(conn, run_id, "reorg_bucket"),
             "tracked_status": _group_counts(conn, run_id, "tracked_status"),
@@ -1862,12 +2351,34 @@ WHERE root_id = ?
             },
             "root": {
                 "root_id": root[0],
-                "host_kind": root[1],
-                "absolute_root": root[2],
-                "status": root[3],
+                "root_kind": root[1],
+                "host_kind": root[2],
+                "owner_scope": root[3],
+                "project_id": root[4],
+                "client_id": root[5],
+                "instance_id": root[6],
+                "absolute_root": root[7],
+                "root_label": root[8],
+                "status": root[9],
+                "repo_url": root[10],
+                "repo_name": root[11],
+                "branch": root[12],
+                "commit_sha": root[13],
+                "remote_origin": root[14],
+                "canonical_status": root[15],
+                "import_status": root[16],
+                "mirror_of_root_id": root[17],
+                "lineage_source": root[18],
             },
             "counts": counts,
             "top_level_atlas": top_level,
+            "multi_root_registry": _root_registry(conn),
+            "future_mirror_candidates": _mirror_candidates(conn, run_id, limit=30),
+            "legacy_root_readiness": [
+                root
+                for root in _root_registry(conn)
+                if root["root_kind"] == "legacy_git_repo"
+            ],
             "no_go_sensitive_boundaries": _sample_paths(
                 conn,
                 run_id,
@@ -1877,13 +2388,31 @@ WHERE root_id = ?
             "current_generated_source_of_truth_candidates": _sample_paths(
                 conn,
                 run_id,
-                "freshness_label IN ('current_source_of_truth','generated_current','generated_read_model_fact')",
+                "canonicality IN ('canonical_current','generated_current')",
+                limit=30,
+            ),
+            "canonical_current_candidates": _sample_paths(
+                conn,
+                run_id,
+                "canonicality = 'canonical_current'",
+                limit=30,
+            ),
+            "overbroad_current_source_of_truth_candidates": _sample_paths(
+                conn,
+                run_id,
+                "freshness_label = 'current_source_of_truth' AND canonicality != 'canonical_current'",
                 limit=30,
             ),
             "stale_historical_scratch_candidates": _sample_paths(
                 conn,
                 run_id,
                 "freshness_label IN ('stale_possible','historical','scratch','experiment','superseded','deprecated')",
+                limit=30,
+            ),
+            "unknown_review_queue": _sample_paths(
+                conn,
+                run_id,
+                "retrieval_eligibility IN ('blocked_unknown','needs_operator_review') OR ingestion_eligibility = 'needs_review' OR canonicality = 'unknown_review'",
                 limit=30,
             ),
             "generated_read_model_artifact_map": _sample_paths(
@@ -1907,7 +2436,13 @@ WHERE root_id = ?
             "ingestion_eligibility": _sample_paths(
                 conn,
                 run_id,
-                "raw_content_eligibility IN ('eligible','metadata_only','no_go','unknown')",
+                "ingestion_eligibility IN ('ingest_allowed','metadata_only','no_go','needs_review','generated_snapshot_only','receipt_summary_only','not_for_ingestion')",
+                limit=30,
+            ),
+            "retrieval_eligibility": _sample_paths(
+                conn,
+                run_id,
+                "retrieval_eligibility IN ('retrievable','metadata_only','blocked_no_go','blocked_sensitive','blocked_unknown','needs_operator_review','generated_read_model_only','receipt_metadata_only')",
                 limit=30,
             ),
             "claims_not_made": [
@@ -1942,19 +2477,21 @@ def _sample_lines(samples: list[dict[str, Any]], *, max_items: int = 8) -> list[
         lines.append(
             "- "
             + display_path(item["relative_path"])
-            + f" ({item['source_role']}, {item['freshness_label']}, {item['raw_content_eligibility']}, {item['reorg_bucket']})"
+            + f" ({item['source_role']}, {item['freshness_label']}, "
+            + f"{item['canonicality']}, {item['retrieval_eligibility']}, "
+            + f"{item['ingestion_eligibility']}, {item['reorg_bucket']})"
         )
     return lines
 
 
 def format_atlas_report(report: dict[str, Any]) -> str:
     if report.get("status") == "no_runs":
-        return "Corpus Atlas v0.5\n\nNo atlas runs are recorded."
+        return "Corpus Atlas v0.6\n\nNo atlas runs are recorded."
     run = report["run"]
     root = report["root"]
     counts = report["counts"]
     lines = [
-        "Corpus Atlas v0.5",
+        "Corpus Atlas v0.6",
         "",
         "Evidence:",
         f"- Run `{run['run_id']}` scanned `{root['absolute_root']}` as `{root['root_id']}`.",
@@ -1963,6 +2500,9 @@ def format_atlas_report(report: dict[str, Any]) -> str:
         _count_line("Freshness labels", counts["freshness_label"]),
         _count_line("Sensitivity labels", counts["sensitivity_label"]),
         _count_line("Raw-content eligibility", counts["raw_content_eligibility"]),
+        _count_line("Retrieval eligibility", counts["retrieval_eligibility"]),
+        _count_line("Ingestion eligibility", counts["ingestion_eligibility"]),
+        _count_line("Canonicality", counts["canonicality"]),
         _count_line("World bindings", counts["world_binding"]),
         _count_line("Reorg buckets", counts["reorg_bucket"]),
         "",
@@ -1971,6 +2511,12 @@ def format_atlas_report(report: dict[str, Any]) -> str:
         "",
         "Current / Generated Source Candidates:",
         *_sample_lines(report["current_generated_source_of_truth_candidates"]),
+        "",
+        "Unknown Review Queue:",
+        *_sample_lines(report["unknown_review_queue"]),
+        "",
+        "Overbroad Current Source-of-Truth Candidates:",
+        *_sample_lines(report["overbroad_current_source_of_truth_candidates"]),
         "",
         "Stale / Historical / Scratch Candidates:",
         *_sample_lines(report["stale_historical_scratch_candidates"]),
@@ -1984,9 +2530,18 @@ def format_atlas_report(report: dict[str, Any]) -> str:
         "Reorg Candidates:",
         *_sample_lines(report["reorg_candidates"]),
         "",
+        "Multi-Root Registry:",
+        *[
+            "- "
+            + root["root_id"]
+            + f" ({root['root_kind']}, {root['owner_scope']}, {root['canonical_status']}, {root['import_status']})"
+            for root in report["multi_root_registry"][:8]
+        ],
+        "",
         "Boundary:",
-        "- Atlas rows are metadata/location classifications and generated read-model facts only.",
+        "- Atlas rows are metadata/location classifications, generated read-model facts, and retrieval/ingestion gates only.",
         "- `body_ingested=false`; `raw_sensitive_data_stored=false`; no no-go content hashes are recorded.",
+        "- Unknown paths are not retrievable or ingestible without operator review.",
         "- Reorg rows are advisory; `moved=0` and no filesystem changes are authorized.",
         "- `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.",
     ]
@@ -2036,12 +2591,34 @@ def query_report_section(
         "world-bound": "world_bound_paths",
         "reorg": "reorg_candidates",
         "ingestion": "ingestion_eligibility",
+        "retrieval": "retrieval_eligibility",
+        "unknown-review": "unknown_review_queue",
+        "canonical-current": "canonical_current_candidates",
+        "overbroad-current": "overbroad_current_source_of_truth_candidates",
+        "multi-root": "multi_root_registry",
+        "mirrors": "future_mirror_candidates",
+        "legacy-root": "legacy_root_readiness",
     }
     if section not in section_map:
         raise ValueError(f"unknown report section: {section}")
-    return {
+    payload = {
         "atlas_version": report["atlas_version"],
         "run_id": report["run"]["run_id"],
         "section": section,
         "items": report[section_map[section]],
     }
+    count_key_by_section = {
+        "retrieval": "retrieval_eligibility",
+        "ingestion": "ingestion_eligibility",
+        "unknown-review": "retrieval_eligibility",
+        "canonical-current": "canonicality",
+        "overbroad-current": "canonicality",
+        "generated-read-models": "ingestion_eligibility",
+        "no-go": "retrieval_eligibility",
+        "stale": "canonicality",
+        "reorg": "reorg_bucket",
+    }
+    count_key = count_key_by_section.get(section)
+    if count_key:
+        payload["counts"] = report["counts"].get(count_key, {})
+    return payload
