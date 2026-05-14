@@ -299,8 +299,8 @@ def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_pat
         section="generated-read-model-mirror",
     )
 
-    assert len(EXPECTED_GENERATED_READ_MODEL_FILES) == 26
-    assert report["counts"]["observed"] == 26
+    assert len(EXPECTED_GENERATED_READ_MODEL_FILES) == 28
+    assert report["counts"]["observed"] == 28
     assert report["counts"]["missing_expected"] == 0
     assert report["counts"]["extra"] == 0
     assert report["missing_expected_files"] == []
@@ -308,6 +308,8 @@ def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_pat
     for name in (
         "context_selection.json",
         "context_selection_OPERATOR.md",
+        "operator_actions.json",
+        "operator_actions_OPERATOR.md",
         "project_capsules.json",
         "project_capsules_OPERATOR.md",
         "report_bridge.json",

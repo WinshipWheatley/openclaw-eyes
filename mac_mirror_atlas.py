@@ -89,6 +89,8 @@ EXPECTED_GENERATED_READ_MODEL_FILES = (
     "generated_next_actions.md",
     "helm_state.json",
     "helm_state.operator.txt",
+    "operator_actions.json",
+    "operator_actions_OPERATOR.md",
     "project_capsules.json",
     "project_capsules_OPERATOR.md",
     "report_bridge.json",
