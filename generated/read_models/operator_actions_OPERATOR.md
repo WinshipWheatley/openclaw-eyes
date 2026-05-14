@@ -8,23 +8,23 @@ What this is not:
 - It is not arbitrary shell, hidden authority, runtime activation, agent activation, remote control, client deployment, Docker/Ollama, or truth promotion.
 
 Summary:
-- Requests: 1.
-- Pending approval: 0.
+- Requests: 2.
+- Pending approval: 1.
 - Approved decisions: 1.
 - Completed: 1; failed: 0; rejected: 0.
-- Receipts: 3.
+- Receipts: 4.
 
 Latest action:
-- Action: `opact_demo_export_report_bridge_read_model_20260514_v0`.
-- Type: `export_report_bridge_read_model`.
-- Status: `completed`.
-- Requested by: `operator`.
+- Action: `opact_inbox_sample_inbox_query_mirror_20260514_v0`.
+- Type: `query_generated_read_model_mirror`.
+- Status: `requested`.
+- Requested by: `mission_control`.
 
 Last execution receipt:
-- Receipt: `opreceipt_opact_demo_export_report_bridge_read_model_20260514_v0`.
-- Result: `completed`.
+- Receipt: `opact_approval_request_opact_inbox_sample_inbox_query_mirror_20260514_v0`.
+- Result: `requested`.
 - Exit code: `0`.
-- Summary: Allowlisted operator action export_report_bridge_read_model completed with exit_code=0.
+- Summary: Approval requested for query_generated_read_model_mirror.
 
 Allowed action types:
 - `export_context_selection_read_model`: Refresh the bounded Context Selection generated read-model.

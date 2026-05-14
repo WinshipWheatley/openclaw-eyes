@@ -636,7 +636,7 @@ ON CONFLICT(action_id) DO UPDATE SET
   reason = excluded.reason,
   updated_at = excluded.updated_at,
   status = CASE
-    WHEN operator_action_requests.status IN ('completed', 'failed', 'running') THEN operator_action_requests.status
+    WHEN operator_action_requests.status IN ('approved', 'completed', 'failed', 'running') THEN operator_action_requests.status
     ELSE excluded.status
   END,
   approval_required = 1,

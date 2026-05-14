@@ -53,6 +53,7 @@
 !read_model_shuttle.py
 !report_bridge.py
 !operator_action.py
+!operator_action_inbox.py
 !project_capsule.py
 !legacy_repo_intake.py
 !module_registry.py
@@ -663,6 +664,8 @@
 !scripts/execute_operator_action.py
 !scripts/query_operator_actions.py
 !scripts/export_operator_actions_read_model.py
+!scripts/import_operator_action_request.py
+!scripts/query_operator_action_inbox.py
 !tests/test_corpus_atlas.py
 !tests/test_evidence_kettle.py
 !tests/test_tool_inventory.py
@@ -682,6 +685,7 @@
 !tests/test_report_bridge.py
 !tests/test_report_bridge_read_model.py
 !tests/test_operator_action.py
+!tests/test_operator_action_inbox.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
