@@ -50,6 +50,7 @@
 !evidence_kettle.py
 !context_selection.py
 !mac_mirror_atlas.py
+!read_model_shuttle.py
 !tool_inventory.py
 !tool_intake.py
 !business_ops_packet.py
@@ -638,6 +639,8 @@
 !scripts/query_context_selection.py
 !scripts/build_root_manifest.py
 !scripts/import_root_manifest.py
+!scripts/prepare_mac_read_model_shuttle.py
+!scripts/import_mac_read_model_shuttle.py
 !tests/test_corpus_atlas.py
 !tests/test_evidence_kettle.py
 !tests/test_tool_inventory.py
@@ -647,6 +650,7 @@
 !tests/test_context_selection.py
 !tests/test_context_selection_read_model.py
 !tests/test_mac_mirror_atlas.py
+!tests/test_read_model_shuttle.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
