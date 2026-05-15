@@ -73,6 +73,66 @@ function Invoke-WslChecked {
     }
 }
 
+function Write-LogTail {
+    param(
+        [string]$Path,
+        [int]$LineCount = 40
+    )
+
+    if (Test-Path -LiteralPath $Path) {
+        Get-Content -LiteralPath $Path -Tail $LineCount
+    } else {
+        Write-Host "Log not present: $Path"
+    }
+}
+
+function New-WrapperScriptContent {
+    param([string]$DistroName)
+
+    $template = @'
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Continue"
+
+$Distro = "__DISTRO__"
+$TaskRoot = "E:\openclaw\windows_tasks"
+$LogDir = Join-Path $TaskRoot "logs"
+$WindowsLogPath = Join-Path $LogDir "OpenClawReadModelImport.log"
+$WslLogPath = "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log"
+
+New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+
+function Write-TaskLog {
+    param([string]$Message)
+    $timestamp = (Get-Date).ToString("o")
+    "[$timestamp] $Message" | Out-File -FilePath $WindowsLogPath -Append -Encoding utf8
+}
+
+Write-TaskLog "OpenClawReadModelImport started."
+Write-TaskLog "Distro: $Distro"
+
+$wslPath = Join-Path $env:WINDIR "System32\wsl.exe"
+$wslCommand = "set -o pipefail; mkdir -p /home/openclaw/.openclaw/logs && cd /home/openclaw && PYTHONDONTWRITEBYTECODE=1 python3 scripts/pc_read_model_import_agent.py --once --format operator 2>&1 | tee -a $WslLogPath"
+
+try {
+    & $wslPath -d $Distro -- bash -lc $wslCommand 2>&1 | ForEach-Object {
+        $_ | Tee-Object -FilePath $WindowsLogPath -Append
+    }
+    $exitCode = $LASTEXITCODE
+} catch {
+    $exitCode = 1
+    Write-TaskLog "Exception: $($_.Exception.Message)"
+}
+
+Write-TaskLog "OpenClawReadModelImport finished with exit code $exitCode."
+exit $exitCode
+'@
+
+    return $template.Replace("__DISTRO__", $DistroName)
+}
+
 Write-Section "Preflight"
 if (-not (Test-Path -LiteralPath "E:\openclaw")) {
     throw "E:\openclaw does not exist. Mount/create the shared E-drive drop before installing the task."
@@ -88,16 +148,28 @@ Write-Host "Selected WSL distro: $Distro"
 Invoke-WslChecked -Distro $Distro -Description "Confirm backend repo" -Command "test -d /home/openclaw"
 Invoke-WslChecked -Distro $Distro -Description "Prepare log directory" -Command "mkdir -p /home/openclaw/.openclaw/logs"
 
-$taskCommand = "cd /home/openclaw && PYTHONDONTWRITEBYTECODE=1 python3 scripts/pc_read_model_import_agent.py --once --format operator >> .openclaw/logs/windows_task_read_model_import.log 2>&1"
-$taskArguments = "-d `"$Distro`" -- bash -lc `"$taskCommand`""
-$wslPath = Join-Path $env:WINDIR "System32\wsl.exe"
+$TaskRoot = "E:\openclaw\windows_tasks"
+$TaskLogDir = Join-Path $TaskRoot "logs"
+$WrapperPath = Join-Path $TaskRoot "$TaskName.ps1"
+$WindowsTaskLogPath = Join-Path $TaskLogDir "$TaskName.log"
+$WslTaskLogPath = "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log"
+
+Write-Section "Write wrapper"
+New-Item -ItemType Directory -Force -Path $TaskLogDir | Out-Null
+Set-Content -LiteralPath $WrapperPath -Value (New-WrapperScriptContent -DistroName $Distro) -Encoding UTF8
+Write-Host "Wrapper: $WrapperPath"
+Write-Host "Windows log: $WindowsTaskLogPath"
+Write-Host "WSL log: $WslTaskLogPath"
+
+$taskPowerShell = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+$taskArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$WrapperPath`""
 
 Write-Section "Register scheduled task"
 Write-Host "Task name: $TaskName"
 Write-Host "Interval minutes: $IntervalMinutes"
-Write-Host "Action: $wslPath $taskArguments"
+Write-Host "Action: $taskPowerShell $taskArguments"
 
-$action = New-ScheduledTaskAction -Execute $wslPath -Argument $taskArguments
+$action = New-ScheduledTaskAction -Execute $taskPowerShell -Argument $taskArguments
 $trigger = New-ScheduledTaskTrigger `
     -Once `
     -At (Get-Date).AddMinutes(1) `
@@ -111,7 +183,7 @@ $settings = New-ScheduledTaskSettingsSet `
 $principal = New-ScheduledTaskPrincipal `
     -UserId "$env:USERDOMAIN\$env:USERNAME" `
     -LogonType Interactive `
-    -RunLevel LeastPrivilege
+    -RunLevel Limited
 
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($null -ne $existing) {
@@ -130,11 +202,14 @@ Register-ScheduledTask `
 if (-not $SkipRunOnce) {
     Write-Section "Run once"
     Start-ScheduledTask -TaskName $TaskName
-    Start-Sleep -Seconds 12
+    for ($i = 0; $i -lt 60; $i++) {
+        Start-Sleep -Seconds 1
+        $runningTask = Get-ScheduledTask -TaskName $TaskName
+        if ($runningTask.State -ne "Running") {
+            break
+        }
+    }
 }
-
-Write-Section "Recent task log"
-& wsl.exe -d $Distro -- bash -lc "tail -n 40 /home/openclaw/.openclaw/logs/windows_task_read_model_import.log 2>/dev/null || true"
 
 Write-Section "Task status"
 $task = Get-ScheduledTask -TaskName $TaskName
@@ -144,6 +219,24 @@ Write-Host "State: $($task.State)"
 Write-Host "LastRunTime: $($info.LastRunTime)"
 Write-Host "LastTaskResult: $($info.LastTaskResult)"
 Write-Host "NextRunTime: $($info.NextRunTime)"
+
+Write-Section "Windows-side task log"
+Write-LogTail -Path $WindowsTaskLogPath -LineCount 60
+
+Write-Section "WSL-side task log"
+& wsl.exe -d $Distro -- bash -lc "tail -n 60 /home/openclaw/.openclaw/logs/windows_task_read_model_import.log 2>/dev/null || true"
+
+if (-not $SkipRunOnce) {
+    if (-not (Test-Path -LiteralPath $WindowsTaskLogPath)) {
+        throw "Scheduled task did not create Windows-side log: $WindowsTaskLogPath"
+    }
+    if ($task.State -eq "Running") {
+        throw "Scheduled task did not finish within the installer wait window."
+    }
+    if ($info.LastTaskResult -ne 0) {
+        throw "Scheduled task run failed. LastTaskResult: $($info.LastTaskResult)"
+    }
+}
 
 Write-Section "Mirror doctor"
 & wsl.exe -d $Distro -- bash -lc "cd /home/openclaw && PYTHONDONTWRITEBYTECODE=1 python3 scripts/manage_openclaw_local_services.py --doctor read_model_mirror --format operator"
