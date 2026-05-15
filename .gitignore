@@ -435,6 +435,7 @@
 !scripts/manage_openclaw_local_services.py
 !scripts/build_local_automation_registry.py
 !scripts/query_local_automation_registry.py
+!scripts/windows_install_read_model_import_task.ps1
 !scripts/run_legal_pipeline_v0.sh
 !scripts/demo_legal_synthetic_stress_pack.py
 !scripts/sync_project_packets_to_mac.sh
@@ -696,6 +697,7 @@
 !tests/test_operator_action_inbox.py
 !tests/test_local_automation_registry.py
 !tests/test_local_service_manager.py
+!tests/test_windows_read_model_import_task.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json
