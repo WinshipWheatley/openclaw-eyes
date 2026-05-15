@@ -22,6 +22,9 @@ from typing import Any
 from agent_lane_registry import init_agent_lane_registry_schema, seed_agent_lane_registry
 from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 from operator_action import ALLOWED_ACTIONS, ALLOWED_SOURCE_KINDS, init_operator_action_schema
+from recent_file_context import (
+    init_recent_file_context_schema,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -320,6 +323,7 @@ def init_intent_router_schema(db_path: str | Path | None = None) -> str:
     init_business_ops_ledger(path)
     _ensure_agent_registry_rows(path)
     init_operator_action_schema(path)
+    init_recent_file_context_schema(path)
     conn = sqlite3.connect(path)
     try:
         for statement in _sql_statements():
@@ -482,28 +486,117 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
     return "Ask the operator for a clearer target agent, file, world, or allowed action; do not execute anything."
 
 
-def _has_recent_file_context(conn: sqlite3.Connection, phrase_text: str) -> list[dict[str, Any]]:
+def _latest_recent_file_context_run(conn: sqlite3.Connection) -> str | None:
     try:
-        conn.execute("SELECT 1 FROM file_event_observations LIMIT 1").fetchone()
+        row = conn.execute(
+            """
+SELECT run_id
+FROM recent_file_context_runs
+ORDER BY completed_at DESC, created_at DESC, run_id DESC
+LIMIT 1
+""".strip()
+        ).fetchone()
     except sqlite3.OperationalError:
-        return []
-    where = "event_type IN ('observed_new','observed_modified','possible_move')"
-    params: tuple[Any, ...] = ()
+        return None
+    return row["run_id"] if row else None
+
+
+def _query_type_for_phrase(phrase_text: str) -> tuple[str, str | None]:
     if "logic" in phrase_text or "logicx" in phrase_text:
+        return "logic_project", "logic_project"
+    if "markdown" in phrase_text or " md " in f" {phrase_text} ":
+        return "markdown_doc", "markdown_doc"
+    if "read model" in phrase_text or "read_model" in phrase_text:
+        return "generated_read_model", "generated_read_model"
+    if "report package" in phrase_text or "node uplink" in phrase_text or "report bridge" in phrase_text:
+        return "report_bridge_package", "report_bridge_package"
+    if "that new" in phrase_text or "new file" in phrase_text or "that file" in phrase_text:
+        return "generic_recent_file", None
+    return "unknown", None
+
+
+def _recent_file_candidate_preview(conn: sqlite3.Connection, phrase_text: str) -> dict[str, Any] | None:
+    run_id = _latest_recent_file_context_run(conn)
+    if not run_id:
+        return None
+    _query_type, file_kind = _query_type_for_phrase(phrase_text)
+    where = "run_id = ?"
+    params: list[Any] = [run_id]
+    if file_kind:
         where += " AND file_kind_hint = ?"
-        params = ("logic_project",)
-    rows = conn.execute(
-        f"""
-SELECT event_id, run_id, relative_path, event_type, file_kind_hint,
-       world_hint, sensitivity_hint, queue_status, observed_at
-FROM file_event_observations
+        params.append(file_kind)
+    try:
+        rows = conn.execute(
+            f"""
+SELECT *
+FROM recent_file_candidates
 WHERE {where}
-ORDER BY observed_at DESC, relative_path ASC
+ORDER BY observed_at DESC, confidence DESC, relative_path ASC
 LIMIT 3
 """.strip(),
-        params,
-    ).fetchall()
-    return [dict(row) for row in rows]
+            tuple(params),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None
+    safe_rows = [
+        dict(row)
+        for row in rows
+        if not row["no_go_boundary"] and row["queue_status"] != "blocked_no_go"
+    ]
+    if len(safe_rows) != 1:
+        return None
+    return safe_rows[0]
+
+
+def _recent_file_resolution_from_conn(
+    conn: sqlite3.Connection,
+    phrase_text: str,
+) -> tuple[str, dict[str, Any] | None, int, str]:
+    run_id = _latest_recent_file_context_run(conn)
+    if not run_id:
+        return "unresolved", None, 0, "no Recent File Context run exists"
+    _query_type, file_kind = _query_type_for_phrase(phrase_text)
+    where = "run_id = ?"
+    params: list[Any] = [run_id]
+    if file_kind:
+        where += " AND file_kind_hint = ?"
+        params.append(file_kind)
+    try:
+        rows = conn.execute(
+            f"""
+SELECT *
+FROM recent_file_candidates
+WHERE {where}
+ORDER BY observed_at DESC, confidence DESC, relative_path ASC
+LIMIT 10
+""".strip(),
+            tuple(params),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return "unresolved", None, 0, "Recent File Context tables are unavailable"
+    safe_rows = [
+        dict(row)
+        for row in rows
+        if not row["no_go_boundary"] and row["queue_status"] != "blocked_no_go"
+    ]
+    blocked_rows = [
+        dict(row)
+        for row in rows
+        if row["no_go_boundary"] or row["queue_status"] == "blocked_no_go"
+    ]
+    if not rows:
+        return "unresolved", None, 0, "no recent file candidate matched the query"
+    if blocked_rows and not safe_rows:
+        return "blocked_no_go", blocked_rows[0], len(rows), "matching candidates are no-go/sensitive metadata only"
+    if len(safe_rows) == 1:
+        candidate = safe_rows[0]
+        return (
+            "resolved",
+            candidate,
+            len(rows),
+            f"single recent {candidate['file_kind_hint']} candidate matched",
+        )
+    return "ambiguous", None, len(rows), f"{len(safe_rows)} recent candidates matched"
 
 
 def _latest_markdown_context(conn: sqlite3.Connection) -> dict[str, Any] | None:
@@ -549,10 +642,12 @@ def _context_links_for(
     intent_id: str,
     category: str,
     phrase_text: str,
+    query_text: str,
     now: str,
 ) -> tuple[list[dict[str, Any]], bool]:
     links: list[dict[str, Any]] = []
     unresolved_file_reference = False
+    file_reference_status: str | None = None
 
     if category == "markdown_reorg_request":
         context = _latest_markdown_context(conn)
@@ -569,25 +664,46 @@ def _context_links_for(
                     ),
                 }
             )
+        if "that new" in phrase_text or "new file" in phrase_text or "that file" in phrase_text:
+            file_reference_status, candidate, _candidate_count, _reason = _recent_file_resolution_from_conn(
+                conn,
+                phrase_text,
+            )
+            if candidate:
+                links.append(
+                    {
+                        "link_kind": "recent_file_context_candidate",
+                        "source_table": "recent_file_candidates",
+                        "source_id": candidate["candidate_id"],
+                        "source_path": candidate["relative_path"],
+                        "summary": (
+                            f"Recent file context {file_reference_status}: "
+                            f"{candidate['relative_path']} kind={candidate['file_kind_hint']} "
+                            f"world={candidate['world_hint']} metadata_only={bool(candidate['metadata_only'])}"
+                        ),
+                    }
+                )
+            if file_reference_status in {"ambiguous", "unresolved", "blocked_no_go", "needs_operator_review"}:
+                unresolved_file_reference = True
     elif category == "file_context_request":
-        file_rows = _has_recent_file_context(conn, phrase_text)
-        if not file_rows and (
-            "that new" in phrase_text
-            or "new file" in phrase_text
-            or "new logic file" in phrase_text
-            or "that file" in phrase_text
-        ):
+        file_reference_status, candidate, _candidate_count, _reason = _recent_file_resolution_from_conn(
+            conn,
+            phrase_text,
+        )
+        if file_reference_status in {"ambiguous", "unresolved", "blocked_no_go", "needs_operator_review"}:
             unresolved_file_reference = True
+        file_rows = [candidate] if candidate else []
         for row in file_rows:
             links.append(
                 {
-                    "link_kind": "file_event_metadata",
-                    "source_table": "file_event_observations",
-                    "source_id": row["event_id"],
+                    "link_kind": "recent_file_context_candidate",
+                    "source_table": "recent_file_candidates",
+                    "source_id": row["candidate_id"],
                     "source_path": row["relative_path"],
                     "summary": (
-                        f"{row['event_type']} {row['relative_path']} "
-                        f"kind={row['file_kind_hint']} world={row['world_hint']} queue={row['queue_status']}"
+                        f"Recent file context {file_reference_status}: "
+                        f"{row['relative_path']} kind={row['file_kind_hint']} "
+                        f"world={row['world_hint']} metadata_only={bool(row['metadata_only'])}"
                     ),
                 }
             )
@@ -681,6 +797,21 @@ def route_operator_intent(
             if explicit_agent_id
             else f"{inferred_reason}; {category_reason}"
         )
+        if category == "file_context_request" and routed_agent_id is None:
+            recent_preview = _recent_file_candidate_preview(conn, phrase_text)
+            if recent_preview:
+                if recent_preview["file_kind_hint"] == "logic_project" or recent_preview["world_hint"] == "music_art":
+                    routed_agent_id = "niles"
+                    routing_reason += "; Recent File Context resolved music/Logic metadata, routing to Niles"
+                elif recent_preview["file_kind_hint"] == "markdown_doc":
+                    routed_agent_id = "chief"
+                    routing_reason += "; Recent File Context resolved Markdown metadata, routing to Chief"
+                elif recent_preview["file_kind_hint"] == "report_bridge_package":
+                    routed_agent_id = "report_bridge"
+                    routing_reason += "; Recent File Context resolved Report Bridge package metadata"
+                elif recent_preview["file_kind_hint"] == "generated_read_model":
+                    routed_agent_id = "chief"
+                    routing_reason += "; Recent File Context resolved generated read-model metadata, routing to Chief"
         candidate_action_type = _candidate_action_for(category, phrase_text)
         if candidate_action_type not in ALLOWED_ACTIONS:
             candidate_action_type = None
@@ -859,6 +990,7 @@ ON CONFLICT(candidate_id) DO UPDATE SET
             intent_id=resolved_intent_id,
             category=category,
             phrase_text=phrase_text,
+            query_text=normalized_text,
             now=now,
         )
         if unresolved_file_reference and status != "rejected":
@@ -1072,6 +1204,33 @@ def build_intent_router_report(
         category_counts = Counter(row["intent_category"] for row in rows)
         source_counts = Counter(row["source_kind"] for row in rows)
         latest = rows[0] if rows else None
+        context_counts = {
+            row["link_kind"]: row["count"]
+            for row in conn.execute(
+                """
+SELECT link_kind, COUNT(*) AS count
+FROM intent_context_links
+GROUP BY link_kind
+ORDER BY link_kind
+""".strip()
+            ).fetchall()
+        }
+        latest_context_links = (
+            _dict_rows(
+                conn,
+                """
+SELECT link_kind, source_table, source_id, source_path, summary,
+       raw_content_read, raw_body_stored, created_at
+FROM intent_context_links
+WHERE intent_id = ?
+ORDER BY created_at DESC, link_kind, source_path
+LIMIT 10
+""".strip(),
+                (latest["intent_id"],),
+            )
+            if latest
+            else []
+        )
         return {
             "status": "ok",
             "report": report,
@@ -1084,8 +1243,10 @@ def build_intent_router_report(
                 "by_agent": dict(sorted(agent_counts.items())),
                 "by_category": dict(sorted(category_counts.items())),
                 "by_source_kind": dict(sorted(source_counts.items())),
+                "by_context_link_kind": dict(sorted(context_counts.items())),
             },
             "latest_intent": _safe_intent_summary(latest),
+            "latest_context_links": latest_context_links,
             "items": [_safe_intent_summary(row) for row in items],
             "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         }
@@ -1111,6 +1272,7 @@ def format_intent_router_report(payload: dict[str, Any]) -> str:
         f"By agent: {_counts_line(counts['by_agent'])}",
         f"By category: {_counts_line(counts['by_category'])}",
         f"By source: {_counts_line(counts['by_source_kind'])}",
+        f"By context link: {_counts_line(counts.get('by_context_link_kind', {}))}",
         "",
         "Items:",
     ]
@@ -1174,12 +1336,14 @@ LIMIT 1
             "counts_by_agent": report["counts"]["by_agent"],
             "counts_by_category": report["counts"]["by_category"],
             "counts_by_source_kind": report["counts"]["by_source_kind"],
+            "counts_by_context_link_kind": report["counts"].get("by_context_link_kind", {}),
+            "latest_context_links": report.get("latest_context_links", []),
             "available_source_kinds": sorted(SOURCE_KINDS),
             "routing_rules_summary": {
                 "explicit_agent_names": sorted(AGENT_PHRASES),
                 "producer_alias_routes_to": "niles",
                 "markdown_requests": "chief/system_orchestration with advisory-only reorg next step",
-                "logic_or_music_file_requests": "niles/music_art_production with metadata-only file-event context",
+                "logic_or_music_file_requests": "niles/music_art_production with metadata-only Recent File Context links",
                 "safety_requests": "guardian/safety_security",
                 "summary_requests": "cassandra/operator_comms",
                 "report_package_requests": "report_bridge/node_report_intake",
@@ -1234,6 +1398,7 @@ def format_intent_router_read_model(read_model: dict[str, Any]) -> str:
         f"- By agent: {_counts_line(read_model['counts_by_agent'])}.",
         f"- By category: {_counts_line(read_model['counts_by_category'])}.",
         f"- By source kind: {_counts_line(read_model['counts_by_source_kind'])}.",
+        f"- By context link kind: {_counts_line(read_model['counts_by_context_link_kind'])}.",
         "",
         "Latest intent:",
     ]

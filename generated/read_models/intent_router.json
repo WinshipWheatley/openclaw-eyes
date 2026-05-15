@@ -40,6 +40,10 @@
     "read_model_refresh_request": 1,
     "safety_review_request": 1
   },
+  "counts_by_context_link_kind": {
+    "allowed_action_catalog": 1,
+    "markdown_atlas_run": 1
+  },
   "counts_by_source_kind": {
     "cli": 5
   },
@@ -47,6 +51,18 @@
   "file_delete_allowed": false,
   "file_move_allowed": false,
   "generated_at": "2026-05-15T02:47:32+00:00",
+  "latest_context_links": [
+    {
+      "created_at": "2026-05-15T02:47:32+00:00",
+      "link_kind": "allowed_action_catalog",
+      "raw_body_stored": 0,
+      "raw_content_read": 0,
+      "source_id": "operator_action_allowed_commands",
+      "source_path": null,
+      "source_table": "operator_action_allowed_commands",
+      "summary": "Intent maps to an Operator Action candidate only; no action request was created."
+    }
+  ],
   "latest_intent": {
     "action_request_created": false,
     "approval_required": true,
@@ -105,7 +121,7 @@
       "report bridge",
       "report_bridge"
     ],
-    "logic_or_music_file_requests": "niles/music_art_production with metadata-only file-event context",
+    "logic_or_music_file_requests": "niles/music_art_production with metadata-only Recent File Context links",
     "markdown_requests": "chief/system_orchestration with advisory-only reorg next step",
     "producer_alias_routes_to": "niles",
     "read_model_refresh_requests": "candidate Operator Action only; no action request created automatically",

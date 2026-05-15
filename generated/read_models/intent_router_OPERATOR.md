@@ -15,6 +15,7 @@ Summary:
 - By agent: cassandra=1, chief=2, guardian=1, niles=1.
 - By category: communication_summary_request=1, file_context_request=1, markdown_reorg_request=1, read_model_refresh_request=1, safety_review_request=1.
 - By source kind: cli=5.
+- By context link kind: allowed_action_catalog=1, markdown_atlas_run=1.
 
 Latest intent:
 - Intent: `intent_live_chief_refresh_v0`.

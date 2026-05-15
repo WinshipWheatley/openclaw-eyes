@@ -35,6 +35,15 @@ Supported source metadata kinds:
 
 Telegram is represented as future metadata only. There is no Telegram API, polling, sending, or source-text storage.
 
+## Recent File Context
+
+Intent Router v0.1 uses Recent File Context metadata for phrases like `that new file`, `the new Logic file`, and `that new Markdown file`.
+
+- A single safe Logic project candidate can route to `niles` / `music_art_production`.
+- A single safe Markdown candidate can route to `chief` / `system_orchestration`.
+- Ambiguous, missing, sensitive, or no-go candidates remain `needs_operator_review`.
+- The router links `recent_file_candidates` rows only; it does not open raw file bodies.
+
 ## Categories
 
 The router uses deterministic phrase/path rules only:
@@ -86,3 +95,5 @@ Generated read-models:
 ## Boundary
 
 All v0 routes require approval for any future bounded execution path. The router may identify a candidate allowlisted Operator Action type, but it does not create an action request automatically.
+
+The router still does not activate agents, call models, execute tools, auto-create actions, bypass approval, move files, delete files, or read no-go raw content.

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agent_lane_registry import seed_agent_lane_registry
 from file_event_queue import build_file_event_snapshot
+from recent_file_context import build_recent_file_context
 from intent_router import (
     NO_AUTHORITY_FLAGS,
     build_intent_router_read_model,
@@ -167,6 +168,7 @@ def test_file_context_links_recent_logic_metadata_without_raw_reads(tmp_path):
         run_id="file_run",
         allowed_roots=(root,),
     )
+    build_recent_file_context(db_path=db_path, run_id="recent_file_run")
 
     result = route_operator_intent(
         text="Niles, do something with that new Logic file.",
@@ -190,10 +192,113 @@ WHERE intent_id = ?
     assert result.routed_agent_id == "niles"
     assert result.status == "routed"
     assert links
-    assert links[0]["source_table"] == "file_event_observations"
+    assert links[0]["link_kind"] == "recent_file_context_candidate"
+    assert links[0]["source_table"] == "recent_file_candidates"
     assert links[0]["source_path"] == "song.logicx"
     assert links[0]["raw_content_read"] == 0
     assert links[0]["raw_body_stored"] == 0
+
+
+def test_generic_new_file_can_route_to_niles_from_recent_logic_context(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    root = tmp_path / "openclaw"
+    root.mkdir()
+    (root / "song.logicx").mkdir()
+    (root / "song.logicx" / "projectData").write_text("not read by router\n", encoding="utf-8")
+
+    build_file_event_snapshot(
+        root=root,
+        root_id="fixture_root",
+        db_path=db_path,
+        run_id="file_run",
+        allowed_roots=(root,),
+    )
+    build_recent_file_context(db_path=db_path, run_id="recent_file_run")
+
+    result = route_operator_intent(
+        text="Do something with that new file.",
+        source_kind="cli",
+        source_channel="test",
+        requested_by="operator",
+        db_path=db_path,
+        intent_id="intent_generic_logic_context",
+        run_id="run_generic_logic_context",
+    )
+
+    assert result.routed_agent_id == "niles"
+    assert result.routed_lane_id == "music_art_production"
+    assert result.status == "routed"
+    assert result.context_link_count == 1
+
+
+def test_ambiguous_recent_file_context_remains_needs_review(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    root = tmp_path / "openclaw"
+    root.mkdir()
+    (root / "song.logicx").mkdir()
+    (root / "other.logicx").mkdir()
+
+    build_file_event_snapshot(
+        root=root,
+        root_id="fixture_root",
+        db_path=db_path,
+        run_id="file_run",
+        allowed_roots=(root,),
+    )
+    build_recent_file_context(db_path=db_path, run_id="recent_file_run")
+
+    result = route_operator_intent(
+        text="Niles, do something with the new Logic file.",
+        source_kind="cli",
+        source_channel="test",
+        requested_by="operator",
+        db_path=db_path,
+        intent_id="intent_ambiguous_logic_context",
+        run_id="run_ambiguous_logic_context",
+    )
+
+    assert result.routed_agent_id == "niles"
+    assert result.status == "needs_operator_review"
+    assert result.context_link_count == 0
+
+
+def test_markdown_file_request_links_recent_context(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    root = tmp_path / "openclaw"
+    root.mkdir()
+    (root / "new_doc.md").write_text("# New\n", encoding="utf-8")
+
+    build_file_event_snapshot(
+        root=root,
+        root_id="fixture_root",
+        db_path=db_path,
+        run_id="file_run",
+        allowed_roots=(root,),
+    )
+    build_recent_file_context(db_path=db_path, run_id="recent_file_run")
+
+    result = route_operator_intent(
+        text="Chief, organize that new Markdown file.",
+        source_kind="cli",
+        source_channel="test",
+        requested_by="operator",
+        db_path=db_path,
+        intent_id="intent_markdown_file_context",
+        run_id="run_markdown_file_context",
+    )
+    link = _row(
+        db_path,
+        """
+SELECT link_kind, source_table, source_path, raw_content_read, raw_body_stored
+FROM intent_context_links
+WHERE intent_id = ? AND link_kind = 'recent_file_context_candidate'
+""",
+        (result.intent_id,),
+    )
+
+    assert result.routed_agent_id == "chief"
+    assert result.status == "routed"
+    assert tuple(link) == ("recent_file_context_candidate", "recent_file_candidates", "new_doc.md", 0, 0)
 
 
 def test_markdown_reorg_does_not_move_files_or_create_action(tmp_path):
