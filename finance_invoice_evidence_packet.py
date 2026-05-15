@@ -1275,6 +1275,17 @@ ORDER BY label
 """.strip(),
             (latest_packet_id,),
         ) if latest_packet_id else []
+        latest_outputs = _dict_rows(
+            conn,
+            """
+SELECT output_id, output_kind, title, body_text, send_allowed,
+       invoice_creation_allowed, raw_sensitive_body_included, created_at
+FROM finance_invoice_packet_outputs
+WHERE packet_id = ?
+ORDER BY created_at, output_kind
+""".strip(),
+            (latest_packet_id,),
+        ) if latest_packet_id else []
         missing_items = _dict_rows(
             conn,
             """
@@ -1310,7 +1321,10 @@ LIMIT 12
 SELECT card_id, title, board_column, status, next_safe_move
 FROM work_board_cards
 WHERE source_kind = 'manual_seed'
-  AND source_id LIKE 'finance_invoice_evidence_packet:%'
+  AND (
+    source_id LIKE 'finance_invoice_evidence_packet:%'
+    OR source_id LIKE 'capital_hilton_invoice_packet:%'
+  )
 ORDER BY title
 """.strip(),
         ) if _table_exists(conn, "work_board_cards") else []
@@ -1322,6 +1336,7 @@ ORDER BY title
             "counts": counts,
             "latest_packet": latest_packet,
             "latest_packet_facts": latest_facts,
+            "latest_packet_outputs": latest_outputs,
             "missing_items": missing_items,
             "risks": risks,
             "next_safe_moves": next_safe_moves,
@@ -1388,6 +1403,13 @@ def _operator_markdown(read_model: dict[str, Any]) -> str:
     for row in read_model.get("risks") or []:
         lines.append(f"- `{row['packet_id']}` {row['risk_kind']} ({row['severity']}): {row['mitigation']}")
     if not read_model.get("risks"):
+        lines.append("- None.")
+    lines.extend(["", "## Latest Packet Outputs"])
+    for row in read_model.get("latest_packet_outputs") or []:
+        lines.append(
+            f"- `{row['output_kind']}` send_allowed={bool(row['send_allowed'])} invoice_creation_allowed={bool(row['invoice_creation_allowed'])}: {row['title']}"
+        )
+    if not read_model.get("latest_packet_outputs"):
         lines.append("- None.")
     spreadsheet = read_model["spreadsheet_candidate"]
     lines.extend(

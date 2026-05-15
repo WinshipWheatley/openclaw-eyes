@@ -14,60 +14,177 @@
       "chief",
       "cassandra"
     ],
-    "packet_summary": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet."
+    "packet_summary": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting."
   },
   "counts": {
-    "blocked_missing_info_count": 0,
+    "blocked_missing_info_count": 1,
     "counts_by_status": {
+      "blocked_missing_info": 1,
       "needs_operator_facts": 1
     },
-    "high_risk_count": 3,
-    "missing_items_count": 5,
+    "high_risk_count": 6,
+    "missing_items_count": 15,
     "needs_operator_facts_count": 1,
-    "open_packet_count": 1,
-    "packet_count": 1,
+    "open_packet_count": 2,
+    "packet_count": 2,
     "ready_for_draft_review_count": 0
   },
-  "generated_at": "2026-05-15T19:41:03+00:00",
+  "generated_at": "2026-05-15T19:50:32+00:00",
   "latest_packet": {
     "agent_lane": "chief",
     "bank_access_allowed": 0,
-    "created_at": "2026-05-15T19:40:48+00:00",
+    "created_at": "2026-05-15T19:48:53+00:00",
     "financial_truth_claimed": 0,
     "ledger_write_allowed": 0,
-    "next_safe_move": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet.",
-    "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
-    "run_id": "finpktrun_967a44c83cce6b03d63b",
+    "next_safe_move": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting.",
+    "packet_id": "finance_capital_hilton_invoice_packet_v0",
+    "run_id": "caprun_af440c9660f4349e840a",
     "send_allowed": 0,
     "source_basis": "operator_cli_or_synthetic_demo; finance_reconciliation_proposal; spreadsheet_candidate_metadata_only",
-    "status": "needs_operator_facts",
-    "subject_entity": "Manual Review",
-    "synthetic_demo": 1,
+    "status": "blocked_missing_info",
+    "subject_entity": "Capital Hilton / Capitol Hilton",
+    "synthetic_demo": 0,
     "tax_filing_allowed": 0,
-    "title": "Finance Invoice Evidence Packet v0 Demo",
-    "updated_at": "2026-05-15T19:40:48+00:00",
+    "title": "Capital Hilton Invoice Evidence Packet v0",
+    "updated_at": "2026-05-15T19:50:30+00:00",
     "workflow_kind": "invoice_prep",
     "world": "finance"
   },
   "latest_packet_facts": [
     {
       "amount_value": null,
-      "confidence": "unknown_review",
+      "confidence": "operator_claim",
       "currency": null,
       "date_or_period": null,
-      "label": "synthetic_demo_context",
-      "source_ref": null,
+      "label": "ap_contact_likely",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
       "truth_status": "needs_review",
-      "value_text": "Synthetic placeholder only. Replace with operator-supplied invoice/receivable facts."
+      "value_text": "Annette Sunga"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "client_location",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "truth_status": "unverified_claim",
+      "value_text": "Capital Hilton / Capitol Hilton"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "gig_scope",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "truth_status": "unverified_claim",
+      "value_text": "Two gigs: tonight's gig and last Friday's gig. Exact dates require operator confirmation."
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "possible_contacts",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "truth_status": "needs_review",
+      "value_text": "Chyna Hardin, Director of Finance, Chyna.Hardin@hilton.com; Lawrence / Will Valcovic, lawrencevalcovic@hilton.com"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "remit_email",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "truth_status": "unverified_claim",
+      "value_text": "winshiplive@gmail.com"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "supplier_portal_context",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "truth_status": "needs_review",
+      "value_text": "Supplier portal has previously been SmartSpend / Coupa related."
+    }
+  ],
+  "latest_packet_outputs": [
+    {
+      "body_text": "Packet status: blocked_missing_info. Next safe move: Fill the blocking missing items or link approved evidence before preparing draft invoice context. This is context only. No invoice, email, bank access, ledger write, tax filing, or financial truth claim is authorized.",
+      "created_at": "2026-05-15T19:50:30+00:00",
+      "invoice_creation_allowed": 0,
+      "output_id": "finpktout_fd172b787a7181cd3dbc",
+      "output_kind": "bounded_context_packet",
+      "raw_sensitive_body_included": 0,
+      "send_allowed": 0,
+      "title": "Finance packet context for Chief/Cassandra"
+    },
+    {
+      "body_text": "# Capital Hilton Draft Email - Review Only, Do Not Send\n\nTo: [CONFIRM RECIPIENT - likely Annette Sunga]\nCC: [CONFIRM CC - possibly Chyna Hardin and/or Lawrence / Will Valcovic]\nFrom/Remit email context: winshiplive@gmail.com\nSubject: Invoice for music services - [CONFIRM DATE(S)]\n\nHi [CONFIRM NAME],\n\nI am preparing invoice documentation for two Capital Hilton gigs:\n\n- Tonight's gig: [CONFIRM EXACT DATE]\n- Last Friday's gig: [CONFIRM EXACT DATE]\n\nBefore I send the invoice or upload it through SmartSpend/Coupa, could you please confirm:\n\n- Whether these should be one combined invoice or two separate invoices\n- The PO number(s), if required\n- The correct recipient/CC list\n- Whether SmartSpend/Coupa is the required submission path\n- Any required invoice attachment or vendor reference details\n\nAmount/rate fields are intentionally left blank until confirmed:\n\n- Rate/amount per gig: [CONFIRM AMOUNT/RATE]\n- Total: [DO NOT FILL UNTIL APPROVED]\n\nThanks,\nWinship\n\nBoundary: This is a draft for operator review only. Do not send, attach, submit, or treat any amount/date/recipient as final until approved.\n",
+      "created_at": "2026-05-15T19:50:30+00:00",
+      "invoice_creation_allowed": 0,
+      "output_id": "finpktout_228632d68d4885929c5b",
+      "output_kind": "capital_hilton_draft_email_review_only",
+      "raw_sensitive_body_included": 0,
+      "send_allowed": 0,
+      "title": "Draft email body for operator review only (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_DRAFT_EMAIL_REVIEW_ONLY.md`)"
+    },
+    {
+      "body_text": "# Capital Hilton Invoice Packet v0 - Summary\n\nPurpose: prepare a reviewable evidence packet for two Capital Hilton gigs without sending anything or making financial truth claims.\n\nCurrent status: pending required facts.\n\nKnown operator-supplied context:\n- Client/location: Capital Hilton / Capitol Hilton.\n- AP contact likely: Annette Sunga.\n- Possible contacts: Chyna Hardin and Lawrence / Will Valcovic.\n- Portal context: SmartSpend / Coupa related in prior flow.\n- Remit email context: winshiplive@gmail.com.\n- Mac spreadsheet candidate: ~/Documents/invoices/ is known as a sensitive metadata-only candidate, but no filename or workbook cells were read.\n\nMissing required facts:\n- Exact date for tonight's gig.\n- Exact date for last Friday's gig.\n- Amount/rate per gig.\n- One invoice or two.\n- PO number(s).\n- Billing/remit details.\n- Recipient/CC decision.\n- Supplier portal reference.\n- Invoice attachment/output path.\n- Spreadsheet filename or approved Mac-side metadata packet, if the spreadsheet is needed.\n\nBoundaries: no send, no submit, no portal login, no bank access, no ledger write, no spreadsheet cell read, no final invoice.\n",
+      "created_at": "2026-05-15T19:50:30+00:00",
+      "invoice_creation_allowed": 0,
+      "output_id": "finpktout_a3ed01578487e122f9d8",
+      "output_kind": "capital_hilton_packet_summary",
+      "raw_sensitive_body_included": 0,
+      "send_allowed": 0,
+      "title": "Capital Hilton packet summary and missing facts (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PACKET_SUMMARY.md`)"
+    },
+    {
+      "body_text": "# Codex Desktop Prompt - Capital Hilton Portal Fill Prep, No Submit\n\nYou are helping prepare a supplier portal invoice entry for Capital Hilton on the Mac/Safari side.\n\nHard boundaries:\n- Do not submit anything.\n- Do not send email.\n- Do not access bank portals.\n- Do not read spreadsheet cells unless a separate approved Mac spreadsheet intake lane authorizes it.\n- Do not invent dates, amounts, PO numbers, recipient details, or totals.\n- Stop before any irreversible action, final save, upload, or submit button.\n\nKnown operator-supplied context:\n- Client/location: Capital Hilton / Capitol Hilton.\n- Gigs: tonight's gig and last Friday's gig.\n- Finance/AP contact likely: Annette Sunga.\n- Possible contacts: Chyna Hardin and Lawrence / Will Valcovic.\n- Supplier portal context has previously been SmartSpend / Coupa related.\n- Remit email context: winshiplive@gmail.com.\n\nMissing facts to collect from the operator before portal entry:\n- Exact date for tonight's gig.\n- Exact date for last Friday's gig.\n- Amount/rate per gig.\n- One invoice or two.\n- PO number(s).\n- Billing/remit details.\n- Recipient/CC decision.\n- Supplier portal reference.\n- Invoice attachment/output path.\n- Mac invoice spreadsheet exact filename or approved Mac metadata packet, if the spreadsheet is relevant.\n\nAllowed work:\n1. Present the missing-facts checklist to the operator.\n2. If the operator supplies facts, prepare a portal-fill checklist with placeholders resolved.\n3. Keep all fields as draft/review-only.\n4. Stop before login, upload, final save, or submit unless a later explicit approval is provided.\n5. Treat ~/Documents/invoices/ as sensitive metadata only; do not read workbook cells in this prompt.\n",
+      "created_at": "2026-05-15T19:50:30+00:00",
+      "invoice_creation_allowed": 0,
+      "output_id": "finpktout_fedcfa34f890abc7f71f",
+      "output_kind": "capital_hilton_portal_fill_instruction_prompt",
+      "raw_sensitive_body_included": 0,
+      "send_allowed": 0,
+      "title": "Codex Desktop portal-fill instruction prompt, no submit (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PORTAL_FILL_PROMPT_NO_SUBMIT.md`)"
+    },
+    {
+      "body_text": "# Capital Hilton Receivable Tracking Proposal - Review Only\n\nstatus: pending_invoice_approval\nfollow_up_owner: Cassandra later\nfollow_up_email_sent: false\ninvoice_sent: false\npayment_tracking_status: not_started\n\nScope:\n- Track two Capital Hilton gigs after invoice details are approved.\n- Do not send follow-up email yet.\n- Do not claim payment is due, paid, unpaid, or overdue without approved invoice and payment evidence.\n- Payment tracking requires later approved bank/ledger evidence or operator-provided payment confirmation.\n\nNext safe moves:\n1. Operator confirms missing invoice facts.\n2. OpenClaw prepares draft invoice context only.\n3. Operator approves send/submission path in a later lane.\n4. After approved send/submission, Cassandra may own follow-up reminders as metadata only until sending is separately approved.\n",
+      "created_at": "2026-05-15T19:50:30+00:00",
+      "invoice_creation_allowed": 0,
+      "output_id": "finpktout_8486de2c56f890337e9b",
+      "output_kind": "capital_hilton_receivable_tracking_proposal",
+      "raw_sensitive_body_included": 0,
+      "send_allowed": 0,
+      "title": "Receivable tracking proposal pending invoice approval (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_RECEIVABLE_TRACKING_PROPOSAL.md`)"
     }
   ],
   "missing_items": [
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Amount or rate per gig is missing.",
+      "next_safe_move": "Operator provides rate/amount per gig or approved evidence reference.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "No invoice amount can be claimed or drafted without operator-provided or approved evidence."
+    },
     {
       "blocker_level": "blocks_invoice_draft",
       "description": "Amount, balance, deposit, or rate is missing.",
       "next_safe_move": "Provide the amount as an operator claim or approved evidence reference.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
       "why_needed": "OpenClaw cannot prepare invoice or receivable context without an operator-provided or evidence-backed amount."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Billing/remit details need confirmation.",
+      "next_safe_move": "Operator confirms billing name, remit email, mailing/payment details, and any tax/remit fields.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "The packet has remit email context only; full invoice/remit details require operator confirmation."
     },
     {
       "blocker_level": "blocks_invoice_draft",
@@ -78,10 +195,59 @@
     },
     {
       "blocker_level": "blocks_invoice_draft",
+      "description": "Exact date for last Friday's gig is not operator-confirmed for invoice use.",
+      "next_safe_move": "Operator confirms the invoice date/service date for last Friday's gig.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "Invoice packet must not infer prior gig dates from relative wording."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Exact date for tonight's gig is not operator-confirmed for invoice use.",
+      "next_safe_move": "Operator confirms the invoice date/service date for tonight's gig.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "Invoice packet must not infer gig dates from relative wording."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "One invoice versus two invoices is undecided.",
+      "next_safe_move": "Operator chooses one combined invoice or separate invoices per gig.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "Portal/email packet needs invoice grouping before any draft can be prepared."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "PO number(s) are missing.",
+      "next_safe_move": "Operator provides PO number(s), says none, or approves portal metadata lookup later.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "Capital Hilton supplier/payment flow may require PO references."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
       "description": "Service date, invoice date, due date, or period is missing.",
       "next_safe_move": "Provide a date/period or approved evidence reference.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
       "why_needed": "Dates keep invoice context reviewable and prevent unsupported assumptions."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Supplier portal reference is unresolved.",
+      "next_safe_move": "Operator confirms whether SmartSpend/Coupa is required and provides portal reference if known.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "SmartSpend/Coupa context is operator-supplied but not verified for this invoice."
+    },
+    {
+      "blocker_level": "blocks_send",
+      "description": "Invoice attachment/output path is missing.",
+      "next_safe_move": "Operator chooses or approves invoice attachment/output path in a later lane.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "No final invoice file should be created or attached until output path and approval are explicit."
+    },
+    {
+      "blocker_level": "blocks_send",
+      "description": "Recipient and CC decision is pending.",
+      "next_safe_move": "Operator confirms To/CC list before any email draft is used.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "The packet has likely/possible contacts but should not choose recipients without review."
     },
     {
       "blocker_level": "optional",
@@ -96,9 +262,22 @@
       "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
       "why_needed": "The operator reports a likely relevant spreadsheet under ~/Documents/invoices/, but this PC/WSL lane cannot read it."
+    },
+    {
+      "blocker_level": "optional",
+      "description": "Mac invoice spreadsheet filename or metadata packet is not available.",
+      "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "The operator reports a likely relevant spreadsheet, but this PC/WSL lane must not read the Mac Documents folder or workbook cells."
     }
   ],
   "next_safe_moves": [
+    {
+      "next_safe_move": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "status": "blocked_missing_info",
+      "title": "Capital Hilton Invoice Evidence Packet v0"
+    },
     {
       "next_safe_move": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
@@ -129,8 +308,20 @@
       "severity": "high"
     },
     {
+      "mitigation": "Operator must provide amount/rate per gig or approved evidence before any invoice draft context can be considered.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "risk_kind": "missing_amount",
+      "severity": "high"
+    },
+    {
       "mitigation": "Keep all invoice/email outputs as draft context only until a later explicit approval path exists.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "send_not_allowed",
+      "severity": "high"
+    },
+    {
+      "mitigation": "Draft email is review-only; no send or external communication is authorized.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
       "risk_kind": "send_not_allowed",
       "severity": "high"
     },
@@ -141,14 +332,44 @@
       "severity": "high"
     },
     {
+      "mitigation": "Treat all Capital Hilton facts as operator claims until dates, amount, PO, recipient, and portal reference are confirmed.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "risk_kind": "unsupported_claim",
+      "severity": "high"
+    },
+    {
+      "mitigation": "Payment tracking later requires approved bank/ledger evidence; this lane performs no bank access.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "risk_kind": "bank_data_needed",
+      "severity": "medium"
+    },
+    {
       "mitigation": "Provide a date/period or approved evidence reference.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
       "risk_kind": "missing_date",
       "severity": "medium"
     },
     {
+      "mitigation": "Operator must confirm exact service dates for tonight's gig and last Friday's gig.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "risk_kind": "missing_date",
+      "severity": "medium"
+    },
+    {
+      "mitigation": "Invoice details and spreadsheet data remain sensitive metadata only until approved evidence intake.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "risk_kind": "sensitive_data_needed",
+      "severity": "medium"
+    },
+    {
       "mitigation": "Treat ~/Documents/invoices/ as sensitive metadata only; use a future Mac-side intake lane for filename metadata.",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "spreadsheet_needs_review",
+      "severity": "medium"
+    },
+    {
+      "mitigation": "Treat ~/Documents/invoices/ as sensitive metadata only; next safe lane is Mac Finance Spreadsheet Evidence Intake v0.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
       "risk_kind": "spreadsheet_needs_review",
       "severity": "medium"
     }
@@ -181,6 +402,34 @@
     "cards": [
       {
         "board_column": "needs_review",
+        "card_id": "wbcard_595e855c32c9485f3127",
+        "next_safe_move": "Ask operator to answer the Capital Hilton missing-facts checklist.",
+        "status": "pending_required_facts",
+        "title": "Capital Hilton invoice packet needs facts"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_3391f8c6db1e59c51c6b",
+        "next_safe_move": "Operator reviews prompt and approves a future Mac/Safari portal-prep lane if needed.",
+        "status": "portal_prompt_review_only",
+        "title": "Capital Hilton portal-fill prompt pending approval"
+      },
+      {
+        "board_column": "planned",
+        "card_id": "wbcard_4ff0b10d3febb4356859",
+        "next_safe_move": "After approved invoice send/submission, create a receivable tracking packet with approved evidence.",
+        "status": "pending_invoice_approval",
+        "title": "Capital Hilton receivable tracking pending invoice send"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_6a5098ba58d539d4390b",
+        "next_safe_move": "Review packet facts and missing items; no invoice/email/bank/ledger action is authorized.",
+        "status": "packet_context_only",
+        "title": "Finance Invoice Evidence Packet Builder"
+      },
+      {
+        "board_column": "needs_review",
         "card_id": "wbcard_95706de4a863fcb25686",
         "next_safe_move": "Review packet facts and missing items; no invoice/email/bank/ledger action is authorized.",
         "status": "packet_context_only",
@@ -188,10 +437,24 @@
       },
       {
         "board_column": "needs_review",
+        "card_id": "wbcard_033ee3e3f51f17787a24",
+        "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+        "status": "spreadsheet_metadata_pending",
+        "title": "Mac spreadsheet evidence intake needed"
+      },
+      {
+        "board_column": "needs_review",
         "card_id": "wbcard_56753122b32749dcb9f4",
         "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
         "status": "spreadsheet_metadata_pending",
         "title": "Mac spreadsheet evidence intake needed"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_c3fa812491a9deebb2ac",
+        "next_safe_move": "Provide safe operator facts or approved evidence references.",
+        "status": "missing_evidence",
+        "title": "Review missing finance evidence"
       },
       {
         "board_column": "needs_review",
