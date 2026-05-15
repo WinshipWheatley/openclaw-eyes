@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import time
 from pathlib import Path
 
 import scripts.manage_openclaw_local_services as manager
@@ -182,6 +184,36 @@ def test_doctor_reports_stale_manifest_as_needs_mac_sync(monkeypatch, tmp_path):
 
     assert payload["doctor_status"] == "needs_mac_sync"
     assert payload["manifest_health"]["counts"]["missing_expected"] > 0
+
+
+def test_mac_doctor_treats_answered_marker_as_needs_pc_import(monkeypatch, tmp_path):
+    share = tmp_path / "openclaw_e"
+    request = share / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    completion = share / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+    status_marker = share / "shuttle" / "from_mac" / "read_model_sync_agent_status.json"
+    request.parent.mkdir(parents=True)
+    completion.parent.mkdir(parents=True)
+    request.write_text('{"request_id": "fixture"}\n', encoding="utf-8")
+    completion.write_text('{"status": "synced"}\n', encoding="utf-8")
+    status_marker.write_text('{"status": "idle"}\n', encoding="utf-8")
+    now = time.time()
+    os.utime(request, (now - 10, now - 10))
+    os.utime(completion, (now, now))
+    monkeypatch.setattr(manager, "MAC_SHARE_ROOT", share)
+    monkeypatch.setattr(manager, "MAC_REQUEST_MARKER", request)
+    monkeypatch.setattr(manager, "MAC_COMPLETION_MARKER", completion)
+    monkeypatch.setattr(manager, "MAC_STATUS_MARKER", status_marker)
+    monkeypatch.setattr(manager, "_launchctl_available", lambda: False)
+
+    payload = manager.manage_service(
+        operation="doctor",
+        machine="mac",
+        db_path=tmp_path / "ledger.sqlite",
+    )
+
+    assert payload["doctor_status"] == "needs_pc_import"
+    assert payload["request_marker_answered"] is True
+    assert payload["status_marker_present"] is True
 
 
 def test_source_has_no_c_drive_defaults_or_disallowed_remote_copy_strings():

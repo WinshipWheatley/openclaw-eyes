@@ -41,6 +41,7 @@ PC_REQUEST_MARKER = PC_SHARE_ROOT / "shuttle" / "to_mac" / "read_model_sync_requ
 PC_COMPLETION_MARKER = PC_SHARE_ROOT / "shuttle" / "from_mac" / "read_model_sync_completed.json"
 MAC_REQUEST_MARKER = MAC_SHARE_ROOT / "shuttle" / "to_mac" / "read_model_sync_required.json"
 MAC_COMPLETION_MARKER = MAC_SHARE_ROOT / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+MAC_STATUS_MARKER = MAC_SHARE_ROOT / "shuttle" / "from_mac" / "read_model_sync_agent_status.json"
 
 PC_SERVICE_NAME = "openclaw-read-model-import.service"
 PC_TIMER_NAME = "openclaw-read-model-import.timer"
@@ -373,6 +374,30 @@ def _pc_import_state_hash(state_path: Path = ROOT / ".openclaw" / "state" / "rea
     return value if isinstance(value, str) else None
 
 
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _mac_request_has_synced_completion(
+    *,
+    request_marker: Path = MAC_REQUEST_MARKER,
+    completion_marker: Path = MAC_COMPLETION_MARKER,
+) -> bool:
+    if not request_marker.is_file() or not completion_marker.is_file():
+        return False
+    completion = _read_json_object(completion_marker)
+    if not completion or completion.get("status") != "synced":
+        return False
+    try:
+        return completion_marker.stat().st_mtime >= request_marker.stat().st_mtime
+    except OSError:
+        return False
+
+
 def doctor_report(
     *,
     machine: str,
@@ -416,15 +441,16 @@ def doctor_report(
         }
     if machine == MACHINE_MAC:
         share_available = MAC_SHARE_ROOT.is_dir()
+        request_answered = _mac_request_has_synced_completion()
         if not share_available:
             next_status = "share_missing"
             next_safe_move = "Mount /Volumes/openclaw_e before relying on the Mac sync service."
-        elif MAC_REQUEST_MARKER.is_file():
+        elif MAC_REQUEST_MARKER.is_file() and not request_answered:
             next_status = "sync_required"
             next_safe_move = "Run or start the Mac sync agent; it will process the marker locally."
         elif MAC_COMPLETION_MARKER.is_file():
             next_status = "needs_pc_import"
-            next_safe_move = "Run the PC import side so the backend ledger imports the latest manifest."
+            next_safe_move = "Mac has answered the marker; run or wait for the PC import side to ingest the latest manifest."
         else:
             next_status = "idle"
             next_safe_move = "No marker is waiting on the Mac side."
@@ -435,6 +461,8 @@ def doctor_report(
             "share_available": share_available,
             "request_marker_present": MAC_REQUEST_MARKER.is_file(),
             "completion_marker_present": MAC_COMPLETION_MARKER.is_file(),
+            "status_marker_present": MAC_STATUS_MARKER.is_file(),
+            "request_marker_answered": request_answered,
             "next_safe_move": next_safe_move,
         }
     return {**status, "operation": "doctor", "doctor_status": "unsupported", "next_safe_move": "Run from macOS or PC/WSL."}

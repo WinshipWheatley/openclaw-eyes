@@ -9,6 +9,7 @@ remote-control path.
 - Shared drop on Mac: `/Volumes/openclaw_e`
 - Request marker: `/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json`
 - Completion marker: `/Volumes/openclaw_e/shuttle/from_mac/read_model_sync_completed.json`
+- Heartbeat/status marker: `/Volumes/openclaw_e/shuttle/from_mac/read_model_sync_agent_status.json`
 - Log file: `~/Library/Logs/OpenClaw/read_model_sync_agent.log`
 - Backend clone: `~/Developer/OpenClawBackend/openclaw`
 
@@ -19,12 +20,37 @@ clone:
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator
 ```
 
-The agent does not delete the request marker. It writes a completion marker with
-`status: success` or `status: failure`, the command, the sync exit code, and
-short stdout/stderr tails.
+The agent does not delete the request marker. Internally it invokes the sync
+runner with the same Python interpreter that launched the agent and asks for JSON
+output so it can write proof fields, while still printing an operator summary
+from the agent itself.
+
+On every mounted-share run it writes a heartbeat/status marker with:
+
+- `status`: `synced`, `skipped_no_marker`, `share_missing`, or `error`
+- `backend_head`
+- `marker_seen`
+- `manifest_written`
+- `manifest_sha256`
+- `copied_file_count`
+- no-authority flags
+
+When sync succeeds it writes a completion marker with:
+
+- `generated_at`
+- `backend_head`
+- `manifest_path`
+- `manifest_sha256`
+- `copied_file_count`
+- `source: mac_read_model_sync_agent`
+- no-authority flags
 
 If `/Volumes/openclaw_e` is not mounted, it logs `share_missing` and exits 0.
-If the marker is absent, it logs `marker_missing` and exits 0.
+If the marker is absent, it logs `skipped_no_marker`, writes an idle heartbeat,
+and exits 0.
+If a successful completion marker is newer than the request marker, it logs
+`marker_already_completed`, writes an `idle` heartbeat, and exits 0 instead of
+pulling repeatedly on the same already-answered marker.
 
 ## Boundary
 
@@ -53,7 +79,10 @@ launchd/com.openclaw.read-model-sync.plist
 ```
 
 It runs once at login and then every 300 seconds. It is prepared in the repo but
-is not installed or loaded by this lane.
+is not installed or loaded by this lane. The plist uses the local Framework
+Python path instead of Apple/Xcode `/usr/bin/python3`; the latter can run under a
+minimal launchd PATH that is too old for the backend scripts and may not share
+the same removable-volume access behavior.
 
 Install and load manually:
 

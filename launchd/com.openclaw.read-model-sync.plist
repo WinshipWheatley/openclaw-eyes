@@ -8,7 +8,7 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/python3</string>
+    <string>/Library/Frameworks/Python.framework/Versions/3.12/bin/python3</string>
     <string>/Users/hwinshipwheatley/Developer/OpenClawBackend/openclaw/scripts/mac_read_model_sync_agent.py</string>
   </array>
 
