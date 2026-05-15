@@ -27,6 +27,7 @@ from intent_router import init_intent_router_schema
 from operator_action import init_operator_action_schema
 from project_capsule import init_project_capsule_schema
 from report_bridge import init_report_bridge_schema
+from steel_thread_radar import init_steel_thread_schema
 
 
 ROOT = Path(__file__).resolve().parent
@@ -59,6 +60,7 @@ SOURCE_KINDS = {
     "operator_action",
     "report_bridge_package",
     "project_capsule",
+    "steel_thread_signal",
     "manual_seed",
 }
 
@@ -351,6 +353,7 @@ def init_work_board_schema(db_path: str | Path | None = None) -> str:
     init_operator_action_schema(path)
     init_report_bridge_schema(path)
     init_project_capsule_schema(path)
+    init_steel_thread_schema(path)
     conn = sqlite3.connect(path)
     try:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -822,6 +825,61 @@ LIMIT 20
     return cards
 
 
+def _steel_thread_column(recommendation: str, recommended_lane: str) -> str:
+    lane_text = str(recommended_lane or "").lower()
+    if recommendation in {"ignore"}:
+        return "rejected"
+    if recommendation in {"watch", "defer"}:
+        return "deferred"
+    if recommendation == "needs_review":
+        return "needs_review"
+    if " is built" in lane_text and "next safe lane" not in lane_text:
+        return "completed_with_receipt"
+    return "planned"
+
+
+def _steel_thread_cards(conn: sqlite3.Connection, board_id: str) -> list[dict[str, Any]]:
+    if not _table_exists(conn, "steel_thread_signals"):
+        return []
+    rows = conn.execute(
+        """
+SELECT signal_id, title, short_summary, pattern_category, relevance_score,
+       confidence, openclaw_alignment, recommendation, recommended_lane,
+       routed_agent, risk_notes, source_kind, source_ref, created_at
+FROM steel_thread_signals
+WHERE relevance_score = 'high'
+ORDER BY created_at DESC, signal_id DESC
+LIMIT 40
+""".strip()
+    ).fetchall()
+    cards = []
+    for row in rows:
+        agent_id = row["routed_agent"] or "chief"
+        lane_id = "system_orchestration" if agent_id == "chief" else "advisory_synthesis"
+        priority = "high" if row["recommendation"] in {"adopt", "adapt", "needs_review"} else "normal"
+        cards.append(
+            _make_card(
+                board_id=board_id,
+                source_kind="steel_thread_signal",
+                source_id=row["signal_id"],
+                title=f"Steel Thread: {row['title']}",
+                summary=row["short_summary"],
+                world_hint="operations",
+                agent_id=agent_id,
+                lane_id=lane_id,
+                intent_category=f"steel_thread_{row['pattern_category']}",
+                board_column=_steel_thread_column(row["recommendation"], row["recommended_lane"]),
+                status=row["recommendation"],
+                priority_hint=priority,
+                approval_required=True,
+                next_safe_move=f"Review Steel Thread recommendation: {row['recommended_lane']}. No action is created by this card.",
+                evidence_basis=f"steel_thread:{row['source_kind']}:{row['openclaw_alignment']}:{row['confidence']}",
+                source_path=row["source_ref"] if "/" in str(row["source_ref"]) else None,
+            )
+        )
+    return cards
+
+
 def _source_cards(conn: sqlite3.Connection, board_id: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     cards.extend(_intent_cards(conn, board_id))
@@ -830,6 +888,7 @@ def _source_cards(conn: sqlite3.Connection, board_id: str) -> list[dict[str, Any
     cards.extend(_operator_action_cards(conn, board_id))
     cards.extend(_report_bridge_cards(conn, board_id))
     cards.extend(_project_capsule_cards(conn, board_id))
+    cards.extend(_steel_thread_cards(conn, board_id))
     return cards
 
 

@@ -711,6 +711,7 @@
 !scripts/build_steel_thread_radar.py
 !scripts/query_steel_thread_radar.py
 !scripts/export_steel_thread_radar_read_model.py
+!scripts/fetch_steel_thread_sources.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_steel_thread_radar.py
@@ -728,6 +729,8 @@
 !generated/context_packs/**/*.md
 !generated/context_packs/**/*.txt
 !generated/context_packs/**/*.zip
+!generated/frontier_research_packets/
+!generated/frontier_research_packets/*.md
 !generated/context_packets/
 !generated/context_packets/*.json
 !generated/context_packets/*.md

@@ -49,11 +49,61 @@ Allowed source kinds:
 - `markdown_doc`
 - `report_bridge_package`
 - `external_research_summary`
+- `local_research_packet`
 - `uploaded_source`
 - `manual_seed`
 - `unknown`
 
-v0 uses only manual/operator/repo seed signals. It does not browse or call external APIs.
+v0.1 adds an approved source registry. The initial registry is conservative:
+- `operator_manual_frontier_notes`: enabled, manual metadata only.
+- `local_frontier_research_packets`: enabled, reads local approved packets under `generated/frontier_research_packets/`.
+- `official_ai_tooling_feeds`: disabled until an exact public URL is approved.
+- `github_agent_framework_releases`: disabled until exact public release-feed URLs are approved.
+
+Disabled URL sources are not fetched. No arbitrary URL parameter exists in the CLI.
+
+## Local Research Packet Format
+
+Local packets live under:
+
+```text
+generated/frontier_research_packets/
+```
+
+They are Markdown files with optional front matter:
+
+```markdown
+---
+source_kind: operator_supplied_summary
+verification_status: unverified_external_claim
+pattern_category: agent_orchestration
+relevance_score: high
+confidence: medium
+openclaw_alignment: aligned
+recommendation: adapt
+recommended_lane: Mission Control Work Board Read-Only Surface v0
+routed_agent: chief
+reviewer: hermes
+safety_review: guardian
+---
+
+# Pattern title
+
+Short bounded summary and OpenClaw mapping.
+```
+
+Steel Thread stores source metadata, hashes, bounded excerpts, classifications, and recommendations. It does not store private/no-go raw bodies and does not treat packet claims as truth.
+
+## Adding A Source Safely
+
+To add an external source later:
+- add it to `steel_thread_source_registry`
+- keep it disabled until the exact URL is approved
+- prefer RSS/Atom or official bounded release feeds
+- set a max item limit
+- use title/summary/release-note bounded fetch policy only
+- never add login-required, paywalled, social-media scraping, browser automation, broad crawling, or recursive crawling
+- label claims `external_source_claim` / `unverified_until_review`
 
 ## Evidence Rules
 
@@ -102,6 +152,8 @@ Steel Thread grants no authority:
 
 Steel Thread recommendations route primarily to Chief as system orchestration. Guardian may review safety-boundary signals. Hermes may review advisory synthesis. Work Board and Mission Control should treat Steel Thread as a read-only recommendation source until a separate lane grants UI display or card integration.
 
+In v0.1, Work Board can project high-relevance Steel Thread signals as metadata-only cards. These cards cannot approve, execute, create actions, or activate agents.
+
 ## Avoiding Hype-Chasing
 
 Steel Thread must map every signal to existing OpenClaw surfaces, evidence basis, confidence, risk notes, and a next safe lane. If a signal cannot pass that framing, it should be `watch`, `defer`, `ignore`, or `needs_review`, not a build mandate.
@@ -111,6 +163,13 @@ Steel Thread must map every signal to existing OpenClaw surfaces, evidence basis
 - Agent work board / orchestration board pattern: adapts the operator-supplied Symphony/Hermes Kanban idea into local Work Board/Mission Control surfaces without cloud dependency or arbitrary execution.
 - Context pack generation for external AI tools: adopts the already-built External AI Context Packager as local export-only packaging.
 - Helm control path maturity: watches/adapts the request/approve/execute/receipt path toward a future Mission Control Request Path.
+
+## Current v0.1 Source Intake
+
+- Local packet intake is enabled.
+- A local packet exists for the agent work board / orchestration board pattern.
+- External URL sources are registered disabled until exact URLs are approved.
+- No broad crawl, recursive crawl, browser automation, model call, action creation, or notification is introduced.
 
 ## Commands
 
@@ -128,8 +187,13 @@ python3 scripts/query_steel_thread_radar.py --report high-relevance --format ope
 python3 scripts/query_steel_thread_radar.py --category agent_orchestration --format operator
 ```
 
+Fetch approved/local sources:
+```bash
+python3 scripts/fetch_steel_thread_sources.py --format operator
+python3 scripts/fetch_steel_thread_sources.py --dry-run --format operator
+```
+
 Export:
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/export_steel_thread_radar_read_model.py --format operator
 ```
-
