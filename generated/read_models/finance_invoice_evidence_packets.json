@@ -1,0 +1,206 @@
+{
+  "bounded_context_output": {
+    "disallowed_actions": [
+      "invoice send",
+      "email send",
+      "bank access",
+      "ledger write",
+      "tax filing",
+      "spreadsheet cell read",
+      "workbook parsing"
+    ],
+    "facts_truth_posture": "Facts remain operator claims unless explicitly evidence-backed by an approved source_ref.",
+    "for_agents": [
+      "chief",
+      "cassandra"
+    ],
+    "packet_summary": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet."
+  },
+  "counts": {
+    "blocked_missing_info_count": 0,
+    "counts_by_status": {
+      "needs_operator_facts": 1
+    },
+    "high_risk_count": 3,
+    "missing_items_count": 5,
+    "needs_operator_facts_count": 1,
+    "open_packet_count": 1,
+    "packet_count": 1,
+    "ready_for_draft_review_count": 0
+  },
+  "generated_at": "2026-05-15T19:41:03+00:00",
+  "latest_packet": {
+    "agent_lane": "chief",
+    "bank_access_allowed": 0,
+    "created_at": "2026-05-15T19:40:48+00:00",
+    "financial_truth_claimed": 0,
+    "ledger_write_allowed": 0,
+    "next_safe_move": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet.",
+    "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+    "run_id": "finpktrun_967a44c83cce6b03d63b",
+    "send_allowed": 0,
+    "source_basis": "operator_cli_or_synthetic_demo; finance_reconciliation_proposal; spreadsheet_candidate_metadata_only",
+    "status": "needs_operator_facts",
+    "subject_entity": "Manual Review",
+    "synthetic_demo": 1,
+    "tax_filing_allowed": 0,
+    "title": "Finance Invoice Evidence Packet v0 Demo",
+    "updated_at": "2026-05-15T19:40:48+00:00",
+    "workflow_kind": "invoice_prep",
+    "world": "finance"
+  },
+  "latest_packet_facts": [
+    {
+      "amount_value": null,
+      "confidence": "unknown_review",
+      "currency": null,
+      "date_or_period": null,
+      "label": "synthetic_demo_context",
+      "source_ref": null,
+      "truth_status": "needs_review",
+      "value_text": "Synthetic placeholder only. Replace with operator-supplied invoice/receivable facts."
+    }
+  ],
+  "missing_items": [
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Amount, balance, deposit, or rate is missing.",
+      "next_safe_move": "Provide the amount as an operator claim or approved evidence reference.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "why_needed": "OpenClaw cannot prepare invoice or receivable context without an operator-provided or evidence-backed amount."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Exact client/project/entity is not confirmed.",
+      "next_safe_move": "Provide the client/project label or approve a safe metadata source that contains it.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "why_needed": "Invoice and receivable packets need a clear subject before any draft context is useful."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Service date, invoice date, due date, or period is missing.",
+      "next_safe_move": "Provide a date/period or approved evidence reference.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "why_needed": "Dates keep invoice context reviewable and prevent unsupported assumptions."
+    },
+    {
+      "blocker_level": "optional",
+      "description": "Approved evidence reference is missing.",
+      "next_safe_move": "Link an approved note, receipt reference, or sanitized metadata packet.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "why_needed": "The packet can record operator claims, but draft review should distinguish claims from evidence-backed facts."
+    },
+    {
+      "blocker_level": "optional",
+      "description": "Mac invoice spreadsheet filename is not known.",
+      "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "why_needed": "The operator reports a likely relevant spreadsheet under ~/Documents/invoices/, but this PC/WSL lane cannot read it."
+    }
+  ],
+  "next_safe_moves": [
+    {
+      "next_safe_move": "Provide one real receivable/invoice target with safe operator facts; do not use private raw files yet.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "status": "needs_operator_facts",
+      "title": "Finance Invoice Evidence Packet v0 Demo"
+    }
+  ],
+  "no_authority_flags": {
+    "bank_access_allowed": false,
+    "email_send_allowed": false,
+    "external_api_allowed": false,
+    "financial_truth_claimed": false,
+    "invoice_send_allowed": false,
+    "ledger_write_allowed": false,
+    "operator_approval_required": true,
+    "raw_sensitive_body_ingest_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tax_filing_allowed": false,
+    "workbook_parsing_allowed": false
+  },
+  "read_model_version": "finance_invoice_evidence_packets_read_model_v0",
+  "recommended_next_lane": "Mac Finance Spreadsheet Evidence Intake v0",
+  "risks": [
+    {
+      "mitigation": "Provide the amount as an operator claim or approved evidence reference.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "missing_amount",
+      "severity": "high"
+    },
+    {
+      "mitigation": "Keep all invoice/email outputs as draft context only until a later explicit approval path exists.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "send_not_allowed",
+      "severity": "high"
+    },
+    {
+      "mitigation": "Provide the client/project label or approve a safe metadata source that contains it.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "unclear_client",
+      "severity": "high"
+    },
+    {
+      "mitigation": "Provide a date/period or approved evidence reference.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "missing_date",
+      "severity": "medium"
+    },
+    {
+      "mitigation": "Treat ~/Documents/invoices/ as sensitive metadata only; use a future Mac-side intake lane for filename metadata.",
+      "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
+      "risk_kind": "spreadsheet_needs_review",
+      "severity": "medium"
+    }
+  ],
+  "schema_version": "finance_invoice_evidence_packets_read_model_v0",
+  "spreadsheet_candidate": {
+    "allowed_use": "metadata_only_pending_review",
+    "ingestion_policy": "needs_operator_review",
+    "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+    "sensitivity_status": "sensitive_metadata_only",
+    "source_kind": "mac_local_spreadsheet_candidate",
+    "spreadsheet_candidate_known": true,
+    "spreadsheet_cell_read_allowed": false,
+    "spreadsheet_folder": "~/Documents/invoices/",
+    "spreadsheet_folder_known": true,
+    "spreadsheet_ingestion_allowed": false,
+    "spreadsheet_metadata_available": false,
+    "spreadsheet_path": null,
+    "spreadsheet_path_known": false,
+    "workbook_parsing_allowed": false
+  },
+  "spreadsheet_candidate_known": true,
+  "spreadsheet_cell_read_allowed": false,
+  "spreadsheet_folder": "~/Documents/invoices/",
+  "spreadsheet_folder_known": true,
+  "spreadsheet_ingestion_allowed": false,
+  "spreadsheet_metadata_available": false,
+  "spreadsheet_path_known": false,
+  "work_board_linkage": {
+    "cards": [
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_95706de4a863fcb25686",
+        "next_safe_move": "Review packet facts and missing items; no invoice/email/bank/ledger action is authorized.",
+        "status": "packet_context_only",
+        "title": "Finance Invoice Evidence Packet Builder"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_56753122b32749dcb9f4",
+        "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+        "status": "spreadsheet_metadata_pending",
+        "title": "Mac spreadsheet evidence intake needed"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_ab0fb6f1aecdbb537d49",
+        "next_safe_move": "Provide safe operator facts or approved evidence references.",
+        "status": "missing_evidence",
+        "title": "Review missing finance evidence"
+      }
+    ],
+    "implemented": true
+  }
+}
