@@ -33,6 +33,7 @@ OPERATOR_EXPORT_NAME = "agent_presence_OPERATOR.md"
 DESIRED_STATES = {"online", "offline_intentional", "maintenance", "hard_kill", "unknown_review"}
 ACTUAL_STATES = {"online", "offline", "degraded", "unknown", "metadata_available", "not_configured"}
 RECOVERY_STATUSES = {"not_needed", "available", "blocked", "attempted", "succeeded", "failed"}
+RECOVERY_CLEARANCE_STATUSES = {"requested", "approved", "rejected", "used", "expired"}
 RECOVERY_KINDS = {
     "none",
     "systemd_user_start",
@@ -45,6 +46,10 @@ RECOVERY_KINDS = {
     "unknown_review",
 }
 
+CASSANDRA_RECOVERY_AGENT_ID = "cassandra"
+CASSANDRA_RECOVERY_ACTION_ID = "cassandra_systemd_user_start"
+RECOVERY_CLEARANCE_TTL_MINUTES = 30
+
 NO_AUTHORITY_FLAGS = {
     "broad_agent_activation_allowed": False,
     "telegram_api_allowed": False,
@@ -56,6 +61,15 @@ NO_AUTHORITY_FLAGS = {
     "network_authority": False,
     "model_call_allowed": False,
     "client_deployment_allowed": False,
+}
+
+RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS = {
+    **NO_AUTHORITY_FLAGS,
+    "approval_bypass_allowed": False,
+    "arbitrary_recovery_action_allowed": False,
+    "raw_command_text_allowed": False,
+    "external_approval_source_allowed": False,
+    "multi_agent_recovery_allowed": False,
 }
 
 
@@ -516,6 +530,31 @@ CREATE TABLE IF NOT EXISTS agent_recovery_actions (
 )
 """.strip(),
         """
+CREATE TABLE IF NOT EXISTS agent_recovery_clearances (
+  clearance_id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  recovery_action_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  request_reason TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  approved_by TEXT,
+  approval_note TEXT,
+  approved_at TEXT,
+  rejected_by TEXT,
+  rejection_reason TEXT,
+  rejected_at TEXT,
+  expires_at TEXT NOT NULL,
+  max_attempts INTEGER NOT NULL DEFAULT 1,
+  used_attempts INTEGER NOT NULL DEFAULT 0,
+  used_at TEXT,
+  receipt_id TEXT,
+  scope_json TEXT NOT NULL,
+  no_authority_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+)
+""".strip(),
+        """
 CREATE TABLE IF NOT EXISTS agent_recovery_attempts (
   recovery_attempt_id TEXT PRIMARY KEY,
   receipt_id TEXT NOT NULL,
@@ -591,6 +630,7 @@ CREATE TABLE IF NOT EXISTS agent_presence_runtime_surfaces (
         "CREATE INDEX IF NOT EXISTS idx_agent_presence_checks_agent ON agent_presence_checks(agent_id)",
         "CREATE INDEX IF NOT EXISTS idx_agent_presence_surfaces_agent ON agent_presence_runtime_surfaces(agent_id)",
         "CREATE INDEX IF NOT EXISTS idx_agent_recovery_actions_agent ON agent_recovery_actions(agent_id)",
+        "CREATE INDEX IF NOT EXISTS idx_agent_recovery_clearances_agent ON agent_recovery_clearances(agent_id, status)",
         "CREATE INDEX IF NOT EXISTS idx_agent_recovery_attempts_agent ON agent_recovery_attempts(agent_id)",
     )
 
@@ -626,6 +666,7 @@ WHERE type = 'table'
          'agent_desired_states',
          'agent_recovery_policies',
          'agent_recovery_actions',
+         'agent_recovery_clearances',
          'agent_recovery_attempts',
          'agent_recovery_receipts'
        ))
@@ -1022,8 +1063,19 @@ def build_agent_presence_snapshot(
     path = init_agent_presence_schema(db_path)
     seed_agent_lane_registry(db_path=path)
     seed_desired_states(db_path=path, desired_state_overrides=desired_state_overrides)
-    seed_recovery_actions(db_path=path, action_overrides=recovery_action_overrides)
     now = utc_now()
+    clearance_action_overrides, clearance_policy_overrides = _active_recovery_clearance_overrides(path, now=now)
+    effective_action_overrides = {agent: dict(override) for agent, override in (recovery_action_overrides or {}).items()}
+    for agent, override in clearance_action_overrides.items():
+        merged = dict(effective_action_overrides.get(agent, {}))
+        merged.update(override)
+        effective_action_overrides[agent] = merged
+    effective_policy_overrides = {agent: dict(override) for agent, override in (recovery_policy_overrides or {}).items()}
+    for agent, override in clearance_policy_overrides.items():
+        merged = dict(effective_policy_overrides.get(agent, {}))
+        merged.update(override)
+        effective_policy_overrides[agent] = merged
+    seed_recovery_actions(db_path=path, action_overrides=effective_action_overrides)
     resolved_run_id = run_id or _row_id("agentpresence", now)
     discovered_process_counts = process_counts if process_counts is not None else _process_snapshot()
     service_names = tuple(
@@ -1085,7 +1137,7 @@ ON CONFLICT(run_id) DO NOTHING
                 actual_state=actual["actual_state"],
                 surface_states=surface_states,
                 recovery_action=recovery_action,
-                policy_overrides=recovery_policy_overrides,
+                policy_overrides=effective_policy_overrides,
             )
             expected_online = bool(desired_row["expected_online"])
             if actual["actual_state"] == "metadata_available":
@@ -1488,6 +1540,20 @@ LIMIT 20
             attempt["attempted"] = bool(attempt["attempted"])
             attempt["succeeded"] = bool(attempt["succeeded"])
             attempt["command_argv"] = json.loads(attempt.pop("command_argv_json"))
+        clearances = _dict_rows(
+            conn,
+            """
+SELECT clearance_id, agent_id, recovery_action_id, status,
+       requested_by, request_reason, requested_at, approved_by,
+       approved_at, expires_at, max_attempts, used_attempts,
+       used_at, receipt_id, scope_json
+FROM agent_recovery_clearances
+ORDER BY requested_at DESC, clearance_id DESC
+LIMIT 20
+""".strip(),
+        )
+        for clearance in clearances:
+            clearance["scope"] = json.loads(clearance.pop("scope_json"))
         return {
             "status": "ok",
             "report": report,
@@ -1514,6 +1580,7 @@ LIMIT 20
             "items": items,
             "runtime_surfaces": surfaces,
             "recovery_actions": actions,
+            "recovery_clearances": clearances,
             "recent_recovery_attempts": attempts,
             "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         }
@@ -1553,6 +1620,401 @@ def _argv_is_allowlisted(action: dict[str, Any]) -> bool:
     return False
 
 
+def _default_recovery_seed(agent_id: str, recovery_action_id: str) -> RecoveryActionSeed | None:
+    return next(
+        (
+            seed
+            for seed in DEFAULT_RECOVERY_ACTIONS
+            if seed.agent_id == agent_id and seed.recovery_action_id == recovery_action_id
+        ),
+        None,
+    )
+
+
+def _validate_cassandra_clearance_scope(agent_id: str, recovery_action_id: str) -> RecoveryActionSeed:
+    if agent_id != CASSANDRA_RECOVERY_AGENT_ID or recovery_action_id != CASSANDRA_RECOVERY_ACTION_ID:
+        raise ValueError("v0 recovery clearance is only available for Cassandra's fixed systemd start action")
+    seed = _default_recovery_seed(agent_id, recovery_action_id)
+    if seed is None:
+        raise ValueError("Cassandra recovery action is not registered")
+    action = {
+        "action_kind": seed.action_kind,
+        "command_argv": list(seed.command_argv),
+    }
+    if not _argv_is_allowlisted(action):
+        raise ValueError("Cassandra recovery action argv is not allowlisted")
+    return seed
+
+
+def _clearance_scope_payload(seed: RecoveryActionSeed, *, expires_at: str) -> dict[str, Any]:
+    return {
+        "scope": "single_agent_fixed_recovery_action",
+        "agent_id": seed.agent_id,
+        "recovery_action_id": seed.recovery_action_id,
+        "action_kind": seed.action_kind,
+        "command_argv": list(seed.command_argv),
+        "requires_operator_approval": True,
+        "max_attempts": 1,
+        "expires_at": expires_at,
+        "approval_source": "local_cli_only",
+        "network_approval_allowed": False,
+        "raw_command_input_allowed": False,
+    }
+
+
+def _active_recovery_clearance(
+    conn: sqlite3.Connection,
+    *,
+    agent_id: str,
+    recovery_action_id: str,
+    now: str,
+) -> dict[str, Any] | None:
+    _validate_cassandra_clearance_scope(agent_id, recovery_action_id)
+    row = conn.execute(
+        """
+SELECT *
+FROM agent_recovery_clearances
+WHERE agent_id = ?
+  AND recovery_action_id = ?
+  AND status = 'approved'
+  AND used_attempts < max_attempts
+  AND expires_at > ?
+ORDER BY approved_at DESC, requested_at DESC, clearance_id DESC
+LIMIT 1
+""".strip(),
+        (agent_id, recovery_action_id, now),
+    ).fetchone()
+    if row is None:
+        return None
+    payload = dict(row)
+    payload["scope"] = json.loads(payload["scope_json"])
+    payload["no_authority_flags"] = json.loads(payload["no_authority_json"])
+    return payload
+
+
+def _active_recovery_clearance_overrides(db_path: str | Path, *, now: str) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        clearance = _active_recovery_clearance(
+            conn,
+            agent_id=CASSANDRA_RECOVERY_AGENT_ID,
+            recovery_action_id=CASSANDRA_RECOVERY_ACTION_ID,
+            now=now,
+        )
+    finally:
+        conn.close()
+    if not clearance:
+        return {}, {}
+    return (
+        {
+            CASSANDRA_RECOVERY_AGENT_ID: {
+                "safe_to_attempt": True,
+                "requires_operator_approval": True,
+                "classification": "operator_cleared_fixed_action",
+                "notes": (
+                    "Fixed systemd-owned path has an active explicit operator recovery clearance "
+                    f"({clearance['clearance_id']}); still single-use, cooldown-bound, and receipt-backed."
+                ),
+            }
+        },
+        {
+            CASSANDRA_RECOVERY_AGENT_ID: {
+                "recovery_allowed": True,
+                "recovery_kind": "systemd_user_start",
+                "recovery_command_id": CASSANDRA_RECOVERY_ACTION_ID,
+                "requires_operator_clearance": True,
+                "cooldown_seconds": 900,
+            }
+        },
+    )
+
+
+def request_agent_recovery_clearance(
+    *,
+    agent_id: str,
+    requested_by: str,
+    reason: str,
+    db_path: str | Path | None = None,
+    ttl_minutes: int = RECOVERY_CLEARANCE_TTL_MINUTES,
+) -> dict[str, Any]:
+    seed = _validate_cassandra_clearance_scope(agent_id, CASSANDRA_RECOVERY_ACTION_ID)
+    if not requested_by.strip():
+        raise ValueError("requested_by is required")
+    if not reason.strip():
+        raise ValueError("reason is required")
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    current = _parse_iso(now) or datetime.now(timezone.utc)
+    expires_at = (current + timedelta(minutes=max(1, ttl_minutes))).replace(microsecond=0).isoformat()
+    clearance_id = _row_id("agentrecoveryclearance", agent_id, seed.recovery_action_id, requested_by, reason, now)
+    scope = _clearance_scope_payload(seed, expires_at=expires_at)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+INSERT INTO agent_recovery_clearances (
+  clearance_id, agent_id, recovery_action_id, status,
+  requested_by, request_reason, requested_at,
+  expires_at, max_attempts, used_attempts, scope_json,
+  no_authority_json, updated_at
+) VALUES (?, ?, ?, 'requested', ?, ?, ?, ?, 1, 0, ?, ?, ?)
+""".strip(),
+            (
+                clearance_id,
+                agent_id,
+                seed.recovery_action_id,
+                requested_by.strip(),
+                reason.strip(),
+                now,
+                expires_at,
+                stable_json(scope),
+                stable_json(RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS),
+                now,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {
+        "status": "requested",
+        "clearance_id": clearance_id,
+        "agent_id": agent_id,
+        "recovery_action_id": seed.recovery_action_id,
+        "expires_at": expires_at,
+        "summary": "Cassandra recovery clearance requested; no recovery is approved or executed yet.",
+        "scope": scope,
+        "no_authority_flags": dict(RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS),
+    }
+
+
+def approve_agent_recovery_clearance(
+    *,
+    clearance_id: str,
+    approved_by: str,
+    approval_note: str,
+    confirm_agent: str,
+    confirm_action: str,
+    db_path: str | Path | None = None,
+    ttl_minutes: int = RECOVERY_CLEARANCE_TTL_MINUTES,
+) -> dict[str, Any]:
+    seed = _validate_cassandra_clearance_scope(confirm_agent, confirm_action)
+    if not approved_by.strip():
+        raise ValueError("approved_by is required")
+    if not approval_note.strip():
+        raise ValueError("approval_note is required")
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    current = _parse_iso(now) or datetime.now(timezone.utc)
+    expires_at = (current + timedelta(minutes=max(1, ttl_minutes))).replace(microsecond=0).isoformat()
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT * FROM agent_recovery_clearances WHERE clearance_id = ?", (clearance_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"unknown recovery clearance: {clearance_id}")
+        payload = dict(row)
+        if payload["agent_id"] != seed.agent_id or payload["recovery_action_id"] != seed.recovery_action_id:
+            raise ValueError("clearance target does not match confirmed Cassandra recovery action")
+        if payload["status"] != "requested":
+            raise ValueError(f"clearance is not requestable for approval: {payload['status']}")
+        if payload["expires_at"] <= now:
+            conn.execute(
+                "UPDATE agent_recovery_clearances SET status = 'expired', updated_at = ? WHERE clearance_id = ?",
+                (now, clearance_id),
+            )
+            conn.commit()
+            raise ValueError("clearance request is expired")
+        scope = _clearance_scope_payload(seed, expires_at=expires_at)
+        conn.execute(
+            """
+UPDATE agent_recovery_clearances
+SET status = 'approved',
+    approved_by = ?,
+    approval_note = ?,
+    approved_at = ?,
+    expires_at = ?,
+    scope_json = ?,
+    updated_at = ?
+WHERE clearance_id = ?
+""".strip(),
+            (
+                approved_by.strip(),
+                approval_note.strip(),
+                now,
+                expires_at,
+                stable_json(scope),
+                now,
+                clearance_id,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {
+        "status": "approved",
+        "clearance_id": clearance_id,
+        "agent_id": seed.agent_id,
+        "recovery_action_id": seed.recovery_action_id,
+        "expires_at": expires_at,
+        "summary": "Cassandra recovery clearance approved for one fixed receipt-backed attempt.",
+        "scope": scope,
+        "no_authority_flags": dict(RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS),
+    }
+
+
+def reject_agent_recovery_clearance(
+    *,
+    clearance_id: str,
+    rejected_by: str,
+    reason: str,
+    db_path: str | Path | None = None,
+) -> dict[str, Any]:
+    if not rejected_by.strip():
+        raise ValueError("rejected_by is required")
+    if not reason.strip():
+        raise ValueError("reason is required")
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            """
+UPDATE agent_recovery_clearances
+SET status = 'rejected',
+    rejected_by = ?,
+    rejection_reason = ?,
+    rejected_at = ?,
+    updated_at = ?
+WHERE clearance_id = ?
+  AND status IN ('requested', 'approved')
+""".strip(),
+            (rejected_by.strip(), reason.strip(), now, now, clearance_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    if cur.rowcount != 1:
+        raise ValueError(f"recovery clearance cannot be rejected: {clearance_id}")
+    return {
+        "status": "rejected",
+        "clearance_id": clearance_id,
+        "summary": "Recovery clearance rejected; no recovery authority granted.",
+        "no_authority_flags": dict(RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS),
+    }
+
+
+def _mark_recovery_clearance_used(
+    conn: sqlite3.Connection,
+    *,
+    clearance_id: str,
+    receipt_id: str,
+    now: str,
+) -> None:
+    conn.execute(
+        """
+UPDATE agent_recovery_clearances
+SET used_attempts = used_attempts + 1,
+    status = CASE WHEN used_attempts + 1 >= max_attempts THEN 'used' ELSE status END,
+    used_at = ?,
+    receipt_id = ?,
+    updated_at = ?
+WHERE clearance_id = ?
+  AND status = 'approved'
+""".strip(),
+        (now, receipt_id, now, clearance_id),
+    )
+
+
+def build_agent_recovery_clearance_report(
+    *,
+    db_path: str | Path | None = None,
+    agent: str | None = None,
+) -> dict[str, Any]:
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute(
+            """
+UPDATE agent_recovery_clearances
+SET status = 'expired', updated_at = ?
+WHERE status IN ('requested', 'approved')
+  AND expires_at <= ?
+""".strip(),
+            (now, now),
+        )
+        conn.commit()
+        params: list[Any] = []
+        where = ""
+        if agent:
+            _validate_cassandra_clearance_scope(agent, CASSANDRA_RECOVERY_ACTION_ID)
+            where = "WHERE agent_id = ?"
+            params.append(agent)
+        rows = _dict_rows(
+            conn,
+            f"""
+SELECT *
+FROM agent_recovery_clearances
+{where}
+ORDER BY requested_at DESC, clearance_id DESC
+LIMIT 25
+""".strip(),
+            tuple(params),
+        )
+    finally:
+        conn.close()
+    for row in rows:
+        row["scope"] = json.loads(row.pop("scope_json"))
+        row["no_authority_flags"] = json.loads(row.pop("no_authority_json"))
+    return {
+        "status": "ok",
+        "agent": agent,
+        "clearance_count": len(rows),
+        "items": rows,
+        "no_authority_flags": dict(RECOVERY_CLEARANCE_NO_AUTHORITY_FLAGS),
+    }
+
+
+def format_agent_recovery_clearance_result(payload: dict[str, Any]) -> str:
+    lines = [
+        "OpenClaw Agent Recovery Clearance v0",
+        "",
+        f"Status: `{payload['status']}`",
+        f"Clearance: `{payload.get('clearance_id') or 'none'}`",
+        f"Agent: `{payload.get('agent_id') or 'none'}`",
+        f"Action: `{payload.get('recovery_action_id') or 'none'}`",
+        f"Expires: `{payload.get('expires_at') or 'none'}`",
+        f"Summary: {payload.get('summary') or 'none'}",
+        "",
+        "Boundary:",
+        "- This only records a local approval state for one fixed Cassandra systemd user start action.",
+        "- It does not run recovery, approve arbitrary commands, call Telegram, inspect secrets, or expose a network approval path.",
+    ]
+    return "\n".join(lines)
+
+
+def format_agent_recovery_clearance_report(payload: dict[str, Any]) -> str:
+    lines = ["OpenClaw Agent Recovery Clearances v0", ""]
+    lines.append(f"Clearances: {payload.get('clearance_count', 0)}")
+    for item in payload.get("items", []):
+        lines.append(
+            f"- `{item['clearance_id']}` agent=`{item['agent_id']}` action=`{item['recovery_action_id']}` "
+            f"status=`{item['status']}` used={item['used_attempts']}/{item['max_attempts']} "
+            f"expires=`{item['expires_at']}`"
+        )
+    lines.extend(
+        [
+            "",
+            "Boundary:",
+            "- Clearances are local, explicit, single-agent, single-action, single-use, and receipt-backed.",
+            "- No arbitrary command text, network approval, Telegram action, or auto-recovery authority is granted.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _latest_agent_and_action(conn: sqlite3.Connection, agent_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
     agent_row = conn.execute("SELECT * FROM agent_presence_agents WHERE agent_id = ?", (agent_id,)).fetchone()
     if agent_row is None:
@@ -1561,11 +2023,25 @@ def _latest_agent_and_action(conn: sqlite3.Connection, agent_id: str) -> tuple[d
     action = _recovery_action_for_agent(conn, agent_id)
     policy_row = conn.execute("SELECT * FROM agent_recovery_policies WHERE agent_id = ?", (agent_id,)).fetchone()
     policy = dict(policy_row) if policy_row else None
+    now = utc_now()
+    active_clearance = None
+    if action and action.get("recovery_action_id") == CASSANDRA_RECOVERY_ACTION_ID:
+        active_clearance = _active_recovery_clearance(
+            conn,
+            agent_id=agent_id,
+            recovery_action_id=action["recovery_action_id"],
+            now=now,
+        )
+        if active_clearance:
+            action["safe_to_attempt"] = True
     if policy:
         policy["recovery_allowed"] = bool(policy["recovery_allowed"])
         policy["requires_operator_clearance"] = bool(policy["requires_operator_clearance"])
         policy["receipt_required"] = bool(policy["receipt_required"])
         policy["hard_kill_respected"] = bool(policy["hard_kill_respected"])
+        policy["active_clearance_id"] = active_clearance["clearance_id"] if active_clearance else None
+        if active_clearance:
+            policy["recovery_allowed"] = True
     return agent, action, policy
 
 
@@ -1600,6 +2076,8 @@ def _recovery_blocker(
         return "registered recovery argv is not allowlisted"
     if not policy or not policy["recovery_allowed"]:
         return "recovery policy does not explicitly allow execution"
+    if policy.get("requires_operator_clearance", True) and not policy.get("active_clearance_id"):
+        return "operator recovery clearance is not approved"
     current = _parse_iso(now) or datetime.now(timezone.utc)
     cooldown_seconds = int(policy.get("cooldown_seconds") or action.get("cooldown_seconds") or 0)
     last_attempt = _parse_iso(policy.get("last_attempt_at"))
@@ -1748,12 +2226,22 @@ def build_agent_recovery_status_report(
     attempts_by_agent: dict[str, list[dict[str, Any]]] = {}
     for attempt in presence.get("recent_recovery_attempts", []):
         attempts_by_agent.setdefault(attempt["agent_id"], []).append(attempt)
-    rows = []
     now = utc_now()
+    active_clearance_by_agent: dict[str, dict[str, Any]] = {}
+    for clearance in presence.get("recovery_clearances", []):
+        if (
+            clearance.get("status") == "approved"
+            and int(clearance.get("used_attempts") or 0) < int(clearance.get("max_attempts") or 1)
+            and str(clearance.get("expires_at") or "") > now
+        ):
+            active_clearance_by_agent.setdefault(clearance["agent_id"], clearance)
+    rows = []
     for item in items:
         action = action_by_agent.get(item["agent_id"])
         blocker = _recovery_blocker(agent=item, action=action, policy={
             "recovery_allowed": item["autorecovery_allowed"],
+            "requires_operator_clearance": bool(action.get("requires_operator_approval", True)) if action else True,
+            "active_clearance_id": active_clearance_by_agent.get(item["agent_id"], {}).get("clearance_id"),
             "cooldown_seconds": action.get("cooldown_seconds", 0) if action else 0,
             "last_attempt_at": None,
         } if action else None, now=now)
@@ -1853,14 +2341,45 @@ def recover_agent(
             )
         started = datetime.now(timezone.utc)
         runner = command_runner or subprocess.run
-        completed = runner(
-            command_argv,
-            cwd=action.get("working_directory") or str(repo_root),
-            capture_output=True,
-            text=True,
-            timeout=60,
-            shell=False,
-        )
+        try:
+            completed = runner(
+                command_argv,
+                cwd=action.get("working_directory") or str(repo_root),
+                capture_output=True,
+                text=True,
+                timeout=60,
+                shell=False,
+            )
+        except OSError as exc:
+            duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+            receipt_id = _write_recovery_attempt_receipt(
+                conn,
+                agent_id=agent_id,
+                action_id=action_id,
+                action_kind=action["action_kind"],
+                command_argv=command_argv,
+                dry_run=False,
+                attempted=False,
+                succeeded=False,
+                exit_code=None,
+                duration_ms=duration_ms,
+                stdout="",
+                stderr=str(exc),
+                blocker=f"recovery command could not start: {exc.__class__.__name__}",
+                now=now,
+            )
+            conn.commit()
+            return AgentRecoveryResult(
+                agent_id=agent_id,
+                status="blocked",
+                dry_run=False,
+                action_id=action_id,
+                attempted=False,
+                exit_code=None,
+                receipt_id=receipt_id,
+                blocker=f"recovery command could not start: {exc.__class__.__name__}",
+                summary=f"Recovery blocked for {agent_id}: recovery command could not start.",
+            )
         duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         succeeded = completed.returncode == 0
         receipt_id = _write_recovery_attempt_receipt(
@@ -1879,6 +2398,13 @@ def recover_agent(
             blocker=None if succeeded else "recovery command returned non-zero exit code",
             now=now,
         )
+        if policy and policy.get("active_clearance_id"):
+            _mark_recovery_clearance_used(
+                conn,
+                clearance_id=str(policy["active_clearance_id"]),
+                receipt_id=receipt_id,
+                now=now,
+            )
         conn.commit()
     finally:
         conn.close()
@@ -1984,6 +2510,7 @@ def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[s
         "agents": enriched_items,
         "runtime_surfaces": report.get("runtime_surfaces", []),
         "recovery_actions": report.get("recovery_actions", []),
+        "recovery_clearances": report.get("recovery_clearances", []),
         "recent_recovery_attempts": report.get("recent_recovery_attempts", []),
         "recovery_available_count": counts.get("by_recovery_status", {}).get("available", 0),
         "blockers": blockers,
@@ -2038,6 +2565,14 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
                 f"- `{action['agent_id']}` `{action['recovery_action_id']}` "
                 f"kind={action['action_kind']} safe_to_attempt=`{str(action['safe_to_attempt']).lower()}` "
                 f"classification={action['classification']}"
+            )
+    if payload["recovery_clearances"]:
+        lines.extend(["", "Recovery clearances:"])
+        for clearance in payload["recovery_clearances"][:5]:
+            lines.append(
+                f"- `{clearance['agent_id']}` `{clearance['recovery_action_id']}` "
+                f"status=`{clearance['status']}` used={clearance['used_attempts']}/{clearance['max_attempts']} "
+                f"expires=`{clearance['expires_at']}`"
             )
     if payload["recent_recovery_attempts"]:
         lines.extend(["", "Recent recovery attempts:"])
@@ -2148,12 +2683,18 @@ __all__ = [
     "build_agent_presence_read_model",
     "build_agent_presence_report",
     "build_agent_presence_snapshot",
+    "build_agent_recovery_clearance_report",
     "build_agent_recovery_status_report",
+    "approve_agent_recovery_clearance",
     "export_agent_presence_read_model",
+    "format_agent_recovery_clearance_report",
+    "format_agent_recovery_clearance_result",
     "format_agent_recovery_result",
     "format_agent_recovery_status_report",
     "format_agent_presence_report",
     "init_agent_presence_schema",
+    "reject_agent_recovery_clearance",
+    "request_agent_recovery_clearance",
     "recover_agent",
     "seed_recovery_actions",
     "seed_desired_states",

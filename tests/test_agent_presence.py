@@ -9,15 +9,20 @@ from agent_presence import (
     agent_presence_table_names,
     build_agent_presence_report,
     build_agent_presence_snapshot,
+    approve_agent_recovery_clearance,
     build_agent_recovery_status_report,
     export_agent_presence_read_model,
+    request_agent_recovery_clearance,
     recover_agent,
 )
+from scripts.approve_agent_recovery_clearance import main as approve_clearance_main
 from scripts.check_agent_presence import main as check_main
 from scripts.check_agent_recovery_status import main as recovery_status_main
 from scripts.export_agent_presence_read_model import main as export_main
+from scripts.query_agent_recovery_clearances import main as query_clearances_main
 from scripts.query_agent_presence import main as query_main
 from scripts.recover_agent import main as recover_main
+from scripts.request_agent_recovery_clearance import main as request_clearance_main
 
 
 CORE_AGENT_IDS = {"chief", "cassandra", "guardian", "niles", "hermes", "report_bridge"}
@@ -74,6 +79,7 @@ def test_schema_initializes(tmp_path):
         "agent_presence_checks",
         "agent_desired_states",
         "agent_recovery_actions",
+        "agent_recovery_clearances",
         "agent_recovery_attempts",
         "agent_recovery_policies",
         "agent_recovery_receipts",
@@ -347,29 +353,65 @@ def test_recover_agent_execute_requires_safe_allowed_policy(tmp_path):
     )) == (0, 0, 0, 0, 0, 0)
 
 
-def test_allowed_fixed_recovery_writes_receipt_and_cooldown_blocks_loop(tmp_path):
+def test_recovery_clearance_request_alone_does_not_allow_execution(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     repo_root = _fixture_repo(tmp_path)
+    request = request_agent_recovery_clearance(
+        agent_id="cassandra",
+        requested_by="operator",
+        reason="test request without approval",
+        db_path=db_path,
+    )
+
     build_agent_presence_snapshot(
         db_path=db_path,
         repo_root=repo_root,
-        run_id="presence_recovery_execute_fixture",
+        run_id="presence_recovery_requested_fixture",
         process_counts={},
         service_states=_service_states("inactive"),
-        recovery_action_overrides={
-            "cassandra": {
-                "safe_to_attempt": True,
-                "notes": "test-only safe fixed systemd action",
-            }
-        },
-        recovery_policy_overrides={
-            "cassandra": {
-                "recovery_allowed": True,
-                "recovery_kind": "systemd_user_start",
-                "recovery_command_id": "cassandra_systemd_user_start",
-                "cooldown_seconds": 900,
-            }
-        },
+    )
+    result = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+    )
+
+    assert request["status"] == "requested"
+    assert result.status == "blocked"
+    assert result.attempted is False
+    assert "not safe_to_attempt" in result.blocker
+    assert _row(
+        db_path,
+        "SELECT status FROM agent_recovery_clearances WHERE clearance_id = ?",
+        (request["clearance_id"],),
+    )["status"] == "requested"
+
+
+def test_approved_cassandra_clearance_writes_receipt_and_blocks_reuse(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    request = request_agent_recovery_clearance(
+        agent_id="cassandra",
+        requested_by="operator",
+        reason="test approved clearance",
+        db_path=db_path,
+    )
+    approval = approve_agent_recovery_clearance(
+        clearance_id=request["clearance_id"],
+        approved_by="operator",
+        approval_note="approve the fixed Cassandra start action for one attempt",
+        confirm_agent="cassandra",
+        confirm_action="cassandra_systemd_user_start",
+        db_path=db_path,
+    )
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_clearance_execute_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
     )
     calls = []
 
@@ -394,6 +436,7 @@ def test_allowed_fixed_recovery_writes_receipt_and_cooldown_blocks_loop(tmp_path
         command_runner=fake_runner,
     )
 
+    assert approval["status"] == "approved"
     assert first.status == "succeeded"
     assert first.attempted is True
     assert first.receipt_id
@@ -401,10 +444,125 @@ def test_allowed_fixed_recovery_writes_receipt_and_cooldown_blocks_loop(tmp_path
     assert calls[0][1]["shell"] is False
     assert second.status == "blocked"
     assert second.attempted is False
-    assert "cooldown prevents" in second.blocker
+    assert "not approved" in second.blocker or "cooldown prevents" in second.blocker
+    clearance = _row(
+        db_path,
+        "SELECT status, used_attempts, receipt_id FROM agent_recovery_clearances WHERE clearance_id = ?",
+        (request["clearance_id"],),
+    )
+    assert clearance["status"] == "used"
+    assert clearance["used_attempts"] == 1
+    assert clearance["receipt_id"] == first.receipt_id
     rows = _rows(db_path, "SELECT attempted, succeeded, shell_used, telegram_api_called, message_sent, secret_accessed FROM agent_recovery_attempts ORDER BY attempted_at")
     assert tuple(rows[0]) == (1, 1, 0, 0, 0, 0)
     assert tuple(rows[1]) == (0, 0, 0, 0, 0, 0)
+
+
+def test_clearance_does_not_bypass_hard_kill_or_wrong_action(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    request = request_agent_recovery_clearance(
+        agent_id="cassandra",
+        requested_by="operator",
+        reason="test hard kill boundary",
+        db_path=db_path,
+    )
+    approve_agent_recovery_clearance(
+        clearance_id=request["clearance_id"],
+        approved_by="operator",
+        approval_note="approve fixed action for boundary test",
+        confirm_agent="cassandra",
+        confirm_action="cassandra_systemd_user_start",
+        db_path=db_path,
+    )
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_clearance_hard_kill_fixture",
+        desired_state_overrides={"cassandra": "hard_kill"},
+        process_counts={},
+        service_states=_service_states("inactive"),
+    )
+
+    result = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+    )
+
+    assert result.status == "blocked"
+    assert "hard_kill" in result.blocker
+    assert _row(
+        db_path,
+        "SELECT status, used_attempts FROM agent_recovery_clearances WHERE clearance_id = ?",
+        (request["clearance_id"],),
+    )["used_attempts"] == 0
+    try:
+        approve_agent_recovery_clearance(
+            clearance_id=request["clearance_id"],
+            approved_by="operator",
+            approval_note="wrong target",
+            confirm_agent="cassandra",
+            confirm_action="chief_systemd_user_start",
+            db_path=db_path,
+        )
+    except ValueError as exc:
+        assert "only available for Cassandra" in str(exc)
+    else:
+        raise AssertionError("wrong recovery action should not be accepted")
+
+
+def test_approved_clearance_command_start_error_writes_blocked_receipt(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    request = request_agent_recovery_clearance(
+        agent_id="cassandra",
+        requested_by="operator",
+        reason="test wrong host command boundary",
+        db_path=db_path,
+    )
+    approve_agent_recovery_clearance(
+        clearance_id=request["clearance_id"],
+        approved_by="operator",
+        approval_note="approve fixed action for command-start error test",
+        confirm_agent="cassandra",
+        confirm_action="cassandra_systemd_user_start",
+        db_path=db_path,
+    )
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_clearance_oserror_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
+    )
+
+    def missing_runner(*_args, **_kwargs):
+        raise FileNotFoundError("systemctl")
+
+    result = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+        command_runner=missing_runner,
+    )
+
+    assert result.status == "blocked"
+    assert result.attempted is False
+    assert result.receipt_id
+    assert "could not start" in result.blocker
+    attempt = _row(
+        db_path,
+        "SELECT attempted, command_executed, blocker FROM agent_recovery_attempts WHERE receipt_id = ?",
+        (result.receipt_id,),
+    )
+    assert attempt["attempted"] == 0
+    assert attempt["command_executed"] == 0
+    assert "FileNotFoundError" in attempt["blocker"]
 
 
 def test_report_bridge_can_be_metadata_available_without_fake_online(tmp_path):
@@ -471,6 +629,30 @@ def test_query_reports_and_scripts_work(tmp_path, capsys):
     assert recover_payload["status"] == "blocked"
     assert recover_payload["attempted"] is False
 
+    assert request_clearance_main([
+        "--db", str(db_path),
+        "--agent", "cassandra",
+        "--requested-by", "operator",
+        "--reason", "script fixture",
+        "--format", "json",
+    ]) == 0
+    clearance_payload = json.loads(capsys.readouterr().out)
+    assert clearance_payload["status"] == "requested"
+    assert query_clearances_main(["--db", str(db_path), "--agent", "cassandra", "--format", "json"]) == 0
+    query_payload = json.loads(capsys.readouterr().out)
+    assert query_payload["clearance_count"] >= 1
+    assert approve_clearance_main([
+        "--db", str(db_path),
+        "--clearance-id", clearance_payload["clearance_id"],
+        "--approved-by", "operator",
+        "--approval-note", "script fixture approval",
+        "--confirm-agent", "cassandra",
+        "--confirm-action", "cassandra_systemd_user_start",
+        "--format", "json",
+    ]) == 0
+    approval_payload = json.loads(capsys.readouterr().out)
+    assert approval_payload["status"] == "approved"
+
 
 def test_read_model_export_contains_cassandra_and_no_authority(tmp_path, capsys):
     db_path = tmp_path / "ledger.sqlite"
@@ -530,6 +712,9 @@ def test_source_has_no_forbidden_runtime_network_or_destructive_behavior():
             "agent_presence.py",
             "scripts/check_agent_presence.py",
             "scripts/check_agent_recovery_status.py",
+            "scripts/request_agent_recovery_clearance.py",
+            "scripts/approve_agent_recovery_clearance.py",
+            "scripts/query_agent_recovery_clearances.py",
             "scripts/query_agent_presence.py",
             "scripts/recover_agent.py",
             "scripts/export_agent_presence_read_model.py",

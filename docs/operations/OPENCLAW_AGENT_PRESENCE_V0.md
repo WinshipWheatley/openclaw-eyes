@@ -59,6 +59,7 @@ Recovery can become available only if:
 - actual state is offline or degraded
 - a real safe local recovery path is known
 - policy explicitly allows the attempt
+- an explicit local operator clearance is approved when the action requires it
 - cooldown permits it
 - a receipt can be written
 
@@ -112,6 +113,26 @@ python3 scripts/recover_agent.py --agent cassandra --execute --format operator
 ```
 
 If the command reports `blocked`, do not bypass it with a launcher script. Open a narrow recovery lane to change policy.
+
+Request and approve Cassandra recovery clearance:
+
+```bash
+python3 scripts/request_agent_recovery_clearance.py \
+  --agent cassandra \
+  --requested-by operator \
+  --reason "Cassandra expected online but offline; request one fixed systemd-owned start attempt"
+
+python3 scripts/query_agent_recovery_clearances.py --agent cassandra
+
+python3 scripts/approve_agent_recovery_clearance.py \
+  --clearance-id <clearance_id> \
+  --approved-by operator \
+  --approval-note "Approve one Cassandra fixed start attempt" \
+  --confirm-agent cassandra \
+  --confirm-action cassandra_systemd_user_start
+```
+
+The clearance path is local-only, single-agent, single-action, single-use, fixed-argv, and receipt-backed. It does not create a Telegram, network, arbitrary-shell, or app-side approval path.
 
 Export the read-model:
 
