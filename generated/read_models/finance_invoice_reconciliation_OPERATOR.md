@@ -14,13 +14,17 @@
 
 ## Top Candidate To Port/Wrap
 - `autonomy_mode.py` reuse=candidate_to_port risk=high: Potentially reusable billing_tracking, budget_tracking, email_draft_support concepts after operator review.
+- `chief_billing_brain.py` reuse=candidate_to_wrap risk=high: Question flow, normalized billing record schema, invoice/payment/followup/receipt categories, and correction handling.
 - `chief_file_io.py` reuse=candidate_to_port risk=high: Potentially reusable billing_tracking, report_generation concepts after operator review.
+- `chief_financial_brain.py` reuse=candidate_to_port risk=high: Outstanding invoice/payment summary structure as non-truth advisory report logic.
+- `chief_invoice_brain.py` reuse=candidate_to_port risk=high: Invoice draft field ordering and tracker row shape, after removing direct writes/sends.
 - `chief_phone_brain.py` reuse=candidate_to_port risk=high: Potentially reusable billing_tracking, client_payment_status, email_draft_support, evidence_gathering, invoice_drafting, ledger_reconciliation, report_generation concepts after operator review.
 - `chief_nli.py` reuse=candidate_to_port risk=low: Potentially reusable billing_tracking, budget_tracking, email_draft_support, ledger_reconciliation concepts after operator review.
 - `start_openclaw_brains.sh` reuse=candidate_to_port risk=low: Potentially reusable billing_tracking, evidence_gathering concepts after operator review.
 
 ## Reference-Only Items
 - `autonomy_qualification.py` risk=high: Potentially reusable budget_tracking, report_generation concepts after operator review.
+- `budget_tracker.py` risk=high: Budget cap and local spend warning heuristics for business-ops governance.
 - `chief_cpa_brain.py` risk=high: Deduction category checklist and CPA evidence prompts as reference-only guarded prompts.
 - `polish_loop/tasks/cas-009-morning-sovereign-briefing.md` risk=low: Potentially reusable email_draft_support, evidence_gathering, report_generation concepts after operator review.
 - `polish_loop/tasks/hitl-003-future-action-queue-api.md` risk=low: Potentially reusable unknown concepts after operator review.

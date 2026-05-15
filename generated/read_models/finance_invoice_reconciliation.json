@@ -23,9 +23,10 @@
       "reference_only_legacy": 1
     },
     "by_reuse_policy": {
-      "candidate_to_port": 5,
-      "needs_operator_review": 41,
-      "reference_only": 5
+      "candidate_to_port": 7,
+      "candidate_to_wrap": 1,
+      "needs_operator_review": 37,
+      "reference_only": 6
     },
     "finance_candidate_count": 51,
     "high_risk_count": 46,
@@ -82,12 +83,12 @@
     "proposal_only": 1,
     "purpose": "Turn an operator finance request into a reviewable invoice/receivables evidence packet, checklist, and draft work packet without sending email, scraping banks, or claiming truth.",
     "receipt_evidence_handling": "Every fact should point to an approved evidence reference or operator-provided note; raw private bodies remain out of this lane.",
-    "run_id": "finrecrun_779280f4cbaf2982ffdd",
+    "run_id": "finrecrun_9d103704717b6bc3eae2",
     "title": "Finance Invoice Helper v0 - Invoice/Receivables Evidence Packet Builder",
     "work_board_integration": "Create metadata-only Finance World cards for review/planning; board cards never execute, approve, send, or edit ledgers.",
     "workflow_proposal_id": "finance_invoice_helper_v0_proposal"
   },
-  "generated_at": "2026-05-15T19:25:08+00:00",
+  "generated_at": "2026-05-15T19:27:11+00:00",
   "how_this_reduces_operator_burden": [
     "Makes legacy finance helper logic queryable instead of relying on memory.",
     "Separates useful invoice/receivable patterns from unsafe direct sends, writes, and model calls.",
@@ -251,7 +252,7 @@
       "source_path": "NEXT_ACTIONS.md"
     }
   ],
-  "run_id": "finrecrun_779280f4cbaf2982ffdd",
+  "run_id": "finrecrun_9d103704717b6bc3eae2",
   "schema_version": "finance_invoice_reconciliation_read_model_v0",
   "source": {
     "canonical_status": "non_canonical_legacy",
@@ -271,6 +272,15 @@
       "source_path": "autonomy_mode.py"
     },
     {
+      "burden_reduction": "reduces_invoice_prep_burden",
+      "future_home": "invoice_helper",
+      "purpose": "Legacy conversational billing recorder for invoices, payments, followups, and receipts.",
+      "reusable_logic": "Question flow, normalized billing record schema, invoice/payment/followup/receipt categories, and correction handling.",
+      "reuse_policy": "candidate_to_wrap",
+      "risk_level": "high",
+      "source_path": "chief_billing_brain.py"
+    },
+    {
       "burden_reduction": "reduces_receivables_tracking_burden",
       "future_home": "finance_world_core",
       "purpose": "Repo B finance-related candidate classified as billing_tracking, report_generation.",
@@ -278,6 +288,24 @@
       "reuse_policy": "candidate_to_port",
       "risk_level": "high",
       "source_path": "chief_file_io.py"
+    },
+    {
+      "burden_reduction": "reduces_invoice_prep_burden",
+      "future_home": "cpa_support_reference",
+      "purpose": "Legacy finance report generator over billing/payment records.",
+      "reusable_logic": "Outstanding invoice/payment summary structure as non-truth advisory report logic.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "high",
+      "source_path": "chief_financial_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_invoice_prep_burden",
+      "future_home": "invoice_helper",
+      "purpose": "Legacy invoice text generator and tracker writer.",
+      "reusable_logic": "Invoice draft field ordering and tracker row shape, after removing direct writes/sends.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "high",
+      "source_path": "chief_invoice_brain.py"
     },
     {
       "burden_reduction": "reduces_invoice_prep_burden",
@@ -314,6 +342,13 @@
       "reusable_logic": "Potentially reusable budget_tracking, report_generation concepts after operator review.",
       "risk_level": "high",
       "source_path": "autonomy_qualification.py"
+    },
+    {
+      "future_home": "business_ops_module",
+      "purpose": "Legacy local AI spend/budget tracker with caps and logging.",
+      "reusable_logic": "Budget cap and local spend warning heuristics for business-ops governance.",
+      "risk_level": "high",
+      "source_path": "budget_tracker.py"
     },
     {
       "future_home": "cpa_support_reference",

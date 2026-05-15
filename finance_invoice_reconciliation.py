@@ -401,7 +401,13 @@ def _reuse_policy(relative_path: str, capabilities: list[str], reasons: list[str
     if risk_level == "blocked":
         return "blocked_no_go"
     name = Path(relative_path).name.lower()
+    if name == "chief_billing_brain.py":
+        return "candidate_to_wrap"
+    if name in {"chief_invoice_brain.py", "chief_financial_brain.py"}:
+        return "candidate_to_port"
     if name == "chief_cpa_brain.py":
+        return "reference_only"
+    if name == "budget_tracker.py":
         return "reference_only"
     if "external_send" in reasons or "env_reference" in reasons or "bank_or_payment_data" in reasons:
         return "needs_operator_review"
