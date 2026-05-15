@@ -384,9 +384,11 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 
 def _mac_request_has_synced_completion(
     *,
-    request_marker: Path = MAC_REQUEST_MARKER,
-    completion_marker: Path = MAC_COMPLETION_MARKER,
+    request_marker: Path | None = None,
+    completion_marker: Path | None = None,
 ) -> bool:
+    request_marker = request_marker or MAC_REQUEST_MARKER
+    completion_marker = completion_marker or MAC_COMPLETION_MARKER
     if not request_marker.is_file() or not completion_marker.is_file():
         return False
     completion = _read_json_object(completion_marker)
@@ -415,12 +417,18 @@ def doctor_report(
         elif not manifest_health["manifest_present"]:
             next_status = "manifest_missing"
             next_safe_move = "Run the Mac sync side after mounting /Volumes/openclaw_e."
-        elif counts["hash_mismatch"] > 0:
-            next_status = "error"
-            next_safe_move = "Review hash mismatches before importing or treating the mirror as current."
-        elif counts["missing_expected"] > 0:
+        elif counts["missing_expected"] > 0 or counts["hash_mismatch"] > 0:
             next_status = "needs_mac_sync"
-            next_safe_move = "Run the Mac read-model sync side so the share gets a fresh manifest."
+            if PC_REQUEST_MARKER.is_file():
+                next_safe_move = (
+                    "Mac mirror is stale; a sync request marker is present, so wait for the Mac LaunchAgent "
+                    "or check the sync heartbeat."
+                )
+            else:
+                next_safe_move = (
+                    "Mac mirror is stale; run the unified PC/WSL sync command to write the request marker, "
+                    "then let the Mac LaunchAgent respond."
+                )
         elif counts["extra"] > 0:
             next_status = "review_needed"
             next_safe_move = "Review extra files in the Mac mirror before treating it as current."

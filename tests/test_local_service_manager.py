@@ -186,6 +186,49 @@ def test_doctor_reports_stale_manifest_as_needs_mac_sync(monkeypatch, tmp_path):
     assert payload["manifest_health"]["counts"]["missing_expected"] > 0
 
 
+def test_doctor_reports_hash_mismatch_as_needs_mac_sync(monkeypatch, tmp_path):
+    share = tmp_path / "openclaw"
+    request_marker = share / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    request_marker.parent.mkdir(parents=True)
+    request_marker.write_text('{"status": "requested"}\n', encoding="utf-8")
+    manifest = share / "mac_generated_read_models_manifest.json"
+    expected = manager.canonical_generated_read_model_records()
+    assert expected
+    path_records = []
+    mismatched_path = expected[0]["relative_path"]
+    for record in expected:
+        content_hash = record["sha256"]
+        if record["relative_path"] == mismatched_path:
+            content_hash = "0" * 64
+        path_records.append(
+            {
+                "relative_path": record["relative_path"],
+                "content_hash": content_hash,
+            }
+        )
+    manifest.write_text(json.dumps({"path_records": path_records}) + "\n", encoding="utf-8")
+    monkeypatch.setattr(manager, "PC_SHARE_ROOT", share)
+    monkeypatch.setattr(manager, "PC_MANIFEST_PATH", manifest)
+    monkeypatch.setattr(manager, "PC_REQUEST_MARKER", request_marker)
+    monkeypatch.setattr(
+        manager,
+        "_systemd_user_available",
+        lambda runner=manager.default_runner: (False, []),
+    )
+
+    payload = manager.manage_service(
+        operation="doctor",
+        machine="pc_wsl",
+        db_path=tmp_path / "ledger.sqlite",
+    )
+
+    assert payload["doctor_status"] == "needs_mac_sync"
+    assert payload["manifest_health"]["counts"]["missing_expected"] == 0
+    assert payload["manifest_health"]["counts"]["hash_mismatch"] == 1
+    assert payload["manifest_health"]["hash_mismatch_files"] == [mismatched_path]
+    assert "Mac LaunchAgent" in payload["next_safe_move"]
+
+
 def test_mac_doctor_treats_answered_marker_as_needs_pc_import(monkeypatch, tmp_path):
     share = tmp_path / "openclaw_e"
     request = share / "shuttle" / "to_mac" / "read_model_sync_required.json"
