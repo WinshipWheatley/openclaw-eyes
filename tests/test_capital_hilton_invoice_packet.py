@@ -140,9 +140,12 @@ WHERE packet_id = ?
         "capital_hilton_packet_summary",
     } <= output_kinds
     assert "Do Not Send" in draft_email_body()
+    assert "Best,\nClara Reid" in draft_email_body()
+    assert "Cassandra" not in draft_email_body()
     assert "No Submit" in portal_fill_prompt()
     assert "pending_invoice_approval" in receivable_tracking_proposal()
-    assert "Cassandra later" in receivable_tracking_proposal()
+    assert "follow_up_owner_internal: Cassandra" in receivable_tracking_proposal()
+    assert "follow_up_external_persona: Clara Reid" in receivable_tracking_proposal()
     assert "Do not submit anything." in all_text
     assert all(tuple(row[key] for key in ("send_allowed", "invoice_creation_allowed", "raw_sensitive_body_included")) == (0, 0, 0) for row in outputs)
 

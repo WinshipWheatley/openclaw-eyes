@@ -1321,14 +1321,61 @@ LIMIT 12
 SELECT card_id, title, board_column, status, next_safe_move
 FROM work_board_cards
 WHERE source_kind = 'manual_seed'
-  AND (
-    source_id LIKE 'finance_invoice_evidence_packet:%'
-    OR source_id LIKE 'capital_hilton_invoice_packet:%'
-  )
+	  AND (
+	    source_id LIKE 'finance_invoice_evidence_packet:%'
+	    OR source_id LIKE 'capital_hilton_invoice_packet:%'
+	    OR source_id LIKE 'capital_hilton_fact_intake:%'
+	  )
 ORDER BY title
 """.strip(),
         ) if _table_exists(conn, "work_board_cards") else []
+        capital_hilton_spreadsheet_rows = _dict_rows(
+            conn,
+            """
+SELECT filename, absolute_path, selected_candidate, alternate_candidate,
+       operator_selection_status, sensitivity_status, ingestion_policy,
+       allowed_use, cell_read_allowed, workbook_parsing_allowed, copied,
+       uploaded, financial_truth_claimed, ingested_at
+FROM capital_hilton_spreadsheet_metadata
+WHERE packet_id = ?
+ORDER BY selected_candidate DESC, modified_at DESC, filename
+""".strip(),
+            ("finance_capital_hilton_invoice_packet_v0",),
+        ) if _table_exists(conn, "capital_hilton_spreadsheet_metadata") else []
+        capital_hilton_selected_spreadsheet = next((row for row in capital_hilton_spreadsheet_rows if row["selected_candidate"]), None)
+        capital_hilton_contact_candidates = _dict_rows(
+            conn,
+            """
+SELECT organization, contact_name, role, email, confidence, source_basis,
+       allowed_use, external_send_allowed, operator_approval_required, verified
+FROM capital_hilton_contact_candidates
+WHERE packet_id = ?
+ORDER BY contact_name
+""".strip(),
+            ("finance_capital_hilton_invoice_packet_v0",),
+        ) if _table_exists(conn, "capital_hilton_contact_candidates") else []
+        capital_hilton_fact_updates = _dict_rows(
+            conn,
+            """
+SELECT field_name, value_text, source_kind, source_ref, agent_internal,
+       external_persona, confidence, truth_status, financial_truth_claimed,
+       raw_sensitive_body_stored, created_at
+FROM capital_hilton_invoice_fact_updates
+WHERE packet_id = ?
+ORDER BY field_name
+""".strip(),
+            ("finance_capital_hilton_invoice_packet_v0",),
+        ) if _table_exists(conn, "capital_hilton_invoice_fact_updates") else []
         spreadsheet = spreadsheet_candidate_payload()
+        if capital_hilton_selected_spreadsheet:
+            spreadsheet = {
+                **spreadsheet,
+                "spreadsheet_path_known": True,
+                "spreadsheet_path": capital_hilton_selected_spreadsheet["absolute_path"],
+                "spreadsheet_metadata_available": True,
+                "selected_candidate": capital_hilton_selected_spreadsheet["filename"],
+                "operator_selection_status": capital_hilton_selected_spreadsheet["operator_selection_status"],
+            }
         return {
             "schema_version": READ_MODEL_VERSION,
             "read_model_version": READ_MODEL_VERSION,
@@ -1348,6 +1395,16 @@ ORDER BY title
             "spreadsheet_metadata_available": spreadsheet["spreadsheet_metadata_available"],
             "spreadsheet_ingestion_allowed": spreadsheet["spreadsheet_ingestion_allowed"],
             "spreadsheet_cell_read_allowed": spreadsheet["spreadsheet_cell_read_allowed"],
+            "capital_hilton_spreadsheet_selection": capital_hilton_selected_spreadsheet,
+            "capital_hilton_spreadsheet_candidates": capital_hilton_spreadsheet_rows,
+            "capital_hilton_contact_candidates": capital_hilton_contact_candidates,
+            "capital_hilton_fact_updates": capital_hilton_fact_updates,
+            "capital_hilton_external_identity_rule": {
+                "internal_agent": "cassandra",
+                "external_persona": "Clara Reid",
+                "external_draft_signature": "Best,\nClara Reid",
+                "drafts_must_not_use_internal_name": True,
+            },
             "work_board_linkage": {"implemented": bool(work_board_cards), "cards": work_board_cards},
             "bounded_context_output": {
                 "for_agents": ["chief", "cassandra"],
@@ -1424,6 +1481,44 @@ def _operator_markdown(read_model: dict[str, Any]) -> str:
             f"- Ingestion allowed: `{str(spreadsheet['spreadsheet_ingestion_allowed']).lower()}`",
             f"- Cell read allowed: `{str(spreadsheet['spreadsheet_cell_read_allowed']).lower()}`",
             f"- Next safe move: {spreadsheet['next_safe_move']}",
+            "",
+            "## Capital Hilton Spreadsheet Selection",
+        ]
+    )
+    selection = read_model.get("capital_hilton_spreadsheet_selection")
+    if selection:
+        lines.append(f"- Selected candidate: `{selection['filename']}`")
+        lines.append(f"- Absolute path: `{selection['absolute_path']}`")
+        lines.append(f"- Selection status: `{selection['operator_selection_status']}`")
+        lines.append("- Sensitivity: `sensitive_metadata_only`")
+        lines.append("- Cell read allowed: `false`")
+        lines.append("- Workbook parsing allowed: `false`")
+        lines.append("- Copied/uploaded: `false`")
+    else:
+        lines.append("- None.")
+    lines.extend(["", "## Capital Hilton Contact Candidates"])
+    for row in read_model.get("capital_hilton_contact_candidates") or []:
+        lines.append(
+            f"- {row['contact_name']} ({row['role']}), email={row['email'] or 'unknown'}, allowed_use={row['allowed_use']}, verified={bool(row['verified'])}"
+        )
+    if not read_model.get("capital_hilton_contact_candidates"):
+        lines.append("- None.")
+    identity = read_model.get("capital_hilton_external_identity_rule") or {}
+    if identity:
+        lines.extend(
+            [
+                "",
+                "## Capital Hilton External Identity",
+                f"- Internal agent: `{identity['internal_agent']}`",
+                f"- External persona: `{identity['external_persona']}`",
+                "- Draft signature:",
+                "```text",
+                identity["external_draft_signature"],
+                "```",
+            ]
+        )
+    lines.extend(
+        [
             "",
             "## Work Board Linkage",
         ]

@@ -14,7 +14,116 @@
       "chief",
       "cassandra"
     ],
-    "packet_summary": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting."
+    "packet_summary": "Spreadsheet metadata is attached as sensitive metadata only; operator still needs dates, amount/rate, invoice grouping, PO, recipient, portal reference, and attachment path."
+  },
+  "capital_hilton_contact_candidates": [
+    {
+      "allowed_use": "email_draft_recipient_candidate_needs_email_review",
+      "confidence": "operator_supplied_candidate",
+      "contact_name": "Annette Sunga",
+      "email": null,
+      "external_send_allowed": 0,
+      "operator_approval_required": 1,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Finance/AP contact",
+      "source_basis": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "verified": 0
+    },
+    {
+      "allowed_use": "cc_candidate_pending_review",
+      "confidence": "operator_supplied_candidate",
+      "contact_name": "Chyna Hardin",
+      "email": "Chyna.Hardin@hilton.com",
+      "external_send_allowed": 0,
+      "operator_approval_required": 1,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Director of Finance",
+      "source_basis": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "verified": 0
+    },
+    {
+      "allowed_use": "cc_candidate_pending_review",
+      "confidence": "operator_supplied_candidate",
+      "contact_name": "Lawrence / Will Valcovic",
+      "email": "lawrencevalcovic@hilton.com",
+      "external_send_allowed": 0,
+      "operator_approval_required": 1,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Hilton contact",
+      "source_basis": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "verified": 0
+    }
+  ],
+  "capital_hilton_external_identity_rule": {
+    "drafts_must_not_use_internal_name": true,
+    "external_draft_signature": "Best,\nClara Reid",
+    "external_persona": "Clara Reid",
+    "internal_agent": "cassandra"
+  },
+  "capital_hilton_fact_updates": [
+    {
+      "agent_internal": "cassandra",
+      "confidence": "operator_claim",
+      "created_at": "2026-05-15T20:38:33+00:00",
+      "external_persona": "Clara Reid",
+      "field_name": "spreadsheet_selection",
+      "financial_truth_claimed": 0,
+      "raw_sensitive_body_stored": 0,
+      "source_kind": "operator_prompt",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "operator_confirmed",
+      "value_text": "Invoice Capitol Hilton 20260512 v2.xlsx"
+    }
+  ],
+  "capital_hilton_spreadsheet_candidates": [
+    {
+      "absolute_path": "/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512 v2.xlsx",
+      "allowed_use": "metadata_only_pending_review",
+      "alternate_candidate": 0,
+      "cell_read_allowed": 0,
+      "copied": 0,
+      "filename": "Invoice Capitol Hilton 20260512 v2.xlsx",
+      "financial_truth_claimed": 0,
+      "ingested_at": "2026-05-15T20:38:23+00:00",
+      "ingestion_policy": "needs_operator_review",
+      "operator_selection_status": "operator_selected_v2",
+      "selected_candidate": 1,
+      "sensitivity_status": "sensitive_metadata_only",
+      "uploaded": 0,
+      "workbook_parsing_allowed": 0
+    },
+    {
+      "absolute_path": "/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512.xlsx",
+      "allowed_use": "metadata_only_pending_review",
+      "alternate_candidate": 1,
+      "cell_read_allowed": 0,
+      "copied": 0,
+      "filename": "Invoice Capitol Hilton 20260512.xlsx",
+      "financial_truth_claimed": 0,
+      "ingested_at": "2026-05-15T20:38:23+00:00",
+      "ingestion_policy": "needs_operator_review",
+      "operator_selection_status": "alternate_candidate",
+      "selected_candidate": 0,
+      "sensitivity_status": "sensitive_metadata_only",
+      "uploaded": 0,
+      "workbook_parsing_allowed": 0
+    }
+  ],
+  "capital_hilton_spreadsheet_selection": {
+    "absolute_path": "/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512 v2.xlsx",
+    "allowed_use": "metadata_only_pending_review",
+    "alternate_candidate": 0,
+    "cell_read_allowed": 0,
+    "copied": 0,
+    "filename": "Invoice Capitol Hilton 20260512 v2.xlsx",
+    "financial_truth_claimed": 0,
+    "ingested_at": "2026-05-15T20:38:23+00:00",
+    "ingestion_policy": "needs_operator_review",
+    "operator_selection_status": "operator_selected_v2",
+    "selected_candidate": 1,
+    "sensitivity_status": "sensitive_metadata_only",
+    "uploaded": 0,
+    "workbook_parsing_allowed": 0
   },
   "counts": {
     "blocked_missing_info_count": 1,
@@ -29,14 +138,14 @@
     "packet_count": 2,
     "ready_for_draft_review_count": 0
   },
-  "generated_at": "2026-05-15T19:50:32+00:00",
+  "generated_at": "2026-05-15T20:38:33+00:00",
   "latest_packet": {
     "agent_lane": "chief",
     "bank_access_allowed": 0,
     "created_at": "2026-05-15T19:48:53+00:00",
     "financial_truth_claimed": 0,
     "ledger_write_allowed": 0,
-    "next_safe_move": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting.",
+    "next_safe_move": "Spreadsheet metadata is attached as sensitive metadata only; operator still needs dates, amount/rate, invoice grouping, PO, recipient, portal reference, and attachment path.",
     "packet_id": "finance_capital_hilton_invoice_packet_v0",
     "run_id": "caprun_af440c9660f4349e840a",
     "send_allowed": 0,
@@ -46,7 +155,7 @@
     "synthetic_demo": 0,
     "tax_filing_allowed": 0,
     "title": "Capital Hilton Invoice Evidence Packet v0",
-    "updated_at": "2026-05-15T19:50:30+00:00",
+    "updated_at": "2026-05-15T20:38:23+00:00",
     "workflow_kind": "invoice_prep",
     "world": "finance"
   },
@@ -76,10 +185,50 @@
       "confidence": "operator_claim",
       "currency": null,
       "date_or_period": null,
+      "label": "contact_candidate_annette_sunga",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "needs_review",
+      "value_text": "Annette Sunga | Finance/AP contact | email=unknown | allowed_use=email_draft_recipient_candidate_needs_email_review"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "contact_candidate_chyna_hardin",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "needs_review",
+      "value_text": "Chyna Hardin | Director of Finance | email=Chyna.Hardin@hilton.com | allowed_use=cc_candidate_pending_review"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "contact_candidate_lawrence___will_valcovic",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "needs_review",
+      "value_text": "Lawrence / Will Valcovic | Hilton contact | email=lawrencevalcovic@hilton.com | allowed_use=cc_candidate_pending_review"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
       "label": "gig_scope",
       "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
       "truth_status": "unverified_claim",
       "value_text": "Two gigs: tonight's gig and last Friday's gig. Exact dates require operator confirmation."
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "operator_remit_email_candidate",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "needs_review",
+      "value_text": "winshiplive@gmail.com"
     },
     {
       "amount_value": null,
@@ -106,6 +255,26 @@
       "confidence": "operator_claim",
       "currency": null,
       "date_or_period": null,
+      "label": "spreadsheet_selection",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "operator_confirmed",
+      "value_text": "Invoice Capitol Hilton 20260512 v2.xlsx"
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
+      "label": "supplier_portal_candidate",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "truth_status": "needs_review",
+      "value_text": "SmartSpend / Coupa previously associated with this supplier flow; needs operator review for this invoice."
+    },
+    {
+      "amount_value": null,
+      "confidence": "operator_claim",
+      "currency": null,
+      "date_or_period": null,
       "label": "supplier_portal_context",
       "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
       "truth_status": "needs_review",
@@ -124,8 +293,8 @@
       "title": "Finance packet context for Chief/Cassandra"
     },
     {
-      "body_text": "# Capital Hilton Draft Email - Review Only, Do Not Send\n\nTo: [CONFIRM RECIPIENT - likely Annette Sunga]\nCC: [CONFIRM CC - possibly Chyna Hardin and/or Lawrence / Will Valcovic]\nFrom/Remit email context: winshiplive@gmail.com\nSubject: Invoice for music services - [CONFIRM DATE(S)]\n\nHi [CONFIRM NAME],\n\nI am preparing invoice documentation for two Capital Hilton gigs:\n\n- Tonight's gig: [CONFIRM EXACT DATE]\n- Last Friday's gig: [CONFIRM EXACT DATE]\n\nBefore I send the invoice or upload it through SmartSpend/Coupa, could you please confirm:\n\n- Whether these should be one combined invoice or two separate invoices\n- The PO number(s), if required\n- The correct recipient/CC list\n- Whether SmartSpend/Coupa is the required submission path\n- Any required invoice attachment or vendor reference details\n\nAmount/rate fields are intentionally left blank until confirmed:\n\n- Rate/amount per gig: [CONFIRM AMOUNT/RATE]\n- Total: [DO NOT FILL UNTIL APPROVED]\n\nThanks,\nWinship\n\nBoundary: This is a draft for operator review only. Do not send, attach, submit, or treat any amount/date/recipient as final until approved.\n",
-      "created_at": "2026-05-15T19:50:30+00:00",
+      "body_text": "# Capital Hilton Draft Email - Review Only, Do Not Send\n\nTo: [MISSING - confirm Annette Sunga email or alternate recipient]\nCC: [PENDING REVIEW - Chyna.Hardin@hilton.com; lawrencevalcovic@hilton.com]\nFrom/Remit email context: winshiplive@gmail.com\nExternal preparer identity: Clara Reid\nSubject: Invoice for music services - [CONFIRM DATE(S)]\n\nHi [CONFIRM NAME],\n\nI am preparing invoice documentation for the Capital Hilton music services and need the final invoice details confirmed before anything is sent or uploaded.\n\nKnown metadata-only context:\n- Selected invoice workbook candidate: Invoice Capitol Hilton 20260512 v2.xlsx\n- Spreadsheet status: sensitive metadata only; no workbook cells have been read.\n\nMissing items to confirm:\n- Tonight's gig date: [CONFIRM EXACT DATE]\n- Last Friday's gig date: [CONFIRM EXACT DATE]\n- Rate/amount per gig: [CONFIRM AMOUNT/RATE]\n- One invoice or two: [CONFIRM]\n- PO number(s): [CONFIRM OR NONE]\n- Correct To/CC recipients: [CONFIRM]\n- SmartSpend/Coupa or other portal reference: [CONFIRM]\n- Invoice attachment/output path: [CONFIRM]\n\nNo total is filled here because the amount/rate is not yet approved.\n\nBest,\nClara Reid\n\nBoundary: This is a draft for operator review only. Do not send, attach, submit, or treat any amount/date/recipient as final until approved.\n",
+      "created_at": "2026-05-15T20:38:33+00:00",
       "invoice_creation_allowed": 0,
       "output_id": "finpktout_228632d68d4885929c5b",
       "output_kind": "capital_hilton_draft_email_review_only",
@@ -134,8 +303,8 @@
       "title": "Draft email body for operator review only (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_DRAFT_EMAIL_REVIEW_ONLY.md`)"
     },
     {
-      "body_text": "# Capital Hilton Invoice Packet v0 - Summary\n\nPurpose: prepare a reviewable evidence packet for two Capital Hilton gigs without sending anything or making financial truth claims.\n\nCurrent status: pending required facts.\n\nKnown operator-supplied context:\n- Client/location: Capital Hilton / Capitol Hilton.\n- AP contact likely: Annette Sunga.\n- Possible contacts: Chyna Hardin and Lawrence / Will Valcovic.\n- Portal context: SmartSpend / Coupa related in prior flow.\n- Remit email context: winshiplive@gmail.com.\n- Mac spreadsheet candidate: ~/Documents/invoices/ is known as a sensitive metadata-only candidate, but no filename or workbook cells were read.\n\nMissing required facts:\n- Exact date for tonight's gig.\n- Exact date for last Friday's gig.\n- Amount/rate per gig.\n- One invoice or two.\n- PO number(s).\n- Billing/remit details.\n- Recipient/CC decision.\n- Supplier portal reference.\n- Invoice attachment/output path.\n- Spreadsheet filename or approved Mac-side metadata packet, if the spreadsheet is needed.\n\nBoundaries: no send, no submit, no portal login, no bank access, no ledger write, no spreadsheet cell read, no final invoice.\n",
-      "created_at": "2026-05-15T19:50:30+00:00",
+      "body_text": "# Capital Hilton Invoice Packet v0 - Summary\n\nPurpose: prepare a reviewable evidence packet for Capital Hilton invoice work without sending anything or making financial truth claims.\n\nPacket id: `finance_capital_hilton_invoice_packet_v0`\nInternal agent: `cassandra`\nExternal finance persona: `Clara Reid`\n\n## Spreadsheet Metadata\n- Selected candidate: `Invoice Capitol Hilton 20260512 v2.xlsx`\n- Alternate candidate known: `Invoice Capitol Hilton 20260512.xlsx`\n- Absolute path from Mac metadata: `/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512 v2.xlsx`\n- Sensitivity: `sensitive_metadata_only`\n- Cell read allowed: `false`\n- Workbook parsing allowed: `false`\n- Copied/uploaded: `false`\n\n## Contact Candidates\n- Annette Sunga (Finance/AP contact), email=unknown, allowed_use=email_draft_recipient_candidate_needs_email_review, confidence=operator_supplied_candidate\n- Chyna Hardin (Director of Finance), email=Chyna.Hardin@hilton.com, allowed_use=cc_candidate_pending_review, confidence=operator_supplied_candidate\n- Lawrence / Will Valcovic (Hilton contact), email=lawrencevalcovic@hilton.com, allowed_use=cc_candidate_pending_review, confidence=operator_supplied_candidate\n\n## Missing Facts Remaining\n- blocks_invoice_draft: Amount or rate per gig is missing. -> Operator provides rate/amount per gig or approved evidence reference.\n- blocks_invoice_draft: Billing/remit details need confirmation. -> Operator confirms billing name, remit email, mailing/payment details, and any tax/remit fields.\n- blocks_invoice_draft: Exact date for last Friday's gig is not operator-confirmed for invoice use. -> Operator confirms the invoice date/service date for last Friday's gig.\n- blocks_invoice_draft: Exact date for tonight's gig is not operator-confirmed for invoice use. -> Operator confirms the invoice date/service date for tonight's gig.\n- blocks_invoice_draft: One invoice versus two invoices is undecided. -> Operator chooses one combined invoice or separate invoices per gig.\n- blocks_invoice_draft: PO number(s) are missing. -> Operator provides PO number(s), says none, or approves portal metadata lookup later.\n- blocks_invoice_draft: Supplier portal reference is unresolved. -> Operator confirms whether SmartSpend/Coupa is required and provides portal reference if known.\n- blocks_send: Annette Sunga email is missing if Annette is selected as To recipient. -> Operator confirms Annette Sunga's email or chooses a different reviewed recipient.\n- blocks_send: Invoice attachment/output path is missing. -> Operator chooses or approves invoice attachment/output path in a later lane.\n- blocks_send: Recipient and CC decision is pending. -> Operator confirms To/CC list before any email draft is used.\n\n## Boundaries\n- No email send.\n- No invoice send.\n- No supplier portal login or submit.\n- No bank access.\n- No ledger write.\n- No spreadsheet cell read.\n- No financial truth claim.\n",
+      "created_at": "2026-05-15T20:38:33+00:00",
       "invoice_creation_allowed": 0,
       "output_id": "finpktout_a3ed01578487e122f9d8",
       "output_kind": "capital_hilton_packet_summary",
@@ -144,8 +313,8 @@
       "title": "Capital Hilton packet summary and missing facts (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PACKET_SUMMARY.md`)"
     },
     {
-      "body_text": "# Codex Desktop Prompt - Capital Hilton Portal Fill Prep, No Submit\n\nYou are helping prepare a supplier portal invoice entry for Capital Hilton on the Mac/Safari side.\n\nHard boundaries:\n- Do not submit anything.\n- Do not send email.\n- Do not access bank portals.\n- Do not read spreadsheet cells unless a separate approved Mac spreadsheet intake lane authorizes it.\n- Do not invent dates, amounts, PO numbers, recipient details, or totals.\n- Stop before any irreversible action, final save, upload, or submit button.\n\nKnown operator-supplied context:\n- Client/location: Capital Hilton / Capitol Hilton.\n- Gigs: tonight's gig and last Friday's gig.\n- Finance/AP contact likely: Annette Sunga.\n- Possible contacts: Chyna Hardin and Lawrence / Will Valcovic.\n- Supplier portal context has previously been SmartSpend / Coupa related.\n- Remit email context: winshiplive@gmail.com.\n\nMissing facts to collect from the operator before portal entry:\n- Exact date for tonight's gig.\n- Exact date for last Friday's gig.\n- Amount/rate per gig.\n- One invoice or two.\n- PO number(s).\n- Billing/remit details.\n- Recipient/CC decision.\n- Supplier portal reference.\n- Invoice attachment/output path.\n- Mac invoice spreadsheet exact filename or approved Mac metadata packet, if the spreadsheet is relevant.\n\nAllowed work:\n1. Present the missing-facts checklist to the operator.\n2. If the operator supplies facts, prepare a portal-fill checklist with placeholders resolved.\n3. Keep all fields as draft/review-only.\n4. Stop before login, upload, final save, or submit unless a later explicit approval is provided.\n5. Treat ~/Documents/invoices/ as sensitive metadata only; do not read workbook cells in this prompt.\n",
-      "created_at": "2026-05-15T19:50:30+00:00",
+      "body_text": "# Codex Desktop Prompt - Capital Hilton Portal Fill Prep, No Submit\n\nYou are helping prepare a supplier portal invoice entry for Capital Hilton on the Mac/Safari side.\n\nHard boundaries:\n- Do not submit anything.\n- Do not send email.\n- Do not access bank portals.\n- Do not read spreadsheet cells.\n- Do not parse workbook sheets.\n- Do not upload or copy the spreadsheet unless a later approval explicitly allows it.\n- Do not invent dates, amounts, PO numbers, recipient details, or totals.\n- Stop before any irreversible action, final save, upload, or submit button.\n\nApproved packet metadata:\n- Packet id: finance_capital_hilton_invoice_packet_v0\n- Selected spreadsheet candidate: Invoice Capitol Hilton 20260512 v2.xlsx\n- Spreadsheet use: metadata-only pending review.\n- External finance persona for drafts: Clara Reid\n- Contact candidates are pending operator review.\n\nStop immediately if any required field is missing:\n- Exact date for tonight's gig.\n- Exact date for last Friday's gig.\n- Amount/rate per gig.\n- One invoice or two.\n- PO number(s).\n- Billing/remit details.\n- Recipient/CC decision.\n- Supplier portal reference.\n- Invoice attachment/output path.\n\nFill only after operator supplies approved packet fields. Do not submit until the operator explicitly approves in a later lane.\n",
+      "created_at": "2026-05-15T20:38:33+00:00",
       "invoice_creation_allowed": 0,
       "output_id": "finpktout_fedcfa34f890abc7f71f",
       "output_kind": "capital_hilton_portal_fill_instruction_prompt",
@@ -154,8 +323,8 @@
       "title": "Codex Desktop portal-fill instruction prompt, no submit (`generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PORTAL_FILL_PROMPT_NO_SUBMIT.md`)"
     },
     {
-      "body_text": "# Capital Hilton Receivable Tracking Proposal - Review Only\n\nstatus: pending_invoice_approval\nfollow_up_owner: Cassandra later\nfollow_up_email_sent: false\ninvoice_sent: false\npayment_tracking_status: not_started\n\nScope:\n- Track two Capital Hilton gigs after invoice details are approved.\n- Do not send follow-up email yet.\n- Do not claim payment is due, paid, unpaid, or overdue without approved invoice and payment evidence.\n- Payment tracking requires later approved bank/ledger evidence or operator-provided payment confirmation.\n\nNext safe moves:\n1. Operator confirms missing invoice facts.\n2. OpenClaw prepares draft invoice context only.\n3. Operator approves send/submission path in a later lane.\n4. After approved send/submission, Cassandra may own follow-up reminders as metadata only until sending is separately approved.\n",
-      "created_at": "2026-05-15T19:50:30+00:00",
+      "body_text": "# Capital Hilton Receivable Tracking Proposal - Review Only\n\nstatus: pending_invoice_approval\nfollow_up_owner_internal: Cassandra\nfollow_up_external_persona: Clara Reid\nfollow_up_email_sent: false\ninvoice_sent: false\npayment_tracking_status: not_started\n\nScope:\n- Track the Capital Hilton receivable only after invoice details are approved.\n- Do not send follow-up email yet.\n- Do not claim payment is due, paid, unpaid, or overdue without approved invoice and payment evidence.\n- Payment tracking requires later approved bank/ledger evidence or operator-provided payment confirmation.\n\nNext safe moves:\n1. Operator confirms missing invoice facts through governed intake.\n2. OpenClaw prepares draft invoice context only.\n3. Operator approves send/submission path in a later lane.\n4. After approved send/submission, Clara Reid may own follow-up reminders as metadata only until sending is separately approved.\n",
+      "created_at": "2026-05-15T20:38:33+00:00",
       "invoice_creation_allowed": 0,
       "output_id": "finpktout_8486de2c56f890337e9b",
       "output_kind": "capital_hilton_receivable_tracking_proposal",
@@ -237,6 +406,13 @@
     },
     {
       "blocker_level": "blocks_send",
+      "description": "Annette Sunga email is missing if Annette is selected as To recipient.",
+      "next_safe_move": "Operator confirms Annette Sunga's email or chooses a different reviewed recipient.",
+      "packet_id": "finance_capital_hilton_invoice_packet_v0",
+      "why_needed": "The packet cannot use Annette as the final To recipient until the exact email address is operator-confirmed or evidence-backed."
+    },
+    {
+      "blocker_level": "blocks_send",
       "description": "Invoice attachment/output path is missing.",
       "next_safe_move": "Operator chooses or approves invoice attachment/output path in a later lane.",
       "packet_id": "finance_capital_hilton_invoice_packet_v0",
@@ -262,18 +438,11 @@
       "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
       "packet_id": "finpkt_505f7d07fc0dbd6d0d1f",
       "why_needed": "The operator reports a likely relevant spreadsheet under ~/Documents/invoices/, but this PC/WSL lane cannot read it."
-    },
-    {
-      "blocker_level": "optional",
-      "description": "Mac invoice spreadsheet filename or metadata packet is not available.",
-      "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
-      "packet_id": "finance_capital_hilton_invoice_packet_v0",
-      "why_needed": "The operator reports a likely relevant spreadsheet, but this PC/WSL lane must not read the Mac Documents folder or workbook cells."
     }
   ],
   "next_safe_moves": [
     {
-      "next_safe_move": "Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting.",
+      "next_safe_move": "Spreadsheet metadata is attached as sensitive metadata only; operator still needs dates, amount/rate, invoice grouping, PO, recipient, portal reference, and attachment path.",
       "packet_id": "finance_capital_hilton_invoice_packet_v0",
       "status": "blocked_missing_info",
       "title": "Capital Hilton Invoice Evidence Packet v0"
@@ -379,6 +548,8 @@
     "allowed_use": "metadata_only_pending_review",
     "ingestion_policy": "needs_operator_review",
     "next_safe_move": "Mac Finance Spreadsheet Evidence Intake v0",
+    "operator_selection_status": "operator_selected_v2",
+    "selected_candidate": "Invoice Capitol Hilton 20260512 v2.xlsx",
     "sensitivity_status": "sensitive_metadata_only",
     "source_kind": "mac_local_spreadsheet_candidate",
     "spreadsheet_candidate_known": true,
@@ -386,9 +557,9 @@
     "spreadsheet_folder": "~/Documents/invoices/",
     "spreadsheet_folder_known": true,
     "spreadsheet_ingestion_allowed": false,
-    "spreadsheet_metadata_available": false,
-    "spreadsheet_path": null,
-    "spreadsheet_path_known": false,
+    "spreadsheet_metadata_available": true,
+    "spreadsheet_path": "/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512 v2.xlsx",
+    "spreadsheet_path_known": true,
     "workbook_parsing_allowed": false
   },
   "spreadsheet_candidate_known": true,
@@ -396,10 +567,17 @@
   "spreadsheet_folder": "~/Documents/invoices/",
   "spreadsheet_folder_known": true,
   "spreadsheet_ingestion_allowed": false,
-  "spreadsheet_metadata_available": false,
-  "spreadsheet_path_known": false,
+  "spreadsheet_metadata_available": true,
+  "spreadsheet_path_known": true,
   "work_board_linkage": {
     "cards": [
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_e4fa4ad0da7d34ae142a",
+        "next_safe_move": "Message Clara/Cassandra with the structured Capital Hilton facts or use the CLI fallback.",
+        "status": "missing_invoice_facts",
+        "title": "Capital Hilton invoice facts needed from operator/Clara"
+      },
       {
         "board_column": "needs_review",
         "card_id": "wbcard_595e855c32c9485f3127",
@@ -415,11 +593,32 @@
         "title": "Capital Hilton portal-fill prompt pending approval"
       },
       {
+        "board_column": "needs_review",
+        "card_id": "wbcard_970a8cb26f773fb9c351",
+        "next_safe_move": "Fill missing facts first; no browser, portal login, upload, save, or submit is authorized.",
+        "status": "portal_prompt_waiting_for_facts",
+        "title": "Capital Hilton portal-fill prompt pending facts/approval"
+      },
+      {
         "board_column": "planned",
         "card_id": "wbcard_4ff0b10d3febb4356859",
         "next_safe_move": "After approved invoice send/submission, create a receivable tracking packet with approved evidence.",
         "status": "pending_invoice_approval",
         "title": "Capital Hilton receivable tracking pending invoice send"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_f90b2c941cc975f07190",
+        "next_safe_move": "Operator confirms To/CC list and Annette email before any external draft is used.",
+        "status": "contact_candidates_pending_review",
+        "title": "Capital Hilton recipient/contact review needed"
+      },
+      {
+        "board_column": "planned",
+        "card_id": "wbcard_0a0da2e868b2dfd5d0e4",
+        "next_safe_move": "Use selected spreadsheet only as metadata until a future approved Mac workbook intake authorizes more.",
+        "status": "spreadsheet_metadata_attached",
+        "title": "Capital Hilton v2 spreadsheet selected, metadata only"
       },
       {
         "board_column": "needs_review",

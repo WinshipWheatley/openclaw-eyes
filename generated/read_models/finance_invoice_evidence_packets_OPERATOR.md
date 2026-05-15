@@ -13,7 +13,7 @@
 - Title: Capital Hilton Invoice Evidence Packet v0
 - Subject: Capital Hilton / Capitol Hilton
 - Status: `blocked_missing_info`
-- Next safe move: Answer the Capital Hilton missing-facts checklist; then review draft email and portal prompt without sending/submitting.
+- Next safe move: Spreadsheet metadata is attached as sensitive metadata only; operator still needs dates, amount/rate, invoice grouping, PO, recipient, portal reference, and attachment path.
 
 ## Missing Items
 - `finance_capital_hilton_invoice_packet_v0` blocks_invoice_draft: Amount or rate per gig is missing. -> Operator provides rate/amount per gig or approved evidence reference.
@@ -26,11 +26,11 @@
 - `finance_capital_hilton_invoice_packet_v0` blocks_invoice_draft: PO number(s) are missing. -> Operator provides PO number(s), says none, or approves portal metadata lookup later.
 - `finpkt_505f7d07fc0dbd6d0d1f` blocks_invoice_draft: Service date, invoice date, due date, or period is missing. -> Provide a date/period or approved evidence reference.
 - `finance_capital_hilton_invoice_packet_v0` blocks_invoice_draft: Supplier portal reference is unresolved. -> Operator confirms whether SmartSpend/Coupa is required and provides portal reference if known.
+- `finance_capital_hilton_invoice_packet_v0` blocks_send: Annette Sunga email is missing if Annette is selected as To recipient. -> Operator confirms Annette Sunga's email or chooses a different reviewed recipient.
 - `finance_capital_hilton_invoice_packet_v0` blocks_send: Invoice attachment/output path is missing. -> Operator chooses or approves invoice attachment/output path in a later lane.
 - `finance_capital_hilton_invoice_packet_v0` blocks_send: Recipient and CC decision is pending. -> Operator confirms To/CC list before any email draft is used.
 - `finpkt_505f7d07fc0dbd6d0d1f` optional: Approved evidence reference is missing. -> Link an approved note, receipt reference, or sanitized metadata packet.
 - `finpkt_505f7d07fc0dbd6d0d1f` optional: Mac invoice spreadsheet filename is not known. -> Mac Finance Spreadsheet Evidence Intake v0
-- `finance_capital_hilton_invoice_packet_v0` optional: Mac invoice spreadsheet filename or metadata packet is not available. -> Mac Finance Spreadsheet Evidence Intake v0
 
 ## Risks
 - `finpkt_505f7d07fc0dbd6d0d1f` missing_amount (high): Provide the amount as an operator claim or approved evidence reference.
@@ -57,16 +57,43 @@
 - Candidate known: `true`
 - Folder known: `true`
 - Folder: `~/Documents/invoices/`
-- Exact path known: `false`
-- Metadata available: `false`
+- Exact path known: `true`
+- Metadata available: `true`
 - Ingestion allowed: `false`
 - Cell read allowed: `false`
 - Next safe move: Mac Finance Spreadsheet Evidence Intake v0
 
+## Capital Hilton Spreadsheet Selection
+- Selected candidate: `Invoice Capitol Hilton 20260512 v2.xlsx`
+- Absolute path: `/Users/hwinshipwheatley/Documents/invoices/Invoice Capitol Hilton 20260512 v2.xlsx`
+- Selection status: `operator_selected_v2`
+- Sensitivity: `sensitive_metadata_only`
+- Cell read allowed: `false`
+- Workbook parsing allowed: `false`
+- Copied/uploaded: `false`
+
+## Capital Hilton Contact Candidates
+- Annette Sunga (Finance/AP contact), email=unknown, allowed_use=email_draft_recipient_candidate_needs_email_review, verified=False
+- Chyna Hardin (Director of Finance), email=Chyna.Hardin@hilton.com, allowed_use=cc_candidate_pending_review, verified=False
+- Lawrence / Will Valcovic (Hilton contact), email=lawrencevalcovic@hilton.com, allowed_use=cc_candidate_pending_review, verified=False
+
+## Capital Hilton External Identity
+- Internal agent: `cassandra`
+- External persona: `Clara Reid`
+- Draft signature:
+```text
+Best,
+Clara Reid
+```
+
 ## Work Board Linkage
+- `wbcard_e4fa4ad0da7d34ae142a` needs_review: Capital Hilton invoice facts needed from operator/Clara
 - `wbcard_595e855c32c9485f3127` needs_review: Capital Hilton invoice packet needs facts
 - `wbcard_3391f8c6db1e59c51c6b` needs_review: Capital Hilton portal-fill prompt pending approval
+- `wbcard_970a8cb26f773fb9c351` needs_review: Capital Hilton portal-fill prompt pending facts/approval
 - `wbcard_4ff0b10d3febb4356859` planned: Capital Hilton receivable tracking pending invoice send
+- `wbcard_f90b2c941cc975f07190` needs_review: Capital Hilton recipient/contact review needed
+- `wbcard_0a0da2e868b2dfd5d0e4` planned: Capital Hilton v2 spreadsheet selected, metadata only
 - `wbcard_6a5098ba58d539d4390b` needs_review: Finance Invoice Evidence Packet Builder
 - `wbcard_95706de4a863fcb25686` needs_review: Finance Invoice Evidence Packet Builder
 - `wbcard_033ee3e3f51f17787a24` needs_review: Mac spreadsheet evidence intake needed

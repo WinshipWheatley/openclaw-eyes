@@ -270,8 +270,8 @@ Amount/rate fields are intentionally left blank until confirmed:
 - Rate/amount per gig: [CONFIRM AMOUNT/RATE]
 - Total: [DO NOT FILL UNTIL APPROVED]
 
-Thanks,
-Winship
+Best,
+Clara Reid
 
 Boundary: This is a draft for operator review only. Do not send, attach, submit, or treat any amount/date/recipient as final until approved.
 """
@@ -323,7 +323,8 @@ def receivable_tracking_proposal() -> str:
     return """# Capital Hilton Receivable Tracking Proposal - Review Only
 
 status: pending_invoice_approval
-follow_up_owner: Cassandra later
+follow_up_owner_internal: Cassandra
+follow_up_external_persona: Clara Reid
 follow_up_email_sent: false
 invoice_sent: false
 payment_tracking_status: not_started
@@ -338,7 +339,7 @@ Next safe moves:
 1. Operator confirms missing invoice facts.
 2. OpenClaw prepares draft invoice context only.
 3. Operator approves send/submission path in a later lane.
-4. After approved send/submission, Cassandra may own follow-up reminders as metadata only until sending is separately approved.
+4. After approved send/submission, Clara Reid may own follow-up reminders as metadata only until sending is separately approved.
 """
 
 

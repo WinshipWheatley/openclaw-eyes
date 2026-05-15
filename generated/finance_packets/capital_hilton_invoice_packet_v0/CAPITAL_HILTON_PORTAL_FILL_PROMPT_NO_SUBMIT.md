@@ -6,19 +6,20 @@ Hard boundaries:
 - Do not submit anything.
 - Do not send email.
 - Do not access bank portals.
-- Do not read spreadsheet cells unless a separate approved Mac spreadsheet intake lane authorizes it.
+- Do not read spreadsheet cells.
+- Do not parse workbook sheets.
+- Do not upload or copy the spreadsheet unless a later approval explicitly allows it.
 - Do not invent dates, amounts, PO numbers, recipient details, or totals.
 - Stop before any irreversible action, final save, upload, or submit button.
 
-Known operator-supplied context:
-- Client/location: Capital Hilton / Capitol Hilton.
-- Gigs: tonight's gig and last Friday's gig.
-- Finance/AP contact likely: Annette Sunga.
-- Possible contacts: Chyna Hardin and Lawrence / Will Valcovic.
-- Supplier portal context has previously been SmartSpend / Coupa related.
-- Remit email context: winshiplive@gmail.com.
+Approved packet metadata:
+- Packet id: finance_capital_hilton_invoice_packet_v0
+- Selected spreadsheet candidate: Invoice Capitol Hilton 20260512 v2.xlsx
+- Spreadsheet use: metadata-only pending review.
+- External finance persona for drafts: Clara Reid
+- Contact candidates are pending operator review.
 
-Missing facts to collect from the operator before portal entry:
+Stop immediately if any required field is missing:
 - Exact date for tonight's gig.
 - Exact date for last Friday's gig.
 - Amount/rate per gig.
@@ -28,11 +29,5 @@ Missing facts to collect from the operator before portal entry:
 - Recipient/CC decision.
 - Supplier portal reference.
 - Invoice attachment/output path.
-- Mac invoice spreadsheet exact filename or approved Mac metadata packet, if the spreadsheet is relevant.
 
-Allowed work:
-1. Present the missing-facts checklist to the operator.
-2. If the operator supplies facts, prepare a portal-fill checklist with placeholders resolved.
-3. Keep all fields as draft/review-only.
-4. Stop before login, upload, final save, or submit unless a later explicit approval is provided.
-5. Treat ~/Documents/invoices/ as sensitive metadata only; do not read workbook cells in this prompt.
+Fill only after operator supplies approved packet fields. Do not submit until the operator explicitly approves in a later lane.

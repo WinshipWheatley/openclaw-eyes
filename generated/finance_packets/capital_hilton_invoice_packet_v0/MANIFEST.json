@@ -1,11 +1,13 @@
 {
+  "external_persona": "Clara Reid",
   "files": {
     "draft_email": "generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_DRAFT_EMAIL_REVIEW_ONLY.md",
     "packet_summary": "generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PACKET_SUMMARY.md",
     "portal_prompt": "generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_PORTAL_FILL_PROMPT_NO_SUBMIT.md",
     "receivable_proposal": "generated/finance_packets/capital_hilton_invoice_packet_v0/CAPITAL_HILTON_RECEIVABLE_TRACKING_PROPOSAL.md"
   },
-  "generated_at": "2026-05-15T19:50:30+00:00",
+  "generated_at": "2026-05-15T20:38:33+00:00",
+  "internal_agent": "cassandra",
   "no_authority_flags": {
     "bank_access_allowed": false,
     "browser_automation_allowed": false,
@@ -15,10 +17,13 @@
     "invoice_send_allowed": false,
     "ledger_write_allowed": false,
     "operator_approval_required": true,
-    "repo_b_execution_allowed": false,
     "spreadsheet_cell_read_allowed": false,
-    "supplier_portal_login_allowed": false
+    "spreadsheet_copy_allowed": false,
+    "spreadsheet_upload_allowed": false,
+    "supplier_portal_login_allowed": false,
+    "telegram_send_allowed": false,
+    "workbook_parsing_allowed": false
   },
   "packet_id": "finance_capital_hilton_invoice_packet_v0",
-  "schema_version": "capital_hilton_invoice_packet_v0"
+  "schema_version": "capital_hilton_finance_fact_intake_v0"
 }
