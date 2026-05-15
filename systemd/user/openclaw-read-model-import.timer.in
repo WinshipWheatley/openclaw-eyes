@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenClaw read-model import agent every five minutes
+Documentation=file://@REPO_ROOT@/docs/operations/OPENCLAW_LOCAL_AUTOMATION_SERVICES_V0.md
+
+[Timer]
+OnBootSec=120
+OnUnitActiveSec=300
+AccuracySec=30
+Persistent=false
+Unit=openclaw-read-model-import.service
+
+[Install]
+WantedBy=timers.target

@@ -59,6 +59,7 @@
 !module_registry.py
 !tool_inventory.py
 !tool_intake.py
+!local_automation_registry.py
 !business_ops_packet.py
 !business_ops_intent.py
 !business_ops_ledger.py
@@ -431,6 +432,9 @@
 !scripts/audit_openclaw_services.sh
 !scripts/install_hermes_gateway_service.sh
 !scripts/install_openclaw_stack.sh
+!scripts/manage_openclaw_local_services.py
+!scripts/build_local_automation_registry.py
+!scripts/query_local_automation_registry.py
 !scripts/run_legal_pipeline_v0.sh
 !scripts/demo_legal_synthetic_stress_pack.py
 !scripts/sync_project_packets_to_mac.sh
@@ -448,6 +452,8 @@
 !systemd/
 !systemd/user/
 !systemd/user/*.in
+!systemd/user/openclaw-read-model-import.service.in
+!systemd/user/openclaw-read-model-import.timer.in
 
 !agent_task_proposals.py
 !dashboard_gen.py
@@ -688,6 +694,8 @@
 !tests/test_report_bridge_read_model.py
 !tests/test_operator_action.py
 !tests/test_operator_action_inbox.py
+!tests/test_local_automation_registry.py
+!tests/test_local_service_manager.py
 !docs/operations/OPENCLAW_CORPUS_ATLAS_V0_5.md
 !generated/read_models/
 !generated/read_models/*.json

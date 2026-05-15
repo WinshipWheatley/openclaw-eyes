@@ -143,3 +143,15 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --format ope
 Use the two commands above as the standard mirror loop. A later lane may create
 a Mac LaunchAgent or button-driven request path, but that requires explicit
 approval and separate tests.
+
+## Local Services v0
+
+`OPENCLAW_LOCAL_AUTOMATION_SERVICES_V0.md` now defines the safe background
+service manager for this loop. The single status/doctor surface is:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/manage_openclaw_local_services.py --doctor read_model_mirror --format operator
+```
+
+It installs or controls only the current machine's local half. It does not
+control the other machine or add a remote-management path.
