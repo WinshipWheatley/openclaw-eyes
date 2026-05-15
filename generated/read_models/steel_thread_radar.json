@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-05-15T14:48:07+00:00",
+  "high_relevance_count": 3,
+  "latest_signal": {
+    "created_at": "2026-05-15T14:48:06+00:00",
+    "pattern_category": "UI_helm_pattern",
+    "recommendation": "watch",
+    "recommended_lane": "Mission Control Request Path v0",
+    "relevance_score": "high",
+    "signal_id": "steel_signal_helm_control_path_maturity",
+    "source_kind": "manual_seed",
+    "title": "Helm control path maturity"
+  },
+  "no_authority_flags": {
+    "action_auto_approve_allowed": false,
+    "action_auto_create_allowed": false,
+    "action_auto_execute_allowed": false,
+    "agent_activation_allowed": false,
+    "autonomous_update_allowed": false,
+    "external_api_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "model_call_allowed": false,
+    "network_authority": false,
+    "web_crawl_allowed": false
+  },
+  "pattern_categories": {
+    "UI_helm_pattern": 1,
+    "agent_orchestration": 1,
+    "workflow_automation": 1
+  },
+  "recommendations_by_status": {
+    "adapt": 1,
+    "adopt": 1,
+    "watch": 1
+  },
+  "recommended_next_lanes": [
+    "OpenClaw Work Board v0 is built; next safe lane is Mission Control Work Board Read-Only Surface v0.",
+    "External AI Context Packager v0 is built; consider a Mission Control context-pack selection surface later.",
+    "Mission Control Request Path v0"
+  ],
+  "schema_version": "steel_thread_radar_read_model_v0",
+  "signal_count": 3,
+  "signals": [
+    {
+      "confidence": "medium",
+      "evidence_basis": "source_claim/operator_note only; no direct web verification in this lane. OpenClaw Work Board surface status: present.",
+      "openclaw_alignment": "aligned",
+      "pattern_category": "agent_orchestration",
+      "recommendation": "adapt",
+      "recommended_lane": "OpenClaw Work Board v0 is built; next safe lane is Mission Control Work Board Read-Only Surface v0.",
+      "relevance_score": "high",
+      "risk_notes": "Do not add cloud board dependency, arbitrary execution, or auto-approval. Treat external product claims as unverified source claims.",
+      "routed_agent": "chief",
+      "short_summary": "Operator-supplied OpenAI Symphony / Hermes Kanban pattern suggests agent task boards can be useful as orchestration control planes.",
+      "signal_id": "steel_signal_agent_work_board_orchestration",
+      "source_kind": "operator_note",
+      "source_ref": "operator_supplied_tiktok_summary_openai_symphony_hermes_kanban",
+      "title": "Agent work board / orchestration board pattern"
+    },
+    {
+      "confidence": "high",
+      "evidence_basis": "Current OpenClaw context packager lane and read-model; context packager surface status: present.",
+      "openclaw_alignment": "aligned",
+      "pattern_category": "workflow_automation",
+      "recommendation": "adopt",
+      "recommended_lane": "External AI Context Packager v0 is built; consider a Mission Control context-pack selection surface later.",
+      "relevance_score": "high",
+      "risk_notes": "Avoid giant undifferentiated dumps, no-go/private content, and external upload automation.",
+      "routed_agent": "chief",
+      "short_summary": "Focused upload-ready context packs reduce manual context gathering for ChatGPT, Claude, Codex, Gemini, and local agents.",
+      "signal_id": "steel_signal_external_ai_context_packs",
+      "source_kind": "markdown_doc",
+      "source_ref": "docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md",
+      "title": "Context pack generation for external AI tools"
+    },
+    {
+      "confidence": "high",
+      "evidence_basis": "Existing Operator Action Path, Operator Intent Inbox, Work Board, and Mission Control read-only helm doctrine. Operator action surface status: present.",
+      "openclaw_alignment": "watch",
+      "pattern_category": "UI_helm_pattern",
+      "recommendation": "watch",
+      "recommended_lane": "Mission Control Request Path v0",
+      "relevance_score": "high",
+      "risk_notes": "No action buttons that bypass approval; no fake live health; no hidden persistence or execution.",
+      "routed_agent": "chief",
+      "short_summary": "OpenClaw's orient/request/review/approve/execute/receipt loop is becoming the core local-first control path.",
+      "signal_id": "steel_signal_helm_control_path_maturity",
+      "source_kind": "manual_seed",
+      "source_ref": "operator_action_path_and_mission_control_helm_doctrine",
+      "title": "Helm control path maturity"
+    }
+  ],
+  "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+  "top_recommendations": [
+    {
+      "confidence": "medium",
+      "next_safe_move": "Surface the local SQLite Work Board in Mission Control as read-only cards; keep approval and execution backend-gated.",
+      "recommendation": "adapt",
+      "recommended_lane": "OpenClaw Work Board v0 is built; next safe lane is Mission Control Work Board Read-Only Surface v0.",
+      "relevance_score": "high",
+      "routed_agent": "chief",
+      "title": "Agent work board / orchestration board pattern"
+    },
+    {
+      "confidence": "high",
+      "next_safe_move": "Keep packs local/export-only and add operator selection UX later; do not automate browser uploads or external API calls.",
+      "recommendation": "adopt",
+      "recommended_lane": "External AI Context Packager v0 is built; consider a Mission Control context-pack selection surface later.",
+      "relevance_score": "high",
+      "routed_agent": "chief",
+      "title": "Context pack generation for external AI tools"
+    },
+    {
+      "confidence": "high",
+      "next_safe_move": "Let Mission Control draft request JSON into the shared inbox, but keep approval and execution separate and backend-gated.",
+      "recommendation": "watch",
+      "recommended_lane": "Mission Control Request Path v0",
+      "relevance_score": "high",
+      "routed_agent": "chief",
+      "title": "Helm control path maturity"
+    }
+  ],
+  "watchlist_items": [
+    {
+      "next_review_trigger": "Review when Chief proposes the related lane or new operator evidence arrives.",
+      "title": "Helm control path maturity",
+      "watch_reason": "Watch for UI pressure to collapse request, approval, and execution into one unsafe control."
+    }
+  ]
+}
