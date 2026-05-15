@@ -33,6 +33,31 @@ latest returned manifest from `/mnt/e/openclaw/mac_generated_read_models_manifes
 and reports mirror health. If the PC/WSL side runs before the Mac has dropped a
 manifest, it reports the missing manifest path instead of attempting a sync.
 
+The unified command reports explicit handoff states:
+
+- `ok`: PC/WSL imported the latest manifest and the Mac mirror is current.
+- `needs_mac_sync`: PC/WSL imported a manifest, but the Mac mirror is missing
+  canonical backend generated read-model files. Run the same unified command on
+  the Mac.
+- `needs_pc_import`: the Mac synced and dropped a manifest to the E-drive share.
+  Run the same unified command on PC/WSL.
+- `share_missing`: the Mac share `/Volumes/openclaw_e` is not mounted, so PC/WSL
+  cannot see the returned manifest yet.
+- `manifest_missing`: PC/WSL cannot find
+  `/mnt/e/openclaw/mac_generated_read_models_manifest.json`.
+- `review_needed`: PC/WSL sees extra Mac mirror files not in canonical backend
+  `generated/read_models`.
+- `error`: the mirror has hash mismatches or the command failed.
+
+When PC/WSL reports `needs_mac_sync`, it writes a safe marker at:
+
+```text
+/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json
+```
+
+The marker contains missing filenames, the next Mac command, and no-authority
+flags only. It does not run anything on the Mac.
+
 Run from the backend clone on the Mac:
 
 ```bash
@@ -88,6 +113,20 @@ the canonical backend `generated/read_models` directory using the same safe
 top-level JSON/Markdown/text selection rules as the shuttle. New generated
 read-model exports become expected automatically after they exist in that
 canonical backend directory.
+
+If the PC import reports `needs_mac_sync`, run on the Mac:
+
+```bash
+cd ~/Developer/OpenClawBackend/openclaw
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator
+```
+
+If the Mac sync reports `needs_pc_import`, run on PC/WSL:
+
+```bash
+cd /home/openclaw
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --format operator
+```
 
 ## Boundary
 
