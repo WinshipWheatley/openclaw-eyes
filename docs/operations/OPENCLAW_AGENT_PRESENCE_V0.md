@@ -134,6 +134,16 @@ python3 scripts/approve_agent_recovery_clearance.py \
 
 The clearance path is local-only, single-agent, single-action, single-use, fixed-argv, and receipt-backed. It does not create a Telegram, network, arbitrary-shell, or app-side approval path.
 
+On the runtime host, use Guardian as the second factor:
+
+```bash
+python3 scripts/request_cassandra_recovery_guardian_approval.py \
+  --clearance-id <clearance_id> \
+  --requested-by chief
+```
+
+Guardian approval can approve the local clearance, but it still does not execute recovery. A separate explicit recovery command is required after approval.
+
 Export the read-model:
 
 ```bash

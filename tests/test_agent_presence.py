@@ -21,6 +21,7 @@ from scripts.check_agent_recovery_status import main as recovery_status_main
 from scripts.export_agent_presence_read_model import main as export_main
 from scripts.query_agent_recovery_clearances import main as query_clearances_main
 from scripts.query_agent_presence import main as query_main
+from scripts.request_cassandra_recovery_guardian_approval import run_guardian_clearance_flow
 from scripts.recover_agent import main as recover_main
 from scripts.request_agent_recovery_clearance import main as request_clearance_main
 
@@ -565,6 +566,56 @@ def test_approved_clearance_command_start_error_writes_blocked_receipt(tmp_path)
     assert "FileNotFoundError" in attempt["blocker"]
 
 
+def test_guardian_clearance_flow_approves_but_does_not_execute(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    payload = run_guardian_clearance_flow(
+        db_path=str(db_path),
+        requested_by="chief",
+        reason="test guardian approval",
+        approval_func=lambda *_args, **_kwargs: True,
+    )
+
+    assert payload["status"] == "guardian_approved"
+    clearance = _row(
+        db_path,
+        "SELECT status, approved_by, used_attempts FROM agent_recovery_clearances WHERE clearance_id = ?",
+        (payload["clearance_id"],),
+    )
+    assert clearance["status"] == "approved"
+    assert clearance["approved_by"] == "guardian"
+    assert clearance["used_attempts"] == 0
+    assert _row(db_path, "SELECT COUNT(*) FROM agent_recovery_attempts")[0] == 0
+    packet = _row(
+        db_path,
+        "SELECT event_type, actor, operator_visible_summary FROM events WHERE event_type = 'approval_request_record'",
+    )
+    assert packet["actor"] == "chief"
+    assert "Cassandra recovery clearance" in packet["operator_visible_summary"]
+
+
+def test_guardian_clearance_flow_denial_rejects_without_execution(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    payload = run_guardian_clearance_flow(
+        db_path=str(db_path),
+        requested_by="chief",
+        reason="test guardian denial",
+        approval_func=lambda *_args, **_kwargs: False,
+    )
+
+    assert payload["status"] == "guardian_denied"
+    clearance = _row(
+        db_path,
+        "SELECT status, rejected_by, used_attempts FROM agent_recovery_clearances WHERE clearance_id = ?",
+        (payload["clearance_id"],),
+    )
+    assert clearance["status"] == "rejected"
+    assert clearance["rejected_by"] == "guardian"
+    assert clearance["used_attempts"] == 0
+    assert _row(db_path, "SELECT COUNT(*) FROM agent_recovery_attempts")[0] == 0
+
+
 def test_report_bridge_can_be_metadata_available_without_fake_online(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     repo_root = tmp_path / "repo"
@@ -715,6 +766,7 @@ def test_source_has_no_forbidden_runtime_network_or_destructive_behavior():
             "scripts/request_agent_recovery_clearance.py",
             "scripts/approve_agent_recovery_clearance.py",
             "scripts/query_agent_recovery_clearances.py",
+            "scripts/request_cassandra_recovery_guardian_approval.py",
             "scripts/query_agent_presence.py",
             "scripts/recover_agent.py",
             "scripts/export_agent_presence_read_model.py",

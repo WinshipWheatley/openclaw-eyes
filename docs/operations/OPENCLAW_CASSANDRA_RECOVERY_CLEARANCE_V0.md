@@ -52,6 +52,16 @@ python3 scripts/approve_agent_recovery_clearance.py \
   --confirm-action cassandra_systemd_user_start
 ```
 
+Guardian approval path on the runtime host:
+
+```bash
+python3 scripts/request_cassandra_recovery_guardian_approval.py \
+  --clearance-id <clearance_id> \
+  --requested-by chief
+```
+
+This sends the existing Guardian Tier-2 approval request and waits for the operator decision. If Guardian approves, the script approves the local Cassandra clearance. It still does not run Cassandra; recovery requires a separate explicit `recover_agent.py --execute` call after the clearance is approved.
+
 Dry-run recovery:
 
 ```bash
