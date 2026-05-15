@@ -46,6 +46,7 @@ from cassandra_identity import (
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
+from telegram_agent_intake import record_telegram_listener_update_safe
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
@@ -352,6 +353,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    record_telegram_listener_update_safe(
+        text=text,
+        source_channel="cassandra_listener",
+        agent_target="cassandra",
+        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_user_label="operator" if is_authorized_user else "designated_contact",
+        operator_message=is_authorized_user,
+        route_intent=is_authorized_user,
+    )
     request_token = _claim_chat_request(sender_chat_id)
 
     async def _send_if_current(reply_text: str):

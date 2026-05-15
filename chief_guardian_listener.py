@@ -43,6 +43,7 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+from telegram_agent_intake import record_telegram_listener_update_safe
 
 # Guardian bot must be explicitly configured — this listener should not
 # start on the Chief or Cassandra token.
@@ -208,6 +209,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     text = update.message.text.strip()
+    record_telegram_listener_update_safe(
+        text=text,
+        source_channel="guardian_listener",
+        agent_target="guardian",
+        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_user_label="operator",
+        operator_message=True,
+        route_intent=False,
+    )
 
     # Import here to avoid circular import at module load time
     from chief_approval_brain import (

@@ -4,6 +4,7 @@ import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from scripts.producer_telegram_route import extract_producer_payload, truncate_producer_output
+from telegram_agent_intake import record_telegram_listener_update_safe
 
 # Environment setup
 BOT_TOKEN = os.environ.get("PRODUCER_BOT_TOKEN")
@@ -58,7 +59,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
-    
+    record_telegram_listener_update_safe(
+        text=text,
+        source_channel="niles_producer_listener",
+        agent_target="niles",
+        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_user_label="operator",
+        operator_message=True,
+        route_intent=True,
+    )
+
     if text.lower() in ("/start", "/help"):
         await update.message.reply_text("Niles online. Producer intake active.")
         return

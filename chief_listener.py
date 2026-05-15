@@ -15,6 +15,7 @@ from chief_router import route_message
 from chief_validator_brain import validate_reply
 from chief_queue_brain import check_pending_queue
 from chief_output_utils import tts_clean
+from telegram_agent_intake import record_telegram_listener_update_safe
 
 LOG_PATH = Path("/mnt/c/OpenClaw/logs/chief_input.log")
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -110,6 +111,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text.strip()
+    record_telegram_listener_update_safe(
+        text=text,
+        source_channel="chief_listener",
+        agent_target="chief",
+        source_message_id=str(getattr(update, "update_id", "")) or None,
+        source_user_label="operator",
+        operator_message=True,
+        route_intent=True,
+    )
     chat_id = update.effective_chat.id if update.effective_chat else AUTHORIZED_USER_ID
     typing_task = asyncio.create_task(_telegram_typing_loop(context.bot, chat_id))
     try:
