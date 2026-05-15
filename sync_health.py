@@ -139,6 +139,8 @@ CREATE TABLE IF NOT EXISTS sync_health_snapshots (
   pc_manifest_hash TEXT,
   windows_task_log_present INTEGER NOT NULL DEFAULT 0,
   pc_scheduler_known INTEGER NOT NULL DEFAULT 0,
+  display_status TEXT NOT NULL DEFAULT 'unknown_review',
+  next_expected_actor TEXT NOT NULL DEFAULT 'operator_review',
   next_safe_move TEXT NOT NULL,
   recommended_fix_kind TEXT NOT NULL,
   can_request_fix_from_app INTEGER NOT NULL DEFAULT 0,
@@ -171,6 +173,7 @@ CREATE TABLE IF NOT EXISTS sync_health_recommendations (
   snapshot_id TEXT NOT NULL,
   recommended_fix_kind TEXT NOT NULL,
   next_safe_move TEXT NOT NULL,
+  next_expected_actor TEXT NOT NULL DEFAULT 'operator_review',
   can_request_fix_from_app INTEGER NOT NULL DEFAULT 0,
   request_marker_path TEXT NOT NULL,
   app_request_marker_path TEXT NOT NULL,
@@ -195,6 +198,24 @@ CREATE TABLE IF NOT EXISTS sync_health_receipts (
     )
 
 
+def _ensure_sync_health_columns(conn: sqlite3.Connection) -> None:
+    table_columns = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(sync_health_snapshots)").fetchall()
+    }
+    if "display_status" not in table_columns:
+        conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN display_status TEXT NOT NULL DEFAULT 'unknown_review'")
+    if "next_expected_actor" not in table_columns:
+        conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN next_expected_actor TEXT NOT NULL DEFAULT 'operator_review'")
+
+    recommendation_columns = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(sync_health_recommendations)").fetchall()
+    }
+    if "next_expected_actor" not in recommendation_columns:
+        conn.execute("ALTER TABLE sync_health_recommendations ADD COLUMN next_expected_actor TEXT NOT NULL DEFAULT 'operator_review'")
+
+
 def init_sync_health_schema(db_path: str | Path | None = None) -> str:
     path = str(db_path or DEFAULT_DB_PATH)
     parent = Path(path).parent
@@ -205,6 +226,7 @@ def init_sync_health_schema(db_path: str | Path | None = None) -> str:
     try:
         for statement in _sql_statements():
             conn.execute(statement)
+        _ensure_sync_health_columns(conn)
         conn.commit()
     finally:
         conn.close()
@@ -385,24 +407,30 @@ def classify_sync_health(
         return {
             "trust_status": "unknown_review",
             "mirror_status": "unknown",
+            "display_status": "manifest_missing",
             "recommended_fix_kind": "inspect_automation",
             "next_safe_move": "Mac manifest is missing; inspect the Mac sync service and shared E-drive mount.",
+            "next_expected_actor": "operator_review",
             "can_request_fix_from_app": False,
         }
     if missing > 0 or mismatched > 0:
         return {
             "trust_status": "stale_needs_mac_sync",
             "mirror_status": "needs_mac_sync",
+            "display_status": "needs_mac_sync",
             "recommended_fix_kind": "request_mac_sync",
             "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+            "next_expected_actor": "mac_sync_agent",
             "can_request_fix_from_app": True,
         }
     if extra > 0:
         return {
             "trust_status": "mismatch",
             "mirror_status": "error",
+            "display_status": "manual_review",
             "recommended_fix_kind": "manual_review",
             "next_safe_move": "Review extra Mac mirror files before treating the mirror as trusted.",
+            "next_expected_actor": "operator_review",
             "can_request_fix_from_app": False,
         }
     manifest_hash = manifest_health.get("manifest_sha256")
@@ -413,16 +441,20 @@ def classify_sync_health(
         return {
             "trust_status": "stale_needs_pc_import",
             "mirror_status": "needs_pc_import",
+            "display_status": "waiting_for_pc_import",
             "recommended_fix_kind": "wait_for_pc_import",
-            "next_safe_move": "Wait for the Windows scheduled task or run the PC import agent once.",
+            "next_safe_move": "Mac sync appears complete. Waiting for PC import task.",
+            "next_expected_actor": "pc_import_task",
             "can_request_fix_from_app": False,
         }
     if completion_time and import_time and completion_time > import_time:
         return {
             "trust_status": "stale_needs_pc_import",
             "mirror_status": "needs_pc_import",
+            "display_status": "waiting_for_pc_import",
             "recommended_fix_kind": "wait_for_pc_import",
-            "next_safe_move": "Mac completion marker is newer than the PC import state; wait for scheduled import.",
+            "next_safe_move": "Mac sync appears complete. Waiting for PC import task.",
+            "next_expected_actor": "pc_import_task",
             "can_request_fix_from_app": False,
         }
     proof_present = bool(
@@ -433,15 +465,19 @@ def classify_sync_health(
         return {
             "trust_status": "trusted",
             "mirror_status": "ok",
+            "display_status": "current",
             "recommended_fix_kind": "none",
             "next_safe_move": "No sync repair is needed.",
+            "next_expected_actor": "none",
             "can_request_fix_from_app": False,
         }
     return {
         "trust_status": "degraded",
         "mirror_status": "ok",
+        "display_status": "degraded",
         "recommended_fix_kind": "inspect_automation",
         "next_safe_move": "Mirror content matches, but automation proof files are missing or incomplete.",
+        "next_expected_actor": "operator_review",
         "can_request_fix_from_app": False,
     }
 
@@ -575,10 +611,11 @@ INSERT OR REPLACE INTO sync_health_snapshots (
   mac_heartbeat_status, mac_heartbeat_time, mac_marker_seen,
   mac_manifest_written, mac_completion_status, mac_completion_time,
   pc_import_status, pc_import_time, pc_manifest_hash,
-  windows_task_log_present, pc_scheduler_known, next_safe_move,
-  recommended_fix_kind, can_request_fix_from_app, request_marker_path,
+  windows_task_log_present, pc_scheduler_known, display_status,
+  next_expected_actor, next_safe_move, recommended_fix_kind,
+  can_request_fix_from_app, request_marker_path,
   app_request_marker_path, no_authority_json, raw_body_stored
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 """.strip(),
             (
                 snapshot_id,
@@ -606,9 +643,17 @@ INSERT OR REPLACE INTO sync_health_snapshots (
                 pc_state.get("manifest_hash"),
                 1 if windows_log_present else 0,
                 1 if pc_scheduler_known else 0,
+                classification["display_status"],
+                classification["next_expected_actor"],
                 classification["next_safe_move"],
                 classification["recommended_fix_kind"],
-                1 if classification["can_request_fix_from_app"] and request_marker.as_posix().startswith("/mnt/e/openclaw/") else 0,
+                1
+                if (
+                    classification["recommended_fix_kind"] == "request_mac_sync"
+                    and classification["can_request_fix_from_app"]
+                    and request_marker.as_posix().startswith("/mnt/e/openclaw/")
+                )
+                else 0,
                 request_marker.as_posix(),
                 app_request_marker_path,
                 stable_json(NO_AUTHORITY_FLAGS),
@@ -650,9 +695,9 @@ INSERT INTO sync_health_sources (
             """
 INSERT INTO sync_health_recommendations (
   recommendation_id, run_id, snapshot_id, recommended_fix_kind,
-  next_safe_move, can_request_fix_from_app, request_marker_path,
+  next_safe_move, next_expected_actor, can_request_fix_from_app, request_marker_path,
   app_request_marker_path, created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """.strip(),
             (
                 _row_id("synchealthrec", resolved_run_id, classification["recommended_fix_kind"]),
@@ -660,7 +705,8 @@ INSERT INTO sync_health_recommendations (
                 snapshot_id,
                 classification["recommended_fix_kind"],
                 classification["next_safe_move"],
-                1 if classification["can_request_fix_from_app"] else 0,
+                classification["next_expected_actor"],
+                1 if classification["recommended_fix_kind"] == "request_mac_sync" and classification["can_request_fix_from_app"] else 0,
                 request_marker.as_posix(),
                 app_request_marker_path,
                 generated_at,
@@ -745,6 +791,8 @@ def _snapshot_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
         "pc_manifest_hash": row["pc_manifest_hash"],
         "windows_task_log_present": bool(row["windows_task_log_present"]),
         "pc_scheduler_known": bool(row["pc_scheduler_known"]),
+        "display_status": row["display_status"],
+        "next_expected_actor": row["next_expected_actor"],
         "next_safe_move": row["next_safe_move"],
         "recommended_fix_kind": row["recommended_fix_kind"],
         "can_request_fix_from_app": bool(row["can_request_fix_from_app"]),
@@ -804,6 +852,8 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
         "source_ledger_path": str(db_path or DEFAULT_DB_PATH),
         "trust_status": snapshot.get("trust_status", "unknown_review"),
         "mirror_status": snapshot.get("mirror_status", "unknown"),
+        "display_status": snapshot.get("display_status", "unknown_review"),
+        "next_expected_actor": snapshot.get("next_expected_actor", "operator_review"),
         "canonical_expected": snapshot.get("canonical_expected", 0),
         "observed": snapshot.get("observed", 0),
         "missing_expected": snapshot.get("missing_expected", 0),
@@ -832,6 +882,8 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
         },
         "recommended_fix": {
             "kind": snapshot.get("recommended_fix_kind", "manual_review"),
+            "display_status": snapshot.get("display_status", "unknown_review"),
+            "next_expected_actor": snapshot.get("next_expected_actor", "operator_review"),
             "next_safe_move": snapshot.get("next_safe_move", "Build sync health before relying on this read-model."),
             "can_request_fix_from_app": snapshot.get("can_request_fix_from_app", False),
             "request_marker_path": snapshot.get("request_marker_path", DEFAULT_REQUEST_MARKER_PATH.as_posix()),
@@ -850,6 +902,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         "",
         f"Trust status: `{payload['trust_status']}`",
         f"Mirror status: `{payload['mirror_status']}`",
+        f"Display status: `{payload['display_status']}`",
+        f"Next expected actor: `{payload['next_expected_actor']}`",
         "",
         "Mirror counts:",
         f"- canonical_expected={payload['canonical_expected']}",
@@ -861,6 +915,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         "",
         "Recommended fix:",
         f"- kind: `{recommended['kind']}`",
+        f"- display status: `{recommended['display_status']}`",
+        f"- next expected actor: `{recommended['next_expected_actor']}`",
         f"- next: {recommended['next_safe_move']}",
         f"- app can request bounded Mac sync marker: `{str(recommended['can_request_fix_from_app']).lower()}`",
         "",
@@ -915,6 +971,8 @@ def export_sync_health_read_model(
         "operator_path": _display_path(operator_path, repo_root=repo_root),
         "trust_status": payload["trust_status"],
         "mirror_status": payload["mirror_status"],
+        "display_status": payload["display_status"],
+        "next_expected_actor": payload["next_expected_actor"],
         "recommended_fix_kind": payload["recommended_fix"]["kind"],
         "missing_expected": payload["missing_expected"],
         "extra": payload["extra"],
@@ -932,6 +990,8 @@ def format_sync_health_report(payload: dict[str, Any]) -> str:
             [
                 f"Trust status: `{snapshot['trust_status']}`",
                 f"Mirror status: `{snapshot['mirror_status']}`",
+                f"Display status: `{snapshot['display_status']}`",
+                f"Next expected actor: `{snapshot['next_expected_actor']}`",
                 "",
                 "Mirror counts:",
                 f"- canonical_expected={snapshot['canonical_expected']}",
@@ -943,6 +1003,7 @@ def format_sync_health_report(payload: dict[str, Any]) -> str:
                 "",
                 f"Recommended fix: `{snapshot['recommended_fix_kind']}`",
                 f"Next safe move: {snapshot['next_safe_move']}",
+                f"App request changes repair path: `{str(snapshot['can_request_fix_from_app']).lower()}`",
             ]
         )
         if payload.get("report") == "proof":

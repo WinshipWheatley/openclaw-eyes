@@ -167,6 +167,8 @@ def test_trusted_mirror_produces_trusted_status(tmp_path):
     assert snapshot["hash_mismatch"] == 0
     assert snapshot["recommended_fix_kind"] == "none"
     assert snapshot["can_request_fix_from_app"] is False
+    assert snapshot["display_status"] == "current"
+    assert snapshot["next_expected_actor"] == "none"
     assert root.is_dir()
 
 
@@ -182,6 +184,8 @@ def test_missing_expected_produces_stale_needs_mac_sync(tmp_path):
     assert snapshot["mirror_status"] == "needs_mac_sync"
     assert snapshot["recommended_fix_kind"] == "request_mac_sync"
     assert snapshot["can_request_fix_from_app"] is True
+    assert snapshot["display_status"] == "needs_mac_sync"
+    assert snapshot["next_expected_actor"] == "mac_sync_agent"
     assert snapshot["missing_files"] == ["beta_OPERATOR.md"]
     assert snapshot["request_marker_path"].endswith("read_model_sync_required.json")
 
@@ -199,6 +203,8 @@ def test_hash_mismatch_produces_stale_needs_mac_sync(tmp_path):
     assert snapshot["recommended_fix_kind"] == "request_mac_sync"
     assert snapshot["stale_files"] == ["alpha.json"]
     assert snapshot["can_request_fix_from_app"] is True
+    assert snapshot["display_status"] == "needs_mac_sync"
+    assert snapshot["next_expected_actor"] == "mac_sync_agent"
 
 
 def test_mac_completion_newer_than_pc_import_produces_needs_pc_import(tmp_path):
@@ -213,6 +219,10 @@ def test_mac_completion_newer_than_pc_import_produces_needs_pc_import(tmp_path):
     assert result.trust_status == "stale_needs_pc_import"
     assert snapshot["mirror_status"] == "needs_pc_import"
     assert snapshot["recommended_fix_kind"] == "wait_for_pc_import"
+    assert snapshot["can_request_fix_from_app"] is False
+    assert snapshot["display_status"] == "waiting_for_pc_import"
+    assert snapshot["next_expected_actor"] == "pc_import_task"
+    assert snapshot["next_safe_move"] == "Mac sync appears complete. Waiting for PC import task."
 
 
 def test_degraded_if_proof_files_missing(tmp_path):
@@ -227,6 +237,9 @@ def test_degraded_if_proof_files_missing(tmp_path):
     assert result.trust_status == "degraded"
     assert snapshot["mirror_status"] == "ok"
     assert snapshot["recommended_fix_kind"] == "inspect_automation"
+    assert snapshot["can_request_fix_from_app"] is False
+    assert snapshot["display_status"] == "degraded"
+    assert snapshot["next_expected_actor"] == "operator_review"
     assert snapshot["windows_task_log_present"] is False
 
 
@@ -241,6 +254,9 @@ def test_extra_files_require_manual_review(tmp_path):
     assert result.trust_status == "mismatch"
     assert snapshot["mirror_status"] == "error"
     assert snapshot["recommended_fix_kind"] == "manual_review"
+    assert snapshot["can_request_fix_from_app"] is False
+    assert snapshot["display_status"] == "manual_review"
+    assert snapshot["next_expected_actor"] == "operator_review"
     assert snapshot["extra_files"] == ["orphan.json"]
 
 
@@ -258,6 +274,9 @@ def test_read_model_export_exists_and_no_authority_flags_are_false(tmp_path):
 
     assert payload["trust_status"] == "trusted"
     assert payload["recommended_fix"]["kind"] == "none"
+    assert payload["display_status"] == "current"
+    assert payload["next_expected_actor"] == "none"
+    assert payload["recommended_fix"]["next_expected_actor"] == "none"
     assert "OpenClaw Sync Health" in operator_text
     assert all(value is False for value in payload["no_authority_flags"].values())
     assert all(value is False for value in NO_AUTHORITY_FLAGS.values())

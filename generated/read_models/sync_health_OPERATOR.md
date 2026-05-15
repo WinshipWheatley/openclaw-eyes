@@ -1,30 +1,30 @@
 # OpenClaw Sync Health
 
-Trust status: `stale_needs_mac_sync`
-Mirror status: `needs_mac_sync`
+Trust status: `stale_needs_pc_import`
+Mirror status: `needs_pc_import`
+Display status: `waiting_for_pc_import`
+Next expected actor: `pc_import_task`
 
 Mirror counts:
-- canonical_expected=50
-- observed=48
-- missing_expected=2
+- canonical_expected=52
+- observed=52
+- missing_expected=0
 - extra=0
 - hash_mismatch=0
-- matched_hash=48
+- matched_hash=52
 
 Recommended fix:
-- kind: `request_mac_sync`
-- next: Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.
-- app can request bounded Mac sync marker: `true`
+- kind: `wait_for_pc_import`
+- display status: `waiting_for_pc_import`
+- next expected actor: `pc_import_task`
+- next: Mac sync appears complete. Waiting for PC import task.
+- app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-15T15:25:46+00:00`
-- Mac completion: `synced` at `2026-05-15T15:15:45+00:00`
-- PC import: `skipped_unchanged` at `2026-05-15T15:19:51+00:00`
+- Mac heartbeat: `synced` at `2026-05-15T15:45:50+00:00`
+- Mac completion: `synced` at `2026-05-15T15:45:50+00:00`
+- PC import: `skipped_unchanged` at `2026-05-15T15:34:48+00:00`
 - Windows task log present: `true`
-
-Stale files:
-- `sync_health.json`
-- `sync_health_OPERATOR.md`
 
 No-authority posture:
 - `app_direct_execution_allowed`: `false`

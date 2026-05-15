@@ -1,11 +1,11 @@
 # OpenClaw Windows Read-Model Import Task v0
 
-Purpose: finish the hands-free read-model mirror loop on PC/Windows by running the existing WSL import agent every five minutes.
+Purpose: finish the hands-free read-model mirror loop on PC/Windows by running the existing WSL import agent every minute.
 
 ## Task
 
 - Task name: `OpenClawReadModelImport`
-- Schedule: every 5 minutes
+- Schedule: every 1 minute
 - Scope: current Windows user, logged-on-only by default
 - Wrapper path: `E:\openclaw\windows_tasks\OpenClawReadModelImport.ps1`
 - Windows-side log path: `E:\openclaw\windows_tasks\logs\OpenClawReadModelImport.log`
@@ -45,6 +45,8 @@ The installer:
 7. Runs the task once.
 8. Shows task status, Windows-side log tail, and WSL-side log tail.
 9. Runs the read-model mirror doctor.
+
+The default interval is 1 minute. The import agent hashes the manifest and skips unchanged imports, so this keeps the PC side responsive without repeatedly re-importing the same manifest.
 
 ## Task Action
 

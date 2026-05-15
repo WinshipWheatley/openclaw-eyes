@@ -4,7 +4,7 @@ Install or update the OpenClaw PC read-model import Scheduled Task.
 
 .DESCRIPTION
 Registers a per-user Windows Scheduled Task named OpenClawReadModelImport.
-The task runs the existing WSL one-shot import agent every five minutes.
+The task runs the existing WSL one-shot import agent every minute.
 It does not install packages, create remote access, use the deprecated C-drive
 transfer folder, or modify OpenClaw source code.
 #>
@@ -13,7 +13,7 @@ transfer folder, or modify OpenClaw source code.
 param(
     [string]$TaskName = "OpenClawReadModelImport",
     [string]$PreferredDistro = "Ubuntu-E",
-    [int]$IntervalMinutes = 5,
+    [int]$IntervalMinutes = 1,
     [switch]$SkipRunOnce
 )
 
@@ -197,7 +197,7 @@ Register-ScheduledTask `
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "OpenClaw local PC/WSL read-model mirror import every five minutes." | Out-Null
+    -Description "OpenClaw local PC/WSL read-model mirror import every minute." | Out-Null
 
 if (-not $SkipRunOnce) {
     Write-Section "Run once"

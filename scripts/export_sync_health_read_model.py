@@ -35,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Operator: `{summary['operator_path']}`")
         print(f"Trust status: `{summary['trust_status']}`")
         print(f"Mirror status: `{summary['mirror_status']}`")
+        print(f"Display status: `{summary['display_status']}`")
+        print(f"Next expected actor: `{summary['next_expected_actor']}`")
         print(f"Recommended fix: `{summary['recommended_fix_kind']}`")
         print("")
         print("Boundary:")

@@ -22,10 +22,10 @@ def test_windows_task_installer_contains_expected_task_contract():
     assert "-RunLevel Limited" in text
 
 
-def test_windows_task_interval_is_five_minutes_by_default():
+def test_windows_task_interval_is_one_minute_by_default():
     text = SCRIPT.read_text(encoding="utf-8")
 
-    assert "[int]$IntervalMinutes = 5" in text
+    assert "[int]$IntervalMinutes = 1" in text
     assert "-RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes)" in text
 
 
@@ -79,5 +79,6 @@ def test_windows_task_doc_records_install_validate_and_uninstall_commands():
     assert "wsl.exe -l -v" in text
     assert "Start-ScheduledTask -TaskName OpenClawReadModelImport" in text
     assert "Unregister-ScheduledTask -TaskName OpenClawReadModelImport -Confirm:$false" in text
+    assert "every 1 minute" in text
     assert "missing_expected=0" in text
     assert "hash_mismatch=0" in text

@@ -31,7 +31,14 @@ It answers whether the mirror is currently trusted, stale, mismatched, degraded,
 - `inspect_automation`: inspect service/log proof.
 - `manual_review`: review unexpected mirror state before trusting it.
 
-`can_request_fix_from_app` is true only for the bounded Mac sync marker path. That is a request marker, not direct execution.
+`can_request_fix_from_app` is true only for `request_mac_sync`, where writing the bounded Mac sync marker changes the repair path. It is false for `wait_for_pc_import`; in that state Mac sync appears complete and the correct posture is waiting for the PC import task.
+
+Display/actor semantics:
+
+- `current` / `none`: mirror is trusted; no button.
+- `needs_mac_sync` / `mac_sync_agent`: Request Sync is valid because the app can write the Mac sync request marker.
+- `waiting_for_pc_import` / `pc_import_task`: Request Sync is not valid; show import pending or waiting for PC import.
+- `degraded` or `manual_review` / `operator_review`: no fix button unless a future bounded repair path is added.
 
 ## Commands
 
