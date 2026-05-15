@@ -36,9 +36,10 @@ manifest, it reports the missing manifest path instead of attempting a sync.
 The unified command reports explicit handoff states:
 
 - `ok`: PC/WSL imported the latest manifest and the Mac mirror is current.
-- `needs_mac_sync`: PC/WSL imported a manifest, but the Mac mirror is missing
-  canonical backend generated read-model files. Run the same unified command on
-  the Mac.
+- `needs_mac_sync`: PC/WSL imported a manifest, but the Mac mirror is stale.
+  This includes missing canonical backend generated read-model files or
+  hash-mismatched files that differ from backend `generated/read_models`.
+  PC/WSL writes a sync request marker for the Mac LaunchAgent.
 - `needs_pc_import`: the Mac synced and dropped a manifest to the E-drive share.
   Run the same unified command on PC/WSL.
 - `share_missing`: the Mac share `/Volumes/openclaw_e` is not mounted, so PC/WSL
@@ -47,7 +48,8 @@ The unified command reports explicit handoff states:
   `/mnt/e/openclaw/mac_generated_read_models_manifest.json`.
 - `review_needed`: PC/WSL sees extra Mac mirror files not in canonical backend
   `generated/read_models`.
-- `error`: the mirror has hash mismatches or the command failed.
+- `error`: the command failed for a reason other than ordinary stale Mac mirror
+  state.
 
 When PC/WSL reports `needs_mac_sync`, it writes a safe marker at:
 
@@ -55,8 +57,14 @@ When PC/WSL reports `needs_mac_sync`, it writes a safe marker at:
 /mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json
 ```
 
-The marker contains missing filenames, the next Mac command, and no-authority
-flags only. It does not run anything on the Mac.
+The marker contains missing filenames, hash-mismatched filenames, the expected
+responder (`mac_read_model_sync_agent`), a manual fallback command, and
+no-authority flags only. It does not run anything on the Mac.
+
+Primary behavior: the Mac LaunchAgent should notice the marker and refresh the
+Mac generated-read-model mirror automatically. The manual Mac command is a
+diagnostic fallback, not the normal first step. Use the local services doctor or
+sync heartbeat when checking whether the background loop responded.
 
 Run from the backend clone on the Mac:
 
@@ -114,7 +122,9 @@ top-level JSON/Markdown/text selection rules as the shuttle. New generated
 read-model exports become expected automatically after they exist in that
 canonical backend directory.
 
-If the PC import reports `needs_mac_sync`, run on the Mac:
+If the PC import reports `needs_mac_sync`, first check the local service
+doctor/heartbeat and let the Mac LaunchAgent respond to the request marker. If
+manual fallback is needed, run on the Mac:
 
 ```bash
 cd ~/Developer/OpenClawBackend/openclaw

@@ -35,7 +35,7 @@ from scripts.mac_sync_generated_read_models import (
 
 ENV_MAC = "mac"
 ENV_PC_WSL = "pc_wsl"
-RUNNER_VERSION = "read_model_mirror_auto_runner_v0_1"
+RUNNER_VERSION = "read_model_mirror_auto_runner_v0_2"
 PC_ROOT = Path("/mnt/e/openclaw")
 REQUEST_MARKER_PATH = PC_ROOT / "shuttle" / "to_mac" / "read_model_sync_required.json"
 NEXT_MAC_COMMAND = (
@@ -123,9 +123,15 @@ def _mirror_health(report: dict[str, Any]) -> dict[str, Any]:
     missing_expected = int(counts.get("missing_expected") or 0)
     extra = int(counts.get("extra") or 0)
     hash_mismatch = int(counts.get("hash_mismatch") or 0)
-    if hash_mismatch > 0:
-        status = "error"
-        reason = "Mac generated-read-model mirror has hash mismatches."
+    if missing_expected > 0 and hash_mismatch > 0:
+        status = "needs_mac_sync"
+        reason = (
+            "Mac generated-read-model mirror is stale: it is missing canonical "
+            "backend files and has hash-mismatched files."
+        )
+    elif hash_mismatch > 0:
+        status = "needs_mac_sync"
+        reason = "Mac generated-read-model mirror is stale: files differ from backend canonical generated/read_models."
     elif missing_expected > 0:
         status = "needs_mac_sync"
         reason = "Mac generated-read-model folder is behind backend canonical generated/read_models."
@@ -167,7 +173,10 @@ def _write_sync_required_marker(
         "generated_at": _datetime.datetime.now(_datetime.timezone.utc).replace(microsecond=0).isoformat(),
         "reason": health["reason"],
         "missing_expected_files": health.get("missing_expected_files", []),
+        "hash_mismatch_files": health.get("hash_mismatch_files", []),
         "requested_by": "pc_wsl_auto_runner",
+        "next_expected_responder": "mac_read_model_sync_agent",
+        "manual_fallback_mac_command": NEXT_MAC_COMMAND,
         "next_mac_command": NEXT_MAC_COMMAND,
         "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         **NO_AUTHORITY_FLAGS,
@@ -255,7 +264,11 @@ def sync_read_model_mirror(
     )
     health = _mirror_health(report)
     marker_path = None
-    if health["status"] == "needs_mac_sync" or health["counts"].get("missing_expected", 0) > 0:
+    if (
+        health["status"] == "needs_mac_sync"
+        or health["counts"].get("missing_expected", 0) > 0
+        or health["counts"].get("hash_mismatch", 0) > 0
+    ):
         marker_path = _write_sync_required_marker(
             marker_path=request_marker_path,
             health=health,
@@ -268,6 +281,7 @@ def sync_read_model_mirror(
         "mirror_health": health,
         "request_marker_path": marker_path,
         "next_mac_command": NEXT_MAC_COMMAND if marker_path else None,
+        "next_expected_responder": "mac_read_model_sync_agent" if marker_path else None,
         "mac_sync_not_attempted": True,
         "pc_import": report,
         **NO_AUTHORITY_FLAGS,
@@ -276,7 +290,7 @@ def sync_read_model_mirror(
 
 def format_runner_report(payload: dict[str, Any]) -> str:
     lines = [
-        "Read-Model Mirror Auto-Runner v0.1",
+        "Read-Model Mirror Auto-Runner v0.2",
         "",
         f"Environment: `{payload['environment']}`",
         f"Status: `{payload['status']}`",
@@ -330,26 +344,35 @@ def format_runner_report(payload: dict[str, Any]) -> str:
                 f"- reason: {health['reason']}",
             ]
         )
-        if health.get("missing_expected_files"):
-            lines.extend(["", "Missing expected files:"])
-            lines.extend(f"- {item}" for item in health["missing_expected_files"])
+        if payload.get("status") == "needs_mac_sync" and payload.get("request_marker_path"):
             lines.extend(
                 [
                     "",
-                    "Next safe move on Mac:",
-                    "```bash",
-                    payload.get("next_mac_command") or NEXT_MAC_COMMAND,
-                    "```",
+                    "Next safe move:",
+                    "- Mac mirror is stale; sync request marker written. Mac LaunchAgent should respond automatically.",
+                    f"- Request marker: `{payload['request_marker_path']}`",
+                    f"- Expected responder: `{payload.get('next_expected_responder', 'mac_read_model_sync_agent')}`",
                 ]
             )
-            if payload.get("request_marker_path"):
-                lines.append(f"Request marker: `{payload['request_marker_path']}`")
+        if health.get("missing_expected_files"):
+            lines.extend(["", "Missing expected files:"])
+            lines.extend(f"- {item}" for item in health["missing_expected_files"])
         if health.get("extra_files"):
             lines.extend(["", "Extra files needing review:"])
             lines.extend(f"- {item}" for item in health["extra_files"])
         if health.get("hash_mismatch_files"):
             lines.extend(["", "Hash mismatch files:"])
             lines.extend(f"- {item}" for item in health["hash_mismatch_files"])
+        if payload.get("status") == "needs_mac_sync":
+            lines.extend(
+                [
+                    "",
+                    "Manual fallback only:",
+                    "```bash",
+                    payload.get("next_mac_command") or NEXT_MAC_COMMAND,
+                    "```",
+                ]
+            )
         lines.extend(["", format_latest_import_report(payload["pc_import"])])
     else:
         lines.extend(
@@ -405,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "json":
             print(stable_json(payload), end="")
         else:
-            print("Read-Model Mirror Auto-Runner v0.1")
+            print("Read-Model Mirror Auto-Runner v0.2")
             print("")
             print(f"Status: `error`")
             print(f"Message: {exc}")

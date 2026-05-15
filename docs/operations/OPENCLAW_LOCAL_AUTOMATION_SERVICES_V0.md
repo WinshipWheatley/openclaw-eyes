@@ -17,6 +17,12 @@ This v0 manages only the generated read-model mirror loop:
 
 The registry also names future local maintenance task classes, but they are not enabled as background services in v0.
 
+The PC/WSL mirror runner writes the Mac request marker when the Mac mirror is
+stale. Stale includes both missing canonical generated read-model files and
+hash-mismatched generated read-model files. The Mac LaunchAgent is the expected
+responder; manual Mac sync is a fallback when the service/heartbeat indicates it
+did not respond.
+
 ## Commands
 
 Build registry:

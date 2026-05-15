@@ -131,25 +131,36 @@ def test_pc_missing_expected_returns_needs_mac_sync_and_writes_marker(monkeypatc
     assert report["request_marker_path"] == marker.as_posix()
     marker_payload = __import__("json").loads(marker.read_text(encoding="utf-8"))
     assert marker_payload["requested_by"] == "pc_wsl_auto_runner"
+    assert marker_payload["next_expected_responder"] == "mac_read_model_sync_agent"
     assert marker_payload["missing_expected_files"] == [
         "dropped_intents.json",
         "dropped_intents_OPERATOR.md",
     ]
+    assert marker_payload["hash_mismatch_files"] == []
     assert all(value is False for value in marker_payload["no_authority_flags"].values())
 
 
-def test_pc_hash_mismatch_returns_error(monkeypatch, tmp_path):
+def test_pc_hash_mismatch_returns_needs_mac_sync_and_writes_marker(monkeypatch, tmp_path):
     e_drive = tmp_path / "openclaw"
     e_drive.mkdir()
     manifest = e_drive / "mac_generated_read_models_manifest.json"
     manifest.write_text("{}\n", encoding="utf-8")
+    marker = e_drive / "shuttle" / "to_mac" / "read_model_sync_required.json"
 
     def fake_import(**kwargs):
         return {
             "manifest_path": str(manifest),
             "generated_read_model_mirror": {
-                "counts": {"missing_expected": 0, "extra": 0, "hash_mismatch": 1},
-                "hash_mismatch_files": ["intent_router.json"],
+                "counts": {
+                    "canonical_expected": 48,
+                    "observed": 48,
+                    "missing_expected": 0,
+                    "extra": 0,
+                    "hash_mismatch": 2,
+                    "matched_hash": 46,
+                },
+                "missing_expected_files": [],
+                "hash_mismatch_files": ["steel_thread_radar.json", "work_board.json"],
             },
         }
 
@@ -159,10 +170,20 @@ def test_pc_hash_mismatch_returns_error(monkeypatch, tmp_path):
         platform_name="Linux",
         e_drive_root=e_drive,
         manifest=manifest,
+        request_marker_path=marker,
     )
 
-    assert report["status"] == "error"
-    assert report["mirror_health"]["hash_mismatch_files"] == ["intent_router.json"]
+    assert report["status"] == "needs_mac_sync"
+    assert report["mirror_health"]["hash_mismatch_files"] == ["steel_thread_radar.json", "work_board.json"]
+    assert report["request_marker_path"] == marker.as_posix()
+    assert report["next_expected_responder"] == "mac_read_model_sync_agent"
+    marker_payload = __import__("json").loads(marker.read_text(encoding="utf-8"))
+    assert marker_payload["requested_by"] == "pc_wsl_auto_runner"
+    assert marker_payload["next_expected_responder"] == "mac_read_model_sync_agent"
+    assert marker_payload["missing_expected_files"] == []
+    assert marker_payload["hash_mismatch_files"] == ["steel_thread_radar.json", "work_board.json"]
+    assert "manual_fallback_mac_command" in marker_payload
+    assert all(value is False for value in marker_payload["no_authority_flags"].values())
 
 
 def test_pc_extra_files_return_review_needed(monkeypatch, tmp_path):
