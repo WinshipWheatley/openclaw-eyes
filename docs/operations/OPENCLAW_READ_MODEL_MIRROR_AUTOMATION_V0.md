@@ -22,6 +22,17 @@ agents, Docker, Ollama, SSH, SCP, rsync, or launchd.
 
 ## Mac Command
 
+Unified command from the active backend clone:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator
+```
+
+On Mac, this performs the Mac sync/drop step. On PC/WSL, this imports the
+latest returned manifest from `/mnt/e/openclaw/mac_generated_read_models_manifest.json`
+and reports mirror health. If the PC/WSL side runs before the Mac has dropped a
+manifest, it reports the missing manifest path instead of attempting a sync.
+
 Run from the backend clone on the Mac:
 
 ```bash
