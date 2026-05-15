@@ -15,7 +15,7 @@ import sqlite3
 import subprocess
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +35,8 @@ ACTUAL_STATES = {"online", "offline", "degraded", "unknown", "metadata_available
 RECOVERY_STATUSES = {"not_needed", "available", "blocked", "attempted", "succeeded", "failed"}
 RECOVERY_KINDS = {
     "none",
+    "systemd_user_start",
+    "systemd_user_restart",
     "local_service_restart",
     "launch_agent_kickstart",
     "systemd_restart",
@@ -90,6 +92,204 @@ class AgentPresenceBuildResult:
     offline_unexpected_count: int
     degraded_count: int
     unknown_count: int
+
+
+@dataclass(frozen=True)
+class RecoveryActionSeed:
+    recovery_action_id: str
+    agent_id: str
+    action_kind: str
+    command_label: str
+    command_argv: tuple[str, ...]
+    working_directory: str
+    status_check_kind: str
+    status_check_argv: tuple[str, ...] | None
+    log_path: str | None
+    heartbeat_path: str | None
+    safe_to_attempt: bool
+    requires_operator_approval: bool
+    cooldown_seconds: int
+    max_attempts_per_hour: int
+    receipt_required: bool
+    discovered_from: str
+    confidence: str
+    classification: str
+    notes: str
+
+
+@dataclass(frozen=True)
+class AgentRecoveryResult:
+    agent_id: str
+    status: str
+    dry_run: bool
+    action_id: str | None
+    attempted: bool
+    exit_code: int | None
+    receipt_id: str | None
+    blocker: str | None
+    summary: str
+
+
+DEFAULT_RECOVERY_ACTIONS: tuple[RecoveryActionSeed, ...] = (
+    RecoveryActionSeed(
+        recovery_action_id="chief_systemd_user_start",
+        agent_id="chief",
+        action_kind="systemd_user_start",
+        command_label="Start Chief systemd user units",
+        command_argv=(
+            "systemctl",
+            "--user",
+            "start",
+            "chief-listener.service",
+            "chief-worker.service",
+            "chief-memory-worker.service",
+            "chief-state-worker.service",
+            "chief-watcher-brain.service",
+        ),
+        working_directory=str(ROOT),
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=(
+            "systemctl",
+            "--user",
+            "is-active",
+            "chief-listener.service",
+            "chief-worker.service",
+            "chief-memory-worker.service",
+            "chief-state-worker.service",
+            "chief-watcher-brain.service",
+        ),
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="systemd/user/chief-*.service.in; docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Fixed systemd-owned path exists, but runtime side effects and legacy Windows-side logging keep execution blocked in v0.",
+    ),
+    RecoveryActionSeed(
+        recovery_action_id="cassandra_systemd_user_start",
+        agent_id="cassandra",
+        action_kind="systemd_user_start",
+        command_label="Start Cassandra systemd user units",
+        command_argv=(
+            "systemctl",
+            "--user",
+            "start",
+            "cassandra-listener.service",
+            "cassandra-watcher.service",
+            "cassandra-briefing-scheduler.service",
+        ),
+        working_directory=str(ROOT),
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=(
+            "systemctl",
+            "--user",
+            "is-active",
+            "cassandra-listener.service",
+            "cassandra-watcher.service",
+            "cassandra-briefing-scheduler.service",
+        ),
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="systemd/user/cassandra-*.service.in; docs/operations/OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Fixed systemd-owned path exists, but Cassandra listener is Telegram-facing and execution remains blocked in v0.",
+    ),
+    RecoveryActionSeed(
+        recovery_action_id="guardian_systemd_user_start",
+        agent_id="guardian",
+        action_kind="systemd_user_start",
+        command_label="Start Guardian approval listener",
+        command_argv=("systemctl", "--user", "start", "chief-guardian-listener.service"),
+        working_directory=str(ROOT),
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=("systemctl", "--user", "is-active", "chief-guardian-listener.service"),
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="systemd/user/chief-guardian-listener.service.in",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Guardian listener path exists, but it is Telegram-facing and remains blocked unless a future lane grants recovery.",
+    ),
+    RecoveryActionSeed(
+        recovery_action_id="niles_producer_script_start",
+        agent_id="niles",
+        action_kind="script_start",
+        command_label="Start Producer/Niles listener script",
+        command_argv=("bash", "scripts/run_producer_listener.sh"),
+        working_directory=str(ROOT),
+        status_check_kind="process_name",
+        status_check_argv=None,
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="scripts/run_producer_listener.sh; producer_listener.py",
+        confidence="low",
+        classification="needs_operator_review",
+        notes="Producer/Niles launcher requires secret-backed environment and may call Telegram; not safe for automatic recovery.",
+    ),
+    RecoveryActionSeed(
+        recovery_action_id="hermes_systemd_user_start",
+        agent_id="hermes",
+        action_kind="systemd_user_start",
+        command_label="Start Hermes gateway",
+        command_argv=("systemctl", "--user", "start", "hermes-gateway.service"),
+        working_directory=str(ROOT),
+        status_check_kind="systemd_user_is_active",
+        status_check_argv=("systemctl", "--user", "is-active", "hermes-gateway.service"),
+        log_path=None,
+        heartbeat_path=None,
+        safe_to_attempt=False,
+        requires_operator_approval=True,
+        cooldown_seconds=900,
+        max_attempts_per_hour=1,
+        receipt_required=True,
+        discovered_from="systemd/user/hermes-gateway.service.in; scripts/install_hermes_gateway_service.sh",
+        confidence="medium",
+        classification="safe_start_candidate",
+        notes="Hermes has a narrow service path, but recovery is blocked in v0 unless explicitly allowed.",
+    ),
+    RecoveryActionSeed(
+        recovery_action_id="report_bridge_status_only",
+        agent_id="report_bridge",
+        action_kind="status_only",
+        command_label="Report Bridge metadata status",
+        command_argv=(),
+        working_directory=str(ROOT),
+        status_check_kind="metadata_only",
+        status_check_argv=None,
+        log_path=None,
+        heartbeat_path="generated/read_models/report_bridge.json",
+        safe_to_attempt=True,
+        requires_operator_approval=False,
+        cooldown_seconds=0,
+        max_attempts_per_hour=0,
+        receipt_required=True,
+        discovered_from="report_bridge.py; generated/read_models/report_bridge.json",
+        confidence="high",
+        classification="safe_status_check",
+        notes="Report Bridge is metadata/package intake in v0; no live daemon recovery is needed.",
+    ),
+)
 
 
 AGENT_CONFIGS: tuple[PresenceAgentConfig, ...] = (
@@ -292,6 +492,54 @@ CREATE TABLE IF NOT EXISTS agent_recovery_policies (
 )
 """.strip(),
         """
+CREATE TABLE IF NOT EXISTS agent_recovery_actions (
+  recovery_action_id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  action_kind TEXT NOT NULL,
+  command_label TEXT NOT NULL,
+  command_argv_json TEXT NOT NULL,
+  working_directory TEXT,
+  status_check_kind TEXT NOT NULL,
+  status_check_argv_json TEXT,
+  log_path TEXT,
+  heartbeat_path TEXT,
+  safe_to_attempt INTEGER NOT NULL DEFAULT 0,
+  requires_operator_approval INTEGER NOT NULL DEFAULT 1,
+  cooldown_seconds INTEGER NOT NULL DEFAULT 900,
+  max_attempts_per_hour INTEGER NOT NULL DEFAULT 1,
+  receipt_required INTEGER NOT NULL DEFAULT 1,
+  discovered_from TEXT NOT NULL,
+  confidence TEXT NOT NULL,
+  classification TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+)
+""".strip(),
+        """
+CREATE TABLE IF NOT EXISTS agent_recovery_attempts (
+  recovery_attempt_id TEXT PRIMARY KEY,
+  receipt_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  recovery_action_id TEXT,
+  attempted_at TEXT NOT NULL,
+  dry_run INTEGER NOT NULL DEFAULT 0,
+  attempted INTEGER NOT NULL DEFAULT 0,
+  succeeded INTEGER NOT NULL DEFAULT 0,
+  exit_code INTEGER,
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  stdout_excerpt TEXT,
+  stderr_excerpt TEXT,
+  blocker TEXT,
+  command_argv_json TEXT NOT NULL,
+  command_executed INTEGER NOT NULL DEFAULT 0,
+  shell_used INTEGER NOT NULL DEFAULT 0,
+  telegram_api_called INTEGER NOT NULL DEFAULT 0,
+  message_sent INTEGER NOT NULL DEFAULT 0,
+  secret_accessed INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+)
+""".strip(),
+        """
 CREATE TABLE IF NOT EXISTS agent_recovery_receipts (
   receipt_id TEXT PRIMARY KEY,
   run_id TEXT NOT NULL,
@@ -342,6 +590,8 @@ CREATE TABLE IF NOT EXISTS agent_presence_runtime_surfaces (
         "CREATE INDEX IF NOT EXISTS idx_agent_presence_agents_state ON agent_presence_agents(actual_state)",
         "CREATE INDEX IF NOT EXISTS idx_agent_presence_checks_agent ON agent_presence_checks(agent_id)",
         "CREATE INDEX IF NOT EXISTS idx_agent_presence_surfaces_agent ON agent_presence_runtime_surfaces(agent_id)",
+        "CREATE INDEX IF NOT EXISTS idx_agent_recovery_actions_agent ON agent_recovery_actions(agent_id)",
+        "CREATE INDEX IF NOT EXISTS idx_agent_recovery_attempts_agent ON agent_recovery_attempts(agent_id)",
     )
 
 
@@ -372,7 +622,13 @@ SELECT name
 FROM sqlite_master
 WHERE type = 'table'
   AND (name LIKE 'agent_presence%'
-       OR name IN ('agent_desired_states', 'agent_recovery_policies', 'agent_recovery_receipts'))
+       OR name IN (
+         'agent_desired_states',
+         'agent_recovery_policies',
+         'agent_recovery_actions',
+         'agent_recovery_attempts',
+         'agent_recovery_receipts'
+       ))
 ORDER BY name
 """.strip()
         ).fetchall()
@@ -467,6 +723,125 @@ ON CONFLICT(agent_id) DO UPDATE SET
         conn.commit()
     finally:
         conn.close()
+
+
+def _action_to_row(seed: RecoveryActionSeed, *, updated_at: str) -> tuple[Any, ...]:
+    return (
+        seed.recovery_action_id,
+        seed.agent_id,
+        seed.action_kind,
+        seed.command_label,
+        stable_json(list(seed.command_argv)),
+        seed.working_directory,
+        seed.status_check_kind,
+        stable_json(list(seed.status_check_argv)) if seed.status_check_argv else None,
+        seed.log_path,
+        seed.heartbeat_path,
+        1 if seed.safe_to_attempt else 0,
+        1 if seed.requires_operator_approval else 0,
+        seed.cooldown_seconds,
+        seed.max_attempts_per_hour,
+        1 if seed.receipt_required else 0,
+        seed.discovered_from,
+        seed.confidence,
+        seed.classification,
+        seed.notes,
+        updated_at,
+    )
+
+
+def seed_recovery_actions(
+    *,
+    db_path: str | Path | None = None,
+    action_overrides: dict[str, dict[str, Any]] | None = None,
+) -> None:
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    overrides = action_overrides or {}
+    conn = sqlite3.connect(path)
+    try:
+        for seed in DEFAULT_RECOVERY_ACTIONS:
+            override = overrides.get(seed.agent_id, {})
+            effective = seed
+            if override:
+                effective = RecoveryActionSeed(
+                    recovery_action_id=str(override.get("recovery_action_id", seed.recovery_action_id)),
+                    agent_id=seed.agent_id,
+                    action_kind=str(override.get("action_kind", seed.action_kind)),
+                    command_label=str(override.get("command_label", seed.command_label)),
+                    command_argv=tuple(override.get("command_argv", seed.command_argv)),
+                    working_directory=str(override.get("working_directory", seed.working_directory)),
+                    status_check_kind=str(override.get("status_check_kind", seed.status_check_kind)),
+                    status_check_argv=tuple(override["status_check_argv"]) if override.get("status_check_argv") else seed.status_check_argv,
+                    log_path=override.get("log_path", seed.log_path),
+                    heartbeat_path=override.get("heartbeat_path", seed.heartbeat_path),
+                    safe_to_attempt=bool(override.get("safe_to_attempt", seed.safe_to_attempt)),
+                    requires_operator_approval=bool(override.get("requires_operator_approval", seed.requires_operator_approval)),
+                    cooldown_seconds=int(override.get("cooldown_seconds", seed.cooldown_seconds)),
+                    max_attempts_per_hour=int(override.get("max_attempts_per_hour", seed.max_attempts_per_hour)),
+                    receipt_required=bool(override.get("receipt_required", seed.receipt_required)),
+                    discovered_from=str(override.get("discovered_from", seed.discovered_from)),
+                    confidence=str(override.get("confidence", seed.confidence)),
+                    classification=str(override.get("classification", seed.classification)),
+                    notes=str(override.get("notes", seed.notes)),
+                )
+            conn.execute(
+                """
+INSERT INTO agent_recovery_actions (
+  recovery_action_id, agent_id, action_kind, command_label,
+  command_argv_json, working_directory, status_check_kind,
+  status_check_argv_json, log_path, heartbeat_path, safe_to_attempt,
+  requires_operator_approval, cooldown_seconds, max_attempts_per_hour,
+  receipt_required, discovered_from, confidence, classification,
+  notes, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(recovery_action_id) DO UPDATE SET
+  action_kind = excluded.action_kind,
+  command_label = excluded.command_label,
+  command_argv_json = excluded.command_argv_json,
+  working_directory = excluded.working_directory,
+  status_check_kind = excluded.status_check_kind,
+  status_check_argv_json = excluded.status_check_argv_json,
+  log_path = excluded.log_path,
+  heartbeat_path = excluded.heartbeat_path,
+  safe_to_attempt = excluded.safe_to_attempt,
+  requires_operator_approval = excluded.requires_operator_approval,
+  cooldown_seconds = excluded.cooldown_seconds,
+  max_attempts_per_hour = excluded.max_attempts_per_hour,
+  receipt_required = excluded.receipt_required,
+  discovered_from = excluded.discovered_from,
+  confidence = excluded.confidence,
+  classification = excluded.classification,
+  notes = excluded.notes,
+  updated_at = excluded.updated_at
+""".strip(),
+                _action_to_row(effective, updated_at=now),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _recovery_action_for_agent(conn: sqlite3.Connection, agent_id: str) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+SELECT *
+FROM agent_recovery_actions
+WHERE agent_id = ?
+ORDER BY safe_to_attempt DESC, recovery_action_id
+LIMIT 1
+""".strip(),
+        (agent_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    payload = dict(row)
+    payload["command_argv"] = json.loads(payload["command_argv_json"])
+    payload["status_check_argv"] = json.loads(payload["status_check_argv_json"]) if payload.get("status_check_argv_json") else None
+    payload["safe_to_attempt"] = bool(payload["safe_to_attempt"])
+    payload["requires_operator_approval"] = bool(payload["requires_operator_approval"])
+    payload["receipt_required"] = bool(payload["receipt_required"])
+    return payload
 
 
 def _surface_state(
@@ -566,14 +941,18 @@ def _policy_for_agent(
     desired_state: str,
     actual_state: str,
     surface_states: list[dict[str, Any]],
+    recovery_action: dict[str, Any] | None,
     policy_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     override = (policy_overrides or {}).get(config.agent_id, {})
     known_kind = "none"
-    for surface in surface_states:
-        if surface.get("surface_found") and surface.get("safe_recovery_kind") not in {None, "none", "unknown_review"}:
-            known_kind = str(surface["safe_recovery_kind"])
-            break
+    if recovery_action and recovery_action.get("action_kind") != "status_only":
+        known_kind = str(recovery_action.get("action_kind") or "unknown_review")
+    else:
+        for surface in surface_states:
+            if surface.get("surface_found") and surface.get("safe_recovery_kind") not in {None, "none", "unknown_review"}:
+                known_kind = str(surface["safe_recovery_kind"])
+                break
     if desired_state == "hard_kill":
         recovery_status = "blocked"
         reason = "hard_kill state blocks recovery."
@@ -586,6 +965,15 @@ def _policy_for_agent(
     elif actual_state in {"online", "metadata_available"}:
         recovery_status = "not_needed"
         reason = "Presence is online or metadata-available; no recovery is needed."
+    elif desired_state == "unknown_review":
+        recovery_status = "blocked"
+        reason = "unknown_review desired state blocks automatic recovery."
+    elif recovery_action and recovery_action.get("action_kind") == "status_only":
+        recovery_status = "blocked"
+        reason = "Only a status/read-model action exists; no recovery mutation is available."
+    elif recovery_action and not recovery_action.get("safe_to_attempt"):
+        recovery_status = "blocked"
+        reason = f"Candidate recovery action is not safe to attempt in v0: {recovery_action.get('notes')}"
     elif known_kind != "none":
         recovery_status = "blocked"
         reason = "A candidate recovery path exists, but autorecovery is not enabled in v0."
@@ -593,11 +981,13 @@ def _policy_for_agent(
         recovery_status = "blocked"
         reason = "No known safe recovery path exists."
     recovery_allowed = bool(override.get("recovery_allowed", False))
+    if recovery_action and not recovery_action.get("safe_to_attempt"):
+        recovery_allowed = False
     if desired_state in {"hard_kill", "offline_intentional", "maintenance"}:
         recovery_allowed = False
     if recovery_allowed and recovery_status == "blocked" and actual_state in {"offline", "degraded"}:
         recovery_status = "available"
-        reason = "Recovery is policy-allowed, but this lane still records metadata only unless explicitly invoked."
+        reason = "Recovery is policy-allowed and requires an explicit receipt-backed execute command."
     recovery_kind = str(override.get("recovery_kind", known_kind if known_kind in RECOVERY_KINDS else "unknown_review"))
     if recovery_kind not in RECOVERY_KINDS:
         recovery_kind = "unknown_review"
@@ -614,6 +1004,7 @@ def _policy_for_agent(
         "hard_kill_respected": True,
         "recovery_status": recovery_status,
         "policy_reason": reason,
+        "recovery_action_id": recovery_action.get("recovery_action_id") if recovery_action else None,
     }
 
 
@@ -626,10 +1017,12 @@ def build_agent_presence_snapshot(
     process_counts: dict[str, int] | None = None,
     service_states: dict[str, str] | None = None,
     recovery_policy_overrides: dict[str, dict[str, Any]] | None = None,
+    recovery_action_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> AgentPresenceBuildResult:
     path = init_agent_presence_schema(db_path)
     seed_agent_lane_registry(db_path=path)
     seed_desired_states(db_path=path, desired_state_overrides=desired_state_overrides)
+    seed_recovery_actions(db_path=path, action_overrides=recovery_action_overrides)
     now = utc_now()
     resolved_run_id = run_id or _row_id("agentpresence", now)
     discovered_process_counts = process_counts if process_counts is not None else _process_snapshot()
@@ -685,11 +1078,13 @@ ON CONFLICT(run_id) DO NOTHING
                 for surface in config.surfaces
             ]
             actual = _actual_state_for_agent(config=config, surface_states=surface_states, repo_root=repo_root)
+            recovery_action = _recovery_action_for_agent(conn, config.agent_id)
             policy = _policy_for_agent(
                 config=config,
                 desired_state=desired_state,
                 actual_state=actual["actual_state"],
                 surface_states=surface_states,
+                recovery_action=recovery_action,
                 policy_overrides=recovery_policy_overrides,
             )
             expected_online = bool(desired_row["expected_online"])
@@ -711,7 +1106,7 @@ ON CONFLICT(run_id) DO NOTHING
                 "last_seen_at": actual["last_seen_at"],
                 "expected_online": expected_online,
                 "autorecovery_allowed": policy["recovery_allowed"],
-                "recovery_action_id": policy["recovery_command_id"],
+                "recovery_action_id": policy["recovery_action_id"] or policy["recovery_command_id"],
                 "recovery_status": policy["recovery_status"],
                 "reason": actual["reason"],
                 "blocker": blocker,
@@ -763,7 +1158,7 @@ ON CONFLICT(agent_id) DO UPDATE SET
                     actual["last_seen_at"],
                     1 if expected_online else 0,
                     1 if policy["recovery_allowed"] else 0,
-                    policy["recovery_command_id"],
+                    policy["recovery_action_id"] or policy["recovery_command_id"],
                     policy["recovery_status"],
                     actual["reason"],
                     blocker,
@@ -787,7 +1182,7 @@ INSERT OR REPLACE INTO agent_recovery_policies (
                     config.agent_id,
                     1 if policy["recovery_allowed"] else 0,
                     policy["recovery_kind"],
-                    policy["recovery_command_id"],
+                    policy["recovery_action_id"] or policy["recovery_command_id"],
                     1 if policy["requires_operator_clearance"] else 0,
                     1,
                     policy["max_attempts"],
@@ -971,8 +1366,13 @@ def _next_safe_move(agent: dict[str, Any]) -> str:
 def _latest_run_id(conn: sqlite3.Connection) -> str | None:
     row = conn.execute(
         """
-SELECT run_id
-FROM agent_presence_runs
+SELECT r.run_id
+FROM agent_presence_runs r
+WHERE EXISTS (
+  SELECT 1
+  FROM agent_presence_agents a
+  WHERE a.run_id = r.run_id
+)
 ORDER BY completed_at DESC, run_id DESC
 LIMIT 1
 """.strip()
@@ -1053,6 +1453,41 @@ ORDER BY agent_id, runtime_surface_id
 """.strip(),
             (run_id,),
         )
+        actions = _dict_rows(
+            conn,
+            """
+SELECT recovery_action_id, agent_id, action_kind, command_label,
+       command_argv_json, working_directory, status_check_kind,
+       status_check_argv_json, safe_to_attempt, requires_operator_approval,
+       cooldown_seconds, max_attempts_per_hour, receipt_required,
+       discovered_from, confidence, classification, notes
+FROM agent_recovery_actions
+ORDER BY agent_id, recovery_action_id
+""".strip(),
+        )
+        for action in actions:
+            action["command_argv"] = json.loads(action.pop("command_argv_json"))
+            action["status_check_argv"] = json.loads(action.pop("status_check_argv_json")) if action.get("status_check_argv_json") else None
+            action.pop("status_check_argv_json", None)
+            action["safe_to_attempt"] = bool(action["safe_to_attempt"])
+            action["requires_operator_approval"] = bool(action["requires_operator_approval"])
+            action["receipt_required"] = bool(action["receipt_required"])
+        attempts = _dict_rows(
+            conn,
+            """
+SELECT recovery_attempt_id, receipt_id, agent_id, recovery_action_id,
+       attempted_at, dry_run, attempted, succeeded, exit_code,
+       duration_ms, blocker, command_argv_json
+FROM agent_recovery_attempts
+ORDER BY attempted_at DESC, recovery_attempt_id DESC
+LIMIT 20
+""".strip(),
+        )
+        for attempt in attempts:
+            attempt["dry_run"] = bool(attempt["dry_run"])
+            attempt["attempted"] = bool(attempt["attempted"])
+            attempt["succeeded"] = bool(attempt["succeeded"])
+            attempt["command_argv"] = json.loads(attempt.pop("command_argv_json"))
         return {
             "status": "ok",
             "report": report,
@@ -1078,10 +1513,433 @@ ORDER BY agent_id, runtime_surface_id
             },
             "items": items,
             "runtime_surfaces": surfaces,
+            "recovery_actions": actions,
+            "recent_recovery_attempts": attempts,
             "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         }
     finally:
         conn.close()
+
+
+def _parse_iso(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _excerpt(value: str, limit: int = 4000) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: limit - 20] + "\n[truncated]\n"
+
+
+def _argv_is_allowlisted(action: dict[str, Any]) -> bool:
+    argv = action.get("command_argv") or []
+    if not argv:
+        return False
+    if action.get("action_kind") in {"systemd_user_start", "systemd_user_restart"}:
+        operation = "start" if action["action_kind"] == "systemd_user_start" else "restart"
+        return (
+            len(argv) >= 4
+            and argv[0:3] == ["systemctl", "--user", operation]
+            and all(isinstance(item, str) and item.endswith(".service") for item in argv[3:])
+        )
+    return False
+
+
+def _latest_agent_and_action(conn: sqlite3.Connection, agent_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    agent_row = conn.execute("SELECT * FROM agent_presence_agents WHERE agent_id = ?", (agent_id,)).fetchone()
+    if agent_row is None:
+        return None, None, None
+    agent = _agent_dict(agent_row)
+    action = _recovery_action_for_agent(conn, agent_id)
+    policy_row = conn.execute("SELECT * FROM agent_recovery_policies WHERE agent_id = ?", (agent_id,)).fetchone()
+    policy = dict(policy_row) if policy_row else None
+    if policy:
+        policy["recovery_allowed"] = bool(policy["recovery_allowed"])
+        policy["requires_operator_clearance"] = bool(policy["requires_operator_clearance"])
+        policy["receipt_required"] = bool(policy["receipt_required"])
+        policy["hard_kill_respected"] = bool(policy["hard_kill_respected"])
+    return agent, action, policy
+
+
+def _recovery_blocker(
+    *,
+    agent: dict[str, Any] | None,
+    action: dict[str, Any] | None,
+    policy: dict[str, Any] | None,
+    now: str,
+) -> str | None:
+    if agent is None:
+        return "agent presence row is missing; build presence before recovery"
+    if agent["desired_state"] == "hard_kill":
+        return "hard_kill prevents recovery"
+    if agent["desired_state"] == "offline_intentional":
+        return "offline_intentional prevents recovery"
+    if agent["desired_state"] == "maintenance":
+        return "maintenance prevents recovery"
+    if agent["desired_state"] == "unknown_review":
+        return "unknown_review desired state prevents recovery"
+    if not agent["expected_online"]:
+        return "agent is not expected online"
+    if agent["actual_state"] not in {"offline", "degraded"}:
+        return f"agent actual_state is {agent['actual_state']}; recovery is not needed"
+    if not action:
+        return "no recovery action is registered"
+    if action["action_kind"] == "status_only":
+        return "registered action is status-only, not recovery"
+    if not action["safe_to_attempt"]:
+        return "registered recovery action is not safe_to_attempt"
+    if not _argv_is_allowlisted(action):
+        return "registered recovery argv is not allowlisted"
+    if not policy or not policy["recovery_allowed"]:
+        return "recovery policy does not explicitly allow execution"
+    current = _parse_iso(now) or datetime.now(timezone.utc)
+    cooldown_seconds = int(policy.get("cooldown_seconds") or action.get("cooldown_seconds") or 0)
+    last_attempt = _parse_iso(policy.get("last_attempt_at"))
+    if last_attempt and current < last_attempt + timedelta(seconds=cooldown_seconds):
+        return "cooldown prevents another recovery attempt"
+    return None
+
+
+def _count_recent_attempts(conn: sqlite3.Connection, agent_id: str, *, now: str) -> int:
+    current = _parse_iso(now) or datetime.now(timezone.utc)
+    threshold = (current - timedelta(hours=1)).replace(microsecond=0).isoformat()
+    row = conn.execute(
+        """
+SELECT COUNT(*) AS count
+FROM agent_recovery_attempts
+WHERE agent_id = ?
+  AND attempted = 1
+  AND attempted_at >= ?
+""".strip(),
+        (agent_id, threshold),
+    ).fetchone()
+    return int(row["count"] if isinstance(row, sqlite3.Row) else row[0])
+
+
+def _write_recovery_attempt_receipt(
+    conn: sqlite3.Connection,
+    *,
+    agent_id: str,
+    action_id: str | None,
+    action_kind: str,
+    command_argv: list[str],
+    dry_run: bool,
+    attempted: bool,
+    succeeded: bool,
+    exit_code: int | None,
+    duration_ms: int,
+    stdout: str,
+    stderr: str,
+    blocker: str | None,
+    now: str,
+) -> str:
+    receipt_id = _row_id("agentrecoveryreceipt", agent_id, action_id or "none", now, attempted, succeeded, blocker or "")
+    attempt_id = _row_id("agentrecoveryattempt", receipt_id)
+    recovery_status = "succeeded" if attempted and succeeded else "failed" if attempted else "blocked"
+    payload = {
+        "agent_id": agent_id,
+        "recovery_action_id": action_id,
+        "dry_run": dry_run,
+        "attempted": attempted,
+        "succeeded": succeeded,
+        "exit_code": exit_code,
+        "blocker": blocker,
+        "command_label": action_kind,
+        "command_argv": command_argv,
+        **NO_AUTHORITY_FLAGS,
+    }
+    conn.execute(
+        """
+INSERT INTO agent_recovery_attempts (
+  recovery_attempt_id, receipt_id, agent_id, recovery_action_id,
+  attempted_at, dry_run, attempted, succeeded, exit_code, duration_ms,
+  stdout_excerpt, stderr_excerpt, blocker, command_argv_json,
+  command_executed, shell_used, telegram_api_called, message_sent,
+  secret_accessed, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?)
+""".strip(),
+        (
+            attempt_id,
+            receipt_id,
+            agent_id,
+            action_id,
+            now,
+            1 if dry_run else 0,
+            1 if attempted else 0,
+            1 if succeeded else 0,
+            exit_code,
+            duration_ms,
+            _excerpt(stdout),
+            _excerpt(stderr),
+            blocker,
+            stable_json(command_argv),
+            1 if attempted else 0,
+            now,
+        ),
+    )
+    conn.execute(
+        """
+INSERT INTO agent_recovery_receipts (
+  receipt_id, run_id, agent_id, recovery_status, recovery_kind,
+  attempted, succeeded, summary, payload_json, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""".strip(),
+        (
+            receipt_id,
+            _latest_run_id(conn) or "unknown_run",
+            agent_id,
+            recovery_status,
+            action_kind,
+            1 if attempted else 0,
+            1 if succeeded else 0,
+            (
+                f"Recovery attempted for {agent_id}: {'succeeded' if succeeded else 'failed'}."
+                if attempted
+                else f"Recovery blocked for {agent_id}: {blocker}."
+            ),
+            stable_json(payload),
+            now,
+        ),
+    )
+    if attempted:
+        conn.execute(
+            """
+UPDATE agent_recovery_policies
+SET last_attempt_at = ?,
+    next_allowed_attempt_at = ?,
+    updated_at = ?
+WHERE agent_id = ?
+""".strip(),
+            (
+                now,
+                ((_parse_iso(now) or datetime.now(timezone.utc)) + timedelta(seconds=900)).replace(microsecond=0).isoformat(),
+                now,
+                agent_id,
+            ),
+        )
+    return receipt_id
+
+
+def build_agent_recovery_status_report(
+    *,
+    db_path: str | Path | None = None,
+    report: str = "summary",
+    agent: str | None = None,
+    refresh_presence: bool = True,
+) -> dict[str, Any]:
+    if refresh_presence:
+        build_agent_presence_snapshot(db_path=db_path)
+    presence = build_agent_presence_report(db_path=db_path, report="summary")
+    items = presence.get("items", [])
+    if agent:
+        items = [item for item in items if item["agent_id"] == agent]
+    action_by_agent = {
+        action["agent_id"]: action
+        for action in presence.get("recovery_actions", [])
+    }
+    attempts_by_agent: dict[str, list[dict[str, Any]]] = {}
+    for attempt in presence.get("recent_recovery_attempts", []):
+        attempts_by_agent.setdefault(attempt["agent_id"], []).append(attempt)
+    rows = []
+    now = utc_now()
+    for item in items:
+        action = action_by_agent.get(item["agent_id"])
+        blocker = _recovery_blocker(agent=item, action=action, policy={
+            "recovery_allowed": item["autorecovery_allowed"],
+            "cooldown_seconds": action.get("cooldown_seconds", 0) if action else 0,
+            "last_attempt_at": None,
+        } if action else None, now=now)
+        rows.append(
+            {
+                "agent_id": item["agent_id"],
+                "display_name": item["display_name"],
+                "desired_state": item["desired_state"],
+                "actual_state": item["actual_state"],
+                "expected_online": item["expected_online"],
+                "recovery_status": item["recovery_status"],
+                "recovery_allowed": item["autorecovery_allowed"],
+                "safe_recovery_action_available": bool(action and action["safe_to_attempt"] and item["autorecovery_allowed"]),
+                "recovery_action": action,
+                "blocked_reason": blocker or item.get("blocker"),
+                "last_recovery_attempt": (attempts_by_agent.get(item["agent_id"]) or [None])[0],
+                "next_safe_move": item["next_safe_move"],
+            }
+        )
+    return {
+        "status": "ok",
+        "report": report,
+        "agent": agent,
+        "items": rows,
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+    }
+
+
+def recover_agent(
+    *,
+    agent_id: str,
+    db_path: str | Path | None = None,
+    execute: bool = False,
+    repo_root: str | Path = ROOT,
+    refresh_presence: bool = True,
+    refresh_after: bool = True,
+    command_runner: Any | None = None,
+) -> AgentRecoveryResult:
+    if refresh_presence:
+        build_agent_presence_snapshot(db_path=db_path, repo_root=repo_root)
+    path = init_agent_presence_schema(db_path)
+    now = utc_now()
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        agent, action, policy = _latest_agent_and_action(conn, agent_id)
+        blocker = _recovery_blocker(agent=agent, action=action, policy=policy, now=now)
+        if policy and action and int(policy.get("max_attempts") or action.get("max_attempts_per_hour") or 1) > 0:
+            max_attempts = int(action.get("max_attempts_per_hour") or policy.get("max_attempts") or 1)
+            if _count_recent_attempts(conn, agent_id, now=now) >= max_attempts:
+                blocker = blocker or "max attempts per hour prevents another recovery attempt"
+        action_id = action.get("recovery_action_id") if action else None
+        command_argv = list(action.get("command_argv") or []) if action else []
+        if blocker:
+            receipt_id = None
+            if execute:
+                receipt_id = _write_recovery_attempt_receipt(
+                    conn,
+                    agent_id=agent_id,
+                    action_id=action_id,
+                    action_kind=action.get("action_kind") if action else "none",
+                    command_argv=command_argv,
+                    dry_run=False,
+                    attempted=False,
+                    succeeded=False,
+                    exit_code=None,
+                    duration_ms=0,
+                    stdout="",
+                    stderr="",
+                    blocker=blocker,
+                    now=now,
+                )
+                conn.commit()
+            return AgentRecoveryResult(
+                agent_id=agent_id,
+                status="blocked",
+                dry_run=not execute,
+                action_id=action_id,
+                attempted=False,
+                exit_code=None,
+                receipt_id=receipt_id,
+                blocker=blocker,
+                summary=f"Recovery blocked for {agent_id}: {blocker}",
+            )
+        if not execute:
+            return AgentRecoveryResult(
+                agent_id=agent_id,
+                status="dry_run_available",
+                dry_run=True,
+                action_id=action_id,
+                attempted=False,
+                exit_code=None,
+                receipt_id=None,
+                blocker=None,
+                summary=f"Dry-run: recovery for {agent_id} would execute fixed action {action_id}.",
+            )
+        started = datetime.now(timezone.utc)
+        runner = command_runner or subprocess.run
+        completed = runner(
+            command_argv,
+            cwd=action.get("working_directory") or str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            shell=False,
+        )
+        duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        succeeded = completed.returncode == 0
+        receipt_id = _write_recovery_attempt_receipt(
+            conn,
+            agent_id=agent_id,
+            action_id=action_id,
+            action_kind=action["action_kind"],
+            command_argv=command_argv,
+            dry_run=False,
+            attempted=True,
+            succeeded=succeeded,
+            exit_code=completed.returncode,
+            duration_ms=duration_ms,
+            stdout=completed.stdout or "",
+            stderr=completed.stderr or "",
+            blocker=None if succeeded else "recovery command returned non-zero exit code",
+            now=now,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    if refresh_after:
+        build_agent_presence_snapshot(db_path=db_path, repo_root=repo_root)
+        export_agent_presence_read_model(db_path=db_path)
+    return AgentRecoveryResult(
+        agent_id=agent_id,
+        status="succeeded" if succeeded else "failed",
+        dry_run=False,
+        action_id=action_id,
+        attempted=True,
+        exit_code=completed.returncode,
+        receipt_id=receipt_id,
+        blocker=None if succeeded else "recovery command returned non-zero exit code",
+        summary=f"Recovery {'succeeded' if succeeded else 'failed'} for {agent_id}.",
+    )
+
+
+def format_agent_recovery_status_report(payload: dict[str, Any]) -> str:
+    lines = ["OpenClaw Agent Recovery Status v0", ""]
+    if payload.get("agent"):
+        lines.append(f"Agent: `{payload['agent']}`")
+    lines.append("Items:")
+    for item in payload.get("items", []):
+        action = item.get("recovery_action") or {}
+        lines.append(
+            f"- `{item['agent_id']}` desired={item['desired_state']} actual={item['actual_state']} "
+            f"recovery={item['recovery_status']} safe_action=`{str(item['safe_recovery_action_available']).lower()}`"
+        )
+        lines.append(f"  action: `{action.get('recovery_action_id', 'none')}` kind=`{action.get('action_kind', 'none')}`")
+        lines.append(f"  blocked: {item.get('blocked_reason') or 'none'}")
+        lines.append(f"  next: {item['next_safe_move']}")
+    lines.extend(
+        [
+            "",
+            "Boundary:",
+            "- Status only; no service start/restart, Telegram API call, message send, secret read, arbitrary shell, Docker/Ollama, or broad agent activation.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def format_agent_recovery_result(result: AgentRecoveryResult) -> str:
+    lines = [
+        "OpenClaw Agent Recovery v0",
+        "",
+        f"Agent: `{result.agent_id}`",
+        f"Status: `{result.status}`",
+        f"Dry run: `{str(result.dry_run).lower()}`",
+        f"Action: `{result.action_id or 'none'}`",
+        f"Attempted: `{str(result.attempted).lower()}`",
+        f"Exit code: `{result.exit_code}`",
+        f"Receipt: `{result.receipt_id or 'none'}`",
+        f"Blocker: {result.blocker or 'none'}",
+        f"Summary: {result.summary}",
+        "",
+        "Boundary:",
+        "- Recovery runs only fixed allowlisted argv after policy allows it; no shell, no user command text, no Telegram message send, no secret inspection.",
+    ]
+    return "\n".join(lines)
 
 
 def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[str, Any]:
@@ -1098,6 +1956,18 @@ def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[s
         for item in items
         if item.get("blocker")
     ]
+    actions_by_agent: dict[str, list[dict[str, Any]]] = {}
+    for action in report.get("recovery_actions", []):
+        actions_by_agent.setdefault(action["agent_id"], []).append(action)
+    attempts_by_agent: dict[str, list[dict[str, Any]]] = {}
+    for attempt in report.get("recent_recovery_attempts", []):
+        attempts_by_agent.setdefault(attempt["agent_id"], []).append(attempt)
+    enriched_items: list[dict[str, Any]] = []
+    for item in items:
+        enriched = dict(item)
+        enriched["recovery_actions"] = actions_by_agent.get(item["agent_id"], [])
+        enriched["last_recovery_attempt"] = (attempts_by_agent.get(item["agent_id"]) or [None])[0]
+        enriched_items.append(enriched)
     return {
         "schema_version": READ_MODEL_VERSION,
         "generated_at": utc_now(),
@@ -1110,9 +1980,11 @@ def build_agent_presence_read_model(db_path: str | Path | None = None) -> dict[s
         "unknown_count": counts.get("unknown", 0),
         "intentional_offline_count": counts.get("intentional_offline", 0),
         "maintenance_hard_kill_count": counts.get("maintenance_or_hard_kill", 0),
-        "cassandra_presence": by_agent.get("cassandra"),
-        "agents": items,
+        "cassandra_presence": next((item for item in enriched_items if item["agent_id"] == "cassandra"), by_agent.get("cassandra")),
+        "agents": enriched_items,
         "runtime_surfaces": report.get("runtime_surfaces", []),
+        "recovery_actions": report.get("recovery_actions", []),
+        "recent_recovery_attempts": report.get("recent_recovery_attempts", []),
         "recovery_available_count": counts.get("by_recovery_status", {}).get("available", 0),
         "blockers": blockers,
         "next_safe_move": (
@@ -1145,6 +2017,7 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
                 f"- actual: `{cassandra['actual_state']}`",
                 f"- source: `{cassandra['presence_source']}`",
                 f"- recovery: `{cassandra['recovery_status']}`",
+                f"- recovery action: `{cassandra.get('recovery_action_id') or 'none'}`",
                 f"- blocker: {cassandra.get('blocker') or 'none'}",
                 f"- next: {cassandra['next_safe_move']}",
             ]
@@ -1155,8 +2028,25 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
     for item in payload["agents"]:
         lines.append(
             f"- `{item['agent_id']}` desired={item['desired_state']} actual={item['actual_state']} "
-            f"source={item['presence_source']} recovery={item['recovery_status']}"
+            f"source={item['presence_source']} recovery={item['recovery_status']} "
+            f"action={item.get('recovery_action_id') or 'none'}"
         )
+    if payload["recovery_actions"]:
+        lines.extend(["", "Recovery actions:"])
+        for action in payload["recovery_actions"]:
+            lines.append(
+                f"- `{action['agent_id']}` `{action['recovery_action_id']}` "
+                f"kind={action['action_kind']} safe_to_attempt=`{str(action['safe_to_attempt']).lower()}` "
+                f"classification={action['classification']}"
+            )
+    if payload["recent_recovery_attempts"]:
+        lines.extend(["", "Recent recovery attempts:"])
+        for attempt in payload["recent_recovery_attempts"][:5]:
+            lines.append(
+                f"- `{attempt['agent_id']}` action={attempt.get('recovery_action_id') or 'none'} "
+                f"attempted=`{str(attempt['attempted']).lower()}` succeeded=`{str(attempt['succeeded']).lower()}` "
+                f"blocker={attempt.get('blocker') or 'none'}"
+            )
     if payload["blockers"]:
         lines.extend(["", "Blockers:"])
         for blocker in payload["blockers"]:
@@ -1218,6 +2108,7 @@ def format_agent_presence_report(payload: dict[str, Any]) -> str:
                 f"Expected online: `{str(item['expected_online']).lower()}`",
                 f"Recovery allowed: `{str(item['autorecovery_allowed']).lower()}`",
                 f"Recovery status: `{item['recovery_status']}`",
+                f"Recovery action: `{item.get('recovery_action_id') or 'none'}`",
                 f"Blocker: {item.get('blocker') or 'none'}",
                 f"Next safe move: {item['next_safe_move']}",
             ]
@@ -1238,7 +2129,8 @@ def format_agent_presence_report(payload: dict[str, Any]) -> str:
         for item in payload.get("items", []):
             lines.append(
                 f"- `{item['agent_id']}` desired={item['desired_state']} actual={item['actual_state']} "
-                f"recovery={item['recovery_status']} next={item['next_safe_move']}"
+                f"recovery={item['recovery_status']} action={item.get('recovery_action_id') or 'none'} "
+                f"next={item['next_safe_move']}"
             )
     lines.extend(
         [
@@ -1256,9 +2148,14 @@ __all__ = [
     "build_agent_presence_read_model",
     "build_agent_presence_report",
     "build_agent_presence_snapshot",
+    "build_agent_recovery_status_report",
     "export_agent_presence_read_model",
+    "format_agent_recovery_result",
+    "format_agent_recovery_status_report",
     "format_agent_presence_report",
     "init_agent_presence_schema",
+    "recover_agent",
+    "seed_recovery_actions",
     "seed_desired_states",
     "agent_presence_table_names",
 ]

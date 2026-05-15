@@ -19,7 +19,7 @@ The presence layer answers deterministic operator questions such as:
 - Is recovery available, blocked, or not needed?
 - What evidence supports that state?
 
-This is a status and recovery-policy registry only. It does not start agents, send Telegram messages, inspect secrets, or restart services.
+This is a status and recovery-policy registry. It does not start agents, send Telegram messages, inspect secrets, or restart services unless a later explicit recovery command passes every policy gate and writes a receipt.
 
 ## Existing Runtime Surfaces Found
 
@@ -32,7 +32,7 @@ Discovery found repo-evident runtime/service surfaces:
 - Hermes: Hermes gateway service/template and advisory packet surfaces.
 - Report Bridge: metadata/read-model/package intake surface; not a live daemon in v0.
 
-Service-management freeze docs mark older broad launchers as frozen/deprecated. Presence v0 records candidate recovery policy but does not invoke those paths.
+Service-management freeze docs mark older broad launchers as frozen/deprecated. Presence v0.1 records candidate recovery actions, but keeps execution blocked unless the action is fixed, allowlisted, policy-approved, cooldown-safe, and receipt-backed.
 
 ## Desired Versus Actual State
 
@@ -46,7 +46,7 @@ Agent Lane Registry membership is not presence. A role can be registered and sti
 
 ## Recovery Policy
 
-Autorecovery is blocked by default.
+Autorecovery is blocked by default. Recovery actions are separate from presence checks.
 
 Recovery is never allowed for:
 - `hard_kill`
@@ -54,7 +54,7 @@ Recovery is never allowed for:
 - `maintenance`
 - unknown/review-only runtime state
 
-Recovery can become available only in a future explicit lane if:
+Recovery can become available only if:
 - the agent is expected online
 - actual state is offline or degraded
 - a real safe local recovery path is known
@@ -62,7 +62,15 @@ Recovery can become available only in a future explicit lane if:
 - cooldown permits it
 - a receipt can be written
 
-Presence v0 writes recovery receipts that say no recovery command was executed.
+Presence writes recovery receipts. A blocked execute request writes a blocked receipt. An attempted recovery writes stdout/stderr excerpts, exit code, duration, and no-authority flags.
+
+Current first-pass recovery status:
+
+- Cassandra: candidate fixed systemd user start path exists for listener/watcher/scheduler, but execution is blocked in v0 because the listener is Telegram-facing and the unit templates have legacy runtime/log side effects.
+- Chief: candidate fixed systemd user start path exists for Chief listener/workers/watcher, but execution is blocked in v0 because broad runtime startup side effects are not yet cleared.
+- Niles: Producer/Niles script path exists, but execution is blocked because it requires a secret-backed environment and may call Telegram.
+- Guardian/Hermes: runtime surfaces exist and may be online; recovery remains blocked unless explicitly allowed by policy.
+- Report Bridge: metadata/read-model only; no live daemon recovery is represented.
 
 ## Commands
 
@@ -83,6 +91,27 @@ Query offline expected-online agents:
 ```bash
 python3 scripts/query_agent_presence.py --report offline --format operator
 ```
+
+Check recovery policy/status:
+
+```bash
+python3 scripts/check_agent_recovery_status.py --report summary --format operator
+python3 scripts/check_agent_recovery_status.py --agent cassandra --format operator
+```
+
+Dry-run recovery:
+
+```bash
+python3 scripts/recover_agent.py --agent cassandra --dry-run --format operator
+```
+
+Execute recovery only if the report says policy allows it:
+
+```bash
+python3 scripts/recover_agent.py --agent cassandra --execute --format operator
+```
+
+If the command reports `blocked`, do not bypass it with a launcher script. Open a narrow recovery lane to change policy.
 
 Export the read-model:
 
@@ -109,4 +138,4 @@ Generated read-models:
 
 ## Next Safe Move
 
-Use this read-model in Mission Control as a read-only surface. A later recovery lane may define one narrow receipt-backed recovery action for a specific agent/service, but it should not restart all agents or bypass hard-kill/maintenance/intentional-offline state.
+Use this read-model in Mission Control as a read-only surface. Chief can answer “Is Cassandra online?” from `agent_presence.json`: Cassandra is expected online, actual state is based on runtime/service evidence, and recovery is either blocked, available, attempted, succeeded, or failed with a receipt.

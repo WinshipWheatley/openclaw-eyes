@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import subprocess
 from pathlib import Path
 
 from agent_presence import (
@@ -8,11 +9,15 @@ from agent_presence import (
     agent_presence_table_names,
     build_agent_presence_report,
     build_agent_presence_snapshot,
+    build_agent_recovery_status_report,
     export_agent_presence_read_model,
+    recover_agent,
 )
 from scripts.check_agent_presence import main as check_main
+from scripts.check_agent_recovery_status import main as recovery_status_main
 from scripts.export_agent_presence_read_model import main as export_main
 from scripts.query_agent_presence import main as query_main
+from scripts.recover_agent import main as recover_main
 
 
 CORE_AGENT_IDS = {"chief", "cassandra", "guardian", "niles", "hermes", "report_bridge"}
@@ -68,6 +73,8 @@ def test_schema_initializes(tmp_path):
         "agent_presence_agents",
         "agent_presence_checks",
         "agent_desired_states",
+        "agent_recovery_actions",
+        "agent_recovery_attempts",
         "agent_recovery_policies",
         "agent_recovery_receipts",
         "agent_presence_blockers",
@@ -131,6 +138,19 @@ ORDER BY agent_id, source_path
     assert any(row["agent_id"] == "cassandra" and row["surface_kind"] == "telegram_bot" for row in surfaces)
     assert all(row["surface_found"] == 1 for row in surfaces)
     assert all(row["recovery_allowed"] == 0 for row in surfaces)
+    actions = _rows(
+        db_path,
+        """
+SELECT agent_id, action_kind, safe_to_attempt, command_argv_json
+FROM agent_recovery_actions
+ORDER BY agent_id
+""",
+    )
+    assert {row["agent_id"] for row in actions} == CORE_AGENT_IDS
+    cassandra_action = [row for row in actions if row["agent_id"] == "cassandra"][0]
+    assert cassandra_action["action_kind"] == "systemd_user_start"
+    assert cassandra_action["safe_to_attempt"] == 0
+    assert json.loads(cassandra_action["command_argv_json"])[:3] == ["systemctl", "--user", "start"]
     assert tuple(_row(
         db_path,
         """
@@ -244,6 +264,149 @@ WHERE agent_id = 'chief'
     )["attempted"] == 0
 
 
+def test_recovery_status_report_is_deterministic_for_cassandra_chief_and_niles(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_status_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
+    )
+
+    for agent in ("cassandra", "chief", "niles"):
+        report = build_agent_recovery_status_report(
+            db_path=db_path,
+            agent=agent,
+            refresh_presence=False,
+        )
+        item = report["items"][0]
+        assert item["agent_id"] == agent
+        assert item["safe_recovery_action_available"] is False
+        assert item["recovery_action"]
+        assert item["blocked_reason"]
+
+
+def test_recover_agent_dry_run_does_not_execute(tmp_path, monkeypatch):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_dry_run_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
+    )
+    called = False
+
+    def fake_runner(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        return subprocess.CompletedProcess(_args[0], 0, "ok", "")
+
+    result = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=False,
+        refresh_presence=False,
+        command_runner=fake_runner,
+    )
+
+    assert result.status == "blocked"
+    assert result.attempted is False
+    assert called is False
+    assert _row(db_path, "SELECT COUNT(*) AS count FROM agent_recovery_attempts")["count"] == 0
+
+
+def test_recover_agent_execute_requires_safe_allowed_policy(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_blocked_execute_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
+    )
+
+    result = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+    )
+
+    assert result.status == "blocked"
+    assert result.attempted is False
+    assert "not safe_to_attempt" in result.blocker
+    assert tuple(_row(
+        db_path,
+        "SELECT attempted, command_executed, shell_used, telegram_api_called, message_sent, secret_accessed FROM agent_recovery_attempts",
+    )) == (0, 0, 0, 0, 0, 0)
+
+
+def test_allowed_fixed_recovery_writes_receipt_and_cooldown_blocks_loop(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    repo_root = _fixture_repo(tmp_path)
+    build_agent_presence_snapshot(
+        db_path=db_path,
+        repo_root=repo_root,
+        run_id="presence_recovery_execute_fixture",
+        process_counts={},
+        service_states=_service_states("inactive"),
+        recovery_action_overrides={
+            "cassandra": {
+                "safe_to_attempt": True,
+                "notes": "test-only safe fixed systemd action",
+            }
+        },
+        recovery_policy_overrides={
+            "cassandra": {
+                "recovery_allowed": True,
+                "recovery_kind": "systemd_user_start",
+                "recovery_command_id": "cassandra_systemd_user_start",
+                "cooldown_seconds": 900,
+            }
+        },
+    )
+    calls = []
+
+    def fake_runner(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, "started\n", "")
+
+    first = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+        command_runner=fake_runner,
+    )
+    second = recover_agent(
+        agent_id="cassandra",
+        db_path=db_path,
+        execute=True,
+        refresh_presence=False,
+        refresh_after=False,
+        command_runner=fake_runner,
+    )
+
+    assert first.status == "succeeded"
+    assert first.attempted is True
+    assert first.receipt_id
+    assert calls[0][0][:3] == ["systemctl", "--user", "start"]
+    assert calls[0][1]["shell"] is False
+    assert second.status == "blocked"
+    assert second.attempted is False
+    assert "cooldown prevents" in second.blocker
+    rows = _rows(db_path, "SELECT attempted, succeeded, shell_used, telegram_api_called, message_sent, secret_accessed FROM agent_recovery_attempts ORDER BY attempted_at")
+    assert tuple(rows[0]) == (1, 1, 0, 0, 0, 0)
+    assert tuple(rows[1]) == (0, 0, 0, 0, 0, 0)
+
+
 def test_report_bridge_can_be_metadata_available_without_fake_online(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     repo_root = tmp_path / "repo"
@@ -298,6 +461,15 @@ def test_query_reports_and_scripts_work(tmp_path, capsys):
         assert query_main(["--db", str(db_path), "--report", report, "--format", "json"]) == 0
         report_payload = json.loads(capsys.readouterr().out)
         assert report_payload["status"] == "ok"
+
+    assert recovery_status_main(["--db", str(db_path), "--agent", "cassandra", "--format", "json"]) == 0
+    recovery_payload = json.loads(capsys.readouterr().out)
+    assert recovery_payload["items"][0]["agent_id"] == "cassandra"
+
+    assert recover_main(["--db", str(db_path), "--agent", "cassandra", "--dry-run", "--format", "json"]) == 0
+    recover_payload = json.loads(capsys.readouterr().out)
+    assert recover_payload["status"] == "blocked"
+    assert recover_payload["attempted"] is False
 
 
 def test_read_model_export_contains_cassandra_and_no_authority(tmp_path, capsys):
@@ -357,7 +529,9 @@ def test_source_has_no_forbidden_runtime_network_or_destructive_behavior():
         for path in [
             "agent_presence.py",
             "scripts/check_agent_presence.py",
+            "scripts/check_agent_recovery_status.py",
             "scripts/query_agent_presence.py",
+            "scripts/recover_agent.py",
             "scripts/export_agent_presence_read_model.py",
         ]
     )
