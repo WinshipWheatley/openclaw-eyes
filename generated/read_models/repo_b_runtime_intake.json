@@ -1,0 +1,664 @@
+{
+  "agent_surface_counts": [
+    {
+      "agent_id": "cassandra",
+      "count": 1,
+      "surface_kind": "dashboard"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 6,
+      "surface_kind": "notification_sender"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 1,
+      "surface_kind": "orchestrator"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 4,
+      "surface_kind": "polish_loop"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 1,
+      "surface_kind": "runtime_listener"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 1,
+      "surface_kind": "scheduler"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 3,
+      "surface_kind": "telegram_listener"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 11,
+      "surface_kind": "unknown"
+    },
+    {
+      "agent_id": "cassandra",
+      "count": 1,
+      "surface_kind": "watcher"
+    },
+    {
+      "agent_id": "chief",
+      "count": 4,
+      "surface_kind": "budget_finance"
+    },
+    {
+      "agent_id": "chief",
+      "count": 2,
+      "surface_kind": "dashboard"
+    },
+    {
+      "agent_id": "chief",
+      "count": 1,
+      "surface_kind": "file_io"
+    },
+    {
+      "agent_id": "chief",
+      "count": 2,
+      "surface_kind": "notification_sender"
+    },
+    {
+      "agent_id": "chief",
+      "count": 3,
+      "surface_kind": "orchestrator"
+    },
+    {
+      "agent_id": "chief",
+      "count": 2,
+      "surface_kind": "polish_loop"
+    },
+    {
+      "agent_id": "chief",
+      "count": 1,
+      "surface_kind": "runtime_listener"
+    },
+    {
+      "agent_id": "chief",
+      "count": 1,
+      "surface_kind": "session_manager"
+    },
+    {
+      "agent_id": "chief",
+      "count": 7,
+      "surface_kind": "unknown"
+    },
+    {
+      "agent_id": "chief",
+      "count": 1,
+      "surface_kind": "watcher"
+    },
+    {
+      "agent_id": "chief",
+      "count": 4,
+      "surface_kind": "worker"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 2,
+      "surface_kind": "approval_policy"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 1,
+      "surface_kind": "dashboard"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 1,
+      "surface_kind": "hitl_approval"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 1,
+      "surface_kind": "pii_vault"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 8,
+      "surface_kind": "polish_loop"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 1,
+      "surface_kind": "runtime_listener"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 1,
+      "surface_kind": "session_manager"
+    },
+    {
+      "agent_id": "guardian",
+      "count": 3,
+      "surface_kind": "unknown"
+    },
+    {
+      "agent_id": "niles",
+      "count": 1,
+      "surface_kind": "approval_bridge"
+    },
+    {
+      "agent_id": "niles",
+      "count": 8,
+      "surface_kind": "music_album"
+    },
+    {
+      "agent_id": "niles",
+      "count": 1,
+      "surface_kind": "orchestrator"
+    },
+    {
+      "agent_id": "niles",
+      "count": 3,
+      "surface_kind": "polish_loop"
+    },
+    {
+      "agent_id": "niles",
+      "count": 1,
+      "surface_kind": "runtime_listener"
+    },
+    {
+      "agent_id": "niles",
+      "count": 1,
+      "surface_kind": "scheduler"
+    },
+    {
+      "agent_id": "niles",
+      "count": 1,
+      "surface_kind": "session_manager"
+    },
+    {
+      "agent_id": "niles",
+      "count": 23,
+      "surface_kind": "unknown"
+    },
+    {
+      "agent_id": "niles",
+      "count": 2,
+      "surface_kind": "watcher"
+    },
+    {
+      "agent_id": "niles",
+      "count": 6,
+      "surface_kind": "website_marketing_content"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 1,
+      "surface_kind": "budget_finance"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 1,
+      "surface_kind": "dashboard"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 2,
+      "surface_kind": "google_access"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 2,
+      "surface_kind": "orchestrator"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 5,
+      "surface_kind": "polish_loop"
+    },
+    {
+      "agent_id": "unknown",
+      "count": 3,
+      "surface_kind": "skill_loader"
+    }
+  ],
+  "counts": {
+    "agent_surface_count": 136,
+    "client_product_candidate_count": 6,
+    "count_by_agent": {
+      "cassandra": 29,
+      "chief": 28,
+      "guardian": 18,
+      "niles": 47,
+      "unknown": 14
+    },
+    "count_by_burden": {
+      "mainly_reference": 23,
+      "reduces_build_burden": 16,
+      "reduces_client_delivery_burden": 15,
+      "reduces_finance_burden": 51,
+      "reduces_music_burden": 17,
+      "reduces_system_maintenance_burden": 12
+    },
+    "count_by_future_role": {
+      "client_template_candidate": 6,
+      "context_pack_component_candidate": 21,
+      "core_module_candidate": 39,
+      "personal_only_candidate": 5,
+      "report_bridge_component_candidate": 1,
+      "reusable_module_candidate": 36,
+      "runtime_service_candidate": 17,
+      "security_guardrail_candidate": 9
+    },
+    "direct_execution_risk_count": 157,
+    "docs_only_count": 29,
+    "finance_candidate_count": 51,
+    "invoked_script_count": 26,
+    "legacy_runtime_risk_count": 10,
+    "markdown_file_count": 30,
+    "module_candidate_count": 134,
+    "music_candidate_count": 17,
+    "python_file_count": 89,
+    "scanned_file_count": 146,
+    "security_hitl_candidate_count": 9,
+    "shell_script_count": 13,
+    "skipped_no_go_count": 2,
+    "startup_script_count": 10,
+    "task_file_count": 0
+  },
+  "decision_packet": {
+    "contains_at_a_glance": "Legacy runtime listeners, workers, startup scripts, approval/HITL helpers, Cassandra/Chief/Niles/Guardian surfaces, finance/music/client-product candidates, and legacy docs.",
+    "do_not_touch_yet": [
+      "Secrets, env files, credential-like files, private/client/legal/tax roots, and startup scripts that launch background processes.",
+      "Any Repo B runtime service until wrapped in fixed recovery policy with receipts."
+    ],
+    "most_valuable_to_reduce_burden": [
+      "Finance/invoice helpers for business ops relief.",
+      "Music/album helpers for Niles support.",
+      "Cassandra/Chief runtime surfaces for agent recovery clarity.",
+      "Approval/HITL/security code for guarded Operator Action reuse."
+    ]
+  },
+  "generated_at": "2026-05-15T19:03:10+00:00",
+  "no_authority_flags": {
+    "client_deployment_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "module_promotion_allowed": false,
+    "operator_decision_required": true,
+    "repo_b_canonical": false,
+    "repo_b_execution_allowed": false,
+    "repo_b_imported_as_truth": false,
+    "script_execution_allowed": false,
+    "secret_access_allowed": false,
+    "service_start_allowed": false
+  },
+  "read_model_version": "repo_b_runtime_intake_read_model_v0",
+  "recommended_next_lane": "Repo B Runtime Reconciliation Review v0",
+  "reconciliation_recommendations": [
+    {
+      "next_safe_move": "Classify useful helpers into metadata-only planning modules before any DAW or file-changing behavior.",
+      "priority_hint": "normal",
+      "recommended_lane": "Niles Music Runtime Candidate Review v0",
+      "reduces_operator_burden_by": "reduces_music_burden",
+      "routed_agent": "niles",
+      "summary": "Album, mixer, producer, Fundo, and music helper filenames were detected as Niles/music-art candidates.",
+      "title": "Review Repo B music and album helpers as Niles candidates"
+    },
+    {
+      "next_safe_move": "Map candidate files to Project Capsule/module registry without generating client repos yet.",
+      "priority_hint": "normal",
+      "recommended_lane": "Client Template Candidate Review v0",
+      "reduces_operator_burden_by": "reduces_client_delivery_burden",
+      "routed_agent": "chief",
+      "summary": "Website, marketing, brand, and demo surfaces may become future client template candidates after review.",
+      "title": "Review Repo B website and client product candidates"
+    },
+    {
+      "next_safe_move": "Keep sensitive surfaces metadata-only and evaluate whether they map to Operator Action gates or remain blocked.",
+      "priority_hint": "high",
+      "recommended_lane": "Guardian HITL Security Reconciliation v0",
+      "reduces_operator_burden_by": "reduces_system_maintenance_burden",
+      "routed_agent": "guardian",
+      "summary": "HITL, approval, PII, and Google access surfaces need Guardian review before reuse.",
+      "title": "Review Repo B HITL, PII, and access-control candidates"
+    },
+    {
+      "next_safe_move": "Compare mapped runtime surfaces against Agent Presence and recovery policy; do not start services.",
+      "priority_hint": "high",
+      "recommended_lane": "Agent Runtime Reconciliation v0",
+      "reduces_operator_burden_by": "reduces_system_maintenance_burden",
+      "routed_agent": "chief",
+      "summary": "Chief, Cassandra, Guardian, Niles/Producer, and Hermes-like runtime files are now mapped as non-canonical candidates.",
+      "title": "Review Repo B agent runtime surfaces"
+    },
+    {
+      "next_safe_move": "Inspect candidates under Guardian boundaries and decide whether a metadata-only finance helper lane should port safe logic.",
+      "priority_hint": "high",
+      "recommended_lane": "Finance Invoice Helper Reconciliation v0",
+      "reduces_operator_burden_by": "reduces_finance_burden",
+      "routed_agent": "chief",
+      "summary": "Billing, invoice, budget, CPA, or financial helper filenames were detected as personal/business candidates.",
+      "title": "Review Repo B finance and invoice helpers"
+    },
+    {
+      "next_safe_move": "Convert any still-useful startup behavior into fixed recovery actions with receipts, or keep blocked.",
+      "priority_hint": "high",
+      "recommended_lane": "Legacy Runtime Startup Boundary Review v0",
+      "reduces_operator_burden_by": "reduces_system_maintenance_burden",
+      "routed_agent": "guardian",
+      "summary": "Repo B startup scripts are legacy runtime risks because they can launch background processes outside current receipts.",
+      "title": "Wrap or retire legacy startup scripts"
+    }
+  ],
+  "repo_b": {
+    "branch": "master",
+    "canonical_status": "non_canonical_until_promoted",
+    "commit": "839e445fc64f181234042b410ecd7b41bb2fe149",
+    "execution_allowed": false,
+    "import_status": "metadata_scanned_only",
+    "path": "/home/openclaw_external/openclaw-runtime",
+    "promotion_required": true,
+    "remote": "https://github.com/WinshipWheatley/openclaw-runtime.git",
+    "source_repo": "openclaw-runtime"
+  },
+  "run_id": "repobrun_79e4b54a3f2c7db6d3db",
+  "schema_version": "repo_b_runtime_intake_read_model_v0",
+  "startup_scripts": [
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 2,
+      "relative_path": "builder_watcher.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 0,
+      "referenced_count": 2,
+      "relative_path": "loop_control.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 3,
+      "relative_path": "loop_dashboard_watchdog.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 10,
+      "relative_path": "loop_supervisor.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 3,
+      "relative_path": "polish_loop/start_orchestrator.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 0,
+      "referenced_count": 1,
+      "relative_path": "retry_send_demo_dashboard.sh"
+    },
+    {
+      "background_invocation_detected": 0,
+      "nohup_detected": 0,
+      "referenced_count": 1,
+      "relative_path": "start_album_brain.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 21,
+      "relative_path": "start_chief.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 1,
+      "referenced_count": 9,
+      "relative_path": "start_chief_logged.sh"
+    },
+    {
+      "background_invocation_detected": 1,
+      "nohup_detected": 0,
+      "referenced_count": 4,
+      "relative_path": "start_openclaw_brains.sh"
+    }
+  ],
+  "top_burden_reduction_candidates": [
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "context_pack_component_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Cassandra",
+      "relative_path": ".claude/commands/cassandra.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "context_pack_component_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Claude",
+      "relative_path": "CLAUDE.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Current State",
+      "relative_path": "CURRENT_STATE.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Known Gaps",
+      "relative_path": "KNOWN_GAPS.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Next Actions",
+      "relative_path": "NEXT_ACTIONS.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "docs_only",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Runbook",
+      "relative_path": "RUNBOOK.md"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Autonomy Mode",
+      "relative_path": "autonomy_mode.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Autonomy Qualification",
+      "relative_path": "autonomy_qualification.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "candidate_to_port",
+      "future_architectural_role": "personal_only_candidate",
+      "future_home_candidate": "personal",
+      "module_name": "Budget Tracker",
+      "relative_path": "budget_tracker.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "legacy_runtime_risk",
+      "future_architectural_role": "runtime_service_candidate",
+      "future_home_candidate": "unknown",
+      "module_name": "Builder Watcher",
+      "relative_path": "builder_watcher.sh"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Capability Registry",
+      "relative_path": "capability_registry.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Cassandra Brain",
+      "relative_path": "cassandra_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Cassandra Capability",
+      "relative_path": "cassandra_capability.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Cassandra Outreach",
+      "relative_path": "cassandra_outreach.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Chief Analytics Brain",
+      "relative_path": "chief_analytics_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "candidate_to_wrap",
+      "future_architectural_role": "security_guardrail_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Chief Approval Bridge",
+      "relative_path": "chief_approval_bridge.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "candidate_to_wrap",
+      "future_architectural_role": "security_guardrail_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Chief Approval Policy",
+      "relative_path": "chief_approval_policy.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "candidate_to_port",
+      "future_architectural_role": "personal_only_candidate",
+      "future_home_candidate": "personal",
+      "module_name": "Chief Billing Brain",
+      "relative_path": "chief_billing_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "reusable_module_candidate",
+      "future_home_candidate": "module",
+      "module_name": "Chief Brainstorm Brain",
+      "relative_path": "chief_brainstorm_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_finance_burden",
+      "candidate_status": "module_registry_candidate",
+      "future_architectural_role": "core_module_candidate",
+      "future_home_candidate": "core",
+      "module_name": "Chief Calendar Brain",
+      "relative_path": "chief_calendar_brain.py"
+    }
+  ],
+  "top_legacy_runtime_risks": [
+    {
+      "evidence": "Telegram-related source reference detected",
+      "finding_type": "telegram_direct",
+      "relative_path": ".claude/commands/cassandra.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "approval bypass reference detected",
+      "finding_type": "approval_bypass_reference",
+      "relative_path": ".claude/commands/cassandra.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "nohup/background runtime invocation detected",
+      "finding_type": "nohup_background",
+      "relative_path": "CLAUDE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "Telegram-related source reference detected",
+      "finding_type": "telegram_direct",
+      "relative_path": "CLAUDE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "token/env reference detected",
+      "finding_type": "env_token_reference",
+      "relative_path": "CLAUDE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": ".env reference detected",
+      "finding_type": "dotenv_reference",
+      "relative_path": "CLAUDE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "Google access reference detected",
+      "finding_type": "google_access_reference",
+      "relative_path": "CLAUDE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "nohup/background runtime invocation detected",
+      "finding_type": "nohup_background",
+      "relative_path": "CURRENT_STATE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "Telegram-related source reference detected",
+      "finding_type": "telegram_direct",
+      "relative_path": "CURRENT_STATE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "token/env reference detected",
+      "finding_type": "env_token_reference",
+      "relative_path": "CURRENT_STATE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "Google access reference detected",
+      "finding_type": "google_access_reference",
+      "relative_path": "CURRENT_STATE.md",
+      "risk_level": "high"
+    },
+    {
+      "evidence": "nohup/background runtime invocation detected",
+      "finding_type": "nohup_background",
+      "relative_path": "KNOWN_GAPS.md",
+      "risk_level": "high"
+    }
+  ]
+}
