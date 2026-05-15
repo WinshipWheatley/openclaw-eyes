@@ -1,0 +1,373 @@
+{
+  "counts": {
+    "blocked_no_go_count": 0,
+    "by_capability": {
+      "billing_tracking": 42,
+      "budget_tracking": 32,
+      "client_payment_status": 20,
+      "cpa_tax_support": 14,
+      "email_draft_support": 40,
+      "evidence_gathering": 32,
+      "invoice_drafting": 24,
+      "ledger_reconciliation": 27,
+      "receivable_tracking": 12,
+      "report_generation": 35,
+      "unknown": 1
+    },
+    "by_future_home": {
+      "business_ops_module": 17,
+      "cpa_support_reference": 14,
+      "evidence_helper": 4,
+      "finance_world_core": 2,
+      "invoice_helper": 13,
+      "reference_only_legacy": 1
+    },
+    "by_reuse_policy": {
+      "candidate_to_port": 5,
+      "needs_operator_review": 41,
+      "reference_only": 5
+    },
+    "finance_candidate_count": 51,
+    "high_risk_count": 46,
+    "safe_source_reviewed_count": 51,
+    "work_board_card_count": 3
+  },
+  "evidence_requirements": [
+    {
+      "allowed": 1,
+      "evidence_kind": "approved_receipt_or_note",
+      "requirement_text": "Approved receipt, note, or bounded excerpt that supports the invoice or payment status.",
+      "sensitivity_level": "bounded_evidence"
+    },
+    {
+      "allowed": 1,
+      "evidence_kind": "operator_invoice_fact",
+      "requirement_text": "Operator-supplied client/project, service description, amount, and date/range.",
+      "sensitivity_level": "finance_metadata"
+    },
+    {
+      "allowed": 0,
+      "evidence_kind": "bank_portal_scrape",
+      "requirement_text": "Bank or payment-portal scraping is blocked in v0.",
+      "sensitivity_level": "blocked_private"
+    },
+    {
+      "allowed": 0,
+      "evidence_kind": "email_send",
+      "requirement_text": "Emails may be drafted as context later, but sending is blocked and requires separate approval.",
+      "sensitivity_level": "external_action"
+    },
+    {
+      "allowed": 0,
+      "evidence_kind": "tax_or_legal_raw_body",
+      "requirement_text": "Raw tax/legal/client document bodies are blocked unless a future approved lane explicitly allows a bounded excerpt.",
+      "sensitivity_level": "blocked_private"
+    }
+  ],
+  "first_safe_workflow_proposal": {
+    "allowed_evidence_types": "Operator-provided finance facts, approved OpenClaw metadata/read-models, bounded approved document excerpts, manually supplied payment confirmation metadata, and explicit receipt/evidence links.",
+    "bank_access_allowed": 0,
+    "created_at": "2026-05-15T19:23:09+00:00",
+    "disallowed_evidence_types": "Raw bank portal scraping, unapproved tax/legal/client raw documents, secrets/env files, private roots, automatic email sends, invoice finalization for sending, and financial truth claims without evidence.",
+    "email_send_allowed": 0,
+    "execution_allowed": 0,
+    "expected_outputs": "Finance Work Board card, evidence requirements checklist, draft invoice context packet, draft follow-up context packet, and approval-gated next safe move.",
+    "invoice_send_allowed": 0,
+    "next_safe_move": "Ask the operator for one receivable or invoice target and build a metadata-only evidence packet/work packet before any real invoice work.",
+    "no_bank_scrape_policy": "No bank portal, payment provider, or private account scraping is allowed.",
+    "no_send_policy": "No invoice, payment follow-up, email, SMS, or external communication is sent by this workflow.",
+    "operator_action_requirements": "Any future invoice creation, file write, email send, or ledger change requires an explicit Operator Action request and approval.",
+    "operator_approval_required": 1,
+    "operator_inputs_needed": "Client/project label; service date or date range; service description; amount/deposit/balance if known; due date/payment status if known; relevant approved notes/receipts; whether the desired output is invoice context, follow-up draft, or receivable status review.",
+    "proposal_only": 1,
+    "purpose": "Turn an operator finance request into a reviewable invoice/receivables evidence packet, checklist, and draft work packet without sending email, scraping banks, or claiming truth.",
+    "receipt_evidence_handling": "Every fact should point to an approved evidence reference or operator-provided note; raw private bodies remain out of this lane.",
+    "run_id": "finrecrun_779280f4cbaf2982ffdd",
+    "title": "Finance Invoice Helper v0 - Invoice/Receivables Evidence Packet Builder",
+    "work_board_integration": "Create metadata-only Finance World cards for review/planning; board cards never execute, approve, send, or edit ledgers.",
+    "workflow_proposal_id": "finance_invoice_helper_v0_proposal"
+  },
+  "generated_at": "2026-05-15T19:25:08+00:00",
+  "how_this_reduces_operator_burden": [
+    "Makes legacy finance helper logic queryable instead of relying on memory.",
+    "Separates useful invoice/receivable patterns from unsafe direct sends, writes, and model calls.",
+    "Defines the first practical finance workflow as an evidence packet/work packet, not a live finance bot."
+  ],
+  "next_safe_moves": [
+    {
+      "approval_required": 1,
+      "execution_allowed": 0,
+      "move_order": 1,
+      "next_safe_move": "Review the Repo B finance helper map; do not run old code.",
+      "routed_agent": "chief"
+    },
+    {
+      "approval_required": 1,
+      "execution_allowed": 0,
+      "move_order": 2,
+      "next_safe_move": "Choose one real receivable/invoice target and provide only safe metadata/evidence references.",
+      "routed_agent": "chief"
+    },
+    {
+      "approval_required": 1,
+      "execution_allowed": 0,
+      "move_order": 3,
+      "next_safe_move": "Build an approved evidence packet and draft work packet before any invoice file or email output.",
+      "routed_agent": "chief"
+    }
+  ],
+  "no_authority_flags": {
+    "bank_access_allowed": false,
+    "email_send_allowed": false,
+    "external_api_allowed": false,
+    "finance_execution_allowed": false,
+    "financial_truth_claimed": false,
+    "invoice_send_allowed": false,
+    "operator_approval_required": true,
+    "raw_private_ingest_allowed": false,
+    "tax_filing_allowed": false
+  },
+  "read_model_version": "finance_invoice_reconciliation_read_model_v0",
+  "recommended_next_lane": "Finance Invoice Evidence Packet v0",
+  "risk_summary": [
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "bank_or_payment_data",
+      "source_path": ".claude/commands/cassandra.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "external_send",
+      "source_path": ".claude/commands/cassandra.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "stale_architecture",
+      "source_path": ".claude/commands/cassandra.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "client_sensitive",
+      "source_path": "CLAUDE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "env_reference",
+      "source_path": "CLAUDE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "external_send",
+      "source_path": "CLAUDE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "stale_architecture",
+      "source_path": "CLAUDE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "bank_or_payment_data",
+      "source_path": "CURRENT_STATE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "env_reference",
+      "source_path": "CURRENT_STATE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "external_send",
+      "source_path": "CURRENT_STATE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "stale_architecture",
+      "source_path": "CURRENT_STATE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "tax_sensitive",
+      "source_path": "CURRENT_STATE.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "client_sensitive",
+      "source_path": "KNOWN_GAPS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "env_reference",
+      "source_path": "KNOWN_GAPS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "external_send",
+      "source_path": "KNOWN_GAPS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "stale_architecture",
+      "source_path": "KNOWN_GAPS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "client_sensitive",
+      "source_path": "NEXT_ACTIONS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "env_reference",
+      "source_path": "NEXT_ACTIONS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "external_send",
+      "source_path": "NEXT_ACTIONS.md"
+    },
+    {
+      "evidence_basis": "bounded_source_pattern",
+      "risk_level": "high",
+      "risk_reason": "stale_architecture",
+      "source_path": "NEXT_ACTIONS.md"
+    }
+  ],
+  "run_id": "finrecrun_779280f4cbaf2982ffdd",
+  "schema_version": "finance_invoice_reconciliation_read_model_v0",
+  "source": {
+    "canonical_status": "non_canonical_legacy",
+    "import_status": "metadata_scanned_only_or_safe_source_reviewed",
+    "repo_b_path": "/home/openclaw_external/openclaw-runtime",
+    "source_commit": "839e445fc64f181234042b410ecd7b41bb2fe149",
+    "source_repo": "openclaw-runtime"
+  },
+  "top_candidate_to_port_or_wrap_items": [
+    {
+      "burden_reduction": "reduces_receivables_tracking_burden",
+      "future_home": "business_ops_module",
+      "purpose": "Repo B finance-related candidate classified as billing_tracking, budget_tracking, email_draft_support.",
+      "reusable_logic": "Potentially reusable billing_tracking, budget_tracking, email_draft_support concepts after operator review.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "high",
+      "source_path": "autonomy_mode.py"
+    },
+    {
+      "burden_reduction": "reduces_receivables_tracking_burden",
+      "future_home": "finance_world_core",
+      "purpose": "Repo B finance-related candidate classified as billing_tracking, report_generation.",
+      "reusable_logic": "Potentially reusable billing_tracking, report_generation concepts after operator review.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "high",
+      "source_path": "chief_file_io.py"
+    },
+    {
+      "burden_reduction": "reduces_invoice_prep_burden",
+      "future_home": "invoice_helper",
+      "purpose": "Repo B finance-related candidate classified as billing_tracking, client_payment_status, email_draft_support, evidence_gathering, invoice_drafting, ledger_reconciliation, report_generation.",
+      "reusable_logic": "Potentially reusable billing_tracking, client_payment_status, email_draft_support, evidence_gathering, invoice_drafting, ledger_reconciliation, report_generation concepts after operator review.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "high",
+      "source_path": "chief_phone_brain.py"
+    },
+    {
+      "burden_reduction": "reduces_receivables_tracking_burden",
+      "future_home": "business_ops_module",
+      "purpose": "Repo B finance-related candidate classified as billing_tracking, budget_tracking, email_draft_support, ledger_reconciliation.",
+      "reusable_logic": "Potentially reusable billing_tracking, budget_tracking, email_draft_support, ledger_reconciliation concepts after operator review.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "low",
+      "source_path": "chief_nli.py"
+    },
+    {
+      "burden_reduction": "reduces_receivables_tracking_burden",
+      "future_home": "evidence_helper",
+      "purpose": "Repo B finance-related candidate classified as billing_tracking, evidence_gathering.",
+      "reusable_logic": "Potentially reusable billing_tracking, evidence_gathering concepts after operator review.",
+      "reuse_policy": "candidate_to_port",
+      "risk_level": "low",
+      "source_path": "start_openclaw_brains.sh"
+    }
+  ],
+  "top_reference_only_items": [
+    {
+      "future_home": "business_ops_module",
+      "purpose": "Repo B finance-related candidate classified as budget_tracking, report_generation.",
+      "reusable_logic": "Potentially reusable budget_tracking, report_generation concepts after operator review.",
+      "risk_level": "high",
+      "source_path": "autonomy_qualification.py"
+    },
+    {
+      "future_home": "cpa_support_reference",
+      "purpose": "Legacy CPA/tax support notebook for deductions, expense logs, and CPA-ready summaries.",
+      "reusable_logic": "Deduction category checklist and CPA evidence prompts as reference-only guarded prompts.",
+      "risk_level": "high",
+      "source_path": "chief_cpa_brain.py"
+    },
+    {
+      "future_home": "evidence_helper",
+      "purpose": "Repo B finance-related candidate classified as email_draft_support, evidence_gathering, report_generation.",
+      "reusable_logic": "Potentially reusable email_draft_support, evidence_gathering, report_generation concepts after operator review.",
+      "risk_level": "low",
+      "source_path": "polish_loop/tasks/cas-009-morning-sovereign-briefing.md"
+    },
+    {
+      "future_home": "reference_only_legacy",
+      "purpose": "Repo B finance-related candidate classified as unknown.",
+      "reusable_logic": "Potentially reusable unknown concepts after operator review.",
+      "risk_level": "low",
+      "source_path": "polish_loop/tasks/hitl-003-future-action-queue-api.md"
+    },
+    {
+      "future_home": "evidence_helper",
+      "purpose": "Repo B finance-related candidate classified as evidence_gathering.",
+      "reusable_logic": "Potentially reusable evidence_gathering concepts after operator review.",
+      "risk_level": "low",
+      "source_path": "polish_loop/tasks/sys-004-architectural-cleanup.md"
+    }
+  ],
+  "work_board_linkage": {
+    "cards": [
+      {
+        "board_column": "planned",
+        "card_id": "wbcard_0ad11f9f87705b71bed6",
+        "next_safe_move": "Use one real receivable target to build an evidence packet; approval required before outputs beyond draft context.",
+        "status": "proposal_only",
+        "title": "Build Finance Invoice Helper v0 proposal"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_f2d37b1dce085eda7194",
+        "next_safe_move": "Decide which finance helper logic is worth porting into governed Finance World packets; do not run Repo B code.",
+        "status": "proposal_only",
+        "title": "Review Repo B finance helpers"
+      },
+      {
+        "board_column": "needs_review",
+        "card_id": "wbcard_b3403ca433adbd4f8b37",
+        "next_safe_move": "Approve or revise the evidence requirements before building a finance evidence packet.",
+        "status": "proposal_only",
+        "title": "Review receivables evidence requirements"
+      }
+    ],
+    "implemented": true
+  }
+}
