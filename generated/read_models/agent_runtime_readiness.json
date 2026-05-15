@@ -4,15 +4,7 @@
   "arbitrary_shell_allowed": false,
   "autonomous_loop_allowed": false,
   "blocked_count": 0,
-  "blockers": [
-    {
-      "agent_id": null,
-      "blocker_kind": "read_model_mirror_health",
-      "next_safe_move": "repair this start-sequence check before treating the readiness harness as fully current",
-      "severity": "block",
-      "summary": "Read-model mirror has mismatches or query error: missing=8, extra=0, hash_mismatch=2."
-    }
-  ],
+  "blockers": [],
   "claims_not_made": [
     "live_agent_activation",
     "autonomous_loop",
@@ -154,10 +146,10 @@
       "telegram_wired": false
     }
   ],
-  "generated_at": "2026-05-15T05:16:46+00:00",
+  "generated_at": "2026-05-15T13:19:22+00:00",
   "gmail_api_allowed": false,
-  "latest_run_id": "agent_runtime_morning_v0_latest",
-  "latest_start_sequence_status": "blocked",
+  "latest_run_id": "agent_runtime_run_eaf56d4c666422411717",
+  "latest_start_sequence_status": "ready_for_dry_run",
   "live_agent_activation_allowed": false,
   "mode": "agent_runtime_readiness_dry_run_only",
   "model_call_allowed": false,

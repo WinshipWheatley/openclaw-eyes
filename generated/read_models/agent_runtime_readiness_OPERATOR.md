@@ -13,7 +13,7 @@ Summary:
 - Partial: 0.
 - Blocked: 0.
 - Unknown review: 0.
-- Latest start sequence status: `blocked`.
+- Latest start sequence status: `ready_for_dry_run`.
 - Smoke tests: passed=6, failed=0.
 
 Agent components:
@@ -25,7 +25,7 @@ Agent components:
 - `report_bridge` / `node_report_intake`: ready_for_dry_run; next=query Report Bridge posture; no remote control or raw client data
 
 Blockers:
-- `global` block: Read-model mirror has mismatches or query error: missing=8, extra=0, hash_mismatch=2.
+- none
 
 Authority boundary:
 - live_agent_activation_allowed=false; autonomous_loop_allowed=false.
