@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 import operator_action
+from operator_action import approve_operator_action, init_operator_action_schema
 from operator_action import build_operator_actions_read_model, execute_operator_action
 from operator_action import export_operator_actions_read_model
 from operator_action_inbox import (
@@ -29,9 +30,13 @@ def _request_payload(**overrides):
         "reason": "Refresh report bridge read-model",
         "created_at": "2026-05-14T23:50:00+00:00",
         "source": {
-            "node_id": "mac_mission_control",
-            "host_kind": "mac",
-            "drop_path": "/Volumes/openclaw_e/operator_actions/inbox",
+            "source_kind": "mission_control",
+            "source_channel": "mac_app",
+            "source_message_id": None,
+            "source_user_label": "operator",
+            "source_node_id": "mac_mission_control",
+            "source_raw_text_present": False,
+            "source_raw_text_stored": False,
         },
         "authority": {
             "approval_required": True,
@@ -74,6 +79,103 @@ def test_schema_initializes(tmp_path):
     } <= tables
 
 
+def test_source_migrations_work_on_existing_v0_tables(tmp_path):
+    db_path = tmp_path / "legacy.sqlite"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+CREATE TABLE operator_action_requests (
+  action_id TEXT PRIMARY KEY,
+  action_type TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  approval_required INTEGER NOT NULL DEFAULT 1,
+  validation_status TEXT NOT NULL,
+  validation_summary TEXT NOT NULL,
+  request_receipt_id TEXT,
+  approval_id TEXT,
+  execution_id TEXT
+)
+"""
+        )
+        conn.execute(
+            """
+CREATE TABLE operator_action_inbox_imports (
+  import_id TEXT PRIMARY KEY,
+  import_run_id TEXT NOT NULL,
+  request_file_path TEXT NOT NULL,
+  request_file_hash TEXT,
+  request_id TEXT,
+  action_id TEXT,
+  action_type TEXT,
+  requested_by TEXT,
+  source_node_id TEXT,
+  source_host_kind TEXT,
+  source_drop_path TEXT,
+  status TEXT NOT NULL,
+  rejection_reason TEXT,
+  imported_at TEXT NOT NULL,
+  approval_required INTEGER NOT NULL DEFAULT 1,
+  auto_approve INTEGER NOT NULL DEFAULT 0,
+  execute_immediately INTEGER NOT NULL DEFAULT 0,
+  execution_started INTEGER NOT NULL DEFAULT 0,
+  raw_request_body_stored INTEGER NOT NULL DEFAULT 0,
+  runtime_activation_allowed INTEGER NOT NULL DEFAULT 0,
+  agent_activation_allowed INTEGER NOT NULL DEFAULT 0,
+  arbitrary_shell_allowed INTEGER NOT NULL DEFAULT 0,
+  network_allowed INTEGER NOT NULL DEFAULT 0,
+  docker_allowed INTEGER NOT NULL DEFAULT 0,
+  ollama_allowed INTEGER NOT NULL DEFAULT 0,
+  remote_control_allowed INTEGER NOT NULL DEFAULT 0,
+  client_deployment_allowed INTEGER NOT NULL DEFAULT 0,
+  file_delete_allowed INTEGER NOT NULL DEFAULT 0,
+  file_move_allowed INTEGER NOT NULL DEFAULT 0,
+  notes TEXT
+)
+"""
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    init_operator_action_schema(db_path)
+    operator_action_inbox_table_names(db_path)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        request_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(operator_action_requests)")
+        }
+        inbox_columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(operator_action_inbox_imports)")
+        }
+    finally:
+        conn.close()
+    for column in (
+        "source_kind",
+        "source_channel",
+        "source_message_id",
+        "source_user_label",
+        "source_node_id",
+        "source_raw_text_present",
+        "source_raw_text_stored",
+    ):
+        assert column in request_columns
+    for column in (
+        "source_kind",
+        "source_channel",
+        "source_message_id",
+        "source_user_label",
+        "source_raw_text_present",
+        "source_raw_text_stored",
+    ):
+        assert column in inbox_columns
+
+
 def test_valid_request_imports_pending_action_and_cannot_execute_without_approval(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     request_path = _write_request(tmp_path / "inbox" / "valid.json", _request_payload())
@@ -92,12 +194,111 @@ def test_valid_request_imports_pending_action_and_cannot_execute_without_approva
             (item.action_id,),
         ).fetchone()
         imported = conn.execute(
-            "SELECT status, execution_started FROM operator_action_inbox_imports"
+            "SELECT status, execution_started, source_kind, source_channel FROM operator_action_inbox_imports"
         ).fetchone()
     finally:
         conn.close()
     assert request == ("requested", 1)
-    assert imported == ("imported", 0)
+    assert imported == ("imported", 0, "mission_control", "mac_app")
+
+
+def test_reimport_does_not_downgrade_approved_action_and_updates_source_metadata(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    request_path = _write_request(
+        tmp_path / "inbox" / "reimport.json",
+        _request_payload(request_id="reimport_safe"),
+    )
+    first = import_operator_action_request_file(file_path=request_path, db_path=db_path)
+    approve_operator_action(
+        action_id=first.action_id,
+        approved_by="operator",
+        approval_note="Approved before reimport.",
+        db_path=db_path,
+    )
+    request_path.write_text(
+        stable_json(
+            _request_payload(
+                request_id="reimport_safe",
+                source={
+                    "source_kind": "telegram",
+                    "source_channel": "telegram_metadata",
+                    "source_message_id": "tg_reimport",
+                    "source_raw_text_present": True,
+                    "source_raw_text_stored": False,
+                },
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    second = import_operator_action_request_file(file_path=request_path, db_path=db_path)
+
+    assert second.status == "imported"
+    assert second.action_id == first.action_id
+    conn = sqlite3.connect(db_path)
+    try:
+        row = conn.execute(
+            """
+SELECT status, source_kind, source_channel, source_raw_text_present, source_raw_text_stored
+FROM operator_action_requests
+WHERE action_id = ?
+""",
+            (first.action_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert row == ("approved", "telegram", "telegram_metadata", 1, 0)
+
+
+def test_all_supported_source_kinds_import_as_metadata_only(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    source_shapes = {
+        "mission_control": {"source_channel": "mac_app", "source_node_id": "mac_mission_control"},
+        "telegram": {
+            "source_channel": "telegram_metadata",
+            "source_message_id": "tg_msg_123",
+            "source_user_label": "operator",
+            "source_node_id": "telegram_future_source",
+            "source_raw_text_present": True,
+            "source_raw_text_stored": False,
+        },
+        "cli": {"source_channel": "backend_cli", "source_node_id": "pc_wsl_cli"},
+        "report_bridge": {"source_channel": "report_bridge_package", "source_node_id": "report_bridge"},
+        "future_client_node": {
+            "source_channel": "client_node_drop",
+            "source_node_id": "future_client_node_demo",
+        },
+        "unknown": {"source_channel": "unknown", "source_node_id": None},
+    }
+
+    for source_kind, source in source_shapes.items():
+        request_path = _write_request(
+            tmp_path / "sources" / f"{source_kind}.json",
+            _request_payload(
+                request_id=f"source_{source_kind}",
+                action_type="query_generated_read_model_mirror",
+                requested_by=source_kind,
+                source={"source_kind": source_kind, **source},
+            ),
+        )
+        item = import_operator_action_request_file(file_path=request_path, db_path=db_path)
+        assert item.status == "imported"
+        assert item.source_kind == source_kind
+
+    conn = sqlite3.connect(db_path)
+    try:
+        rows = conn.execute(
+            """
+SELECT source_kind, source_channel, source_raw_text_present, source_raw_text_stored
+FROM operator_action_requests
+ORDER BY source_kind
+"""
+        ).fetchall()
+    finally:
+        conn.close()
+    assert {row[0] for row in rows} == set(source_shapes)
+    assert any(row == ("telegram", "telegram_metadata", 1, 0) for row in rows)
+    assert all(row[3] == 0 for row in rows)
 
 
 def test_dangerous_or_invalid_requests_are_rejected(tmp_path):
@@ -115,9 +316,23 @@ def test_dangerous_or_invalid_requests_are_rejected(tmp_path):
             request_id="execute_immediately",
             authority={"execute_immediately": True},
         ),
+        "telegram_auto_approve.json": _request_payload(
+            request_id="telegram_auto_approve",
+            source={"source_kind": "telegram", "source_channel": "telegram_metadata"},
+            authority={"auto_approve": True},
+        ),
+        "telegram_execute_immediately.json": _request_payload(
+            request_id="telegram_execute_immediately",
+            source={"source_kind": "telegram", "source_channel": "telegram_metadata"},
+            authority={"execute_immediately": True},
+        ),
         "network_allowed.json": _request_payload(
             request_id="network_allowed",
             authority={"network_allowed": True},
+        ),
+        "raw_text_stored.json": _request_payload(
+            request_id="raw_text_stored",
+            source={"source_raw_text_stored": True},
         ),
         "command_string.json": _request_payload(
             request_id="command_string",
@@ -140,6 +355,7 @@ def test_dangerous_or_invalid_requests_are_rejected(tmp_path):
     assert any("auto_approve" in item.rejection_reason for item in results)
     assert any("execute_immediately" in item.rejection_reason for item in results)
     assert any("network_allowed" in item.rejection_reason for item in results)
+    assert any("source_raw_text_stored" in item.rejection_reason for item in results)
     assert any("forbidden command/control key" in item.rejection_reason for item in results)
 
     conn = sqlite3.connect(db_path)
@@ -227,6 +443,13 @@ def test_operator_actions_read_model_reflects_imported_pending_request(tmp_path)
     assert payload["pending_approval_count"] == 1
     assert payload["completed_count"] == 0
     assert payload["latest_action"]["action_id"] == "opact_inbox_pending_read_model"
+    assert payload["latest_action"]["source_kind"] == "mission_control"
+    assert payload["latest_request_source"]["source_channel"] == "mac_app"
+    assert payload["request_count_by_source_kind"] == {"mission_control": 1}
+    assert payload["pending_approval_by_source_kind"] == {"mission_control": 1}
+    assert payload["source_channel_posture"]["telegram_ready_metadata_only"] is True
+    assert payload["source_channel_posture"]["telegram_api_wired"] is False
+    assert payload["source_channel_posture"]["all_sources_require_approval"] is True
     assert (export_root / "operator_actions.json").is_file()
     assert (export_root / "operator_actions_OPERATOR.md").is_file()
 

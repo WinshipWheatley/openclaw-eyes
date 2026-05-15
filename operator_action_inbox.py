@@ -19,6 +19,7 @@ from typing import Any, Mapping
 from business_ops_ledger import DEFAULT_DB_PATH
 from operator_action import (
     ALLOWED_ACTIONS,
+    ALLOWED_SOURCE_KINDS,
     NO_AUTHORITY_FLAGS,
     init_operator_action_schema,
     request_operator_action,
@@ -37,8 +38,12 @@ FORBIDDEN_REQUEST_KEYS = {
     "command_args",
     "command_string",
     "execute",
+    "message_text",
+    "raw_text",
     "shell",
     "shell_command",
+    "source_raw_text",
+    "telegram_text",
 }
 
 ALLOWED_TOP_LEVEL_KEYS = {
@@ -53,6 +58,15 @@ ALLOWED_TOP_LEVEL_KEYS = {
 }
 
 ALLOWED_SOURCE_KEYS = {
+    "source_kind",
+    "source_channel",
+    "source_message_id",
+    "source_user_label",
+    "source_node_id",
+    "source_raw_text_present",
+    "source_raw_text_stored",
+    # Legacy v0 source keys are accepted for old request files and normalized
+    # to v0.1 metadata where possible.
     "node_id",
     "host_kind",
     "drop_path",
@@ -72,6 +86,8 @@ class InboxImportItem:
     request_file_hash: str | None
     action_id: str | None
     action_type: str | None
+    source_kind: str | None
+    source_channel: str | None
     status: str
     rejection_reason: str | None
 
@@ -120,6 +136,12 @@ CREATE TABLE IF NOT EXISTS operator_action_inbox_imports (
   action_type TEXT,
   requested_by TEXT,
   source_node_id TEXT,
+  source_kind TEXT NOT NULL DEFAULT 'unknown',
+  source_channel TEXT NOT NULL DEFAULT 'unknown',
+  source_message_id TEXT,
+  source_user_label TEXT,
+  source_raw_text_present INTEGER NOT NULL DEFAULT 0,
+  source_raw_text_stored INTEGER NOT NULL DEFAULT 0,
   source_host_kind TEXT,
   source_drop_path TEXT,
   status TEXT NOT NULL,
@@ -160,12 +182,54 @@ CREATE TABLE IF NOT EXISTS operator_action_inbox_rejections (
     )
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    columns = {
+        row[1]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _run_migrations(conn: sqlite3.Connection) -> None:
+    _ensure_column(
+        conn,
+        "operator_action_inbox_imports",
+        "source_kind",
+        "TEXT NOT NULL DEFAULT 'unknown'",
+    )
+    _ensure_column(
+        conn,
+        "operator_action_inbox_imports",
+        "source_channel",
+        "TEXT NOT NULL DEFAULT 'unknown'",
+    )
+    _ensure_column(conn, "operator_action_inbox_imports", "source_message_id", "TEXT")
+    _ensure_column(conn, "operator_action_inbox_imports", "source_user_label", "TEXT")
+    _ensure_column(
+        conn,
+        "operator_action_inbox_imports",
+        "source_raw_text_present",
+        "INTEGER NOT NULL DEFAULT 0",
+    )
+    _ensure_column(
+        conn,
+        "operator_action_inbox_imports",
+        "source_raw_text_stored",
+        "INTEGER NOT NULL DEFAULT 0",
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_operator_action_inbox_imports_source_kind ON operator_action_inbox_imports(source_kind)"
+    )
+
+
 def init_operator_action_inbox_schema(db_path: str | Path | None = None) -> str:
     path = init_operator_action_schema(db_path)
     conn = sqlite3.connect(path)
     try:
         for statement in _sql_statements():
             conn.execute(statement)
+        _run_migrations(conn)
         conn.commit()
     finally:
         conn.close()
@@ -226,6 +290,23 @@ def _validate_iso_timestamp(value: str) -> None:
         raise ValueError("created_at must be an ISO timestamp") from exc
 
 
+def _optional_text(payload: Mapping[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string or null")
+    stripped = value.strip()
+    return stripped or None
+
+
+def _optional_bool(payload: Mapping[str, Any], key: str, default: bool = False) -> bool:
+    value = payload.get(key, default)
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean")
+    return value
+
+
 def _contains_forbidden_keys(value: Any) -> str | None:
     if isinstance(value, dict):
         for key, child in value.items():
@@ -270,9 +351,24 @@ def validate_action_request_payload(payload: dict[str, Any]) -> dict[str, Any]:
     unknown_source = sorted(set(source) - ALLOWED_SOURCE_KEYS)
     if unknown_source:
         raise ValueError(f"source contains unsupported field: {unknown_source[0]}")
-    source_node_id = _require_text(source, "node_id")
-    source_host_kind = _require_text(source, "host_kind")
-    source_drop_path = _require_text(source, "drop_path")
+    source_kind = _optional_text(source, "source_kind")
+    legacy_node_id = _optional_text(source, "node_id")
+    source_node_id = _optional_text(source, "source_node_id") or legacy_node_id
+    source_host_kind = _optional_text(source, "host_kind")
+    source_drop_path = _optional_text(source, "drop_path")
+    if source_kind is None:
+        source_kind = "mission_control" if legacy_node_id == "mac_mission_control" else "unknown"
+    if source_kind not in ALLOWED_SOURCE_KINDS:
+        raise ValueError(f"unsupported source_kind: {source_kind}")
+    source_channel = _optional_text(source, "source_channel")
+    if source_channel is None:
+        source_channel = "mac_app" if source_kind == "mission_control" else source_kind
+    source_message_id = _optional_text(source, "source_message_id")
+    source_user_label = _optional_text(source, "source_user_label")
+    source_raw_text_present = _optional_bool(source, "source_raw_text_present", False)
+    source_raw_text_stored = _optional_bool(source, "source_raw_text_stored", False)
+    if source_raw_text_stored:
+        raise ValueError("source_raw_text_stored must be false")
 
     authority = payload.get("authority")
     if not isinstance(authority, dict):
@@ -293,6 +389,12 @@ def validate_action_request_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "reason": reason,
         "created_at": created_at,
         "source_node_id": source_node_id,
+        "source_kind": source_kind,
+        "source_channel": source_channel,
+        "source_message_id": source_message_id,
+        "source_user_label": source_user_label,
+        "source_raw_text_present": source_raw_text_present,
+        "source_raw_text_stored": False,
         "source_host_kind": source_host_kind,
         "source_drop_path": source_drop_path,
     }
@@ -322,7 +424,13 @@ def _record_inbox_import(
     action_type: str | None = None,
     requested_by: str | None = None,
     request_id: str | None = None,
+    source_kind: str | None = None,
+    source_channel: str | None = None,
+    source_message_id: str | None = None,
+    source_user_label: str | None = None,
     source_node_id: str | None = None,
+    source_raw_text_present: bool = False,
+    source_raw_text_stored: bool = False,
     source_host_kind: str | None = None,
     source_drop_path: str | None = None,
     rejection_reason: str | None = None,
@@ -339,13 +447,24 @@ def _record_inbox_import(
         """
 INSERT INTO operator_action_inbox_imports (
   import_id, import_run_id, request_file_path, request_file_hash, request_id,
-  action_id, action_type, requested_by, source_node_id, source_host_kind,
-  source_drop_path, status, rejection_reason, imported_at, notes
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  action_id, action_type, requested_by, source_node_id, source_kind,
+  source_channel, source_message_id, source_user_label, source_raw_text_present,
+  source_raw_text_stored, source_host_kind, source_drop_path, status,
+  rejection_reason, imported_at, notes
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(import_id) DO UPDATE SET
   action_id = excluded.action_id,
   action_type = excluded.action_type,
   requested_by = excluded.requested_by,
+  source_node_id = excluded.source_node_id,
+  source_kind = excluded.source_kind,
+  source_channel = excluded.source_channel,
+  source_message_id = excluded.source_message_id,
+  source_user_label = excluded.source_user_label,
+  source_raw_text_present = excluded.source_raw_text_present,
+  source_raw_text_stored = 0,
+  source_host_kind = excluded.source_host_kind,
+  source_drop_path = excluded.source_drop_path,
   status = excluded.status,
   rejection_reason = excluded.rejection_reason,
   imported_at = excluded.imported_at,
@@ -361,6 +480,12 @@ ON CONFLICT(import_id) DO UPDATE SET
             action_type,
             requested_by,
             source_node_id,
+            source_kind or "unknown",
+            source_channel or "unknown",
+            source_message_id,
+            source_user_label,
+            1 if source_raw_text_present else 0,
+            1 if source_raw_text_stored else 0,
             source_host_kind,
             source_drop_path,
             status,
@@ -417,24 +542,68 @@ def import_operator_action_request_file(
             payload = _load_request_json(path)
             validated = validate_action_request_payload(payload)
             action_id = _action_id_for_request(validated, request_file_hash)
-            result = request_operator_action(
-                action_id=action_id,
-                action_type=validated["action_type"],
-                requested_by=validated["requested_by"],
-                reason=validated["reason"],
-                db_path=db,
-            )
+            existing = conn.execute(
+                "SELECT action_id FROM operator_action_requests WHERE action_id = ?",
+                (action_id,),
+            ).fetchone()
+            if existing is None:
+                result = request_operator_action(
+                    action_id=action_id,
+                    action_type=validated["action_type"],
+                    requested_by=validated["requested_by"],
+                    reason=validated["reason"],
+                    source_kind=validated["source_kind"],
+                    source_channel=validated["source_channel"],
+                    source_message_id=validated["source_message_id"],
+                    source_user_label=validated["source_user_label"],
+                    source_node_id=validated["source_node_id"],
+                    source_raw_text_present=validated["source_raw_text_present"],
+                    source_raw_text_stored=validated["source_raw_text_stored"],
+                    db_path=db,
+                )
+                resolved_action_id = result.action_id
+            else:
+                conn.execute(
+                    """
+UPDATE operator_action_requests
+SET source_kind = ?,
+    source_channel = ?,
+    source_message_id = ?,
+    source_user_label = ?,
+    source_node_id = ?,
+    source_raw_text_present = ?,
+    source_raw_text_stored = 0,
+    updated_at = updated_at
+WHERE action_id = ?
+""".strip(),
+                    (
+                        validated["source_kind"],
+                        validated["source_channel"],
+                        validated["source_message_id"],
+                        validated["source_user_label"],
+                        validated["source_node_id"],
+                        1 if validated["source_raw_text_present"] else 0,
+                        action_id,
+                    ),
+                )
+                resolved_action_id = action_id
             _record_inbox_import(
                 conn,
                 import_run_id=resolved_run_id,
                 file_path=path,
                 request_file_hash=request_file_hash,
                 status="imported",
-                action_id=result.action_id,
+                action_id=resolved_action_id,
                 action_type=validated["action_type"],
                 requested_by=validated["requested_by"],
                 request_id=validated.get("request_id"),
+                source_kind=validated["source_kind"],
+                source_channel=validated["source_channel"],
+                source_message_id=validated["source_message_id"],
+                source_user_label=validated["source_user_label"],
                 source_node_id=validated["source_node_id"],
+                source_raw_text_present=validated["source_raw_text_present"],
+                source_raw_text_stored=validated["source_raw_text_stored"],
                 source_host_kind=validated["source_host_kind"],
                 source_drop_path=validated["source_drop_path"],
             )
@@ -442,8 +611,10 @@ def import_operator_action_request_file(
             return InboxImportItem(
                 file_path=path.as_posix(),
                 request_file_hash=request_file_hash,
-                action_id=result.action_id,
+                action_id=resolved_action_id,
                 action_type=validated["action_type"],
+                source_kind=validated["source_kind"],
+                source_channel=validated["source_channel"],
                 status="imported",
                 rejection_reason=None,
             )
@@ -470,6 +641,8 @@ def import_operator_action_request_file(
                 request_file_hash=request_file_hash,
                 action_id=None,
                 action_type=action_type,
+                source_kind=None,
+                source_channel=None,
                 status="rejected",
                 rejection_reason=str(exc),
             )
@@ -571,6 +744,14 @@ ORDER BY created_at DESC, rejection_id DESC
                 "imported": imported_count,
                 "rejected": rejected_count,
                 "rejection_rows": len(rejections),
+                "source_kind": dict(
+                    sorted(
+                        {
+                            key: sum(1 for row in imports if (row["source_kind"] or "unknown") == key)
+                            for key in {row["source_kind"] or "unknown" for row in imports}
+                        }.items()
+                    )
+                ),
             },
             "items": [dict(row) for row in items],
             "no_execution_occurred": True,
@@ -597,7 +778,10 @@ def format_inbox_import_summary(summary: InboxImportSummary) -> str:
         lines.append("- none")
     for item in summary.items:
         if item.status == "imported":
-            lines.append(f"- imported `{item.file_path}` -> `{item.action_id}`")
+            lines.append(
+                f"- imported `{item.file_path}` -> `{item.action_id}` "
+                f"({item.source_kind or 'unknown'} / {item.source_channel or 'unknown'})"
+            )
         else:
             lines.append(f"- rejected `{item.file_path}`: {item.rejection_reason}")
     lines.extend(
@@ -619,6 +803,7 @@ def format_operator_action_inbox_report(payload: dict[str, Any]) -> str:
         f"Imported: {payload['counts']['imported']}",
         f"Rejected: {payload['counts']['rejected']}",
         f"Default inbox: `{payload['default_inbox']}`",
+        f"Source kinds: {payload['counts']['source_kind'] or 'none'}",
         "",
         "Items:",
     ]

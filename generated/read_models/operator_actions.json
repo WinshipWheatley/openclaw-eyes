@@ -65,7 +65,7 @@
   "failed_count": 0,
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-14T23:52:04+00:00",
+  "generated_at": "2026-05-14T23:33:35+00:00",
   "helm_flow": [
     "orient",
     "request",
@@ -76,15 +76,15 @@
     "updated_helm_state"
   ],
   "last_execution_receipt_summary": {
-    "action_id": "opact_inbox_sample_inbox_query_mirror_20260514_v0",
-    "created_at": "2026-05-14T23:52:04+00:00",
+    "action_id": "opact_demo_export_report_bridge_read_model_20260514_v0",
+    "created_at": "2026-05-14T23:33:35+00:00",
     "duration_ms": 83,
-    "execution_id": null,
+    "execution_id": "opexec_opact_demo_export_report_bridge_read_model_20260514_v0",
     "exit_code": 0,
-    "receipt_id": "opact_approval_request_opact_inbox_sample_inbox_query_mirror_20260514_v0",
-    "receipt_type": "approval_request",
-    "result": "requested",
-    "summary": "Approval requested for query_generated_read_model_mirror."
+    "receipt_id": "opreceipt_opact_demo_export_report_bridge_read_model_20260514_v0",
+    "receipt_type": "execution_receipt",
+    "result": "completed",
+    "summary": "Allowlisted operator action export_report_bridge_read_model completed with exit_code=0."
   },
   "latest_action": {
     "action_id": "opact_inbox_sample_inbox_query_mirror_20260514_v0",
@@ -93,13 +93,32 @@
     "created_at": "2026-05-14T23:52:04+00:00",
     "reason": "Sample shared-drop request to query generated read-model mirror status",
     "requested_by": "mission_control",
+    "source_channel": "mac_app",
+    "source_kind": "mission_control",
+    "source_message_id": null,
+    "source_node_id": "mac_mission_control",
+    "source_raw_text_present": false,
+    "source_raw_text_stored": false,
+    "source_user_label": null,
     "status": "requested",
-    "updated_at": "2026-05-14T23:52:04+00:00",
+    "updated_at": "2026-05-14T23:57:55+00:00",
     "validation_status": "allowlisted"
+  },
+  "latest_request_source": {
+    "source_channel": "mac_app",
+    "source_kind": "mission_control",
+    "source_message_id": null,
+    "source_node_id": "mac_mission_control",
+    "source_raw_text_present": false,
+    "source_raw_text_stored": false,
+    "source_user_label": null
   },
   "mode": "helm_gated_operator_action_posture_only",
   "network_allowed": false,
   "ollama_allowed": false,
+  "pending_approval_by_source_kind": {
+    "mission_control": 1
+  },
   "pending_approval_count": 1,
   "read_model_version": "operator_actions_read_model_v0",
   "receipt_count": 4,
@@ -107,12 +126,29 @@
   "rejection_count": 0,
   "remote_control_allowed": false,
   "request_count": 2,
+  "request_count_by_source_kind": {
+    "cli": 1,
+    "mission_control": 1
+  },
   "request_status_counts": {
     "completed": 1,
     "requested": 1
   },
   "runtime_activation_allowed": false,
   "schema_version": "operator_actions_read_model_v0",
+  "source_channel_posture": {
+    "all_sources_require_approval": true,
+    "cli_ready": true,
+    "future_client_node_ready": true,
+    "message_text_becomes_shell": false,
+    "mission_control_ready": true,
+    "report_bridge_ready": true,
+    "source_raw_text_stored_by_default": false,
+    "telegram_api_wired": false,
+    "telegram_polling": false,
+    "telegram_ready_metadata_only": true,
+    "telegram_sending": false
+  },
   "source_ledger_namespace": "operator_action_*",
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite"
 }

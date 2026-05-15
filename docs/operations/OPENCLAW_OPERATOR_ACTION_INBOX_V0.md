@@ -1,7 +1,15 @@
-# OpenClaw Operator Action Inbox v0
+# OpenClaw Operator Action Inbox v0.1
 
-Purpose: import strict operator action request JSON files from the shared E-drive
-drop into the existing Operator Action Path.
+Purpose: import strict operator intent/action request JSON files from approved
+local drop surfaces into the existing Operator Action Path.
+
+Operator Action Inbox is the shared intent front door for:
+
+- Mission Control
+- Telegram metadata, future only
+- CLI
+- Report Bridge
+- future client nodes
 
 Flow:
 
@@ -37,9 +45,13 @@ explicitly tested lane.
 - Import does not execute actions.
 - Import does not add arbitrary shell.
 - Import does not accept user-supplied command strings.
+- Message text does not become shell.
+- Raw source message text is not stored by default.
+- Telegram is represented as future metadata only; no Telegram API, polling, or sending is wired.
 - Import does not run network, Docker, Ollama, SSH, SCP, rsync, package managers, agents, or runtime.
 - Import does not write to `C:\openclaw` or `/mnt/c/openclaw`.
 - Mission Control is not modified in this lane.
+- Every source still requires separate explicit approval before execution.
 
 ## Request Format
 
@@ -60,9 +72,13 @@ Example:
   "reason": "Refresh report bridge read-model",
   "created_at": "2026-05-14T23:50:00+00:00",
   "source": {
-    "node_id": "mac_mission_control",
-    "host_kind": "mac",
-    "drop_path": "/Volumes/openclaw_e/operator_actions/inbox"
+    "source_kind": "mission_control",
+    "source_channel": "mac_app",
+    "source_message_id": null,
+    "source_user_label": "operator",
+    "source_node_id": "mac_mission_control",
+    "source_raw_text_present": false,
+    "source_raw_text_stored": false
   },
   "authority": {
     "approval_required": true,
@@ -81,6 +97,18 @@ Example:
   }
 }
 ```
+
+Allowed `source_kind` values:
+
+- `mission_control`
+- `telegram`
+- `cli`
+- `report_bridge`
+- `future_client_node`
+- `unknown`
+
+`unknown` is accepted only as metadata if the request is otherwise safe. It does
+not relax approval, execution, command, or raw-text boundaries.
 
 Allowed `action_type` values are the existing Operator Action Path allowlist:
 
@@ -126,7 +154,16 @@ Operator Action Inbox v0 adds import provenance tables:
 - `operator_action_inbox_imports`
 - `operator_action_inbox_rejections`
 
-Pending requests still live in the existing `operator_action_requests` table.
+Pending requests still live in the existing `operator_action_requests` table,
+which now records source metadata:
+
+- `source_kind`
+- `source_channel`
+- `source_message_id`
+- `source_user_label`
+- `source_node_id`
+- `source_raw_text_present`
+- `source_raw_text_stored`
 
 ## Rejection Rules
 
@@ -138,7 +175,22 @@ Requests are rejected if:
 - `auto_approve` is not `false`
 - `execute_immediately` is not `false`
 - any no-authority flag is `true`
+- `source_raw_text_stored` is `true`
 - any command/shell/argv field is present
+- raw message text fields such as `raw_text`, `message_text`, or `telegram_text` are present
 - JSON is malformed
 
 Rejected request files are not deleted or moved in v0.
+
+## Read-Model Posture
+
+`generated/read_models/operator_actions.json` includes:
+
+- request count by `source_kind`
+- pending approval count by `source_kind`
+- latest request source kind/channel
+- Telegram-ready metadata-only posture
+- explicit no-authority flags
+
+The read-model is an inspection surface only. It does not approve, execute, poll,
+send, deploy, or promote truth.

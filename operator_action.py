@@ -52,6 +52,15 @@ NO_AUTHORITY_FLAGS = {
     "file_move_allowed": False,
 }
 
+ALLOWED_SOURCE_KINDS = {
+    "mission_control",
+    "telegram",
+    "cli",
+    "report_bridge",
+    "future_client_node",
+    "unknown",
+}
+
 FORBIDDEN_COMMAND_TOKENS = {
     "bash",
     "sh",
@@ -288,6 +297,13 @@ CREATE TABLE IF NOT EXISTS operator_action_requests (
   request_receipt_id TEXT,
   approval_id TEXT,
   execution_id TEXT,
+  source_kind TEXT NOT NULL DEFAULT 'cli',
+  source_channel TEXT NOT NULL DEFAULT 'backend_cli',
+  source_message_id TEXT,
+  source_user_label TEXT,
+  source_node_id TEXT,
+  source_raw_text_present INTEGER NOT NULL DEFAULT 0,
+  source_raw_text_stored INTEGER NOT NULL DEFAULT 0,
   runtime_activation_allowed INTEGER NOT NULL DEFAULT 0,
   agent_activation_allowed INTEGER NOT NULL DEFAULT 0,
   arbitrary_shell_allowed INTEGER NOT NULL DEFAULT 0,
@@ -384,6 +400,38 @@ CREATE TABLE IF NOT EXISTS operator_action_rejections (
     )
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    columns = {
+        row[1]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _run_migrations(conn: sqlite3.Connection) -> None:
+    _ensure_column(conn, "operator_action_requests", "source_kind", "TEXT NOT NULL DEFAULT 'cli'")
+    _ensure_column(conn, "operator_action_requests", "source_channel", "TEXT NOT NULL DEFAULT 'backend_cli'")
+    _ensure_column(conn, "operator_action_requests", "source_message_id", "TEXT")
+    _ensure_column(conn, "operator_action_requests", "source_user_label", "TEXT")
+    _ensure_column(conn, "operator_action_requests", "source_node_id", "TEXT")
+    _ensure_column(
+        conn,
+        "operator_action_requests",
+        "source_raw_text_present",
+        "INTEGER NOT NULL DEFAULT 0",
+    )
+    _ensure_column(
+        conn,
+        "operator_action_requests",
+        "source_raw_text_stored",
+        "INTEGER NOT NULL DEFAULT 0",
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_operator_action_requests_source_kind ON operator_action_requests(source_kind)"
+    )
+
+
 def init_operator_action_schema(db_path: str | Path | None = None) -> str:
     path = str(db_path or DEFAULT_DB_PATH)
     parent = Path(path).parent
@@ -397,6 +445,7 @@ def init_operator_action_schema(db_path: str | Path | None = None) -> str:
         conn.execute("PRAGMA foreign_keys = ON")
         for statement in _sql_statements():
             conn.execute(statement)
+        _run_migrations(conn)
         _seed_allowed_commands(conn)
         conn.commit()
     finally:
@@ -515,12 +564,48 @@ ON CONFLICT(receipt_id) DO UPDATE SET
     )
 
 
+def _validate_action_source(
+    *,
+    source_kind: str,
+    source_channel: str,
+    source_message_id: str | None,
+    source_user_label: str | None,
+    source_node_id: str | None,
+    source_raw_text_present: bool,
+    source_raw_text_stored: bool,
+) -> dict[str, Any]:
+    source_kind = source_kind.strip()
+    source_channel = source_channel.strip()
+    if source_kind not in ALLOWED_SOURCE_KINDS:
+        raise ValueError(f"unsupported source_kind: {source_kind}")
+    if not source_channel:
+        raise ValueError("source_channel is required")
+    if source_raw_text_stored:
+        raise ValueError("source_raw_text_stored must be false")
+    return {
+        "source_kind": source_kind,
+        "source_channel": source_channel,
+        "source_message_id": source_message_id.strip() if isinstance(source_message_id, str) and source_message_id.strip() else None,
+        "source_user_label": source_user_label.strip() if isinstance(source_user_label, str) and source_user_label.strip() else None,
+        "source_node_id": source_node_id.strip() if isinstance(source_node_id, str) and source_node_id.strip() else None,
+        "source_raw_text_present": bool(source_raw_text_present),
+        "source_raw_text_stored": False,
+    }
+
+
 def request_operator_action(
     *,
     action_type: str,
     requested_by: str,
     reason: str,
     action_id: str | None = None,
+    source_kind: str = "cli",
+    source_channel: str = "backend_cli",
+    source_message_id: str | None = None,
+    source_user_label: str | None = None,
+    source_node_id: str | None = None,
+    source_raw_text_present: bool = False,
+    source_raw_text_stored: bool = False,
     db_path: str | Path | None = None,
 ) -> ActionRequestResult:
     action_type = action_type.strip()
@@ -532,6 +617,15 @@ def request_operator_action(
         raise ValueError("requested_by is required")
     if not reason:
         raise ValueError("reason is required")
+    source = _validate_action_source(
+        source_kind=source_kind,
+        source_channel=source_channel,
+        source_message_id=source_message_id,
+        source_user_label=source_user_label,
+        source_node_id=source_node_id,
+        source_raw_text_present=source_raw_text_present,
+        source_raw_text_stored=source_raw_text_stored,
+    )
 
     path = init_operator_action_schema(db_path)
     now = utc_now()
@@ -547,13 +641,22 @@ def request_operator_action(
                 """
 INSERT INTO operator_action_requests (
   action_id, action_type, requested_by, reason, created_at, updated_at,
-  status, approval_required, validation_status, validation_summary
-) VALUES (?, ?, ?, ?, ?, ?, 'rejected', 1, 'rejected', ?)
+  status, approval_required, validation_status, validation_summary,
+  source_kind, source_channel, source_message_id, source_user_label,
+  source_node_id, source_raw_text_present, source_raw_text_stored
+) VALUES (?, ?, ?, ?, ?, ?, 'rejected', 1, 'rejected', ?, ?, ?, ?, ?, ?, ?, 0)
 ON CONFLICT(action_id) DO UPDATE SET
   status = 'rejected',
   validation_status = 'rejected',
   validation_summary = excluded.validation_summary,
-  updated_at = excluded.updated_at
+  updated_at = excluded.updated_at,
+  source_kind = excluded.source_kind,
+  source_channel = excluded.source_channel,
+  source_message_id = excluded.source_message_id,
+  source_user_label = excluded.source_user_label,
+  source_node_id = excluded.source_node_id,
+  source_raw_text_present = excluded.source_raw_text_present,
+  source_raw_text_stored = 0
 """.strip(),
                 (
                     resolved_action_id,
@@ -563,6 +666,12 @@ ON CONFLICT(action_id) DO UPDATE SET
                     now,
                     now,
                     summary,
+                    source["source_kind"],
+                    source["source_channel"],
+                    source["source_message_id"],
+                    source["source_user_label"],
+                    source["source_node_id"],
+                    _bool(source["source_raw_text_present"]),
                 ),
             )
             conn.execute(
@@ -605,6 +714,7 @@ ON CONFLICT(rejection_id) DO NOTHING
                     "action_type": action_type,
                     "approval_required": True,
                     "allowed": False,
+                    "source": source,
                     **NO_AUTHORITY_FLAGS,
                 },
             )
@@ -628,8 +738,10 @@ ON CONFLICT(rejection_id) DO NOTHING
 INSERT INTO operator_action_requests (
   action_id, action_type, requested_by, reason, created_at, updated_at,
   status, approval_required, validation_status, validation_summary,
-  request_receipt_id, approval_id
-) VALUES (?, ?, ?, ?, ?, ?, 'requested', 1, 'allowlisted', ?, ?, ?)
+  request_receipt_id, approval_id, source_kind, source_channel,
+  source_message_id, source_user_label, source_node_id,
+  source_raw_text_present, source_raw_text_stored
+) VALUES (?, ?, ?, ?, ?, ?, 'requested', 1, 'allowlisted', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 ON CONFLICT(action_id) DO UPDATE SET
   action_type = excluded.action_type,
   requested_by = excluded.requested_by,
@@ -643,7 +755,14 @@ ON CONFLICT(action_id) DO UPDATE SET
   validation_status = excluded.validation_status,
   validation_summary = excluded.validation_summary,
   request_receipt_id = excluded.request_receipt_id,
-  approval_id = excluded.approval_id
+  approval_id = excluded.approval_id,
+  source_kind = excluded.source_kind,
+  source_channel = excluded.source_channel,
+  source_message_id = excluded.source_message_id,
+  source_user_label = excluded.source_user_label,
+  source_node_id = excluded.source_node_id,
+  source_raw_text_present = excluded.source_raw_text_present,
+  source_raw_text_stored = 0
 """.strip(),
             (
                 resolved_action_id,
@@ -655,6 +774,12 @@ ON CONFLICT(action_id) DO UPDATE SET
                 validation_summary,
                 request_receipt_id,
                 approval_id,
+                source["source_kind"],
+                source["source_channel"],
+                source["source_message_id"],
+                source["source_user_label"],
+                source["source_node_id"],
+                _bool(source["source_raw_text_present"]),
             ),
         )
         conn.commit()
@@ -695,6 +820,7 @@ ON CONFLICT(action_id) DO UPDATE SET
                 "action_type": action_type,
                 "approval_required": True,
                 "auto_approved": False,
+                "source": source,
                 "command": list(allowed.command),
                 "display_command": allowed.display_command,
                 **NO_AUTHORITY_FLAGS,
@@ -1077,9 +1203,18 @@ def build_operator_actions_read_model(
         receipts = _all_rows(conn, "operator_action_receipts", "created_at DESC, receipt_id DESC")
         rejections = _all_rows(conn, "operator_action_rejections", "created_at DESC, rejection_id DESC")
         status_counts = Counter(row["status"] for row in requests)
+        source_counts = Counter(row.get("source_kind") or "unknown" for row in requests)
+        pending_by_source = Counter(
+            row.get("source_kind") or "unknown"
+            for row in requests
+            if row["status"] == "requested"
+        )
         latest = requests[0] if requests else None
         latest_execution = executions[0] if executions else None
-        latest_receipt = receipts[0] if receipts else None
+        execution_receipts = [
+            receipt for receipt in receipts if receipt.get("receipt_type") == "execution_receipt"
+        ]
+        latest_receipt = execution_receipts[0] if execution_receipts else None
         latest_time = (
             latest_receipt["created_at"]
             if latest_receipt
@@ -1104,6 +1239,22 @@ def build_operator_actions_read_model(
             "receipt_count": len(receipts),
             "latest_action": _safe_action_summary(latest),
             "last_execution_receipt_summary": _safe_receipt_summary(latest_receipt, latest_execution),
+            "request_count_by_source_kind": dict(sorted(source_counts.items())),
+            "pending_approval_by_source_kind": dict(sorted(pending_by_source.items())),
+            "latest_request_source": _safe_source_summary(latest),
+            "source_channel_posture": {
+                "mission_control_ready": True,
+                "telegram_ready_metadata_only": True,
+                "telegram_api_wired": False,
+                "telegram_polling": False,
+                "telegram_sending": False,
+                "cli_ready": True,
+                "report_bridge_ready": True,
+                "future_client_node_ready": True,
+                "source_raw_text_stored_by_default": False,
+                "message_text_becomes_shell": False,
+                "all_sources_require_approval": True,
+            },
             "allowed_action_types": [
                 {
                     "action_type": action.action_type,
@@ -1159,6 +1310,27 @@ def _safe_action_summary(row: dict[str, Any] | None) -> dict[str, Any] | None:
         "validation_status": row["validation_status"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+        "source_kind": row.get("source_kind") or "unknown",
+        "source_channel": row.get("source_channel") or "unknown",
+        "source_message_id": row.get("source_message_id"),
+        "source_user_label": row.get("source_user_label"),
+        "source_node_id": row.get("source_node_id"),
+        "source_raw_text_present": bool(row.get("source_raw_text_present", 0)),
+        "source_raw_text_stored": bool(row.get("source_raw_text_stored", 0)),
+    }
+
+
+def _safe_source_summary(row: dict[str, Any] | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    return {
+        "source_kind": row.get("source_kind") or "unknown",
+        "source_channel": row.get("source_channel") or "unknown",
+        "source_message_id": row.get("source_message_id"),
+        "source_user_label": row.get("source_user_label"),
+        "source_node_id": row.get("source_node_id"),
+        "source_raw_text_present": bool(row.get("source_raw_text_present", 0)),
+        "source_raw_text_stored": bool(row.get("source_raw_text_stored", 0)),
     }
 
 
@@ -1225,6 +1397,12 @@ def format_operator_action_report(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _counts_line(counts: dict[str, int]) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(f"{key}={value}" for key, value in sorted(counts.items()))
+
+
 def format_operator_actions_read_model(read_model: dict[str, Any]) -> str:
     latest = read_model.get("latest_action")
     receipt = read_model.get("last_execution_receipt_summary")
@@ -1244,6 +1422,8 @@ def format_operator_actions_read_model(read_model: dict[str, Any]) -> str:
         f"- Approved decisions: {read_model['approved_count']}.",
         f"- Completed: {read_model['completed_count']}; failed: {read_model['failed_count']}; rejected: {read_model['rejected_count']}.",
         f"- Receipts: {read_model['receipt_count']}.",
+        f"- Requests by source kind: {_counts_line(read_model['request_count_by_source_kind'])}.",
+        f"- Pending approval by source kind: {_counts_line(read_model['pending_approval_by_source_kind'])}.",
         "",
         "Latest action:",
     ]
@@ -1254,6 +1434,7 @@ def format_operator_actions_read_model(read_model: dict[str, Any]) -> str:
                 f"- Type: `{latest['action_type']}`.",
                 f"- Status: `{latest['status']}`.",
                 f"- Requested by: `{latest['requested_by']}`.",
+                f"- Source: `{latest['source_kind']}` / `{latest['source_channel']}`.",
             ]
         )
     else:
@@ -1281,6 +1462,12 @@ def format_operator_actions_read_model(read_model: dict[str, Any]) -> str:
         lines.append(f"- `{action['action_type']}`: {action['description']}")
     lines.extend(
         [
+            "",
+            "Source boundary:",
+            "- Mission Control, Telegram, CLI, Report Bridge, and future client nodes are source metadata only.",
+            "- Telegram-ready means metadata shape only; no Telegram API, polling, or sending is wired.",
+            "- Source message text does not become shell and raw source text is not stored by default.",
+            "- All source kinds still require explicit approval before execution.",
             "",
             "Authority boundary:",
             "- arbitrary_shell_allowed=false; runtime_activation_allowed=false; agent_activation_allowed=false.",
@@ -1397,6 +1584,7 @@ def format_export_summary(summary: dict[str, Any]) -> str:
 
 __all__ = [
     "ALLOWED_ACTIONS",
+    "ALLOWED_SOURCE_KINDS",
     "JSON_EXPORT_NAME",
     "NO_AUTHORITY_FLAGS",
     "OPERATOR_EXPORT_NAME",
