@@ -656,6 +656,7 @@
 !scripts/import_root_manifest.py
 !scripts/prepare_mac_read_model_shuttle.py
 !scripts/import_mac_read_model_shuttle.py
+!scripts/pc_read_model_import_agent.py
 !scripts/import_report_bridge_package.py
 !scripts/query_report_bridge.py
 !scripts/export_report_bridge_read_model.py
@@ -682,6 +683,7 @@
 !tests/test_mission_control_read_model_refresh_prompt.py
 !tests/test_mac_mirror_atlas.py
 !tests/test_read_model_shuttle.py
+!tests/test_pc_read_model_import_agent.py
 !tests/test_report_bridge.py
 !tests/test_report_bridge_read_model.py
 !tests/test_operator_action.py

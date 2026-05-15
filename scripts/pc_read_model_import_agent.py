@@ -1,0 +1,391 @@
+#!/usr/bin/env python3
+"""Local PC/WSL generated read-model mirror import agent."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from business_ops_ledger import DEFAULT_DB_PATH
+from corpus_atlas import stable_json
+from read_model_shuttle import (
+    DEFAULT_IMPORT_MANIFEST_PATH,
+    DEFAULT_RETURNED_MANIFEST_PATH,
+)
+from scripts.import_latest_mac_read_model_mirror import import_latest_mac_read_model_mirror
+
+
+AGENT_VERSION = "openclaw.pc_read_model_import_agent.v0"
+DEFAULT_COMPLETION_MARKER_PATH = (
+    Path("/mnt/e/openclaw") / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+)
+DEFAULT_STATE_PATH = ROOT / ".openclaw" / "state" / "read_model_import_agent_state.json"
+DEFAULT_LOG_PATH = ROOT / ".openclaw" / "logs" / "read_model_import_agent.log"
+
+Importer = Callable[..., dict[str, Any]]
+
+NO_AUTHORITY_FLAGS = {
+    "remote_control_allowed": False,
+    "runtime_authority": False,
+    "agent_activation_allowed": False,
+    "tool_execution_allowed": False,
+    "model_execution_allowed": False,
+    "container_execution_allowed": False,
+    "docker_allowed": False,
+    "ollama_allowed": False,
+    "network_authority": False,
+    "mission_control_modified": False,
+    "generated_contracts_modified": False,
+    "file_delete_allowed": False,
+    "file_move_allowed": False,
+}
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def append_log(log_path: str | Path, event: str, **fields: Any) -> None:
+    path = Path(log_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "agent_version": AGENT_VERSION,
+        "event": event,
+        "logged_at": utc_now(),
+        **fields,
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
+def load_state(state_path: str | Path) -> dict[str, Any]:
+    path = Path(state_path)
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"state_read_error": True}
+    return payload if isinstance(payload, dict) else {"state_read_error": True}
+
+
+def write_state(state_path: str | Path, payload: dict[str, Any]) -> None:
+    path = Path(state_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(stable_json(payload), encoding="utf-8")
+
+
+def _completion_marker_summary(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {
+            "completion_marker_present": False,
+        }
+    stat = path.stat()
+    return {
+        "completion_marker_present": True,
+        "completion_marker_size_bytes": stat.st_size,
+        "completion_marker_mtime": stat.st_mtime,
+        "completion_marker_sha256": sha256_file(path),
+    }
+
+
+def _base_status(
+    *,
+    status: str,
+    manifest_path: Path,
+    completion_marker_path: Path,
+    state_path: Path,
+    log_path: Path,
+    exit_code: int = 0,
+    **extra: Any,
+) -> dict[str, Any]:
+    return {
+        "agent_version": AGENT_VERSION,
+        "status": status,
+        "generated_at": utc_now(),
+        "manifest_path": manifest_path.as_posix(),
+        "completion_marker_path": completion_marker_path.as_posix(),
+        "state_path": state_path.as_posix(),
+        "log_path": log_path.as_posix(),
+        "exit_code": exit_code,
+        "manifest_deleted": False,
+        "completion_marker_deleted": False,
+        "manifest_moved": False,
+        **NO_AUTHORITY_FLAGS,
+        **extra,
+    }
+
+
+def run_import_agent_once(
+    *,
+    manifest_path: str | Path = DEFAULT_RETURNED_MANIFEST_PATH,
+    completion_marker_path: str | Path = DEFAULT_COMPLETION_MARKER_PATH,
+    state_path: str | Path = DEFAULT_STATE_PATH,
+    log_path: str | Path = DEFAULT_LOG_PATH,
+    db_path: str | Path = DEFAULT_DB_PATH,
+    import_manifest_path: str | Path = DEFAULT_IMPORT_MANIFEST_PATH,
+    importer: Importer = import_latest_mac_read_model_mirror,
+) -> dict[str, Any]:
+    manifest = Path(manifest_path)
+    completion_marker = Path(completion_marker_path)
+    state_file = Path(state_path)
+    log_file = Path(log_path)
+
+    if not manifest.is_file():
+        status = _base_status(
+            status="manifest_missing",
+            manifest_path=manifest,
+            completion_marker_path=completion_marker,
+            state_path=state_file,
+            log_path=log_file,
+            message=f"Mac generated-read-model manifest is missing: {manifest}",
+            **_completion_marker_summary(completion_marker),
+        )
+        write_state(state_file, status)
+        append_log(log_file, "manifest_missing", manifest_path=manifest.as_posix())
+        return status
+
+    manifest_hash = sha256_file(manifest)
+    manifest_stat = manifest.stat()
+    previous_state = load_state(state_file)
+    if previous_state.get("last_successful_manifest_sha256") == manifest_hash:
+        status = _base_status(
+            status="skipped_unchanged",
+            manifest_path=manifest,
+            completion_marker_path=completion_marker,
+            state_path=state_file,
+            log_path=log_file,
+            manifest_sha256=manifest_hash,
+            manifest_size_bytes=manifest_stat.st_size,
+            manifest_mtime=manifest_stat.st_mtime,
+            last_imported_at=previous_state.get("last_imported_at"),
+            message="Manifest hash matches the last successful import; import skipped.",
+            **_completion_marker_summary(completion_marker),
+        )
+        write_state(
+            state_file,
+            {
+                **previous_state,
+                "agent_version": AGENT_VERSION,
+                "status": status["status"],
+                "updated_at": status["generated_at"],
+                "last_seen_manifest_sha256": manifest_hash,
+                "last_seen_manifest_path": manifest.as_posix(),
+                "last_skip_reason": "unchanged_manifest_hash",
+                **NO_AUTHORITY_FLAGS,
+            },
+        )
+        append_log(log_file, "skipped_unchanged", manifest_sha256=manifest_hash)
+        return status
+
+    append_log(log_file, "import_started", manifest_path=manifest.as_posix(), manifest_sha256=manifest_hash)
+    try:
+        import_result = importer(
+            manifest=manifest,
+            db_path=db_path,
+            import_manifest_path=import_manifest_path,
+        )
+    except Exception as exc:
+        status = _base_status(
+            status="failure",
+            manifest_path=manifest,
+            completion_marker_path=completion_marker,
+            state_path=state_file,
+            log_path=log_file,
+            exit_code=1,
+            manifest_sha256=manifest_hash,
+            manifest_size_bytes=manifest_stat.st_size,
+            manifest_mtime=manifest_stat.st_mtime,
+            failure_reason=type(exc).__name__,
+            failure_detail=str(exc),
+            **_completion_marker_summary(completion_marker),
+        )
+        write_state(
+            state_file,
+            {
+                **previous_state,
+                "agent_version": AGENT_VERSION,
+                "status": status["status"],
+                "updated_at": status["generated_at"],
+                "last_seen_manifest_sha256": manifest_hash,
+                "last_seen_manifest_path": manifest.as_posix(),
+                "last_failure_at": status["generated_at"],
+                "last_failure_reason": status["failure_reason"],
+                "last_failure_detail": status["failure_detail"],
+                **NO_AUTHORITY_FLAGS,
+            },
+        )
+        append_log(
+            log_file,
+            "import_failed",
+            manifest_sha256=manifest_hash,
+            failure_reason=status["failure_reason"],
+        )
+        return status
+
+    status = _base_status(
+        status="success",
+        manifest_path=manifest,
+        completion_marker_path=completion_marker,
+        state_path=state_file,
+        log_path=log_file,
+        manifest_sha256=manifest_hash,
+        manifest_size_bytes=manifest_stat.st_size,
+        manifest_mtime=manifest_stat.st_mtime,
+        import_run_id=import_result.get("import_run_id"),
+        root_id=import_result.get("root_id"),
+        path_count=import_result.get("path_count"),
+        mirror_counts=(
+            import_result.get("generated_read_model_mirror", {}).get("counts", {})
+            if isinstance(import_result.get("generated_read_model_mirror"), dict)
+            else {}
+        ),
+        **_completion_marker_summary(completion_marker),
+    )
+    write_state(
+        state_file,
+        {
+            "agent_version": AGENT_VERSION,
+            "status": status["status"],
+            "updated_at": status["generated_at"],
+            "last_seen_manifest_sha256": manifest_hash,
+            "last_seen_manifest_path": manifest.as_posix(),
+            "last_successful_manifest_sha256": manifest_hash,
+            "last_successful_manifest_path": manifest.as_posix(),
+            "last_imported_at": status["generated_at"],
+            "last_import_run_id": status.get("import_run_id"),
+            "last_root_id": status.get("root_id"),
+            "last_path_count": status.get("path_count"),
+            "last_mirror_counts": status.get("mirror_counts"),
+            **NO_AUTHORITY_FLAGS,
+        },
+    )
+    append_log(
+        log_file,
+        "import_succeeded",
+        manifest_sha256=manifest_hash,
+        import_run_id=status.get("import_run_id"),
+    )
+    return status
+
+
+def run_import_agent_loop(
+    *,
+    interval_seconds: int,
+    stop_after: int | None = None,
+    **kwargs: Any,
+) -> int:
+    iterations = 0
+    while True:
+        status = run_import_agent_once(**kwargs)
+        iterations += 1
+        if stop_after is not None and iterations >= stop_after:
+            return int(status.get("exit_code", 0))
+        time.sleep(interval_seconds)
+
+
+def format_agent_report(payload: dict[str, Any]) -> str:
+    lines = [
+        "PC Read-Model Import Agent v0",
+        "",
+        f"Status: `{payload['status']}`",
+        f"Manifest: `{payload['manifest_path']}`",
+        f"Completion marker: `{payload['completion_marker_path']}`",
+        f"State: `{payload['state_path']}`",
+        f"Log: `{payload['log_path']}`",
+        f"Exit code: {payload['exit_code']}",
+    ]
+    if payload.get("manifest_sha256"):
+        lines.append(f"Manifest sha256: `{payload['manifest_sha256']}`")
+    if payload.get("import_run_id"):
+        lines.append(f"Import run: `{payload['import_run_id']}`")
+    if payload.get("path_count") is not None:
+        lines.append(f"Imported path count: {payload['path_count']}")
+    if payload.get("mirror_counts"):
+        counts = payload["mirror_counts"]
+        lines.extend(
+            [
+                "Mirror counts:",
+                f"- missing_expected={counts.get('missing_expected', 0)}",
+                f"- extra={counts.get('extra', 0)}",
+                f"- hash_mismatch={counts.get('hash_mismatch', 0)}",
+            ]
+        )
+    if payload.get("message"):
+        lines.append(f"Message: {payload['message']}")
+    if payload.get("failure_reason"):
+        lines.extend(
+            [
+                f"Failure: `{payload['failure_reason']}`",
+                f"Detail: {payload.get('failure_detail', '')}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Boundary:",
+            "- Local PC/WSL import watcher only; it does not delete manifests, move files, change Mission Control, modify generated contracts, or activate runtime/tools/agents.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Import the Mac generated-read-model manifest when it changes."
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--once", action="store_true", help="Run one import check. This is the default.")
+    mode.add_argument("--loop", action="store_true", help="Poll continuously.")
+    parser.add_argument("--interval", type=int, default=300, help="Loop interval in seconds.")
+    parser.add_argument("--manifest", default=DEFAULT_RETURNED_MANIFEST_PATH.as_posix())
+    parser.add_argument("--completion-marker", default=DEFAULT_COMPLETION_MARKER_PATH.as_posix())
+    parser.add_argument("--state-path", default=DEFAULT_STATE_PATH.as_posix())
+    parser.add_argument("--log-path", default=DEFAULT_LOG_PATH.as_posix())
+    parser.add_argument("--db", default=DEFAULT_DB_PATH)
+    parser.add_argument("--import-manifest-path", default=DEFAULT_IMPORT_MANIFEST_PATH.as_posix())
+    parser.add_argument("--format", choices=("operator", "json"), default="operator")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    kwargs = {
+        "manifest_path": args.manifest,
+        "completion_marker_path": args.completion_marker,
+        "state_path": args.state_path,
+        "log_path": args.log_path,
+        "db_path": args.db,
+        "import_manifest_path": args.import_manifest_path,
+    }
+    if args.loop:
+        return run_import_agent_loop(interval_seconds=args.interval, **kwargs)
+
+    payload = run_import_agent_once(**kwargs)
+    if args.format == "json":
+        print(stable_json(payload), end="")
+    else:
+        print(format_agent_report(payload))
+    return int(payload.get("exit_code", 0))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
