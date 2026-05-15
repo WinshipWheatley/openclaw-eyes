@@ -1,0 +1,116 @@
+{
+  "agent_activation_allowed": false,
+  "app_direct_execution_allowed": false,
+  "arbitrary_command_allowed": false,
+  "canonical_expected": 50,
+  "docker_ollama_allowed": false,
+  "extra": 0,
+  "extra_files": [],
+  "file_delete_allowed": false,
+  "file_move_allowed": false,
+  "generated_at": "2026-05-15T15:26:32+00:00",
+  "hash_mismatch": 0,
+  "last_mac_completion": {
+    "status": "synced",
+    "time": "2026-05-15T15:15:45+00:00"
+  },
+  "last_mac_heartbeat": {
+    "manifest_written": true,
+    "marker_seen": true,
+    "status": "idle",
+    "time": "2026-05-15T15:25:46+00:00"
+  },
+  "last_pc_import": {
+    "manifest_hash": "76ace0a7a52a2df0e34c16f6bbd56ba9cbba31f68490b6bbb1d080b4d98ae001",
+    "pc_scheduler_known": true,
+    "status": "skipped_unchanged",
+    "time": "2026-05-15T15:19:51+00:00",
+    "windows_task_log_present": true
+  },
+  "matched_hash": 48,
+  "mirror_status": "needs_mac_sync",
+  "missing_expected": 2,
+  "missing_files": [
+    "sync_health.json",
+    "sync_health_OPERATOR.md"
+  ],
+  "no_authority_flags": {
+    "agent_activation_allowed": false,
+    "app_direct_execution_allowed": false,
+    "arbitrary_command_allowed": false,
+    "docker_ollama_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "remote_control_allowed": false,
+    "runtime_activation_allowed": false,
+    "ssh_scp_rsync_allowed": false
+  },
+  "observed": 48,
+  "proof_sources": [
+    {
+      "present": 1,
+      "source_hash": "5886063898eb0243300072da7cc21ea1cd06455a84f534788cfc4cda596cad6f",
+      "source_kind": "mac_completion",
+      "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
+      "source_status": "synced",
+      "source_time": "2026-05-15T15:15:45+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": "7ad15f409c8805b9193d5669d524ec825ad8a20525a0f4a39b6a1d3aa5af0bb4",
+      "source_kind": "mac_heartbeat",
+      "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
+      "source_status": "idle",
+      "source_time": "2026-05-15T15:25:46+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": "76ace0a7a52a2df0e34c16f6bbd56ba9cbba31f68490b6bbb1d080b4d98ae001",
+      "source_kind": "mac_manifest",
+      "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
+      "source_status": null,
+      "source_time": "2026-05-15T15:15:45+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": "bf0d9d184fc2eefc3df366f1b2f8d1eea69c2a95d2f9ba2b43af845cde22657f",
+      "source_kind": "pc_import_state",
+      "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
+      "source_status": "skipped_unchanged",
+      "source_time": "2026-05-15T15:19:51+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": null,
+      "source_kind": "pc_task_log",
+      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
+      "source_status": "present",
+      "source_time": "2026-05-15T15:24:48+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": null,
+      "source_kind": "windows_task_log",
+      "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
+      "source_status": "present",
+      "source_time": "2026-05-15T15:24:47+00:00"
+    }
+  ],
+  "recommended_fix": {
+    "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
+    "can_request_fix_from_app": true,
+    "kind": "request_mac_sync",
+    "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+    "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"
+  },
+  "remote_control_allowed": false,
+  "runtime_activation_allowed": false,
+  "schema_version": "sync_health_read_model_v0",
+  "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+  "ssh_scp_rsync_allowed": false,
+  "stale_files": [
+    "sync_health.json",
+    "sync_health_OPERATOR.md"
+  ],
+  "trust_status": "stale_needs_mac_sync"
+}
