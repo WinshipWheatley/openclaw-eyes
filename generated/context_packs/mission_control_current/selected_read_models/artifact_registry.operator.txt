@@ -1,0 +1,20 @@
+Read-Model Artifact Registry v0
+
+Evidence:
+- Registered 34 metadata/read-model artifact records: 2 generated Markdown files, 12 producer contracts, 4 generated-status sections, and 16 standardized export paths.
+- Consumer-safe records: Mac app=31; Codex context=33; nohup/background workers=33; agent context=33.
+- Registered artifacts carry tags, authority labels, freshness basis, verification command, and explicit no-claims.
+
+Boundary:
+- Registry records metadata only; file bodies are not ingested, emitted, or stored in SQLite.
+- File hashes are computed only for explicit registered repo-local files; no broad scan is performed.
+- `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.
+- Registry visibility does not authorize app writes, runtime actions, agents, brokers, external tools, networking, or customer deployment.
+
+Blocked:
+- Full body ingest, SQLite body storage, broad repo scan, hard-drive scan, private/legal/tax/CPA/AppData/runtime-log access remain blocked.
+- Runtime activation, backend execution, agent activation, broker wiring, external tool calls, networking, and customer deployment remain blocked.
+- Dynamic world state, strategic gravity scoring, active agent presence, live health, and process liveness are not claimed.
+
+Next safe move:
+- Keep `generated/read_models/` current with `python3 scripts/export_read_models.py --check` before app consumption.

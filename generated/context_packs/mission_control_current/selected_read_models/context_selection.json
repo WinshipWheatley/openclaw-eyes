@@ -1,0 +1,146 @@
+{
+  "agent_activation_allowed": false,
+  "authority_flags": {
+    "agent_activation_allowed": false,
+    "backend_execution_allowed": false,
+    "docker_execution_allowed": false,
+    "model_call_allowed": false,
+    "network_authority": false,
+    "ollama_execution_allowed": false,
+    "runtime_authority": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false,
+    "vector_search_allowed": false
+  },
+  "available_packet_reports": {
+    "build_build_world_packet": "python3 scripts/build_context_packet.py --world build --format operator",
+    "build_future_gated_packet": "python3 scripts/build_context_packet.py --category future_gated_capability --format operator",
+    "build_runtime_gate_packet": "python3 scripts/build_context_packet.py --category runtime_gate --format operator",
+    "build_tool_posture_packet": "python3 scripts/build_context_packet.py --category tool_posture --format operator",
+    "latest_exclusions": "python3 scripts/query_context_selection.py --report exclusions --format operator",
+    "latest_items": "python3 scripts/query_context_selection.py --report items --format operator",
+    "latest_receipts": "python3 scripts/query_context_selection.py --report receipts --format operator",
+    "latest_sources": "python3 scripts/query_context_selection.py --report sources --format operator",
+    "latest_summary": "python3 scripts/query_context_selection.py --report summary --format operator"
+  },
+  "backend_execution_allowed": false,
+  "blocked_sensitive_recorded_exclusion_count": 200,
+  "boundary": {
+    "packets_are_not_truth_promotion": true,
+    "packets_are_selected_evidence": true,
+    "raw_private_or_no_go_content_included": false,
+    "unknown_needs_review_sensitive_and_no_go_excluded": true
+  },
+  "canonicality_represented": {
+    "generated_current": 60
+  },
+  "claims_not_made": [
+    "truth_promotion",
+    "runtime_activation",
+    "agent_activation",
+    "backend_execution",
+    "model_call",
+    "embedding_generation",
+    "vector_search",
+    "generic_rag",
+    "tool_execution",
+    "docker_execution",
+    "ollama_execution",
+    "network_authority",
+    "private_or_no_go_raw_content"
+  ],
+  "context_for_reasoning_only": true,
+  "context_packets_are_truth_promotion": false,
+  "docker_execution_allowed": false,
+  "evidence_categories_represented": {
+    "artifact_registry": 4,
+    "evidence_freshness": 10,
+    "helm_state": 3,
+    "operator_status": 4,
+    "runtime_gate": 31,
+    "unsupported_capability": 8
+  },
+  "evidence_labels_represented": {
+    "future_gated_capability": 12,
+    "generated_read_model_fact": 40,
+    "unsupported_claim": 8
+  },
+  "excluded_item_count": 200,
+  "freshness_labels_represented": {
+    "generated_current": 60
+  },
+  "generated_at": "2026-05-14T03:40:40+00:00",
+  "generated_at_basis": "context_selection_run_completed_at",
+  "generic_rag": false,
+  "ingestion_eligibility_represented": {
+    "generated_snapshot_only": 60
+  },
+  "known_safe_packet_categories": [
+    "runtime_gate",
+    "future_gated_capability",
+    "tool_posture",
+    "generated_read_model_fact"
+  ],
+  "latest_context_packet_id": "ctxpacket_dc4aa1c1c9f43fbe6753",
+  "latest_context_selection_run_id": "ctx_2026_05_14_build_mission_control_prompt_v0",
+  "mode": "bounded_context_packet_posture_only",
+  "model_call_allowed": false,
+  "model_calls_used": false,
+  "network_authority": false,
+  "no_go_blocked_sensitive_exclusion_count": 754,
+  "no_go_exclusion_count": 754,
+  "ollama_execution_allowed": false,
+  "packet_artifact_paths": {
+    "json": "generated/context_packets/context_packet_latest.json",
+    "operator_markdown": "generated/context_packets/context_packet_latest.md"
+  },
+  "query": {
+    "category": null,
+    "limit": 60,
+    "task": "prepare Mission Control frontend prompt",
+    "task_category_hints": [
+      "runtime_gate",
+      "helm_state",
+      "world_registry",
+      "world_status",
+      "artifact_registry",
+      "source_inventory",
+      "evidence_freshness",
+      "operator_status",
+      "unsupported_capability",
+      "future_gated_capability",
+      "generated_read_model_fact"
+    ],
+    "world": "build"
+  },
+  "read_model_version": "context_selection_read_model_v0",
+  "retrieval_eligibility_represented": {
+    "generated_read_model_only": 60
+  },
+  "runtime_authority": false,
+  "schema_version": "context_selection_read_model_v0",
+  "selected_evidence_not_truth": true,
+  "selected_item_count": 60,
+  "selector_version": "context_selection_knowledge_packet_v0",
+  "sensitivity_labels_represented": {
+    "internal_project": 60
+  },
+  "source_ledger_namespace": "context_selection_*",
+  "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+  "source_tables_used": [
+    "evidence_items",
+    "read_model_snapshots",
+    "corpus_paths",
+    "generated/read_models/tool_inventory.json",
+    "generated/read_models/tool_intake.json"
+  ],
+  "tool_execution_allowed": false,
+  "truth_claimed": false,
+  "truth_promotion_allowed": false,
+  "vector_search_allowed": false,
+  "vector_search_used": false,
+  "worlds_represented": {
+    "build": 12,
+    "cross_world": 48
+  }
+}

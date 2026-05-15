@@ -1,0 +1,18 @@
+Runtime / Module Activation Gate v0
+
+Evidence:
+- Gate state is `blocked_v0_contract`; activation_allowed=false.
+- Accepted packets visible to the gate: 0 with 0 compact cards.
+- This report is a readiness contract only, not a live runtime check.
+
+Boundary:
+- v0 always blocks runtime/module activation; it only names prerequisites for a future approved lane.
+- It does not call runtime services, agents, brokers, external tools, customer deployment, or SQLite writers.
+- `runtime_authority=false`; no live runtime health is claimed.
+
+Blocked:
+- Missing prerequisites: `explicit_operator_approval`, `rollback_plan`, `module_manifest_validation`, `runtime_boundary_declaration`, `logging_receipt_path`, `dry_run_proof`.
+- Module activation, agent activation, broker wiring, customer deployment, external tools, and runtime mutation remain blocked.
+
+Next safe move:
+- Keep packets as reasoning context; prepare explicit approval, rollback, manifest validation, boundary, receipt, and dry-run evidence in a later lane.

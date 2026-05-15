@@ -1,0 +1,19 @@
+Evidence Freshness Read-Model v0
+
+Evidence:
+- Git HEAD: `omitted_for_standardized_export_stability`.
+- Generated status current: `true`.
+- Read-model exports current: `true`.
+- Tracked 18 expected artifacts: current=18, stale=0, missing=0, unknown=0.
+
+Boundary:
+- Evidence Freshness v0 uses safe repo-local generated status files and `generated/read_models/` artifacts only.
+- It records file existence and producer check outcomes; raw artifact bodies are not emitted or stored.
+- `body_ingested=false`; `runtime_authority=false`; `activation_allowed=false`; `backend_execution_authorized=false`.
+
+Blocked:
+- Live runtime health, process liveness, active agents, dynamic world state, strategic gravity scoring, networking, and external tool calls are not checked.
+- SQLite writes, body storage, full body ingest, broad repo scans, hard-drive scans, private/legal/tax/CPA/AppData/runtime-log access, and customer deployment remain blocked.
+
+Next safe move:
+- Refresh stale or missing generated artifacts with their explicit producer commands before app consumption; add evidence freshness / strategic gravity inputs before dynamic attention states.

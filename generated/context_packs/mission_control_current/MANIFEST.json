@@ -1,0 +1,370 @@
+{
+  "action_auto_execute_allowed": false,
+  "agent_activation_allowed": false,
+  "available_safe_read_model_count": 42,
+  "browser_automation_allowed": false,
+  "excluded_policy": [
+    "manifests",
+    "SQLite databases",
+    "temp files",
+    "hidden files",
+    "no-go/private/sensitive path hints",
+    "non-selected raw JSON read-models"
+  ],
+  "external_upload_allowed": false,
+  "files": [
+    {
+      "relative_path": "00_START_HERE.md",
+      "role": "start_here",
+      "sha256": "272c8dde6997c72770cadc37678ee2d9b832553932590f8c8ca20463e0d39e9f",
+      "size_bytes": 758,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "CURRENT_STATE.md",
+      "role": "current_state_summary",
+      "sha256": "fb0087e06b448fad32389308c7bac2baf5a3e66a83960a238c45eddbc26a0c7a",
+      "size_bytes": 3259,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "NEXT_ACTIONS.md",
+      "role": "next_actions_summary",
+      "sha256": "56a2cc727d0e4cfebcc3431274feaee09f74281b5e47e556a5f57e68aaa13984",
+      "size_bytes": 1591,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "EVIDENCE_INDEX.md",
+      "role": "evidence_index",
+      "sha256": "b7bec8260edd61801cfa110e3db1f2973ba6839eac7b0c5bd8a7f5ba4755e735",
+      "size_bytes": 6285,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "READ_MODEL_INDEX.md",
+      "role": "read_model_index",
+      "sha256": "522799bbad91d59c994b2db51f92ba2f34516d9b0cd31ef021578c7a95bd61a3",
+      "size_bytes": 2937,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "SAFETY_BOUNDARIES.md",
+      "role": "safety_boundaries",
+      "sha256": "6bd173c172ca0bcfe42b9f16d4c50071a776a3b8415ba77f4d17d85defafa432",
+      "size_bytes": 666,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "UPLOAD_INSTRUCTIONS.md",
+      "role": "upload_instructions",
+      "sha256": "d52bd4f29ecff70ff7e69deef16c7f913db059aaa07fa36c8e132f862fb0173b",
+      "size_bytes": 731,
+      "source_path": null,
+      "source_role": null
+    },
+    {
+      "relative_path": "selected_read_models/generated_current_state.md",
+      "role": "selected_read_model",
+      "sha256": "783fd7a40b0d64734205aadfb65720d2e6e41ae278955cc28058884e4301ea52",
+      "size_bytes": 12400,
+      "source_path": "/home/openclaw/generated/read_models/generated_current_state.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/generated_next_actions.md",
+      "role": "selected_read_model",
+      "sha256": "9d7d77450f0676b2a8c981c8ccf468945ca3997757f326a9508c72576f51cdf3",
+      "size_bytes": 1481,
+      "source_path": "/home/openclaw/generated/read_models/generated_next_actions.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/agent_runtime_readiness_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "048320d938bd11c15c72ea16c08aac2c76652b0b3f58d1462e9cf6a7fd3bf24e",
+      "size_bytes": 2216,
+      "source_path": "/home/openclaw/generated/read_models/agent_runtime_readiness_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/agent_runtime_readiness.json",
+      "role": "selected_read_model",
+      "sha256": "d02b24b4564d6b35ad6b2834742953fea49fe91a4e4fa43487063f350db1af62",
+      "size_bytes": 7791,
+      "source_path": "/home/openclaw/generated/read_models/agent_runtime_readiness.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/intent_router_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "611cf44d66b9cb57ab8e52edbaa043321caf7dd2b1f0de33337992d26f312288",
+      "size_bytes": 1721,
+      "source_path": "/home/openclaw/generated/read_models/intent_router_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/intent_router.json",
+      "role": "selected_read_model",
+      "sha256": "2be9f15777d49e7d7081d67d0b3849c4e6ebf65ae2a37dc2274e416fc0540a35",
+      "size_bytes": 4878,
+      "source_path": "/home/openclaw/generated/read_models/intent_router.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/agent_lanes_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "9a4252a95ada93311d5a62293d2d3f5d5bf59eac4c81402ff6b81ebc50cdd807",
+      "size_bytes": 2009,
+      "source_path": "/home/openclaw/generated/read_models/agent_lanes_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/agent_lanes.json",
+      "role": "selected_read_model",
+      "sha256": "4031d4115aef73367a4d1ff646830714550566c5f1e2ea226b46a68d29cc43e9",
+      "size_bytes": 23683,
+      "source_path": "/home/openclaw/generated/read_models/agent_lanes.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/operator_actions_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "1eadfcdcf926ad80c250dfe5d47b2c6ab5dbf81b06ed478fe3dd14ca7f74adf8",
+      "size_bytes": 2306,
+      "source_path": "/home/openclaw/generated/read_models/operator_actions_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/operator_actions.json",
+      "role": "selected_read_model",
+      "sha256": "65449aebcf8d3f1f80bf8aee37a2b60dbe1b1904fa8ac7867aa350959b205175",
+      "size_bytes": 5332,
+      "source_path": "/home/openclaw/generated/read_models/operator_actions.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/agent_work_packets.json",
+      "role": "selected_read_model",
+      "sha256": "15b2a0057afaa1379feadfe48e7f396190cada64cf03ac7f170f09f4a11fb0ba",
+      "size_bytes": 2801,
+      "source_path": "/home/openclaw/generated/read_models/agent_work_packets.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/agent_work_packets_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "e7bf477d9b7d1abda4f8cd69f608c5f29388d95653f006921298e156366d92d2",
+      "size_bytes": 840,
+      "source_path": "/home/openclaw/generated/read_models/agent_work_packets_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/artifact_registry.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "d31082bf3de462bd741d624f033d8a76590beed92c291934edd3615a7f62b1d1",
+      "size_bytes": 1425,
+      "source_path": "/home/openclaw/generated/read_models/artifact_registry.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/context_selection.json",
+      "role": "selected_read_model",
+      "sha256": "35e95d0291e131e6ddcbff8b59cbcab5546e1777e873b3f1917b9a201d93091b",
+      "size_bytes": 5124,
+      "source_path": "/home/openclaw/generated/read_models/context_selection.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/context_selection_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "56080cef3b043dec0c832639589414752f8c0e6c28678cffe8c8e11ea8e79ee3",
+      "size_bytes": 1812,
+      "source_path": "/home/openclaw/generated/read_models/context_selection_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/dropped_intents.json",
+      "role": "selected_read_model",
+      "sha256": "7a2237e289838e741fb2a6dba5377be5446b6fe2bf3eb3198440630dffcfe084",
+      "size_bytes": 14607,
+      "source_path": "/home/openclaw/generated/read_models/dropped_intents.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/dropped_intents_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "d4933cf0e16f930b490e1969be87d88e12c475207f47a5749ce6fbd32e8a79ad",
+      "size_bytes": 1728,
+      "source_path": "/home/openclaw/generated/read_models/dropped_intents_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/evidence_freshness.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "d59ae84ae0ba4c9e146cf27d815520e23266984f0c7306cf9d64b845498d54df",
+      "size_bytes": 1148,
+      "source_path": "/home/openclaw/generated/read_models/evidence_freshness.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/helm_state.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "3e2f235deaa7c77aa4d8aa46ad8deea9b4d766992807ae6043eaa0c654ad45a1",
+      "size_bytes": 1978,
+      "source_path": "/home/openclaw/generated/read_models/helm_state.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/markdown_evidence.json",
+      "role": "selected_read_model",
+      "sha256": "fe004c8e7128ecaa31a5d15ab29ae3ad6f352013bc9411e11c8d4e04d1f1521c",
+      "size_bytes": 15212,
+      "source_path": "/home/openclaw/generated/read_models/markdown_evidence.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/markdown_evidence_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "4d7a737ef5990687261eba72867e5b3908e8ef3979eca17a4f4c3ac555cc1a0f",
+      "size_bytes": 760,
+      "source_path": "/home/openclaw/generated/read_models/markdown_evidence_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/project_capsules.json",
+      "role": "selected_read_model",
+      "sha256": "677ba1bf21d98626b46c2a4ba3189772c154c26b70217d2426c1163a39115015",
+      "size_bytes": 19452,
+      "source_path": "/home/openclaw/generated/read_models/project_capsules.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/project_capsules_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "3603c8fa1c5f7db386264c8f9a4c913b8ba23867c1458b9dd7a0c07350577fd2",
+      "size_bytes": 1103,
+      "source_path": "/home/openclaw/generated/read_models/project_capsules_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/recent_file_context.json",
+      "role": "selected_read_model",
+      "sha256": "187cb2f25f959bbe8d3f791d99ca84929643da5bda21e8104419f7517720fc13",
+      "size_bytes": 8520,
+      "source_path": "/home/openclaw/generated/read_models/recent_file_context.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/recent_file_context_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "505ee1cd21d0effe7b8932cbaadba587ec53eac644338aa85faadbade39abe27",
+      "size_bytes": 961,
+      "source_path": "/home/openclaw/generated/read_models/recent_file_context_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/report_bridge.json",
+      "role": "selected_read_model",
+      "sha256": "3574e91a414e8653af3bd1f9b66b92cf6c37520e64676faf41251cbe4eb64d0e",
+      "size_bytes": 2996,
+      "source_path": "/home/openclaw/generated/read_models/report_bridge.json",
+      "source_role": "selected_machine_state_json"
+    },
+    {
+      "relative_path": "selected_read_models/report_bridge_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "667e2057b2f138497446975504684fd7f0e8806e55e9790d208110920527ac5a",
+      "size_bytes": 1263,
+      "source_path": "/home/openclaw/generated/read_models/report_bridge_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/runtime_activation_gate.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "64393deb481cc2d52be99002e227d864bfab56c54d72b28afabc8b864eb32ed2",
+      "size_bytes": 1015,
+      "source_path": "/home/openclaw/generated/read_models/runtime_activation_gate.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/source_inventory.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "329f388f6e7e6d4ade2e9cbde1bc32d119491307e9e5fe5bb61f07c9c9cc4623",
+      "size_bytes": 1413,
+      "source_path": "/home/openclaw/generated/read_models/source_inventory.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/tool_intake_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "bec3afc25f86e0d528976e53c86e4a05de67ec869f3cb34fd786f6b833ee7cde",
+      "size_bytes": 3802,
+      "source_path": "/home/openclaw/generated/read_models/tool_intake_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/tool_inventory_OPERATOR.md",
+      "role": "selected_read_model",
+      "sha256": "f59e277b49d03e3940d9ac9c0d4c313af1ba5bdbf3d986052fe6fd2749b1684d",
+      "size_bytes": 2149,
+      "source_path": "/home/openclaw/generated/read_models/tool_inventory_OPERATOR.md",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/world_domain_registry.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "594745aa8ccde83266761e97a4b13ee25749cfd6d92644fe6536d626e1593e13",
+      "size_bytes": 1347,
+      "source_path": "/home/openclaw/generated/read_models/world_domain_registry.operator.txt",
+      "source_role": "human_operator_summary"
+    },
+    {
+      "relative_path": "selected_read_models/world_status.operator.txt",
+      "role": "selected_read_model",
+      "sha256": "52980d8b6834eae3ef69983965f1a10453a79b8117d34e53d220ec8e59e24268",
+      "size_bytes": 963,
+      "source_path": "/home/openclaw/generated/read_models/world_status.operator.txt",
+      "source_role": "human_operator_summary"
+    }
+  ],
+  "generated_at": "2026-05-15T14:00:57+00:00",
+  "network_authority": false,
+  "no_authority_flags": {
+    "action_auto_execute_allowed": false,
+    "agent_activation_allowed": false,
+    "browser_automation_allowed": false,
+    "external_upload_allowed": false,
+    "network_authority": false,
+    "no_go_included": false,
+    "raw_private_included": false,
+    "secrets_included": false
+  },
+  "no_go_included": false,
+  "output_path": "generated/context_packs/mission_control_current",
+  "pack_id": "mission_control_current",
+  "profile": "chatgpt_project",
+  "raw_private_included": false,
+  "safety_status": "safe_for_manual_upload_review",
+  "schema_version": "external_ai_context_packager_v0",
+  "secrets_included": false,
+  "selected_source_count": 33,
+  "source_basis": "generated/read_models selected by safe generated read-model helper",
+  "target_profile_policy": {
+    "avoid_giant_zip": true,
+    "description": "Focused ChatGPT Project source bundle with START_HERE and small batches.",
+    "target_file_count": 40,
+    "upload_batch_size": 10
+  },
+  "task_focus": "mission_control_current",
+  "warnings": [
+    "ZIP is generated for local convenience, but project uploads should prefer focused individual files."
+  ],
+  "world": "build"
+}

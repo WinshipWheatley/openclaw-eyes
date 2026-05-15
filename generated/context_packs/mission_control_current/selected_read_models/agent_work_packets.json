@@ -1,0 +1,82 @@
+{
+  "action_auto_approve_allowed": false,
+  "action_auto_execute_allowed": false,
+  "action_created": false,
+  "agent_activation_allowed": false,
+  "approval_bypass_allowed": false,
+  "client_deployment_allowed": false,
+  "counts_by_agent": {
+    "chief": 1
+  },
+  "counts_by_category": {
+    "markdown_reorg_request": 1
+  },
+  "counts_by_status": {
+    "draft": 1
+  },
+  "execution_allowed": false,
+  "file_delete_allowed": false,
+  "file_move_allowed": false,
+  "generated_at": "2026-05-15T04:50:39+00:00",
+  "latest_packet": {
+    "action_created": false,
+    "approval_required": true,
+    "candidate_action_type": null,
+    "created_at": "2026-05-15T04:50:35+00:00",
+    "execution_allowed": false,
+    "goal": "Propose a Markdown organization/reorg plan without moving files.",
+    "intent_category": "markdown_reorg_request",
+    "packet_id": "agent_work_packet_sample_markdown_reorg",
+    "prompt_char_count": 1626,
+    "routed_agent_id": "chief",
+    "routed_lane_id": "system_orchestration",
+    "source_intent_id": "intent_agent_work_packet_sample_markdown_reorg",
+    "status": "draft",
+    "world_hint": "operations"
+  },
+  "mode": "agent_work_packets_planning_only",
+  "model_call_allowed": false,
+  "network_authority": false,
+  "no_authority_flags": {
+    "action_auto_approve_allowed": false,
+    "action_auto_execute_allowed": false,
+    "action_created": false,
+    "agent_activation_allowed": false,
+    "approval_bypass_allowed": false,
+    "client_deployment_allowed": false,
+    "execution_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "model_call_allowed": false,
+    "network_authority": false,
+    "no_go_raw_access_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false
+  },
+  "no_go_raw_access_allowed": false,
+  "packet_count": 1,
+  "packets": [
+    {
+      "action_created": false,
+      "approval_required": true,
+      "candidate_action_type": null,
+      "created_at": "2026-05-15T04:50:35+00:00",
+      "execution_allowed": false,
+      "goal": "Propose a Markdown organization/reorg plan without moving files.",
+      "intent_category": "markdown_reorg_request",
+      "packet_id": "agent_work_packet_sample_markdown_reorg",
+      "prompt_char_count": 1626,
+      "routed_agent_id": "chief",
+      "routed_lane_id": "system_orchestration",
+      "source_intent_id": "intent_agent_work_packet_sample_markdown_reorg",
+      "status": "draft",
+      "world_hint": "operations"
+    }
+  ],
+  "read_model_version": "agent_work_packets_read_model_v0",
+  "schema_version": "agent_work_packets_read_model_v0",
+  "source_ledger_namespace": "agent_work_packet_*",
+  "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
+  "tool_execution_allowed": false,
+  "truth_promotion_allowed": false
+}
