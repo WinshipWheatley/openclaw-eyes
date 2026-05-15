@@ -255,7 +255,7 @@ def sync_read_model_mirror(
     )
     health = _mirror_health(report)
     marker_path = None
-    if health["status"] == "needs_mac_sync":
+    if health["status"] == "needs_mac_sync" or health["counts"].get("missing_expected", 0) > 0:
         marker_path = _write_sync_required_marker(
             marker_path=request_marker_path,
             health=health,
@@ -267,7 +267,7 @@ def sync_read_model_mirror(
         "behavior": "import_latest_mac_read_model_mirror",
         "mirror_health": health,
         "request_marker_path": marker_path,
-        "next_mac_command": NEXT_MAC_COMMAND if health["status"] == "needs_mac_sync" else None,
+        "next_mac_command": NEXT_MAC_COMMAND if marker_path else None,
         "mac_sync_not_attempted": True,
         "pc_import": report,
         **NO_AUTHORITY_FLAGS,
@@ -338,7 +338,7 @@ def format_runner_report(payload: dict[str, Any]) -> str:
                     "",
                     "Next safe move on Mac:",
                     "```bash",
-                    payload["next_mac_command"],
+                    payload.get("next_mac_command") or NEXT_MAC_COMMAND,
                     "```",
                 ]
             )
