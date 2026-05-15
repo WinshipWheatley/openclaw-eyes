@@ -18,6 +18,15 @@ from typing import Any, Iterable
 
 from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
+from generated_read_model_files import (
+    DEFAULT_GENERATED_READ_MODEL_ROOT,
+    NO_GO_FILE_HINTS,
+    NO_GO_PARTS,
+    SAFE_READ_MODEL_SUFFIXES,
+    is_no_go_generated_read_model_relative_path,
+    is_safe_generated_read_model_file as shared_is_safe_generated_read_model_file,
+    iter_safe_generated_read_models as shared_iter_safe_generated_read_models,
+)
 from mac_mirror_atlas import (
     MANIFEST_SCHEMA_VERSION,
     format_mac_mirror_report,
@@ -27,7 +36,7 @@ from mac_mirror_atlas import (
 
 
 SHUTTLE_VERSION = "openclaw.read_model_shuttle.v0"
-DEFAULT_SOURCE_ROOT = Path("generated/read_models")
+DEFAULT_SOURCE_ROOT = DEFAULT_GENERATED_READ_MODEL_ROOT
 DEFAULT_TRANSFER_ROOT = Path("/mnt/e/openclaw")
 DEFAULT_TO_MAC_ROOT = DEFAULT_TRANSFER_ROOT / "shuttle" / "to_mac"
 DEFAULT_RETURNED_MANIFEST_PATH = DEFAULT_TRANSFER_ROOT / "mac_generated_read_models_manifest.json"
@@ -35,7 +44,6 @@ DEFAULT_IMPORT_MANIFEST_PATH = Path("/home/openclaw/import_manifests/mac_generat
 DEFAULT_MAC_DESTINATION_ROOT = "/Users/hwinshipwheatley/openclaw_generated_read_models"
 MAC_GENERATED_ROOT_ID = "mac_generated_read_models"
 MAC_GENERATED_ROOT_KIND = "generated_read_model_mirror"
-SAFE_READ_MODEL_SUFFIXES = {".json", ".md", ".txt"}
 DEFAULT_FROM_MAC_SEARCH_ROOTS = (
     DEFAULT_TRANSFER_ROOT / "shuttle" / "from_mac",
     DEFAULT_TRANSFER_ROOT,
@@ -63,33 +71,6 @@ CLAIMS_NOT_MADE = (
     "network_authority",
     "truth_promotion",
     "raw_private_body_import",
-)
-
-NO_GO_PARTS = {
-    ".ssh",
-    ".gnupg",
-    ".google-secrets",
-    ".private",
-    "private",
-    "secrets",
-    "vaults",
-    "finance",
-    "legal",
-    "tax",
-    "cpa",
-    "runtime_logs",
-}
-
-NO_GO_FILE_HINTS = (
-    "credential",
-    "credentials",
-    "secret",
-    "token",
-    ".env",
-    "sqlite",
-    "ledger",
-    "manifest",
-    "private",
 )
 
 EVIDENCE_CATEGORY_BY_NAME = {
@@ -171,40 +152,15 @@ def _package_name(generated_at: str) -> str:
 
 
 def _is_no_go_relative_path(relative_path: str) -> bool:
-    parts = {part.lower() for part in Path(relative_path).parts}
-    lowered = Path(relative_path).name.lower()
-    if parts & NO_GO_PARTS:
-        return True
-    return any(hint in lowered for hint in NO_GO_FILE_HINTS)
+    return is_no_go_generated_read_model_relative_path(relative_path)
 
 
 def is_safe_generated_read_model_file(path: Path, source_root: Path) -> bool:
-    try:
-        relative_path = path.relative_to(source_root).as_posix()
-    except ValueError:
-        return False
-    if "/" in relative_path:
-        return False
-    if not path.is_file():
-        return False
-    if path.name.startswith("."):
-        return False
-    if path.suffix not in SAFE_READ_MODEL_SUFFIXES:
-        return False
-    if _is_no_go_relative_path(relative_path):
-        return False
-    return True
+    return shared_is_safe_generated_read_model_file(path, source_root)
 
 
 def iter_safe_generated_read_models(source_root: str | Path = DEFAULT_SOURCE_ROOT) -> list[Path]:
-    root = _resolve_repo_path(source_root)
-    if not root.is_dir():
-        raise ValueError(f"generated read-model source root does not exist: {root}")
-    return [
-        path
-        for path in sorted(root.iterdir(), key=lambda item: item.name)
-        if is_safe_generated_read_model_file(path, root)
-    ]
+    return shared_iter_safe_generated_read_models(source_root, repo_root=_root())
 
 
 def _file_record(*, source_root: Path, source_path: Path, payload_path: Path) -> dict[str, Any]:

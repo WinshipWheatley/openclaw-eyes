@@ -41,6 +41,11 @@ from corpus_atlas import (
     sensitivity_boundary,
     stable_json,
 )
+from generated_read_model_files import (
+    CRITICAL_GENERATED_READ_MODEL_FILES,
+    DEFAULT_GENERATED_READ_MODEL_ROOT,
+    canonical_generated_read_model_records,
+)
 
 
 MANIFEST_SCHEMA_VERSION = "openclaw.root_manifest.v0"
@@ -77,37 +82,6 @@ EXPECTED_MAC_ROOTS = {
         "lineage_source": "operator_supplied_manifest",
     },
 }
-
-EXPECTED_GENERATED_READ_MODEL_FILES = (
-    "artifact_registry.json",
-    "artifact_registry.operator.txt",
-    "context_selection.json",
-    "context_selection_OPERATOR.md",
-    "evidence_freshness.json",
-    "evidence_freshness.operator.txt",
-    "generated_current_state.md",
-    "generated_next_actions.md",
-    "helm_state.json",
-    "helm_state.operator.txt",
-    "operator_actions.json",
-    "operator_actions_OPERATOR.md",
-    "project_capsules.json",
-    "project_capsules_OPERATOR.md",
-    "report_bridge.json",
-    "report_bridge_OPERATOR.md",
-    "runtime_activation_gate.json",
-    "runtime_activation_gate.operator.txt",
-    "source_inventory.json",
-    "source_inventory.operator.txt",
-    "tool_inventory.json",
-    "tool_inventory_OPERATOR.md",
-    "tool_intake.json",
-    "tool_intake_OPERATOR.md",
-    "world_domain_registry.json",
-    "world_domain_registry.operator.txt",
-    "world_status.json",
-    "world_status.operator.txt",
-)
 
 NO_DESCEND_DIR_NAMES = {
     ".git",
@@ -990,6 +964,7 @@ def query_mac_mirror_report_section(
     *,
     db_path: str | Path | None = None,
     section: str,
+    canonical_read_model_root: str | Path | None = None,
 ) -> dict[str, Any]:
     db = init_corpus_atlas_schema(db_path or DEFAULT_DB_PATH)
     conn = sqlite3.connect(db)
@@ -1004,7 +979,10 @@ def query_mac_mirror_report_section(
             items = _mirror_rows(conn)
             return {"section": section, "items": items, "counts": dict(Counter(item["status"] for item in items))}
         if section == "generated-read-model-mirror":
-            return _generated_read_model_mirror_report(conn)
+            return _generated_read_model_mirror_report(
+                conn,
+                canonical_read_model_root=canonical_read_model_root,
+            )
     finally:
         conn.close()
     raise ValueError(f"unknown Mac mirror report section: {section}")
@@ -1068,7 +1046,23 @@ ORDER BY m.mirror_root_id, p.relative_path, m.status
     return [dict(zip(keys, row)) for row in rows]
 
 
-def _generated_read_model_mirror_report(conn: sqlite3.Connection) -> dict[str, Any]:
+def _canonical_read_model_expected_records(
+    canonical_read_model_root: str | Path | None = None,
+) -> dict[str, dict[str, Any]]:
+    source_root = canonical_read_model_root or DEFAULT_GENERATED_READ_MODEL_ROOT
+    return {
+        record["relative_path"]: record
+        for record in canonical_generated_read_model_records(source_root=source_root)
+    }
+
+
+def _generated_read_model_mirror_report(
+    conn: sqlite3.Connection,
+    *,
+    canonical_read_model_root: str | Path | None = None,
+) -> dict[str, Any]:
+    expected_records = _canonical_read_model_expected_records(canonical_read_model_root)
+    expected = set(expected_records)
     latest_run = conn.execute(
         """
 SELECT run_id
@@ -1084,10 +1078,20 @@ LIMIT 1
             "items": [],
             "counts": {
                 "mac_generated_read_models_imported": 0,
-                "missing_expected": len(EXPECTED_GENERATED_READ_MODEL_FILES),
+                "canonical_expected": len(expected),
+                "missing_expected": len(expected),
+                "extra": 0,
+                "matched_hash": 0,
+                "hash_mismatch": 0,
+                "hash_comparison_unavailable": 0,
             },
-            "missing_expected_files": list(EXPECTED_GENERATED_READ_MODEL_FILES),
+            "expected_source": str(canonical_read_model_root or DEFAULT_GENERATED_READ_MODEL_ROOT),
+            "expected_files": sorted(expected),
+            "critical_files": list(CRITICAL_GENERATED_READ_MODEL_FILES),
+            "critical_missing_files": sorted(set(CRITICAL_GENERATED_READ_MODEL_FILES) - expected),
+            "missing_expected_files": sorted(expected),
             "extra_files": [],
+            "hash_mismatch_files": [],
         }
     run_id = latest_run[0]
     rows = conn.execute(
@@ -1103,6 +1107,7 @@ ORDER BY relative_path
     items = [
         {
             "relative_path": row[0],
+            "content_hash": row[1],
             "content_hash_present": bool(row[1]),
             "freshness_label": row[2],
             "retrieval_eligibility": row[3],
@@ -1111,24 +1116,56 @@ ORDER BY relative_path
         }
         for row in rows
     ]
-    observed = {item["relative_path"] for item in items}
-    expected = set(EXPECTED_GENERATED_READ_MODEL_FILES)
+    observed_records = {item["relative_path"]: item for item in items}
+    observed = set(observed_records)
+    common = expected & observed
+    matched_hash_files = []
+    hash_mismatch_files = []
+    hash_unavailable_files = []
+    for relative_path in sorted(common):
+        expected_hash = expected_records[relative_path].get("sha256")
+        observed_hash = observed_records[relative_path].get("content_hash")
+        if expected_hash and observed_hash and expected_hash == observed_hash:
+            matched_hash_files.append(relative_path)
+        elif expected_hash and observed_hash and expected_hash != observed_hash:
+            hash_mismatch_files.append(relative_path)
+        else:
+            hash_unavailable_files.append(relative_path)
     mirror_rows = _mirror_rows(conn)
     relevant_mirror_rows = [
         item for item in mirror_rows if item["mirror_root_id"] == "mac_generated_read_models"
     ]
+    missing_expected = sorted(expected - observed)
+    extra_files = sorted(observed - expected)
+    critical_expected = set(CRITICAL_GENERATED_READ_MODEL_FILES)
     return {
         "section": "generated-read-model-mirror",
         "run_id": run_id,
+        "expected_source": str(canonical_read_model_root or DEFAULT_GENERATED_READ_MODEL_ROOT),
+        "expected_files": sorted(expected),
+        "critical_files": list(CRITICAL_GENERATED_READ_MODEL_FILES),
+        "critical_missing_files": sorted(critical_expected - observed),
         "items": items,
-        "missing_expected_files": sorted(expected - observed),
-        "extra_files": sorted(observed - expected),
+        "missing_expected_files": missing_expected,
+        "extra_files": extra_files,
+        "matched_hash_files": matched_hash_files,
+        "hash_mismatch_files": hash_mismatch_files,
+        "hash_comparison_unavailable_files": hash_unavailable_files,
         "mirror_candidates": relevant_mirror_rows,
         "counts": {
+            "canonical_expected": len(expected),
             "observed": len(items),
-            "missing_expected": len(expected - observed),
-            "extra": len(observed - expected),
-            **dict(Counter(item["status"] for item in relevant_mirror_rows)),
+            "missing_expected": len(missing_expected),
+            "extra": len(extra_files),
+            "matched_hash": len(matched_hash_files),
+            "hash_mismatch": len(hash_mismatch_files),
+            "hash_comparison_unavailable": len(hash_unavailable_files),
+            "critical_missing": len(critical_expected - observed),
+            "mirror_candidates": len(relevant_mirror_rows),
+            **{
+                f"mirror_candidate_{key}": value
+                for key, value in Counter(item["status"] for item in relevant_mirror_rows).items()
+            },
         },
     }
 
@@ -1140,6 +1177,9 @@ def format_mac_mirror_report(payload: dict[str, Any]) -> str:
         lines.append(f"Counts: {rendered}")
         lines.append("")
     if payload["section"] == "generated-read-model-mirror":
+        if payload.get("expected_source"):
+            lines.append(f"Expected source: {payload['expected_source']}")
+            lines.append("")
         if payload.get("missing_expected_files"):
             lines.append("Missing Expected Files:")
             lines.extend(f"- {item}" for item in payload["missing_expected_files"])
@@ -1147,6 +1187,14 @@ def format_mac_mirror_report(payload: dict[str, Any]) -> str:
         if payload.get("extra_files"):
             lines.append("Extra Files:")
             lines.extend(f"- {item}" for item in payload["extra_files"])
+            lines.append("")
+        if payload.get("hash_mismatch_files"):
+            lines.append("Hash Mismatch Files:")
+            lines.extend(f"- {item}" for item in payload["hash_mismatch_files"])
+            lines.append("")
+        if payload.get("critical_missing_files"):
+            lines.append("Critical Missing Files:")
+            lines.extend(f"- {item}" for item in payload["critical_missing_files"])
             lines.append("")
     lines.append("Items:")
     if not payload.get("items"):

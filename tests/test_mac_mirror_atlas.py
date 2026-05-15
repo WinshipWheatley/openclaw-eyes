@@ -5,8 +5,10 @@ from pathlib import Path
 import pytest
 
 from corpus_atlas import run_corpus_atlas
+from generated_read_model_files import (
+    canonical_generated_read_model_expected_files,
+)
 from mac_mirror_atlas import (
-    EXPECTED_GENERATED_READ_MODEL_FILES,
     build_root_manifest,
     import_root_manifest,
     query_mac_mirror_report_section,
@@ -48,10 +50,10 @@ def _mac_generated_root(tmp_path: Path) -> Path:
     return root
 
 
-def _complete_mac_generated_root(tmp_path: Path) -> Path:
+def _complete_mac_generated_root(tmp_path: Path, expected_root: Path) -> Path:
     root = tmp_path / "mac_generated_complete"
     root.mkdir()
-    for name in EXPECTED_GENERATED_READ_MODEL_FILES:
+    for name in canonical_generated_read_model_expected_files(expected_root):
         if name.endswith(".json"):
             _write_json(root / name, {"name": name})
         else:
@@ -253,6 +255,7 @@ ORDER BY m.suggested_relative_path, m.status
 def test_generated_read_model_mirror_report_lists_missing_extra_and_counts(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     pc_root = _pc_root(tmp_path)
+    expected_root = pc_root / "generated" / "read_models"
     run_corpus_atlas(db_path=db_path, root=pc_root, run_id="pc_run")
     mac_root = _mac_generated_root(tmp_path)
     manifest_path = tmp_path / "mac_generated_manifest.json"
@@ -269,12 +272,15 @@ def test_generated_read_model_mirror_report_lists_missing_extra_and_counts(tmp_p
     report = query_mac_mirror_report_section(
         db_path=db_path,
         section="generated-read-model-mirror",
+        canonical_read_model_root=expected_root,
     )
 
     assert report["run_id"] == "mac_import_run"
     assert "source_inventory.json" not in report["missing_expected_files"]
-    assert "tool_inventory.json" in report["missing_expected_files"]
-    assert set(report["missing_expected_files"]) <= set(EXPECTED_GENERATED_READ_MODEL_FILES)
+    assert "world_status.json" in report["missing_expected_files"]
+    assert set(report["missing_expected_files"]) <= set(
+        canonical_generated_read_model_expected_files(expected_root)
+    )
     assert report["counts"]["observed"] >= 3
     assert report["counts"]["matched_hash"] >= 1
     assert report["counts"]["hash_mismatch"] >= 1
@@ -282,7 +288,16 @@ def test_generated_read_model_mirror_report_lists_missing_extra_and_counts(tmp_p
 
 def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
-    mac_root = _complete_mac_generated_root(tmp_path)
+    pc_root = _pc_root(tmp_path)
+    expected_root = pc_root / "generated" / "read_models"
+    _write_json(expected_root / "agent_lanes.json", {"agent_lanes": True})
+    (expected_root / "agent_lanes_OPERATOR.md").write_text("# agent lanes\n", encoding="utf-8")
+    _write_json(expected_root / "dynamic_future_read_model.json", {"future": True})
+    (expected_root / "mac_generated_read_models_manifest.json").write_text("{}\n", encoding="utf-8")
+    (expected_root / "ledger.sqlite").write_text("not expected\n", encoding="utf-8")
+    (expected_root / ".hidden.json").write_text("{}\n", encoding="utf-8")
+    (expected_root / "temporary_export.json.tmp").write_text("{}\n", encoding="utf-8")
+    mac_root = _complete_mac_generated_root(tmp_path, expected_root)
     manifest_path = tmp_path / "mac_generated_manifest.json"
     build_root_manifest(
         root=mac_root,
@@ -297,27 +312,72 @@ def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_pat
     report = query_mac_mirror_report_section(
         db_path=db_path,
         section="generated-read-model-mirror",
+        canonical_read_model_root=expected_root,
     )
 
-    assert len(EXPECTED_GENERATED_READ_MODEL_FILES) == 28
-    assert report["counts"]["observed"] == 28
+    expected_files = set(canonical_generated_read_model_expected_files(expected_root))
+    assert "agent_lanes.json" in expected_files
+    assert "agent_lanes_OPERATOR.md" in expected_files
+    assert "dynamic_future_read_model.json" in expected_files
+    assert "mac_generated_read_models_manifest.json" not in expected_files
+    assert "ledger.sqlite" not in expected_files
+    assert ".hidden.json" not in expected_files
+    assert "temporary_export.json.tmp" not in expected_files
+    assert report["counts"]["canonical_expected"] == len(expected_files)
+    assert report["counts"]["observed"] == len(expected_files)
     assert report["counts"]["missing_expected"] == 0
     assert report["counts"]["extra"] == 0
     assert report["missing_expected_files"] == []
     assert report["extra_files"] == []
-    for name in (
-        "context_selection.json",
-        "context_selection_OPERATOR.md",
-        "operator_actions.json",
-        "operator_actions_OPERATOR.md",
-        "project_capsules.json",
-        "project_capsules_OPERATOR.md",
-        "report_bridge.json",
-        "report_bridge_OPERATOR.md",
-        "tool_inventory_OPERATOR.md",
-        "tool_intake_OPERATOR.md",
-    ):
-        assert name in EXPECTED_GENERATED_READ_MODEL_FILES
+
+
+def test_generated_read_model_mirror_dynamic_expected_reports_missing_and_extra(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    expected_root = tmp_path / "canonical" / "generated" / "read_models"
+    _write_json(expected_root / "source_inventory.json", {"same": True})
+    _write_json(expected_root / "agent_lanes.json", {"agent": True})
+    (expected_root / "agent_lanes_OPERATOR.md").write_text("# agent lanes\n", encoding="utf-8")
+    _write_json(expected_root / "new_without_code_update.json", {"new": True})
+    (expected_root / "read_models_manifest.json").write_text("{}\n", encoding="utf-8")
+    (expected_root / "ledger.sqlite").write_text("excluded\n", encoding="utf-8")
+    (expected_root / ".hidden.json").write_text("{}\n", encoding="utf-8")
+    (expected_root / "scratch.tmp").write_text("excluded\n", encoding="utf-8")
+    (expected_root / "nested" / "nested.json").parent.mkdir()
+    _write_json(expected_root / "nested" / "nested.json", {})
+
+    mac_root = tmp_path / "mac_generated_dynamic"
+    mac_root.mkdir()
+    _write_json(mac_root / "source_inventory.json", {"same": True})
+    _write_json(mac_root / "agent_lanes.json", {"agent": True})
+    (mac_root / "agent_lanes_OPERATOR.md").write_text("# agent lanes\n", encoding="utf-8")
+    _write_json(mac_root / "extra_only_on_mac.json", {"extra": True})
+    manifest_path = tmp_path / "mac_generated_manifest.json"
+    build_root_manifest(
+        root=mac_root,
+        root_id="mac_generated_read_models",
+        root_kind="generated_read_model_mirror",
+        host_kind="mac",
+        owner_scope="internal_platform",
+        output=manifest_path,
+    )
+    import_root_manifest(manifest_path=manifest_path, db_path=db_path, run_id="mac_import_run")
+
+    report = query_mac_mirror_report_section(
+        db_path=db_path,
+        section="generated-read-model-mirror",
+        canonical_read_model_root=expected_root,
+    )
+
+    assert "new_without_code_update.json" in report["expected_files"]
+    assert "new_without_code_update.json" in report["missing_expected_files"]
+    assert "extra_only_on_mac.json" in report["extra_files"]
+    assert "agent_lanes.json" not in report["extra_files"]
+    assert "agent_lanes_OPERATOR.md" not in report["extra_files"]
+    assert "read_models_manifest.json" not in report["expected_files"]
+    assert "ledger.sqlite" not in report["expected_files"]
+    assert ".hidden.json" not in report["expected_files"]
+    assert "scratch.tmp" not in report["expected_files"]
+    assert "nested/nested.json" not in report["expected_files"]
 
 
 def test_query_corpus_atlas_mac_reports_work(tmp_path, capsys):

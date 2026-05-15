@@ -72,6 +72,12 @@ The helper imports through the existing Mac Mirror Atlas path and prints:
   - `report_bridge.json`
   - `context_selection.json`
 
+The generated-read-model mirror report derives its full expected file set from
+the canonical backend `generated/read_models` directory using the same safe
+top-level JSON/Markdown/text selection rules as the shuttle. New generated
+read-model exports become expected automatically after they exist in that
+canonical backend directory.
+
 ## Boundary
 
 - No background daemon or launchd item is installed in v0.
