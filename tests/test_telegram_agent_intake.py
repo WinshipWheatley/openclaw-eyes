@@ -10,6 +10,7 @@ from telegram_agent_intake import (
     build_telegram_agent_intake_report,
     check_telegram_agent_intake,
     export_telegram_agent_intake_read_model,
+    record_cassandra_listener_text_update,
     record_telegram_listener_update_safe,
     record_telegram_update,
     telegram_agent_intake_table_names,
@@ -119,6 +120,114 @@ def test_listener_target_prefix_routes_to_expected_agent_without_full_text_stora
     assert update["raw_payload_stored"] == 0
 
 
+def test_cassandra_listener_text_helper_accepts_you_online_yet_without_send(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    seed_agent_lane_registry(db_path=db_path, run_id="agents")
+
+    update_id = record_cassandra_listener_text_update(
+        db_path=db_path,
+        text="You online yet?",
+        source_message_id="live_receive_fixture",
+    )
+    update = _row(
+        db_path,
+        """
+SELECT source_channel, agent_target, operator_message, message_text_stored,
+       raw_payload_stored, chat_id_stored, routed_to_intent_inbox,
+       intent_record_id, telegram_send_allowed, command_execution_allowed
+FROM telegram_agent_update_records
+WHERE update_record_id = ?
+""",
+        (update_id,),
+    )
+    intent = _row(
+        db_path,
+        "SELECT routed_agent_id, routed_lane_id, execution_allowed FROM intent_records WHERE intent_id = ?",
+        (update["intent_record_id"],),
+    )
+
+    assert tuple(update) == (
+        "cassandra_listener",
+        "cassandra",
+        1,
+        0,
+        0,
+        0,
+        1,
+        update["intent_record_id"],
+        0,
+        0,
+    )
+    assert tuple(intent) == ("cassandra", "operator_comms", 0)
+
+
+def test_cassandra_unverified_listener_text_is_metadata_only(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    update_id = record_cassandra_listener_text_update(
+        db_path=db_path,
+        text="Cassandra, receive-only test from gig: You online yet?",
+        source_message_id="unverified_fixture",
+        source_user_label="unverified_sender",
+        operator_message=False,
+        route_intent=False,
+    )
+    update = _row(
+        db_path,
+        """
+SELECT source_channel, agent_target, operator_message, routed_to_intent_inbox,
+       intent_record_id, blocked_reason, raw_payload_stored, message_text_stored,
+       telegram_send_allowed, command_execution_allowed
+FROM telegram_agent_update_records
+WHERE update_record_id = ?
+""",
+        (update_id,),
+    )
+
+    assert tuple(update) == (
+        "cassandra_listener",
+        "cassandra",
+        0,
+        0,
+        None,
+        "non_operator_message_metadata_only",
+        0,
+        0,
+        0,
+        0,
+    )
+
+
+def test_cassandra_live_report_distinguishes_live_synthetic_and_no_proof(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    seed_agent_lane_registry(db_path=db_path, run_id="agents")
+
+    record_telegram_update(
+        db_path=db_path,
+        text="Cassandra, receive-only test from gig: You online yet?",
+        source_channel="synthetic_cassandra_wiring_audit",
+        source_message_id="synthetic_fixture",
+        agent_target="cassandra",
+    )
+    synthetic_only = build_telegram_agent_intake_report(db_path=db_path, report="cassandra-live")
+    assert synthetic_only["counts"]["cassandra_live_listener_count"] == 0
+    assert synthetic_only["counts"]["cassandra_synthetic_count"] == 1
+    assert synthetic_only["counts"]["cassandra_no_live_receive_proof"] is True
+
+    record_cassandra_listener_text_update(
+        db_path=db_path,
+        text="Capital Hilton invoice fact update.",
+        source_message_id="live_capital_fixture",
+    )
+    live_report = build_telegram_agent_intake_report(db_path=db_path, report="cassandra-live")
+
+    assert live_report["counts"]["cassandra_live_listener_count"] == 1
+    assert live_report["counts"]["cassandra_live_operator_count"] == 1
+    assert live_report["counts"]["cassandra_synthetic_count"] == 1
+    assert live_report["counts"]["cassandra_no_live_receive_proof"] is False
+    assert any(row["source_channel"] == "cassandra_listener" for row in live_report["rows"])
+
+
 def test_non_operator_message_is_metadata_only_and_not_routed(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     result = record_telegram_update(
@@ -175,6 +284,7 @@ def test_read_model_export_and_cli_work(tmp_path, capsys):
     check_rc = check_main(["--db", str(db_path), "--run-id", "cli_check", "--format", "operator"])
     query_rc = query_main(["--db", str(db_path), "--report", "summary", "--format", "operator"])
     agents_rc = query_main(["--db", str(db_path), "--report", "agents", "--format", "operator"])
+    cassandra_live_rc = query_main(["--db", str(db_path), "--report", "cassandra-live", "--format", "operator"])
     export_rc = export_main(["--db", str(db_path), "--export-root", str(export_root), "--format", "operator"])
     read_model = build_telegram_agent_intake_read_model(db_path=db_path)
     export = export_telegram_agent_intake_read_model(db_path=db_path, export_root=export_root)
@@ -183,6 +293,7 @@ def test_read_model_export_and_cli_work(tmp_path, capsys):
     assert check_rc == 0
     assert query_rc == 0
     assert agents_rc == 0
+    assert cassandra_live_rc == 0
     assert export_rc == 0
     assert "Telegram Agent Intake" in output
     assert Path(export_root / "telegram_agent_intake.json").exists()
@@ -214,10 +325,17 @@ def test_safe_listener_hook_never_raises_or_prints_message_text(tmp_path, monkey
 def test_listener_files_include_governed_hook_without_exposing_tokens():
     for path in (Path("chief_listener.py"), Path("cassandra_listener.py"), Path("producer_listener.py"), Path("chief_guardian_listener.py")):
         source = path.read_text(encoding="utf-8")
-        assert "record_telegram_listener_update_safe" in source
+        if path.name == "cassandra_listener.py":
+            assert "record_cassandra_listener_text_update" in source
+        else:
+            assert "record_telegram_listener_update_safe" in source
         assert "BOT_TOKEN =" in source or "_token =" in source
         assert "print(BOT_TOKEN" not in source
         assert "print(_token" not in source
+        if path.name == "cassandra_listener.py":
+            assert "chat_id={sender_chat_id}" not in source
+            assert "user_id={update.effective_user.id" not in source
+            assert "recorded forward: {f_name} -> {f_id}" not in source
 
 
 def test_static_forbids_send_network_secret_or_command_execution_in_intake_module():

@@ -364,7 +364,10 @@ def _source_flags(source: str, filename: str) -> dict[str, Any]:
             "Ops Payment Follow-ups.md",
         )
     )
-    governed_hook = "record_telegram_listener_update_safe" in source
+    governed_hook = (
+        "record_telegram_listener_update_safe" in source
+        or "record_cassandra_listener_text_update" in source
+    )
     approval_ref = any(token in lowered for token in ("guardian", "approval", "approval gate", "has_pending_approval"))
     useful_ack_logic = bool("working on it" in lowered or "reply_text" in source or "ack" in lowered)
     classifications: list[str] = []
@@ -1102,7 +1105,10 @@ INSERT OR REPLACE INTO cassandra_runtime_comparison (
             for service in facts
         )
         listener_source = _read_source(repo_a / "cassandra_listener.py")
-        listener_has_hook = "record_telegram_listener_update_safe" in listener_source
+        listener_has_hook = (
+            "record_telegram_listener_update_safe" in listener_source
+            or "record_cassandra_listener_text_update" in listener_source
+        )
         live_receive_proven = intake_counts["live"] > 0
         synthetic_storage_proven = bool(synthetic_result and synthetic_result.routed_agent_id == "cassandra")
         governed_storage_proven = live_receive_proven or synthetic_storage_proven
@@ -1145,7 +1151,7 @@ INSERT OR REPLACE INTO cassandra_runtime_comparison (
             implemented=listener_has_hook,
             proven=listener_has_hook,
             blocker=None if listener_has_hook else "governed_hook_missing",
-            evidence="cassandra_listener.py calls record_telegram_listener_update_safe before request handling." if listener_has_hook else "No governed intake hook found in cassandra_listener.py.",
+            evidence="cassandra_listener.py calls a governed Telegram intake helper before request handling." if listener_has_hook else "No governed intake hook found in cassandra_listener.py.",
             next_safe_move="Keep hook before any brain/reply path and make failures visible without printing message text.",
         )
         _insert_roundtrip_step(

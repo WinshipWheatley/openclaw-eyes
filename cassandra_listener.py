@@ -46,7 +46,7 @@ from cassandra_identity import (
 from cassandra_sender import send_voice_note
 from cassandra_voice import speak, synthesize_for_voice_note
 from cassandra_whisper_relay import relay_transcript, transcribe_audio
-from telegram_agent_intake import record_telegram_listener_update_safe
+from telegram_agent_intake import record_cassandra_listener_text_update
 
 _ROUTE_LOG = _Path("/mnt/c/OpenClaw/logs/route_log.csv")
 _LISTENER_LOCK = _Path.home() / ".cassandra_listener.lock"
@@ -92,6 +92,12 @@ async def _run_producer_intake(payload: str) -> str:
 # ── Tracking for identity pins ───────────────────────────────────────────────
 
 _RECENT_SENDERS = {}  # sender_name.lower() -> chat_id (int)
+
+
+def _identifier_digest(value: object | None) -> str:
+    if value is None:
+        return "none"
+    return _hashlib.sha256(f"cassandra-listener-id:{value}".encode("utf-8")).hexdigest()[:12]
 
 
 async def _telegram_typing_loop(bot, chat_id: int | None) -> None:
@@ -327,7 +333,14 @@ async def _run_request_with_timeout_contract(
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_name = update.effective_user.full_name if update.effective_user else None
     sender_chat_id = update.effective_chat.id if update.effective_chat else None
-    print(f"[chatid-pin] sender_name={sender_name!r} chat_id={sender_chat_id} user_id={update.effective_user.id if update.effective_user else None}", flush=True)
+    sender_user_id = update.effective_user.id if update.effective_user else None
+    print(
+        "[chatid-pin] "
+        f"sender_name_present={str(bool(sender_name)).lower()} "
+        f"chat_id_hash={_identifier_digest(sender_chat_id)} "
+        f"user_id_hash={_identifier_digest(sender_user_id)}",
+        flush=True,
+    )
 
     # Record recent sender mapping for pinning
     if sender_name and sender_chat_id:
@@ -340,28 +353,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f_id = fwd_origin.sender_user.id
         if f_name:
             _RECENT_SENDERS[f_name.lower()] = f_id
-            print(f"[chatid-pin] recorded forward: {f_name} -> {f_id}", flush=True)
+            print(
+                "[chatid-pin] recorded forward "
+                f"sender_name_present=true sender_id_hash={_identifier_digest(f_id)}",
+                flush=True,
+            )
+
+    if not update.message or not update.message.text:
+        return
+
+    text = update.message.text.strip()
+    if not text:
+        return
 
     is_authorized_user = bool(update.effective_user and update.effective_user.id == AUTHORIZED_USER_ID)
     is_designated_contact = is_designated_contact_sender(
         sender_name=sender_name,
         sender_chat_id=sender_chat_id,
     )
-    if not is_authorized_user and not is_designated_contact:
-        return
-    if not update.message or not update.message.text:
-        return
+    if is_authorized_user:
+        source_user_label = "operator"
+    elif is_designated_contact:
+        source_user_label = "designated_contact"
+    else:
+        source_user_label = "unverified_sender"
 
-    text = update.message.text.strip()
-    record_telegram_listener_update_safe(
+    record_cassandra_listener_text_update(
         text=text,
-        source_channel="cassandra_listener",
-        agent_target="cassandra",
         source_message_id=str(getattr(update, "update_id", "")) or None,
-        source_user_label="operator" if is_authorized_user else "designated_contact",
+        source_user_label=source_user_label,
         operator_message=is_authorized_user,
         route_intent=is_authorized_user,
     )
+    if not is_authorized_user and not is_designated_contact:
+        return
+
     request_token = _claim_chat_request(sender_chat_id)
 
     async def _send_if_current(reply_text: str):

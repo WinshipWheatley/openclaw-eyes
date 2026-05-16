@@ -99,7 +99,7 @@ NO_AUTHORITY_FLAGS = {
     "arbitrary_shell_allowed": False,
 }
 
-REPORT_SECTIONS = {"summary", "agents", "latest", "blockers", "dry-run"}
+REPORT_SECTIONS = {"summary", "agents", "latest", "blockers", "dry-run", "cassandra-live"}
 
 
 @dataclass(frozen=True)
@@ -758,6 +758,7 @@ def record_telegram_listener_update_safe(
     source_user_label: str | None = "operator",
     operator_message: bool = True,
     route_intent: bool = True,
+    db_path: str | Path | None = None,
 ) -> str | None:
     """Best-effort governed intake hook for live listeners.
 
@@ -776,11 +777,39 @@ def record_telegram_listener_update_safe(
             operator_message=operator_message,
             route_intent=route_intent,
             create_work_board_card=False,
+            db_path=db_path,
         )
         return result.update_record_id
     except Exception as exc:
         print(f"[telegram_agent_intake] governed intake failed: {exc.__class__.__name__}", flush=True)
         return None
+
+
+def record_cassandra_listener_text_update(
+    *,
+    text: str,
+    source_message_id: str | None = None,
+    source_user_label: str | None = "operator",
+    operator_message: bool = True,
+    route_intent: bool = True,
+    db_path: str | Path | None = None,
+) -> str | None:
+    """Record Cassandra live-listener text as governed intake metadata only.
+
+    This wrapper is Cassandra-specific so live receive proof can be queried
+    without granting reply, action, or Telegram-send authority.
+    """
+
+    return record_telegram_listener_update_safe(
+        text=text,
+        source_channel=AGENT_METADATA["cassandra"]["source_channel"],
+        agent_target="cassandra",
+        source_message_id=source_message_id,
+        source_user_label=source_user_label,
+        operator_message=operator_message,
+        route_intent=route_intent,
+        db_path=db_path,
+    )
 
 
 def _latest_presence_by_agent(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
@@ -1005,6 +1034,35 @@ def build_telegram_agent_intake_report(
             "by_agent_target": dict(sorted(Counter(row["agent_target"] for row in update_rows).items())),
             "by_route_status": dict(sorted(Counter(row["status"] for row in route_rows).items())),
         }
+        cassandra_rows = [
+            row
+            for row in update_rows
+            if row["agent_target"] == "cassandra" or "cassandra" in row["source_channel"]
+        ]
+        cassandra_live_rows = [
+            row
+            for row in cassandra_rows
+            if row["source_channel"] == AGENT_METADATA["cassandra"]["source_channel"]
+        ]
+        cassandra_synthetic_rows = [
+            row
+            for row in cassandra_rows
+            if row["source_channel"].startswith("synthetic_cassandra")
+        ]
+        counts.update(
+            {
+                "cassandra_live_listener_count": len(cassandra_live_rows),
+                "cassandra_live_operator_count": sum(1 for row in cassandra_live_rows if row["operator_message"]),
+                "cassandra_synthetic_count": len(cassandra_synthetic_rows),
+                "cassandra_metadata_only_count": sum(
+                    1
+                    for row in cassandra_live_rows
+                    if not row["operator_message"] or not row["routed_to_intent_inbox"]
+                ),
+                "cassandra_no_live_receive_proof": len(cassandra_live_rows) == 0,
+                "cassandra_old_ad_hoc_log_count": 0,
+            }
+        )
         if report == "agents":
             rows = agents
         elif report == "blockers":
@@ -1013,6 +1071,8 @@ def build_telegram_agent_intake_report(
             rows = update_rows[:10]
         elif report == "dry-run":
             rows = [row for row in update_rows if row["source_channel"] == "synthetic_dry_run"][:10]
+        elif report == "cassandra-live":
+            rows = cassandra_rows[:20]
         else:
             rows = update_rows[:12]
         return {
@@ -1068,9 +1128,21 @@ def format_telegram_agent_intake_report(payload: dict[str, Any]) -> str:
         f"Blocked agents: {counts['blocked_agent_count']}",
         f"By agent target: {_counts_line(counts['by_agent_target'])}",
         f"By route status: {_counts_line(counts['by_route_status'])}",
-        "",
-        "Rows:",
     ]
+    if payload["report"] == "cassandra-live":
+        proof = "not_proven" if counts["cassandra_no_live_receive_proof"] else "proven"
+        lines.extend(
+            [
+                f"Cassandra live listener records: {counts['cassandra_live_listener_count']}",
+                f"Cassandra live operator records: {counts['cassandra_live_operator_count']}",
+                f"Cassandra synthetic records: {counts['cassandra_synthetic_count']}",
+                f"Cassandra metadata-only live records: {counts['cassandra_metadata_only_count']}",
+                f"Old/ad hoc Cassandra log records: {counts['cassandra_old_ad_hoc_log_count']} (not governed proof)",
+                f"Live receive proof: `{proof}`",
+                "Reply/send allowed: `false`",
+            ]
+        )
+    lines.extend(["", "Rows:"])
     for row in payload.get("rows") or []:
         if payload["report"] == "agents":
             lines.append(
@@ -1078,6 +1150,16 @@ def format_telegram_agent_intake_report(payload: dict[str, Any]) -> str:
             )
         elif payload["report"] == "blockers":
             lines.append(f"- `{row['agent_id']}` {row['blocker_kind']}: {row['next_safe_move']}")
+        elif payload["report"] == "cassandra-live":
+            if row["source_channel"] == AGENT_METADATA["cassandra"]["source_channel"]:
+                kind = "live_listener"
+            elif row["source_channel"].startswith("synthetic_cassandra"):
+                kind = "synthetic"
+            else:
+                kind = "other"
+            lines.append(
+                f"- `{row['update_record_id']}` kind={kind} channel={row['source_channel']} operator={str(bool(row['operator_message'])).lower()} routed={str(bool(row['routed_to_intent_inbox'])).lower()} intent={row['intent_record_id'] or 'none'}"
+            )
         else:
             lines.append(
                 f"- `{row['update_record_id']}` target={row['agent_target']} channel={row['source_channel']} routed={str(bool(row['routed_to_intent_inbox'])).lower()} intent={row['intent_record_id'] or 'none'}"
@@ -1205,6 +1287,7 @@ __all__ = [
     "format_telegram_agent_intake_report",
     "format_telegram_intake_check_result",
     "init_telegram_agent_intake_schema",
+    "record_cassandra_listener_text_update",
     "record_telegram_listener_update_safe",
     "record_telegram_update",
     "stable_json",
