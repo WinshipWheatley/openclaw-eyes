@@ -853,29 +853,60 @@ def build_guardian_hitl_dual_write_read_model(
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     try:
-        requests = _all_rows(
-            conn,
-            "guardian_hitl_approval_requests",
-            "created_at DESC, approval_id DESC",
+        requests = [
+            dict(row)
+            for row in conn.execute(
+                """
+SELECT *
+FROM guardian_hitl_approval_requests
+WHERE source_surface_id = ?
+ORDER BY created_at DESC, approval_id DESC
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
+            ).fetchall()
+        ]
+        receipts = [
+            dict(row)
+            for row in conn.execute(
+                """
+SELECT *
+FROM guardian_hitl_approval_receipts
+WHERE source_surface = ?
+ORDER BY created_at DESC, receipt_id DESC
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
+            ).fetchall()
+        ]
+        legacy_refs = [
+            dict(row)
+            for row in conn.execute(
+                """
+SELECT *
+FROM guardian_hitl_legacy_authority_refs
+WHERE source_surface_id = ?
+ORDER BY updated_at DESC, legacy_ref_id DESC
+""".strip(),
+                (APPROVAL_PENDING_SOURCE_SURFACE,),
+            ).fetchall()
+        ]
+        request_mirror_count = int(
+            conn.execute(
+                """
+SELECT COUNT(*)
+FROM guardian_hitl_approval_requests
+WHERE source_surface_id = ?
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
+            ).fetchone()[0]
         )
-        receipts = _all_rows(
-            conn,
-            "guardian_hitl_approval_receipts",
-            "created_at DESC, receipt_id DESC",
-        )
-        legacy_refs = _all_rows(
-            conn,
-            "guardian_hitl_legacy_authority_refs",
-            "updated_at DESC, legacy_ref_id DESC",
-        )
-        request_mirror_count = _count_rows(conn, "guardian_hitl_approval_requests")
         decision_receipt_count = int(
             conn.execute(
                 """
 SELECT COUNT(*)
 FROM guardian_hitl_approval_receipts
-WHERE receipt_type LIKE 'decision_%'
-""".strip()
+WHERE receipt_type LIKE 'decision_%' AND source_surface = ?
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
             ).fetchone()[0]
         )
         notification_receipt_count = int(
@@ -883,8 +914,9 @@ WHERE receipt_type LIKE 'decision_%'
                 """
 SELECT COUNT(*)
 FROM guardian_hitl_approval_receipts
-WHERE receipt_type LIKE 'notification_%'
-""".strip()
+WHERE receipt_type LIKE 'notification_%' AND source_surface = ?
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
             ).fetchone()[0]
         )
         mismatch_count = int(
@@ -892,8 +924,9 @@ WHERE receipt_type LIKE 'notification_%'
                 """
 SELECT COUNT(*)
 FROM guardian_hitl_approval_receipts
-WHERE receipt_type = 'legacy_sqlite_mismatch'
-""".strip()
+WHERE receipt_type = 'legacy_sqlite_mismatch' AND source_surface = ?
+""".strip(),
+                (CHIEF_SOURCE_SURFACE,),
             ).fetchone()[0]
         )
     finally:

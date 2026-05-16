@@ -140,6 +140,18 @@ def _audit(record: dict) -> None:
         f.write(json.dumps(entry) + "\n")
 
 
+def _shadow_cassandra_hitl_proposal(record: dict, ttl_seconds: int) -> None:
+    """Fail-open observational SQLite shadow for Cassandra HITL proposals."""
+    try:
+        from guardian_hitl_cassandra_proposal_shadow import (
+            mirror_cassandra_hitl_proposal_fail_open,
+        )
+
+        mirror_cassandra_hitl_proposal_fail_open(record, ttl_seconds=ttl_seconds)
+    except Exception:
+        pass
+
+
 def _iso_now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
@@ -331,6 +343,7 @@ def create_pending_action(
     state[action_id] = record
     _save_state(state)
     _audit({**record, "event": "created"})
+    _shadow_cassandra_hitl_proposal(record, ttl_seconds)
     return record
 
 
