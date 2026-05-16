@@ -2,7 +2,7 @@
 
 ## Bottom Line
 
-Cassandra HITL pending-action proposals can now be mirrored into SQLite as observational records. Old `hitl_pending_state.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw payload content is stored.
+Cassandra HITL pending-action proposals and decisions can now be mirrored into SQLite as observational records. Old `hitl_pending_state.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw payload content is stored.
 
 ## Status
 
@@ -11,6 +11,8 @@ Cassandra HITL pending-action proposals can now be mirrored into SQLite as obser
 - Source surface: `hitl_pending_store`
 - Canonical action type: `cassandra_hitl_proposal`
 - Legacy state authority: `hitl_pending_state_json`
+- Proposal shadow support: `true`
+- Decision receipt shadow support: `true`
 - Legacy JSON authoritative: `true`
 - Callers switched: `false`
 - Old HITL deleted: `false`
@@ -21,7 +23,9 @@ Cassandra HITL pending-action proposals can now be mirrored into SQLite as obser
 ## Counts
 
 - Proposal shadows: `0`
+- Decision receipts: `0`
 - Receipts: `0`
+- Mismatches: `0`
 - Unsafe payload key count: `0`
 
 ## Recent Proposal Shadows
@@ -36,4 +40,4 @@ Cassandra HITL pending-action proposals can now be mirrored into SQLite as obser
 
 ## Next Safe Move
 
-Mirror Cassandra HITL decisions/expiry as observational receipts, then prove request and decision parity before any caller switch.
+Record the operator-approved Cassandra/Chief memory import decision receipt; do not import real data until that receipt exists.

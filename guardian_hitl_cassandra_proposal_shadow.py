@@ -39,6 +39,11 @@ LEGACY_HITL_STATE_REF = "/mnt/c/OpenClaw/logs/hitl_pending_state.json"
 CANONICAL_ACTION_TYPE = "cassandra_hitl_proposal"
 PAYLOAD_SCHEMA_VERSION = "legacy_cassandra_hitl_proposal_observation_v0"
 DEFAULT_TTL_SECONDS = 86400
+DECISION_LABELS = {
+    "APPROVED": ("decision_shadow_observed", "approved_observed", "approved"),
+    "DENIED": ("decision_shadow_rejected", "denied_observed", "denied"),
+    "EXPIRED": ("decision_shadow_expired", "expired_observed", "expired"),
+}
 
 NO_AUTHORITY_FLAGS = {
     "runtime_authority_changed": False,
@@ -189,7 +194,6 @@ def _payload_hash_basis(
         "legacy_action_type": str(record.get("action_type", "")).strip(),
         "legacy_payload": record.get("payload") if isinstance(record.get("payload"), Mapping) else {},
         "idempotency_key": str(record.get("idempotency_key", "")).strip(),
-        "status": str(record.get("status", "")).strip(),
         "review_state": str(record.get("review_state", "")).strip(),
         "review_reason_codes": list(record.get("review_reason_codes") or []),
         "normalized_amount_present": record.get("normalized_amount") is not None,
@@ -449,6 +453,8 @@ ON CONFLICT(receipt_id) DO UPDATE SET
         "source_surface_id": CASSANDRA_SOURCE_SURFACE,
         "canonical_action_type": CANONICAL_ACTION_TYPE,
         "legacy_state_authority": LEGACY_STATE_AUTHORITY,
+        "proposal_shadow_support": True,
+        "decision_receipt_shadow_support": True,
         "runtime_authority_changed": False,
         "runtime_authority": False,
         "dual_write_enabled": True,
@@ -475,6 +481,278 @@ def mirror_cassandra_hitl_proposal_fail_open(
     try:
         return record_cassandra_hitl_proposal_mirror(
             record,
+            ttl_seconds=ttl_seconds,
+            db_path=db_path,
+            source_ref=source_ref,
+        )
+    except Exception as exc:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "failed_open",
+            "adapter_health": "failed",
+            "error_type": exc.__class__.__name__,
+            "runtime_authority_changed": False,
+            "runtime_authority": False,
+            "dual_write_enabled": False,
+            "caller_switched": False,
+            "old_hitl_deleted": False,
+            "legacy_json_authoritative": True,
+            "raw_content_stored": False,
+            "raw_payload_stored": False,
+            "raw_action_text_stored": False,
+            "raw_command_text_stored": False,
+    }
+
+
+def _decision_receipt_shape(decision_status: str) -> tuple[str, str, str]:
+    raw = str(decision_status or "").strip().upper()
+    if raw not in DECISION_LABELS:
+        raise ValueError("unsupported Cassandra HITL decision receipt status")
+    return DECISION_LABELS[raw]
+
+
+def build_cassandra_hitl_decision_receipt(
+    record: Mapping[str, Any],
+    decision_status: str,
+    *,
+    ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    source_ref: str = LEGACY_HITL_STATE_REF,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Build safe observational decision metadata from an in-process HITL record."""
+    mirror = build_cassandra_hitl_proposal_mirror(
+        record,
+        ttl_seconds=ttl_seconds,
+        source_ref=source_ref,
+        generated_at=generated_at,
+    )
+    receipt_type, status, decision_label = _decision_receipt_shape(decision_status)
+    canonical = mirror["canonical_payload"]
+    receipt_id = _row_id(
+        "ghitl_receipt",
+        canonical["idempotency_key"],
+        receipt_type,
+        decision_label,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at or utc_now(),
+        "approval_id": canonical["approval_id"],
+        "idempotency_key": canonical["idempotency_key"],
+        "payload_hash": canonical["payload_hash"],
+        "receipt_id": receipt_id,
+        "receipt_type": receipt_type,
+        "status": status,
+        "decision_label": decision_label,
+        "source_surface": CASSANDRA_SOURCE_SURFACE,
+        "runtime_authority_changed": False,
+        "runtime_authority": False,
+        "dual_write_enabled": True,
+        "caller_switched": False,
+        "old_hitl_deleted": False,
+        "legacy_json_authoritative": True,
+        "raw_content_stored": False,
+        "raw_payload_stored": False,
+        "raw_action_text_stored": False,
+        "raw_command_text_stored": False,
+        "freeform_shell_approval_allowed": False,
+        "can_approve": False,
+        "can_execute": False,
+    }
+
+
+def _insert_decision_receipt(
+    conn: sqlite3.Connection,
+    *,
+    receipt_id: str,
+    approval_id: str,
+    idempotency_key: str,
+    receipt_type: str,
+    status: str,
+    summary: str,
+    created_at: str,
+    payload_hash: str,
+    source_surface: str,
+) -> None:
+    conn.execute(
+        """
+INSERT INTO guardian_hitl_approval_receipts (
+  receipt_id, approval_id, idempotency_key, receipt_type, status, summary,
+  created_at, payload_hash, source_surface, runtime_authority,
+  raw_content_stored, raw_action_text_stored, raw_command_text_stored,
+  caller_switched, old_hitl_deleted, legacy_json_authoritative
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 1)
+ON CONFLICT(receipt_id) DO UPDATE SET
+  status = excluded.status,
+  summary = excluded.summary,
+  runtime_authority = 0,
+  raw_content_stored = 0,
+  raw_action_text_stored = 0,
+  raw_command_text_stored = 0,
+  caller_switched = 0,
+  old_hitl_deleted = 0,
+  legacy_json_authoritative = 1
+""".strip(),
+        (
+            receipt_id,
+            approval_id,
+            idempotency_key,
+            receipt_type,
+            status,
+            summary,
+            created_at,
+            payload_hash,
+            source_surface,
+        ),
+    )
+
+
+def record_cassandra_hitl_decision_receipt(
+    record: Mapping[str, Any],
+    decision_status: str,
+    *,
+    ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    db_path: str | Path | None = None,
+    source_ref: str = LEGACY_HITL_STATE_REF,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    receipt = build_cassandra_hitl_decision_receipt(
+        record,
+        decision_status,
+        ttl_seconds=ttl_seconds,
+        source_ref=source_ref,
+        generated_at=generated_at,
+    )
+    path = init_guardian_hitl_dual_write_schema(db_path)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        exact_request = conn.execute(
+            """
+SELECT approval_id, idempotency_key, payload_hash
+FROM guardian_hitl_approval_requests
+WHERE approval_id = ? AND idempotency_key = ? AND payload_hash = ?
+""".strip(),
+            (
+                receipt["approval_id"],
+                receipt["idempotency_key"],
+                receipt["payload_hash"],
+            ),
+        ).fetchone()
+        now = receipt["generated_at"]
+        if exact_request:
+            stored_receipt_id = receipt["receipt_id"]
+            stored_receipt_type = receipt["receipt_type"]
+            _insert_decision_receipt(
+                conn,
+                receipt_id=stored_receipt_id,
+                approval_id=receipt["approval_id"],
+                idempotency_key=receipt["idempotency_key"],
+                receipt_type=stored_receipt_type,
+                status=receipt["status"],
+                summary=(
+                    "Observed Cassandra HITL decision receipt. "
+                    "Legacy hitl_pending_state.json remains authoritative."
+                ),
+                created_at=now,
+                payload_hash=receipt["payload_hash"],
+                source_surface=CASSANDRA_SOURCE_SURFACE,
+            )
+            status = "mirrored"
+        else:
+            existing_by_id = conn.execute(
+                """
+SELECT approval_id, idempotency_key, payload_hash
+FROM guardian_hitl_approval_requests
+WHERE approval_id = ?
+""".strip(),
+                (receipt["approval_id"],),
+            ).fetchone()
+            if not existing_by_id:
+                return {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "missing_request_mirror",
+                    "approval_id": receipt["approval_id"],
+                    "runtime_authority_changed": False,
+                    "runtime_authority": False,
+                    "dual_write_enabled": True,
+                    "caller_switched": False,
+                    "old_hitl_deleted": False,
+                    "legacy_json_authoritative": True,
+                    "raw_content_stored": False,
+                    "raw_payload_stored": False,
+                    "raw_action_text_stored": False,
+                    "raw_command_text_stored": False,
+                    "adapter_health": "needs_request_mirror",
+                    "db_path": path,
+                }
+
+            mismatch_receipt_id = _row_id(
+                "ghitl_receipt",
+                existing_by_id["idempotency_key"],
+                "legacy_sqlite_mismatch",
+                receipt["payload_hash"],
+            )
+            stored_receipt_id = mismatch_receipt_id
+            stored_receipt_type = "legacy_sqlite_mismatch"
+            _insert_decision_receipt(
+                conn,
+                receipt_id=mismatch_receipt_id,
+                approval_id=existing_by_id["approval_id"],
+                idempotency_key=existing_by_id["idempotency_key"],
+                receipt_type=stored_receipt_type,
+                status="mismatch_observed",
+                summary=(
+                    "Observed Cassandra HITL decision context did not match "
+                    "the existing SQLite proposal mirror. Legacy JSON remains authoritative."
+                ),
+                created_at=now,
+                payload_hash=existing_by_id["payload_hash"],
+                source_surface=CASSANDRA_SOURCE_SURFACE,
+            )
+            status = "mismatch_observed"
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "approval_id": receipt["approval_id"],
+        "receipt_id": stored_receipt_id,
+        "receipt_type": stored_receipt_type,
+        "source_surface_id": CASSANDRA_SOURCE_SURFACE,
+        "canonical_action_type": CANONICAL_ACTION_TYPE,
+        "legacy_state_authority": LEGACY_STATE_AUTHORITY,
+        "runtime_authority_changed": False,
+        "runtime_authority": False,
+        "dual_write_enabled": True,
+        "caller_switched": False,
+        "old_hitl_deleted": False,
+        "legacy_json_authoritative": True,
+        "raw_content_stored": False,
+        "raw_payload_stored": False,
+        "raw_action_text_stored": False,
+        "raw_command_text_stored": False,
+        "adapter_health": "healthy" if status == "mirrored" else "needs_review",
+        "db_path": path,
+    }
+
+
+def mirror_cassandra_hitl_decision_fail_open(
+    record: Mapping[str, Any],
+    decision_status: str,
+    *,
+    ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    db_path: str | Path | None = None,
+    source_ref: str = LEGACY_HITL_STATE_REF,
+) -> dict[str, Any]:
+    """Attempt a Cassandra decision receipt mirror without affecting legacy flow."""
+    try:
+        return record_cassandra_hitl_decision_receipt(
+            record,
+            decision_status,
             ttl_seconds=ttl_seconds,
             db_path=db_path,
             source_ref=source_ref,
@@ -538,8 +816,28 @@ SELECT *
 FROM guardian_hitl_legacy_authority_refs
 WHERE source_surface_id = ?
 ORDER BY updated_at DESC, legacy_ref_id DESC
-""".strip(),
+            """.strip(),
             (LEGACY_STATE_AUTHORITY,),
+        )
+        decision_receipt_count = int(
+            conn.execute(
+                """
+SELECT COUNT(*)
+FROM guardian_hitl_approval_receipts
+WHERE source_surface = ? AND receipt_type LIKE 'decision_%'
+""".strip(),
+                (CASSANDRA_SOURCE_SURFACE,),
+            ).fetchone()[0]
+        )
+        mismatch_count = int(
+            conn.execute(
+                """
+SELECT COUNT(*)
+FROM guardian_hitl_approval_receipts
+WHERE source_surface = ? AND receipt_type = 'legacy_sqlite_mismatch'
+""".strip(),
+                (CASSANDRA_SOURCE_SURFACE,),
+            ).fetchone()[0]
         )
     finally:
         conn.close()
@@ -556,6 +854,8 @@ ORDER BY updated_at DESC, legacy_ref_id DESC
         "source_surface_id": CASSANDRA_SOURCE_SURFACE,
         "canonical_action_type": CANONICAL_ACTION_TYPE,
         "legacy_state_authority": LEGACY_STATE_AUTHORITY,
+        "proposal_shadow_support": True,
+        "decision_receipt_shadow_support": True,
         "runtime_authority_changed": False,
         "runtime_authority": False,
         "dual_write_enabled": True,
@@ -569,8 +869,10 @@ ORDER BY updated_at DESC, legacy_ref_id DESC
         "freeform_shell_approval_allowed": False,
         "proposal_shadow_count": proposal_shadow_count,
         "receipt_count": receipt_count,
+        "decision_receipt_count": decision_receipt_count,
+        "mismatch_count": mismatch_count,
         "unsafe_payload_key_count": unsafe_payload_key_count,
-        "adapter_health": "healthy",
+        "adapter_health": "healthy" if mismatch_count == 0 else "needs_review",
         "safe_to_import_cassandra_chief_memory": False,
         "safe_to_enable_remote_builder": False,
         "safe_to_expand_send_paths": False,
@@ -583,7 +885,7 @@ ORDER BY updated_at DESC, legacy_ref_id DESC
         "legacy_authority_refs": legacy_refs,
         "recent_receipts": receipts[:20],
         "boundaries": dict(NO_AUTHORITY_FLAGS),
-        "next_safe_move": "Mirror Cassandra HITL decisions/expiry as observational receipts, then prove request and decision parity before any caller switch.",
+        "next_safe_move": "Record the operator-approved Cassandra/Chief memory import decision receipt; do not import real data until that receipt exists.",
     }
 
 
@@ -593,7 +895,7 @@ def format_guardian_hitl_cassandra_proposal_shadow_read_model(payload: dict[str,
         "",
         "## Bottom Line",
         "",
-        "Cassandra HITL pending-action proposals can now be mirrored into SQLite as observational records. Old `hitl_pending_state.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw payload content is stored.",
+        "Cassandra HITL pending-action proposals and decisions can now be mirrored into SQLite as observational records. Old `hitl_pending_state.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw payload content is stored.",
         "",
         "## Status",
         "",
@@ -602,6 +904,8 @@ def format_guardian_hitl_cassandra_proposal_shadow_read_model(payload: dict[str,
         f"- Source surface: `{payload['source_surface_id']}`",
         f"- Canonical action type: `{payload['canonical_action_type']}`",
         f"- Legacy state authority: `{payload['legacy_state_authority']}`",
+        f"- Proposal shadow support: `{str(payload['proposal_shadow_support']).lower()}`",
+        f"- Decision receipt shadow support: `{str(payload['decision_receipt_shadow_support']).lower()}`",
         f"- Legacy JSON authoritative: `{str(payload['legacy_json_authoritative']).lower()}`",
         f"- Callers switched: `{str(payload['caller_switched']).lower()}`",
         f"- Old HITL deleted: `{str(payload['old_hitl_deleted']).lower()}`",
@@ -612,7 +916,9 @@ def format_guardian_hitl_cassandra_proposal_shadow_read_model(payload: dict[str,
         "## Counts",
         "",
         f"- Proposal shadows: `{payload['proposal_shadow_count']}`",
+        f"- Decision receipts: `{payload['decision_receipt_count']}`",
         f"- Receipts: `{payload['receipt_count']}`",
+        f"- Mismatches: `{payload['mismatch_count']}`",
         f"- Unsafe payload key count: `{payload['unsafe_payload_key_count']}`",
         "",
         "## Recent Proposal Shadows",
@@ -667,6 +973,8 @@ def export_guardian_hitl_cassandra_proposal_shadow_read_model(
         "json_path": json_path.as_posix(),
         "operator_path": operator_path.as_posix(),
         "proposal_shadow_count": payload["proposal_shadow_count"],
+        "decision_receipt_count": payload["decision_receipt_count"],
+        "mismatch_count": payload["mismatch_count"],
         "adapter_health": payload["adapter_health"],
         "runtime_authority_changed": payload["runtime_authority_changed"],
         "caller_switched": payload["caller_switched"],
@@ -685,10 +993,13 @@ __all__ = [
     "OPERATOR_EXPORT_NAME",
     "SCHEMA_VERSION",
     "build_cassandra_hitl_proposal_mirror",
+    "build_cassandra_hitl_decision_receipt",
     "build_guardian_hitl_cassandra_proposal_shadow_read_model",
     "export_guardian_hitl_cassandra_proposal_shadow_read_model",
     "format_guardian_hitl_cassandra_proposal_shadow_read_model",
+    "mirror_cassandra_hitl_decision_fail_open",
     "mirror_cassandra_hitl_proposal_fail_open",
+    "record_cassandra_hitl_decision_receipt",
     "record_cassandra_hitl_proposal_mirror",
     "stable_json",
 ]

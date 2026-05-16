@@ -144,6 +144,149 @@ def test_idempotency_key_is_stable_and_duplicate_records_are_not_recreated(tmp_p
     assert len(_read_rows(db_path, "guardian_hitl_approval_receipts")) == 1
 
 
+def test_approve_deny_and_expire_create_observational_decision_receipts(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    approved_record = _proposal_record(status="APPROVED", approved_by="operator")
+    denied_record = _proposal_record(
+        action_id="CAS54321",
+        status="DENIED",
+        denied_reason="synthetic denial",
+    )
+    expired_record = _proposal_record(action_id="CAS99999", status="EXPIRED")
+
+    for record in (approved_record, denied_record, expired_record):
+        shadow.record_cassandra_hitl_proposal_mirror(record, db_path=db_path)
+
+    approved = shadow.record_cassandra_hitl_decision_receipt(
+        approved_record,
+        "APPROVED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    denied = shadow.record_cassandra_hitl_decision_receipt(
+        denied_record,
+        "DENIED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    expired = shadow.record_cassandra_hitl_decision_receipt(
+        expired_record,
+        "EXPIRED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert approved["receipt_type"] == "decision_shadow_observed"
+    assert denied["receipt_type"] == "decision_shadow_rejected"
+    assert expired["receipt_type"] == "decision_shadow_expired"
+    assert approved["runtime_authority_changed"] is False
+    assert approved["caller_switched"] is False
+    assert approved["old_hitl_deleted"] is False
+    assert approved["raw_payload_stored"] is False
+
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    receipt_types = {row["receipt_type"] for row in receipts}
+    assert "decision_shadow_observed" in receipt_types
+    assert "decision_shadow_rejected" in receipt_types
+    assert "decision_shadow_expired" in receipt_types
+
+    rendered_rows = shadow.stable_json({"receipts": receipts})
+    assert "private body" not in rendered_rows
+    assert "synthetic denial" not in rendered_rows
+    assert "rm -rf" not in rendered_rows
+    assert ".chief.env" not in rendered_rows
+
+
+def test_decision_receipt_binds_to_existing_request_even_after_status_changes(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    proposal = _proposal_record()
+    shadow.record_cassandra_hitl_proposal_mirror(proposal, db_path=db_path)
+    proposal["status"] = "APPROVED"
+    proposal["approved_by"] = "operator"
+    proposal["approved_at"] = "2026-05-16T12:05:00"
+
+    result = shadow.record_cassandra_hitl_decision_receipt(
+        proposal,
+        "APPROVED",
+        db_path=db_path,
+    )
+
+    assert result["status"] == "mirrored"
+    assert result["receipt_type"] == "decision_shadow_observed"
+    assert result["adapter_health"] == "healthy"
+
+
+def test_missing_request_mirror_cannot_create_cassandra_approval_authority(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    result = shadow.record_cassandra_hitl_decision_receipt(
+        _proposal_record(status="APPROVED"),
+        "APPROVED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "missing_request_mirror"
+    assert result["runtime_authority_changed"] is False
+    assert result["runtime_authority"] is False
+    assert result["caller_switched"] is False
+    assert result["old_hitl_deleted"] is False
+    assert result["legacy_json_authoritative"] is True
+    assert result["raw_payload_stored"] is False
+    assert result["adapter_health"] == "needs_request_mirror"
+    assert _read_rows(db_path, "guardian_hitl_approval_requests") == []
+    assert _read_rows(db_path, "guardian_hitl_approval_receipts") == []
+
+
+def test_decision_payload_mismatch_records_mismatch_without_trusting_sqlite(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    proposal = _proposal_record()
+    shadow.record_cassandra_hitl_proposal_mirror(proposal, db_path=db_path)
+    changed_proposal = _proposal_record(
+        payload={"recipient": "other@example.com", "body": "changed private body"}
+    )
+
+    result = shadow.record_cassandra_hitl_decision_receipt(
+        changed_proposal,
+        "APPROVED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "mismatch_observed"
+    assert result["receipt_type"] == "legacy_sqlite_mismatch"
+    assert result["adapter_health"] == "needs_review"
+    assert result["runtime_authority_changed"] is False
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    assert {row["receipt_type"] for row in receipts} == {
+        "cassandra_proposal_shadow_created",
+        "legacy_sqlite_mismatch",
+    }
+    rendered_rows = shadow.stable_json({"receipts": receipts})
+    assert "changed private body" not in rendered_rows
+
+
+def test_decision_fail_open_helper_returns_failure_metadata(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("synthetic decision mirror failure")
+
+    monkeypatch.setattr(shadow, "record_cassandra_hitl_decision_receipt", boom)
+
+    result = shadow.mirror_cassandra_hitl_decision_fail_open(
+        _proposal_record(status="APPROVED"),
+        "APPROVED",
+    )
+
+    assert result["status"] == "failed_open"
+    assert result["adapter_health"] == "failed"
+    assert result["runtime_authority_changed"] is False
+    assert result["caller_switched"] is False
+    assert result["old_hitl_deleted"] is False
+    assert result["legacy_json_authoritative"] is True
+    assert result["raw_payload_stored"] is False
+    assert result["raw_command_text_stored"] is False
+
+
 def test_fail_open_helper_returns_failure_metadata_without_raising(monkeypatch):
     def boom(*args, **kwargs):
         raise RuntimeError("synthetic sqlite failure")
@@ -226,11 +369,91 @@ def test_hitl_store_shadow_does_not_run_when_audit_fails(tmp_path, monkeypatch):
     assert calls == []
 
 
+def test_hitl_store_decision_shadow_runs_only_after_legacy_save_and_audit_succeed(tmp_path, monkeypatch):
+    import hitl_pending_store as store
+
+    monkeypatch.setattr(store, "HITL_STATE_PATH", tmp_path / "hitl_pending_state.json")
+    monkeypatch.setattr(store, "HITL_AUDIT_LOG", tmp_path / "hitl_audit.jsonl")
+    monkeypatch.setattr(store, "_shadow_cassandra_hitl_proposal", lambda record, ttl_seconds: None)
+    calls = []
+    monkeypatch.setattr(
+        store,
+        "_shadow_cassandra_hitl_decision",
+        lambda record, decision_status: calls.append((record["action_id"], decision_status)),
+    )
+
+    record = store.create_pending_action(
+        "cassandra",
+        "email_send",
+        {"recipient": "test@example.com", "body": "synthetic body"},
+        ttl_seconds=120,
+        idempotency_key="idem-decision-success",
+    )
+
+    assert store.update_action_status(record["action_id"], store.APPROVED, approved_by="operator") is True
+    assert calls == [(record["action_id"], store.APPROVED)]
+
+    calls.clear()
+
+    def fail_save(state):
+        raise RuntimeError("save failed")
+
+    second = store.create_pending_action(
+        "cassandra",
+        "email_send",
+        {"recipient": "test@example.com", "body": "synthetic body"},
+        ttl_seconds=120,
+        idempotency_key="idem-decision-save-fail",
+    )
+    monkeypatch.setattr(store, "_save_state", fail_save)
+    try:
+        store.update_action_status(second["action_id"], store.DENIED, denied_reason="no")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("expected save failure")
+    assert calls == []
+
+
+def test_hitl_store_expiry_shadow_runs_after_legacy_save(tmp_path, monkeypatch):
+    import hitl_pending_store as store
+
+    monkeypatch.setattr(store, "HITL_STATE_PATH", tmp_path / "hitl_pending_state.json")
+    monkeypatch.setattr(store, "HITL_AUDIT_LOG", tmp_path / "hitl_audit.jsonl")
+    monkeypatch.setattr(store, "_shadow_cassandra_hitl_proposal", lambda record, ttl_seconds: None)
+    calls = []
+    monkeypatch.setattr(
+        store,
+        "_shadow_cassandra_hitl_decision",
+        lambda record, decision_status: calls.append((record["action_id"], decision_status)),
+    )
+
+    record = store.create_pending_action(
+        "cassandra",
+        "email_send",
+        {"recipient": "test@example.com", "body": "synthetic body"},
+        ttl_seconds=1,
+        idempotency_key="idem-expired",
+    )
+    state = store._load_state()
+    state[record["action_id"]]["expires_at"] = "2000-01-01T00:00:00"
+    store._save_state(state)
+
+    assert store.expire_stale_actions() == 1
+    assert calls == [(record["action_id"], store.EXPIRED)]
+
+
 def test_export_read_model_and_operator_output_are_valid(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     export_root = tmp_path / "read_models"
     shadow.record_cassandra_hitl_proposal_mirror(
         _proposal_record(),
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    shadow.record_cassandra_hitl_decision_receipt(
+        _proposal_record(status="APPROVED"),
+        "APPROVED",
         db_path=db_path,
         generated_at=FIXED_NOW,
     )
@@ -246,6 +469,7 @@ def test_export_read_model_and_operator_output_are_valid(tmp_path):
     assert json_path.is_file()
     assert operator_path.is_file()
     assert summary["proposal_shadow_count"] == 1
+    assert summary["decision_receipt_count"] == 1
     assert summary["runtime_authority_changed"] is False
     assert summary["caller_switched"] is False
     assert summary["old_hitl_deleted"] is False
@@ -255,8 +479,12 @@ def test_export_read_model_and_operator_output_are_valid(tmp_path):
     rendered = operator_path.read_text(encoding="utf-8")
     assert payload["schema_version"] == "guardian_hitl_cassandra_proposal_shadow_v0"
     assert payload["shared_guardian_hitl_tables_used"] is True
+    assert payload["proposal_shadow_support"] is True
+    assert payload["decision_receipt_shadow_support"] is True
     assert payload["legacy_json_authoritative"] is True
     assert payload["raw_payload_stored"] is False
+    assert payload["decision_receipt_count"] == 1
+    assert payload["mismatch_count"] == 0
     assert "## Bottom Line" in rendered
     assert "## Still Blocked" in rendered
 
@@ -264,6 +492,7 @@ def test_export_read_model_and_operator_output_are_valid(tmp_path):
     assert "private body" not in rendered_payload
     assert "rm -rf" not in rendered_payload
     assert ".chief.env" not in rendered_payload
+    assert "operator-approved Cassandra/Chief memory import decision receipt" in rendered
 
 
 def test_chief_dual_write_read_model_stays_source_safe_with_shared_tables(tmp_path):

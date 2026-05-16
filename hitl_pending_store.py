@@ -152,6 +152,18 @@ def _shadow_cassandra_hitl_proposal(record: dict, ttl_seconds: int) -> None:
         pass
 
 
+def _shadow_cassandra_hitl_decision(record: dict, decision_status: str) -> None:
+    """Fail-open observational SQLite receipt for Cassandra HITL decisions."""
+    try:
+        from guardian_hitl_cassandra_proposal_shadow import (
+            mirror_cassandra_hitl_decision_fail_open,
+        )
+
+        mirror_cassandra_hitl_decision_fail_open(record, decision_status)
+    except Exception:
+        pass
+
+
 def _iso_now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
@@ -364,6 +376,7 @@ def get_action(action_id: str) -> dict | None:
         state[action_id] = record
         _save_state(state)
         _audit({**record, "event": "auto_expired"})
+        _shadow_cassandra_hitl_decision(record, EXPIRED)
 
     return record
 
@@ -378,15 +391,19 @@ def list_pending_actions(status: str | None = None) -> list[dict]:
     state   = _load_state()
     changed = False
 
+    expired_records: list[dict] = []
     for action_id, record in state.items():
         if record["status"] == WAITING_FOR_APPROVAL and _is_expired(record):
             record["status"] = EXPIRED
             state[action_id] = record
             changed = True
             _audit({**record, "event": "auto_expired"})
+            expired_records.append(record)
 
     if changed:
         _save_state(state)
+        for record in expired_records:
+            _shadow_cassandra_hitl_decision(record, EXPIRED)
 
     records = list(state.values())
     if status is not None:
@@ -439,6 +456,8 @@ def update_action_status(
     state[action_id] = record
     _save_state(state)
     _audit({**record, "event": f"transition:{prev_status}->{new_status}"})
+    if new_status in {APPROVED, DENIED, EXPIRED}:
+        _shadow_cassandra_hitl_decision(record, new_status)
     return True
 
 
@@ -449,15 +468,19 @@ def expire_stale_actions() -> int:
     """
     state   = _load_state()
     expired = 0
+    expired_records: list[dict] = []
     for action_id, record in state.items():
         if record["status"] == WAITING_FOR_APPROVAL and _is_expired(record):
             record["status"] = EXPIRED
             state[action_id] = record
             expired += 1
             _audit({**record, "event": "auto_expired"})
+            expired_records.append(record)
 
     if expired:
         _save_state(state)
+        for record in expired_records:
+            _shadow_cassandra_hitl_decision(record, EXPIRED)
 
     return expired
 
