@@ -59,6 +59,7 @@
 !module_registry.py
 !bundle_blueprint_planner.py
 !governed_intake_spine.py
+!estate_read_model.py
 !tool_inventory.py
 !tool_intake.py
 !local_automation_registry.py
@@ -667,6 +668,8 @@
 !scripts/export_bundle_blueprint_planner_read_model.py
 !scripts/query_governed_intake_spine.py
 !scripts/export_governed_intake_spine_read_model.py
+!scripts/export_estate_read_model.py
+!scripts/query_estate_read_model.py
 !scripts/update_project_capsule_modules.py
 !scripts/build_context_packet.py
 !scripts/query_context_selection.py
@@ -698,6 +701,7 @@
 !tests/test_project_capsule_template.py
 !tests/test_legacy_repo_intake.py
 !tests/test_module_registry.py
+!tests/test_estate_read_model.py
 !tests/test_mission_control_read_model_refresh_prompt.py
 !tests/test_mac_mirror_atlas.py
 !tests/test_read_model_shuttle.py
