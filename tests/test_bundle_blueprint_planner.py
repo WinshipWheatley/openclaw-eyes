@@ -22,6 +22,11 @@ def test_invoice_receivables_maps_to_conservative_finance_bundle():
     assert manifest["github_packaging_allowed"] is False
     assert manifest["deployment_allowed"] is False
     assert manifest["runtime_authority"] is False
+    assert manifest["bundle_authority"] is False
+    assert manifest["stored_project_capsule_authority"] is False
+    assert manifest["canonical_module_registry_home"] == "module_registry.py"
+    assert manifest["canonical_project_capsule_home"] == "project_capsule.py"
+    assert manifest["canonical_project_capsule_namespace"] == "project_capsule_*"
 
 
 def test_album_progress_maps_to_niles_album_matrix():
@@ -70,6 +75,22 @@ def test_next_best_coding_lane_blocks_runner_registry():
     assert manifest["blocked_modules"][0]["blocked_reason"] == "module_status_blocked"
 
 
+def test_bundle_blueprint_is_advisory_not_duplicate_capsule_authority():
+    manifest = planner.plan_bundle_blueprint(
+        pain_point="I need a local client bundle plan",
+        target_context="client",
+    )
+    source = Path("bundle_blueprint_planner.py").read_text(encoding="utf-8")
+
+    assert manifest["planner_authority"] == "advisory_manifest_only"
+    assert manifest["bundle_authority"] is False
+    assert manifest["stored_project_capsule_authority"] is False
+    assert manifest["canonical_project_capsule_home"] == "project_capsule.py"
+    assert manifest["canonical_project_capsule_namespace"] == "project_capsule_*"
+    assert "CREATE TABLE" not in source
+    assert "import sqlite3" not in source
+
+
 def test_scripts_and_read_model_export_work(tmp_path, capsys):
     export_root = tmp_path / "read_models"
 
@@ -97,6 +118,8 @@ def test_scripts_and_read_model_export_work(tmp_path, capsys):
     assert payload["github_packaging_allowed"] is False
     assert payload["deployment_allowed"] is False
     assert payload["runtime_authority"] is False
+    assert payload["bundle_authority"] is False
+    assert payload["canonical_project_capsule_home"] == "project_capsule.py"
 
 
 def test_bundle_blueprint_sources_have_no_external_runtime_or_shell_behavior():

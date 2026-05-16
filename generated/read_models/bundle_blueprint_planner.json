@@ -2,14 +2,22 @@
   "blocked_module_counts": {
     "planner_runner_registry": 1
   },
+  "bundle_authority": false,
+  "canonical_module_registry_home": "module_registry.py",
+  "canonical_project_capsule_home": "project_capsule.py",
+  "canonical_project_capsule_namespace": "project_capsule_*",
   "deployment_allowed": false,
   "example_count": 5,
   "examples": [
     {
       "authority_level": "planning_only",
       "blocked_modules": [],
+      "bundle_authority": false,
       "bundle_id": "bundleblueprint_1572e5d7c0748d663b68",
       "bundle_name": "Internal Test Bundle Blueprint",
+      "canonical_module_registry_home": "module_registry.py",
+      "canonical_project_capsule_home": "project_capsule.py",
+      "canonical_project_capsule_namespace": "project_capsule_*",
       "deployment_allowed": false,
       "external_api_allowed": false,
       "github_packaging_allowed": false,
@@ -34,6 +42,7 @@
       ],
       "pain_point_category": "finance_operations",
       "pain_point_hash": "e036be30ebe6168d3722eab3c14f8a096e9fefe2cbb70fd2dc1bb2f0bfc0d51f",
+      "planner_authority": "advisory_manifest_only",
       "private_data_export_allowed": false,
       "repo_creation_allowed": false,
       "report_bridge_policy": {
@@ -86,13 +95,18 @@
           "receivable"
         ]
       },
+      "stored_project_capsule_authority": false,
       "target_context": "internal_test"
     },
     {
       "authority_level": "planning_only",
       "blocked_modules": [],
+      "bundle_authority": false,
       "bundle_id": "bundleblueprint_0589bd684b12c7cba01c",
       "bundle_name": "Internal Test Bundle Blueprint",
+      "canonical_module_registry_home": "module_registry.py",
+      "canonical_project_capsule_home": "project_capsule.py",
+      "canonical_project_capsule_namespace": "project_capsule_*",
       "deployment_allowed": false,
       "external_api_allowed": false,
       "github_packaging_allowed": false,
@@ -110,6 +124,7 @@
       ],
       "pain_point_category": "music_art",
       "pain_point_hash": "8ed93d5df33ceeb065ad4017f0c1c6ac5875a47d3a8865bf9b1959bada5fa417",
+      "planner_authority": "advisory_manifest_only",
       "private_data_export_allowed": false,
       "repo_creation_allowed": false,
       "report_bridge_policy": {
@@ -145,13 +160,18 @@
         "raw_sensitive_data_requested": false,
         "sensitive_markers_detected": []
       },
+      "stored_project_capsule_authority": false,
       "target_context": "internal_test"
     },
     {
       "authority_level": "planning_only",
       "blocked_modules": [],
+      "bundle_authority": false,
       "bundle_id": "bundleblueprint_e734898501c6c2fd4165",
       "bundle_name": "Internal Test Bundle Blueprint",
+      "canonical_module_registry_home": "module_registry.py",
+      "canonical_project_capsule_home": "project_capsule.py",
+      "canonical_project_capsule_namespace": "project_capsule_*",
       "deployment_allowed": false,
       "external_api_allowed": false,
       "github_packaging_allowed": false,
@@ -172,6 +192,7 @@
       ],
       "pain_point_category": "approval_sensitive_comms",
       "pain_point_hash": "aea05a9012823d4a04e1887ed363caee071953cd817f5965c644c025e205518e",
+      "planner_authority": "advisory_manifest_only",
       "private_data_export_allowed": false,
       "repo_creation_allowed": false,
       "report_bridge_policy": {
@@ -216,13 +237,18 @@
           "email"
         ]
       },
+      "stored_project_capsule_authority": false,
       "target_context": "internal_test"
     },
     {
       "authority_level": "planning_only",
       "blocked_modules": [],
+      "bundle_authority": false,
       "bundle_id": "bundleblueprint_0168d2c3412735809834",
       "bundle_name": "Client Bundle Blueprint",
+      "canonical_module_registry_home": "module_registry.py",
+      "canonical_project_capsule_home": "project_capsule.py",
+      "canonical_project_capsule_namespace": "project_capsule_*",
       "deployment_allowed": false,
       "external_api_allowed": false,
       "github_packaging_allowed": false,
@@ -243,6 +269,7 @@
       ],
       "pain_point_category": "sanitized_reporting",
       "pain_point_hash": "abd13dc8e76e1bfee7dc34ebeee4ed2c04a59f172dc05d497a3d0b1a105bd796",
+      "planner_authority": "advisory_manifest_only",
       "private_data_export_allowed": false,
       "repo_creation_allowed": false,
       "report_bridge_policy": {
@@ -302,6 +329,7 @@
           "private"
         ]
       },
+      "stored_project_capsule_authority": false,
       "target_context": "client"
     },
     {
@@ -316,8 +344,12 @@
           "status": "blocked"
         }
       ],
+      "bundle_authority": false,
       "bundle_id": "bundleblueprint_86e080cd2665e2202d0f",
       "bundle_name": "Internal Test Bundle Blueprint",
+      "canonical_module_registry_home": "module_registry.py",
+      "canonical_project_capsule_home": "project_capsule.py",
+      "canonical_project_capsule_namespace": "project_capsule_*",
       "deployment_allowed": false,
       "external_api_allowed": false,
       "github_packaging_allowed": false,
@@ -336,6 +368,7 @@
       ],
       "pain_point_category": "advisory_planning",
       "pain_point_hash": "a046a85863b588ca39e0853b6e9b7d4e45cd3f1ffb0e99caa2fd7e60cd8e2718",
+      "planner_authority": "advisory_manifest_only",
       "private_data_export_allowed": false,
       "repo_creation_allowed": false,
       "report_bridge_policy": {
@@ -371,11 +404,12 @@
         "raw_sensitive_data_requested": false,
         "sensitive_markers_detected": []
       },
+      "stored_project_capsule_authority": false,
       "target_context": "internal_test"
     }
   ],
   "external_api_allowed": false,
-  "generated_at": "2026-05-16T15:42:46+00:00",
+  "generated_at": "2026-05-16T15:52:43+00:00",
   "github_packaging_allowed": false,
   "mode": "local_bundle_blueprint_planning_only",
   "model_call_allowed": false,
@@ -389,6 +423,7 @@
     "runtime_authority": false,
     "send_allowed": false
   },
+  "planner_authority": "advisory_manifest_only",
   "private_data_export_allowed": false,
   "read_model_version": "bundle_blueprint_planner_read_model_v0",
   "repo_creation_allowed": false,
@@ -402,5 +437,6 @@
     "project_capsule_bundle_blueprint": 2,
     "report_bridge_sanitized_summary": 2
   },
-  "send_allowed": false
+  "send_allowed": false,
+  "stored_project_capsule_authority": false
 }

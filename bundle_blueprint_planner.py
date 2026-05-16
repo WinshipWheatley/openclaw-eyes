@@ -1,9 +1,14 @@
 """Bundle Blueprint Planner v0.
 
-This module turns a high-level pain point into a local bundle manifest using
-approved module registry metadata. It is deterministic and non-executing: no
-LLM calls, no network, no repo creation, no deployment, no private-data reads,
-and no filesystem scanning.
+This module turns a high-level pain point into a local advisory bundle
+manifest using approved module registry metadata. It is deterministic and
+non-executing: no LLM calls, no network, no repo creation, no deployment, no
+private-data reads, and no filesystem scanning.
+
+Authority stays in existing Repo A primitives: ``module_registry.py`` is the
+module metadata authority, and persisted project/client capsule state remains
+in ``project_capsule.py`` / ``project_capsule_*``. The planner does not create
+or own a bundle registry.
 """
 
 from __future__ import annotations
@@ -27,6 +32,9 @@ JSON_EXPORT_NAME = "bundle_blueprint_planner.json"
 OPERATOR_EXPORT_NAME = "bundle_blueprint_planner_OPERATOR.md"
 
 TARGET_CONTEXTS = {"personal", "friend", "company", "client", "internal_test"}
+CANONICAL_MODULE_REGISTRY_HOME = "module_registry.py"
+CANONICAL_PROJECT_CAPSULE_HOME = "project_capsule.py"
+CANONICAL_PROJECT_CAPSULE_NAMESPACE = "project_capsule_*"
 
 NO_AUTHORITY_FLAGS = {
     "github_packaging_allowed": False,
@@ -217,6 +225,12 @@ def plan_bundle_blueprint(
     bundle_id = _row_id("bundleblueprint", resolved_context, normalized)
     manifest = {
         "schema_version": BUNDLE_BLUEPRINT_VERSION,
+        "planner_authority": "advisory_manifest_only",
+        "bundle_authority": False,
+        "stored_project_capsule_authority": False,
+        "canonical_module_registry_home": CANONICAL_MODULE_REGISTRY_HOME,
+        "canonical_project_capsule_home": CANONICAL_PROJECT_CAPSULE_HOME,
+        "canonical_project_capsule_namespace": CANONICAL_PROJECT_CAPSULE_NAMESPACE,
         "bundle_id": bundle_id,
         "bundle_name": bundle_name or f"{resolved_context.replace('_', ' ').title()} Bundle Blueprint",
         "target_context": resolved_context,
@@ -315,6 +329,12 @@ def build_bundle_blueprint_status_read_model() -> dict[str, Any]:
         "read_model_version": READ_MODEL_VERSION,
         "generated_at": utc_now(),
         "mode": "local_bundle_blueprint_planning_only",
+        "planner_authority": "advisory_manifest_only",
+        "bundle_authority": False,
+        "stored_project_capsule_authority": False,
+        "canonical_module_registry_home": CANONICAL_MODULE_REGISTRY_HOME,
+        "canonical_project_capsule_home": CANONICAL_PROJECT_CAPSULE_HOME,
+        "canonical_project_capsule_namespace": CANONICAL_PROJECT_CAPSULE_NAMESPACE,
         "example_count": len(manifests),
         "selected_module_counts": dict(sorted(selected_counts.items())),
         "blocked_module_counts": dict(sorted(blocked_counts.items())),
@@ -340,7 +360,10 @@ def format_bundle_blueprint_status_read_model(read_model: dict[str, Any]) -> str
         f"- Blocked modules: {_count_line(read_model['blocked_module_counts'])}.",
         "",
         "Boundary:",
+        f"- Canonical module registry: `{read_model['canonical_module_registry_home']}`.",
+        f"- Stored project/client capsule authority: `{read_model['canonical_project_capsule_home']}` / `{read_model['canonical_project_capsule_namespace']}`.",
         "- `github_packaging_allowed=false`; `deployment_allowed=false`; `runtime_authority=false`.",
+        "- `bundle_authority=false`; planner output is advisory manifest metadata only.",
         "- Private/client data stays local; Core receives sanitized status/proof only.",
     ]
     return "\n".join(lines) + "\n"
@@ -374,6 +397,9 @@ def export_bundle_blueprint_planner_read_model(
 
 __all__ = [
     "BUNDLE_BLUEPRINT_VERSION",
+    "CANONICAL_MODULE_REGISTRY_HOME",
+    "CANONICAL_PROJECT_CAPSULE_HOME",
+    "CANONICAL_PROJECT_CAPSULE_NAMESPACE",
     "NO_AUTHORITY_FLAGS",
     "READ_MODEL_VERSION",
     "BundleBlueprintResult",

@@ -117,11 +117,14 @@ Create a new local deterministic module only if no equivalent exists:
 
 The planner should accept structured pain-point text and target context, then produce a local manifest dictionary. It must not create repos, scan private files, call models, call APIs, write external paths, deploy, send, or shell out.
 
+Architecture alignment note: `bundle_blueprint_planner.py` is advisory manifest logic only. It must not become a second project/client bundle authority. Persisted project/client capsule state remains in `project_capsule.py` and the `project_capsule_*` ledger namespace; approved module metadata remains in `module_registry.py`.
+
 The manifest must set:
 
 - `github_packaging_allowed=false`
 - `deployment_allowed=false`
 - `runtime_authority=false`
+- `bundle_authority=false`
 
 ## Unified Governed Intake Spine Home
 

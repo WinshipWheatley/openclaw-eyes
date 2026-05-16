@@ -400,7 +400,10 @@ DEFAULT_MODULE_SEEDS: tuple[ModuleSeed, ...] = (
         tests_required=("tests/test_bundle_blueprint_planner.py",),
         client_safe=True,
         report_bridge_summary_allowed=True,
-        evidence_basis="Stage 2 implements deterministic local planner; no GitHub packaging or deployment authority.",
+        evidence_basis=(
+            "Stage 2 implements a deterministic advisory planner; project_capsule.py remains "
+            "stored capsule authority; no GitHub packaging or deployment authority."
+        ),
     ),
 )
 

@@ -12,5 +12,8 @@ Summary:
 - Blocked modules: planner_runner_registry=1.
 
 Boundary:
+- Canonical module registry: `module_registry.py`.
+- Stored project/client capsule authority: `project_capsule.py` / `project_capsule_*`.
 - `github_packaging_allowed=false`; `deployment_allowed=false`; `runtime_authority=false`.
+- `bundle_authority=false`; planner output is advisory manifest metadata only.
 - Private/client data stays local; Core receives sanitized status/proof only.

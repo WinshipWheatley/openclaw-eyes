@@ -47,7 +47,7 @@
     }
   },
   "external_api_allowed": false,
-  "generated_at": "2026-05-16T15:42:47+00:00",
+  "generated_at": "2026-05-16T15:52:44+00:00",
   "model_call_allowed": false,
   "module_count": 8,
   "modules": [
@@ -177,7 +177,7 @@
         "report_bridge_sanitized_summary"
       ],
       "display_name": "Project Capsule Bundle Blueprint",
-      "evidence_basis": "Stage 2 implements deterministic local planner; no GitHub packaging or deployment authority.",
+      "evidence_basis": "Stage 2 implements a deterministic advisory planner; project_capsule.py remains stored capsule authority; no GitHub packaging or deployment authority.",
       "module_id": "project_capsule_bundle_blueprint",
       "no_go_data_classes": [
         "raw_client_data",
