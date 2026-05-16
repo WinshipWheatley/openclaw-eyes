@@ -226,6 +226,19 @@ def _clear_pending() -> None:
     _save_pending({})
 
 
+def _dual_write_chief_approval_request(pending: dict) -> None:
+    """Best-effort observational SQLite mirror; legacy JSON remains authority."""
+    try:
+        from guardian_hitl_dual_write_compatibility import (
+            mirror_chief_approval_request_fail_open,
+        )
+
+        mirror_chief_approval_request_fail_open(pending, ttl_seconds=TIMEOUT)
+    except Exception:
+        # This adapter must never affect the active Chief approval path.
+        pass
+
+
 def _load_active_pending() -> dict:
     """
     Return the active pending approval record, or {} if there is no active
@@ -572,6 +585,8 @@ def request_approval(
         _clear_pending()
         _append_log(action, requester, "DENIED - GUARDIAN SEND FAILED", requested_at, elapsed, tier=tier)
         return False
+
+    _dual_write_chief_approval_request(pending)
 
     # Operator assist escalation for blocked terminals or agents (e.g. Claude Code)
     try:

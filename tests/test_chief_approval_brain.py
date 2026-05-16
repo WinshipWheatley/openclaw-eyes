@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import types
 from datetime import datetime, timedelta
 
 import pytest
@@ -230,3 +231,101 @@ class TestApprovalReplyRouting:
         assert result["reply"] == (
             "Expired or unknown approval code. No approval was applied. Request a fresh approval."
         )
+
+
+class TestChiefApprovalDualWrite:
+    def _patch_tier2_runtime(self, approval_brain, monkeypatch, pending_path):
+        monkeypatch.setattr(approval_brain, "PENDING_FILE", pending_path, raising=False)
+        monkeypatch.setattr(approval_brain, "_is_hard_t2", lambda action: False)
+        monkeypatch.setattr(approval_brain, "_acquire_slot_lock", lambda: None)
+        monkeypatch.setattr(approval_brain, "_release_slot_lock", lambda lock: None)
+        monkeypatch.setattr(approval_brain, "_append_log", lambda *args, **kwargs: None)
+        monkeypatch.setitem(
+            sys.modules,
+            "chief_session_manager",
+            types.SimpleNamespace(load_session=lambda: {}),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "chief_assist",
+            types.SimpleNamespace(
+                escalate_to_operator=lambda **kwargs: (_ for _ in ()).throw(RuntimeError("disabled"))
+            ),
+        )
+
+    def test_dual_write_not_called_when_guardian_send_fails(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+
+        pending_path = tmp_path / "approval_pending.json"
+        calls = []
+        self._patch_tier2_runtime(approval_brain, monkeypatch, pending_path)
+        monkeypatch.setattr(approval_brain, "_send_via_guardian", lambda *args, **kwargs: False)
+        monkeypatch.setattr(
+            approval_brain,
+            "_dual_write_chief_approval_request",
+            lambda pending: calls.append(dict(pending)),
+        )
+
+        ok = approval_brain.request_approval(
+            "Synthetic approval request",
+            explicit_tier=2,
+        )
+
+        assert ok is False
+        assert calls == []
+        assert json.loads(pending_path.read_text(encoding="utf-8")) == {}
+
+    def test_dual_write_not_called_when_legacy_json_write_fails(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+
+        pending_path = tmp_path / "approval_pending.json"
+        calls = []
+        self._patch_tier2_runtime(approval_brain, monkeypatch, pending_path)
+        monkeypatch.setattr(approval_brain, "_send_via_guardian", lambda *args, **kwargs: True)
+
+        def fail_save(data):
+            raise OSError("synthetic legacy write failure")
+
+        monkeypatch.setattr(approval_brain, "_save_pending", fail_save)
+        monkeypatch.setattr(
+            approval_brain,
+            "_dual_write_chief_approval_request",
+            lambda pending: calls.append(dict(pending)),
+        )
+
+        with pytest.raises(OSError, match="synthetic legacy write failure"):
+            approval_brain.request_approval(
+                "Synthetic approval request",
+                explicit_tier=2,
+            )
+
+        assert calls == []
+
+    def test_dual_write_adapter_failure_does_not_block_legacy_approval(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+        import guardian_hitl_dual_write_compatibility as dual_write
+
+        pending_path = tmp_path / "approval_pending.json"
+        self._patch_tier2_runtime(approval_brain, monkeypatch, pending_path)
+        monkeypatch.setattr(approval_brain, "_send_via_guardian", lambda *args, **kwargs: True)
+        monkeypatch.setattr(approval_brain, "send_no_pending_confirmation", lambda: None)
+
+        def fail_mirror(*args, **kwargs):
+            raise RuntimeError("synthetic sqlite mirror failure")
+
+        def approve_on_poll(_seconds):
+            data = json.loads(pending_path.read_text(encoding="utf-8"))
+            data["status"] = "decided"
+            data["decision"] = "YES"
+            pending_path.write_text(json.dumps(data), encoding="utf-8")
+
+        monkeypatch.setattr(dual_write, "mirror_chief_approval_request_fail_open", fail_mirror)
+        monkeypatch.setattr(approval_brain.time, "sleep", approve_on_poll)
+
+        ok = approval_brain.request_approval(
+            "Synthetic approval request",
+            explicit_tier=2,
+        )
+
+        assert ok is True
+        assert json.loads(pending_path.read_text(encoding="utf-8")) == {}
