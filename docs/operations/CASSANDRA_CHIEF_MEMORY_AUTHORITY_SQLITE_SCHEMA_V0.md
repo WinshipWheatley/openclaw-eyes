@@ -47,6 +47,24 @@ Allowed fates:
 Prompt 2 source-catalog rows are static metadata only and keep
 `import_allowed_in_prompt_2=false`.
 
+## Reusable Classification / Tagging Pattern
+
+This schema follows
+`docs/operations/OPENCLAW_CLASSIFICATION_TAGGING_PATTERN_V0.md`.
+
+The reusable part is not Cassandra-specific:
+
+- identify the source with a stable id and safe reference
+- classify type, category/world, sensitivity, trust/evidence posture, and
+  lifecycle status
+- assign a reviewed fate before any import or deletion lane
+- keep raw-content, retention, allowed-agent-use, approval, and authority flags
+  explicit
+- render concise operator buckets before any structured import happens
+
+The Cassandra/Chief-specific part is the seeded source list. Future ingest lanes
+should reuse the pattern without assuming every legacy file becomes SQLite truth.
+
 ## Boundaries
 
 - No raw data import.
