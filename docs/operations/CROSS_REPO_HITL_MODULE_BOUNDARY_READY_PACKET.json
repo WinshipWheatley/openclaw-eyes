@@ -1,0 +1,170 @@
+{
+  "schema_version": "cross_repo_hitl_module_boundary_ready_packet_v0",
+  "prompt_2_ready": true,
+  "reason": "Repo A and Repo B approval/module surfaces can be mapped from safe source code and generated metadata without raw logs, secrets, runtime activation, or data import. The next lane should reconcile HITL authority before any memory import or module extraction.",
+  "recommended_lane": "Guardian HITL Authority Reconciliation v0",
+  "repo_b_model": "pre_split_capability_tree_reference_only",
+  "sqlite_coverage_complete": false,
+  "old_hitl_classification": "authority_conflict_reconcile_first",
+  "module_boundary_confidence": "medium",
+  "recommended_module_shapes": [
+    {
+      "module_or_stack": "cassandra_clara_fact_intake",
+      "shape": "narrow receive-only module",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "already_governed_in_repo_a"
+    },
+    {
+      "module_or_stack": "chief_control_plane",
+      "shape": "deterministic control-plane module with legacy runtime residue",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "repo_a_partial_needs_reconciliation"
+    },
+    {
+      "module_or_stack": "guardian_hitl_gate",
+      "shape": "shared approval substrate with mixed current/legacy state",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "authority_conflict_reconcile_first"
+    },
+    {
+      "module_or_stack": "operator_comms_stack",
+      "shape": "combined Cassandra plus Chief plus Telegram plus Guardian stack",
+      "can_live_separate_repo": "no",
+      "recommended_fate": "repo_a_partial_needs_reconciliation"
+    },
+    {
+      "module_or_stack": "finance_ap_invoice_stack",
+      "shape": "finance evidence plus Cassandra intake plus Guardian approval composite",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "repo_a_partial_needs_reconciliation"
+    },
+    {
+      "module_or_stack": "memory_authority_substrate",
+      "shape": "shared source catalog and evidence-status substrate",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "already_governed_in_repo_a"
+    },
+    {
+      "module_or_stack": "agent_runtime_stack",
+      "shape": "runtime services/listeners/watchers; not safe to split now",
+      "can_live_separate_repo": "no",
+      "recommended_fate": "keep_repo_b_reference_only"
+    },
+    {
+      "module_or_stack": "deterministic_evidence_core",
+      "shape": "SQLite/read-model/evidence substrate",
+      "can_live_separate_repo": "yes_later",
+      "recommended_fate": "already_governed_in_repo_a"
+    },
+    {
+      "module_or_stack": "album_production_matrix",
+      "shape": "future Niles/music-art module",
+      "can_live_separate_repo": "later",
+      "recommended_fate": "defer_operator_review"
+    }
+  ],
+  "required_fates": [
+    "already_governed_in_repo_a",
+    "repo_a_partial_needs_reconciliation",
+    "port_logic_to_repo_a",
+    "register_as_evidence_source",
+    "extract_structured_memory_to_sqlite",
+    "keep_repo_b_reference_only",
+    "authority_conflict_reconcile_first",
+    "block_no_go",
+    "defer_operator_review"
+  ],
+  "authority_surfaces_to_reconcile": [
+    "chief_approval_brain.py",
+    "chief_guardian_listener.py",
+    "chief_guardian_sender.py",
+    "chief_approval_policy.py",
+    "chief_approval_bridge.py",
+    "hitl_pending_store.py",
+    "hitl_pending_action.py",
+    "hitl_action_service.py",
+    "hitl_notification_service.py",
+    "operator_action.py",
+    "operator_action_inbox.py",
+    "agent_presence.py recovery clearance",
+    "approval_pending.json metadata only",
+    "hitl_pending_state.json metadata only",
+    "hitl_pending_actions.json metadata only",
+    "hitl_audit.jsonl metadata only",
+    "choice_pending.json metadata only"
+  ],
+  "exact_files_to_inspect_next": [
+    "chief_approval_brain.py",
+    "chief_guardian_listener.py",
+    "chief_guardian_sender.py",
+    "chief_approval_policy.py",
+    "chief_approval_bridge.py",
+    "hitl_pending_store.py",
+    "hitl_pending_action.py",
+    "hitl_action_service.py",
+    "hitl_notification_service.py",
+    "operator_action.py",
+    "operator_action_inbox.py",
+    "agent_presence.py",
+    "scripts/request_agent_recovery_clearance.py",
+    "scripts/approve_agent_recovery_clearance.py",
+    "scripts/request_cassandra_recovery_guardian_approval.py",
+    "scripts/recover_agent.py",
+    "cassandra_chief_memory_authority.py",
+    "docs/operations/GUARDIAN_MACHINE_CONTRACT.md",
+    "docs/operations/CHIEF_MACHINE_CONTRACT.md",
+    "docs/operations/CASSANDRA_CHIEF_MEMORY_AUTHORITY_SQLITE_MIGRATION_SPEC_V0.md",
+    "docs/operations/CASSANDRA_CHIEF_MEMORY_AUTHORITY_SQLITE_SCHEMA_V0.md",
+    "generated/read_models/cassandra_chief_structured_import_plan.json",
+    "tests/test_chief_approval_brain.py",
+    "tests/test_guardian_packet_templates.py",
+    "tests/test_cassandra_chief_memory_authority.py",
+    "tests/test_operator_action.py",
+    "tests/test_operator_action_inbox.py"
+  ],
+  "exact_files_to_create_or_update_next": [
+    "docs/operations/GUARDIAN_HITL_AUTHORITY_RECONCILIATION_V0.md",
+    "hitl_authority_reconciliation.py",
+    "scripts/export_hitl_authority_reconciliation_read_model.py",
+    "scripts/query_hitl_authority_reconciliation.py",
+    "generated/read_models/hitl_authority_reconciliation.json",
+    "generated/read_models/hitl_authority_reconciliation_OPERATOR.md",
+    "tests/test_hitl_authority_reconciliation.py",
+    "cassandra_chief_memory_authority.py",
+    "tests/test_cassandra_chief_memory_authority.py"
+  ],
+  "validation_commands": [
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/test_hitl_authority_reconciliation.py tests/test_cassandra_chief_memory_authority.py tests/test_chief_approval_brain.py tests/test_operator_action.py tests/test_operator_action_inbox.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/export_hitl_authority_reconciliation_read_model.py --format json",
+    "PYTHONDONTWRITEBYTECODE=1 python3 scripts/export_hitl_authority_reconciliation_read_model.py --format operator",
+    "python3 -m json.tool generated/read_models/hitl_authority_reconciliation.json >/dev/null",
+    "git diff --check",
+    "git diff --cached --check",
+    "git status -sb --untracked-files=all"
+  ],
+  "stop_conditions": [
+    "next lane would need raw HITL JSON/JSONL bodies",
+    "next lane would need raw Telegram logs or private message content",
+    "next lane would need secrets, env files, tokens, chat IDs, or credential files",
+    "next lane would need to send Telegram/Gmail/email",
+    "next lane would need runtime activation or service mutation",
+    "next lane would need Repo B execution or imports",
+    "current approval authority cannot be described without operator clarification",
+    "implementation would create active approval authority from old files",
+    "implementation would bypass Operator Action or Guardian gates",
+    "implementation would require a broad runtime refactor"
+  ],
+  "must_not_do": [
+    "do not import real data",
+    "do not read raw private/client/bank/spreadsheet/Telegram-log content",
+    "do not read secrets or env files",
+    "do not run Repo B code",
+    "do not send Telegram/Gmail/email",
+    "do not enable agents or start services",
+    "do not delete local residue",
+    "do not treat old HITL JSON/JSONL as active authority",
+    "do not create a new approval bypass",
+    "do not split modules across repos before authority seams are reconciled",
+    "do not commit dirty agent_presence generated snapshots"
+  ]
+}
