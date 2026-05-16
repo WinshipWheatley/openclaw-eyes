@@ -85,6 +85,7 @@
 !docs/testing/*.md
 !docs/operations/
 !docs/operations/*.md
+!docs/operations/STAGE_2_READY_PACKET.json
 !docs/navigation_maps/
 !docs/navigation_maps/*.md
 !docs/playbooks/
@@ -270,6 +271,7 @@
 !chief_cpa_brain.py
 !inbox_parser.py
 !tests/
+!tests/test_agent_capability_migration_map.py
 !tests/test_inbox_parser.py
 !tests/test_backend_storage_intelligence.py
 !chief_musiclaw_brain.py
