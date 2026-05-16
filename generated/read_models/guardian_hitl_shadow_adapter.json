@@ -1,0 +1,1443 @@
+{
+  "blocked_surfaces": [
+    {
+      "disposition": "block_no_go",
+      "file_path": "/home/openclaw_external/openclaw-runtime/chief_approval*.py; chief_guardian*.py; hitl task files",
+      "reason": "Repo B runtime must not be used as current approval authority.",
+      "runtime_authority": false,
+      "shadow_only": true,
+      "surface": "Repo B approval/HITL runtime tree",
+      "surface_id": "repo_b_approval_tree"
+    },
+    {
+      "disposition": "block_no_go",
+      "file_path": "no canonical file; forbidden payload pattern",
+      "reason": "Approving raw commands would create arbitrary execution authority.",
+      "runtime_authority": false,
+      "shadow_only": true,
+      "surface": "Raw command/freeform shell approval pattern",
+      "surface_id": "raw_command_or_freeform_shell_approval"
+    }
+  ],
+  "boundaries": {
+    "approval_bypass_allowed": false,
+    "approval_paths_disabled": false,
+    "data_imported": false,
+    "email_send_added": false,
+    "gmail_send_added": false,
+    "raw_content_read": false,
+    "read_model_only": true,
+    "runtime_services_modified": false,
+    "safe_to_enable_remote_builder": false,
+    "safe_to_expand_send_paths": false,
+    "safe_to_import_cassandra_chief_memory": false,
+    "telegram_send_added": false
+  },
+  "caller_switched": false,
+  "canonical_contract_summary": {
+    "canonical_state_store": "SQLite business_ops ledger",
+    "contract_id": "guardian_hitl_sqlite_authority_contract_v0",
+    "contract_tables": [
+      "guardian_hitl_approval_requests",
+      "guardian_hitl_approval_decisions",
+      "guardian_hitl_approval_receipts",
+      "guardian_hitl_legacy_authority_refs"
+    ],
+    "forbidden_payload_keys": [
+      "argv",
+      "cmd",
+      "command",
+      "command_args",
+      "command_string",
+      "command_text",
+      "exec",
+      "execute_raw",
+      "freeform_shell",
+      "raw_command",
+      "raw_command_text",
+      "shell",
+      "shell_command",
+      "subprocess"
+    ],
+    "freeform_shell_approval_allowed": false,
+    "legacy_json_still_active": true,
+    "raw_command_text_allowed": false,
+    "required_decision_fields": [
+      "approval_id",
+      "decision",
+      "decided_by",
+      "decided_at",
+      "decision_receipt_id",
+      "approved_payload_hash"
+    ],
+    "required_receipt_fields": [
+      "receipt_id",
+      "approval_id",
+      "receipt_type",
+      "status",
+      "summary",
+      "created_at"
+    ],
+    "required_request_fields": [
+      "approval_id",
+      "action_type",
+      "actor",
+      "target",
+      "payload_hash",
+      "payload_schema_version",
+      "source_intent_ref",
+      "idempotency_key",
+      "requested_at",
+      "expires_at",
+      "ttl_seconds",
+      "authority_scope",
+      "risk_tier"
+    ]
+  },
+  "canonical_request_persisted": false,
+  "choice_pending_classification": "workflow_choice_substrate",
+  "choice_pending_is_guardian_approval_authority": false,
+  "dual_write_enabled": false,
+  "generated_at": "2026-05-16T21:06:15+00:00",
+  "legacy_surfaces_mapped": [
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_approval_brain",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_approval_decisions"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_approval_policy",
+      "target_tables": [
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_translate_legacy_request_to_operator_action",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_guardian_listener",
+      "target_tables": [
+        "guardian_hitl_approval_decisions",
+        "guardian_hitl_approval_receipts"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_notification_receipt_shadow",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_guardian_sender",
+      "target_tables": [
+        "guardian_hitl_approval_receipts"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_translate_legacy_request_to_operator_action",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_router_approval_reply",
+      "target_tables": [
+        "guardian_hitl_approval_decisions",
+        "guardian_hitl_approval_receipts"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_notification_receipt_shadow",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "chief_watcher_approval_replay",
+      "target_tables": [
+        "guardian_hitl_approval_receipts"
+      ]
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "approval_pending_json",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later_then_translate_legacy_request_to_operator_action",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "surface_id": "hitl_pending_store",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_approval_decisions"
+      ]
+    },
+    {
+      "adapter_strategy": "replace_backing_store_with_sqlite_contract_later",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "surface_id": "hitl_action_service",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_approval_decisions"
+      ]
+    },
+    {
+      "adapter_strategy": "freeze_until_replaced_then_notification_receipt_shadow",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "hitl_notification_service",
+      "target_tables": [
+        "guardian_hitl_approval_receipts"
+      ]
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "hitl_pending_state_json",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_sqlite_receipts",
+      "source_disposition": "keep_compatibility_shim",
+      "surface_id": "hitl_audit_jsonl",
+      "target_tables": [
+        "guardian_hitl_approval_receipts",
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "retire_after_equivalent_receipts_proven",
+      "source_disposition": "retire_after_migration",
+      "surface_id": "hitl_notifications_jsonl",
+      "target_tables": [
+        "guardian_hitl_approval_receipts",
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "retire_after_equivalent_proven",
+      "source_disposition": "retire_after_migration",
+      "surface_id": "hitl_pending_action_legacy",
+      "target_tables": [
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "retire_after_receipt_export_proven",
+      "source_disposition": "retire_after_migration",
+      "surface_id": "approval_log_md",
+      "target_tables": [
+        "guardian_hitl_approval_receipts",
+        "guardian_hitl_legacy_authority_refs"
+      ]
+    },
+    {
+      "adapter_strategy": "translate_legacy_request_to_operator_action_later",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "surface_id": "google_access_broker_approval_hook",
+      "target_tables": [
+        "guardian_hitl_approval_requests",
+        "guardian_hitl_approval_receipts"
+      ]
+    }
+  ],
+  "live_legacy_store_deleted": false,
+  "live_legacy_store_read": false,
+  "live_legacy_store_written": false,
+  "next_safe_move": "Review the shadow mapping, then plan a bounded dual-write compatibility spec without switching callers.",
+  "old_hitl_classification": "authority_conflict_reconcile_first",
+  "old_hitl_deleted": false,
+  "raw_command_or_shell_allowed": false,
+  "real_approval_request_created": false,
+  "repo_b_code_imported": false,
+  "repo_b_execution_allowed": false,
+  "required_before_dual_write": [
+    "operator review of shadow mapping",
+    "fixture coverage for Chief JSON, Cassandra HITL, Guardian transport, and Google broker mappings",
+    "proof that shadow records do not mutate live JSON stores",
+    "approval contract receipt fields proven without raw private/log content",
+    "separate decision on workflow-choice substrate if needed"
+  ],
+  "runtime_authority": false,
+  "runtime_authority_changed": false,
+  "schema_version": "guardian_hitl_shadow_adapter_v0",
+  "shadow_only": true,
+  "shadow_record_count": 16,
+  "shadow_records": [
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "approval_object_shape": "action text, approval id, requester, requested_at, status, decision, optional HMAC/context",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_approval_decisions"
+        ]
+      },
+      "current_role": "Active Tier 0/1/2 approval gate and blocking Guardian approval poll.",
+      "current_state_store": "/mnt/c/OpenClaw/logs/approval_pending.json plus vault Approval Log.md",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_approval_brain",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_approval_brain.py",
+      "source_surface": "Chief tiered approval gate",
+      "source_surface_id": "chief_approval_brain"
+    },
+    {
+      "adapter_strategy": "read_only_reference",
+      "approval_object_shape": "policy result, not approval record",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Classifies actions into approval tiers and hard Tier 2 rules.",
+      "current_state_store": "Code constants/rules, no approval state store",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "compatibility_reference_only",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_approval_policy",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_approval_policy.py",
+      "source_surface": "Chief approval policy classifier",
+      "source_surface_id": "chief_approval_policy"
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_translate_legacy_request_to_operator_action",
+      "approval_object_shape": "callback decision/id binding or signed HITL token",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_decisions",
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Telegram approval intake for button taps, typed codes, and HITL tokens.",
+      "current_state_store": "Delegates to approval_pending.json and HITL JSON state",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_guardian_listener",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_guardian_listener.py",
+      "source_surface": "Guardian approval listener",
+      "source_surface_id": "chief_guardian_listener"
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_notification_receipt_shadow",
+      "approval_object_shape": "Telegram message with optional inline keyboard",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Sends approval requests through Guardian bot, with fail-closed button behavior.",
+      "current_state_store": "No local state; external Telegram send transport",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "compatibility_reference_only",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_guardian_sender",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_guardian_sender.py",
+      "source_surface": "Guardian approval sender",
+      "source_surface_id": "chief_guardian_sender"
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_translate_legacy_request_to_operator_action",
+      "approval_object_shape": "approval code decision or signed HITL command token",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_decisions",
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Typed approval code fallback and HITL command routing.",
+      "current_state_store": "Delegates to approval_pending.json and HITL JSON state",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_router_approval_reply",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_router.py",
+      "source_surface": "Chief router approval reply path",
+      "source_surface_id": "chief_router_approval_reply"
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_notification_receipt_shadow",
+      "approval_object_shape": "existing pending approval id only; no decision object",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Re-sends a currently pending approval on bounded cooldown.",
+      "current_state_store": "approval_pending.json plus chief_watcher_state.json",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_chief_watcher_approval_replay",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "chief_watcher_brain.py",
+      "source_surface": "Chief watcher approval replay",
+      "source_surface_id": "chief_watcher_approval_replay"
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "approval_object_shape": "single pending approval dict with id/action/requester/status/decision/hash/context",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Active Chief/Guardian pending approval state.",
+      "current_state_store": "Windows-side JSON file",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_approval_pending_json",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "/mnt/c/OpenClaw/logs/approval_pending.json",
+      "source_surface": "Chief pending approval JSON state",
+      "source_surface_id": "approval_pending_json"
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later_then_translate_legacy_request_to_operator_action",
+      "approval_object_shape": "action_id, source_agent, action_type, payload, status, review metadata, TTL",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_approval_decisions"
+        ]
+      },
+      "current_role": "JSON-backed pending action store and transaction guard for Cassandra proposals.",
+      "current_state_store": "/mnt/c/OpenClaw/logs/hitl_pending_state.json and hitl_audit.jsonl",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_pending_store",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "source_file_path": "hitl_pending_store.py",
+      "source_surface": "Cassandra HITL pending store",
+      "source_surface_id": "hitl_pending_store"
+    },
+    {
+      "adapter_strategy": "replace_backing_store_with_sqlite_contract_later",
+      "approval_object_shape": "HITL action id, action type, payload, idempotency key, approved_by",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_approval_decisions"
+        ]
+      },
+      "current_role": "Validation/idempotency wrapper over HITL pending store.",
+      "current_state_store": "Delegates to hitl_pending_store.py JSON/JSONL",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_action_service",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "source_file_path": "hitl_action_service.py",
+      "source_surface": "HITL action service wrapper",
+      "source_surface_id": "hitl_action_service"
+    },
+    {
+      "adapter_strategy": "freeze_until_replaced_then_notification_receipt_shadow",
+      "approval_object_shape": "HMAC token bound to action_id, decision, and expiry",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Formats and sends HITL approval notifications and validates signed callbacks.",
+      "current_state_store": "hitl_pending_state.json, hitl_audit.jsonl, hitl_notifications.jsonl",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_notification_service",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "hitl_notification_service.py",
+      "source_surface": "HITL notification/token service",
+      "source_surface_id": "hitl_notification_service"
+    },
+    {
+      "adapter_strategy": "shadow_write_to_sqlite_later",
+      "approval_object_shape": "map of action_id to pending action record",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Current JSON store for HITL pending actions.",
+      "current_state_store": "Windows-side JSON file",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_pending_state_json",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "/mnt/c/OpenClaw/logs/hitl_pending_state.json",
+      "source_surface": "Cassandra HITL pending JSON state",
+      "source_surface_id": "hitl_pending_state_json"
+    },
+    {
+      "adapter_strategy": "read_only_reference_then_sqlite_receipts",
+      "approval_object_shape": "append-only transition event records",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts",
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "JSONL transition audit for HITL state changes.",
+      "current_state_store": "Windows-side JSONL file",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_audit_jsonl",
+      "source_disposition": "keep_compatibility_shim",
+      "source_file_path": "/mnt/c/OpenClaw/logs/hitl_audit.jsonl",
+      "source_surface": "HITL audit JSONL",
+      "source_surface_id": "hitl_audit_jsonl"
+    },
+    {
+      "adapter_strategy": "retire_after_equivalent_receipts_proven",
+      "approval_object_shape": "notification event records",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts",
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Notification send/callback audit path.",
+      "current_state_store": "Windows-side JSONL file",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_notifications_jsonl",
+      "source_disposition": "retire_after_migration",
+      "source_file_path": "/mnt/c/OpenClaw/logs/hitl_notifications.jsonl",
+      "source_surface": "HITL notification JSONL",
+      "source_surface_id": "hitl_notifications_jsonl"
+    },
+    {
+      "adapter_strategy": "retire_after_equivalent_proven",
+      "approval_object_shape": "older pending action list with status transitions",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Older parallel pending action queue.",
+      "current_state_store": "hitl_pending_actions.json and hitl_audit.jsonl",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_hitl_pending_action_legacy",
+      "source_disposition": "retire_after_migration",
+      "source_file_path": "hitl_pending_action.py; /mnt/c/OpenClaw/logs/hitl_pending_actions.json",
+      "source_surface": "Older HITL pending action store",
+      "source_surface_id": "hitl_pending_action_legacy"
+    },
+    {
+      "adapter_strategy": "retire_after_receipt_export_proven",
+      "approval_object_shape": "append-only-ish Markdown decision entry",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_receipts",
+          "guardian_hitl_legacy_authority_refs"
+        ]
+      },
+      "current_role": "Human-readable approval log sink for Chief approval decisions.",
+      "current_state_store": "Markdown in Obsidian vault path",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "compatibility_reference_only",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_approval_log_md",
+      "source_disposition": "retire_after_migration",
+      "source_file_path": "/mnt/c/OpenClawShared/openclaw-vault/System/Approval Log.md",
+      "source_surface": "Vault Approval Log Markdown",
+      "source_surface_id": "approval_log_md"
+    },
+    {
+      "adapter_strategy": "translate_legacy_request_to_operator_action_later",
+      "approval_object_shape": "action label/context approved through Chief gate",
+      "caller_switched": false,
+      "can_approve": false,
+      "can_execute": false,
+      "canonical_request_persisted": false,
+      "canonical_shape_status": "metadata_shape_only_not_persisted",
+      "canonical_target": {
+        "required_decision_fields": [
+          "approval_id",
+          "decision",
+          "decided_by",
+          "decided_at",
+          "decision_receipt_id",
+          "approved_payload_hash"
+        ],
+        "required_receipt_fields": [
+          "receipt_id",
+          "approval_id",
+          "receipt_type",
+          "status",
+          "summary",
+          "created_at"
+        ],
+        "required_request_fields": [
+          "approval_id",
+          "action_type",
+          "actor",
+          "target",
+          "payload_hash",
+          "payload_schema_version",
+          "source_intent_ref",
+          "idempotency_key",
+          "requested_at",
+          "expires_at",
+          "ttl_seconds",
+          "authority_scope",
+          "risk_tier"
+        ],
+        "state_store": "SQLite business_ops ledger",
+        "target_tables": [
+          "guardian_hitl_approval_requests",
+          "guardian_hitl_approval_receipts"
+        ]
+      },
+      "current_role": "Class B/C Google actions call chief_approval_brain.request_approval before external API action.",
+      "current_state_store": "Delegates to approval_pending.json plus broker audit JSONL",
+      "dual_write_enabled": false,
+      "live_legacy_store_deleted": false,
+      "live_legacy_store_read": false,
+      "live_legacy_store_written": false,
+      "old_hitl_classification": "authority_conflict_reconcile_first",
+      "old_hitl_deleted": false,
+      "raw_command_or_shell_allowed": false,
+      "raw_content_read": false,
+      "real_approval_request_created": false,
+      "repo_b_imported_or_executed": false,
+      "required_before_dual_write": [
+        "synthetic fixture coverage for this surface",
+        "no raw private/log content read",
+        "canonical request/decision/receipt fields proven from safe metadata",
+        "old JSON remains live decision source until switch-over lane"
+      ],
+      "runtime_authority": false,
+      "runtime_authority_changed": false,
+      "shadow_only": true,
+      "shadow_record_id": "shadow_google_access_broker_approval_hook",
+      "source_disposition": "replace_with_sqlite_operator_action",
+      "source_file_path": "google_access_broker.py",
+      "source_surface": "Google broker approval hook",
+      "source_surface_id": "google_access_broker_approval_hook"
+    }
+  ],
+  "unmapped_surfaces": [
+    {
+      "classification": "workflow_choice_substrate",
+      "disposition": "unknown_operator_decision",
+      "file_path": "chief_approval_bridge.py; /mnt/c/OpenClawShared/album/choice_pending.json",
+      "guardian_approval_authority": false,
+      "reason": "Workflow choice state is not Guardian approval authority and stays outside this adapter.",
+      "runtime_authority": false,
+      "shadow_only": true,
+      "surface": "Chief workflow choice bridge",
+      "surface_id": "choice_pending_json_bridge"
+    }
+  ]
+}
