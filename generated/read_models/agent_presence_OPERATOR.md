@@ -31,6 +31,12 @@ Recovery actions:
 - `niles` `niles_producer_script_start` kind=script_start safe_to_attempt=`false` classification=needs_operator_review
 - `report_bridge` `report_bridge_status_only` kind=status_only safe_to_attempt=`true` classification=safe_status_check
 
+Recovery clearances:
+- `cassandra` `cassandra_systemd_user_start` status=`used` used=1/1 expires=`2026-05-16T05:02:47+00:00`
+
+Recent recovery attempts:
+- `cassandra` action=cassandra_systemd_user_start attempted=`true` succeeded=`false` blocker=recovery command returned non-zero exit code
+
 Blockers:
 - `cassandra`: expected runtime evidence missing -> Inspect the documented service/process surface and choose a bounded recovery lane if needed.
 - `chief`: only some expected runtime surfaces show active evidence -> Inspect the documented service/process surface and choose a bounded recovery lane if needed.

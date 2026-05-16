@@ -6,12 +6,32 @@
       "agent_id": "cassandra",
       "autorecovery_allowed": false,
       "blocker": "expected runtime evidence missing",
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "online",
       "display_name": "Cassandra",
       "expected_online": true,
       "lane_id": "operator_comms",
-      "last_recovery_attempt": null,
+      "last_recovery_attempt": {
+        "agent_id": "cassandra",
+        "attempted": true,
+        "attempted_at": "2026-05-16T04:33:56+00:00",
+        "blocker": "recovery command returned non-zero exit code",
+        "command_argv": [
+          "systemctl",
+          "--user",
+          "start",
+          "cassandra-listener.service",
+          "cassandra-watcher.service",
+          "cassandra-briefing-scheduler.service"
+        ],
+        "dry_run": false,
+        "duration_ms": 4,
+        "exit_code": 1,
+        "receipt_id": "agentrecoveryreceipt_1dc7fde0bb94bcc023fc",
+        "recovery_action_id": "cassandra_systemd_user_start",
+        "recovery_attempt_id": "agentrecoveryattempt_f72e9973d7e6f730f9a1",
+        "succeeded": false
+      },
       "last_seen_at": null,
       "next_safe_move": "Inspect the documented service/process surface and choose a bounded recovery lane if needed.",
       "no_authority_flags": {
@@ -29,7 +49,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "runtime_surface",
       "reason": "Runtime surfaces exist, but no active local process/service evidence was found.",
-      "receipt_id": "agentpresencereceipt_8590febbe4fc2aa078b0",
+      "receipt_id": "agentpresencereceipt_e4e0430cb6cd506c9c41",
       "recovery_action_id": "cassandra_systemd_user_start",
       "recovery_actions": [
         {
@@ -67,7 +87,7 @@
         }
       ],
       "recovery_status": "blocked",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": true,
       "runtime_surface_kind": "local_service,telegram_bot",
       "telegram_ready_metadata": true
@@ -77,13 +97,13 @@
       "agent_id": "chief",
       "autorecovery_allowed": false,
       "blocker": "only some expected runtime surfaces show active evidence",
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "online",
       "display_name": "Chief",
       "expected_online": true,
       "lane_id": "system_orchestration",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-05-15T16:01:24+00:00",
+      "last_seen_at": "2026-05-16T04:33:57+00:00",
       "next_safe_move": "Inspect the documented service/process surface and choose a bounded recovery lane if needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -100,7 +120,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "process_check",
       "reason": "4 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_f39503ac542c5f77ab37",
+      "receipt_id": "agentpresencereceipt_bf91f4d9f09cfd2af9af",
       "recovery_action_id": "chief_systemd_user_start",
       "recovery_actions": [
         {
@@ -142,7 +162,7 @@
         }
       ],
       "recovery_status": "blocked",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": true,
       "runtime_surface_kind": "systemd_service",
       "telegram_ready_metadata": true
@@ -152,13 +172,13 @@
       "agent_id": "guardian",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "online",
       "display_name": "Guardian",
       "expected_online": true,
       "lane_id": "safety_security",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-05-15T16:01:24+00:00",
+      "last_seen_at": "2026-05-16T04:33:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -175,7 +195,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "process_check",
       "reason": "1 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_846ac292ac4708dec90a",
+      "receipt_id": "agentpresencereceipt_8aedb3a0f20822cf8b05",
       "recovery_action_id": "guardian_systemd_user_start",
       "recovery_actions": [
         {
@@ -209,7 +229,7 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": true,
       "runtime_surface_kind": "telegram_bot",
       "telegram_ready_metadata": true
@@ -219,13 +239,13 @@
       "agent_id": "hermes",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "online",
       "display_name": "Hermes",
       "expected_online": true,
       "lane_id": "advisory_synthesis",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-05-15T16:01:24+00:00",
+      "last_seen_at": "2026-05-16T04:33:57+00:00",
       "next_safe_move": "No recovery needed.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -242,7 +262,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "process_check",
       "reason": "1 runtime surface(s) show active process/service evidence.",
-      "receipt_id": "agentpresencereceipt_a4c7428ceb09408bff6e",
+      "receipt_id": "agentpresencereceipt_4c01b3a2b6fadb12de22",
       "recovery_action_id": "hermes_systemd_user_start",
       "recovery_actions": [
         {
@@ -276,7 +296,7 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": true,
       "runtime_surface_kind": "systemd_service",
       "telegram_ready_metadata": true
@@ -286,7 +306,7 @@
       "agent_id": "niles",
       "autorecovery_allowed": false,
       "blocker": "expected runtime evidence missing",
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "online",
       "display_name": "Niles",
       "expected_online": true,
@@ -309,7 +329,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "runtime_surface",
       "reason": "Runtime surfaces exist, but no active local process/service evidence was found.",
-      "receipt_id": "agentpresencereceipt_c967959b929095589137",
+      "receipt_id": "agentpresencereceipt_b5105de7cc19b581bbcc",
       "recovery_action_id": "niles_producer_script_start",
       "recovery_actions": [
         {
@@ -336,7 +356,7 @@
         }
       ],
       "recovery_status": "blocked",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": true,
       "runtime_surface_kind": "script",
       "telegram_ready_metadata": true
@@ -346,13 +366,13 @@
       "agent_id": "report_bridge",
       "autorecovery_allowed": false,
       "blocker": null,
-      "created_at": "2026-05-15T16:01:24+00:00",
+      "created_at": "2026-05-16T04:33:57+00:00",
       "desired_state": "unknown_review",
       "display_name": "Report Bridge",
       "expected_online": false,
       "lane_id": "node_report_intake",
       "last_recovery_attempt": null,
-      "last_seen_at": "2026-05-15T16:01:24+00:00",
+      "last_seen_at": "2026-05-16T04:33:57+00:00",
       "next_safe_move": "Use metadata/read-model posture; do not pretend a daemon is online.",
       "no_authority_flags": {
         "arbitrary_command_allowed": false,
@@ -369,7 +389,7 @@
       "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
       "presence_source": "read_model",
       "reason": "Metadata/read-model surface is available; no live runtime surface is configured.",
-      "receipt_id": "agentpresencereceipt_63b181e41cdf5d560a95",
+      "receipt_id": "agentpresencereceipt_3c1578051053d1eed50a",
       "recovery_action_id": "report_bridge_status_only",
       "recovery_actions": [
         {
@@ -393,7 +413,7 @@
         }
       ],
       "recovery_status": "not_needed",
-      "run_id": "agentpresence_1fada5b38f2b272af2db",
+      "run_id": "agentpresence_f0699d7f5cabde44ecbd",
       "runtime_surface_found": false,
       "runtime_surface_kind": "metadata_only",
       "telegram_ready_metadata": true
@@ -423,12 +443,32 @@
     "agent_id": "cassandra",
     "autorecovery_allowed": false,
     "blocker": "expected runtime evidence missing",
-    "created_at": "2026-05-15T16:01:24+00:00",
+    "created_at": "2026-05-16T04:33:57+00:00",
     "desired_state": "online",
     "display_name": "Cassandra",
     "expected_online": true,
     "lane_id": "operator_comms",
-    "last_recovery_attempt": null,
+    "last_recovery_attempt": {
+      "agent_id": "cassandra",
+      "attempted": true,
+      "attempted_at": "2026-05-16T04:33:56+00:00",
+      "blocker": "recovery command returned non-zero exit code",
+      "command_argv": [
+        "systemctl",
+        "--user",
+        "start",
+        "cassandra-listener.service",
+        "cassandra-watcher.service",
+        "cassandra-briefing-scheduler.service"
+      ],
+      "dry_run": false,
+      "duration_ms": 4,
+      "exit_code": 1,
+      "receipt_id": "agentrecoveryreceipt_1dc7fde0bb94bcc023fc",
+      "recovery_action_id": "cassandra_systemd_user_start",
+      "recovery_attempt_id": "agentrecoveryattempt_f72e9973d7e6f730f9a1",
+      "succeeded": false
+    },
     "last_seen_at": null,
     "next_safe_move": "Inspect the documented service/process surface and choose a bounded recovery lane if needed.",
     "no_authority_flags": {
@@ -446,7 +486,7 @@
     "no_authority_json": "{\n  \"arbitrary_command_allowed\": false,\n  \"broad_agent_activation_allowed\": false,\n  \"client_deployment_allowed\": false,\n  \"hard_kill_bypass_allowed\": false,\n  \"message_send_allowed\": false,\n  \"model_call_allowed\": false,\n  \"network_authority\": false,\n  \"recovery_without_policy_allowed\": false,\n  \"secret_access_allowed\": false,\n  \"telegram_api_allowed\": false\n}\n",
     "presence_source": "runtime_surface",
     "reason": "Runtime surfaces exist, but no active local process/service evidence was found.",
-    "receipt_id": "agentpresencereceipt_8590febbe4fc2aa078b0",
+    "receipt_id": "agentpresencereceipt_e4e0430cb6cd506c9c41",
     "recovery_action_id": "cassandra_systemd_user_start",
     "recovery_actions": [
       {
@@ -484,7 +524,7 @@
       }
     ],
     "recovery_status": "blocked",
-    "run_id": "agentpresence_1fada5b38f2b272af2db",
+    "run_id": "agentpresence_f0699d7f5cabde44ecbd",
     "runtime_surface_found": true,
     "runtime_surface_kind": "local_service,telegram_bot",
     "telegram_ready_metadata": true
@@ -492,7 +532,7 @@
   "client_deployment_allowed": false,
   "degraded_count": 1,
   "expected_online_count": 5,
-  "generated_at": "2026-05-15T16:01:29+00:00",
+  "generated_at": "2026-05-16T04:36:36+00:00",
   "hard_kill_bypass_allowed": false,
   "intentional_offline_count": 0,
   "maintenance_hard_kill_count": 0,
@@ -514,7 +554,29 @@
   },
   "offline_unexpected_count": 3,
   "online_count": 2,
-  "recent_recovery_attempts": [],
+  "recent_recovery_attempts": [
+    {
+      "agent_id": "cassandra",
+      "attempted": true,
+      "attempted_at": "2026-05-16T04:33:56+00:00",
+      "blocker": "recovery command returned non-zero exit code",
+      "command_argv": [
+        "systemctl",
+        "--user",
+        "start",
+        "cassandra-listener.service",
+        "cassandra-watcher.service",
+        "cassandra-briefing-scheduler.service"
+      ],
+      "dry_run": false,
+      "duration_ms": 4,
+      "exit_code": 1,
+      "receipt_id": "agentrecoveryreceipt_1dc7fde0bb94bcc023fc",
+      "recovery_action_id": "cassandra_systemd_user_start",
+      "recovery_attempt_id": "agentrecoveryattempt_f72e9973d7e6f730f9a1",
+      "succeeded": false
+    }
+  ],
   "recovery_actions": [
     {
       "action_kind": "systemd_user_start",
@@ -687,6 +749,44 @@
     }
   ],
   "recovery_available_count": 0,
+  "recovery_clearances": [
+    {
+      "agent_id": "cassandra",
+      "approved_at": "2026-05-16T04:32:47+00:00",
+      "approved_by": "guardian",
+      "clearance_id": "agentrecoveryclearance_8b691a0a614841399d1e",
+      "expires_at": "2026-05-16T05:02:47+00:00",
+      "max_attempts": 1,
+      "receipt_id": "agentrecoveryreceipt_1dc7fde0bb94bcc023fc",
+      "recovery_action_id": "cassandra_systemd_user_start",
+      "request_reason": "Cassandra expected online but offline; request one Guardian-approved fixed start attempt.",
+      "requested_at": "2026-05-16T04:32:28+00:00",
+      "requested_by": "chief",
+      "scope": {
+        "action_kind": "systemd_user_start",
+        "agent_id": "cassandra",
+        "approval_source": "local_cli_only",
+        "command_argv": [
+          "systemctl",
+          "--user",
+          "start",
+          "cassandra-listener.service",
+          "cassandra-watcher.service",
+          "cassandra-briefing-scheduler.service"
+        ],
+        "expires_at": "2026-05-16T05:02:47+00:00",
+        "max_attempts": 1,
+        "network_approval_allowed": false,
+        "raw_command_input_allowed": false,
+        "recovery_action_id": "cassandra_systemd_user_start",
+        "requires_operator_approval": true,
+        "scope": "single_agent_fixed_recovery_action"
+      },
+      "status": "used",
+      "used_at": "2026-05-16T04:33:56+00:00",
+      "used_attempts": 1
+    }
+  ],
   "recovery_without_policy_allowed": false,
   "runtime_surfaces": [
     {
@@ -708,6 +808,20 @@
       "classification": "current_active",
       "notes": "",
       "process_count": 0,
+      "process_name": "cassandra_listener.py",
+      "recovery_allowed": 0,
+      "safe_recovery_kind": "systemd_restart",
+      "service_name": "cassandra-listener.service",
+      "service_state": "Failed to connect to bus: No such file or directory",
+      "source_path": "systemd/user/cassandra-listener.service.in",
+      "surface_found": 1,
+      "surface_kind": "telegram_bot"
+    },
+    {
+      "agent_id": "cassandra",
+      "classification": "current_active",
+      "notes": "",
+      "process_count": 0,
       "process_name": "cassandra_watcher.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
@@ -718,18 +832,18 @@
       "surface_kind": "local_service"
     },
     {
-      "agent_id": "cassandra",
+      "agent_id": "chief",
       "classification": "current_active",
       "notes": "",
       "process_count": 0,
-      "process_name": "cassandra_listener.py",
+      "process_name": "chief_watcher_brain.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
-      "service_name": "cassandra-listener.service",
+      "service_name": "chief-watcher-brain.service",
       "service_state": "Failed to connect to bus: No such file or directory",
-      "source_path": "systemd/user/cassandra-listener.service.in",
+      "source_path": "systemd/user/chief-watcher-brain.service.in",
       "surface_found": 1,
-      "surface_kind": "telegram_bot"
+      "surface_kind": "systemd_service"
     },
     {
       "agent_id": "chief",
@@ -750,12 +864,12 @@
       "classification": "current_active",
       "notes": "",
       "process_count": 1,
-      "process_name": "chief_state_worker.py",
+      "process_name": "chief_listener.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-state-worker.service",
+      "service_name": "chief-listener.service",
       "service_state": "Failed to connect to bus: No such file or directory",
-      "source_path": "systemd/user/chief-state-worker.service.in",
+      "source_path": "systemd/user/chief-listener.service.in",
       "surface_found": 1,
       "surface_kind": "systemd_service"
     },
@@ -778,26 +892,12 @@
       "classification": "current_active",
       "notes": "",
       "process_count": 1,
-      "process_name": "chief_listener.py",
+      "process_name": "chief_state_worker.py",
       "recovery_allowed": 0,
       "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-listener.service",
+      "service_name": "chief-state-worker.service",
       "service_state": "Failed to connect to bus: No such file or directory",
-      "source_path": "systemd/user/chief-listener.service.in",
-      "surface_found": 1,
-      "surface_kind": "systemd_service"
-    },
-    {
-      "agent_id": "chief",
-      "classification": "current_active",
-      "notes": "",
-      "process_count": 0,
-      "process_name": "chief_watcher_brain.py",
-      "recovery_allowed": 0,
-      "safe_recovery_kind": "systemd_restart",
-      "service_name": "chief-watcher-brain.service",
-      "service_state": "Failed to connect to bus: No such file or directory",
-      "source_path": "systemd/user/chief-watcher-brain.service.in",
+      "source_path": "systemd/user/chief-state-worker.service.in",
       "surface_found": 1,
       "surface_kind": "systemd_service"
     },
@@ -831,20 +931,6 @@
     },
     {
       "agent_id": "niles",
-      "classification": "partial_overlap",
-      "notes": "Producer/Niles listener path exists, but secret-backed launcher is not safe for automatic recovery.",
-      "process_count": 0,
-      "process_name": "producer_listener.py",
-      "recovery_allowed": 0,
-      "safe_recovery_kind": "script_start",
-      "service_name": null,
-      "service_state": "not_applicable",
-      "source_path": "producer_listener.py",
-      "surface_found": 1,
-      "surface_kind": "script"
-    },
-    {
-      "agent_id": "niles",
       "classification": "candidate_to_extend",
       "notes": "Metadata/intake surface, not proof of online listener presence.",
       "process_count": 0,
@@ -854,6 +940,20 @@
       "service_name": null,
       "service_state": "not_applicable",
       "source_path": "scripts/producer_intake.py",
+      "surface_found": 1,
+      "surface_kind": "script"
+    },
+    {
+      "agent_id": "niles",
+      "classification": "partial_overlap",
+      "notes": "Producer/Niles listener path exists, but secret-backed launcher is not safe for automatic recovery.",
+      "process_count": 0,
+      "process_name": "producer_listener.py",
+      "recovery_allowed": 0,
+      "safe_recovery_kind": "script_start",
+      "service_name": null,
+      "service_state": "not_applicable",
+      "source_path": "producer_listener.py",
       "surface_found": 1,
       "surface_kind": "script"
     }
