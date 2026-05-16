@@ -31,7 +31,7 @@
     "approval_pending_json"
   ],
   "freeform_shell_approval_allowed": false,
-  "generated_at": "2026-05-16T22:38:06+00:00",
+  "generated_at": "2026-05-16T22:40:28+00:00",
   "legacy_authority_refs": [],
   "legacy_json_authoritative": true,
   "mismatch_count": 0,
