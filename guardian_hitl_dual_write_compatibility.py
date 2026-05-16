@@ -34,6 +34,12 @@ APPROVAL_PENDING_SOURCE_SURFACE = "approval_pending_json"
 LEGACY_APPROVAL_PENDING_REF = "/mnt/c/OpenClaw/logs/approval_pending.json"
 PAYLOAD_SCHEMA_VERSION = "legacy_chief_approval_request_observation_v0"
 CHIEF_TTL_SECONDS = 86400
+DECISION_LABELS = {
+    "YES": ("decision_shadow_observed", "approved_observed", "approved"),
+    "YES_FOR_ALL": ("decision_shadow_observed", "approved_observed", "approved_for_all"),
+    "NO": ("decision_shadow_rejected", "denied_observed", "denied"),
+    "TIMEOUT": ("decision_shadow_expired", "expired_observed", "expired"),
+}
 
 NO_AUTHORITY_FLAGS = {
     "runtime_authority_changed": False,
@@ -525,6 +531,275 @@ ON CONFLICT(receipt_id) DO UPDATE SET
     }
 
 
+def _decision_receipt_shape(decision: str) -> tuple[str, str, str]:
+    raw = str(decision or "").strip().upper()
+    if raw not in DECISION_LABELS:
+        raise ValueError("unsupported decision receipt label")
+    return DECISION_LABELS[raw]
+
+
+def build_chief_approval_decision_receipt(
+    pending: Mapping[str, Any],
+    decision: str,
+    *,
+    ttl_seconds: int = CHIEF_TTL_SECONDS,
+    source_ref: str = LEGACY_APPROVAL_PENDING_REF,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Build safe decision receipt metadata from an in-process Chief pending dict.
+
+    The pending action text and approval context are used only to recompute the
+    request payload hash. They are not returned or persisted.
+    """
+    mirror = build_chief_approval_request_mirror(
+        pending,
+        ttl_seconds=ttl_seconds,
+        source_ref=source_ref,
+        generated_at=generated_at,
+    )
+    receipt_type, status, decision_label = _decision_receipt_shape(decision)
+    canonical = mirror["canonical_payload"]
+    receipt_id = _row_id(
+        "ghitl_receipt",
+        canonical["idempotency_key"],
+        receipt_type,
+        decision_label,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at or utc_now(),
+        "approval_id": canonical["approval_id"],
+        "idempotency_key": canonical["idempotency_key"],
+        "payload_hash": canonical["payload_hash"],
+        "receipt_id": receipt_id,
+        "receipt_type": receipt_type,
+        "status": status,
+        "decision_label": decision_label,
+        "source_surface": CHIEF_SOURCE_SURFACE,
+        "runtime_authority_changed": False,
+        "runtime_authority": False,
+        "dual_write_enabled": True,
+        "caller_switched": False,
+        "old_hitl_deleted": False,
+        "legacy_json_authoritative": True,
+        "raw_content_stored": False,
+        "raw_action_text_stored": False,
+        "raw_command_text_stored": False,
+        "freeform_shell_approval_allowed": False,
+        "can_approve": False,
+        "can_execute": False,
+    }
+
+
+def _insert_decision_receipt(
+    conn: sqlite3.Connection,
+    *,
+    receipt_id: str,
+    approval_id: str,
+    idempotency_key: str,
+    receipt_type: str,
+    status: str,
+    summary: str,
+    created_at: str,
+    payload_hash: str,
+    source_surface: str,
+) -> None:
+    conn.execute(
+        """
+INSERT INTO guardian_hitl_approval_receipts (
+  receipt_id, approval_id, idempotency_key, receipt_type, status, summary,
+  created_at, payload_hash, source_surface, runtime_authority,
+  raw_content_stored, raw_action_text_stored, raw_command_text_stored,
+  caller_switched, old_hitl_deleted, legacy_json_authoritative
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 1)
+ON CONFLICT(receipt_id) DO UPDATE SET
+  status = excluded.status,
+  summary = excluded.summary,
+  runtime_authority = 0,
+  raw_content_stored = 0,
+  raw_action_text_stored = 0,
+  raw_command_text_stored = 0,
+  caller_switched = 0,
+  old_hitl_deleted = 0,
+  legacy_json_authoritative = 1
+""".strip(),
+        (
+            receipt_id,
+            approval_id,
+            idempotency_key,
+            receipt_type,
+            status,
+            summary,
+            created_at,
+            payload_hash,
+            source_surface,
+        ),
+    )
+
+
+def record_chief_approval_decision_receipt(
+    pending: Mapping[str, Any],
+    decision: str,
+    *,
+    ttl_seconds: int = CHIEF_TTL_SECONDS,
+    db_path: str | Path | None = None,
+    source_ref: str = LEGACY_APPROVAL_PENDING_REF,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    receipt = build_chief_approval_decision_receipt(
+        pending,
+        decision,
+        ttl_seconds=ttl_seconds,
+        source_ref=source_ref,
+        generated_at=generated_at,
+    )
+    path = init_guardian_hitl_dual_write_schema(db_path)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        exact_request = conn.execute(
+            """
+SELECT approval_id, idempotency_key, payload_hash
+FROM guardian_hitl_approval_requests
+WHERE approval_id = ? AND idempotency_key = ? AND payload_hash = ?
+""".strip(),
+            (
+                receipt["approval_id"],
+                receipt["idempotency_key"],
+                receipt["payload_hash"],
+            ),
+        ).fetchone()
+        now = receipt["generated_at"]
+        if exact_request:
+            stored_receipt_id = receipt["receipt_id"]
+            stored_receipt_type = receipt["receipt_type"]
+            _insert_decision_receipt(
+                conn,
+                receipt_id=stored_receipt_id,
+                approval_id=receipt["approval_id"],
+                idempotency_key=receipt["idempotency_key"],
+                receipt_type=stored_receipt_type,
+                status=receipt["status"],
+                summary=(
+                    "Observed Chief approval decision receipt. "
+                    "Legacy JSON remains authoritative."
+                ),
+                created_at=now,
+                payload_hash=receipt["payload_hash"],
+                source_surface=CHIEF_SOURCE_SURFACE,
+            )
+            status = "mirrored"
+        else:
+            existing_by_id = conn.execute(
+                """
+SELECT approval_id, idempotency_key, payload_hash
+FROM guardian_hitl_approval_requests
+WHERE approval_id = ?
+""".strip(),
+                (receipt["approval_id"],),
+            ).fetchone()
+            if not existing_by_id:
+                return {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "missing_request_mirror",
+                    "approval_id": receipt["approval_id"],
+                    "runtime_authority_changed": False,
+                    "runtime_authority": False,
+                    "dual_write_enabled": True,
+                    "caller_switched": False,
+                    "old_hitl_deleted": False,
+                    "legacy_json_authoritative": True,
+                    "raw_content_stored": False,
+                    "raw_action_text_stored": False,
+                    "raw_command_text_stored": False,
+                    "adapter_health": "needs_request_mirror",
+                    "db_path": path,
+                }
+
+            mismatch_receipt_id = _row_id(
+                "ghitl_receipt",
+                existing_by_id["idempotency_key"],
+                "legacy_sqlite_mismatch",
+                receipt["payload_hash"],
+            )
+            stored_receipt_id = mismatch_receipt_id
+            stored_receipt_type = "legacy_sqlite_mismatch"
+            _insert_decision_receipt(
+                conn,
+                receipt_id=mismatch_receipt_id,
+                approval_id=existing_by_id["approval_id"],
+                idempotency_key=existing_by_id["idempotency_key"],
+                receipt_type="legacy_sqlite_mismatch",
+                status="mismatch_observed",
+                summary=(
+                    "Observed Chief decision context did not match the existing "
+                    "SQLite request mirror. Legacy JSON remains authoritative."
+                ),
+                created_at=now,
+                payload_hash=existing_by_id["payload_hash"],
+                source_surface=CHIEF_SOURCE_SURFACE,
+            )
+            status = "mismatch_observed"
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "approval_id": receipt["approval_id"],
+        "receipt_id": stored_receipt_id,
+        "receipt_type": stored_receipt_type,
+        "runtime_authority_changed": False,
+        "runtime_authority": False,
+        "dual_write_enabled": True,
+        "caller_switched": False,
+        "old_hitl_deleted": False,
+        "legacy_json_authoritative": True,
+        "raw_content_stored": False,
+        "raw_action_text_stored": False,
+        "raw_command_text_stored": False,
+        "adapter_health": "healthy" if status == "mirrored" else "needs_review",
+        "db_path": path,
+    }
+
+
+def mirror_chief_approval_decision_fail_open(
+    pending: Mapping[str, Any],
+    decision: str,
+    *,
+    ttl_seconds: int = CHIEF_TTL_SECONDS,
+    db_path: str | Path | None = None,
+    source_ref: str = LEGACY_APPROVAL_PENDING_REF,
+) -> dict[str, Any]:
+    """Attempt a Chief decision receipt mirror without affecting legacy flow."""
+    try:
+        return record_chief_approval_decision_receipt(
+            pending,
+            decision,
+            ttl_seconds=ttl_seconds,
+            db_path=db_path,
+            source_ref=source_ref,
+        )
+    except Exception as exc:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "failed_open",
+            "adapter_health": "failed",
+            "error_type": exc.__class__.__name__,
+            "runtime_authority_changed": False,
+            "runtime_authority": False,
+            "dual_write_enabled": False,
+            "caller_switched": False,
+            "old_hitl_deleted": False,
+            "legacy_json_authoritative": True,
+            "raw_content_stored": False,
+            "raw_action_text_stored": False,
+            "raw_command_text_stored": False,
+        }
+
+
 def mirror_chief_approval_request_fail_open(
     pending: Mapping[str, Any],
     *,
@@ -656,7 +931,7 @@ WHERE receipt_type = 'legacy_sqlite_mismatch'
         "legacy_authority_refs": legacy_refs,
         "recent_receipts": receipts[:20],
         "boundaries": dict(NO_AUTHORITY_FLAGS),
-        "next_safe_move": "Prove Chief request mirrors under live-safe synthetic tests, then plan decision/notification receipts without switching callers.",
+        "next_safe_move": "Prove Chief request and decision receipt parity, then plan Cassandra HITL proposal shadow without switching callers.",
     }
 
 
@@ -666,7 +941,7 @@ def format_guardian_hitl_dual_write_read_model(payload: dict[str, Any]) -> str:
         "",
         "## Bottom Line",
         "",
-        "Chief approval requests can now be mirrored into SQLite as observational records. Old `approval_pending.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw action or command text is stored.",
+        "Chief approval requests and decisions can now be mirrored into SQLite as observational records. Old `approval_pending.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw action or command text is stored.",
         "",
         "## Status",
         "",
@@ -755,11 +1030,14 @@ __all__ = [
     "OPERATOR_EXPORT_NAME",
     "SCHEMA_VERSION",
     "build_chief_approval_request_mirror",
+    "build_chief_approval_decision_receipt",
     "build_guardian_hitl_dual_write_read_model",
     "export_guardian_hitl_dual_write_read_model",
     "format_guardian_hitl_dual_write_read_model",
     "init_guardian_hitl_dual_write_schema",
+    "mirror_chief_approval_decision_fail_open",
     "mirror_chief_approval_request_fail_open",
+    "record_chief_approval_decision_receipt",
     "record_chief_approval_request_mirror",
     "stable_json",
 ]

@@ -134,6 +134,150 @@ def test_idempotency_key_is_stable_and_duplicate_records_are_not_recreated(tmp_p
     assert len(_read_rows(db_path, "guardian_hitl_approval_receipts")) == 1
 
 
+def test_approve_and_deny_create_observational_decision_receipts(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    pending = _pending()
+    dual_write.record_chief_approval_request_mirror(
+        pending,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    approved = dual_write.record_chief_approval_decision_receipt(
+        pending,
+        "YES",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    denied_pending = _pending()
+    denied_pending["id"] = "WXYZ9876"
+    denied_pending["hash"] = "HASH9876"
+    dual_write.record_chief_approval_request_mirror(
+        denied_pending,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    denied = dual_write.record_chief_approval_decision_receipt(
+        denied_pending,
+        "NO",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert approved["status"] == "mirrored"
+    assert approved["receipt_type"] == "decision_shadow_observed"
+    assert denied["status"] == "mirrored"
+    assert denied["receipt_type"] == "decision_shadow_rejected"
+    assert approved["runtime_authority_changed"] is False
+    assert approved["caller_switched"] is False
+    assert approved["old_hitl_deleted"] is False
+    assert approved["legacy_json_authoritative"] is True
+
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    receipt_types = {row["receipt_type"] for row in receipts}
+    assert "decision_shadow_observed" in receipt_types
+    assert "decision_shadow_rejected" in receipt_types
+
+    rendered_rows = dual_write.stable_json({"receipts": receipts})
+    assert "Google broker: cassandra" not in rendered_rows
+    assert "synthetic subject" not in rendered_rows
+    assert "send email" not in rendered_rows
+    assert "rm -rf" not in rendered_rows
+    assert ".chief.env" not in rendered_rows
+
+
+def test_missing_request_mirror_cannot_create_approval_authority(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    result = dual_write.record_chief_approval_decision_receipt(
+        _pending(),
+        "YES",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "missing_request_mirror"
+    assert result["runtime_authority_changed"] is False
+    assert result["runtime_authority"] is False
+    assert result["caller_switched"] is False
+    assert result["old_hitl_deleted"] is False
+    assert result["legacy_json_authoritative"] is True
+    assert result["adapter_health"] == "needs_request_mirror"
+    assert _read_rows(db_path, "guardian_hitl_approval_requests") == []
+    assert _read_rows(db_path, "guardian_hitl_approval_receipts") == []
+
+
+def test_payload_mismatch_records_mismatch_without_trusting_sqlite(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    pending = _pending()
+    dual_write.record_chief_approval_request_mirror(
+        pending,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    changed_pending = _pending(action="changed action text that must not persist")
+
+    result = dual_write.record_chief_approval_decision_receipt(
+        changed_pending,
+        "YES",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "mismatch_observed"
+    assert result["receipt_type"] == "legacy_sqlite_mismatch"
+    assert result["adapter_health"] == "needs_review"
+    assert result["runtime_authority_changed"] is False
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    assert {row["receipt_type"] for row in receipts} == {
+        "request_shadow_created",
+        "legacy_sqlite_mismatch",
+    }
+    rendered_rows = dual_write.stable_json({"receipts": receipts})
+    assert "changed action text" not in rendered_rows
+    assert "Google broker: cassandra" not in rendered_rows
+
+
+def test_timeout_creates_expired_observational_receipt_when_bound(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    pending = _pending()
+    dual_write.record_chief_approval_request_mirror(
+        pending,
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    result = dual_write.record_chief_approval_decision_receipt(
+        pending,
+        "TIMEOUT",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "mirrored"
+    assert result["receipt_type"] == "decision_shadow_expired"
+    assert result["runtime_authority_changed"] is False
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    assert "decision_shadow_expired" in {row["receipt_type"] for row in receipts}
+
+
+def test_decision_receipt_fail_open_helper_returns_failure_metadata(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("synthetic decision mirror failure")
+
+    monkeypatch.setattr(dual_write, "record_chief_approval_decision_receipt", boom)
+
+    result = dual_write.mirror_chief_approval_decision_fail_open(_pending(), "YES")
+
+    assert result["status"] == "failed_open"
+    assert result["adapter_health"] == "failed"
+    assert result["runtime_authority_changed"] is False
+    assert result["caller_switched"] is False
+    assert result["old_hitl_deleted"] is False
+    assert result["legacy_json_authoritative"] is True
+    assert result["raw_command_text_stored"] is False
+
+
 def test_fail_open_helper_returns_failure_metadata_without_raising(monkeypatch):
     def boom(*args, **kwargs):
         raise RuntimeError("synthetic sqlite failure")
@@ -159,6 +303,12 @@ def test_read_model_and_operator_export_shape(tmp_path):
         db_path=db_path,
         generated_at=FIXED_NOW,
     )
+    dual_write.record_chief_approval_decision_receipt(
+        _pending(),
+        "YES",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
 
     summary = dual_write.export_guardian_hitl_dual_write_read_model(
         export_root=export_root,
@@ -171,13 +321,15 @@ def test_read_model_and_operator_export_shape(tmp_path):
     assert json_path.is_file()
     assert operator_path.is_file()
     assert summary["request_mirror_count"] == 1
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert payload["decision_receipt_count"] == 1
+    assert payload["mismatch_count"] == 0
     assert summary["runtime_authority_changed"] is False
     assert summary["callers_switched"] is False
     assert summary["old_hitl_deleted"] is False
     assert summary["raw_action_text_stored"] is False
     assert summary["raw_command_text_stored"] is False
 
-    payload = json.loads(json_path.read_text(encoding="utf-8"))
     rendered = operator_path.read_text(encoding="utf-8")
     assert payload["schema_version"] == "guardian_hitl_dual_write_compatibility_v0"
     assert payload["legacy_json_authoritative"] is True

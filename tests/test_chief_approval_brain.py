@@ -26,6 +26,30 @@ def _write_pending(path, *, status="pending", requested_at=None, approval_id="AB
     )
 
 
+def _write_full_pending(path, *, approval_id="ABCD1234", options=2):
+    requested_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    path.write_text(
+        json.dumps(
+            {
+                "id": approval_id,
+                "action": "Synthetic approval action that must stay out of SQLite rows",
+                "requester": "unit_test",
+                "requested_at": requested_at,
+                "status": "pending",
+                "decision": None,
+                "options": options,
+                "tier": 2,
+                "hash": "HASH1234",
+                "approval_context": {
+                    "raw_command_text": "rm -rf /",
+                    "action_label": "synthetic label",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 class TestPendingApprovalState:
     def test_non_pending_reports_no_active_approval(self, monkeypatch, tmp_path):
         import chief_approval_brain as approval_brain
@@ -328,4 +352,93 @@ class TestChiefApprovalDualWrite:
         )
 
         assert ok is True
+        assert json.loads(pending_path.read_text(encoding="utf-8")) == {}
+
+    def test_record_decision_writes_observational_decision_after_legacy_save(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+
+        pending_path = tmp_path / "approval_pending.json"
+        _write_full_pending(pending_path, approval_id="LIVE1234")
+        calls = []
+        monkeypatch.setattr(approval_brain, "PENDING_FILE", pending_path, raising=False)
+        monkeypatch.setattr(
+            approval_brain,
+            "_dual_write_chief_approval_decision",
+            lambda pending, decision: calls.append((dict(pending), decision)),
+        )
+
+        reply = approval_brain.record_decision("1", expected_id="LIVE1234")
+
+        assert reply == "Approved."
+        saved = json.loads(pending_path.read_text(encoding="utf-8"))
+        assert saved["status"] == "decided"
+        assert saved["decision"] == "YES"
+        assert calls == [(saved, "YES")]
+
+    def test_record_decision_id_mismatch_does_not_mirror_or_approve(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+
+        pending_path = tmp_path / "approval_pending.json"
+        _write_full_pending(pending_path, approval_id="LIVE1234")
+        calls = []
+        monkeypatch.setattr(approval_brain, "PENDING_FILE", pending_path, raising=False)
+        monkeypatch.setattr(
+            approval_brain,
+            "_dual_write_chief_approval_decision",
+            lambda pending, decision: calls.append((dict(pending), decision)),
+        )
+
+        reply = approval_brain.record_decision("1", expected_id="STALE999")
+
+        assert reply == "Approval ID mismatch — reply not applied."
+        saved = json.loads(pending_path.read_text(encoding="utf-8"))
+        assert saved["status"] == "pending"
+        assert saved["decision"] is None
+        assert calls == []
+
+    def test_decision_adapter_failure_does_not_block_record_decision(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+        import guardian_hitl_dual_write_compatibility as dual_write
+
+        pending_path = tmp_path / "approval_pending.json"
+        _write_full_pending(pending_path, approval_id="LIVE1234")
+        monkeypatch.setattr(approval_brain, "PENDING_FILE", pending_path, raising=False)
+
+        def fail_mirror(*args, **kwargs):
+            raise RuntimeError("synthetic decision mirror failure")
+
+        monkeypatch.setattr(dual_write, "mirror_chief_approval_decision_fail_open", fail_mirror)
+
+        reply = approval_brain.record_decision("2", expected_id="LIVE1234")
+
+        assert reply == "Denied."
+        saved = json.loads(pending_path.read_text(encoding="utf-8"))
+        assert saved["status"] == "decided"
+        assert saved["decision"] == "NO"
+
+    def test_timeout_path_attempts_observational_expiry_receipt_only(self, monkeypatch, tmp_path):
+        import chief_approval_brain as approval_brain
+
+        pending_path = tmp_path / "approval_pending.json"
+        calls = []
+        self._patch_tier2_runtime(approval_brain, monkeypatch, pending_path)
+        monkeypatch.setattr(approval_brain, "TIMEOUT", 0)
+        monkeypatch.setattr(approval_brain, "_send_via_guardian", lambda *args, **kwargs: True)
+        monkeypatch.setattr(approval_brain, "_dual_write_chief_approval_request", lambda pending: None)
+        monkeypatch.setattr(approval_brain, "send_no_pending_confirmation", lambda: None)
+        monkeypatch.setattr(
+            approval_brain,
+            "_dual_write_chief_approval_decision",
+            lambda pending, decision: calls.append((dict(pending), decision)),
+        )
+
+        ok = approval_brain.request_approval(
+            "Synthetic timeout approval request",
+            explicit_tier=2,
+        )
+
+        assert ok is False
+        assert len(calls) == 1
+        assert calls[0][1] == "TIMEOUT"
+        assert calls[0][0]["status"] == "pending"
         assert json.loads(pending_path.read_text(encoding="utf-8")) == {}

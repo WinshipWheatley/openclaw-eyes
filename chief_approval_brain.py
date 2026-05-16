@@ -239,6 +239,19 @@ def _dual_write_chief_approval_request(pending: dict) -> None:
         pass
 
 
+def _dual_write_chief_approval_decision(pending: dict, decision: str) -> None:
+    """Best-effort observational decision receipt; legacy JSON remains authority."""
+    try:
+        from guardian_hitl_dual_write_compatibility import (
+            mirror_chief_approval_decision_fail_open,
+        )
+
+        mirror_chief_approval_decision_fail_open(pending, decision, ttl_seconds=TIMEOUT)
+    except Exception:
+        # This adapter must never affect the active Chief approval path.
+        pass
+
+
 def _load_active_pending() -> dict:
     """
     Return the active pending approval record, or {} if there is no active
@@ -619,12 +632,14 @@ def request_approval(
             if stored_hash and not _verify_hash(action, approval_id, requested_at, stored_hash):
                 print(f"[approval] DENIED: hash mismatch on approval {approval_id}. "
                       "Pending file may have been tampered with.", flush=True)
+                _dual_write_chief_approval_decision(data, "NO")
                 _append_log(action, requester, "DENIED - HASH MISMATCH",
                             requested_at, elapsed, tier=tier)
                 _clear_pending()
                 send_no_pending_confirmation()
                 return False
 
+            _dual_write_chief_approval_decision(data, decision)
             _append_log(action, requester, "APPROVED" if approved else "DENIED",
                         requested_at, elapsed, tier=tier)
             _clear_pending()
@@ -650,6 +665,7 @@ def request_approval(
 
     # Timeout
     elapsed = time.time() - start
+    _dual_write_chief_approval_decision(pending, "TIMEOUT")
     _clear_pending()
     _append_log(action, requester, "TIMED OUT", requested_at, elapsed, tier=tier)
     _send_via_guardian("Approval timed out — denied by default.")
@@ -716,6 +732,7 @@ def record_decision(decision: str, expected_id: str = "") -> str:
     data["status"]   = "decided"
     data["decision"] = d
     _save_pending(data)
+    _dual_write_chief_approval_decision(data, d)
 
     if d == "YES":
         return "Approved."

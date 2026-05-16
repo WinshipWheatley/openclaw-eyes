@@ -2,7 +2,7 @@
 
 ## Bottom Line
 
-Chief approval requests can now be mirrored into SQLite as observational records. Old `approval_pending.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw action or command text is stored.
+Chief approval requests and decisions can now be mirrored into SQLite as observational records. Old `approval_pending.json` remains runtime-authoritative. No caller switched, no old HITL file was deleted, and no raw action or command text is stored.
 
 ## Status
 
@@ -34,4 +34,4 @@ Chief approval requests can now be mirrored into SQLite as observational records
 
 ## Next Safe Move
 
-Prove Chief request mirrors under live-safe synthetic tests, then plan decision/notification receipts without switching callers.
+Prove Chief request and decision receipt parity, then plan Cassandra HITL proposal shadow without switching callers.

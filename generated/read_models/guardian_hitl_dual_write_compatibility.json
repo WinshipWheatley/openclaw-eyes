@@ -31,11 +31,11 @@
     "approval_pending_json"
   ],
   "freeform_shell_approval_allowed": false,
-  "generated_at": "2026-05-16T21:31:40+00:00",
+  "generated_at": "2026-05-16T22:38:06+00:00",
   "legacy_authority_refs": [],
   "legacy_json_authoritative": true,
   "mismatch_count": 0,
-  "next_safe_move": "Prove Chief request mirrors under live-safe synthetic tests, then plan decision/notification receipts without switching callers.",
+  "next_safe_move": "Prove Chief request and decision receipt parity, then plan Cassandra HITL proposal shadow without switching callers.",
   "notification_receipt_count": 0,
   "old_hitl_classification": "authority_conflict_reconcile_first",
   "old_hitl_deleted": false,
