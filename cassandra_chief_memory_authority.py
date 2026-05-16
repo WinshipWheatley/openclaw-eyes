@@ -30,6 +30,9 @@ AUTHORITY_OPERATOR_EXPORT_NAME = "cassandra_chief_memory_authority_OPERATOR.md"
 DRY_RUN_JSON_EXPORT_NAME = "cassandra_chief_memory_dry_run.json"
 DRY_RUN_OPERATOR_EXPORT_NAME = "cassandra_chief_memory_dry_run_OPERATOR.md"
 OPERATOR_REVIEW_EXPORT_NAME = "cassandra_chief_memory_operator_review.md"
+STRUCTURED_IMPORT_PLAN_VERSION = "cassandra_chief_structured_import_plan_v0"
+STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME = "cassandra_chief_structured_import_plan.json"
+STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME = "cassandra_chief_structured_import_plan_OPERATOR.md"
 
 ALLOWED_FATES = {
     "import_structured_facts_to_sqlite",
@@ -1208,6 +1211,209 @@ def format_cassandra_chief_memory_operator_review(read_model: dict[str, Any]) ->
     return "\n".join(lines) + "\n"
 
 
+def _plan_bucket_for_fate(recommended_fate: str) -> str:
+    if recommended_fate == "import_structured_facts_to_sqlite":
+        return "safe_to_import_structured_facts_later"
+    if recommended_fate == "register_as_evidence_source_only":
+        return "register_as_evidence_source_only"
+    if recommended_fate == "summarize_or_extract_only":
+        return "summarize_extract_only"
+    if recommended_fate == "block_no_go":
+        return "block_do_not_trust"
+    if recommended_fate == "delete_local_residue":
+        return "delete_local_residue_candidate"
+    return "needs_operator_decision"
+
+
+def _later_import_text(source: dict[str, Any]) -> str:
+    fate = source["recommended_fate"]
+    target = source["canonical_authority_target"]
+    if fate == "import_structured_facts_to_sqlite":
+        return f"Reviewed structured metadata/facts only, into {target}."
+    if fate == "register_as_evidence_source_only":
+        return f"Metadata-only source registration and posture only, linked to {target}."
+    if fate == "summarize_or_extract_only":
+        return f"Approved redacted summaries or metadata only, linked to {target}."
+    if fate == "block_no_go":
+        return "Nothing as authority. At most a blocked historical reference after a separate approval lane."
+    if fate == "delete_local_residue":
+        return "Nothing. A future cleanup lane may record a deletion receipt if the operator approves."
+    return f"Nothing in Cassandra/Chief yet. Route to {target} only after operator review."
+
+
+def _not_imported_text(source: dict[str, Any]) -> str:
+    fate = source["recommended_fate"]
+    if fate == "block_no_go":
+        return "No active approvals, execution payloads, sends, command strings, or old HITL authority."
+    if fate == "delete_local_residue":
+        return "No file body and no automatic deletion."
+    return source["raw_content_policy"]
+
+
+def _blind_import_risk(source: dict[str, Any]) -> str:
+    fate = source["recommended_fate"]
+    if fate == "import_structured_facts_to_sqlite":
+        return "Unverified legacy claims could become apparent truth or expose private identifiers."
+    if fate == "register_as_evidence_source_only":
+        return "Noisy runtime state could look canonical and mislead future routing."
+    if fate == "summarize_or_extract_only":
+        return "Private bodies or unsupported summaries could leak into Core."
+    if fate == "block_no_go":
+        return "Old approval state could bypass Guardian, approve actions, execute, or send."
+    if fate == "delete_local_residue":
+        return "Diagnostic evidence could be lost without a cleanup receipt."
+    return "Ownership could drift into the wrong module or agent lane."
+
+
+def _next_safe_move(source: dict[str, Any]) -> str:
+    fate = source["recommended_fate"]
+    if fate == "import_structured_facts_to_sqlite":
+        return "Operator approves or rejects this category for a later bounded structured import lane."
+    if fate == "register_as_evidence_source_only":
+        return "Keep as metadata-only evidence source unless the operator asks for a narrower extraction."
+    if fate == "summarize_or_extract_only":
+        return "Approve only a later redacted-summary extraction, not raw-content ingest."
+    if fate == "block_no_go":
+        return "Keep blocked; use Operator Action / Guardian for any real approval path."
+    if fate == "delete_local_residue":
+        return "Delete only in an explicit cleanup lane with operator approval; do not commit."
+    return "Operator chooses the owning future module or leaves it deferred."
+
+
+def _structured_plan_category(source: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "category_id": source["source_id"],
+        "display_name": source["category"],
+        "source_name": source["source_name"],
+        "bucket": _plan_bucket_for_fate(source["recommended_fate"]),
+        "recommended_fate": source["recommended_fate"],
+        "operator_decision_required": True,
+        "proposed_target_table_or_surface": source["canonical_authority_target"],
+        "import_allowed_now": False,
+        "raw_content_allowed": False,
+        "approval_required_before_import": True,
+        "active_approval_authority": False,
+        "auto_delete_allowed": False,
+        "old_files_are_truth": False,
+        "reason": source["reason"],
+        "risk": _blind_import_risk(source),
+        "risk_level": source["risk_level"],
+        "what_it_is": source["source_name"],
+        "what_would_be_imported_later_if_approved": _later_import_text(source),
+        "what_would_not_be_imported": _not_imported_text(source),
+        "next_safe_move": _next_safe_move(source),
+    }
+
+
+def build_cassandra_chief_structured_import_plan(
+    *,
+    db_path: str | Path | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    dry_run = build_cassandra_chief_memory_dry_run(
+        db_path=db_path,
+        generated_at=generated_at,
+    )
+    categories = [_structured_plan_category(source) for source in dry_run["sources"]]
+    return {
+        "schema_version": STRUCTURED_IMPORT_PLAN_VERSION,
+        "read_model_version": STRUCTURED_IMPORT_PLAN_VERSION,
+        "generated_at": dry_run["generated_at"],
+        "source_basis": "cassandra_chief_memory_dry_run_v0 plus classification_tagging_pattern_v0",
+        "data_imported": False,
+        "raw_content_read": False,
+        "old_files_are_truth": False,
+        "operator_approval_required_before_import": True,
+        "repo_b_execution_allowed": False,
+        "send_allowed": False,
+        "runtime_authority": False,
+        "category_count": len(categories),
+        "categories": categories,
+        "counts_by_bucket": dict(sorted(Counter(item["bucket"] for item in categories).items())),
+        "counts_by_fate": dry_run["counts_by_fate"],
+        "recommended_next_lane": "Operator-approved Cassandra/Chief structured import lane",
+        "blocked_actions": [
+            "real data import",
+            "raw content reading",
+            "raw Telegram log reading",
+            "bank or spreadsheet cell reading",
+            "Repo B execution",
+            "Telegram/Gmail/email send",
+            "runtime activation",
+            "old HITL JSON as active approval authority",
+            "automatic deletion of local residue",
+            "committing dirty agent_presence generated snapshots as truth",
+        ],
+        "boundaries": [
+            "This is an operator decision plan only.",
+            "Every category has import_allowed_now=false.",
+            "Every category has raw_content_allowed=false.",
+            "Old files are not truth.",
+            "Cassandra/Chief cannot use these sources as authority yet.",
+        ],
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+        **NO_AUTHORITY_FLAGS,
+    }
+
+
+def format_cassandra_chief_structured_import_plan(plan: dict[str, Any]) -> str:
+    bucket_titles = (
+        ("safe_to_import_structured_facts_later", "1. Safe to import structured facts later"),
+        ("register_as_evidence_source_only", "2. Register as evidence source only"),
+        ("summarize_extract_only", "3. Summarize/extract only"),
+        ("block_do_not_trust", "4. Block / do not trust"),
+        ("delete_local_residue_candidate", "5. Delete local residue candidate"),
+        ("needs_operator_decision", "6. Needs operator decision"),
+    )
+    by_bucket: dict[str, list[dict[str, Any]]] = {key: [] for key, _ in bucket_titles}
+    for category in plan["categories"]:
+        by_bucket.setdefault(category["bucket"], []).append(category)
+
+    lines = [
+        "# Cassandra/Chief Structured Import Plan v0",
+        "",
+        "Plain-English status:",
+        "- This is a decision packet, not an import.",
+        "- No raw data was read or imported.",
+        "- Old files are not truth.",
+        "- Cassandra/Chief cannot use these sources as authority yet.",
+        "- Approve categories only if you want a later bounded import/extraction lane.",
+        "",
+    ]
+    for bucket_key, title in bucket_titles:
+        lines.append(f"## {title}")
+        items = by_bucket.get(bucket_key, [])
+        if not items:
+            lines.append("- None.")
+            lines.append("")
+            continue
+        for item in items:
+            lines.extend(
+                [
+                    f"### {item['display_name']}",
+                    f"- What it is: {item['what_it_is']}.",
+                    f"- Why it matters: {item['reason']}",
+                    f"- Recommended fate: `{item['recommended_fate']}`.",
+                    f"- Import later, if approved: {item['what_would_be_imported_later_if_approved']}",
+                    f"- Do not import: {item['what_would_not_be_imported']}",
+                    f"- Risk if imported blindly: {item['risk']}",
+                    "- Operator decision needed: yes.",
+                    f"- Next safe move: {item['next_safe_move']}",
+                    "",
+                ]
+            )
+    lines.extend(
+        [
+            "## Global boundaries",
+            "- `data_imported=false`; `raw_content_read=false`; `old_files_are_truth=false`.",
+            "- `import_allowed_now=false` for every category.",
+            "- Old HITL state is not active approval authority.",
+            "- Delete-local-residue candidates are not auto-deleted.",
+        ]
+    )
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def export_cassandra_chief_memory_authority_read_model(
     *,
     db_path: str | Path | None = None,
@@ -1220,12 +1426,18 @@ def export_cassandra_chief_memory_authority_read_model(
         db_path=db_path,
         generated_at=authority["generated_at"],
     )
+    import_plan = build_cassandra_chief_structured_import_plan(
+        db_path=db_path,
+        generated_at=authority["generated_at"],
+    )
 
     authority_json_path = out_root / AUTHORITY_JSON_EXPORT_NAME
     authority_operator_path = out_root / AUTHORITY_OPERATOR_EXPORT_NAME
     dry_run_json_path = out_root / DRY_RUN_JSON_EXPORT_NAME
     dry_run_operator_path = out_root / DRY_RUN_OPERATOR_EXPORT_NAME
     review_path = out_root / OPERATOR_REVIEW_EXPORT_NAME
+    import_plan_json_path = out_root / STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME
+    import_plan_operator_path = out_root / STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME
 
     authority_json_path.write_text(stable_json(authority), encoding="utf-8")
     authority_operator_path.write_text(
@@ -1241,6 +1453,11 @@ def export_cassandra_chief_memory_authority_read_model(
         format_cassandra_chief_memory_operator_review(dry_run),
         encoding="utf-8",
     )
+    import_plan_json_path.write_text(stable_json(import_plan), encoding="utf-8")
+    import_plan_operator_path.write_text(
+        format_cassandra_chief_structured_import_plan(import_plan),
+        encoding="utf-8",
+    )
     return {
         "export_version": READ_MODEL_VERSION,
         "authority_json_path": _display_path(authority_json_path),
@@ -1248,7 +1465,10 @@ def export_cassandra_chief_memory_authority_read_model(
         "dry_run_json_path": _display_path(dry_run_json_path),
         "dry_run_operator_path": _display_path(dry_run_operator_path),
         "operator_review_path": _display_path(review_path),
+        "structured_import_plan_json_path": _display_path(import_plan_json_path),
+        "structured_import_plan_operator_path": _display_path(import_plan_operator_path),
         "source_count": authority["source_count"],
+        "structured_import_plan_category_count": import_plan["category_count"],
         "import_candidate_count": authority["import_candidate_count"],
         "blocked_source_count": authority["blocked_source_count"],
         **NO_AUTHORITY_FLAGS,
@@ -1269,14 +1489,19 @@ __all__ = [
     "READ_MODEL_VERSION",
     "REQUIRED_AUTHORITY_COLUMNS",
     "SOURCE_CANDIDATES",
+    "STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME",
+    "STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME",
+    "STRUCTURED_IMPORT_PLAN_VERSION",
     "TABLE_NAMES",
     "build_cassandra_chief_memory_authority_read_model",
     "build_cassandra_chief_memory_dry_run",
+    "build_cassandra_chief_structured_import_plan",
     "cassandra_chief_memory_table_names",
     "export_cassandra_chief_memory_authority_read_model",
     "format_cassandra_chief_memory_authority_read_model",
     "format_cassandra_chief_memory_dry_run",
     "format_cassandra_chief_memory_operator_review",
+    "format_cassandra_chief_structured_import_plan",
     "init_cassandra_chief_memory_authority_schema",
     "seed_cassandra_chief_memory_dry_run_catalog",
     "stable_json",

@@ -37,7 +37,7 @@
   "data_import_allowed": false,
   "email_send_allowed": false,
   "external_api_allowed": false,
-  "generated_at": "2026-05-16T17:42:55+00:00",
+  "generated_at": "2026-05-16T17:58:19+00:00",
   "gmail_send_allowed": false,
   "network_authority": false,
   "no_authority_flags": {

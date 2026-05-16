@@ -9,12 +9,16 @@ from cassandra_chief_memory_authority import (
     NO_AUTHORITY_FLAGS,
     OPERATOR_REVIEW_EXPORT_NAME,
     REQUIRED_AUTHORITY_COLUMNS,
+    STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME,
+    STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME,
     TABLE_NAMES,
     build_cassandra_chief_memory_authority_read_model,
     build_cassandra_chief_memory_dry_run,
+    build_cassandra_chief_structured_import_plan,
     cassandra_chief_memory_table_names,
     export_cassandra_chief_memory_authority_read_model,
     format_cassandra_chief_memory_operator_review,
+    format_cassandra_chief_structured_import_plan,
     init_cassandra_chief_memory_authority_schema,
 )
 from scripts.export_cassandra_chief_memory_authority_read_model import main as export_main
@@ -187,6 +191,8 @@ def test_export_and_query_scripts_write_expected_generated_outputs(tmp_path, cap
     assert dry_run_payload["source_count"] == 15
     assert (export_root / DRY_RUN_OPERATOR_EXPORT_NAME).is_file()
     assert (export_root / OPERATOR_REVIEW_EXPORT_NAME).is_file()
+    assert (export_root / STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME).is_file()
+    assert (export_root / STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME).is_file()
 
     assert export_main(
         [
@@ -204,6 +210,58 @@ def test_export_and_query_scripts_write_expected_generated_outputs(tmp_path, cap
     assert "Cassandra/Chief Memory Operator Review Packet v0" in capsys.readouterr().out
 
 
+def test_structured_import_plan_is_review_only_and_has_six_buckets(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+
+    plan = build_cassandra_chief_structured_import_plan(
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    rendered = format_cassandra_chief_structured_import_plan(plan)
+
+    assert plan["schema_version"] == "cassandra_chief_structured_import_plan_v0"
+    assert plan["data_imported"] is False
+    assert plan["raw_content_read"] is False
+    assert plan["old_files_are_truth"] is False
+    assert plan["operator_approval_required_before_import"] is True
+    assert plan["repo_b_execution_allowed"] is False
+    assert plan["category_count"] == 15
+    assert all(item["import_allowed_now"] is False for item in plan["categories"])
+    assert all(item["raw_content_allowed"] is False for item in plan["categories"])
+    assert all(item["approval_required_before_import"] is True for item in plan["categories"])
+
+    assert "1. Safe to import structured facts later" in rendered
+    assert "2. Register as evidence source only" in rendered
+    assert "3. Summarize/extract only" in rendered
+    assert "4. Block / do not trust" in rendered
+    assert "5. Delete local residue candidate" in rendered
+    assert "6. Needs operator decision" in rendered
+
+
+def test_structured_import_plan_blocks_old_hitl_delete_and_agent_presence_truth(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    plan = build_cassandra_chief_structured_import_plan(
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    by_name = {item["display_name"]: item for item in plan["categories"]}
+
+    old_hitl = by_name["old HITL JSON/JSONL state"]
+    assert old_hitl["recommended_fate"] == "block_no_go"
+    assert old_hitl["active_approval_authority"] is False
+    assert "old HITL authority" in old_hitl["what_would_not_be_imported"]
+
+    polish_tasks = by_name["untracked polish_loop Cassandra failure tasks"]
+    assert polish_tasks["recommended_fate"] == "delete_local_residue"
+    assert polish_tasks["auto_delete_allowed"] is False
+    assert "No file body and no automatic deletion." == polish_tasks["what_would_not_be_imported"]
+
+    agent_presence = by_name["dirty generated agent_presence snapshots"]
+    assert agent_presence["recommended_fate"] == "defer_operator_review"
+    assert agent_presence["old_files_are_truth"] is False
+    assert "canonical" not in agent_presence["next_safe_move"].lower()
+
+
 def test_generated_outputs_do_not_expose_no_go_roots_or_raw_private_content(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     export_root = tmp_path / "read_models"
@@ -215,6 +273,8 @@ def test_generated_outputs_do_not_expose_no_go_roots_or_raw_private_content(tmp_
             export_root / DRY_RUN_JSON_EXPORT_NAME,
             export_root / DRY_RUN_OPERATOR_EXPORT_NAME,
             export_root / OPERATOR_REVIEW_EXPORT_NAME,
+            export_root / STRUCTURED_IMPORT_PLAN_JSON_EXPORT_NAME,
+            export_root / STRUCTURED_IMPORT_PLAN_OPERATOR_EXPORT_NAME,
         )
     )
 

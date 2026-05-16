@@ -57,7 +57,7 @@
   "dry_run_schema_version": "cassandra_chief_memory_dry_run_v0",
   "email_send_allowed": false,
   "external_api_allowed": false,
-  "generated_at": "2026-05-16T17:42:55+00:00",
+  "generated_at": "2026-05-16T17:58:19+00:00",
   "gmail_send_allowed": false,
   "import_candidate_count": 5,
   "network_authority": false,
