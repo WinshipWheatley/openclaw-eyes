@@ -4,12 +4,15 @@ from pathlib import Path
 
 from module_registry import (
     DEFAULT_MODULE_SEEDS,
+    build_approved_module_registry_read_model,
     build_module_registry_report,
+    export_approved_module_registry_read_model,
     module_registry_table_names,
     seed_module_registry,
 )
 from project_capsule import DEMO_PROJECT_ID, create_demo_project_capsule, get_project_capsule
 from scripts.build_module_registry import main as build_main
+from scripts.export_approved_module_registry_read_model import main as export_approved_main
 from scripts.query_module_registry import main as query_main
 from scripts.update_project_capsule_modules import main as update_modules_main
 
@@ -93,6 +96,89 @@ def test_reports_and_dependencies_work(tmp_path, capsys):
     assert category_exit == 0
     assert "project_capsule" in capsys.readouterr().out
 
+    approved_exit = query_main(
+        [
+            "--db",
+            str(db_path),
+            "--run-id",
+            "module_fixture",
+            "--report",
+            "approved",
+            "--format",
+            "operator",
+        ]
+    )
+    assert approved_exit == 0
+    assert "cassandra_clara_fact_intake" in capsys.readouterr().out
+
+
+def test_approved_module_records_expose_stage_2_contract_fields(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    seed_module_registry(db_path=db_path, run_id="module_fixture")
+
+    read_model = build_approved_module_registry_read_model(db_path=db_path)
+    by_id = {item["module_id"]: item for item in read_model["modules"]}
+
+    assert {
+        "chief_intent_routing",
+        "cassandra_clara_fact_intake",
+        "guardian_hitl_gate",
+        "niles_album_matrix",
+        "hermes_next_lane_advisory",
+        "planner_runner_registry",
+        "report_bridge_sanitized_summary",
+        "project_capsule_bundle_blueprint",
+    } <= set(by_id)
+    for item in by_id.values():
+        assert item["version"]
+        assert item["display_name"]
+        assert item["world"]
+        assert isinstance(item["capabilities"], list)
+        assert isinstance(item["required_inputs"], list)
+        assert isinstance(item["optional_inputs"], list)
+        assert item["sensitive_input_policy"]
+        assert isinstance(item["no_go_data_classes"], list)
+        assert item["allowed_authority_level"] in {"read_only", "metadata_only", "planning_only", "future_gated"}
+        assert isinstance(item["dependencies"], list)
+        assert isinstance(item["tests_required"], list)
+        assert isinstance(item["client_safe"], bool)
+        assert isinstance(item["core_only"], bool)
+        assert isinstance(item["report_bridge_summary_allowed"], bool)
+        assert item["status"] in {"approved", "draft", "blocked", "deprecated"}
+        assert item["runtime_authority"] is False
+
+    assert by_id["planner_runner_registry"]["status"] == "blocked"
+    assert by_id["planner_runner_registry"]["client_safe"] is False
+    assert by_id["report_bridge_sanitized_summary"]["status"] == "approved"
+    assert read_model["runtime_authority"] is False
+    assert read_model["no_authority_flags"]["send_allowed"] is False
+
+
+def test_approved_module_registry_export_writes_read_model(tmp_path, capsys):
+    db_path = tmp_path / "ledger.sqlite"
+    export_root = tmp_path / "read_models"
+
+    summary = export_approved_module_registry_read_model(db_path=db_path, export_root=export_root)
+    payload = json.loads((export_root / "approved_module_registry.json").read_text(encoding="utf-8"))
+
+    assert summary["module_count"] >= 8
+    assert payload["schema_version"] == "approved_module_registry_read_model_v0"
+    assert payload["runtime_authority"] is False
+    assert (export_root / "approved_module_registry_OPERATOR.md").is_file()
+
+    exit_code = export_approved_main(
+        [
+            "--db",
+            str(db_path),
+            "--export-root",
+            str(export_root),
+            "--format",
+            "operator",
+        ]
+    )
+    assert exit_code == 0
+    assert "Approved Module Registry Read-Model v0" in capsys.readouterr().out
+
 
 def test_demo_capsule_module_selection_does_not_activate_modules(tmp_path, capsys):
     db_path = tmp_path / "ledger.sqlite"
@@ -125,6 +211,7 @@ def test_module_registry_sources_have_no_external_or_activation_behavior():
         Path("module_registry.py"),
         Path("scripts/build_module_registry.py"),
         Path("scripts/query_module_registry.py"),
+        Path("scripts/export_approved_module_registry_read_model.py"),
         Path("scripts/update_project_capsule_modules.py"),
     ]
     forbidden = [

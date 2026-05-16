@@ -57,6 +57,8 @@
 !project_capsule.py
 !legacy_repo_intake.py
 !module_registry.py
+!bundle_blueprint_planner.py
+!governed_intake_spine.py
 !tool_inventory.py
 !tool_intake.py
 !local_automation_registry.py
@@ -272,6 +274,8 @@
 !inbox_parser.py
 !tests/
 !tests/test_agent_capability_migration_map.py
+!tests/test_bundle_blueprint_planner.py
+!tests/test_governed_intake_spine.py
 !tests/test_inbox_parser.py
 !tests/test_backend_storage_intelligence.py
 !chief_musiclaw_brain.py
@@ -658,6 +662,11 @@
 !scripts/query_legacy_repo_intake.py
 !scripts/build_module_registry.py
 !scripts/query_module_registry.py
+!scripts/export_approved_module_registry_read_model.py
+!scripts/plan_bundle_blueprint.py
+!scripts/export_bundle_blueprint_planner_read_model.py
+!scripts/query_governed_intake_spine.py
+!scripts/export_governed_intake_spine_read_model.py
 !scripts/update_project_capsule_modules.py
 !scripts/build_context_packet.py
 !scripts/query_context_selection.py

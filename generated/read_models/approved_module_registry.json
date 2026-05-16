@@ -1,0 +1,371 @@
+{
+  "activation_allowed": false,
+  "client_deployment_allowed": false,
+  "counts": {
+    "authority_level": {
+      "future_gated": 1,
+      "metadata_only": 7,
+      "planning_only": 6,
+      "read_only": 3
+    },
+    "category": {
+      "advisory_synthesis": 1,
+      "approval_safety": 1,
+      "build_planning": 1,
+      "client_project_planning": 2,
+      "context_packet": 1,
+      "evidence_substrate": 1,
+      "intake_spine": 1,
+      "metadata_substrate": 1,
+      "mirror_mapping": 1,
+      "music_art": 1,
+      "operator_comms": 1,
+      "operator_ui": 1,
+      "report_bridge": 1,
+      "sync_planning": 1,
+      "tool_policy": 1,
+      "tool_posture": 1
+    },
+    "client_capsule_suitability": {
+      "high": 12,
+      "medium": 5
+    },
+    "client_safe": {
+      "false": 1,
+      "true": 16
+    },
+    "core_only": {
+      "false": 15,
+      "true": 2
+    },
+    "status": {
+      "approved": 2,
+      "available_planning": 8,
+      "blocked": 1,
+      "draft": 5,
+      "future_gated": 1
+    }
+  },
+  "external_api_allowed": false,
+  "generated_at": "2026-05-16T15:42:47+00:00",
+  "model_call_allowed": false,
+  "module_count": 8,
+  "modules": [
+    {
+      "allowed_authority_level": "read_only",
+      "capabilities": [
+        "readiness_metrics",
+        "next_lane_sorting"
+      ],
+      "category": "advisory_synthesis",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [
+        "work_board"
+      ],
+      "display_name": "Hermes Next Lane Advisory",
+      "evidence_basis": "Repo B reflection concepts are useful only as non-authorizing advisory logic.",
+      "module_id": "hermes_next_lane_advisory",
+      "no_go_data_classes": [
+        "raw_private_data",
+        "raw_client_data",
+        "credentials",
+        "tokens"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "Work Board metadata",
+        "sanitized read-model summaries"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "read-model summaries only; no private raw content",
+      "status": "draft",
+      "tests_required": [
+        "future tests/test_hermes_next_lane_advisory.py"
+      ],
+      "version": "0.1.0",
+      "world": "operations"
+    },
+    {
+      "allowed_authority_level": "planning_only",
+      "capabilities": [
+        "approval_gate",
+        "second_factor_policy_candidate"
+      ],
+      "category": "approval_safety",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [],
+      "display_name": "Guardian HITL Gate",
+      "evidence_basis": "Repo A has operator action and HITL primitives; consolidation remains future work.",
+      "module_id": "guardian_hitl_gate",
+      "no_go_data_classes": [
+        "raw_shell",
+        "credentials",
+        "tokens",
+        "raw_private_data",
+        "raw_client_data"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "immutable action metadata",
+        "operator approval decision"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "approval payloads must be sanitized immutable metadata; no raw shell strings",
+      "status": "draft",
+      "tests_required": [
+        "tests/test_operator_action_inbox.py",
+        "tests/test_operator_action.py"
+      ],
+      "version": "0.1.0",
+      "world": "security"
+    },
+    {
+      "allowed_authority_level": "future_gated",
+      "capabilities": [
+        "task_tiering",
+        "proof_requirement_catalog"
+      ],
+      "category": "build_planning",
+      "client_safe": false,
+      "core_only": true,
+      "dependencies": [
+        "agent_work_packet",
+        "work_board"
+      ],
+      "display_name": "Planner Runner Registry",
+      "evidence_basis": "Repo B watcher/loop concepts are blocked until a future explicit lane.",
+      "module_id": "planner_runner_registry",
+      "no_go_data_classes": [
+        "raw_shell",
+        "arbitrary_commands",
+        "credentials",
+        "tokens",
+        "raw_private_data"
+      ],
+      "operator_review_required": true,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": false,
+      "required_inputs": [
+        "Work Board metadata"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "metadata-only; never includes command execution or runner launch payloads",
+      "status": "blocked",
+      "tests_required": [
+        "future tests/test_planner_runner_registry.py"
+      ],
+      "version": "0.1.0",
+      "world": "build"
+    },
+    {
+      "allowed_authority_level": "planning_only",
+      "capabilities": [
+        "bundle_manifest_planning",
+        "module_selection"
+      ],
+      "category": "client_project_planning",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [
+        "project_capsule",
+        "report_bridge_sanitized_summary"
+      ],
+      "display_name": "Project Capsule Bundle Blueprint",
+      "evidence_basis": "Stage 2 implements deterministic local planner; no GitHub packaging or deployment authority.",
+      "module_id": "project_capsule_bundle_blueprint",
+      "no_go_data_classes": [
+        "raw_client_data",
+        "credentials",
+        "tokens",
+        "bank_data",
+        "private_legal_tax_finance"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "approved module registry",
+        "structured pain point metadata"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "pain points are reduced to hashes/categories; private details stay local",
+      "status": "draft",
+      "tests_required": [
+        "tests/test_bundle_blueprint_planner.py"
+      ],
+      "version": "0.1.0",
+      "world": "business_development"
+    },
+    {
+      "allowed_authority_level": "planning_only",
+      "capabilities": [
+        "deterministic_intent_routing",
+        "work_board_projection_candidate"
+      ],
+      "category": "intake_spine",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [
+        "context_selection"
+      ],
+      "display_name": "Chief Intent Routing",
+      "evidence_basis": "Repo A intent_router.py is implemented and non-executing.",
+      "module_id": "chief_intent_routing",
+      "no_go_data_classes": [
+        "credentials",
+        "tokens",
+        "raw_private_data",
+        "raw_client_data",
+        "raw_logs"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "operator text metadata",
+        "source metadata"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "stores bounded preview and hash only; no raw private body authority",
+      "status": "approved",
+      "tests_required": [
+        "tests/test_intent_router.py",
+        "tests/test_governed_intake_spine.py"
+      ],
+      "version": "0.1.0",
+      "world": "operations"
+    },
+    {
+      "allowed_authority_level": "planning_only",
+      "capabilities": [
+        "album_progress_tracking",
+        "production_readiness_drafts"
+      ],
+      "category": "music_art",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [],
+      "display_name": "Niles Album Matrix",
+      "evidence_basis": "Repo B album matrix concepts are useful but CSV/write behavior is blocked.",
+      "module_id": "niles_album_matrix",
+      "no_go_data_classes": [
+        "raw_daw_sessions",
+        "unreleased_private_audio",
+        "contracts",
+        "credentials"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "album/project metadata"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "metadata-only until music/session private-content boundaries are approved",
+      "status": "draft",
+      "tests_required": [
+        "future tests/test_niles_album_matrix.py"
+      ],
+      "version": "0.1.0",
+      "world": "music_art"
+    },
+    {
+      "allowed_authority_level": "metadata_only",
+      "capabilities": [
+        "receive_only_fact_intake",
+        "finance_fact_route_candidate"
+      ],
+      "category": "operator_comms",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [
+        "chief_intent_routing"
+      ],
+      "display_name": "Cassandra / Clara Fact Intake",
+      "evidence_basis": "Repo A Cassandra intake is governed; live reply/send remains blocked.",
+      "module_id": "cassandra_clara_fact_intake",
+      "no_go_data_classes": [
+        "telegram_tokens",
+        "chat_ids",
+        "raw_client_data",
+        "bank_data",
+        "spreadsheet_cells"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "operator-authored fact text metadata",
+        "source metadata"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "hash and bounded excerpt only; raw Telegram payload and client private data are blocked",
+      "status": "draft",
+      "tests_required": [
+        "tests/test_telegram_agent_intake.py",
+        "tests/test_governed_intake_spine.py"
+      ],
+      "version": "0.1.0",
+      "world": "communications"
+    },
+    {
+      "allowed_authority_level": "metadata_only",
+      "capabilities": [
+        "sanitized_status_import",
+        "client_safe_summary_visibility"
+      ],
+      "category": "report_bridge",
+      "client_safe": true,
+      "core_only": false,
+      "dependencies": [],
+      "display_name": "Report Bridge Sanitized Summary",
+      "evidence_basis": "Repo A report_bridge.py is implemented and rejects raw bodies/client data by default.",
+      "module_id": "report_bridge_sanitized_summary",
+      "no_go_data_classes": [
+        "raw_client_data",
+        "raw_private_bodies",
+        "credentials",
+        "tokens",
+        "bank_data"
+      ],
+      "operator_review_required": false,
+      "optional_inputs": [],
+      "report_bridge_summary_allowed": true,
+      "required_inputs": [
+        "safe read-model/report files",
+        "sanitized report bridge manifest"
+      ],
+      "runtime_authority": false,
+      "sensitive_input_policy": "reject raw bodies and client data by default",
+      "status": "approved",
+      "tests_required": [
+        "tests/test_report_bridge.py"
+      ],
+      "version": "0.1.0",
+      "world": "operations"
+    }
+  ],
+  "network_authority": false,
+  "no_authority_flags": {
+    "activation_allowed": false,
+    "client_deployment_allowed": false,
+    "external_api_allowed": false,
+    "model_call_allowed": false,
+    "network_authority": false,
+    "runtime_authority": false,
+    "send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "read_model_version": "approved_module_registry_read_model_v0",
+  "runtime_authority": false,
+  "schema_version": "approved_module_registry_read_model_v0",
+  "send_allowed": false,
+  "source_ledger_namespace": "module_registry_*",
+  "tool_execution_allowed": false
+}

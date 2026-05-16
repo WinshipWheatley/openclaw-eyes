@@ -21,8 +21,13 @@ from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 
 
 MODULE_REGISTRY_VERSION = "module_registry_v0"
+APPROVED_MODULE_READ_MODEL_VERSION = "approved_module_registry_read_model_v0"
+DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+APPROVED_JSON_EXPORT_NAME = "approved_module_registry.json"
+APPROVED_OPERATOR_EXPORT_NAME = "approved_module_registry_OPERATOR.md"
 
-MODULE_STATUSES = {"available_planning", "experimental", "future_gated", "deprecated"}
+APPROVED_MODULE_STATUSES = {"approved", "draft", "blocked", "deprecated"}
+MODULE_STATUSES = {"available_planning", "experimental", "future_gated", "deprecated"} | APPROVED_MODULE_STATUSES
 AUTHORITY_LEVELS = {"read_only", "metadata_only", "planning_only", "future_gated"}
 RISK_LEVELS = {"low", "medium", "high"}
 CLIENT_SUITABILITY = {"high", "medium", "low", "unknown"}
@@ -43,6 +48,25 @@ class ModuleSeed:
     dependencies: tuple[str, ...] = ()
     runtime_authority_required: bool = False
     operator_review_required: bool = False
+    version: str = "0.1.0"
+    display_name: str | None = None
+    world: str | None = None
+    capabilities: tuple[str, ...] = ()
+    optional_inputs: tuple[str, ...] = ()
+    sensitive_input_policy: str = "metadata_only_no_private_raw_input"
+    no_go_data_classes: tuple[str, ...] = (
+        "credentials",
+        "tokens",
+        "raw_private_data",
+        "raw_client_data",
+    )
+    allowed_authority_level: str | None = None
+    tests_required: tuple[str, ...] = ()
+    client_safe: bool | None = None
+    core_only: bool = False
+    report_bridge_summary_allowed: bool = True
+    evidence_basis: str = "seeded_from_repo_a_stage_2_migration_spec"
+    runtime_authority: bool = False
 
 
 @dataclass(frozen=True)
@@ -184,6 +208,199 @@ DEFAULT_MODULE_SEEDS: tuple[ModuleSeed, ...] = (
         ("read-only helm overview",),
         ("read_model_shuttle", "context_selection", "tool_inventory", "tool_intake", "project_capsule"),
         operator_review_required=True,
+        core_only=True,
+        report_bridge_summary_allowed=True,
+    ),
+    ModuleSeed(
+        "chief_intent_routing",
+        "Chief Intent Routing",
+        "intake_spine",
+        "approved",
+        "planning_only",
+        "low",
+        "high",
+        "Deterministic operator intent capture and route projection into governed records.",
+        ("operator text metadata", "source metadata"),
+        ("intent_records", "intent_router read-model rows"),
+        ("context_selection",),
+        version="0.1.0",
+        display_name="Chief Intent Routing",
+        world="operations",
+        capabilities=("deterministic_intent_routing", "work_board_projection_candidate"),
+        sensitive_input_policy="stores bounded preview and hash only; no raw private body authority",
+        no_go_data_classes=("credentials", "tokens", "raw_private_data", "raw_client_data", "raw_logs"),
+        allowed_authority_level="planning_only",
+        tests_required=("tests/test_intent_router.py", "tests/test_governed_intake_spine.py"),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo A intent_router.py is implemented and non-executing.",
+    ),
+    ModuleSeed(
+        "cassandra_clara_fact_intake",
+        "Cassandra / Clara Fact Intake",
+        "operator_comms",
+        "draft",
+        "metadata_only",
+        "medium",
+        "high",
+        "Receive-only fact intake for Cassandra/Clara into governed storage and work packets.",
+        ("operator-authored fact text metadata", "source metadata"),
+        ("telegram_agent_update_records", "intent_records"),
+        ("chief_intent_routing",),
+        version="0.1.0",
+        display_name="Cassandra / Clara Fact Intake",
+        world="communications",
+        capabilities=("receive_only_fact_intake", "finance_fact_route_candidate"),
+        sensitive_input_policy="hash and bounded excerpt only; raw Telegram payload and client private data are blocked",
+        no_go_data_classes=("telegram_tokens", "chat_ids", "raw_client_data", "bank_data", "spreadsheet_cells"),
+        allowed_authority_level="metadata_only",
+        tests_required=("tests/test_telegram_agent_intake.py", "tests/test_governed_intake_spine.py"),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo A Cassandra intake is governed; live reply/send remains blocked.",
+    ),
+    ModuleSeed(
+        "guardian_hitl_gate",
+        "Guardian HITL Gate",
+        "approval_safety",
+        "draft",
+        "planning_only",
+        "medium",
+        "high",
+        "Receipt-backed human-in-the-loop approval posture for future action payloads.",
+        ("immutable action metadata", "operator approval decision"),
+        ("operator_action_* rows", "HITL pending records"),
+        version="0.1.0",
+        display_name="Guardian HITL Gate",
+        world="security",
+        capabilities=("approval_gate", "second_factor_policy_candidate"),
+        sensitive_input_policy="approval payloads must be sanitized immutable metadata; no raw shell strings",
+        no_go_data_classes=("raw_shell", "credentials", "tokens", "raw_private_data", "raw_client_data"),
+        allowed_authority_level="planning_only",
+        tests_required=("tests/test_operator_action_inbox.py", "tests/test_operator_action.py"),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo A has operator action and HITL primitives; consolidation remains future work.",
+    ),
+    ModuleSeed(
+        "niles_album_matrix",
+        "Niles Album Matrix",
+        "music_art",
+        "draft",
+        "planning_only",
+        "medium",
+        "high",
+        "Governed music-art production matrix and readiness packet concept.",
+        ("album/project metadata",),
+        ("future niles_album_matrix rows",),
+        version="0.1.0",
+        display_name="Niles Album Matrix",
+        world="music_art",
+        capabilities=("album_progress_tracking", "production_readiness_drafts"),
+        sensitive_input_policy="metadata-only until music/session private-content boundaries are approved",
+        no_go_data_classes=("raw_daw_sessions", "unreleased_private_audio", "contracts", "credentials"),
+        allowed_authority_level="planning_only",
+        tests_required=("future tests/test_niles_album_matrix.py",),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo B album matrix concepts are useful but CSV/write behavior is blocked.",
+    ),
+    ModuleSeed(
+        "hermes_next_lane_advisory",
+        "Hermes Next Lane Advisory",
+        "advisory_synthesis",
+        "draft",
+        "read_only",
+        "low",
+        "high",
+        "Non-canonical advisory sorting for next safe lanes and readiness metrics.",
+        ("sanitized read-model summaries", "Work Board metadata"),
+        ("advisory next-lane notes",),
+        ("work_board",),
+        version="0.1.0",
+        display_name="Hermes Next Lane Advisory",
+        world="operations",
+        capabilities=("readiness_metrics", "next_lane_sorting"),
+        sensitive_input_policy="read-model summaries only; no private raw content",
+        no_go_data_classes=("raw_private_data", "raw_client_data", "credentials", "tokens"),
+        allowed_authority_level="read_only",
+        tests_required=("future tests/test_hermes_next_lane_advisory.py",),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo B reflection concepts are useful only as non-authorizing advisory logic.",
+    ),
+    ModuleSeed(
+        "planner_runner_registry",
+        "Planner Runner Registry",
+        "build_planning",
+        "blocked",
+        "future_gated",
+        "high",
+        "medium",
+        "Runner registry and task tiering concept without runner launch authority.",
+        ("Work Board metadata",),
+        ("future runner registry metadata",),
+        ("agent_work_packet", "work_board"),
+        operator_review_required=True,
+        version="0.1.0",
+        display_name="Planner Runner Registry",
+        world="build",
+        capabilities=("task_tiering", "proof_requirement_catalog"),
+        sensitive_input_policy="metadata-only; never includes command execution or runner launch payloads",
+        no_go_data_classes=("raw_shell", "arbitrary_commands", "credentials", "tokens", "raw_private_data"),
+        allowed_authority_level="future_gated",
+        tests_required=("future tests/test_planner_runner_registry.py",),
+        client_safe=False,
+        core_only=True,
+        report_bridge_summary_allowed=False,
+        evidence_basis="Repo B watcher/loop concepts are blocked until a future explicit lane.",
+    ),
+    ModuleSeed(
+        "report_bridge_sanitized_summary",
+        "Report Bridge Sanitized Summary",
+        "report_bridge",
+        "approved",
+        "metadata_only",
+        "low",
+        "high",
+        "Sanitized status/proof/version/health package import and visibility.",
+        ("sanitized report bridge manifest", "safe read-model/report files"),
+        ("report_bridge_* rows", "generated/read_models/report_bridge.json"),
+        version="0.1.0",
+        display_name="Report Bridge Sanitized Summary",
+        world="operations",
+        capabilities=("sanitized_status_import", "client_safe_summary_visibility"),
+        sensitive_input_policy="reject raw bodies and client data by default",
+        no_go_data_classes=("raw_client_data", "raw_private_bodies", "credentials", "tokens", "bank_data"),
+        allowed_authority_level="metadata_only",
+        tests_required=("tests/test_report_bridge.py",),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Repo A report_bridge.py is implemented and rejects raw bodies/client data by default.",
+    ),
+    ModuleSeed(
+        "project_capsule_bundle_blueprint",
+        "Project Capsule Bundle Blueprint",
+        "client_project_planning",
+        "draft",
+        "planning_only",
+        "low",
+        "high",
+        "Local-first client/project bundle manifest planning without repo creation or deployment.",
+        ("structured pain point metadata", "approved module registry"),
+        ("local bundle manifest dictionary", "bundle blueprint read-model"),
+        ("project_capsule", "report_bridge_sanitized_summary"),
+        version="0.1.0",
+        display_name="Project Capsule Bundle Blueprint",
+        world="business_development",
+        capabilities=("bundle_manifest_planning", "module_selection"),
+        sensitive_input_policy="pain points are reduced to hashes/categories; private details stay local",
+        no_go_data_classes=("raw_client_data", "credentials", "tokens", "bank_data", "private_legal_tax_finance"),
+        allowed_authority_level="planning_only",
+        tests_required=("tests/test_bundle_blueprint_planner.py",),
+        client_safe=True,
+        report_bridge_summary_allowed=True,
+        evidence_basis="Stage 2 implements deterministic local planner; no GitHub packaging or deployment authority.",
     ),
 )
 
@@ -210,14 +427,28 @@ CREATE TABLE IF NOT EXISTS module_registry_runs (
 CREATE TABLE IF NOT EXISTS module_registry_modules (
   module_id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  version TEXT NOT NULL DEFAULT '0.1.0',
+  display_name TEXT,
   category TEXT NOT NULL,
+  world TEXT,
   status TEXT NOT NULL,
   authority_level TEXT NOT NULL,
+  allowed_authority_level TEXT,
   risk_level TEXT NOT NULL,
   client_capsule_suitability TEXT NOT NULL,
+  client_safe INTEGER NOT NULL DEFAULT 0,
+  core_only INTEGER NOT NULL DEFAULT 0,
+  report_bridge_summary_allowed INTEGER NOT NULL DEFAULT 1,
   runtime_authority_required INTEGER NOT NULL DEFAULT 0,
+  runtime_authority INTEGER NOT NULL DEFAULT 0,
   operator_review_required INTEGER NOT NULL DEFAULT 0,
   description TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  optional_inputs_json TEXT NOT NULL DEFAULT '[]',
+  sensitive_input_policy TEXT NOT NULL DEFAULT 'metadata_only_no_private_raw_input',
+  no_go_data_classes_json TEXT NOT NULL DEFAULT '[]',
+  tests_required_json TEXT NOT NULL DEFAULT '[]',
+  evidence_basis TEXT NOT NULL DEFAULT 'seeded_from_repo_a_stage_2_migration_spec',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   run_id TEXT NOT NULL,
@@ -266,6 +497,32 @@ CREATE TABLE IF NOT EXISTS module_registry_dependencies (
     )
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _run_migrations(conn: sqlite3.Connection) -> None:
+    for column, definition in (
+        ("version", "TEXT NOT NULL DEFAULT '0.1.0'"),
+        ("display_name", "TEXT"),
+        ("world", "TEXT"),
+        ("allowed_authority_level", "TEXT"),
+        ("client_safe", "INTEGER NOT NULL DEFAULT 0"),
+        ("core_only", "INTEGER NOT NULL DEFAULT 0"),
+        ("report_bridge_summary_allowed", "INTEGER NOT NULL DEFAULT 1"),
+        ("runtime_authority", "INTEGER NOT NULL DEFAULT 0"),
+        ("capabilities_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("optional_inputs_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("sensitive_input_policy", "TEXT NOT NULL DEFAULT 'metadata_only_no_private_raw_input'"),
+        ("no_go_data_classes_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("tests_required_json", "TEXT NOT NULL DEFAULT '[]'"),
+        ("evidence_basis", "TEXT NOT NULL DEFAULT 'seeded_from_repo_a_stage_2_migration_spec'"),
+    ):
+        _ensure_column(conn, "module_registry_modules", column, definition)
+
+
 def init_module_registry_schema(db_path: str | Path | None = None) -> str:
     path = str(db_path or DEFAULT_DB_PATH)
     db_parent = Path(path).parent
@@ -277,6 +534,7 @@ def init_module_registry_schema(db_path: str | Path | None = None) -> str:
         conn.execute("PRAGMA foreign_keys = ON")
         for statement in _sql_statements():
             conn.execute(statement)
+        _run_migrations(conn)
         conn.commit()
     finally:
         conn.close()
@@ -309,8 +567,32 @@ def _validate_seed(seed: ModuleSeed) -> None:
         raise ValueError(f"bad risk level: {seed.module_id}")
     if seed.client_capsule_suitability not in CLIENT_SUITABILITY:
         raise ValueError(f"bad client capsule suitability: {seed.module_id}")
-    if seed.runtime_authority_required:
+    if seed.allowed_authority_level and seed.allowed_authority_level not in AUTHORITY_LEVELS:
+        raise ValueError(f"bad allowed authority level: {seed.module_id}")
+    if seed.runtime_authority_required or seed.runtime_authority:
         raise ValueError(f"Module Registry v0 does not allow runtime-authority modules: {seed.module_id}")
+
+
+def _json_tuple(values: tuple[str, ...]) -> str:
+    return stable_json(list(values))
+
+
+def _seed_display_name(seed: ModuleSeed) -> str:
+    return seed.display_name or seed.name
+
+
+def _seed_world(seed: ModuleSeed) -> str:
+    return seed.world or seed.category
+
+
+def _seed_allowed_authority(seed: ModuleSeed) -> str:
+    return seed.allowed_authority_level or seed.authority_level
+
+
+def _seed_client_safe(seed: ModuleSeed) -> bool:
+    if seed.client_safe is not None:
+        return seed.client_safe
+    return seed.client_capsule_suitability in {"high", "medium"} and seed.risk_level != "high"
 
 
 def seed_module_registry(
@@ -367,34 +649,67 @@ ON CONFLICT(run_id) DO UPDATE SET
             conn.execute(
                 """
 INSERT INTO module_registry_modules (
-  module_id, name, category, status, authority_level, risk_level,
-  client_capsule_suitability, runtime_authority_required,
-  operator_review_required, description, created_at, updated_at, run_id
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  module_id, name, version, display_name, category, world, status,
+  authority_level, allowed_authority_level, risk_level,
+  client_capsule_suitability, client_safe, core_only,
+  report_bridge_summary_allowed, runtime_authority_required,
+  runtime_authority, operator_review_required, description,
+  capabilities_json, optional_inputs_json, sensitive_input_policy,
+  no_go_data_classes_json, tests_required_json, evidence_basis,
+  created_at, updated_at, run_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(module_id) DO UPDATE SET
   name = excluded.name,
+  version = excluded.version,
+  display_name = excluded.display_name,
   category = excluded.category,
+  world = excluded.world,
   status = excluded.status,
   authority_level = excluded.authority_level,
+  allowed_authority_level = excluded.allowed_authority_level,
   risk_level = excluded.risk_level,
   client_capsule_suitability = excluded.client_capsule_suitability,
+  client_safe = excluded.client_safe,
+  core_only = excluded.core_only,
+  report_bridge_summary_allowed = excluded.report_bridge_summary_allowed,
   runtime_authority_required = excluded.runtime_authority_required,
+  runtime_authority = excluded.runtime_authority,
   operator_review_required = excluded.operator_review_required,
   description = excluded.description,
+  capabilities_json = excluded.capabilities_json,
+  optional_inputs_json = excluded.optional_inputs_json,
+  sensitive_input_policy = excluded.sensitive_input_policy,
+  no_go_data_classes_json = excluded.no_go_data_classes_json,
+  tests_required_json = excluded.tests_required_json,
+  evidence_basis = excluded.evidence_basis,
   updated_at = excluded.updated_at,
   run_id = excluded.run_id
 """.strip(),
                 (
                     seed.module_id,
                     seed.name,
+                    seed.version,
+                    _seed_display_name(seed),
                     seed.category,
+                    _seed_world(seed),
                     seed.status,
                     seed.authority_level,
+                    _seed_allowed_authority(seed),
                     seed.risk_level,
                     seed.client_capsule_suitability,
+                    1 if _seed_client_safe(seed) else 0,
+                    1 if seed.core_only else 0,
+                    1 if seed.report_bridge_summary_allowed else 0,
                     1 if seed.runtime_authority_required else 0,
+                    1 if seed.runtime_authority else 0,
                     1 if seed.operator_review_required else 0,
                     seed.description,
+                    _json_tuple(seed.capabilities),
+                    _json_tuple(seed.optional_inputs),
+                    seed.sensitive_input_policy,
+                    _json_tuple(seed.no_go_data_classes),
+                    _json_tuple(seed.tests_required),
+                    seed.evidence_basis,
                     created_at,
                     now,
                     resolved_run_id,
@@ -474,16 +789,40 @@ LIMIT 1
 def _module_rows(conn: sqlite3.Connection, where: str = "1=1", params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
     rows = conn.execute(
         f"""
-SELECT module_id, name, category, status, authority_level, risk_level,
-       client_capsule_suitability, runtime_authority_required,
-       operator_review_required, description
+SELECT module_id, name, version, display_name, category, world, status,
+       authority_level, allowed_authority_level, risk_level,
+       client_capsule_suitability, client_safe, core_only,
+       report_bridge_summary_allowed, runtime_authority_required,
+       runtime_authority, operator_review_required, description,
+       capabilities_json, optional_inputs_json, sensitive_input_policy,
+       no_go_data_classes_json, tests_required_json, evidence_basis
 FROM module_registry_modules
 WHERE {where}
 ORDER BY category, module_id
 """.strip(),
         params,
     ).fetchall()
-    return [dict(row) for row in rows]
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        for json_key, output_key in (
+            ("capabilities_json", "capabilities"),
+            ("optional_inputs_json", "optional_inputs"),
+            ("no_go_data_classes_json", "no_go_data_classes"),
+            ("tests_required_json", "tests_required"),
+        ):
+            try:
+                item[output_key] = tuple(json.loads(item.get(json_key) or "[]"))
+            except json.JSONDecodeError:
+                item[output_key] = ()
+        item["client_safe"] = bool(item["client_safe"])
+        item["core_only"] = bool(item["core_only"])
+        item["report_bridge_summary_allowed"] = bool(item["report_bridge_summary_allowed"])
+        item["runtime_authority_required"] = bool(item["runtime_authority_required"])
+        item["runtime_authority"] = bool(item["runtime_authority"])
+        item["operator_review_required"] = bool(item["operator_review_required"])
+        result.append(item)
+    return result
 
 
 def _dependencies(conn: sqlite3.Connection, module_id: str | None = None) -> list[dict[str, Any]]:
@@ -530,6 +869,8 @@ def build_module_registry_report(
             modules = _module_rows(conn, "category = ?", (category or "",))
         elif section == "client-capsule":
             modules = _module_rows(conn, "client_capsule_suitability IN ('high','medium')")
+        elif section == "approved":
+            modules = _module_rows(conn, "status IN ('approved','draft','blocked','deprecated')")
         elif section == "dependencies":
             modules = []
         else:
@@ -542,6 +883,8 @@ def build_module_registry_report(
             "client_capsule_suitability": dict(
                 sorted(Counter(row["client_capsule_suitability"] for row in all_rows).items())
             ),
+            "client_safe": dict(sorted(Counter(str(row["client_safe"]).lower() for row in all_rows).items())),
+            "core_only": dict(sorted(Counter(str(row["core_only"]).lower() for row in all_rows).items())),
         }
         return {
             "status": "ok",
@@ -581,7 +924,10 @@ def format_module_registry_report(report: dict[str, Any]) -> str:
             lines.append(f"- {item['module_id']} -> {item['depends_on_module_id']} ({item['dependency_kind']})")
         else:
             lines.append(
-                f"- {item['module_id']} ({item['category']}, {item['status']}, {item['authority_level']}, suitability={item['client_capsule_suitability']})"
+                f"- {item['module_id']} ({item['category']}, {item['status']}, "
+                f"{item['allowed_authority_level'] or item['authority_level']}, "
+                f"client_safe={str(item['client_safe']).lower()}, "
+                f"core_only={str(item['core_only']).lower()})"
             )
     lines.extend(
         [
@@ -592,3 +938,149 @@ def format_module_registry_report(report: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def build_approved_module_registry_read_model(
+    *,
+    db_path: str | Path | None = None,
+) -> dict[str, Any]:
+    seed_module_registry(db_path=db_path)
+    report = build_module_registry_report(db_path=db_path, section="approved")
+    items = report.get("items", [])
+    return {
+        "schema_version": APPROVED_MODULE_READ_MODEL_VERSION,
+        "read_model_version": APPROVED_MODULE_READ_MODEL_VERSION,
+        "generated_at": utc_now(),
+        "source_ledger_namespace": "module_registry_*",
+        "module_count": len(items),
+        "counts": report.get("counts", {}),
+        "modules": [
+            {
+                "module_id": item["module_id"],
+                "version": item["version"],
+                "display_name": item["display_name"] or item["name"],
+                "category": item["category"],
+                "world": item["world"] or item["category"],
+                "capabilities": list(item["capabilities"]),
+                "required_inputs": [
+                    row["input_name"]
+                    for row in _module_required_inputs(db_path=db_path, module_id=item["module_id"])
+                ],
+                "optional_inputs": list(item["optional_inputs"]),
+                "sensitive_input_policy": item["sensitive_input_policy"],
+                "no_go_data_classes": list(item["no_go_data_classes"]),
+                "allowed_authority_level": item["allowed_authority_level"] or item["authority_level"],
+                "dependencies": [
+                    dep["depends_on_module_id"]
+                    for dep in report.get("dependencies", [])
+                    if dep["module_id"] == item["module_id"]
+                ],
+                "tests_required": list(item["tests_required"]),
+                "client_safe": item["client_safe"],
+                "core_only": item["core_only"],
+                "report_bridge_summary_allowed": item["report_bridge_summary_allowed"],
+                "status": item["status"],
+                "evidence_basis": item["evidence_basis"],
+                "runtime_authority": item["runtime_authority"],
+                "operator_review_required": item["operator_review_required"],
+            }
+            for item in items
+        ],
+        "no_authority_flags": {
+            "runtime_authority": False,
+            "activation_allowed": False,
+            "tool_execution_allowed": False,
+            "network_authority": False,
+            "external_api_allowed": False,
+            "model_call_allowed": False,
+            "send_allowed": False,
+            "client_deployment_allowed": False,
+        },
+        "runtime_authority": False,
+        "activation_allowed": False,
+        "tool_execution_allowed": False,
+        "network_authority": False,
+        "external_api_allowed": False,
+        "model_call_allowed": False,
+        "send_allowed": False,
+        "client_deployment_allowed": False,
+    }
+
+
+def _module_required_inputs(
+    *,
+    db_path: str | Path | None = None,
+    module_id: str,
+) -> list[dict[str, Any]]:
+    path = init_module_registry_schema(db_path)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        return [
+            dict(row)
+            for row in conn.execute(
+                """
+SELECT input_name, required, notes
+FROM module_registry_required_inputs
+WHERE module_id = ?
+ORDER BY input_name
+""".strip(),
+                (module_id,),
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+
+
+def format_approved_module_registry_read_model(read_model: dict[str, Any]) -> str:
+    lines = [
+        "# Approved Module Registry Read-Model v0",
+        "",
+        "What this is:",
+        "- A generated read-model over local approved-module planning metadata.",
+        "",
+        "What this is not:",
+        "- It is not runtime activation, deployment, external send, tool execution, model execution, or client data access.",
+        "",
+        "Summary:",
+        f"- Modules: {read_model['module_count']}.",
+        "",
+        "Modules:",
+    ]
+    for item in read_model["modules"]:
+        lines.append(
+            f"- `{item['module_id']}` status=`{item['status']}` authority=`{item['allowed_authority_level']}` "
+            f"client_safe=`{str(item['client_safe']).lower()}` core_only=`{str(item['core_only']).lower()}`"
+        )
+    lines.extend(
+        [
+            "",
+            "Boundary:",
+            "- `runtime_authority=false`; `deployment_allowed=false`; `send_allowed=false`.",
+            "- Client/project bundles may use these records only as local planning metadata.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def export_approved_module_registry_read_model(
+    *,
+    db_path: str | Path | None = None,
+    export_root: str | Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    root = Path(export_root)
+    if not root.is_absolute():
+        root = Path(__file__).resolve().parent / root
+    root.mkdir(parents=True, exist_ok=True)
+    read_model = build_approved_module_registry_read_model(db_path=db_path)
+    json_path = root / APPROVED_JSON_EXPORT_NAME
+    operator_path = root / APPROVED_OPERATOR_EXPORT_NAME
+    json_path.write_text(stable_json(read_model), encoding="utf-8")
+    operator_path.write_text(format_approved_module_registry_read_model(read_model), encoding="utf-8")
+    return {
+        "export_version": APPROVED_MODULE_READ_MODEL_VERSION,
+        "json_path": json_path.as_posix(),
+        "operator_path": operator_path.as_posix(),
+        "module_count": read_model["module_count"],
+        **read_model["no_authority_flags"],
+    }

@@ -21,7 +21,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--run-id", help="Run id. Defaults to latest.")
     parser.add_argument(
         "--report",
-        choices=("summary", "modules", "category", "dependencies", "client-capsule"),
+        choices=("summary", "modules", "category", "dependencies", "client-capsule", "approved"),
         default="summary",
         help="Report section.",
     )
