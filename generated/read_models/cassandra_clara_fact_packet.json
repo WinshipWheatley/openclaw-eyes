@@ -1,0 +1,540 @@
+{
+  "ad_hoc_notes_read": false,
+  "agent_presence_read": false,
+  "artifact_root": "generated/finance_packets/cassandra_clara_fact_packet_v0",
+  "artifacts": {
+    "contact_review": "generated/finance_packets/cassandra_clara_fact_packet_v0/CAPITAL_HILTON_CONTACT_REVIEW.md",
+    "draft_email": "generated/finance_packets/cassandra_clara_fact_packet_v0/CAPITAL_HILTON_CLARA_DRAFT_EMAIL_REVIEW_ONLY.md",
+    "manifest": "generated/finance_packets/cassandra_clara_fact_packet_v0/MANIFEST.json",
+    "missing_facts": "generated/finance_packets/cassandra_clara_fact_packet_v0/CAPITAL_HILTON_MISSING_FACTS_PACKET.md",
+    "receivable_review": "generated/finance_packets/cassandra_clara_fact_packet_v0/CAPITAL_HILTON_RECEIVABLE_REVIEW.md"
+  },
+  "boundaries": {
+    "ad_hoc_notes_read": false,
+    "agent_presence_read": false,
+    "bank_access_allowed": false,
+    "browser_automation_allowed": false,
+    "email_send_allowed": false,
+    "external_api_allowed": false,
+    "financial_truth_claimed": false,
+    "invoice_send_allowed": false,
+    "ledger_write_allowed": false,
+    "no_runtime_authority": true,
+    "no_send_authority": true,
+    "old_hitl_read": false,
+    "operator_approval_required": true,
+    "raw_messages_read": false,
+    "raw_private_files_read": false,
+    "repo_b_execution_allowed": false,
+    "review_only": true,
+    "runtime_authority": false,
+    "runtime_authority_changed": false,
+    "send_authority_granted": false,
+    "spreadsheet_cell_read_allowed": false,
+    "supplier_portal_login_allowed": false,
+    "workbook_parsing_allowed": false
+  },
+  "contact_candidate_count": 3,
+  "contact_candidates": [
+    {
+      "allowed_use": "email_draft_recipient_candidate_needs_email_review",
+      "approval_required": true,
+      "confidence": "operator_supplied_candidate",
+      "contact_candidate_id": "capcontact_f0a3b738c6aaf46a9a2b",
+      "contact_name": "Annette Sunga",
+      "email": null,
+      "evidence_status": "parsed_evidence_not_truth",
+      "external_send_allowed": false,
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Finance/AP contact",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "verified": false
+    },
+    {
+      "allowed_use": "cc_candidate_pending_review",
+      "approval_required": true,
+      "confidence": "operator_supplied_candidate",
+      "contact_candidate_id": "capcontact_2d74645066bc98292627",
+      "contact_name": "Chyna Hardin",
+      "email": "Chyna.Hardin@hilton.com",
+      "evidence_status": "parsed_evidence_not_truth",
+      "external_send_allowed": false,
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Director of Finance",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "verified": false
+    },
+    {
+      "allowed_use": "cc_candidate_pending_review",
+      "approval_required": true,
+      "confidence": "operator_supplied_candidate",
+      "contact_candidate_id": "capcontact_45a14d1dc4c91fb71310",
+      "contact_name": "Lawrence / Will Valcovic",
+      "email": "lawrencevalcovic@hilton.com",
+      "evidence_status": "parsed_evidence_not_truth",
+      "external_send_allowed": false,
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "organization": "Capital Hilton / Capitol Hilton",
+      "role": "Hilton contact",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "verified": false
+    }
+  ],
+  "external_persona": "Clara Reid",
+  "generated_at": "2026-05-16T23:21:54+00:00",
+  "governed_fact_count": 13,
+  "governed_facts": [
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "capfact_c83850434ff92caa0917",
+      "field_name": "spreadsheet_selection",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_prompt",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "operator_confirmed",
+      "value_text": "Invoice Capitol Hilton 20260512 v2.xlsx"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_2877bb9ef6f4c4f8431d",
+      "field_name": "ap_contact_likely",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Annette Sunga"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_2f43dd1e4e6bdceaa8c7",
+      "field_name": "client_location",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "Capital Hilton / Capitol Hilton"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_91c8259369ce46f14b91",
+      "field_name": "contact_candidate_annette_sunga",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Annette Sunga | Finance/AP contact | email=unknown | allowed_use=email_draft_recipient_candidate_needs_email_review"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_5e7c8041e89e16136f5a",
+      "field_name": "contact_candidate_chyna_hardin",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Chyna Hardin | Director of Finance | email=Chyna.Hardin@hilton.com | allowed_use=cc_candidate_pending_review"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_fe62cd1774fe202c32e1",
+      "field_name": "contact_candidate_lawrence___will_valcovic",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Lawrence / Will Valcovic | Hilton contact | email=lawrencevalcovic@hilton.com | allowed_use=cc_candidate_pending_review"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_428904fe95928c422987",
+      "field_name": "gig_scope",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "Two gigs: tonight's gig and last Friday's gig. Exact dates require operator confirmation."
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_64e785d1193147958766",
+      "field_name": "operator_remit_email_candidate",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "winshiplive@gmail.com"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_89e01036f26215c2923e",
+      "field_name": "possible_contacts",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Chyna Hardin, Director of Finance, Chyna.Hardin@hilton.com; Lawrence / Will Valcovic, lawrencevalcovic@hilton.com"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_49b8755725ca728200fc",
+      "field_name": "remit_email",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "winshiplive@gmail.com"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_0edc473656d63e58c368",
+      "field_name": "spreadsheet_selection",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "operator_confirmed",
+      "value_text": "Invoice Capitol Hilton 20260512 v2.xlsx"
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_f0d2e8f54bed2ec4452a",
+      "field_name": "supplier_portal_candidate",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "SmartSpend / Coupa previously associated with this supplier flow; needs operator review for this invoice."
+    },
+    {
+      "approval_required": true,
+      "confidence": "operator_claim",
+      "evidence_status": "parsed_evidence_not_truth",
+      "fact_id": "finpktfact_1ad2d98b6168336c1691",
+      "field_name": "supplier_portal_context",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "raw_content_read": false,
+      "source_kind": "operator_supplied",
+      "source_ref": "operator_prompt:capital_hilton_invoice_packet_v0",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "needs_review",
+      "value_text": "Supplier portal has previously been SmartSpend / Coupa related."
+    }
+  ],
+  "internal_agent": "cassandra",
+  "missing_required_fact_count": 9,
+  "missing_required_fields": [
+    {
+      "display_name": "Exact service date for tonight's gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "tonight_gig_date",
+      "next_safe_move": "Provide governed Repo A fact for Exact service date for tonight's gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Exact service date for last Friday's gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "last_friday_gig_date",
+      "next_safe_move": "Provide governed Repo A fact for Exact service date for last Friday's gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Rate or amount per gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "rate_or_amount_per_gig",
+      "next_safe_move": "Provide governed Repo A fact for Rate or amount per gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "One invoice or two invoices",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "invoice_count_preference",
+      "next_safe_move": "Provide governed Repo A fact for One invoice or two invoices.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "PO number(s) or explicit none",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "po_numbers",
+      "next_safe_move": "Provide governed Repo A fact for PO number(s) or explicit none.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Billing/remit details",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "billing_remit_details",
+      "next_safe_move": "Provide governed Repo A fact for Billing/remit details.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "To/CC recipient decision",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "recipient_decision",
+      "next_safe_move": "Provide governed Repo A fact for To/CC recipient decision.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Supplier portal reference",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "supplier_portal_reference",
+      "next_safe_move": "Provide governed Repo A fact for Supplier portal reference.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Invoice attachment/output path",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "invoice_attachment_output_path",
+      "next_safe_move": "Provide governed Repo A fact for Invoice attachment/output path.",
+      "present": false,
+      "trust_status": null
+    }
+  ],
+  "next_safe_lane": "Capital Hilton Governed Fact Intake v1",
+  "old_hitl_read": false,
+  "packet_id": "finance_capital_hilton_invoice_packet_v0",
+  "packet_kind": "capital_hilton_missing_facts_packet",
+  "raw_data_imported": false,
+  "raw_messages_read": false,
+  "raw_private_files_read": false,
+  "read_model_sources": [
+    "generated/read_models/finance_invoice_evidence_packets.json",
+    "generated/read_models/cassandra_chief_memory_authority.json"
+  ],
+  "required_fact_status": [
+    {
+      "display_name": "Exact service date for tonight's gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "tonight_gig_date",
+      "next_safe_move": "Provide governed Repo A fact for Exact service date for tonight's gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Exact service date for last Friday's gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "last_friday_gig_date",
+      "next_safe_move": "Provide governed Repo A fact for Exact service date for last Friday's gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Rate or amount per gig",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "rate_or_amount_per_gig",
+      "next_safe_move": "Provide governed Repo A fact for Rate or amount per gig.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "One invoice or two invoices",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "invoice_count_preference",
+      "next_safe_move": "Provide governed Repo A fact for One invoice or two invoices.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "PO number(s) or explicit none",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "po_numbers",
+      "next_safe_move": "Provide governed Repo A fact for PO number(s) or explicit none.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Billing/remit details",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "billing_remit_details",
+      "next_safe_move": "Provide governed Repo A fact for Billing/remit details.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "To/CC recipient decision",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "recipient_decision",
+      "next_safe_move": "Provide governed Repo A fact for To/CC recipient decision.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Supplier portal reference",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "supplier_portal_reference",
+      "next_safe_move": "Provide governed Repo A fact for Supplier portal reference.",
+      "present": false,
+      "trust_status": null
+    },
+    {
+      "display_name": "Invoice attachment/output path",
+      "evidence_status": null,
+      "fact_id": null,
+      "field_name": "invoice_attachment_output_path",
+      "next_safe_move": "Provide governed Repo A fact for Invoice attachment/output path.",
+      "present": false,
+      "trust_status": null
+    }
+  ],
+  "runtime_authority_changed": false,
+  "schema_version": "cassandra_clara_fact_packet_v0",
+  "send_authority_granted": false,
+  "source_policy": "governed_repo_a_sqlite_and_read_models_only",
+  "spreadsheet_cells_read": false,
+  "sqlite_db_path": ".openclaw/business_ops/ledger.sqlite",
+  "sqlite_missing_items": [
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Amount or rate per gig is missing.",
+      "next_safe_move": "Operator provides rate/amount per gig or approved evidence reference.",
+      "why_needed": "No invoice amount can be claimed or drafted without operator-provided or approved evidence."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Billing/remit details need confirmation.",
+      "next_safe_move": "Operator confirms billing name, remit email, mailing/payment details, and any tax/remit fields.",
+      "why_needed": "The packet has remit email context only; full invoice/remit details require operator confirmation."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Exact date for last Friday's gig is not operator-confirmed for invoice use.",
+      "next_safe_move": "Operator confirms the invoice date/service date for last Friday's gig.",
+      "why_needed": "Invoice packet must not infer prior gig dates from relative wording."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Exact date for tonight's gig is not operator-confirmed for invoice use.",
+      "next_safe_move": "Operator confirms the invoice date/service date for tonight's gig.",
+      "why_needed": "Invoice packet must not infer gig dates from relative wording."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "One invoice versus two invoices is undecided.",
+      "next_safe_move": "Operator chooses one combined invoice or separate invoices per gig.",
+      "why_needed": "Portal/email packet needs invoice grouping before any draft can be prepared."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "PO number(s) are missing.",
+      "next_safe_move": "Operator provides PO number(s), says none, or approves portal metadata lookup later.",
+      "why_needed": "Capital Hilton supplier/payment flow may require PO references."
+    },
+    {
+      "blocker_level": "blocks_invoice_draft",
+      "description": "Supplier portal reference is unresolved.",
+      "next_safe_move": "Operator confirms whether SmartSpend/Coupa is required and provides portal reference if known.",
+      "why_needed": "SmartSpend/Coupa context is operator-supplied but not verified for this invoice."
+    },
+    {
+      "blocker_level": "blocks_send",
+      "description": "Annette Sunga email is missing if Annette is selected as To recipient.",
+      "next_safe_move": "Operator confirms Annette Sunga's email or chooses a different reviewed recipient.",
+      "why_needed": "The packet cannot use Annette as the final To recipient until the exact email address is operator-confirmed or evidence-backed."
+    },
+    {
+      "blocker_level": "blocks_send",
+      "description": "Invoice attachment/output path is missing.",
+      "next_safe_move": "Operator chooses or approves invoice attachment/output path in a later lane.",
+      "why_needed": "No final invoice file should be created or attached until output path and approval are explicit."
+    },
+    {
+      "blocker_level": "blocks_send",
+      "description": "Recipient and CC decision is pending.",
+      "next_safe_move": "Operator confirms To/CC list before any email draft is used.",
+      "why_needed": "The packet has likely/possible contacts but should not choose recipients without review."
+    }
+  ],
+  "target_workflow": "capital_hilton_invoice",
+  "usable_capital_hilton_review_packet": false
+}
