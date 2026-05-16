@@ -6,6 +6,12 @@ Move Cassandra/Chief memory authority toward Repo A SQLite/governed evidence wit
 
 Repo A is canonical. Repo B is reference-only. Ad hoc JSON, JSONL, CSV, Markdown, Windows-side logs, and vault files are import candidates or reference material, not authority.
 
+This is a hybrid memory strategy. SQLite owns canonical structured facts and
+evidence posture, but old files do not all move into SQLite and do not all
+become canonical truth. Messy notes, logs, vault files, PDFs, and raw private
+files may remain in place while SQLite stores source metadata, redacted
+summaries, hashes, blockers, receipts, and operator-confirmation posture.
+
 Target spine:
 
 ```text
@@ -32,6 +38,42 @@ Use these surfaces before creating new tables:
 | Finance evidence packets | `finance_invoice_evidence_packet.py`, `capital_hilton_invoice_packet.py`, `finance_invoice_reconciliation.py` | Canonical invoice/receivable evidence posture; no send, bank access, or financial truth claims. |
 | Module/capsule posture | `module_registry.py`, `project_capsule.py` | Planning metadata only. |
 | Estate/read-model posture | `estate_read_model.py` | Read-model visibility only; no authority. |
+
+## Memory Source Fate Doctrine
+
+Every ad hoc source must receive one explicit fate before any import lane can
+touch it:
+
+- `import_structured_facts_to_sqlite`
+- `register_as_evidence_source_only`
+- `summarize_or_extract_only`
+- `block_no_go`
+- `delete_local_residue`
+- `defer_operator_review`
+
+Prompt 2 may build schema/read-model support for these fates. Prompt 2 must
+not import real data, read raw log/private file contents, or convert old files
+into truth.
+
+## Memory Source Fate Matrix
+
+| category | recommended_fate | reason | canonical_authority_target | source_retention_policy | raw_content_policy | allowed_agent_use | operator_confirmation_required | prompt_2_schema_needed | import_allowed_in_prompt_2 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| contacts and nicknames | `import_structured_facts_to_sqlite` | Nicknames, aliases, channel hashes, and identity posture are structured enough to become governed metadata after review. | `cassandra_chief_memory_entities`, aliases, channels, permission rows | Keep original file until migration is tested and operator approves deprecation. | No raw chat IDs, phone numbers, or private identifiers in read-models; hash/redact channel values. | Resolve bounded contact identity and draft-review posture only. | yes | true | false |
+| company/contact relationships | `import_structured_facts_to_sqlite` | Relationship edges are useful structured evidence, but not all labels are verified. | entity relationship table plus project/capsule links when applicable | Keep source files as evidence references until relationships are operator-confirmed. | Summaries only; raw client/customer details blocked from read-models. | Show relationship posture and missing confirmation, not CRM truth. | yes | true | false |
+| allowed email recipients / email permission posture | `import_structured_facts_to_sqlite` | Draft/send permission posture needs governed fields and Guardian linkage. | contact channels, email permission rows, Operator Action/Guardian links | Keep source until permission rows have receipts; old source never grants send. | Email addresses hashed/redacted unless display is explicitly approved. | Draft eligibility and approval-required status only; no send. | yes | true | false |
+| invoice facts | `import_structured_facts_to_sqlite` | Invoice facts belong in existing finance evidence packet/reconciliation surfaces. | `finance_invoice_packet_*`, `finance_invoice_reconciliation_*`, finance source links | Keep source files as evidence references until packet receipts replace them. | No bank data, spreadsheet cells, tax/private raw bodies, or final truth claims. | Build missing-facts checklists and draft context only. | yes | true | false |
+| receivable/payment tracking | `import_structured_facts_to_sqlite` | Receivable/payment state can reduce burden only when evidence status is explicit. | finance packet/reconciliation tables and Work Board cards | Keep old trackers until reconciliation proves no loss. | Bank/payment provider raw data blocked; payment facts are claims until confirmed. | Status posture and next-safe-move only. | yes | true | false |
+| correspondence metadata | `summarize_or_extract_only` | Logs may contain private body text; only safe metadata belongs in SQLite. | correspondence thread/event metadata tables | Retain original logs outside SQLite unless a future approved retention lane says otherwise. | Do not ingest bodies; store hashes, timestamps, direction, bounded redacted excerpts if approved. | Find context and history posture; no reply/send authority. | yes | true | false |
+| calendar/event notes metadata | `summarize_or_extract_only` | Calendar notes can guide context but are not live calendar truth. | calendar note metadata table, Work Board blockers | Keep original calendar/vault sources; do not parse private calendar content in Prompt 2. | Titles/details hashed or summarized; no raw calendar bodies. | Show metadata availability and confirmation gaps only. | yes | true | false |
+| album/song progress state | `defer_operator_review` | This belongs to Niles/music module authority, not Cassandra/Chief memory. | Future Niles Album Production Matrix, module registry | Keep existing files; catalog as deferred source references only if needed. | No raw album/session content in this lane. | None for Cassandra/Chief except source catalog posture. | yes | false | false |
+| Cassandra notes | `summarize_or_extract_only` | Reality notes may be useful, but messy notes should remain evidence unless structured facts are extracted. | Cassandra note evidence table and source catalog | Keep source file; extract only bounded, reviewed summaries later. | No raw private notes by default. | Briefing/context posture with trust labels only. | yes | true | false |
+| Chief session/task memory | `register_as_evidence_source_only` | Session/task files are volatile runtime state and should be superseded by Work Board/Agent Work Packet. | source catalog, session snapshot metadata, Work Board | Retain only as historical evidence until Work Board fully replaces it. | No raw task bodies unless operator-approved bounded excerpts. | Historical context and migration blockers only. | yes | true | false |
+| old HITL JSON/JSONL state | `block_no_go` | Old approval files must not become active approval authority or bypass Operator Action/Guardian. | `operator_action_*` plus legacy approval reference rows marked historical/blocked | Retain until Guardian/Operator Action consolidation decides archival/deletion. | Do not ingest payload bodies as current approvals; metadata only after reconciliation. | Historical audit reference only; cannot approve, execute, or send. | yes | true | false |
+| Windows-side logs | `register_as_evidence_source_only` | Logs are useful for diagnosis but likely contain raw private/runtime content. | source catalog and optional redacted telemetry tables | Keep in place; do not copy into SQLite in Prompt 2. | No raw log ingestion; path hash and category only. | Diagnostics/source availability only. | yes | true | false |
+| billing tracker CSV/PDF paths | `summarize_or_extract_only` | Trackers/PDFs can support finance packets, but raw CSV/PDF parsing can expose private finance data. | finance packet/reconciliation source links | Keep originals; later lane may extract approved metadata only. | No spreadsheet cells, PDF body extraction, bank/account details, or final truth claims. | Evidence pointer and missing-facts posture only. | yes | true | false |
+| dirty generated agent_presence snapshots | `defer_operator_review` | Generated runtime presence snapshots are volatile and currently dirty. | future agent presence volatile-snapshot cleanup | Keep uncommitted until regenerated/reworked; do not treat as truth. | Generated metadata only; do not derive live receive proof from it. | Presence caveat/readiness context only after cleanup. | yes | false | false |
+| untracked polish_loop Cassandra failure tasks | `delete_local_residue` | They are duplicate generated task prompts, not durable evidence, and point at raw logs. | none; possible future cleanup receipt | Do not commit; delete only in an explicit cleanup lane/operator-approved action. | Do not read linked raw logs from these prompts. | None. | yes | false | false |
 
 ## Ad Hoc Memory Surfaces Found Or Referenced
 
@@ -107,6 +149,8 @@ Rules:
 - `source_hash` is null unless the future lane is explicitly allowed to read the file bytes.
 - `source_path_hash` may hash the path string without opening the file.
 - `raw_content_read=false` and `raw_content_imported=false` by default.
+- `recommended_fate` must use the controlled fate vocabulary above.
+- `import_allowed_in_prompt_2=false` for every source row seeded in Prompt 2.
 - No source catalog row grants runtime, send, or approval authority.
 
 ### 2. Contacts, Nicknames, Companies, And Channels
@@ -433,7 +477,12 @@ Create/update:
 
 Do not create import scripts yet. Prompt 2 is schema/read-model only.
 
-Prompt 2 should initialize the SQLite schema and seed source-catalog rows from safe static path references only. It should not open, parse, hash contents, or import records from the ad hoc files.
+Prompt 2 should initialize the SQLite schema and seed source-catalog rows from
+safe static path references only. It should not open, parse, hash file contents,
+or import records from the ad hoc files. The schema must represent the hybrid
+strategy by storing `recommended_fate`, `source_retention_policy`,
+`raw_content_policy`, `allowed_agent_use`, `operator_confirmation_required`,
+and `import_allowed_in_prompt_2`.
 
 ## Prompt 2 Tests
 
@@ -441,6 +490,8 @@ Add tests proving:
 
 - all proposed tables initialize in a temp SQLite database
 - source catalog rows are metadata-only
+- each source/category has one allowed `recommended_fate`
+- every Prompt 2 source row has `import_allowed_in_prompt_2=false`
 - required fields exist
 - `runtime_authority=false`
 - `send_allowed=false`
@@ -481,6 +532,7 @@ Any future import lane must stop if:
 - it would create a generic CRM instead of OpenClaw evidence/memory authority
 - generated file handling is unclear
 - current dirty `agent_presence` files would be committed as truth
+- it treats all ad hoc files as things to move into SQLite
 
 ## Blocked Or Deferred Sources
 
@@ -505,4 +557,8 @@ Deferred:
 
 Prompt 2 is ready for schema/read-model work only.
 
-It is not ready for importing real data. It must not parse or ingest the listed ad hoc files. It should catalog safe static source references and create the schema/read-model boundary that a later import lane can use.
+It is not ready for importing real data. It must not parse or ingest the listed
+ad hoc files. It should catalog safe static source references, encode the fate
+matrix, and create the schema/read-model boundary that later lanes can use to
+decide whether a source is imported, registered, summarized, blocked, deleted,
+or deferred.

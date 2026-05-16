@@ -1,8 +1,142 @@
 {
   "schema_version": "cassandra_chief_memory_import_prompt_2_ready_packet_v0",
   "prompt_2_ready": true,
-  "reason": "Repo A SQLite/governed patterns are clear enough for a schema/read-model lane. Prompt 2 must not import ad hoc data; it should create metadata-only source catalog and memory authority tables, with old HITL JSON blocked as active approval authority.",
+  "reason": "Repo A SQLite/governed patterns are clear enough for a schema/read-model lane. Prompt 2 must implement hybrid source fate support only: structured facts may later move into SQLite, messy files may be registered/summarized/deferred/blocked/deleted, no ad hoc data may be imported, and old HITL JSON remains blocked as active approval authority.",
   "recommended_lane": "Cassandra/Chief Memory Authority SQLite Schema v0",
+  "hybrid_strategy_required": true,
+  "data_import_allowed": false,
+  "raw_file_ingest_allowed": false,
+  "old_files_are_truth": false,
+  "prompt_2_scope": {
+    "allowed": [
+      "schema/read-model support for canonical structured facts",
+      "metadata-only evidence-source cataloging",
+      "hybrid source fate fields and validation",
+      "links to existing finance, Work Board, Agent Work Packet, Operator Action, and Guardian surfaces"
+    ],
+    "blocked": [
+      "real data import",
+      "raw log/private file reading",
+      "treating old files as truth",
+      "active approval authority from old HITL JSON",
+      "runtime, send, network, model, or Repo B execution"
+    ]
+  },
+  "allowed_fates": [
+    "import_structured_facts_to_sqlite",
+    "register_as_evidence_source_only",
+    "summarize_or_extract_only",
+    "block_no_go",
+    "delete_local_residue",
+    "defer_operator_review"
+  ],
+  "source_fate_matrix": [
+    {
+      "category": "contacts and nicknames",
+      "recommended_fate": "import_structured_facts_to_sqlite",
+      "canonical_authority_target": "cassandra_chief_memory_entities / aliases / contact_channels",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "company/contact relationships",
+      "recommended_fate": "import_structured_facts_to_sqlite",
+      "canonical_authority_target": "cassandra_chief_memory_entity_relationships",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "allowed email recipients / email permission posture",
+      "recommended_fate": "import_structured_facts_to_sqlite",
+      "canonical_authority_target": "cassandra_chief_memory_email_permissions plus Operator Action / Guardian links",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "invoice facts",
+      "recommended_fate": "import_structured_facts_to_sqlite",
+      "canonical_authority_target": "finance_invoice_packet_* / finance_invoice_reconciliation_*",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "receivable/payment tracking",
+      "recommended_fate": "import_structured_facts_to_sqlite",
+      "canonical_authority_target": "finance_invoice_packet_* / finance_invoice_reconciliation_* / Work Board",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "correspondence metadata",
+      "recommended_fate": "summarize_or_extract_only",
+      "canonical_authority_target": "cassandra_chief_correspondence_threads / events",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "calendar/event notes metadata",
+      "recommended_fate": "summarize_or_extract_only",
+      "canonical_authority_target": "cassandra_chief_calendar_note_metadata",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "album/song progress state",
+      "recommended_fate": "defer_operator_review",
+      "canonical_authority_target": "future Niles Album Production Matrix",
+      "prompt_2_schema_needed": false,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "Cassandra notes",
+      "recommended_fate": "summarize_or_extract_only",
+      "canonical_authority_target": "cassandra_chief_notes plus source catalog",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "Chief session/task memory",
+      "recommended_fate": "register_as_evidence_source_only",
+      "canonical_authority_target": "source catalog / session snapshot metadata / Work Board",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "old HITL JSON/JSONL state",
+      "recommended_fate": "block_no_go",
+      "canonical_authority_target": "operator_action_* plus historical legacy approval refs",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "Windows-side logs",
+      "recommended_fate": "register_as_evidence_source_only",
+      "canonical_authority_target": "cassandra_chief_memory_sources",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "billing tracker CSV/PDF paths",
+      "recommended_fate": "summarize_or_extract_only",
+      "canonical_authority_target": "finance source links / finance evidence packet metadata",
+      "prompt_2_schema_needed": true,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "dirty generated agent_presence snapshots",
+      "recommended_fate": "defer_operator_review",
+      "canonical_authority_target": "future agent presence volatile-snapshot cleanup",
+      "prompt_2_schema_needed": false,
+      "import_allowed_in_prompt_2": false
+    },
+    {
+      "category": "untracked polish_loop Cassandra failure tasks",
+      "recommended_fate": "delete_local_residue",
+      "canonical_authority_target": "none",
+      "prompt_2_schema_needed": false,
+      "import_allowed_in_prompt_2": false
+    }
+  ],
   "tables_or_existing_surfaces_to_use": [
     "telegram_agent_update_records",
     "intent_records",
@@ -28,8 +162,15 @@
   ],
   "ad_hoc_sources_to_import_later": [
     "/home/openclaw/finance_state.json",
-    "/home/openclaw/cassandra_reality_notes.json",
     "/home/openclaw/contact_nicknames.json",
+    "/mnt/c/OpenClaw/billing/tracker/invoice_tracker.csv",
+    "/home/openclaw/OpenClaw/exports/billing_records.csv",
+    "/home/openclaw/OpenClaw/exports/billing_records.jsonl",
+    "/mnt/c/OpenClawShared/business/contacts.json",
+    "/mnt/c/OpenClawShared/business/expense_log.json"
+  ],
+  "ad_hoc_sources_to_register_or_review_later": [
+    "/home/openclaw/cassandra_reality_notes.json",
     "/home/openclaw/OpenClaw/state/chief_session.json",
     "/mnt/c/OpenClaw/logs/cassandra_state.json",
     "/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl",
@@ -37,13 +178,13 @@
     "/mnt/c/OpenClaw/logs/cassandra_email_thread_state.json",
     "/mnt/c/OpenClaw/logs/cassandra_email_thread_analysis.jsonl",
     "/mnt/c/OpenClaw/logs/hitl_audit.jsonl",
-    "/mnt/c/OpenClaw/billing/tracker/invoice_tracker.csv",
-    "/home/openclaw/OpenClaw/exports/billing_records.csv",
-    "/home/openclaw/OpenClaw/exports/billing_records.jsonl",
-    "/mnt/c/OpenClawShared/business/contacts.json",
     "/mnt/c/OpenClawShared/business/email_log.json",
     "/mnt/c/OpenClawShared/business/call_log.json",
-    "/mnt/c/OpenClawShared/business/expense_log.json"
+    "/mnt/c/OpenClawShared/album/album_work_log.csv",
+    "/mnt/c/OpenClawShared/album/content_log.json",
+    "/mnt/c/OpenClawShared/album/scheduler_state.json",
+    "generated/read_models/agent_presence.*",
+    "polish_loop/tasks/chief-cassandra-failure-*.md"
   ],
   "sources_blocked_from_import": [
     "env files and credential files",
@@ -103,6 +244,8 @@
   ],
   "stop_conditions": [
     "Prompt 2 would need to import or parse ad hoc data files",
+    "Prompt 2 would treat all ad hoc files as SQLite import candidates",
+    "Prompt 2 would omit recommended_fate or import_allowed_in_prompt_2 fields from the source catalog",
     "Prompt 2 would need raw private data, raw Telegram logs, bank data, spreadsheet cells, env files, tokens, or credentials",
     "Prompt 2 would need to run Repo B code",
     "Prompt 2 would need runtime activation, services, daemons, sends, network calls, external APIs, or model calls",
@@ -115,6 +258,9 @@
   ],
   "must_not_do": [
     "do not import data",
+    "do not treat old files as truth",
+    "do not bulk-migrate all ad hoc files into SQLite",
+    "do not omit the hybrid source fate matrix",
     "do not inspect raw private files",
     "do not read env files or credentials",
     "do not run Repo B code",
