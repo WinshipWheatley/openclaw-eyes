@@ -1,6 +1,5 @@
 import json
 import sqlite3
-import sys
 from pathlib import Path
 
 import guardian_hitl_cassandra_proposal_shadow as shadow
@@ -443,6 +442,119 @@ def test_hitl_store_expiry_shadow_runs_after_legacy_save(tmp_path, monkeypatch):
     assert calls == [(record["action_id"], store.EXPIRED)]
 
 
+def test_hitl_callback_path_creates_observational_decision_receipt_without_env_or_send(
+    tmp_path,
+    monkeypatch,
+):
+    import hitl_notification_service as notify
+    import hitl_pending_store as store
+
+    db_path = tmp_path / "ledger.sqlite"
+    monkeypatch.setattr(store, "HITL_STATE_PATH", tmp_path / "hitl_pending_state.json")
+    monkeypatch.setattr(store, "HITL_AUDIT_LOG", tmp_path / "hitl_audit.jsonl")
+    monkeypatch.setattr(notify, "_NOTIFY_LOG", tmp_path / "hitl_notifications.jsonl")
+    monkeypatch.setattr(notify, "_notify_secret", lambda: b"synthetic-hitl-secret")
+    monkeypatch.setattr(notify, "_maybe_send_no_pending_confirmation", lambda: None)
+
+    def mirror_proposal(record, ttl_seconds):
+        return shadow.mirror_cassandra_hitl_proposal_fail_open(
+            record,
+            ttl_seconds=ttl_seconds,
+            db_path=db_path,
+        )
+
+    def mirror_decision(record, decision_status):
+        return shadow.mirror_cassandra_hitl_decision_fail_open(
+            record,
+            decision_status,
+            db_path=db_path,
+        )
+
+    monkeypatch.setattr(store, "_shadow_cassandra_hitl_proposal", mirror_proposal)
+    monkeypatch.setattr(store, "_shadow_cassandra_hitl_decision", mirror_decision)
+
+    record = store.create_pending_action(
+        "cassandra",
+        "email_send",
+        {
+            "recipient": "test@example.com",
+            "body": "private callback body with rm -rf / and .chief.env",
+            "raw_command_text": "rm -rf /",
+        },
+        ttl_seconds=120,
+        idempotency_key="idem-callback-approve",
+    )
+    token = notify.generate_token(record["action_id"], "Y")
+
+    result = notify.handle_callback(token, approved_by="operator")
+
+    assert result == {
+        "ok": True,
+        "action_id": record["action_id"],
+        "decision": "Y",
+        "error": None,
+    }
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    receipt_types = {row["receipt_type"] for row in receipts}
+    assert "cassandra_proposal_shadow_created" in receipt_types
+    assert "decision_shadow_observed" in receipt_types
+    rendered_rows = shadow.stable_json({"receipts": receipts})
+    assert token not in rendered_rows
+    assert "private callback body" not in rendered_rows
+    assert "rm -rf" not in rendered_rows
+    assert ".chief.env" not in rendered_rows
+
+
+def test_hitl_callback_deny_path_creates_rejected_observational_receipt(
+    tmp_path,
+    monkeypatch,
+):
+    import hitl_notification_service as notify
+    import hitl_pending_store as store
+
+    db_path = tmp_path / "ledger.sqlite"
+    monkeypatch.setattr(store, "HITL_STATE_PATH", tmp_path / "hitl_pending_state.json")
+    monkeypatch.setattr(store, "HITL_AUDIT_LOG", tmp_path / "hitl_audit.jsonl")
+    monkeypatch.setattr(notify, "_NOTIFY_LOG", tmp_path / "hitl_notifications.jsonl")
+    monkeypatch.setattr(notify, "_notify_secret", lambda: b"synthetic-hitl-secret")
+    monkeypatch.setattr(notify, "_maybe_send_no_pending_confirmation", lambda: None)
+    monkeypatch.setattr(
+        store,
+        "_shadow_cassandra_hitl_proposal",
+        lambda record, ttl_seconds: shadow.mirror_cassandra_hitl_proposal_fail_open(
+            record,
+            ttl_seconds=ttl_seconds,
+            db_path=db_path,
+        ),
+    )
+    monkeypatch.setattr(
+        store,
+        "_shadow_cassandra_hitl_decision",
+        lambda record, decision_status: shadow.mirror_cassandra_hitl_decision_fail_open(
+            record,
+            decision_status,
+            db_path=db_path,
+        ),
+    )
+
+    record = store.create_pending_action(
+        "cassandra",
+        "email_send",
+        {"recipient": "test@example.com", "body": "private deny body"},
+        ttl_seconds=120,
+        idempotency_key="idem-callback-deny",
+    )
+    token = notify.generate_token(record["action_id"], "N")
+
+    result = notify.handle_callback(token, approved_by="operator")
+
+    assert result["ok"] is True
+    assert result["decision"] == "N"
+    receipts = _read_rows(db_path, "guardian_hitl_approval_receipts")
+    assert "decision_shadow_rejected" in {row["receipt_type"] for row in receipts}
+    assert "private deny body" not in shadow.stable_json({"receipts": receipts})
+
+
 def test_export_read_model_and_operator_output_are_valid(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     export_root = tmp_path / "read_models"
@@ -481,18 +593,43 @@ def test_export_read_model_and_operator_output_are_valid(tmp_path):
     assert payload["shared_guardian_hitl_tables_used"] is True
     assert payload["proposal_shadow_support"] is True
     assert payload["decision_receipt_shadow_support"] is True
+    assert payload["callback_decision_shadow_support"] is True
     assert payload["legacy_json_authoritative"] is True
     assert payload["raw_payload_stored"] is False
     assert payload["decision_receipt_count"] == 1
     assert payload["mismatch_count"] == 0
+    assert payload["safe_to_import_cassandra_chief_memory"] is True
     assert "## Bottom Line" in rendered
-    assert "## Still Blocked" in rendered
+    assert "## Remaining Gates" in rendered
 
     rendered_payload = shadow.stable_json(payload) + rendered
     assert "private body" not in rendered_payload
     assert "rm -rf" not in rendered_payload
     assert ".chief.env" not in rendered_payload
     assert "operator-approved Cassandra/Chief memory import decision receipt" in rendered
+
+
+def test_read_model_marks_memory_import_unsafe_when_mismatch_exists(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    shadow.record_cassandra_hitl_proposal_mirror(
+        _proposal_record(),
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    shadow.record_cassandra_hitl_decision_receipt(
+        _proposal_record(payload={"recipient": "other@example.com", "body": "changed"}),
+        "APPROVED",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    payload = shadow.build_guardian_hitl_cassandra_proposal_shadow_read_model(
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["mismatch_count"] == 1
+    assert payload["safe_to_import_cassandra_chief_memory"] is False
 
 
 def test_chief_dual_write_read_model_stays_source_safe_with_shared_tables(tmp_path):
@@ -533,5 +670,7 @@ def test_module_does_not_import_repo_b_network_send_or_notification_paths():
     assert "process_callback" not in source
     assert "handle_callback" not in source
     assert "hitl_notification_service" not in store_source
+    assert "import chief_env" not in "\n".join(
+        Path("hitl_notification_service.py").read_text(encoding="utf-8").splitlines()[:40]
+    )
     assert "/home/openclaw_external/openclaw-runtime" not in store_source
-    assert "hitl_notification_service" not in sys.modules

@@ -47,7 +47,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import chief_env
 import hitl_action_service as _svc
 from hitl_pending_store import WAITING_FOR_APPROVAL
 
@@ -75,6 +74,8 @@ def _notify_secret() -> bytes:
     fallback is intentionally weak — set HITL_NOTIFY_SECRET in .chief.env for
     production use.
     """
+    import chief_env
+
     chief_env.load_env()
     secret = os.environ.get("HITL_NOTIFY_SECRET", "")
     if not secret:

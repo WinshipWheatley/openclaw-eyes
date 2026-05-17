@@ -13,6 +13,7 @@ Cassandra HITL pending-action proposals and decisions can now be mirrored into S
 - Legacy state authority: `hitl_pending_state_json`
 - Proposal shadow support: `true`
 - Decision receipt shadow support: `true`
+- Callback decision shadow support: `true`
 - Legacy JSON authoritative: `true`
 - Callers switched: `false`
 - Old HITL deleted: `false`
@@ -32,9 +33,10 @@ Cassandra HITL pending-action proposals and decisions can now be mirrored into S
 
 - No Cassandra HITL proposal shadows recorded yet.
 
-## Still Blocked
+## Remaining Gates
 
-- Cassandra/Chief memory import safe now: `false`
+- Cassandra/Chief memory import safe now: `true`
+- Real data import still requires the operator-approved memory import decision receipt.
 - Remote-builder bridge safe now: `false`
 - Send-path expansion safe now: `false`
 

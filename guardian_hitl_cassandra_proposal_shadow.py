@@ -61,7 +61,8 @@ NO_AUTHORITY_FLAGS = {
     "can_approve": False,
     "can_execute": False,
     "notification_send_added": False,
-    "callback_decision_shadow_added": False,
+    "callback_decision_shadow_added": True,
+    "callback_decision_shadow_support": True,
     "repo_b_execution_allowed": False,
     "repo_b_code_imported": False,
     "telegram_send_added": False,
@@ -845,6 +846,10 @@ WHERE source_surface = ? AND receipt_type = 'legacy_sqlite_mismatch'
     proposal_shadow_count = len(requests)
     receipt_count = len(receipts)
     unsafe_payload_key_count = sum(int(row.get("unsafe_context_key_count") or 0) for row in requests)
+    safe_to_import_cassandra_chief_memory = bool(
+        mismatch_count == 0
+        and NO_AUTHORITY_FLAGS["callback_decision_shadow_support"] is True
+    )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -856,6 +861,7 @@ WHERE source_surface = ? AND receipt_type = 'legacy_sqlite_mismatch'
         "legacy_state_authority": LEGACY_STATE_AUTHORITY,
         "proposal_shadow_support": True,
         "decision_receipt_shadow_support": True,
+        "callback_decision_shadow_support": True,
         "runtime_authority_changed": False,
         "runtime_authority": False,
         "dual_write_enabled": True,
@@ -873,7 +879,7 @@ WHERE source_surface = ? AND receipt_type = 'legacy_sqlite_mismatch'
         "mismatch_count": mismatch_count,
         "unsafe_payload_key_count": unsafe_payload_key_count,
         "adapter_health": "healthy" if mismatch_count == 0 else "needs_review",
-        "safe_to_import_cassandra_chief_memory": False,
+        "safe_to_import_cassandra_chief_memory": safe_to_import_cassandra_chief_memory,
         "safe_to_enable_remote_builder": False,
         "safe_to_expand_send_paths": False,
         "tables": [
@@ -884,8 +890,15 @@ WHERE source_surface = ? AND receipt_type = 'legacy_sqlite_mismatch'
         "recent_proposal_shadows": requests[:20],
         "legacy_authority_refs": legacy_refs,
         "recent_receipts": receipts[:20],
-        "boundaries": dict(NO_AUTHORITY_FLAGS),
-        "next_safe_move": "Record the operator-approved Cassandra/Chief memory import decision receipt; do not import real data until that receipt exists.",
+        "boundaries": {
+            **NO_AUTHORITY_FLAGS,
+            "safe_to_import_cassandra_chief_memory": safe_to_import_cassandra_chief_memory,
+        },
+        "next_safe_move": (
+            "Record the operator-approved Cassandra/Chief memory import decision receipt; do not import real data until that receipt exists."
+            if safe_to_import_cassandra_chief_memory
+            else "Resolve Cassandra HITL shadow mismatches before memory import approval."
+        ),
     }
 
 
@@ -906,6 +919,7 @@ def format_guardian_hitl_cassandra_proposal_shadow_read_model(payload: dict[str,
         f"- Legacy state authority: `{payload['legacy_state_authority']}`",
         f"- Proposal shadow support: `{str(payload['proposal_shadow_support']).lower()}`",
         f"- Decision receipt shadow support: `{str(payload['decision_receipt_shadow_support']).lower()}`",
+        f"- Callback decision shadow support: `{str(payload['callback_decision_shadow_support']).lower()}`",
         f"- Legacy JSON authoritative: `{str(payload['legacy_json_authoritative']).lower()}`",
         f"- Callers switched: `{str(payload['caller_switched']).lower()}`",
         f"- Old HITL deleted: `{str(payload['old_hitl_deleted']).lower()}`",
@@ -935,9 +949,10 @@ def format_guardian_hitl_cassandra_proposal_shadow_read_model(payload: dict[str,
     lines.extend(
         [
             "",
-            "## Still Blocked",
+            "## Remaining Gates",
             "",
             f"- Cassandra/Chief memory import safe now: `{str(payload['safe_to_import_cassandra_chief_memory']).lower()}`",
+            "- Real data import still requires the operator-approved memory import decision receipt.",
             f"- Remote-builder bridge safe now: `{str(payload['safe_to_enable_remote_builder']).lower()}`",
             f"- Send-path expansion safe now: `{str(payload['safe_to_expand_send_paths']).lower()}`",
             "",
@@ -975,6 +990,7 @@ def export_guardian_hitl_cassandra_proposal_shadow_read_model(
         "proposal_shadow_count": payload["proposal_shadow_count"],
         "decision_receipt_count": payload["decision_receipt_count"],
         "mismatch_count": payload["mismatch_count"],
+        "safe_to_import_cassandra_chief_memory": payload["safe_to_import_cassandra_chief_memory"],
         "adapter_health": payload["adapter_health"],
         "runtime_authority_changed": payload["runtime_authority_changed"],
         "caller_switched": payload["caller_switched"],
