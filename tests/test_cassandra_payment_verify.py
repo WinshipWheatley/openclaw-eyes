@@ -2,6 +2,7 @@ import copy
 import os
 import sys
 import json
+from datetime import datetime, timedelta
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -622,6 +623,8 @@ def test_build_context_snapshot_ignores_stale_relative_day_noise(tmp_path, monke
     import cassandra_brain
     import chief_cpa_brain
 
+    old_stamp = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+    recent_stamp = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
     actions_path = tmp_path / "Ops Actions.md"
     payments_path = tmp_path / "Ops Payment Follow-ups.md"
     actions_path.write_text(
@@ -629,8 +632,8 @@ def test_build_context_snapshot_ignores_stale_relative_day_noise(tmp_path, monke
             [
                 "# Ops Actions",
                 "type: ops-log",
-                "- [2026-03-17 21:02:34] golf with dad tomorrow, pickup 8:15",
-                "- [2026-04-05 06:30:00] tomorrow cleaning company at 9:30",
+                f"- [{old_stamp}] golf with dad tomorrow, pickup 8:15",
+                f"- [{recent_stamp}] tomorrow cleaning company at 9:30",
             ]
         ),
         encoding="utf-8",
@@ -639,7 +642,7 @@ def test_build_context_snapshot_ignores_stale_relative_day_noise(tmp_path, monke
         "\n".join(
             [
                 "# Ops Payment",
-                "- [2026-03-17 20:08:59] sent follow-up email to Capital Hilton, deposit not received",
+                f"- [{recent_stamp}] sent follow-up email to Capital Hilton, deposit not received",
             ]
         ),
         encoding="utf-8",
@@ -656,7 +659,7 @@ def test_build_context_snapshot_ignores_stale_relative_day_noise(tmp_path, monke
     assert "Relative date anchors:" in snapshot
     assert "yesterday is" in snapshot
     assert "tomorrow is" in snapshot
-    assert "[2026-03-17 21:02:34] golf with dad tomorrow, pickup 8:15" not in snapshot.lower()
+    assert f"[{old_stamp}] golf with dad tomorrow, pickup 8:15" not in snapshot.lower()
     assert "one-off historical event" in snapshot.lower()
     assert "type: ops-log" not in snapshot.lower()
     assert "No income logged in last 48 hours." not in snapshot

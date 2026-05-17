@@ -39,6 +39,10 @@ from cassandra_mode import (
     SOCIAL_LOCK_PATH,
 )
 from cassandra_capability import capability_context, gate_reply
+from cassandra_date_awareness import (
+    answer_date_awareness_query,
+    build_authoritative_date_context,
+)
 from cassandra_email_config import get_review_inbox
 from finance_state import (
     build_finance_snapshot,
@@ -1203,8 +1207,8 @@ def _known_payment_status_reply(query: str) -> str | None:
     return reply or None
 
 
-def _time_label() -> str:
-    h = datetime.now().hour
+def _time_label(now: datetime | None = None) -> str:
+    h = (now or datetime.now()).hour
     if h < 6:   return "very early morning (before 6am)"
     if h < 9:   return "early morning"
     if h < 12:  return "morning"
@@ -1222,7 +1226,7 @@ def _build_temporal_anchor(now: datetime) -> str:
     today = local_now.date()
     tomorrow = today + timedelta(days=1)
     return (
-        f"Time: {_time_label()} ({local_now.strftime('%Y-%m-%d %H:%M')}, {tz_label})\n"
+        f"Time: {_time_label(local_now)} ({local_now.strftime('%Y-%m-%d %H:%M')}, {tz_label})\n"
         "Relative date anchors: "
         f"yesterday is {yesterday.strftime('%Y-%m-%d')} ({yesterday.strftime('%A')}); "
         f"today is {today.strftime('%Y-%m-%d')} ({today.strftime('%A')}); "
@@ -5582,6 +5586,12 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     # Always initialize state for logging and saving
     state = load_state()
 
+    date_awareness_reply = answer_date_awareness_query(query)
+    if date_awareness_reply is not None:
+        save_state(state)
+        _log_conversation(text, [date_awareness_reply], route="date_awareness", metadata={"event_id": event_id})
+        return [date_awareness_reply]
+
     # Check for email capability in the packet
     has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
 
@@ -5948,6 +5958,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     )
 
     prompt = (
+        f"{build_authoritative_date_context()}\n\n"
         f"{persona}\n"
         f"Current context:\n{context}\n\n"
         f"{capability_context()}\n\n"
