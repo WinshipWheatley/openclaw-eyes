@@ -62,11 +62,11 @@ CONTACT_CANDIDATES = (
         "contact_name": "Annette Sunga",
         "organization": "Capital Hilton / Capitol Hilton",
         "role": "Finance/AP contact",
-        "email": None,
+        "email": "Annette.Sunga@hilton.com",
         "confidence": "operator_supplied_candidate",
         "source_basis": "operator_prompt:capital_hilton_cassandra_finance_fact_intake_v0",
-        "allowed_use": "email_draft_recipient_candidate_needs_email_review",
-        "missing_item": "Annette Sunga email is missing if Annette is selected as To recipient.",
+        "allowed_use": "to_candidate_pending_review",
+        "missing_item": None,
     },
     {
         "contact_name": "Chyna Hardin",
@@ -660,6 +660,24 @@ WHERE packet_id = ?
         )
         card_count = _upsert_work_board_cards(conn, now=now)
         missing_count = _missing_count(conn)
+        packet_status = "ready_for_draft_review" if missing_count == 0 else "blocked_missing_info"
+        packet_next_safe_move = (
+            "Review Clara draft email, contact posture, receivable posture, and portal instructions; no send, submit, upload, or credential use is authorized."
+            if missing_count == 0
+            else "Operator supplies the remaining governed Capital Hilton invoice facts before draft review."
+        )
+        conn.execute(
+            """
+UPDATE finance_invoice_packets
+SET status = ?,
+    next_safe_move = ?,
+    financial_truth_claimed = 0,
+    send_allowed = 0,
+    updated_at = ?
+WHERE packet_id = ?
+""".strip(),
+            (packet_status, packet_next_safe_move, now, CAPITAL_HILTON_PACKET_ID),
+        )
         conn.execute(
             """
 UPDATE capital_hilton_fact_intake_runs
@@ -808,6 +826,24 @@ def ingest_capital_hilton_invoice_facts(
         )
         card_count = _upsert_work_board_cards(conn, now=now)
         missing_count = _missing_count(conn)
+        packet_status = "ready_for_draft_review" if missing_count == 0 else "blocked_missing_info"
+        packet_next_safe_move = (
+            "Review Clara draft email, contact posture, receivable posture, and portal instructions; no send, submit, upload, or credential use is authorized."
+            if missing_count == 0
+            else "Operator supplies the remaining governed Capital Hilton invoice facts before draft review."
+        )
+        conn.execute(
+            """
+UPDATE finance_invoice_packets
+SET status = ?,
+    next_safe_move = ?,
+    financial_truth_claimed = 0,
+    send_allowed = 0,
+    updated_at = ?
+WHERE packet_id = ?
+""".strip(),
+            (packet_status, packet_next_safe_move, now, CAPITAL_HILTON_PACKET_ID),
+        )
         conn.execute(
             """
 UPDATE capital_hilton_fact_intake_runs
@@ -854,6 +890,14 @@ def _facts_to_message(facts: dict[str, str | bool | None]) -> str:
 
 def _seed_contacts(conn: sqlite3.Connection, *, now: str) -> None:
     for contact in CONTACT_CANDIDATES:
+        if contact["contact_name"] == "Annette Sunga" and contact.get("email"):
+            conn.execute(
+                """
+DELETE FROM capital_hilton_contact_candidates
+WHERE packet_id = ? AND contact_name = 'Annette Sunga' AND email IS NULL
+""".strip(),
+                (CAPITAL_HILTON_PACKET_ID,),
+            )
         conn.execute(
             """
 INSERT OR REPLACE INTO capital_hilton_contact_candidates (
@@ -893,6 +937,14 @@ INSERT OR REPLACE INTO capital_hilton_contact_candidates (
                 blocker_level="blocks_send",
                 next_safe_move="Operator confirms Annette Sunga's email or chooses a different reviewed recipient.",
                 now=now,
+            )
+        elif contact["contact_name"] == "Annette Sunga" and contact.get("email"):
+            conn.execute(
+                """
+DELETE FROM finance_invoice_packet_missing_items
+WHERE packet_id = ? AND description LIKE 'Annette Sunga email is missing%'
+""".strip(),
+                (CAPITAL_HILTON_PACKET_ID,),
             )
     _insert_finance_fact(
         conn,
@@ -975,10 +1027,10 @@ ON CONFLICT(board_id) DO UPDATE SET updated_at = excluded.updated_at
         (
             "capital_hilton_fact_intake:contact_review",
             "Capital Hilton recipient/contact review needed",
-            "Annette, Chyna, and Lawrence/Will are stored as contact candidates only; Annette email is still missing.",
+            "Annette, Chyna, and Lawrence/Will are stored as contact candidates only; no external send is authorized.",
             "needs_review",
             "contact_candidates_pending_review",
-            "Operator confirms To/CC list and Annette email before any external draft is used.",
+            "Operator confirms To/CC list before any external draft is used.",
         ),
         (
             "capital_hilton_fact_intake:portal_prompt_pending",
@@ -1123,15 +1175,17 @@ ORDER BY CASE blocker_level WHEN 'blocks_packet' THEN 0 WHEN 'blocks_invoice_dra
 
 def _render_draft_email(conn: sqlite3.Connection) -> str:
     contacts = _contact_rows(conn)
+    annette = next((row for row in contacts if row["contact_name"] == "Annette Sunga"), None)
     chyna = next((row for row in contacts if row["contact_name"] == "Chyna Hardin"), None)
     lawrence = next((row for row in contacts if row["contact_name"] == "Lawrence / Will Valcovic"), None)
+    to_line = annette["email"] if annette and annette.get("email") else "[MISSING - confirm Annette Sunga email or alternate recipient]"
     cc_parts = [row["email"] for row in (chyna, lawrence) if row and row.get("email")]
     cc_line = "; ".join(cc_parts) if cc_parts else "[MISSING - confirm CC]"
     selected = _latest_selected_spreadsheet(conn)
     selected_line = selected["filename"] if selected else "[MISSING - confirm spreadsheet selection]"
     return f"""# Capital Hilton Draft Email - Review Only, Do Not Send
 
-To: [MISSING - confirm Annette Sunga email or alternate recipient]
+To: [PENDING REVIEW - {to_line}]
 CC: [PENDING REVIEW - {cc_line}]
 From/Remit email context: winshiplive@gmail.com
 External preparer identity: {EXTERNAL_PERSONA}

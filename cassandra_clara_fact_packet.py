@@ -281,11 +281,37 @@ def _required_status(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return statuses
 
 
+def _invoice_facts_used(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    lookup = _fact_lookup(facts)
+    used = []
+    for field_name, label in REQUIRED_FIELDS:
+        fact = _field_fact(lookup, field_name)
+        if not fact:
+            continue
+        used.append(
+            {
+                "field_name": field_name,
+                "display_name": label,
+                "value_text": fact["value_text"],
+                "fact_id": fact["fact_id"],
+                "source_kind": fact["source_kind"],
+                "source_ref": fact["source_ref"],
+                "evidence_status": "parsed_evidence_not_truth",
+                "trust_status": "needs_operator_confirmation",
+                "no_send_authority": True,
+                "no_runtime_authority": True,
+                "approval_required": True,
+            }
+        )
+    return used
+
+
 def _artifact_paths(root: Path) -> dict[str, Path]:
     return {
         "missing_facts": root / "CAPITAL_HILTON_MISSING_FACTS_PACKET.md",
         "contact_review": root / "CAPITAL_HILTON_CONTACT_REVIEW.md",
         "draft_email": root / "CAPITAL_HILTON_CLARA_DRAFT_EMAIL_REVIEW_ONLY.md",
+        "portal_instructions": root / "CAPITAL_HILTON_PORTAL_FILL_INSTRUCTIONS_REVIEW_ONLY.md",
         "receivable_review": root / "CAPITAL_HILTON_RECEIVABLE_REVIEW.md",
         "manifest": root / "MANIFEST.json",
     }
@@ -308,6 +334,12 @@ def _render_missing_facts(payload: dict[str, Any]) -> str:
     else:
         for item in missing:
             lines.append(f"- `{item['field_name']}`: {item['display_name']} -> {item['next_safe_move']}")
+    lines.extend(["", "## Invoice Facts Used"])
+    if not payload.get("invoice_facts_used"):
+        lines.append("- None.")
+    else:
+        for item in payload["invoice_facts_used"]:
+            lines.append(f"- `{item['field_name']}`: {item['value_text']}")
     lines.extend(
         [
             "",
@@ -358,6 +390,10 @@ def _render_draft_email(payload: dict[str, Any]) -> str:
     po_numbers = value("po_numbers", "[MISSING PO number(s) or explicit none]")
     portal = value("supplier_portal_reference", "[MISSING portal reference]")
     attachment = value("invoice_attachment_output_path", "[MISSING attachment/output path]")
+    clara_note = value(
+        "clara_draft_note",
+        f"{EXTERNAL_PERSONA} is preparing this for operator review and should not independently sign, send, or submit it.",
+    )
 
     return f"""# Clara Reid Draft Email - Capital Hilton - Review Only, Do Not Send
 
@@ -367,6 +403,8 @@ Subject: Capital Hilton invoice review - [operator approval required]
 Hi [CONFIRM NAME],
 
 I am preparing the Capital Hilton invoice packet for review.
+
+Note: {clara_note}
 
 Governed facts currently available:
 - Service dates: {dates[0]}; {dates[1]}
@@ -382,6 +420,39 @@ Best,
 {EXTERNAL_PERSONA}
 
 Boundary: review-only draft. Do not send, submit, upload, attach, or treat these parsed facts as truth until operator confirmation.
+"""
+
+
+def _render_portal_instructions(payload: dict[str, Any]) -> str:
+    lookup = _fact_lookup(payload["governed_facts"])
+
+    def value(field_name: str, fallback: str) -> str:
+        fact = _field_fact(lookup, field_name)
+        return fact["value_text"] if fact else fallback
+
+    return f"""# Capital Hilton Portal Fill Instructions - Review Only, No Submit
+
+Purpose: prepare what the operator must review before any Coupa/Supplier portal work. This file does not authorize a browser session, credential use, upload, save, or submit.
+
+Known governed facts:
+- Service date 1: {value("tonight_gig_date", "[MISSING]")}
+- Service date 2: {value("last_friday_gig_date", "[MISSING]")}
+- Rate/amount per gig: {value("rate_or_amount_per_gig", "[MISSING]")}
+- Invoice grouping: {value("invoice_count_preference", "[MISSING]")}
+- PO reference: {value("po_numbers", "[MISSING]")}
+- Billing/remit: {value("billing_remit_details", "[MISSING]")}
+- Recipient/CC posture: {value("recipient_decision", "[MISSING]")}
+- Supplier portal reference: {value("supplier_portal_reference", "[MISSING]")}
+- Invoice output/attachment posture: {value("invoice_attachment_output_path", "[MISSING]")}
+
+Stop rules:
+- Do not log in to Coupa or any supplier portal.
+- Do not use or store credentials.
+- Do not read spreadsheet cells or parse workbook formulas.
+- Do not upload, save, submit, email, or create a payable invoice.
+- Stop if the PO number or invoice amount cannot be confirmed by approved evidence/operator review.
+
+Next safe move: operator reviews these facts, confirms missing/unknown portal details, then approves a separate bounded portal-review lane if needed.
 """
 
 
@@ -412,6 +483,7 @@ def _write_artifacts(payload: dict[str, Any], artifact_root: str | Path) -> dict
     paths["missing_facts"].write_text(_render_missing_facts(payload), encoding="utf-8")
     paths["contact_review"].write_text(_render_contact_review(payload), encoding="utf-8")
     paths["draft_email"].write_text(_render_draft_email(payload), encoding="utf-8")
+    paths["portal_instructions"].write_text(_render_portal_instructions(payload), encoding="utf-8")
     paths["receivable_review"].write_text(_render_receivable_review(payload), encoding="utf-8")
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -443,6 +515,7 @@ def build_cassandra_clara_fact_packet(
         conn.close()
 
     required_status = _required_status(facts)
+    invoice_facts_used = _invoice_facts_used(facts)
     missing_required = [item for item in required_status if not item["present"]]
     usable = not missing_required
     packet_kind = "capital_hilton_review_packet" if usable else "capital_hilton_missing_facts_packet"
@@ -466,6 +539,7 @@ def build_cassandra_clara_fact_packet(
         "contact_candidate_count": len(contacts),
         "required_fact_status": required_status,
         "missing_required_fields": missing_required,
+        "invoice_facts_used": invoice_facts_used,
         "governed_facts": facts,
         "contact_candidates": contacts,
         "sqlite_missing_items": missing_rows,
@@ -513,6 +587,12 @@ def format_cassandra_clara_fact_packet(payload: dict[str, Any]) -> str:
     else:
         for item in missing:
             lines.append(f"- `{item['field_name']}`: {item['display_name']}")
+    lines.extend(["", "## Invoice Facts Used"])
+    if not payload.get("invoice_facts_used"):
+        lines.append("- None.")
+    else:
+        for item in payload["invoice_facts_used"]:
+            lines.append(f"- `{item['field_name']}`: {item['value_text']}")
     lines.extend(
         [
             "",

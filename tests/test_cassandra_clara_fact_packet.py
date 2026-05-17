@@ -147,6 +147,7 @@ def test_complete_fact_set_creates_usable_review_packet_without_authority(tmp_pa
     assert payload["packet_kind"] == "capital_hilton_review_packet"
     assert payload["usable_capital_hilton_review_packet"] is True
     assert payload["missing_required_fact_count"] == 0
+    assert len(payload["invoice_facts_used"]) == len(packet.REQUIRED_FIELDS)
     assert payload["next_safe_lane"] == "Capital Hilton Invoice Review Packet Approval v0"
     assert payload["send_authority_granted"] is False
     assert payload["runtime_authority_changed"] is False
@@ -158,8 +159,12 @@ def test_complete_fact_set_creates_usable_review_packet_without_authority(tmp_pa
         assert fact["no_send_authority"] is True
         assert fact["no_runtime_authority"] is True
     draft = (tmp_path / "artifacts" / "CAPITAL_HILTON_CLARA_DRAFT_EMAIL_REVIEW_ONLY.md").read_text(encoding="utf-8")
+    portal = (tmp_path / "artifacts" / "CAPITAL_HILTON_PORTAL_FILL_INSTRUCTIONS_REVIEW_ONLY.md").read_text(encoding="utf-8")
     assert "Clara Reid" in draft
     assert "Do not send" in draft
+    assert "Do not log in to Coupa" in portal
+    assert "Do not use or store credentials" in portal
+    assert "Do not read spreadsheet cells" in portal
 
 
 def test_export_writes_json_operator_and_review_artifacts(tmp_path):
@@ -181,7 +186,9 @@ def test_export_writes_json_operator_and_review_artifacts(tmp_path):
     assert payload["schema_version"] == packet.SCHEMA_VERSION
     assert payload["raw_data_imported"] is False
     assert payload["boundaries"]["email_send_allowed"] is False
+    assert "invoice_facts_used" in payload
     assert "Cassandra/Clara Fact Packet v0" in rendered
+    assert "Invoice Facts Used" in rendered
     assert Path(tmp_path / "artifacts" / "MANIFEST.json").is_file()
 
 

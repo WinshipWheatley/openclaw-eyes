@@ -168,7 +168,7 @@ ORDER BY created_at DESC
     assert all(row["cell_read_allowed"] == 0 and row["raw_body_read_allowed"] == 0 and row["workbook_parsing_allowed"] == 0 for row in evidence)
 
 
-def test_contacts_are_pending_review_and_annette_email_remains_missing(tmp_path):
+def test_contacts_are_pending_review_and_annette_email_is_not_send_authority(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     _prepare_packet(db_path, tmp_path / "artifacts")
 
@@ -196,12 +196,12 @@ ORDER BY contact_name
     assert result.contact_candidate_count == 3
     assert {row["contact_name"] for row in contacts} == {"Annette Sunga", "Chyna Hardin", "Lawrence / Will Valcovic"}
     annette = next(row for row in contacts if row["contact_name"] == "Annette Sunga")
-    assert annette["email"] is None
-    assert annette["allowed_use"] == "email_draft_recipient_candidate_needs_email_review"
+    assert annette["email"] == "Annette.Sunga@hilton.com"
+    assert annette["allowed_use"] == "to_candidate_pending_review"
     assert all(row["external_send_allowed"] == 0 for row in contacts)
     assert all(row["operator_approval_required"] == 1 for row in contacts)
     assert all(row["verified"] == 0 for row in contacts)
-    assert any("Annette Sunga email is missing" in row["description"] for row in missing)
+    assert not any("Annette Sunga email is missing" in row["description"] for row in missing)
 
 
 def test_cassandra_fact_update_uses_governed_storage_not_loose_files(tmp_path):
@@ -262,7 +262,7 @@ def test_artifacts_use_clara_reid_and_keep_external_draft_clean(tmp_path):
     assert "Clara Reid" in draft
     assert "Best,\nClara Reid" in draft
     assert "Cassandra" not in draft
-    assert "To: [MISSING - confirm Annette Sunga email" in draft
+    assert "To: [PENDING REVIEW - Annette.Sunga@hilton.com]" in draft
     assert SELECTED_SPREADSHEET in draft
     assert "Do not submit until the operator explicitly approves" in portal
     assert "Do not read spreadsheet cells." in portal
