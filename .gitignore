@@ -61,6 +61,7 @@
 !governed_intake_spine.py
 !estate_read_model.py
 !active_machinery_classification_orchestrator.py
+!active_machinery_gemini_verification.py
 !tool_inventory.py
 !tool_intake.py
 !local_automation_registry.py
@@ -677,6 +678,7 @@
 !scripts/build_context_packet.py
 !scripts/export_capital_hilton_review_packet_approval.py
 !scripts/build_active_machinery_classification_orchestrator.py
+!scripts/verify_active_machinery_gemini_output.py
 !scripts/query_context_selection.py
 !scripts/build_root_manifest.py
 !scripts/import_root_manifest.py
@@ -718,6 +720,7 @@
 !tests/test_operator_action_inbox.py
 !tests/test_capital_hilton_review_packet_approval.py
 !tests/test_active_machinery_classification_orchestrator.py
+!tests/test_active_machinery_gemini_verification.py
 !tests/test_local_automation_registry.py
 !tests/test_local_service_manager.py
 !tests/test_windows_read_model_import_task.py
