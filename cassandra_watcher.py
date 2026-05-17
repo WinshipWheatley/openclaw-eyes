@@ -39,6 +39,7 @@ from cassandra_brain import (
 from cassandra_sender import send_message as _telegram_send
 from chief_output_utils import tts_clean
 from cassandra_voice import speak
+from cassandra_no_send_reload_guard import is_no_send_reload_guard_enabled
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
@@ -178,32 +179,44 @@ def _evaluate() -> tuple[str, str] | None:
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
+def _tick_once(last_ambient_eval_at: float) -> float:
+    if is_no_send_reload_guard_enabled():
+        print(
+            "[cassandra_watcher] no-send reload guard active; skipping watcher tick",
+            flush=True,
+        )
+        return last_ambient_eval_at
+
+    _restart_if_sources_changed()
+    process_pending_followups()
+    process_inbound_email_replies()
+    _dispatch_future_actions()
+    now_ts = time.time()
+    if (
+        now_ts - last_ambient_eval_at >= AMBIENT_EVAL_INTERVAL_S
+        and not is_focus_mode()
+        and not is_social_mode()
+    ):
+        state = load_state()
+        if chirp_allowed("any", state):
+            candidate = _evaluate()
+            if candidate:
+                chirp_type, message = candidate
+                if not chirp_allowed(chirp_type, state):
+                    return last_ambient_eval_at
+                _send(message)
+                log_chirp(chirp_type, state)
+                save_state(state)
+        last_ambient_eval_at = now_ts
+    return last_ambient_eval_at
+
+
 def run_loop() -> None:
     print("[cassandra_watcher] started.", flush=True)
     last_ambient_eval_at = 0.0
     while True:
         try:
-            _restart_if_sources_changed()
-            process_pending_followups()
-            process_inbound_email_replies()
-            _dispatch_future_actions()
-            now_ts = time.time()
-            if (
-                now_ts - last_ambient_eval_at >= AMBIENT_EVAL_INTERVAL_S
-                and not is_focus_mode()
-                and not is_social_mode()
-            ):
-                state = load_state()
-                if chirp_allowed("any", state):
-                    candidate = _evaluate()
-                    if candidate:
-                        chirp_type, message = candidate
-                        if not chirp_allowed(chirp_type, state):
-                            continue
-                        _send(message)
-                        log_chirp(chirp_type, state)
-                        save_state(state)
-                last_ambient_eval_at = now_ts
+            last_ambient_eval_at = _tick_once(last_ambient_eval_at)
         except Exception as e:
             print(f"[cassandra_watcher] error: {e}", flush=True)
 

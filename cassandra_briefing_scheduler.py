@@ -38,6 +38,7 @@ from cassandra_briefing_brain import (
 )
 from cassandra_sender import send_message
 from cassandra_voice import speak_and_send_voice_note
+from cassandra_no_send_reload_guard import is_no_send_reload_guard_enabled
 
 POLL_INTERVAL = 300  # 5 minutes
 _RELOAD_PATHS = (
@@ -120,6 +121,13 @@ def _deliver(entry: dict) -> None:
 # ── Main tick ─────────────────────────────────────────────────────────────────
 
 def _tick() -> None:
+    if is_no_send_reload_guard_enabled():
+        print(
+            "[briefing_scheduler] no-send reload guard active; skipping scheduler tick",
+            flush=True,
+        )
+        return
+
     _restart_if_sources_changed()
     # 1. Generate any slots that are newly due
     for slot in due_slots():
