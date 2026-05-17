@@ -60,6 +60,7 @@
 !bundle_blueprint_planner.py
 !governed_intake_spine.py
 !estate_read_model.py
+!active_machinery_classification_orchestrator.py
 !tool_inventory.py
 !tool_intake.py
 !local_automation_registry.py
@@ -675,6 +676,7 @@
 !scripts/update_project_capsule_modules.py
 !scripts/build_context_packet.py
 !scripts/export_capital_hilton_review_packet_approval.py
+!scripts/build_active_machinery_classification_orchestrator.py
 !scripts/query_context_selection.py
 !scripts/build_root_manifest.py
 !scripts/import_root_manifest.py
@@ -715,6 +717,7 @@
 !tests/test_operator_action.py
 !tests/test_operator_action_inbox.py
 !tests/test_capital_hilton_review_packet_approval.py
+!tests/test_active_machinery_classification_orchestrator.py
 !tests/test_local_automation_registry.py
 !tests/test_local_service_manager.py
 !tests/test_windows_read_model_import_task.py
@@ -761,3 +764,10 @@
 !generated/full_suite_failure_baselines/
 !generated/full_suite_failure_baselines/*.json
 !generated/full_suite_failure_baselines/*.md
+!generated/audit_shards/
+!generated/audit_shards/active_machinery_v0/
+!generated/audit_shards/active_machinery_v0/*.json
+!generated/audit_shards/active_machinery_v0/shards/
+!generated/audit_shards/active_machinery_v0/shards/*.json
+!generated/audit_shards/active_machinery_v0/mock_worker_outputs/
+!generated/audit_shards/active_machinery_v0/mock_worker_outputs/*.json
