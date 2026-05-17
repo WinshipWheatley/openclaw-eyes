@@ -1,0 +1,392 @@
+{
+  "blocked_lanes": [
+    {
+      "blocked_by": "HITL decision/proposal receipt proof and operator category approval",
+      "lane": "Cassandra/Chief memory import"
+    },
+    {
+      "blocked_by": "Exact packet binding, Guardian receipt proof, and explicit operator approval",
+      "lane": "Remote-builder bridge implementation"
+    },
+    {
+      "blocked_by": "Send packet schema, recipient/body hash binding, and explicit approval",
+      "lane": "Send-path expansion"
+    },
+    {
+      "blocked_by": "No-go roots, metadata-only dry-run, rollback plan, and operator review",
+      "lane": "Broad hard-drive/cloud ingest"
+    },
+    {
+      "blocked_by": "Request/decision/notification/expiry/mismatch receipt parity and operator approval",
+      "lane": "Caller switch from old HITL JSON to SQLite"
+    }
+  ],
+  "cleanup_backlog": [
+    {
+      "classification": "dirty_generated_volatile_snapshot",
+      "path": "generated/read_models/agent_presence.json",
+      "recommendation": "regenerate_or_rework_before_commit",
+      "risk": "could preserve stale Cassandra online/receive claims"
+    },
+    {
+      "classification": "dirty_generated_volatile_snapshot",
+      "path": "generated/read_models/agent_presence_OPERATOR.md",
+      "recommendation": "regenerate_or_rework_before_commit",
+      "risk": "could mislead operator about live readiness"
+    },
+    {
+      "classification": "local_residue_candidate",
+      "path": "polish_loop/tasks/chief-cassandra-failure-20260513T234214.md",
+      "recommendation": "delete_only_in_explicit_cleanup_lane",
+      "risk": "committing preserves obsolete task noise; deleting now could lose breadcrumb evidence"
+    },
+    {
+      "classification": "local_residue_candidate",
+      "path": "polish_loop/tasks/chief-cassandra-failure-20260513T235844.md",
+      "recommendation": "delete_only_in_explicit_cleanup_lane",
+      "risk": "committing preserves obsolete task noise; deleting now could lose breadcrumb evidence"
+    }
+  ],
+  "critical_path": [
+    {
+      "blocked_by": [],
+      "expected_output": "Decision receipt rows/read-models; runtime authority unchanged.",
+      "goal": "Mirror Chief approval decisions, denials, expiry, and mismatch outcomes into SQLite observational receipts without switching callers.",
+      "lane": "Guardian HITL Decision Receipt Shadow v0",
+      "rank": 1
+    },
+    {
+      "blocked_by": [
+        "Guardian HITL Decision Receipt Shadow v0"
+      ],
+      "expected_output": "Operator proof packet and explicit transition criteria.",
+      "goal": "Prove request, decision, timeout, and mismatch receipt equivalence under synthetic tests.",
+      "lane": "Guardian HITL Dual-Write Receipt Proof v0",
+      "rank": 2
+    },
+    {
+      "blocked_by": [
+        "Guardian HITL Dual-Write Receipt Proof v0"
+      ],
+      "expected_output": "Sanitized proposal request mirrors and no-send/no-runtime receipts.",
+      "goal": "Mirror Cassandra HITL proposal records as sanitized observational records without raw payload storage.",
+      "lane": "Cassandra HITL Proposal Shadow v0",
+      "rank": 3
+    },
+    {
+      "blocked_by": [
+        "Chief and Cassandra request/decision/proposal mirror proof"
+      ],
+      "expected_output": "Readiness packet for future caller-switch work.",
+      "goal": "Define when callers may switch and when old JSON can later retire.",
+      "lane": "HITL Transition Criteria Review v0",
+      "rank": 4
+    },
+    {
+      "blocked_by": [
+        "HITL proof posture"
+      ],
+      "expected_output": "Approved category list for future import.",
+      "goal": "Operator approves structured memory categories before real import.",
+      "lane": "Cassandra/Chief Memory Import Approval Review v0",
+      "rank": 5
+    },
+    {
+      "blocked_by": [
+        "operator approval",
+        "HITL proof posture"
+      ],
+      "expected_output": "SQLite facts with source refs, trust/evidence status, no-send/no-runtime flags.",
+      "goal": "Import approved structured facts only; keep messy sources evidence-only or deferred.",
+      "lane": "Cassandra/Chief Structured Fact Import v0",
+      "rank": 6
+    },
+    {
+      "blocked_by": [
+        "structured fact import"
+      ],
+      "expected_output": "Reviewable packets; no external send.",
+      "goal": "Generate governed fact packets from SQLite for contact, invoice, and email drafting.",
+      "lane": "Cassandra/Clara Fact Packet Generation v0",
+      "rank": 7
+    },
+    {
+      "blocked_by": [
+        "operator finance facts",
+        "fact packet generation if needed"
+      ],
+      "expected_output": "Updated finance/AP packet, Work Board cards, no-send draft context.",
+      "goal": "Complete missing facts and packet posture from approved evidence.",
+      "lane": "Capital Hilton Invoice Packet Completion v0",
+      "rank": 8
+    },
+    {
+      "blocked_by": [
+        "HITL parity",
+        "draft packets"
+      ],
+      "expected_output": "Spec/readiness packet; sends remain blocked.",
+      "goal": "Define exact email/Telegram send packet approval contract.",
+      "lane": "Send-Path Approval Packet Spec v0",
+      "rank": 9
+    },
+    {
+      "blocked_by": [
+        "approved send packet contract",
+        "operator approval"
+      ],
+      "expected_output": "Bounded approved workflow if explicitly authorized.",
+      "goal": "Implement a bounded approved draft/send workflow only after exact packet and receipt contracts exist.",
+      "lane": "Cassandra/Clara Approved Draft/Send Lane",
+      "rank": 10
+    }
+  ],
+  "data_imported": false,
+  "generated_by": "codex",
+  "mission_control_recommendations": [
+    "show module, bundle, and estate posture from generated read-models",
+    "show HITL authority posture with observational versus authoritative labels",
+    "show Cassandra/Chief readiness and memory import posture",
+    "show finance/AP packet blockers and next safe moves",
+    "hide raw private/client/bank/spreadsheet/Telegram/log contents",
+    "collapse backend implementation details into proof and drill-down"
+  ],
+  "module_boundary_backlog": [
+    {
+      "can_live_separate_repo_later": false,
+      "module_or_stack": "operator_comms_stack",
+      "next_move": "Map receive/reply/send boundaries after HITL receipts",
+      "shape": "composite_stack"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "chief_control_plane",
+      "next_move": "Reconcile legacy router/action paths",
+      "shape": "deterministic_control_plane_plus_legacy_runtime_residue"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "cassandra_clara_fact_intake",
+      "next_move": "Keep receive/fact intake separate from send authority",
+      "shape": "narrow_module_inside_comms_stack"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "guardian_hitl_gate",
+      "next_move": "Finish decision receipt shadow and proof",
+      "shape": "substrate"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "memory_authority_substrate",
+      "next_move": "Import only approved structured facts after HITL proof",
+      "shape": "substrate"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "finance_ap_invoice_stack",
+      "next_move": "Complete Capital Hilton packet after approved facts",
+      "shape": "composite_stack"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "remote_builder_bridge",
+      "next_move": "Spec only until approval contract proof",
+      "shape": "future_bridge_stack"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "deterministic_evidence_core",
+      "next_move": "Run MD/source classification dry-run",
+      "shape": "substrate"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "niles_album_matrix",
+      "next_move": "Plan Niles matrix without raw session import",
+      "shape": "domain_stack"
+    },
+    {
+      "can_live_separate_repo_later": false,
+      "module_or_stack": "mission_control_work_surface",
+      "next_move": "Add read-only posture screens before actions",
+      "shape": "app_surface"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "source_classification_ingest",
+      "next_move": "Metadata-only dry-run and operator review",
+      "shape": "ingest_substrate"
+    },
+    {
+      "can_live_separate_repo_later": true,
+      "module_or_stack": "file_estate_ingest",
+      "next_move": "Boundary spec only; no broad crawl",
+      "shape": "ingest_substrate"
+    }
+  ],
+  "must_not_do": [
+    "do not run Repo B code",
+    "do not import data",
+    "do not modify runtime behavior",
+    "do not enable agents or services",
+    "do not send Telegram, Gmail, or email",
+    "do not inspect secrets, env files, raw logs, raw private or client data, bank data, spreadsheet cells, Telegram logs, or no-go roots",
+    "do not delete or disable old HITL JSON/JSONL",
+    "do not switch approval callers",
+    "do not commit dirty agent_presence generated files",
+    "do not touch polish_loop/tasks except in an explicit cleanup lane",
+    "do not build a broad hard-drive/cloud ingest or remote-builder implementation from this map"
+  ],
+  "next_recommended_lane": "Guardian HITL Decision Receipt Shadow v0",
+  "operator_decisions": [
+    "approve or revise the HITL transition strategy",
+    "approve Cassandra/Chief memory import categories before real import",
+    "decide album progress handling as a Niles matrix rather than Cassandra memory",
+    "decide generated agent_presence cleanup posture",
+    "decide Mission Control next lane priority",
+    "decide whether Obsidian/review vault export is useful as generated review material only",
+    "provide or withhold Capital Hilton invoice facts for packet completion",
+    "decide remote-builder risk level after specs and HITL proof"
+  ],
+  "parallel_lanes": [
+    {
+      "can_run_now": true,
+      "expected_value": "Clear operator orientation across module, bundle, and estate state.",
+      "lane": "Mission Control Module/Bundle/Estate Visibility v0",
+      "risk": "UI may expose backend noise instead of operator decisions.",
+      "why": "Read-models exist and are safe to display as posture."
+    },
+    {
+      "can_run_now": true,
+      "expected_value": "Shows safe/mixed/blocked/waiting states clearly.",
+      "lane": "Mission Control HITL/Memory Posture v0",
+      "risk": "Observational records could be mistaken for authority.",
+      "why": "Guardian and memory read-models exist."
+    },
+    {
+      "can_run_now": true,
+      "expected_value": "Prepares exact packet and receipt model.",
+      "lane": "Remote Builder Bridge Spec v0",
+      "risk": "Implementation remains unsafe before approval receipts are proven.",
+      "why": "A docs-only spec can use the current Guardian contract."
+    },
+    {
+      "can_run_now": true,
+      "expected_value": "Operator sees what can be classified safely.",
+      "lane": "MD/Source Classification Dry-Run v0",
+      "risk": "Broad scans can violate private/no-go boundaries if not bounded.",
+      "why": "Classification substrate exists."
+    },
+    {
+      "can_run_now": true,
+      "expected_value": "Keeps music workflow clear and domain-owned.",
+      "lane": "Niles Album Production Matrix Plan v0",
+      "risk": "Old album files could be imported as truth if scope drifts.",
+      "why": "Album cluster can be planned separately from Cassandra/Chief."
+    },
+    {
+      "can_run_now": true,
+      "expected_value": "Cleaner repo and less status fog.",
+      "lane": "Agent Presence Volatile Snapshot Cleanup v0",
+      "risk": "Regeneration may preserve unproven live readiness claims.",
+      "why": "Known dirty generated residue is isolated."
+    }
+  ],
+  "repo_a_canonical": true,
+  "repo_b_model": "pre_split_capability_tree_reference_only",
+  "repo_b_reconciliation_backlog": [
+    {
+      "cluster": "Album Production",
+      "next_lane": "Niles Album Production Matrix Plan v0",
+      "shape": "niles_album_matrix_stack",
+      "status": "partial"
+    },
+    {
+      "cluster": "Fundo",
+      "next_lane": "Fundo Capability Reconciliation Audit v0",
+      "shape": "future_module",
+      "status": "missing_unknown"
+    },
+    {
+      "cluster": "Finance & Billing",
+      "next_lane": "Capital Hilton Invoice Packet Completion v0",
+      "shape": "finance_ap_invoice_stack",
+      "status": "partial"
+    },
+    {
+      "cluster": "Marketing",
+      "next_lane": "Marketing Capability Reconciliation Audit v0",
+      "shape": "marketing_content_module_later",
+      "status": "missing_reference_only"
+    },
+    {
+      "cluster": "Communications",
+      "next_lane": "Cassandra Live Receive Proof / Comms Stack Map",
+      "shape": "operator_comms_stack",
+      "status": "partial_mixed"
+    },
+    {
+      "cluster": "System Health",
+      "next_lane": "Agent Presence Cleanup and Recovery Readiness v0",
+      "shape": "system_health_substrate",
+      "status": "partial"
+    },
+    {
+      "cluster": "Research Intelligence",
+      "next_lane": "Hermes Next Lane Stratifier v0",
+      "shape": "advisory_module",
+      "status": "partial_reference_only"
+    },
+    {
+      "cluster": "Analytics",
+      "next_lane": "Analytics Read-Model Reconciliation v0",
+      "shape": "advisory_read_model_module",
+      "status": "partial"
+    },
+    {
+      "cluster": "Business Consulting",
+      "next_lane": "Mission Control Bundle Visibility v0",
+      "shape": "planning_stack",
+      "status": "governed_foundation"
+    },
+    {
+      "cluster": "Infrastructure",
+      "next_lane": "Runtime Readiness Map v0",
+      "shape": "infrastructure_substrate",
+      "status": "partial_blocked"
+    },
+    {
+      "cluster": "Website",
+      "next_lane": "Website Capability Reconciliation Audit v0",
+      "shape": "website_module_later",
+      "status": "missing_reference_only"
+    },
+    {
+      "cluster": "Trinity Audit",
+      "next_lane": "Trinity Audit Advisory Packet v0",
+      "shape": "advisory_module",
+      "status": "reference_only"
+    },
+    {
+      "cluster": "Data & Memory",
+      "next_lane": "Memory Source Catalog Generalization v0",
+      "shape": "memory_authority_substrate",
+      "status": "partial"
+    }
+  ],
+  "runtime_authority_changed": false,
+  "schema_version": "openclaw_remaining_work_stratifier_v0",
+  "sqlite_coverage_complete": false,
+  "stop_conditions": [
+    "implementation work is attempted in this planning lane",
+    "runtime behavior would change",
+    "data import would occur",
+    "Repo B code would be imported or executed",
+    "secrets, env files, raw logs, raw private/client data, bank data, spreadsheet cells, Telegram logs, or no-go roots would need inspection",
+    "old HITL JSON/JSONL would be deleted, disabled, migrated, or declared obsolete without proof",
+    "dirty agent_presence generated files would be committed as truth",
+    "polish_loop/task residue would be edited or deleted",
+    "external sends, runtime activation, remote builder, repo creation, or deployment would be enabled"
+  ]
+}

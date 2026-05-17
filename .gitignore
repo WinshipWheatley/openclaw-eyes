@@ -655,6 +655,7 @@
 !scripts/query_tool_intake.py
 !scripts/export_tool_intake_read_model.py
 !scripts/export_context_selection_read_model.py
+!scripts/export_operator_planning_ready_packets.py
 !scripts/create_project_capsule.py
 !scripts/query_project_capsules.py
 !scripts/export_project_capsule_read_model.py
@@ -696,6 +697,7 @@
 !tests/test_tool_intake_read_model.py
 !tests/test_context_selection.py
 !tests/test_context_selection_read_model.py
+!tests/test_operator_planning_ready_packet_export.py
 !tests/test_project_capsule.py
 !tests/test_project_capsule_read_model.py
 !tests/test_project_capsule_template.py

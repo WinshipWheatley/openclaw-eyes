@@ -1,0 +1,137 @@
+{
+  "blocked_lanes": [
+    {
+      "blocked_by": "HITL request and decision receipt proof plus operator import-category approval",
+      "lane": "Cassandra/Chief Structured Fact Import v0"
+    },
+    {
+      "blocked_by": "exact packet binding, approval receipts, and no raw command/freeform shell proof",
+      "lane": "Remote Builder Bridge Implementation"
+    },
+    {
+      "blocked_by": "explicit approved send packet contract and receipt proof",
+      "lane": "Send-Path Expansion"
+    },
+    {
+      "blocked_by": "metadata-only source inventory boundaries, no-go roots, operator review, and rollback plan",
+      "lane": "Broad Hard-Drive/Cloud/File Ingest"
+    },
+    {
+      "blocked_by": "Repo B remains pre-split capability tree reference-only",
+      "lane": "Repo B Runtime Use"
+    }
+  ],
+  "data_imported": false,
+  "first_prompt_requires_no_edit_inspection": true,
+  "generated_by": "codex",
+  "implementation_done": false,
+  "must_not_do": [
+    "do not implement feature work in the execution-packet lane",
+    "do not change runtime behavior",
+    "do not import data",
+    "do not enable agents or services",
+    "do not send Telegram, Gmail, or email",
+    "do not run Repo B code",
+    "do not inspect secrets, env files, raw logs, raw private data, bank data, spreadsheet cells, or no-go roots",
+    "do not touch polish_loop/tasks except to classify known residue",
+    "do not commit dirty agent_presence generated files",
+    "do not switch HITL callers before proof",
+    "do not delete old HITL JSON or JSONL before replacement proof",
+    "do not approve raw command text or freeform shell",
+    "do not unlock Cassandra/Chief memory import until HITL proof and operator approval exist",
+    "do not enable remote-builder or send-path expansion"
+  ],
+  "next_best_lane": "Guardian HITL Decision Receipt Shadow v0",
+  "next_three_lanes": [
+    {
+      "can_implement_immediately": false,
+      "expected_output": "inspection report, exact implementation prompt, stop conditions",
+      "goal": "Inspect the exact Chief decision receipt seam and return an implementation plan without editing files.",
+      "lane": "Guardian HITL Decision Receipt Shadow v0 - Inspection Plan",
+      "operator_approval_required_before_running": false,
+      "requires_no_edit_inspection": true
+    },
+    {
+      "blocked_by": [
+        "Guardian HITL Decision Receipt Shadow v0 - Inspection Plan must report SAFE_TO_IMPLEMENT=YES"
+      ],
+      "can_implement_immediately": true,
+      "expected_output": "decision receipt helper, narrow Chief seam wiring, tests, updated dual-write read-model",
+      "goal": "Mirror Chief approval decisions, denials, expiry, and mismatch outcomes into SQLite as observational receipts only.",
+      "lane": "Guardian HITL Decision Receipt Shadow v0",
+      "operator_approval_required_before_running": false,
+      "requires_no_edit_inspection": false
+    },
+    {
+      "blocked_by": [
+        "Guardian HITL Decision Receipt Shadow v0 must pass validation"
+      ],
+      "can_implement_immediately": true,
+      "expected_output": "receipt proof doc/read-model/operator packet",
+      "goal": "Create proof/read-model posture for request and decision receipt equivalence before Cassandra HITL proposal shadow.",
+      "lane": "Guardian HITL Dual-Write Receipt Proof v0",
+      "operator_approval_required_before_running": false,
+      "requires_no_edit_inspection": false
+    }
+  ],
+  "operator_decisions_required": [
+    {
+      "decision": "Approve or stop decision receipt implementation if inspection finds ambiguity.",
+      "needed_before": "Guardian HITL Decision Receipt Shadow v0 implementation",
+      "required_now": false
+    },
+    {
+      "decision": "Decide whether HITL receipt proof is strong enough to proceed to Cassandra HITL Proposal Shadow.",
+      "needed_before": "Cassandra HITL Proposal Shadow v0",
+      "required_now": false
+    },
+    {
+      "decision": "Decide whether agent_presence residue cleanup should run in parallel or wait.",
+      "needed_before": "agent presence cleanup lane",
+      "required_now": false
+    }
+  ],
+  "parallel_lanes": [
+    {
+      "lane": "Mission Control Module/Bundle/Estate Visibility v0",
+      "posture": "parallel_later",
+      "reason": "Safe read-model visibility exists, but it should not interrupt authority proof."
+    },
+    {
+      "lane": "MD/Source Classification Dry-Run v0",
+      "posture": "parallel_later",
+      "reason": "Classification substrate exists, but broad ingest needs explicit boundaries."
+    },
+    {
+      "lane": "Niles Album Production Matrix Plan v0",
+      "posture": "parallel_later",
+      "reason": "Valuable domain planning, not on the Cassandra/Chief invoice critical path."
+    },
+    {
+      "lane": "Agent Presence Residue Cleanup v0",
+      "posture": "parallel_inspect_first",
+      "reason": "Known generated residue should be resolved without preserving stale online/readiness claims."
+    },
+    {
+      "lane": "Remote Builder Bridge Spec v0",
+      "posture": "docs_only_later",
+      "reason": "Implementation remains blocked until HITL receipts and packet binding are proven."
+    }
+  ],
+  "runtime_authority_changed": false,
+  "safe_to_execute_first_prompt": true,
+  "schema_version": "openclaw_critical_path_execution_packet_v0",
+  "stop_conditions": [
+    "Remaining Work Stratifier files are missing",
+    "unexpected tracked changes appear beyond known residue",
+    "next lane requires an operator decision before no-edit inspection",
+    "stratifier evidence is contradictory",
+    "HITL authority is too ambiguous to inspect safely",
+    "the lane would require private/raw data",
+    "the lane would require runtime activation",
+    "Repo B execution becomes necessary",
+    "agent send path or remote-builder implementation becomes tempting",
+    "stale generated status is being treated as live authority",
+    "Mission Control scope drifts into backend implementation before authority proof"
+  ]
+}
