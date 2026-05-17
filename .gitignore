@@ -95,6 +95,7 @@
 !docs/operations/*.md
 !docs/operations/STAGE_2_READY_PACKET.json
 !docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json
+!docs/operations/ACTIVE_MACHINERY_REPLACE_WITH_GOVERNED_PATH_READY_PACKET.json
 !docs/navigation_maps/
 !docs/navigation_maps/*.md
 !docs/playbooks/
