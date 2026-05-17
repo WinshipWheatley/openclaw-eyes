@@ -72,6 +72,7 @@
 !business_ops_packet.py
 !business_ops_intent.py
 !business_ops_ledger.py
+!capital_hilton_actionable_review_packet.py
 !capital_hilton_review_packet_approval.py
 !operator_intent_core.py
 !operator_action_covenant.py
@@ -682,6 +683,7 @@
 !scripts/query_estate_read_model.py
 !scripts/update_project_capsule_modules.py
 !scripts/build_context_packet.py
+!scripts/export_capital_hilton_actionable_review_packet.py
 !scripts/export_capital_hilton_review_packet_approval.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
@@ -728,6 +730,7 @@
 !tests/test_report_bridge_read_model.py
 !tests/test_operator_action.py
 !tests/test_operator_action_inbox.py
+!tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py

@@ -1,0 +1,298 @@
+{
+  "actionable_for_manual_review": true,
+  "ad_hoc_memory_used": false,
+  "bank_access_allowed": false,
+  "blocker_count": 4,
+  "boundaries": {
+    "ad_hoc_memory_used": false,
+    "bank_access_allowed": false,
+    "credential_access_allowed": false,
+    "credentials_accessed": false,
+    "email_send_allowed": false,
+    "email_sent": false,
+    "financial_truth_claimed": false,
+    "portal_submit_allowed": false,
+    "portal_submitted": false,
+    "raw_message_bodies_read": false,
+    "raw_private_data_read": false,
+    "repo_b_execution_allowed": false,
+    "review_only": true,
+    "runtime_authority_changed": false,
+    "send_authority_granted": false,
+    "spreadsheet_cell_read_allowed": false,
+    "spreadsheet_cells_read": false,
+    "workbook_parsing_allowed": false
+  },
+  "credential_access_allowed": false,
+  "credentials_accessed": false,
+  "email_send_allowed": false,
+  "email_sent": false,
+  "financial_truth_claimed": false,
+  "generated_at": "2026-05-17T04:01:21+00:00",
+  "generated_by": "codex",
+  "invoice_facts": [
+    {
+      "display_name": "Exact service date for tonight's gig",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "tonight_gig_date",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "2026-05-15 (operator said this was yesterday relative to May 16, 2026)"
+    },
+    {
+      "display_name": "Exact service date for last Friday's gig",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "last_friday_gig_date",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "2026-05-08"
+    },
+    {
+      "display_name": "Rate or amount per gig",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "rate_or_amount_per_gig",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "$400 per gig"
+    },
+    {
+      "display_name": "One invoice or two invoices",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "invoice_count_preference",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable"
+    },
+    {
+      "display_name": "PO number(s) or explicit none",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "po_numbers",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "unknown; operator reports Coupa PO credit may exist and PO must be confirmed in Coupa later; no portal login authorized"
+    },
+    {
+      "display_name": "Billing/remit details",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "billing_remit_details",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "mail check to operator home address provided in prompt; full street address redacted from committed artifacts"
+    },
+    {
+      "display_name": "To/CC recipient decision",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "recipient_decision",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "To: Annette Sunga (business email pending confirmation); CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority"
+    },
+    {
+      "display_name": "Supplier portal reference",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "supplier_portal_reference",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "Coupa supplier portal reference provided by operator; credential use/storage not authorized; credentials must remain tokenized in a later approved lane"
+    },
+    {
+      "display_name": "Invoice attachment/output path",
+      "evidence_status": "parsed_evidence_not_truth",
+      "field_name": "invoice_attachment_output_path",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "operator_confirmation_required": true,
+      "present": true,
+      "source_ref": "operator_prompt:capital_hilton_governed_fact_intake_v1",
+      "source_table": "capital_hilton_invoice_fact_updates",
+      "trust_status": "needs_operator_confirmation",
+      "truth_status": "unverified_claim",
+      "value_text": "invoice must be created in Coupa against confirmed PO; existing Mac Documents/invoices spreadsheet is metadata-only source workbook; next invoice number should be one higher after workbook review; no spreadsheet cells read"
+    }
+  ],
+  "manual_steps": [
+    "Confirm service dates and service list: 2026-05-08, 2026-05-15 (operator said this was yesterday relative to May 16, 2026). Do not include 2026-05-22 or older gigs unless operator confirms they belong on this invoice.",
+    "Confirm rate and review subtotal: $400 per gig; review subtotal candidate: $800 for the two completed governed service-date facts, before any older/upcoming gig review.",
+    "Manually open Coupa/Supplier Portal outside OpenClaw, using operator-controlled credentials only; confirm PO number and available PO credit.",
+    "Manually open the invoice workbook `Invoice Capitol Hilton 20260512 v2.xlsx` on the Mac if needed; confirm the current invoice number and set the next invoice number one higher. OpenClaw did not read cells.",
+    "Prepare the Coupa invoice manually only after PO, service dates, line items, amount, remit posture, and invoice number are confirmed.",
+    "Use recipient posture only as a draft/review list; do not send email from OpenClaw.",
+    "Return non-sensitive confirmation metadata to OpenClaw in a later lane if you want a receipt/read-model update."
+  ],
+  "missing_required_fact_count": 0,
+  "next_recommended_lane": "Capital Hilton Manual Coupa PO Confirmation v0",
+  "packet_id": "finance_capital_hilton_invoice_packet_v0",
+  "po_coupa_confirmation_gate": {
+    "credential_access_allowed": false,
+    "manual_operator_action_required": true,
+    "po_confirmed": false,
+    "portal_login_allowed": false,
+    "portal_submit_allowed": false,
+    "required": true,
+    "status": "must_confirm_po_and_credit_in_coupa_before_final_submission"
+  },
+  "portal_submit_allowed": false,
+  "portal_submitted": false,
+  "raw_message_bodies_read": false,
+  "raw_private_data_read": false,
+  "ready_for_submission": false,
+  "recipient_posture": {
+    "contacts": [
+      {
+        "email_send_allowed": false,
+        "field_name": "ap_contact_likely",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "Annette Sunga"
+      },
+      {
+        "email_send_allowed": false,
+        "field_name": "contact_candidate_annette_sunga",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "Annette Sunga | Finance/AP contact | email=Annette.Sunga@hilton.com | allowed_use=to_candidate_pending_review"
+      },
+      {
+        "email_send_allowed": false,
+        "field_name": "contact_candidate_chyna_hardin",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "Chyna Hardin | Director of Finance | email=Chyna.Hardin@hilton.com | allowed_use=cc_candidate_pending_review"
+      },
+      {
+        "email_send_allowed": false,
+        "field_name": "contact_candidate_lawrence___will_valcovic",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "Lawrence / Will Valcovic | Hilton contact | email=lawrencevalcovic@hilton.com | allowed_use=cc_candidate_pending_review"
+      },
+      {
+        "email_send_allowed": false,
+        "field_name": "operator_remit_email_candidate",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "winshiplive@gmail.com"
+      },
+      {
+        "email_send_allowed": false,
+        "field_name": "possible_contacts",
+        "operator_confirmation_required": true,
+        "truth_status": "needs_review",
+        "value_text": "Chyna Hardin, Director of Finance, Chyna.Hardin@hilton.com; Lawrence / Will Valcovic, lawrencevalcovic@hilton.com"
+      }
+    ],
+    "email_send_allowed": false,
+    "operator_confirmation_required": true,
+    "recipient_decision": "To: Annette Sunga (business email pending confirmation); CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority"
+  },
+  "remaining_blockers": [
+    {
+      "blocker_id": "po_coupa_confirmation_required",
+      "description": "PO number is still unknown and must be confirmed manually in Coupa.",
+      "next_safe_move": "Operator confirms PO/available credit in Coupa without sharing credentials with OpenClaw.",
+      "severity": "blocks_final_submission"
+    },
+    {
+      "blocker_id": "recipient_confirmation_required",
+      "description": "Recipient posture is review-only and business email still needs operator confirmation.",
+      "next_safe_move": "Operator confirms To/CC list before any future email-send lane.",
+      "severity": "blocks_email_send"
+    },
+    {
+      "blocker_id": "coupa_invoice_creation_manual_only",
+      "description": "Invoice must be created in Coupa against confirmed PO; OpenClaw has no portal/credential authority.",
+      "next_safe_move": "Operator manually prepares/reviews Coupa entry or approves a later bounded no-submit portal-review lane.",
+      "severity": "blocks_openclaw_submission"
+    },
+    {
+      "blocker_id": "spreadsheet_invoice_number_manual_check",
+      "description": "Invoice workbook is known only as metadata; OpenClaw did not read cells or formulas.",
+      "next_safe_move": "Operator manually opens the Mac invoice workbook and confirms next invoice number/formulas.",
+      "severity": "blocks_final_invoice_number_claim"
+    }
+  ],
+  "repo_b_execution_allowed": false,
+  "review_calculation": {
+    "calculation_note": "Review aid only; do not submit until PO, service list, spreadsheet number, and operator confirmation are complete.",
+    "candidate_subtotal": "$800 for the two completed governed service-date facts, before any older/upcoming gig review",
+    "final_total_claimed": false,
+    "known_completed_service_dates": [
+      "2026-05-08",
+      "2026-05-15 (operator said this was yesterday relative to May 16, 2026)"
+    ],
+    "rate_or_amount_per_gig": "$400 per gig",
+    "review_only": true
+  },
+  "review_only": true,
+  "runtime_authority_changed": false,
+  "schema_version": "capital_hilton_actionable_review_packet_v1",
+  "send_authority_granted": false,
+  "source_db_path": ".openclaw/business_ops/ledger.sqlite",
+  "source_packet_approved_for_manual_review_preparation": true,
+  "source_packet_usable": true,
+  "source_policy": "imported_cassandra_chief_memory_sqlite_only",
+  "source_read_models": {
+    "capital_hilton_review_packet_approval": "generated/read_models/capital_hilton_review_packet_approval.json",
+    "cassandra_clara_fact_packet": "generated/read_models/cassandra_clara_fact_packet.json"
+  },
+  "spreadsheet_cell_read_allowed": false,
+  "spreadsheet_cells_read": false,
+  "target_workflow": "capital_hilton_invoice",
+  "what_not_to_do": [
+    "Do not send email or Gmail.",
+    "Do not submit, save, upload, or create a payable invoice in Coupa from OpenClaw.",
+    "Do not access, store, tokenize, or print credentials in this lane.",
+    "Do not read spreadsheet cells or parse workbook formulas.",
+    "Do not inspect bank data, private raw files, raw messages, or old HITL state.",
+    "Do not treat parsed evidence as financial truth until operator confirmation."
+  ],
+  "workbook_parsing_allowed": false
+}
