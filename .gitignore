@@ -65,6 +65,7 @@
 !active_machinery_operator_disposition.py
 !active_machinery_high_risk_quarantine.py
 !cassandra_listener_governed_shadow.py
+!cassandra_listener_governed_intake_synthetic_proof.py
 !tool_inventory.py
 !tool_intake.py
 !local_automation_registry.py
@@ -687,6 +688,7 @@
 !scripts/build_active_machinery_operator_disposition.py
 !scripts/export_active_machinery_high_risk_quarantine_read_model.py
 !scripts/export_cassandra_listener_governed_shadow_read_model.py
+!scripts/export_cassandra_listener_governed_intake_synthetic_proof.py
 !scripts/query_context_selection.py
 !scripts/build_root_manifest.py
 !scripts/import_root_manifest.py
@@ -732,6 +734,7 @@
 !tests/test_active_machinery_operator_disposition.py
 !tests/test_active_machinery_high_risk_quarantine.py
 !tests/test_cassandra_listener_governed_shadow.py
+!tests/test_cassandra_listener_governed_intake_synthetic_proof.py
 !tests/test_local_automation_registry.py
 !tests/test_local_service_manager.py
 !tests/test_windows_read_model_import_task.py
