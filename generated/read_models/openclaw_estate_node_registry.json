@@ -1,0 +1,646 @@
+{
+  "active_authority_nodes": [
+    "repo_a_pc_wsl_backend"
+  ],
+  "broad_private_scan_performed": false,
+  "browser_automation_authority_added": false,
+  "client_deployment_created": false,
+  "contract_schema_version": "openclaw_estate_node_registry_v0",
+  "counts_by_evidence_status": {
+    "confirmed_from_current_workspace": 1,
+    "known_path_operator_provided": 3,
+    "known_paths_operator_provided": 1,
+    "planned_candidate_path_unknown": 1,
+    "planned_non_active": 4
+  },
+  "counts_by_node_type": {
+    "app_repo_workspace": 1,
+    "future_client_capsule_node": 1,
+    "future_lightweight_operator_surface": 1,
+    "future_mobile_mac_node": 1,
+    "future_workstation_node": 1,
+    "mac_local_builder_planner_node": 1,
+    "read_model_mirror": 1,
+    "reference_repo_workspace": 1,
+    "repo_workspace": 1,
+    "sync_transport_surface": 1
+  },
+  "customer_deployment_authority_added": false,
+  "future_or_planned_nodes": [
+    "mac_studio_future_workstation",
+    "mac_laptop_future_execution_node",
+    "ipad_iphone_operator_surface_future",
+    "client_friend_company_node_future"
+  ],
+  "generated_at": "2026-05-17T16:53:30+00:00",
+  "generated_by": "codex",
+  "machine_access_policy": {
+    "browser_coupa_desktop_automation_requires_mac_local_gated_lane": true,
+    "configured_in_this_lane": false,
+    "correct_node_workspace_still_required": true,
+    "mac_xcode_lanes_run_on_mac": true,
+    "pc_wsl_backend_lanes_run_in_home_openclaw": true,
+    "repo_b_executable_because_reachable": false,
+    "ssh_availability_should_be_treated_as_normal_blocker": false,
+    "ssh_between_mac_and_pc_wsl": "allowed_for_scoped_development_workflows",
+    "ssh_grants_runtime_authority": false,
+    "ssh_grants_task_authority": false
+  },
+  "mission_control_app_changed": false,
+  "next_recommended_lane": "Mission Control Estate Node Registry Surface v0",
+  "no_authority_flags": {
+    "broad_private_scan_performed": false,
+    "browser_automation_authority_added": false,
+    "client_deployment_created": false,
+    "customer_deployment_authority_added": false,
+    "mission_control_app_changed": false,
+    "repo_b_executed": false,
+    "repo_b_runtime_authority_added": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "services_started": false,
+    "ssh_configured": false
+  },
+  "node_count": 10,
+  "nodes": [
+    {
+      "active_authority": true,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "local_backend_codex_work",
+          "allowed": true,
+          "boundary": "repo_a_only"
+        },
+        {
+          "access_pattern": "scoped_ssh_development_from_mac_or_pc",
+          "allowed": true,
+          "boundary": "does_not_grant_task_authority"
+        }
+      ],
+      "authority_level": "canonical_backend_read_model_contract_test_authority",
+      "blocked_work": [
+        "Mac/Xcode UI builds",
+        "Mac browser automation",
+        "direct Mac filesystem-path work",
+        "Coupa/browser/desktop automation"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "canonical_current_backend",
+      "deployment_authority": false,
+      "display_name": "Repo A / PC-WSL Canonical Backend",
+      "evidence_status": "confirmed_from_current_workspace",
+      "hardware_class": "pc_workstation_wsl",
+      "known_paths": [
+        {
+          "path": "/home/openclaw",
+          "path_kind": "wsl_repo",
+          "status": "known"
+        }
+      ],
+      "mobility_class": "stationary_backend",
+      "node_id": "repo_a_pc_wsl_backend",
+      "node_type": "repo_workspace",
+      "operating_system": "linux_wsl_on_pc",
+      "operator_notes": "Default node for PC/WSL backend lanes.",
+      "promotion_required_for_authority": "already canonical for backend/read-model/contracts/tests only",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "SQLite/read-model work",
+        "packets/gates/receipts/contracts/tests",
+        "backend Codex implementation",
+        "generated read-model exports"
+      ],
+      "sync_or_bridge_surfaces": [
+        "generated/read_models",
+        "/mnt/e/openclaw shuttle"
+      ]
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "read_only_static_inspection",
+          "allowed": true,
+          "boundary": "do_not_import_or_execute"
+        }
+      ],
+      "authority_level": "reference_evidence_only",
+      "blocked_work": [
+        "blind execution",
+        "direct production authority",
+        "client deployment",
+        "runtime/service activation"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "not_canonical_pre_split_capability_tree",
+      "deployment_authority": false,
+      "display_name": "Repo B / PC-WSL Reference Capability Tree",
+      "evidence_status": "known_path_operator_provided",
+      "hardware_class": "pc_workstation_wsl",
+      "known_paths": [
+        {
+          "path": "/home/openclaw_external/openclaw-runtime",
+          "path_kind": "wsl_reference_repo",
+          "status": "known"
+        }
+      ],
+      "mobility_class": "stationary_reference",
+      "node_id": "repo_b_pc_wsl_reference",
+      "node_type": "reference_repo_workspace",
+      "operating_system": "linux_wsl_on_pc",
+      "operator_notes": "Treat as reference/capability evidence, not current runtime authority.",
+      "promotion_required_for_authority": "explicit migration lane and Repo A governance adoption proof",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "read-only capability/name/logic reference",
+        "migration comparison evidence"
+      ],
+      "sync_or_bridge_surfaces": []
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "local_xcode_build_launch",
+          "allowed": true,
+          "boundary": "app_repo_only"
+        },
+        {
+          "access_pattern": "read_mirrored_generated_read_models",
+          "allowed": true,
+          "boundary": "read_only_visibility"
+        }
+      ],
+      "authority_level": "app_surface_only",
+      "blocked_work": [
+        "backend authority",
+        "SQLite truth mutation",
+        "Coupa execution unless later gated to Mac-local executor",
+        "backend command execution from app"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "non_canonical_backend_consumer",
+      "deployment_authority": false,
+      "display_name": "Mac Mission Control Xcode Repo",
+      "evidence_status": "known_path_operator_provided",
+      "hardware_class": "mac_development_machine",
+      "known_paths": [
+        {
+          "path": "/Users/hwinshipwheatley/Developer/OpenClawMissionControl/OpenClaw Mission Controle",
+          "path_kind": "mac_app_repo",
+          "status": "known"
+        }
+      ],
+      "mobility_class": "operator_mac",
+      "node_id": "mac_mission_control_xcode_repo",
+      "node_type": "app_repo_workspace",
+      "operating_system": "macos",
+      "operator_notes": "Use this node for Mission Control UI lanes, not PC backend lanes.",
+      "promotion_required_for_authority": "not promotable to backend authority; app remains helm surface",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "SwiftUI/Xcode app work",
+        "read-model parser/display compatibility",
+        "build/launch verification"
+      ],
+      "sync_or_bridge_surfaces": [
+        "Mac generated read-model mirror",
+        "Request Sync marker-only flow"
+      ]
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "app_read_only_file_load",
+          "allowed": true,
+          "boundary": "mirror_visibility_not_canonical_truth"
+        }
+      ],
+      "authority_level": "mirrored_visibility_only",
+      "blocked_work": [
+        "source-of-truth edits",
+        "manual truth mutation",
+        "backend authority"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "mirror_not_truth",
+      "deployment_authority": false,
+      "display_name": "Mac Generated Read-Model Mirror",
+      "evidence_status": "known_path_operator_provided",
+      "hardware_class": "mac_development_machine",
+      "known_paths": [
+        {
+          "path": "/Users/hwinshipwheatley/openclaw_generated_read_models",
+          "path_kind": "mac_mirror",
+          "status": "known"
+        }
+      ],
+      "mobility_class": "operator_mac",
+      "node_id": "mac_generated_read_model_mirror",
+      "node_type": "read_model_mirror",
+      "operating_system": "macos",
+      "operator_notes": "If missing, request sync through existing marker flow rather than faking data.",
+      "promotion_required_for_authority": "never becomes canonical truth; refresh from Repo A/export pipeline",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "Mission Control read-only consumption",
+        "display verification"
+      ],
+      "sync_or_bridge_surfaces": [
+        "read_model_shuttle",
+        "sync_health",
+        "Mac manifest import"
+      ]
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "existing_marker_manifest_sync",
+          "allowed": true,
+          "boundary": "transport_only_not_canonical_truth"
+        }
+      ],
+      "authority_level": "transport_proof_surface",
+      "blocked_work": [
+        "arbitrary manual copy as primary fix",
+        "source-of-truth mutation",
+        "secret staging"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "transport_not_truth",
+      "deployment_authority": false,
+      "display_name": "Shared E-Drive Shuttle",
+      "evidence_status": "known_paths_operator_provided",
+      "hardware_class": "external_or_shared_drive",
+      "known_paths": [
+        {
+          "path": "/mnt/e/openclaw",
+          "path_kind": "wsl_mount",
+          "status": "known"
+        },
+        {
+          "path": "/Volumes/openclaw_e",
+          "path_kind": "mac_volume",
+          "status": "known"
+        }
+      ],
+      "mobility_class": "portable_transport",
+      "node_id": "shared_e_drive_shuttle",
+      "node_type": "sync_transport_surface",
+      "operating_system": "shared_storage_bridge",
+      "operator_notes": "Use existing sync machinery; do not treat drive reachability as authority.",
+      "promotion_required_for_authority": "not promotable; remains controlled shuttle/proof surface",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "sync markers",
+        "manifests",
+        "completion markers",
+        "shuttle packages"
+      ],
+      "sync_or_bridge_surfaces": [
+        "mac_generated_read_models_manifest",
+        "sync request/completion markers"
+      ]
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "scoped_mac_local_development",
+          "allowed": true,
+          "boundary": "non_canonical_until_promoted"
+        }
+      ],
+      "authority_level": "non_canonical_candidate",
+      "blocked_work": [
+        "hidden authority",
+        "uncontrolled second brain",
+        "canonical backend truth by default",
+        "ungated browser/Coupa/desktop automation"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "candidate_non_canonical_unless_promoted",
+      "deployment_authority": false,
+      "display_name": "Mac OpenClaw Planner/Builder/Harness Node",
+      "evidence_status": "planned_candidate_path_unknown",
+      "hardware_class": "mac_development_machine",
+      "known_paths": [
+        {
+          "path": "unknown",
+          "path_kind": "mac_planner_builder_path",
+          "status": "unknown_not_discovered_in_this_lane"
+        }
+      ],
+      "mobility_class": "operator_mac_or_laptop",
+      "node_id": "mac_openclaw_planner_builder_harness",
+      "node_type": "mac_local_builder_planner_node",
+      "operating_system": "macos",
+      "operator_notes": "Model role now; do not pretend active path or authority exists.",
+      "promotion_required_for_authority": "explicit operator approval, path discovery, tests, receipts, and authority contract",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "Mac-local planner/builder support",
+        "harness testing",
+        "Xcode/browser/desktop automation lanes after explicit gates",
+        "laptop or semi-mobile workflows"
+      ],
+      "sync_or_bridge_surfaces": [
+        "future guarded receipts/read-models"
+      ]
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "future_scoped_development",
+          "allowed": false,
+          "boundary": "not_active"
+        }
+      ],
+      "authority_level": "planned_no_active_authority",
+      "blocked_work": [
+        "current authority",
+        "deployment",
+        "send/submit paths"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "planned_non_canonical",
+      "deployment_authority": false,
+      "display_name": "Future Mac Studio Workstation Node",
+      "evidence_status": "planned_non_active",
+      "hardware_class": "high_memory_local_workstation",
+      "known_paths": [
+        {
+          "path": "not_configured",
+          "path_kind": "future_path",
+          "status": "planned_non_active"
+        }
+      ],
+      "mobility_class": "stationary_mac",
+      "node_id": "mac_studio_future_workstation",
+      "node_type": "future_workstation_node",
+      "operating_system": "macos",
+      "operator_notes": "Listed for role/capability planning only.",
+      "promotion_required_for_authority": "future operator approval plus node bootstrap contract",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "future media-heavy automation",
+        "future high-memory local workloads"
+      ],
+      "sync_or_bridge_surfaces": []
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "future_scoped_development",
+          "allowed": false,
+          "boundary": "not_active"
+        }
+      ],
+      "authority_level": "planned_no_active_authority",
+      "blocked_work": [
+        "current authority",
+        "canonical backend truth",
+        "ungated automation"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "planned_non_canonical",
+      "deployment_authority": false,
+      "display_name": "Future Mac Laptop Semi-Mobile Node",
+      "evidence_status": "planned_non_active",
+      "hardware_class": "laptop",
+      "known_paths": [
+        {
+          "path": "not_configured",
+          "path_kind": "future_path",
+          "status": "planned_non_active"
+        }
+      ],
+      "mobility_class": "semi_mobile",
+      "node_id": "mac_laptop_future_execution_node",
+      "node_type": "future_mobile_mac_node",
+      "operating_system": "macos",
+      "operator_notes": "Role/capability placeholder only.",
+      "promotion_required_for_authority": "future operator approval plus node bootstrap contract",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "future semi-mobile Mac execution/planning",
+        "future local desktop verification"
+      ],
+      "sync_or_bridge_surfaces": []
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "future_operator_visibility",
+          "allowed": false,
+          "boundary": "not_active"
+        }
+      ],
+      "authority_level": "planned_visibility_or_approval_surface_only",
+      "blocked_work": [
+        "backend truth",
+        "desktop automation",
+        "deployment",
+        "ungated sends"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "planned_non_canonical",
+      "deployment_authority": false,
+      "display_name": "Future iPad/iPhone Operator Surface",
+      "evidence_status": "planned_non_active",
+      "hardware_class": "mobile_device",
+      "known_paths": [
+        {
+          "path": "not_configured",
+          "path_kind": "future_app_surface",
+          "status": "planned_non_active"
+        }
+      ],
+      "mobility_class": "mobile",
+      "node_id": "ipad_iphone_operator_surface_future",
+      "node_type": "future_lightweight_operator_surface",
+      "operating_system": "ios_ipados",
+      "operator_notes": "Listing does not grant active mobile authority.",
+      "promotion_required_for_authority": "future app/security/approval contract",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "future intake",
+        "future approval",
+        "future visibility"
+      ],
+      "sync_or_bridge_surfaces": []
+    },
+    {
+      "active_authority": false,
+      "allowed_access_patterns": [
+        {
+          "access_pattern": "future_sanitized_report_bridge",
+          "allowed": false,
+          "boundary": "not_active"
+        }
+      ],
+      "authority_level": "planned_capsule_reporting_only",
+      "blocked_work": [
+        "customer deployment authority",
+        "private data copy into Repo A",
+        "runtime authority"
+      ],
+      "browser_automation_authority": false,
+      "canonicality": "external_non_canonical",
+      "deployment_authority": false,
+      "display_name": "Future Client/Friend/Company Node",
+      "evidence_status": "planned_non_active",
+      "hardware_class": "client_or_company_environment",
+      "known_paths": [
+        {
+          "path": "not_configured",
+          "path_kind": "future_client_path",
+          "status": "planned_non_active"
+        }
+      ],
+      "mobility_class": "external",
+      "node_id": "client_friend_company_node_future",
+      "node_type": "future_client_capsule_node",
+      "operating_system": "unknown_future",
+      "operator_notes": "No deployment authority exists because this placeholder is listed.",
+      "promotion_required_for_authority": "explicit customer/capsule deployment contract and operator approval",
+      "repo_b_runtime_authority": false,
+      "runtime_authority": false,
+      "send_or_submit_authority": false,
+      "suited_work": [
+        "future capsule/reporting node",
+        "sanitized proof/status exchange"
+      ],
+      "sync_or_bridge_surfaces": [
+        "future report_bridge packages",
+        "future project_capsules"
+      ]
+    }
+  ],
+  "purpose": "Distinguish canonical backend authority, reference repos, Mac app workspaces, mirrors, shuttles, and future nodes.",
+  "repo_b_executed": false,
+  "repo_b_runtime_authority_added": false,
+  "required_node_fields": [
+    "node_id",
+    "display_name",
+    "node_type",
+    "known_paths",
+    "operating_system",
+    "hardware_class",
+    "mobility_class",
+    "authority_level",
+    "canonicality",
+    "suited_work",
+    "blocked_work",
+    "allowed_access_patterns",
+    "sync_or_bridge_surfaces",
+    "promotion_required_for_authority",
+    "evidence_status",
+    "operator_notes"
+  ],
+  "runtime_authority_added": false,
+  "schema_version": "openclaw_estate_node_registry_read_model_v0",
+  "send_or_submit_authority_added": false,
+  "services_started": false,
+  "ssh_configured": false,
+  "status_summary": {
+    "future_nodes_active_authority_granted": false,
+    "mac_mission_control_app_surface_modeled": true,
+    "mac_planner_builder_node_modeled": true,
+    "repo_a_canonical_backend_modeled": true,
+    "repo_b_reference_only_modeled": true,
+    "repo_b_runtime_authority_added": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "ssh_scoped_dev_access_policy_modeled": true,
+    "wrong_environment_guidance_modeled": true
+  },
+  "wrong_environment_guidance": [
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "canonical_backend_read_model_contract_test_authority",
+      "recommended_node_canonicality": "canonical_current_backend",
+      "recommended_node_display_name": "Repo A / PC-WSL Canonical Backend",
+      "recommended_node_id": "repo_a_pc_wsl_backend",
+      "work_kind": "pc_wsl_backend_contract_read_model_tests",
+      "wrong_environment_warning": "Do not run backend contract/read-model/test lanes from the Mac app repo."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "app_surface_only",
+      "recommended_node_canonicality": "non_canonical_backend_consumer",
+      "recommended_node_display_name": "Mac Mission Control Xcode Repo",
+      "recommended_node_id": "mac_mission_control_xcode_repo",
+      "work_kind": "mission_control_xcode_app_surface",
+      "wrong_environment_warning": "Do not attempt SwiftUI/Xcode build or launch from /home/openclaw."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "mirrored_visibility_only",
+      "recommended_node_canonicality": "mirror_not_truth",
+      "recommended_node_display_name": "Mac Generated Read-Model Mirror",
+      "recommended_node_id": "mac_generated_read_model_mirror",
+      "work_kind": "mission_control_read_only_data_display",
+      "wrong_environment_warning": "Do not edit mirror files as truth; refresh through governed sync."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "non_canonical_candidate",
+      "recommended_node_canonicality": "candidate_non_canonical_unless_promoted",
+      "recommended_node_display_name": "Mac OpenClaw Planner/Builder/Harness Node",
+      "recommended_node_id": "mac_openclaw_planner_builder_harness",
+      "work_kind": "mac_browser_coupa_desktop_automation",
+      "wrong_environment_warning": "Do not run browser/Coupa/desktop automation from PC/WSL; require future Mac-local gates."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "reference_evidence_only",
+      "recommended_node_canonicality": "not_canonical_pre_split_capability_tree",
+      "recommended_node_display_name": "Repo B / PC-WSL Reference Capability Tree",
+      "recommended_node_id": "repo_b_pc_wsl_reference",
+      "work_kind": "repo_b_capability_reference",
+      "wrong_environment_warning": "Repo B may be inspected read-only but must not be imported or executed."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "transport_proof_surface",
+      "recommended_node_canonicality": "transport_not_truth",
+      "recommended_node_display_name": "Shared E-Drive Shuttle",
+      "recommended_node_id": "shared_e_drive_shuttle",
+      "work_kind": "read_model_sync_transport",
+      "wrong_environment_warning": "Use existing marker/manifest flow; do not manually copy as the primary fix."
+    },
+    {
+      "authority_escalation_allowed": false,
+      "recommended_node_authority_level": "planned_visibility_or_approval_surface_only",
+      "recommended_node_canonicality": "planned_non_canonical",
+      "recommended_node_display_name": "Future iPad/iPhone Operator Surface",
+      "recommended_node_id": "ipad_iphone_operator_surface_future",
+      "work_kind": "mobile_operator_visibility_or_approval",
+      "wrong_environment_warning": "Future mobile surfaces have no active authority yet."
+    }
+  ]
+}
