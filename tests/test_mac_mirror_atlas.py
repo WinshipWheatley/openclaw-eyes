@@ -331,6 +331,43 @@ def test_generated_read_model_mirror_current_expected_list_has_no_extras(tmp_pat
     assert report["extra_files"] == []
 
 
+def test_generated_read_model_mirror_ignores_sync_health_self_hash_drift(tmp_path):
+    db_path = tmp_path / "ledger.sqlite"
+    expected_root = tmp_path / "canonical" / "generated" / "read_models"
+    _write_json(expected_root / "source_inventory.json", {"same": True})
+    _write_json(expected_root / "sync_health.json", {"generated": "newer"})
+    (expected_root / "sync_health_OPERATOR.md").write_text("# Newer Sync Health\n", encoding="utf-8")
+
+    mac_root = tmp_path / "mac_generated"
+    mac_root.mkdir()
+    _write_json(mac_root / "source_inventory.json", {"same": True})
+    _write_json(mac_root / "sync_health.json", {"generated": "older"})
+    (mac_root / "sync_health_OPERATOR.md").write_text("# Older Sync Health\n", encoding="utf-8")
+    manifest_path = tmp_path / "mac_generated_manifest.json"
+    build_root_manifest(
+        root=mac_root,
+        root_id="mac_generated_read_models",
+        root_kind="generated_read_model_mirror",
+        host_kind="mac",
+        owner_scope="internal_platform",
+        output=manifest_path,
+    )
+    import_root_manifest(manifest_path=manifest_path, db_path=db_path, run_id="mac_import_run")
+
+    report = query_mac_mirror_report_section(
+        db_path=db_path,
+        section="generated-read-model-mirror",
+        canonical_read_model_root=expected_root,
+    )
+
+    assert report["counts"]["canonical_expected"] == 3
+    assert report["counts"]["observed"] == 3
+    assert report["counts"]["missing_expected"] == 0
+    assert report["counts"]["hash_mismatch"] == 0
+    assert "sync_health.json" not in report["hash_mismatch_files"]
+    assert "sync_health_OPERATOR.md" not in report["hash_mismatch_files"]
+
+
 def test_generated_read_model_mirror_dynamic_expected_reports_missing_and_extra(tmp_path):
     db_path = tmp_path / "ledger.sqlite"
     expected_root = tmp_path / "canonical" / "generated" / "read_models"

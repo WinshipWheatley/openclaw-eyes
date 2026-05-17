@@ -52,6 +52,11 @@ MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
     "cassandra_governed_review_packet_request_proof_OPERATOR.md",
 )
 
+VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
+    "sync_health.json",
+    "sync_health_OPERATOR.md",
+)
+
 CRITICAL_GENERATED_READ_MODEL_FILES = (
     "artifact_registry.json",
     "evidence_freshness.json",
@@ -167,6 +172,7 @@ __all__ = [
     "NO_GO_FILE_HINTS",
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",
+    "VOLATILE_SELF_REPORT_READ_MODEL_FILES",
     "canonical_generated_read_model_expected_files",
     "canonical_generated_read_model_records",
     "is_no_go_generated_read_model_relative_path",

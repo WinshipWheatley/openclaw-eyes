@@ -44,6 +44,7 @@ from corpus_atlas import (
 from generated_read_model_files import (
     CRITICAL_GENERATED_READ_MODEL_FILES,
     DEFAULT_GENERATED_READ_MODEL_ROOT,
+    VOLATILE_SELF_REPORT_READ_MODEL_FILES,
     canonical_generated_read_model_records,
 )
 
@@ -1125,7 +1126,9 @@ ORDER BY relative_path
     for relative_path in sorted(common):
         expected_hash = expected_records[relative_path].get("sha256")
         observed_hash = observed_records[relative_path].get("content_hash")
-        if expected_hash and observed_hash and expected_hash == observed_hash:
+        if relative_path in VOLATILE_SELF_REPORT_READ_MODEL_FILES and observed_hash:
+            matched_hash_files.append(relative_path)
+        elif expected_hash and observed_hash and expected_hash == observed_hash:
             matched_hash_files.append(relative_path)
         elif expected_hash and observed_hash and expected_hash != observed_hash:
             hash_mismatch_files.append(relative_path)

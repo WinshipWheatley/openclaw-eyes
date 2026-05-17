@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
-from generated_read_model_files import canonical_generated_read_model_records
+from generated_read_model_files import (
+    VOLATILE_SELF_REPORT_READ_MODEL_FILES,
+    canonical_generated_read_model_records,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -27,6 +30,7 @@ DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 JSON_EXPORT_NAME = "sync_health.json"
 OPERATOR_EXPORT_NAME = "sync_health_OPERATOR.md"
+SELF_EXPORT_FILES = frozenset(VOLATILE_SELF_REPORT_READ_MODEL_FILES)
 
 DEFAULT_PC_SHARE_ROOT = Path("/mnt/e/openclaw")
 DEFAULT_MANIFEST_PATH = DEFAULT_PC_SHARE_ROOT / "mac_generated_read_models_manifest.json"
@@ -325,7 +329,9 @@ def compare_manifest_to_backend(
     for relative_path in sorted(expected & observed):
         expected_hash = expected_records[relative_path].get("sha256")
         observed_hash = observed_records[relative_path].get("content_hash")
-        if expected_hash and observed_hash and expected_hash == observed_hash:
+        if relative_path in SELF_EXPORT_FILES and observed_hash:
+            matched.append(relative_path)
+        elif expected_hash and observed_hash and expected_hash == observed_hash:
             matched.append(relative_path)
         elif expected_hash and observed_hash and expected_hash != observed_hash:
             mismatched.append(relative_path)
@@ -980,6 +986,64 @@ def export_sync_health_read_model(
     }
 
 
+def refresh_sync_health_from_manifest(
+    *,
+    db_path: str | Path | None = None,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    repo_root: str | Path = ROOT,
+    mac_status_path: str | Path = DEFAULT_MAC_STATUS_PATH,
+    mac_completion_path: str | Path = DEFAULT_MAC_COMPLETION_PATH,
+    pc_import_state_path: str | Path = DEFAULT_PC_IMPORT_STATE_PATH,
+    pc_task_log_path: str | Path = DEFAULT_PC_TASK_LOG_PATH,
+    windows_task_log_path: str | Path = DEFAULT_WINDOWS_TASK_LOG_PATH,
+    request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
+    export_root: str | Path = DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    """Record and export sync health from the latest mirror manifest.
+
+    This is the durable PC-side bridge between a successful manifest import and
+    the operator-facing read-model files Mission Control consumes. It reads
+    metadata/proof files only and writes the sync_health read-model outputs.
+    """
+
+    build = build_sync_health_snapshot(
+        db_path=db_path,
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+        mac_status_path=mac_status_path,
+        mac_completion_path=mac_completion_path,
+        pc_import_state_path=pc_import_state_path,
+        pc_task_log_path=pc_task_log_path,
+        windows_task_log_path=windows_task_log_path,
+        request_marker_path=request_marker_path,
+    )
+    export = export_sync_health_read_model(
+        db_path=db_path,
+        export_root=export_root,
+        repo_root=repo_root,
+    )
+    payload = build_sync_health_read_model(db_path=db_path)
+    return {
+        "sync_health_refreshed": True,
+        "run_id": build.run_id,
+        "snapshot_id": build.snapshot_id,
+        "json_path": export["json_path"],
+        "operator_path": export["operator_path"],
+        "trust_status": payload["trust_status"],
+        "mirror_status": payload["mirror_status"],
+        "display_status": payload["display_status"],
+        "canonical_expected": payload["canonical_expected"],
+        "observed": payload["observed"],
+        "missing_expected": payload["missing_expected"],
+        "extra": payload["extra"],
+        "hash_mismatch": payload["hash_mismatch"],
+        "matched_hash": payload["matched_hash"],
+        **NO_AUTHORITY_FLAGS,
+    }
+
+
 def format_sync_health_report(payload: dict[str, Any]) -> str:
     snapshot = payload.get("latest_snapshot")
     lines = ["OpenClaw Sync Health v0", ""]
@@ -1033,5 +1097,6 @@ __all__ = [
     "export_sync_health_read_model",
     "format_sync_health_report",
     "init_sync_health_schema",
+    "refresh_sync_health_from_manifest",
     "sync_health_table_names",
 ]

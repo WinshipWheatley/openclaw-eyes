@@ -3,71 +3,36 @@
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
   "canonical_expected": 126,
-  "display_status": "needs_mac_sync",
+  "display_status": "current",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-17T14:02:06+00:00",
-  "hash_mismatch": 4,
+  "generated_at": "2026-05-17T14:30:26+00:00",
+  "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-17T01:20:33+00:00"
+    "time": "2026-05-17T14:06:46+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-17T14:01:44+00:00"
+    "time": "2026-05-17T14:26:47+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "2899f6c0ab302214f3dff64d586c48d859906f3c17ec7fccdd194ef76ab9f447",
+    "manifest_hash": "ac6611924bd790085df78a6fde28bdc9caed2ed3809e6cf97fb470680ded3523",
     "pc_scheduler_known": true,
     "status": "skipped_unchanged",
-    "time": "2026-05-17T01:34:51+00:00",
+    "time": "2026-05-17T14:09:52+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 88,
-  "mirror_status": "needs_mac_sync",
-  "missing_expected": 34,
-  "missing_files": [
-    "active_machinery_block_later_guardrail.json",
-    "active_machinery_block_later_guardrail_OPERATOR.md",
-    "active_machinery_classification_orchestrator.json",
-    "active_machinery_classification_orchestrator_OPERATOR.md",
-    "active_machinery_gemini_verification.json",
-    "active_machinery_gemini_verification_OPERATOR.md",
-    "active_machinery_high_risk_quarantine.json",
-    "active_machinery_high_risk_quarantine_OPERATOR.md",
-    "active_machinery_operator_disposition.json",
-    "active_machinery_operator_disposition_OPERATOR.md",
-    "active_machinery_quarantine_decision_packet.json",
-    "active_machinery_quarantine_decision_packet_OPERATOR.md",
-    "active_machinery_quarantine_operator_review.json",
-    "active_machinery_quarantine_operator_review_OPERATOR.md",
-    "capital_hilton_actionable_review_packet.json",
-    "capital_hilton_actionable_review_packet_OPERATOR.md",
-    "capital_hilton_review_packet_approval.json",
-    "capital_hilton_review_packet_approval_OPERATOR.md",
-    "cassandra_chief_memory_import_approval.json",
-    "cassandra_chief_memory_import_approval_OPERATOR.md",
-    "cassandra_chief_structured_fact_import.json",
-    "cassandra_chief_structured_fact_import_OPERATOR.md",
-    "cassandra_date_awareness.json",
-    "cassandra_date_awareness_OPERATOR.md",
-    "cassandra_governed_review_packet_request_proof.json",
-    "cassandra_governed_review_packet_request_proof_OPERATOR.md",
-    "cassandra_listener_governed_intake_synthetic_proof.json",
-    "cassandra_listener_governed_intake_synthetic_proof_OPERATOR.md",
-    "cassandra_listener_governed_shadow.json",
-    "cassandra_listener_governed_shadow_OPERATOR.md",
-    "cassandra_send_status_dry_run.json",
-    "cassandra_send_status_dry_run_OPERATOR.md",
-    "telegram_agent_runtime_readiness_rollup.json",
-    "telegram_agent_runtime_readiness_rollup_OPERATOR.md"
-  ],
-  "next_expected_actor": "mac_sync_agent",
+  "matched_hash": 126,
+  "mirror_status": "ok",
+  "missing_expected": 0,
+  "missing_files": [],
+  "next_expected_actor": "none",
   "no_authority_flags": {
     "agent_activation_allowed": false,
     "app_direct_execution_allowed": false,
@@ -79,47 +44,47 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 92,
+  "observed": 126,
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "370a150f402c80f84d45e0478f8a1442221176746533cd1a461e9cd308afbdf8",
+      "source_hash": "ca3e2076d65cd0c699ad504482bd51c7124534e7065e68a25a110a01c3b01fa2",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-17T01:20:33+00:00"
+      "source_time": "2026-05-17T14:06:46+00:00"
     },
     {
       "present": 1,
-      "source_hash": "925c8f628eec81c283f0886a7a75c7af97fbbeca074aa9a4c267032d427c9719",
+      "source_hash": "414e2fdb9481ead163abe3d4ddbb1bfe2edf49400dff647b2fbd8f35982e3cf2",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-17T14:01:44+00:00"
+      "source_time": "2026-05-17T14:26:47+00:00"
     },
     {
       "present": 1,
-      "source_hash": "2899f6c0ab302214f3dff64d586c48d859906f3c17ec7fccdd194ef76ab9f447",
+      "source_hash": "ac6611924bd790085df78a6fde28bdc9caed2ed3809e6cf97fb470680ded3523",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-17T01:33:27+00:00"
+      "source_time": "2026-05-17T14:06:45+00:00"
     },
     {
       "present": 1,
-      "source_hash": "87a17196dc17bc7469b1a04f51d0b3d78381e87466562b50b8b92c7064f539d9",
+      "source_hash": "7e2d98e73b028a83566e405f6929c699e684abed008640534c24bfe684be16f5",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
-      "source_time": "2026-05-17T01:34:51+00:00"
+      "source_time": "2026-05-17T14:09:52+00:00"
     },
     {
       "present": 1,
       "source_hash": null,
       "source_kind": "pc_task_log",
-      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
+      "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-17T13:59:51+00:00"
+      "source_time": "2026-05-17T14:29:51+00:00"
     },
     {
       "present": 1,
@@ -127,16 +92,16 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-17T13:59:47+00:00"
+      "source_time": "2026-05-17T14:29:47+00:00"
     }
   ],
   "recommended_fix": {
     "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
-    "can_request_fix_from_app": true,
-    "display_status": "needs_mac_sync",
-    "kind": "request_mac_sync",
-    "next_expected_actor": "mac_sync_agent",
-    "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+    "can_request_fix_from_app": false,
+    "display_status": "current",
+    "kind": "none",
+    "next_expected_actor": "none",
+    "next_safe_move": "No sync repair is needed.",
     "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"
   },
   "remote_control_allowed": false,
@@ -144,45 +109,6 @@
   "schema_version": "sync_health_read_model_v0",
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
-  "stale_files": [
-    "active_machinery_block_later_guardrail.json",
-    "active_machinery_block_later_guardrail_OPERATOR.md",
-    "active_machinery_classification_orchestrator.json",
-    "active_machinery_classification_orchestrator_OPERATOR.md",
-    "active_machinery_gemini_verification.json",
-    "active_machinery_gemini_verification_OPERATOR.md",
-    "active_machinery_high_risk_quarantine.json",
-    "active_machinery_high_risk_quarantine_OPERATOR.md",
-    "active_machinery_operator_disposition.json",
-    "active_machinery_operator_disposition_OPERATOR.md",
-    "active_machinery_quarantine_decision_packet.json",
-    "active_machinery_quarantine_decision_packet_OPERATOR.md",
-    "active_machinery_quarantine_operator_review.json",
-    "active_machinery_quarantine_operator_review_OPERATOR.md",
-    "capital_hilton_actionable_review_packet.json",
-    "capital_hilton_actionable_review_packet_OPERATOR.md",
-    "capital_hilton_review_packet_approval.json",
-    "capital_hilton_review_packet_approval_OPERATOR.md",
-    "cassandra_chief_memory_import_approval.json",
-    "cassandra_chief_memory_import_approval_OPERATOR.md",
-    "cassandra_chief_structured_fact_import.json",
-    "cassandra_chief_structured_fact_import_OPERATOR.md",
-    "cassandra_clara_fact_packet.json",
-    "cassandra_clara_fact_packet_OPERATOR.md",
-    "cassandra_date_awareness.json",
-    "cassandra_date_awareness_OPERATOR.md",
-    "cassandra_governed_review_packet_request_proof.json",
-    "cassandra_governed_review_packet_request_proof_OPERATOR.md",
-    "cassandra_listener_governed_intake_synthetic_proof.json",
-    "cassandra_listener_governed_intake_synthetic_proof_OPERATOR.md",
-    "cassandra_listener_governed_shadow.json",
-    "cassandra_listener_governed_shadow_OPERATOR.md",
-    "cassandra_send_status_dry_run.json",
-    "cassandra_send_status_dry_run_OPERATOR.md",
-    "guardian_hitl_cassandra_proposal_shadow.json",
-    "guardian_hitl_cassandra_proposal_shadow_OPERATOR.md",
-    "telegram_agent_runtime_readiness_rollup.json",
-    "telegram_agent_runtime_readiness_rollup_OPERATOR.md"
-  ],
-  "trust_status": "stale_needs_mac_sync"
+  "stale_files": [],
+  "trust_status": "trusted"
 }

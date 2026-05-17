@@ -11,6 +11,7 @@ from sync_health import (
     build_sync_health_report,
     build_sync_health_snapshot,
     export_sync_health_read_model,
+    refresh_sync_health_from_manifest,
     sha256_file,
     sync_health_table_names,
 )
@@ -207,6 +208,27 @@ def test_hash_mismatch_produces_stale_needs_mac_sync(tmp_path):
     assert snapshot["next_expected_actor"] == "mac_sync_agent"
 
 
+def test_sync_health_self_export_hash_mismatch_does_not_make_health_stale(tmp_path):
+    _root, read_models = _fixture_root(tmp_path)
+    _write(read_models / "sync_health.json", '{"generated": "newer"}\n')
+    _write(read_models / "sync_health_OPERATOR.md", "# Newer Sync Health\n")
+    result, db_path, _paths = _build_with_manifest(
+        tmp_path,
+        manifest_payload=_manifest_for(
+            read_models,
+            mismatch={"sync_health.json", "sync_health_OPERATOR.md"},
+        ),
+    )
+    snapshot = _latest(db_path)
+
+    assert result.trust_status == "trusted"
+    assert snapshot["mirror_status"] == "ok"
+    assert snapshot["missing_expected"] == 0
+    assert snapshot["hash_mismatch"] == 0
+    assert snapshot["recommended_fix_kind"] == "none"
+    assert snapshot["display_status"] == "current"
+
+
 def test_mac_completion_newer_than_pc_import_produces_needs_pc_import(tmp_path):
     _root, read_models = _fixture_root(tmp_path)
     result, db_path, _paths = _build_with_manifest(
@@ -280,6 +302,40 @@ def test_read_model_export_exists_and_no_authority_flags_are_false(tmp_path):
     assert "OpenClaw Sync Health" in operator_text
     assert all(value is False for value in payload["no_authority_flags"].values())
     assert all(value is False for value in NO_AUTHORITY_FLAGS.values())
+
+
+def test_refresh_sync_health_from_manifest_builds_snapshot_and_exports(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models)) + "\n")
+    manifest_hash = sha256_file(manifest)
+    paths = _proof_files(tmp_path, manifest_hash)
+    export_root = tmp_path / "exports"
+
+    summary = refresh_sync_health_from_manifest(
+        db_path=tmp_path / "ledger.sqlite",
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        mac_status_path=paths["mac_status"],
+        mac_completion_path=paths["mac_completion"],
+        pc_import_state_path=paths["pc_state"],
+        pc_task_log_path=paths["pc_log"],
+        windows_task_log_path=paths["windows_log"],
+        request_marker_path=paths["request_marker"],
+        export_root=export_root,
+    )
+
+    payload = json.loads((export_root / "sync_health.json").read_text(encoding="utf-8"))
+    assert summary["sync_health_refreshed"] is True
+    assert summary["canonical_expected"] == 2
+    assert summary["observed"] == 2
+    assert summary["missing_expected"] == 0
+    assert summary["hash_mismatch"] == 0
+    assert summary["mirror_status"] == "ok"
+    assert payload["mirror_status"] == "ok"
+    assert payload["display_status"] == "current"
+    assert (export_root / "sync_health_OPERATOR.md").is_file()
 
 
 def test_reports_and_scripts_work(tmp_path, capsys):

@@ -23,6 +23,7 @@ from read_model_shuttle import (
     DEFAULT_RETURNED_MANIFEST_PATH,
 )
 from scripts.import_latest_mac_read_model_mirror import import_latest_mac_read_model_mirror
+from sync_health import refresh_sync_health_from_manifest
 
 
 AGENT_VERSION = "openclaw.pc_read_model_import_agent.v0"
@@ -33,6 +34,7 @@ DEFAULT_STATE_PATH = ROOT / ".openclaw" / "state" / "read_model_import_agent_sta
 DEFAULT_LOG_PATH = ROOT / ".openclaw" / "logs" / "read_model_import_agent.log"
 
 Importer = Callable[..., dict[str, Any]]
+SyncHealthRefresher = Callable[..., dict[str, Any]]
 
 NO_AUTHORITY_FLAGS = {
     "remote_control_allowed": False,
@@ -143,6 +145,7 @@ def run_import_agent_once(
     db_path: str | Path = DEFAULT_DB_PATH,
     import_manifest_path: str | Path = DEFAULT_IMPORT_MANIFEST_PATH,
     importer: Importer = import_latest_mac_read_model_mirror,
+    sync_health_refresher: SyncHealthRefresher = refresh_sync_health_from_manifest,
 ) -> dict[str, Any]:
     manifest = Path(manifest_path)
     completion_marker = Path(completion_marker_path)
@@ -167,12 +170,14 @@ def run_import_agent_once(
     manifest_stat = manifest.stat()
     previous_state = load_state(state_file)
     if previous_state.get("last_successful_manifest_sha256") == manifest_hash:
+        refreshed_at = utc_now()
         status = _base_status(
             status="skipped_unchanged",
             manifest_path=manifest,
             completion_marker_path=completion_marker,
             state_path=state_file,
             log_path=log_file,
+            generated_at=refreshed_at,
             manifest_sha256=manifest_hash,
             manifest_size_bytes=manifest_stat.st_size,
             manifest_mtime=manifest_stat.st_mtime,
@@ -180,6 +185,52 @@ def run_import_agent_once(
             message="Manifest hash matches the last successful import; import skipped.",
             **_completion_marker_summary(completion_marker),
         )
+        try:
+            sync_health_refresh = sync_health_refresher(
+                db_path=db_path,
+                manifest_path=manifest,
+                pc_import_state_path=state_file,
+                mac_completion_path=completion_marker,
+                pc_task_log_path=log_file,
+            )
+        except Exception as exc:
+            failure = _base_status(
+                status="sync_health_refresh_failed",
+                manifest_path=manifest,
+                completion_marker_path=completion_marker,
+                state_path=state_file,
+                log_path=log_file,
+                exit_code=1,
+                manifest_sha256=manifest_hash,
+                manifest_size_bytes=manifest_stat.st_size,
+                manifest_mtime=manifest_stat.st_mtime,
+                failure_reason=type(exc).__name__,
+                failure_detail=str(exc),
+                **_completion_marker_summary(completion_marker),
+            )
+            write_state(
+                state_file,
+                {
+                    **previous_state,
+                    "agent_version": AGENT_VERSION,
+                    "status": failure["status"],
+                    "updated_at": failure["generated_at"],
+                    "last_seen_manifest_sha256": manifest_hash,
+                    "last_seen_manifest_path": manifest.as_posix(),
+                    "last_failure_at": failure["generated_at"],
+                    "last_failure_reason": failure["failure_reason"],
+                    "last_failure_detail": failure["failure_detail"],
+                    **NO_AUTHORITY_FLAGS,
+                },
+            )
+            append_log(
+                log_file,
+                "sync_health_refresh_failed",
+                manifest_sha256=manifest_hash,
+                failure_reason=failure["failure_reason"],
+            )
+            return failure
+        status["sync_health_refresh"] = sync_health_refresh
         write_state(
             state_file,
             {
@@ -190,10 +241,17 @@ def run_import_agent_once(
                 "last_seen_manifest_sha256": manifest_hash,
                 "last_seen_manifest_path": manifest.as_posix(),
                 "last_skip_reason": "unchanged_manifest_hash",
+                "last_sync_health_refreshed_at": refreshed_at,
+                "last_sync_health_refresh": sync_health_refresh,
                 **NO_AUTHORITY_FLAGS,
             },
         )
-        append_log(log_file, "skipped_unchanged", manifest_sha256=manifest_hash)
+        append_log(
+            log_file,
+            "skipped_unchanged",
+            manifest_sha256=manifest_hash,
+            sync_health_refreshed=True,
+        )
         return status
 
     append_log(log_file, "import_started", manifest_path=manifest.as_posix(), manifest_sha256=manifest_hash)
@@ -241,12 +299,14 @@ def run_import_agent_once(
         )
         return status
 
+    refreshed_at = utc_now()
     status = _base_status(
         status="success",
         manifest_path=manifest,
         completion_marker_path=completion_marker,
         state_path=state_file,
         log_path=log_file,
+        generated_at=refreshed_at,
         manifest_sha256=manifest_hash,
         manifest_size_bytes=manifest_stat.st_size,
         manifest_mtime=manifest_stat.st_mtime,
@@ -260,22 +320,74 @@ def run_import_agent_once(
         ),
         **_completion_marker_summary(completion_marker),
     )
+    success_state = {
+        "agent_version": AGENT_VERSION,
+        "status": status["status"],
+        "updated_at": status["generated_at"],
+        "last_seen_manifest_sha256": manifest_hash,
+        "last_seen_manifest_path": manifest.as_posix(),
+        "last_successful_manifest_sha256": manifest_hash,
+        "last_successful_manifest_path": manifest.as_posix(),
+        "last_imported_at": status["generated_at"],
+        "last_import_run_id": status.get("import_run_id"),
+        "last_root_id": status.get("root_id"),
+        "last_path_count": status.get("path_count"),
+        "last_mirror_counts": status.get("mirror_counts"),
+        **NO_AUTHORITY_FLAGS,
+    }
+    write_state(state_file, success_state)
+    try:
+        sync_health_refresh = sync_health_refresher(
+            db_path=db_path,
+            manifest_path=manifest,
+            pc_import_state_path=state_file,
+            mac_completion_path=completion_marker,
+            pc_task_log_path=log_file,
+        )
+    except Exception as exc:
+        failure = _base_status(
+            status="sync_health_refresh_failed",
+            manifest_path=manifest,
+            completion_marker_path=completion_marker,
+            state_path=state_file,
+            log_path=log_file,
+            exit_code=1,
+            manifest_sha256=manifest_hash,
+            manifest_size_bytes=manifest_stat.st_size,
+            manifest_mtime=manifest_stat.st_mtime,
+            import_run_id=import_result.get("import_run_id"),
+            root_id=import_result.get("root_id"),
+            path_count=import_result.get("path_count"),
+            failure_reason=type(exc).__name__,
+            failure_detail=str(exc),
+            **_completion_marker_summary(completion_marker),
+        )
+        write_state(
+            state_file,
+            {
+                **success_state,
+                "status": failure["status"],
+                "updated_at": failure["generated_at"],
+                "last_failure_at": failure["generated_at"],
+                "last_failure_reason": failure["failure_reason"],
+                "last_failure_detail": failure["failure_detail"],
+            },
+        )
+        append_log(
+            log_file,
+            "sync_health_refresh_failed",
+            manifest_sha256=manifest_hash,
+            failure_reason=failure["failure_reason"],
+            import_run_id=status.get("import_run_id"),
+        )
+        return failure
+    status["sync_health_refresh"] = sync_health_refresh
     write_state(
         state_file,
         {
-            "agent_version": AGENT_VERSION,
-            "status": status["status"],
-            "updated_at": status["generated_at"],
-            "last_seen_manifest_sha256": manifest_hash,
-            "last_seen_manifest_path": manifest.as_posix(),
-            "last_successful_manifest_sha256": manifest_hash,
-            "last_successful_manifest_path": manifest.as_posix(),
-            "last_imported_at": status["generated_at"],
-            "last_import_run_id": status.get("import_run_id"),
-            "last_root_id": status.get("root_id"),
-            "last_path_count": status.get("path_count"),
-            "last_mirror_counts": status.get("mirror_counts"),
-            **NO_AUTHORITY_FLAGS,
+            **success_state,
+            "last_sync_health_refreshed_at": refreshed_at,
+            "last_sync_health_refresh": sync_health_refresh,
         },
     )
     append_log(
@@ -283,6 +395,7 @@ def run_import_agent_once(
         "import_succeeded",
         manifest_sha256=manifest_hash,
         import_run_id=status.get("import_run_id"),
+        sync_health_refreshed=True,
     )
     return status
 
