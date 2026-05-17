@@ -1,0 +1,529 @@
+{
+  "alert_severity_model": {
+    "high": {
+      "description": "possible secret/PII exposure, unauthorized send/submit/browser/runtime path, or unexplained service/authority change",
+      "examples": [
+        "secret hint in normal read-model",
+        "send path enabled without approved packet",
+        "service authority changes without receipt"
+      ],
+      "red_alert": false
+    },
+    "low": {
+      "description": "stale, missing, or inconsistent read-model/mirror state and ordinary mismatch",
+      "examples": [
+        "stale sync_health",
+        "missing expected mirrored packet",
+        "ordinary hash mismatch"
+      ],
+      "red_alert": false
+    },
+    "low_level_mismatch_triggers_red_alert": false,
+    "medium": {
+      "description": "unexpected authority request or suspicious scope expansion",
+      "examples": [
+        "approval request wider than packet scope",
+        "lane asks for new runtime authority without gate"
+      ],
+      "red_alert": false
+    },
+    "model": "calibrated_watchdog_sentinel_not_immune_system",
+    "proportional_alerting_required": true,
+    "red": {
+      "description": "suspected compromise, loss of operator control, malicious override, or behavior resisting operator sovereignty",
+      "examples": [
+        "loss of operator control",
+        "operator lockout or inability to stop a capability",
+        "malicious override attempt",
+        "forged approval or hidden denial",
+        "system resists operator sovereignty"
+      ],
+      "red_alert": true
+    },
+    "red_alert_reserved_for_severe_compromise": true
+  },
+  "autonomous_self_repair_added": false,
+  "blocked_stage_ids": [
+    "stage_2_approval_request_generation",
+    "stage_3_credential_pii_broker_browser_prep",
+    "stage_4_real_send_submit_browser_spreadsheet_execution",
+    "stage_5_client_deployment_remote_nodes_autonomous_repair"
+  ],
+  "broad_private_scan_performed": false,
+  "browser_automation_added": false,
+  "contract_schema_version": "operator_sovereignty_power_stage_gate_v0",
+  "credential_or_pii_access_added": false,
+  "current_power_stage": {
+    "classification": "Stage 1 current; Stage 2 pieces modeled; Stages 3-5 blocked.",
+    "current_power_stage_classified": true,
+    "current_power_stage_id": "stage_1_visibility_read_model_review_packet",
+    "current_power_stage_name": "Visibility / Read-Model / Review Packet",
+    "do_not_overclaim": true,
+    "no_executable_send_submit_browser_credential_authority": true,
+    "stage_2_pieces_modeled": [
+      "Capital Hilton Guardian start approval packet spec",
+      "Guardian/HITL SQLite authority contract",
+      "approval packet integrity fields and no-execution boundary"
+    ]
+  },
+  "customer_deployment_authority_added": false,
+  "doctrine": "OpenClaw should be useful and context-aware from visible, scoped, consented, provenance-backed evidence, not hidden raw capture or behavioral manipulation.",
+  "generated_at": "2026-05-17T19:38:43+00:00",
+  "generated_by": "codex",
+  "higher_power_crossing_policy": {
+    "stage_2_approval_packets_do_not_imply_execution_authority": true,
+    "stage_3_requires_protected_local_only_broker_before_any_sensitive_access": true,
+    "stage_4_requires_hard_stop_tamper_checks_and_scoped_execution_receipts": true,
+    "stage_5_requires_stronger_authentication_and_out_of_band_recovery": true
+  },
+  "inspected_safety_security_substrate": [
+    {
+      "evidence": "guardian_hitl_sqlite_authority_contract.py; docs/operations/GUARDIAN_HITL_SQLITE_AUTHORITY_CONTRACT_V0.md",
+      "relevance": "approval payload fields, forbidden raw command shape, no implicit send/runtime authority",
+      "surface": "Guardian/HITL SQLite authority contract"
+    },
+    {
+      "evidence": "operator_action.py; operator_action_inbox.py; operator_action_covenant.py",
+      "relevance": "existing approval/request/receipt style and allowlisted local action boundary",
+      "surface": "Operator Action and approval contracts"
+    },
+    {
+      "evidence": "cassandra_no_send_reload_guard.py; cassandra_send_status_dry_run.py",
+      "relevance": "send-capable service posture can inspect/classify while blocking outbound paths",
+      "surface": "Cassandra no-send/status dry-run guards"
+    },
+    {
+      "evidence": "generated_read_model_files.py; generated/read_models/sync_health.json",
+      "relevance": "safe top-level read-model selection, no-go filename hints, mirror trust status",
+      "surface": "Generated read-model no-go/sync rules"
+    },
+    {
+      "evidence": "openclaw_estate_node_registry.py; docs/operations/OPENCLAW_ESTATE_NODE_REGISTRY_CONTRACT_V0.md",
+      "relevance": "wrong-environment guidance and node/canonicality boundaries",
+      "surface": "Estate node registry"
+    },
+    {
+      "evidence": "post_preflight_batch_gate.py; docs/operations/POST_PREFLIGHT_BATCH_GATE_V0.md",
+      "relevance": "future lane gate before vague prep or ungated authority expansion",
+      "surface": "Post-preflight batch gate"
+    },
+    {
+      "evidence": "capital_hilton_coupa_execution_path.py; capital_hilton_coupa_start_approval_packet.py",
+      "relevance": "current higher-power workflow is modeled but non-executable",
+      "surface": "Capital Hilton execution/start approval packets"
+    }
+  ],
+  "kill_script_added": false,
+  "mission_control_app_changed": false,
+  "next_recommended_lane": "Capital Hilton Start Approval Operator Surface v0",
+  "no_authority_flags": {
+    "autonomous_self_repair_added": false,
+    "broad_private_scan_performed": false,
+    "browser_automation_added": false,
+    "credential_or_pii_access_added": false,
+    "customer_deployment_authority_added": false,
+    "kill_script_added": false,
+    "mission_control_app_changed": false,
+    "repo_b_executed": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "service_started_or_stopped": false,
+    "surveillance_capability_added": false
+  },
+  "operator_sovereignty_rule": "The system must not become something the operator would unplug if he knew exactly what it was doing, and must not pretend it is safer than it is.",
+  "purpose": "Define staged controls required before OpenClaw crosses into higher-power capabilities.",
+  "repo_b_executed": false,
+  "required_stage_fields": [
+    "stage_id",
+    "stage_name",
+    "allowed_capabilities",
+    "forbidden_capabilities",
+    "required_controls",
+    "required_receipts_read_models",
+    "alert_thresholds",
+    "stop_conditions",
+    "recovery_requirements",
+    "current_status",
+    "can_cross_into_stage",
+    "missing_controls"
+  ],
+  "runtime_authority_added": false,
+  "schema_version": "operator_sovereignty_power_stage_gate_read_model_v0",
+  "send_or_submit_authority_added": false,
+  "sentinel_model": "calibrated_watchdog_sentinel_not_noisy_immune_system",
+  "service_started_or_stopped": false,
+  "stage_3_blocked_without_protected_pii_broker_controls": true,
+  "stage_4_blocked_without_hard_stop_and_tamper_controls": true,
+  "stage_5_blocked_without_strong_recovery_authentication": true,
+  "stage_count": 5,
+  "stage_status_counts": {
+    "blocked_future_stage": 2,
+    "current_conservative_power_stage": 1,
+    "modeled_partial_not_crossed": 1,
+    "planned_blocked_future_stage": 1
+  },
+  "stages": [
+    {
+      "alert_thresholds": {
+        "high": [
+          "secret or PII appears in normal read-model",
+          "review-only packet claims send or runtime authority"
+        ],
+        "low": [
+          "stale read-model",
+          "missing mirrored packet",
+          "ordinary hash mismatch"
+        ],
+        "medium": [
+          "unexpected attempt to add approval request generation",
+          "review packet loses authority flags"
+        ],
+        "red": [
+          "operator cannot stop visibility pipeline",
+          "malicious override attempts to hide authority state"
+        ]
+      },
+      "allowed_capabilities": [
+        "classify and model facts from governed evidence",
+        "generate read-models",
+        "show Mission Control surfaces",
+        "generate review-only packets"
+      ],
+      "can_cross_into_stage": true,
+      "current_status": "current_conservative_power_stage",
+      "forbidden_capabilities": [
+        "send or submit externally",
+        "browser automation",
+        "credential or PII access",
+        "runtime execution authority",
+        "hidden raw capture",
+        "operator behavior surveillance"
+      ],
+      "missing_controls": [],
+      "recovery_requirements": [
+        "regenerate from canonical Repo A evidence",
+        "restore review-only authority flags",
+        "operator review before promoting affected packet"
+      ],
+      "required_controls": [
+        "provenance_backed_read_models",
+        "no_raw_secret_pii_in_normal_read_models",
+        "authority_flags_on_review_packets",
+        "sync_mirror_trust_surface",
+        "wrong_environment_guidance",
+        "review_only_labels"
+      ],
+      "required_receipts_read_models": [
+        "generated review/read-model artifacts",
+        "sync_health or mirror trust read-model",
+        "estate node registry",
+        "workflow proof packets"
+      ],
+      "stage_id": "stage_1_visibility_read_model_review_packet",
+      "stage_name": "Visibility / Read-Model / Review Packet",
+      "stop_conditions": [
+        "normal read-model contains raw secrets or PII",
+        "review-only packet grants external action authority",
+        "mirror trust is faked rather than proven"
+      ]
+    },
+    {
+      "alert_thresholds": {
+        "high": [
+          "approval packet becomes executable without explicit wiring",
+          "approval packet includes raw command or freeform shell"
+        ],
+        "low": [
+          "approval packet missing optional provenance"
+        ],
+        "medium": [
+          "unexpected approval request for a broader scope",
+          "approval packet omits blocked authorities"
+        ],
+        "red": [
+          "approval path bypasses operator decision",
+          "component forges approval or hides denial"
+        ]
+      },
+      "allowed_capabilities": [
+        "create Guardian/operator approval request packets",
+        "model approval scope and exact downstream gates",
+        "log or prepare approval receipts when separately wired"
+      ],
+      "can_cross_into_stage": false,
+      "current_status": "modeled_partial_not_crossed",
+      "forbidden_capabilities": [
+        "treat approval packets as executable by default",
+        "implicit authority escalation",
+        "ambiguous approval scope",
+        "general runtime or send authority"
+      ],
+      "missing_controls": [
+        "receipt_logging_for_executable_approval_requests"
+      ],
+      "recovery_requirements": [
+        "invalidate ambiguous packet",
+        "regenerate with exact scope and payload hash",
+        "require operator review before any future wiring"
+      ],
+      "required_controls": [
+        "approval_scope_clarity_modeled",
+        "anti_ambiguity_authority_boundary_modeled",
+        "approval_packet_integrity_modeled",
+        "receipt_logging_for_executable_approval_requests",
+        "no_implicit_authority_escalation_modeled"
+      ],
+      "required_receipts_read_models": [
+        "Guardian approval packet spec/read-model",
+        "exact payload hash and idempotency fields",
+        "request/decision receipt contract before execution"
+      ],
+      "stage_id": "stage_2_approval_request_generation",
+      "stage_name": "Approval Request Generation",
+      "stop_conditions": [
+        "approval request lacks immutable payload identity",
+        "approval scope authorizes external action ambiguously",
+        "receipt path is absent for executable approvals"
+      ]
+    },
+    {
+      "alert_thresholds": {
+        "high": [
+          "possible secret or PII exposure",
+          "browser prep requests live navigation without broker controls"
+        ],
+        "low": [
+          "protected evidence slot missing optional reference"
+        ],
+        "medium": [
+          "credential access requested without exact field scope"
+        ],
+        "red": [
+          "credential material appears copied into normal repo",
+          "component attempts to use secrets after operator revocation"
+        ]
+      },
+      "allowed_capabilities": [
+        "model protected credential/PII insertion",
+        "model browser automation scope",
+        "prepare protected local-only broker design"
+      ],
+      "can_cross_into_stage": false,
+      "current_status": "blocked_future_stage",
+      "forbidden_capabilities": [
+        "read or store raw secrets in repo/read-models",
+        "insert credentials without explicit operator approval",
+        "start browser automation",
+        "cloud credential flow"
+      ],
+      "missing_controls": [
+        "protected_local_only_credential_pii_broker_design",
+        "secret_visibility_minimization",
+        "explicit_operator_approval_for_sensitive_access",
+        "scoped_access_receipts",
+        "no_raw_secret_read_model_leakage_tests"
+      ],
+      "recovery_requirements": [
+        "operator revoke and rotate affected secret if exposed",
+        "remove unsafe artifact from normal read-model path",
+        "require fresh scoped approval before retry"
+      ],
+      "required_controls": [
+        "protected_local_only_credential_pii_broker_design",
+        "secret_visibility_minimization",
+        "explicit_operator_approval_for_sensitive_access",
+        "scoped_access_receipts",
+        "no_raw_secret_read_model_leakage_tests",
+        "watchdog_sentinel_contract_required_before_crossing"
+      ],
+      "required_receipts_read_models": [
+        "redacted protected access receipt contract",
+        "sensitive field insertion scope packet",
+        "browser scope packet",
+        "secret leakage regression tests"
+      ],
+      "stage_id": "stage_3_credential_pii_broker_browser_prep",
+      "stage_name": "Credential/PII Broker + Browser Automation Preparation",
+      "stop_conditions": [
+        "protected broker controls absent",
+        "raw secret or PII would enter generated read-model",
+        "browser prep cannot be scoped to approved task"
+      ]
+    },
+    {
+      "alert_thresholds": {
+        "high": [
+          "unauthorized send/submit/browser/runtime path",
+          "unexplained service or authority change"
+        ],
+        "low": [
+          "execution receipt missing noncritical display field"
+        ],
+        "medium": [
+          "execution request expands beyond approved packet"
+        ],
+        "red": [
+          "loss of operator control",
+          "malicious override of stop/containment mechanism",
+          "system resists operator sovereignty"
+        ]
+      },
+      "allowed_capabilities": [
+        "send emails or messages",
+        "submit portals",
+        "automate browser and spreadsheet actions",
+        "record scoped execution receipts"
+      ],
+      "can_cross_into_stage": false,
+      "current_status": "blocked_future_stage",
+      "forbidden_capabilities": [
+        "general send authority",
+        "unbounded browser automation",
+        "hidden external writes",
+        "execution without hard stop and tamper controls"
+      ],
+      "missing_controls": [
+        "hard_stop_containment_mechanisms",
+        "tamper_checks",
+        "authority_surface_monitoring",
+        "operator_controlled_recovery",
+        "scoped_execution_receipts"
+      ],
+      "recovery_requirements": [
+        "contain affected execution surface",
+        "preserve receipts for review without leaking secrets",
+        "operator verification before reactivation"
+      ],
+      "required_controls": [
+        "hard_stop_containment_mechanisms",
+        "tamper_checks",
+        "authority_surface_monitoring",
+        "operator_controlled_recovery",
+        "scoped_execution_receipts",
+        "staged_alerting"
+      ],
+      "required_receipts_read_models": [
+        "send/submit/browser/spreadsheet execution receipt",
+        "tamper-check read-model",
+        "operator-controlled stop and recovery receipt",
+        "specific approved packet binding"
+      ],
+      "stage_id": "stage_4_real_send_submit_browser_spreadsheet_execution",
+      "stage_name": "Real Send/Submit/Browser/Spreadsheet Execution",
+      "stop_conditions": [
+        "hard stop mechanism absent",
+        "tamper checks absent",
+        "execution cannot be bound to one approved packet",
+        "operator-controlled recovery absent"
+      ]
+    },
+    {
+      "alert_thresholds": {
+        "high": [
+          "client data boundary ambiguity",
+          "unexpected remote execution authority request"
+        ],
+        "low": [
+          "remote read-model mirror stale"
+        ],
+        "medium": [
+          "remote node asks for new capability without capsule boundary"
+        ],
+        "red": [
+          "suspected compromise of remote node",
+          "loss of operator control across nodes",
+          "autonomous repair attempts to override operator lockout"
+        ]
+      },
+      "allowed_capabilities": [
+        "client/friend/company systems",
+        "remote reporting or execution nodes",
+        "autonomous repair or recovery"
+      ],
+      "can_cross_into_stage": false,
+      "current_status": "planned_blocked_future_stage",
+      "forbidden_capabilities": [
+        "client deployment without boundary contract",
+        "normal restart after severe compromise without operator verification",
+        "tenant data mixing",
+        "unbounded autonomous self-repair"
+      ],
+      "missing_controls": [
+        "stronger_authentication",
+        "out_of_band_recovery_for_severe_breaches",
+        "client_boundary_protections",
+        "severity_matched_reactivation",
+        "no_normal_restart_after_severe_compromise_without_operator_verification"
+      ],
+      "recovery_requirements": [
+        "out-of-band operator verification",
+        "severity-matched reactivation",
+        "tenant/client boundary audit before resume"
+      ],
+      "required_controls": [
+        "stronger_authentication",
+        "out_of_band_recovery_for_severe_breaches",
+        "client_boundary_protections",
+        "severity_matched_reactivation",
+        "no_normal_restart_after_severe_compromise_without_operator_verification"
+      ],
+      "required_receipts_read_models": [
+        "client boundary contract",
+        "remote node authority registry",
+        "out-of-band recovery packet",
+        "severe incident reactivation receipt"
+      ],
+      "stage_id": "stage_5_client_deployment_remote_nodes_autonomous_repair",
+      "stage_name": "Client Deployment / Remote Nodes / Autonomous Repair",
+      "stop_conditions": [
+        "strong authentication absent",
+        "out-of-band recovery absent",
+        "client boundary protections absent",
+        "severe compromise would restart normally"
+      ]
+    }
+  ],
+  "surveillance_capability_added": false,
+  "watchdog_scope": {
+    "autonomous_self_repair_allowed": false,
+    "excluded_surveillance_surfaces": [
+      "private operator behavior profiling",
+      "hidden raw capture",
+      "broad private file scanning",
+      "raw Telegram/Gmail/calendar body monitoring",
+      "bank/spreadsheet cell inspection",
+      "secret/env value inspection",
+      "ambient personal surveillance"
+    ],
+    "included_authority_surfaces": [
+      "read-model freshness and mirror trust metadata",
+      "authority flags on packets and receipts",
+      "approval packet scope and payload hashes",
+      "service authority posture and guard status when already exposed by safe status surfaces",
+      "generated proof/read-model outputs",
+      "estate node routing and wrong-environment guidance"
+    ],
+    "private_content_read_required": false,
+    "raw_secret_or_pii_read_required": false,
+    "watchdog_action_authority": "observe_and_block_by_contract_only_not_execute",
+    "watchdog_monitors_authority_surfaces_not_operator_private_life": true
+  },
+  "what_this_blocks_before_future_escalation": [
+    "credential/PII broker activation without protected controls",
+    "browser/Coupa/spreadsheet execution without hard stop and tamper checks",
+    "send/submit authority without exact packet binding and receipts",
+    "client deployment or remote nodes without stronger recovery/authentication controls",
+    "red-alert escalation for ordinary stale/missing read-model mismatches",
+    "surveillance of operator private life as a safety mechanism"
+  ],
+  "what_this_does_not_build": [
+    "credential/PII broker implementation",
+    "kill scripts or service control",
+    "browser automation",
+    "send/submit paths",
+    "client deployment",
+    "Mission Control app changes",
+    "autonomous self-repair",
+    "broad private scanning"
+  ]
+}
