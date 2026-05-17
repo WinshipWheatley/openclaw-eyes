@@ -1,0 +1,1321 @@
+{
+  "agents_enabled": false,
+  "boundaries": {
+    "no_agent_send_daemon_enablement": true,
+    "no_file_move_delete_rename_chmod": true,
+    "no_launcher_edit": true,
+    "no_repo_b_execution": true,
+    "no_runtime_modification": true,
+    "no_service_disable": true
+  },
+  "callers_switched": false,
+  "counts": {
+    "by_disposition": {
+      "block_no_go": 5,
+      "keep_test_only": 3,
+      "replace_with_governed_path": 4,
+      "retire_later": 2,
+      "wrap_with_guardian": 3
+    },
+    "high_risk_warning_count": 14,
+    "high_risk_with_static_references": 12,
+    "static_reference_count": 12,
+    "test_only_warning_count": 3
+  },
+  "daemons_enabled": false,
+  "destructive_quarantine_allowed": false,
+  "files_moved_or_deleted": false,
+  "generated_at": "2026-05-17T03:17:04+00:00",
+  "generated_by": "codex",
+  "high_risk_warnings": [
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "remote builder"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "block_no_go",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": false,
+      "quarantine_status": "warning_only",
+      "relative_path": "builder_watcher.sh",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "no external send capability proven from safe static signals"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "loop_supervisor.sh restarts builder_watcher.sh"
+      ],
+      "surface_id": "builder_watcher.sh",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Replace with Work Board / Operator Action handoff and prove bounded receipts; do not run as a watcher.",
+      "why_it_matters": "Verified watcher/daemon signals on a builder surface; legacy watchdog-style build loops should not run outside a governed Operator Action packet."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Cassandra",
+        "Guardian/HITL",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "replace_with_governed_path",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "cassandra_listener.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "send_external_api",
+        "shell_or_process",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior",
+          "safe static signals indicate shell/process execution risk"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+        "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+      ],
+      "surface_id": "cassandra_listener.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Route through governed intake, Operator Action, and Guardian/HITL receipts before any live listener use.",
+      "why_it_matters": "Verified listener signals on Cassandra intake; current direction is governed intake plus Work Board projection, not an ungated listener."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Cassandra",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "retire_later",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "cassandra_watcher.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "mcp_tool_plugin_surface",
+        "path_daemon_listener_hint",
+        "send_external_api",
+        "shell_or_process"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior",
+          "safe static signals indicate shell/process execution risk"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate tool/plugin metadata references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "systemd/user/cassandra-watcher.service.in references cassandra_watcher.py",
+        "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+      ],
+      "surface_id": "cassandra_watcher.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Prove it is still needed; otherwise retire after equivalent governed path is confirmed.",
+      "why_it_matters": "Verified watcher/listener signals on a Cassandra surface; likely superseded by governed intake and read-model flows."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "retire_later",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_brainstorm_watcher.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "state_mutator"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "no external send capability proven from safe static signals"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate local state or generated artifact mutation",
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "chief_brainstorm_watcher.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Keep disabled until an operator-approved use case proves it should become a governed Work Board source.",
+      "why_it_matters": "Verified watcher/state-mutator signals on a Chief brainstorming surface; not on the current canonical authority path."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "Guardian/HITL",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "wrap_with_guardian",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_email_brain.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "chief_email_brain.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Require immutable approved packet, no-send default, and Guardian receipt before any external send behavior.",
+      "why_it_matters": "Verified send/API signals on an email capability; external communication must remain draft/review-only until explicitly approved."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "Guardian/HITL",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "replace_with_governed_path",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_guardian_listener.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "daemon_listener",
+        "importer_exporter",
+        "path_approval_hitl_hint",
+        "path_daemon_listener_hint",
+        "send_external_api",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "systemd/user/chief-guardian-listener.service.in references chief_guardian_listener.py"
+      ],
+      "surface_id": "chief_guardian_listener.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Use SQLite-backed Operator Action/HITL surfaces; keep legacy listener compatibility-only until replacement proof exists.",
+      "why_it_matters": "Verified listener plus approval/HITL signals on legacy Guardian machinery; canonical direction is SQLite Operator Action / Guardian contract."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "Guardian/HITL",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "wrap_with_guardian",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_guardian_sender.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "importer_exporter",
+        "path_approval_hitl_hint",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "Guardian/HITL surfaces reference chief_guardian_sender.py"
+      ],
+      "surface_id": "chief_guardian_sender.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Allow only approved notification packets and receipts; no raw or freeform send authority.",
+      "why_it_matters": "Verified send/API plus Guardian signals; any notification/sender path needs explicit approval boundaries."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "Guardian/HITL",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "replace_with_governed_path",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_listener.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "scheduler_watchdog",
+        "send_external_api",
+        "shell_or_process",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior",
+          "safe static signals indicate shell/process execution risk"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "systemd/user/chief-listener.service.in references chief_listener.py",
+        "start_chief_logged.sh starts chief_listener.py"
+      ],
+      "surface_id": "chief_listener.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Prove caller scope, HITL boundary, and receipt path before live listener activation.",
+      "why_it_matters": "Verified central listener signals; current Chief direction is deterministic control-plane over governed intake, not autonomous listener authority."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "wrap_with_guardian",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_sender.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "Chief brain files reference chief_sender.py"
+      ],
+      "surface_id": "chief_sender.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Require approved immutable packet, recipient binding, no raw command text, and receipt proof.",
+      "why_it_matters": "Verified send/API signals on a sender surface; external sends require Guardian/operator approval."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "Guardian/HITL"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "block_no_go",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": false,
+      "quarantine_status": "warning_only",
+      "relative_path": "chief_watcher_brain.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "approval_hitl",
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "shell_or_process",
+        "state_mutator"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior",
+          "safe static signals indicate shell/process execution risk"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access",
+          "safe static signals indicate approval/HITL state references"
+        ],
+        "sends": [
+          "no external send capability proven from safe static signals"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate local state or generated artifact mutation",
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "systemd/user/chief-watcher-brain.service.in references chief_watcher_brain.py"
+      ],
+      "surface_id": "chief_watcher_brain.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Replace with bounded Work Board / Operator Action workflow; do not run watcher/process behavior directly.",
+      "why_it_matters": "Verified watcher plus shell/process signals; this is too risky to run as active machinery without a replacement contract."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Producer/Niles",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "replace_with_governed_path",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": true,
+      "quarantine_status": "warning_only",
+      "relative_path": "producer_listener.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "scheduler_watchdog",
+        "send_external_api",
+        "shell_or_process",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior",
+          "safe static signals indicate shell/process execution risk"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "scripts/run_producer_listener.sh starts producer_listener.py"
+      ],
+      "surface_id": "producer_listener.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Define Producer/Niles module boundary and route actions through Guardian/HITL before activation.",
+      "why_it_matters": "Verified listener/scheduler/send signals on Producer/Niles-adjacent machinery; not ready as autonomous runtime."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "block_no_go",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": false,
+      "quarantine_status": "warning_only",
+      "relative_path": "retry_send_demo_dashboard.sh",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "path_send_api_hint"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "no read capability proven from safe static signals"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "no write capability proven from safe static signals"
+        ]
+      },
+      "static_references": [
+        "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+      ],
+      "surface_id": "retry_send_demo_dashboard.sh",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Keep as blocked unless replaced by a no-send proof fixture or explicitly approved bounded demo.",
+      "why_it_matters": "Verified send-path signal on a shell demo/retry surface; demos must not become live send machinery."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Producer/Niles"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "block_no_go",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": false,
+      "quarantine_status": "warning_only",
+      "relative_path": "scripts/run_producer_listener.sh",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "path_daemon_listener_hint"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "no read capability proven from safe static signals"
+        ],
+        "sends": [
+          "no external send capability proven from safe static signals"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "no write capability proven from safe static signals"
+        ]
+      },
+      "static_references": [
+        "scripts/run_producer_listener.sh starts producer_listener.py"
+      ],
+      "surface_id": "scripts__run_producer_listener.sh",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Do not run until Producer listener has a governed contract and operator-approved activation lane.",
+      "why_it_matters": "Verified launcher for listener machinery; shell launchers should not activate daemons outside governed runtime approval."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "block_no_go",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": false,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": true,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "operator review before any runtime quarantine action",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": true,
+      "operator_decision_required": false,
+      "quarantine_status": "warning_only",
+      "relative_path": "send_demo_dashboard.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [
+        "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+      ],
+      "surface_id": "send_demo_dashboard.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Replace with read-only dashboard proof or approved no-send review artifact.",
+      "why_it_matters": "Verified send/API signal on a demo dashboard sender; demo send paths should remain blocked."
+    }
+  ],
+  "launchers_edited": false,
+  "mode": "metadata_read_model_warning_only",
+  "next_safe_move": "Active Machinery Quarantine Operator Review v0",
+  "not_ready_for": [
+    "service_disable",
+    "file_rename",
+    "file_delete",
+    "file_move",
+    "chmod_change",
+    "launcher_edit",
+    "caller_switch",
+    "send_wrapper_change",
+    "runtime_activation"
+  ],
+  "old_hitl_deleted": false,
+  "quarantine_status": "warning_only",
+  "repo_b_executed": false,
+  "runtime_changed": false,
+  "schema_version": "active_machinery_high_risk_quarantine_v0",
+  "sends_enabled": false,
+  "services_disabled": false,
+  "source_files": {
+    "disposition_read_model": "generated/read_models/active_machinery_operator_disposition.json",
+    "ready_packet": "docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json"
+  },
+  "static_reference_findings": [
+    "systemd/user/chief-listener.service.in references chief_listener.py",
+    "systemd/user/chief-watcher-brain.service.in references chief_watcher_brain.py",
+    "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+    "systemd/user/cassandra-watcher.service.in references cassandra_watcher.py",
+    "systemd/user/chief-guardian-listener.service.in references chief_guardian_listener.py",
+    "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py",
+    "start_chief_logged.sh starts chief_listener.py",
+    "loop_supervisor.sh restarts builder_watcher.sh",
+    "scripts/run_producer_listener.sh starts producer_listener.py",
+    "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py",
+    "Chief brain files reference chief_sender.py",
+    "Guardian/HITL surfaces reference chief_guardian_sender.py"
+  ],
+  "subprocess_or_shell_execution_used": false,
+  "test_only_items": [
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Cassandra",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_cassandra_email_thread_analysis.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_cassandra_email_thread_analysis.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_chief_listener_lifecycle.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "send_external_api",
+        "state_mutator",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate local state or generated artifact mutation",
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_chief_listener_lifecycle.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_send_truth.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_send_truth.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    }
+  ],
+  "warning_only": true
+}
