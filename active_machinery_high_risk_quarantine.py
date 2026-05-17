@@ -19,11 +19,13 @@ ROOT = Path(__file__).resolve().parent
 
 SCHEMA_VERSION = "active_machinery_high_risk_quarantine_v0"
 REVIEW_SCHEMA_VERSION = "active_machinery_quarantine_operator_review_v0"
+DECISION_SCHEMA_VERSION = "active_machinery_quarantine_decision_packet_v0"
 DEFAULT_DISPOSITION_PATH = Path("generated/read_models/active_machinery_operator_disposition.json")
 DEFAULT_READY_PACKET_PATH = Path("docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json")
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 OPERATOR_EXPORT_NAME = "active_machinery_high_risk_quarantine_OPERATOR.md"
 REVIEW_OPERATOR_EXPORT_NAME = "active_machinery_quarantine_operator_review_OPERATOR.md"
+DECISION_OPERATOR_EXPORT_NAME = "active_machinery_quarantine_decision_packet_OPERATOR.md"
 
 WARNING_DISPOSITIONS = {
     "block_no_go",
@@ -40,6 +42,14 @@ REVIEW_GROUPS = [
     ("retire_later", "Retire later"),
     ("keep_for_now_current_dependency", "Keep for now / current dependency"),
     ("needs_operator_decision", "Needs operator decision"),
+]
+
+PRIMARY_DECISION_GROUPS = [
+    ("block_later", "Block later"),
+    ("replace_with_governed_path", "Replace with governed path"),
+    ("wrap_with_guardian", "Wrap with Guardian"),
+    ("retire_later", "Retire later"),
+    ("keep_for_now_current_dependency", "Keep for now / current dependency"),
 ]
 
 DISPOSITION_TO_PRIMARY_REVIEW_GROUP = {
@@ -538,6 +548,191 @@ def format_operator_review_packet(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _decision_item(item: dict[str, Any], *, decision_bucket: str) -> dict[str, Any]:
+    evidence_available = bool(
+        item.get("why_it_matters")
+        and item.get("what_must_be_proven_before_acting")
+        and item.get("current_static_dependencies", {}).get("signal_groups")
+    )
+    if not evidence_available:
+        decision_bucket = "needs_operator_decision"
+    return {
+        "surface_id": item.get("surface_id"),
+        "relative_path": item.get("relative_path"),
+        "decision_bucket": decision_bucket,
+        "evidence_available": evidence_available,
+        "current_risk": item.get("current_risk"),
+        "what_it_is": item.get("what_it_is"),
+        "why_it_matters": item.get("why_it_matters"),
+        "current_static_references": item.get("current_static_references") or [],
+        "blocks": item.get("blocks") or {},
+        "recommended_future_action": item.get("recommended_future_action"),
+        "what_must_be_proven_before_acting": item.get("what_must_be_proven_before_acting"),
+        "implementation_authorized": False,
+        "runtime_action_allowed_now": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "operator_approval_required_before_action": True,
+    }
+
+
+def build_decision_packet_payload(
+    *,
+    operator_review_path: str | Path = DEFAULT_READ_MODEL_ROOT
+    / "active_machinery_quarantine_operator_review.json",
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    review = load_json(operator_review_path)
+    quarantine = load_json(quarantine_path)
+    if review.get("schema_version") != REVIEW_SCHEMA_VERSION:
+        raise ValueError("expected active machinery quarantine operator review read-model")
+    if quarantine.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("expected active machinery high-risk quarantine read-model")
+
+    decision_buckets: dict[str, dict[str, Any]] = {
+        group_id: {"group_id": group_id, "display_name": display_name, "count": 0, "items": []}
+        for group_id, display_name in [*PRIMARY_DECISION_GROUPS, ("needs_operator_decision", "Needs operator decision")]
+    }
+    unresolved_overlay: list[dict[str, Any]] = []
+    review_groups = review.get("review_groups") or {}
+    for group_id, _display_name in PRIMARY_DECISION_GROUPS:
+        group = review_groups.get(group_id, {})
+        for item in group.get("items", []):
+            decision = _decision_item(item, decision_bucket=group_id)
+            decision_buckets[decision["decision_bucket"]]["items"].append(decision)
+    for item in review_groups.get("needs_operator_decision", {}).get("items", []):
+        unresolved_overlay.append(_decision_item(item, decision_bucket="needs_operator_decision"))
+
+    for group in decision_buckets.values():
+        group["count"] = len(group["items"])
+
+    counts = {group_id: decision_buckets[group_id]["count"] for group_id in decision_buckets}
+    counts["needs_operator_decision_overlay"] = len(unresolved_overlay)
+    counts["total_high_risk_live_script_items"] = int(
+        review.get("counts", {}).get("total_high_risk_live_script_items", 0)
+    )
+    counts["test_only_items_excluded"] = int(review.get("counts", {}).get("test_only_items_excluded", 0))
+
+    return {
+        "schema_version": DECISION_SCHEMA_VERSION,
+        "generated_by": "codex",
+        "generated_at": generated_at or utc_now(),
+        "mode": "decision_packet_read_model_only",
+        "source_files": {
+            "operator_review_read_model": display_path(rooted(operator_review_path)),
+            "high_risk_quarantine_read_model": display_path(rooted(quarantine_path)),
+        },
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "repo_b_executed": False,
+        "implementation_authorized": False,
+        "runtime_action_authorized": False,
+        "service_disable_authorized": False,
+        "file_move_delete_rename_chmod_authorized": False,
+        "launcher_edit_authorized": False,
+        "caller_switch_authorized": False,
+        "send_or_daemon_enablement_authorized": False,
+        "decision_count_mode": "primary buckets are exclusive; needs_operator_decision_overlay is an approval gate",
+        "counts": counts,
+        "decision_buckets": decision_buckets,
+        "needs_operator_decision_overlay": unresolved_overlay,
+        "test_only_items_not_runtime_targets": review.get("test_only_items_not_runtime_targets", []),
+        "first_safe_future_implementation_lane": "Active Machinery Block-Later Metadata Guardrail v0",
+        "first_safe_future_implementation_scope": (
+            "metadata guardrail/read-model only for block_later surfaces; no service disable, file move/delete, "
+            "launcher edit, caller switch, send enablement, or runtime activation"
+        ),
+        "stop_conditions_for_future_implementation": [
+            "implementation would disable services",
+            "implementation would move/delete/rename/chmod files",
+            "implementation would edit launchers or systemd templates",
+            "implementation would run high-risk scripts",
+            "implementation would run Repo B code",
+            "implementation would enable agents, sends, daemons, or runtime activation",
+            "implementation would switch callers without separate proof and approval",
+        ],
+        "next_safe_move": "Active Machinery Block-Later Metadata Guardrail v0",
+    }
+
+
+def format_decision_packet(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Active Machinery Quarantine Decision Packet v0",
+        "",
+        "Status:",
+        "- Decision/read-model only: `true`.",
+        "- Implementation authorized: `false`.",
+        "- Runtime changed: `false`.",
+        "- Files moved or deleted: `false`.",
+        "- Services disabled: `false`.",
+        "",
+        "## Counts",
+        f"- Block later: `{payload['counts']['block_later']}`.",
+        f"- Replace with governed path: `{payload['counts']['replace_with_governed_path']}`.",
+        f"- Wrap with Guardian: `{payload['counts']['wrap_with_guardian']}`.",
+        f"- Retire later: `{payload['counts']['retire_later']}`.",
+        f"- Keep for now / current dependency: `{payload['counts']['keep_for_now_current_dependency']}`.",
+        f"- Needs operator decision overlay: `{payload['counts']['needs_operator_decision_overlay']}`.",
+        "",
+        "## Decision Buckets",
+    ]
+    for group_id, display_name in PRIMARY_DECISION_GROUPS:
+        group = payload["decision_buckets"][group_id]
+        lines.extend([f"### {display_name}", f"Count: `{group['count']}`.", ""])
+        if not group["items"]:
+            lines.extend(["No items in this bucket.", ""])
+            continue
+        for item in group["items"]:
+            refs = item["current_static_references"] or ["no static reference captured"]
+            blocks = [name for name, enabled in item["blocks"].items() if enabled]
+            lines.extend(
+                [
+                    f"- `{item['relative_path']}`",
+                    f"  - Why: {item['why_it_matters']}",
+                    f"  - Static references: {'; '.join(refs)}.",
+                    f"  - Prove first: {item['what_must_be_proven_before_acting']}",
+                    f"  - Blocks/affects: {', '.join(blocks) if blocks else 'none flagged'}.",
+                    "  - Implementation authorized now: `false`.",
+                ]
+            )
+        lines.append("")
+
+    lines.extend(
+        [
+            "### Needs Operator Decision",
+            f"Count: `{payload['counts']['needs_operator_decision_overlay']}`.",
+            "These are approval gates, not runtime instructions. They overlap with the primary buckets above.",
+            "",
+        ]
+    )
+    for item in payload["needs_operator_decision_overlay"]:
+        lines.append(f"- `{item['relative_path']}` remains gated before any action.")
+
+    lines.extend(
+        [
+            "",
+            "## First Safe Future Implementation Lane",
+            f"- {payload['first_safe_future_implementation_lane']}",
+            f"- Scope: {payload['first_safe_future_implementation_scope']}",
+            "",
+            "## What Is Not Authorized",
+            "- No service disable.",
+            "- No file move, delete, rename, or chmod.",
+            "- No launcher or systemd template edit.",
+            "- No caller switch.",
+            "- No agent, send, daemon, or runtime activation.",
+            "- No Repo B execution.",
+            "",
+            "## Next Safe Move",
+            f"- {payload['next_safe_move']}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def export_quarantine_read_model(
     *,
     disposition_path: str | Path = DEFAULT_DISPOSITION_PATH,
@@ -599,6 +794,37 @@ def export_operator_review(
     }
 
 
+def export_decision_packet(
+    *,
+    operator_review_path: str | Path = DEFAULT_READ_MODEL_ROOT
+    / "active_machinery_quarantine_operator_review.json",
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    payload = build_decision_packet_payload(
+        operator_review_path=operator_review_path,
+        quarantine_path=quarantine_path,
+        generated_at=generated_at,
+    )
+    root = rooted(read_model_root)
+    json_path = root / "active_machinery_quarantine_decision_packet.json"
+    operator_path = root / DECISION_OPERATOR_EXPORT_NAME
+    written_json = write_json(json_path, payload)
+    written_operator = write_text(operator_path, format_decision_packet(payload))
+    return {
+        "schema_version": DECISION_SCHEMA_VERSION,
+        "read_model_json_path": written_json,
+        "read_model_operator_path": written_operator,
+        "counts": payload["counts"],
+        "implementation_authorized": False,
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "next_recommended_lane": payload["next_safe_move"],
+    }
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export high-risk active machinery quarantine warnings.")
     parser.add_argument("--disposition-path", default=DEFAULT_DISPOSITION_PATH.as_posix())
@@ -607,8 +833,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--quarantine-path",
         default=(DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json").as_posix(),
     )
+    parser.add_argument(
+        "--operator-review-path",
+        default=(DEFAULT_READ_MODEL_ROOT / "active_machinery_quarantine_operator_review.json").as_posix(),
+    )
     parser.add_argument("--read-model-root", default=DEFAULT_READ_MODEL_ROOT.as_posix())
-    parser.add_argument("--packet", choices=("quarantine", "operator-review"), default="quarantine")
+    parser.add_argument(
+        "--packet",
+        choices=("quarantine", "operator-review", "decision-packet"),
+        default="quarantine",
+    )
     parser.add_argument("--format", choices=("json", "operator"), default="json")
     return parser.parse_args(argv)
 
@@ -624,6 +858,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "operator":
             payload = load_json(Path(args.read_model_root) / "active_machinery_quarantine_operator_review.json")
             print(format_operator_review_packet(payload), end="")
+        else:
+            print(stable_json(summary), end="")
+        return 0
+    if args.packet == "decision-packet":
+        summary = export_decision_packet(
+            operator_review_path=args.operator_review_path,
+            quarantine_path=args.quarantine_path,
+            read_model_root=args.read_model_root,
+        )
+        if args.format == "operator":
+            payload = load_json(Path(args.read_model_root) / "active_machinery_quarantine_decision_packet.json")
+            print(format_decision_packet(payload), end="")
         else:
             print(stable_json(summary), end="")
         return 0

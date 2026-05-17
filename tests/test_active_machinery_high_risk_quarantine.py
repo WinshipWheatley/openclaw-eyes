@@ -319,6 +319,116 @@ def test_cli_outputs_operator_review_json_summary(tmp_path, capsys):
     assert payload["files_moved_or_deleted"] is False
 
 
+def test_decision_packet_preserves_buckets_without_authorizing_implementation(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    payload = quarantine.build_decision_packet_payload(
+        operator_review_path=export_root / "active_machinery_quarantine_operator_review.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["implementation_authorized"] is False
+    assert payload["runtime_changed"] is False
+    assert payload["files_moved_or_deleted"] is False
+    assert payload["services_disabled"] is False
+    assert payload["counts"]["block_later"] == 2
+    assert payload["counts"]["replace_with_governed_path"] == 1
+    assert payload["counts"]["wrap_with_guardian"] == 1
+    assert payload["counts"]["retire_later"] == 1
+    assert payload["counts"]["keep_for_now_current_dependency"] == 0
+    assert payload["counts"]["needs_operator_decision_overlay"] == 3
+    assert payload["next_safe_move"] == "Active Machinery Block-Later Metadata Guardrail v0"
+    for group in payload["decision_buckets"].values():
+        for item in group["items"]:
+            assert item["implementation_authorized"] is False
+            assert item["runtime_action_allowed_now"] is False
+
+
+def test_decision_packet_export_writes_json_and_operator_outputs(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    summary = quarantine.export_decision_packet(
+        operator_review_path=export_root / "active_machinery_quarantine_operator_review.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    assert summary["implementation_authorized"] is False
+    assert summary["runtime_changed"] is False
+    assert (export_root / "active_machinery_quarantine_decision_packet.json").is_file()
+    operator = (export_root / "active_machinery_quarantine_decision_packet_OPERATOR.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Implementation authorized: `false`" in operator
+    assert "Active Machinery Block-Later Metadata Guardrail v0" in operator
+    assert "Needs Operator Decision" in operator
+
+
+def test_cli_outputs_decision_packet_json_summary(tmp_path, capsys):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    code = cli_main(
+        [
+            "--packet",
+            "decision-packet",
+            "--operator-review-path",
+            (export_root / "active_machinery_quarantine_operator_review.json").as_posix(),
+            "--quarantine-path",
+            (export_root / "active_machinery_high_risk_quarantine.json").as_posix(),
+            "--read-model-root",
+            export_root.as_posix(),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["implementation_authorized"] is False
+    assert payload["counts"]["block_later"] == 2
+    assert payload["counts"]["needs_operator_decision_overlay"] == 3
+
+
 def test_quarantine_source_does_not_import_or_call_subprocess_network_or_shell_tools():
     source_paths = [
         Path("active_machinery_high_risk_quarantine.py"),
