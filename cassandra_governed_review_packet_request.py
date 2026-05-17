@@ -33,7 +33,7 @@ from business_ops_ledger import DEFAULT_DB_PATH
 
 
 ROOT = Path(__file__).resolve().parent
-SCHEMA_VERSION = "cassandra_governed_review_packet_request_proof_v0"
+SCHEMA_VERSION = "cassandra_governed_review_packet_request_proof_v1"
 JSON_EXPORT_NAME = "cassandra_governed_review_packet_request_proof.json"
 OPERATOR_EXPORT_NAME = "cassandra_governed_review_packet_request_proof_OPERATOR.md"
 DEFAULT_STATUS_DRY_RUN_PATH = Path("generated/read_models/cassandra_send_status_dry_run.json")
@@ -129,37 +129,166 @@ def _prior_status(path: str | Path) -> dict[str, Any]:
     }
 
 
-def _fact_summary(cassandra_clara: dict[str, Any], capital_hilton: dict[str, Any]) -> dict[str, Any]:
+def _packet_identity(capital_hilton: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "packet_id": capital_hilton.get("packet_id") or "capital_hilton_invoice_review",
+        "packet_kind": "operator_review_packet",
+        "workflow_domain": "finance_ap_invoice",
+        "workflow_name": "capital_hilton_invoice_review",
+        "workflow_specific_label": "Capital Hilton invoice review",
+        "target_workflow": capital_hilton.get("target_workflow") or "capital_hilton_invoice",
+        "source_schema_version": capital_hilton.get("schema_version"),
+        "review_only": True,
+    }
+
+
+def _governed_source_summary(cassandra_clara: dict[str, Any], capital_hilton: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source_policy": cassandra_clara.get("source_policy") or capital_hilton.get("source_policy"),
+        "governed_fact_count": cassandra_clara.get("governed_fact_count", 0),
+        "contact_candidate_count": cassandra_clara.get("contact_candidate_count", 0),
+        "receivable_posture_count": cassandra_clara.get("receivable_posture_count", 0),
+        "source_packet_usable": bool(capital_hilton.get("source_packet_usable")),
+        "source_packet_approved_for_manual_review_preparation": bool(
+            capital_hilton.get("source_packet_approved_for_manual_review_preparation")
+        ),
+        "sqlite_facts_treated_as_final_truth": False,
+        "used_ad_hoc_memory_as_authority": False,
+    }
+
+
+def _domain_fact_summary(cassandra_clara: dict[str, Any], capital_hilton: dict[str, Any]) -> dict[str, Any]:
     invoice_facts = capital_hilton.get("invoice_facts") or []
     completed_dates = (capital_hilton.get("review_calculation") or {}).get("known_completed_service_dates") or []
     known_fact_map = {fact.get("field_name"): fact.get("value_text") for fact in invoice_facts if fact.get("present")}
     return {
-        "source_policy": cassandra_clara.get("source_policy"),
-        "governed_fact_count": cassandra_clara.get("governed_fact_count", 0),
-        "contact_candidate_count": cassandra_clara.get("contact_candidate_count", 0),
-        "receivable_posture_count": cassandra_clara.get("receivable_posture_count", 0),
+        "summary_kind": "invoice_review_fact_summary",
+        "workflow_domain": "finance_ap_invoice",
+        "workflow_name": "capital_hilton_invoice_review",
+        "source_policy": cassandra_clara.get("source_policy") or capital_hilton.get("source_policy"),
         "completed_service_dates": completed_dates,
         "rate_or_amount_per_gig": known_fact_map.get("rate_or_amount_per_gig", ""),
-        "review_subtotal": (capital_hilton.get("review_calculation") or {}).get("candidate_subtotal", ""),
-        "one_invoice_posture": known_fact_map.get("invoice_count_preference", ""),
-        "po_coupa_gate": (capital_hilton.get("po_coupa_confirmation_gate") or {}).get("status", ""),
+        "candidate_subtotal": (capital_hilton.get("review_calculation") or {}).get("candidate_subtotal", ""),
+        "invoice_count_posture": known_fact_map.get("invoice_count_preference", ""),
+        "po_or_portal_gate_status": (capital_hilton.get("po_coupa_confirmation_gate") or {}).get("status", ""),
         "recipient_posture_review_only": bool((capital_hilton.get("recipient_posture") or {}).get("operator_confirmation_required")),
         "all_facts_parsed_evidence_not_truth": True,
         "all_facts_need_operator_confirmation": True,
     }
 
 
-def _blocked_unknowns(capital_hilton: dict[str, Any]) -> list[dict[str, Any]]:
+def _blocked_items(capital_hilton: dict[str, Any]) -> list[dict[str, Any]]:
     blockers = list(capital_hilton.get("remaining_blockers") or [])
     return [
         {
-            "blocker_id": item.get("blocker_id", "unknown_blocker"),
+            "item_id": item.get("blocker_id", "unknown_blocker"),
+            "item_type": "blocked_or_unknown_requirement",
             "severity": item.get("severity", "unknown"),
             "description": item.get("description", ""),
             "next_safe_move": item.get("next_safe_move", ""),
+            "source": "capital_hilton_actionable_review_packet.remaining_blockers",
         }
         for item in blockers
     ]
+
+
+def _manual_confirmations(capital_hilton: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "confirmation_id": item["item_id"],
+            "required": True,
+            "required_before": item["severity"],
+            "prompt": item["description"],
+            "next_safe_move": item["next_safe_move"],
+        }
+        for item in _blocked_items(capital_hilton)
+    ]
+
+
+def _candidate_actions(capital_hilton: dict[str, Any]) -> list[dict[str, Any]]:
+    calculation = capital_hilton.get("review_calculation") or {}
+    return [
+        {
+            "candidate_action_id": "manual_invoice_review_preparation",
+            "action_kind": "operator_manual_review",
+            "status": "ready_for_operator_review"
+            if capital_hilton.get("actionable_for_manual_review")
+            else "blocked_until_missing_facts_resolved",
+            "summary": "Review Capital Hilton invoice facts and manually prepare Coupa review outside OpenClaw.",
+            "candidate_amount": calculation.get("candidate_subtotal", ""),
+            "openclaw_execution_authorized": False,
+            "send_or_submit_authorized": False,
+        },
+        {
+            "candidate_action_id": "manual_po_or_portal_confirmation",
+            "action_kind": "operator_manual_confirmation",
+            "status": "blocked_until_operator_confirms",
+            "summary": "Confirm PO/portal posture manually; OpenClaw cannot access credentials or submit.",
+            "openclaw_execution_authorized": False,
+            "send_or_submit_authorized": False,
+        },
+        {
+            "candidate_action_id": "review_only_recipient_posture",
+            "action_kind": "review_only_communication_posture",
+            "status": "review_only_not_send_ready",
+            "summary": "Review To/CC posture; no email or Gmail send authority is granted.",
+            "openclaw_execution_authorized": False,
+            "send_or_submit_authorized": False,
+        },
+    ]
+
+
+def _authority_boundary() -> dict[str, Any]:
+    return {
+        "boundary_kind": "review_packet_no_external_authority",
+        "approval_authority_added": False,
+        "send_or_submit_authority_added": False,
+        "runtime_execution_authority_added": False,
+        "flags": dict(NO_AUTHORITY_FLAGS),
+        "must_not_do": [
+            "Do not send Telegram, Gmail, email, or calendar messages.",
+            "Do not submit or create portal/Coupa invoices.",
+            "Do not access credentials.",
+            "Do not read spreadsheet cells.",
+            "Do not treat parsed SQLite evidence as confirmed truth.",
+        ],
+    }
+
+
+def _receipt_proof_status(request_id: str, *, packet_ready: bool) -> dict[str, Any]:
+    receipts = [
+        {
+            "receipt_kind": "request_received",
+            "status": "observed_command_level_request",
+            "request_id": request_id,
+        },
+        {
+            "receipt_kind": "route_selected",
+            "status": "review_packet_route_selected",
+            "workflow_domain": "finance_ap_invoice",
+            "workflow_name": "capital_hilton_invoice_review",
+            "send_authority_added": False,
+        },
+        {
+            "receipt_kind": "packet_generated",
+            "status": "review_only_packet_refreshed",
+            "packet_ready_for_operator_review": packet_ready,
+        },
+        {
+            "receipt_kind": "external_authority_blocked",
+            "status": "email_portal_runtime_sends_blocked",
+            "telegram_send_triggered": False,
+            "gmail_or_email_send_triggered": False,
+            "portal_submit_triggered": False,
+            "runtime_execution_triggered": False,
+        },
+    ]
+    return {
+        "proof_status": "review_only_packet_refreshed" if packet_ready else "review_packet_blocked_or_incomplete",
+        "packet_ready_for_operator_review": packet_ready,
+        "receipt_count": len(receipts),
+        "receipts": receipts,
+    }
 
 
 def build_governed_review_packet_request_proof(
@@ -195,18 +324,67 @@ def build_governed_review_packet_request_proof(
     memory_approval = _read_json(memory_approval_path)
     request_id = _request_id(REQUEST_TEXT)
     packet_ready = bool(capital_hilton.get("actionable_for_manual_review")) and not bool(capital_hilton.get("ready_for_submission"))
+    evidence = [
+        {
+            "source_id": "business_ops_ledger_sqlite",
+            "source_path": _display_path(db_path or DEFAULT_DB_PATH),
+            "source_role": "governed_sqlite_fact_surface",
+            "authority_status": "parsed_evidence_not_truth",
+        },
+        {
+            "source_id": "cassandra_clara_fact_packet",
+            "source_path": _display_path(export_root_path / CASSANDRA_CLARA_JSON_EXPORT_NAME),
+            "source_role": "review_only_fact_packet",
+            "authority_status": "review_packet_not_truth",
+        },
+        {
+            "source_id": "capital_hilton_actionable_review_packet",
+            "source_path": _display_path(export_root_path / CAPITAL_HILTON_JSON_EXPORT_NAME),
+            "source_role": "operator_review_packet",
+            "authority_status": "review_only_not_submission_authority",
+        },
+        {
+            "source_id": "structured_fact_import",
+            "source_path": _display_path(_rooted(structured_fact_import_path)),
+            "source_role": "import_receipt",
+            "authority_status": "parsed_evidence_not_truth",
+            "records_imported_count": structured_import.get("records_imported_count"),
+            "raw_logs_imported": structured_import.get("raw_logs_imported"),
+            "old_hitl_imported": structured_import.get("old_hitl_imported"),
+        },
+        {
+            "source_id": "memory_import_approval",
+            "source_path": _display_path(_rooted(memory_approval_path)),
+            "source_role": "operator_approval_receipt",
+            "authority_status": "approval_receipt_not_raw_data",
+            "raw_content_read": memory_approval.get("raw_content_read"),
+            "data_imported": memory_approval.get("data_imported"),
+        },
+        {
+            "source_id": "capital_hilton_review_packet_approval",
+            "source_path": _display_path(_rooted(approval_path)),
+            "source_role": "manual_review_preparation_approval",
+            "authority_status": "review_approval_not_send_or_submit_authority",
+        },
+    ]
+    request_summary = {
+        "request_id": request_id,
+        "request_source": "operator_prompt_lane",
+        "request_text": REQUEST_TEXT,
+        "request_hash": hashlib.sha256(REQUEST_TEXT.encode("utf-8")).hexdigest(),
+        "live_telegram_request_used": False,
+        "command_level_governed_request_used": True,
+    }
+    proof_status = _receipt_proof_status(request_id, packet_ready=packet_ready)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_by": "codex",
         "generated_at": ts,
-        "request": {
-            "request_id": request_id,
-            "request_source": "operator_prompt_lane",
-            "request_text": REQUEST_TEXT,
-            "request_hash": hashlib.sha256(REQUEST_TEXT.encode("utf-8")).hexdigest(),
-            "live_telegram_request_used": False,
-            "command_level_governed_request_used": True,
-        },
+        "packet_identity": _packet_identity(capital_hilton),
+        "workflow_domain": "finance_ap_invoice",
+        "workflow_name": "capital_hilton_invoice_review",
+        "request_summary": request_summary,
+        "request": request_summary,
         "prior_lane_status": status,
         "route": {
             "selected_route": "cassandra_clara_capital_hilton_review_packet",
@@ -217,49 +395,9 @@ def build_governed_review_packet_request_proof(
             "work_board_or_agent_packet_created": False,
             "operator_action_created": False,
         },
-        "facts_and_sources_consulted": [
-            {
-                "source_id": "business_ops_ledger_sqlite",
-                "source_path": _display_path(db_path or DEFAULT_DB_PATH),
-                "source_role": "governed_sqlite_fact_surface",
-                "authority_status": "parsed_evidence_not_truth",
-            },
-            {
-                "source_id": "cassandra_clara_fact_packet",
-                "source_path": _display_path(export_root_path / CASSANDRA_CLARA_JSON_EXPORT_NAME),
-                "source_role": "review_only_fact_packet",
-                "authority_status": "review_packet_not_truth",
-            },
-            {
-                "source_id": "capital_hilton_actionable_review_packet",
-                "source_path": _display_path(export_root_path / CAPITAL_HILTON_JSON_EXPORT_NAME),
-                "source_role": "operator_review_packet",
-                "authority_status": "review_only_not_submission_authority",
-            },
-            {
-                "source_id": "structured_fact_import",
-                "source_path": _display_path(_rooted(structured_fact_import_path)),
-                "source_role": "import_receipt",
-                "authority_status": "parsed_evidence_not_truth",
-                "records_imported_count": structured_import.get("records_imported_count"),
-                "raw_logs_imported": structured_import.get("raw_logs_imported"),
-                "old_hitl_imported": structured_import.get("old_hitl_imported"),
-            },
-            {
-                "source_id": "memory_import_approval",
-                "source_path": _display_path(_rooted(memory_approval_path)),
-                "source_role": "operator_approval_receipt",
-                "authority_status": "approval_receipt_not_raw_data",
-                "raw_content_read": memory_approval.get("raw_content_read"),
-                "data_imported": memory_approval.get("data_imported"),
-            },
-            {
-                "source_id": "capital_hilton_review_packet_approval",
-                "source_path": _display_path(_rooted(approval_path)),
-                "source_role": "manual_review_preparation_approval",
-                "authority_status": "review_approval_not_send_or_submit_authority",
-            },
-        ],
+        "governed_source_summary": _governed_source_summary(cassandra_clara, capital_hilton),
+        "evidence": evidence,
+        "facts_and_sources_consulted": evidence,
         "packet_outputs": {
             "cassandra_clara_json": _display_path(export_root_path / CASSANDRA_CLARA_JSON_EXPORT_NAME),
             "cassandra_clara_operator": _display_path(export_root_path / CASSANDRA_CLARA_OPERATOR_EXPORT_NAME),
@@ -269,35 +407,15 @@ def build_governed_review_packet_request_proof(
             "cassandra_clara_export_result": fact_result.__dict__,
             "capital_hilton_export_result": action_result.__dict__,
         },
-        "capital_hilton_fact_summary": _fact_summary(cassandra_clara, capital_hilton),
-        "blocked_or_manual_confirmation": _blocked_unknowns(capital_hilton),
+        "domain_fact_summary": _domain_fact_summary(cassandra_clara, capital_hilton),
+        "candidate_actions": _candidate_actions(capital_hilton),
+        "blocked_items": _blocked_items(capital_hilton),
+        "manual_confirmations": _manual_confirmations(capital_hilton),
+        "authority_boundary": _authority_boundary(),
+        "receipt_proof_status": proof_status,
         "packet_review_only": True,
-        "capital_hilton_packet_ready_for_operator_review": packet_ready,
-        "proof_receipts": [
-            {
-                "receipt_kind": "request_received",
-                "status": "observed_command_level_request",
-                "request_id": request_id,
-            },
-            {
-                "receipt_kind": "route_selected",
-                "status": "capital_hilton_review_packet",
-                "send_authority_added": False,
-            },
-            {
-                "receipt_kind": "packet_generated",
-                "status": "review_only_packet_refreshed",
-                "packet_ready_for_operator_review": packet_ready,
-            },
-            {
-                "receipt_kind": "external_authority_blocked",
-                "status": "email_portal_runtime_sends_blocked",
-                "telegram_send_triggered": False,
-                "gmail_or_email_send_triggered": False,
-                "portal_submit_triggered": False,
-                "runtime_execution_triggered": False,
-            },
-        ],
+        "packet_ready_for_operator_review": packet_ready,
+        "proof_receipts": proof_status["receipts"],
         "boundaries": dict(NO_AUTHORITY_FLAGS),
         **NO_AUTHORITY_FLAGS,
         "next_recommended_lane": "Capital Hilton Manual Coupa PO Confirmation",
@@ -305,13 +423,13 @@ def build_governed_review_packet_request_proof(
 
 
 def render_operator_markdown(payload: dict[str, Any]) -> str:
-    facts = payload["capital_hilton_fact_summary"]
-    blockers = payload["blocked_or_manual_confirmation"]
+    facts = payload["domain_fact_summary"]
+    blockers = payload["blocked_items"]
     lines = [
         "# Cassandra Governed Request -> Review Packet Proof",
         "",
         "Status:",
-        f"- Packet ready for operator review: `{str(payload['capital_hilton_packet_ready_for_operator_review']).lower()}`.",
+        f"- Packet ready for operator review: `{str(payload['packet_ready_for_operator_review']).lower()}`.",
         "- Review only: `true`.",
         "- Email sent: `false`.",
         "- Portal submitted: `false`.",
@@ -328,8 +446,8 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
         "## Governed Facts Used",
         f"- Completed service dates: {', '.join(facts['completed_service_dates']) or '[missing]'}",
         f"- Rate: {facts['rate_or_amount_per_gig'] or '[missing]'}",
-        f"- Review subtotal: {facts['review_subtotal'] or '[manual calculation required]'}",
-        f"- Invoice posture: {facts['one_invoice_posture'] or '[missing]'}",
+        f"- Review subtotal: {facts['candidate_subtotal'] or '[manual calculation required]'}",
+        f"- Invoice posture: {facts['invoice_count_posture'] or '[missing]'}",
         "- Facts remain parsed evidence, not truth; operator confirmation is still required.",
         "",
         "## Manual Gates Still Blocked",
@@ -338,7 +456,7 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
         lines.append("- None for manual review preparation.")
     else:
         for blocker in blockers:
-            lines.append(f"- `{blocker['blocker_id']}`: {blocker['description']} Next: {blocker['next_safe_move']}")
+            lines.append(f"- `{blocker['item_id']}`: {blocker['description']} Next: {blocker['next_safe_move']}")
     lines.extend(
         [
             "",

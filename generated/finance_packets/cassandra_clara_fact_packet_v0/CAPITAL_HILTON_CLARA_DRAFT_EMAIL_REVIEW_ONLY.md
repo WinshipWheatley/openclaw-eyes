@@ -1,6 +1,6 @@
 # Clara Reid Draft Email - Capital Hilton - Review Only, Do Not Send
 
-To/CC decision: recipient_decision has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4e606352be02); operator confirmation required
+To/CC decision: recipient_cc_decision has imported structured evidence in finance_invoice_packet_facts (sha256:4e606352be02); operator confirmation required
 Subject: Capital Hilton invoice review - [operator approval required]
 
 Hi [CONFIRM NAME],

@@ -111,7 +111,7 @@
     }
   ],
   "external_persona": "Clara Reid",
-  "generated_at": "2026-05-17T13:38:59+00:00",
+  "generated_at": "2026-05-17T14:42:34+00:00",
   "governed_fact_count": 40,
   "governed_facts": [
     {
@@ -879,14 +879,14 @@
       "approval_required": true,
       "display_name": "To/CC recipient decision",
       "evidence_status": "parsed_evidence_not_truth",
-      "fact_id": "ccmem_fin_2960e3824866acbd8b3f",
+      "fact_id": "ccmem_fin_1812dd99b72e130867f8",
       "field_name": "recipient_decision",
       "no_runtime_authority": true,
       "no_send_authority": true,
       "source_kind": "governed_finance_invoice_packet",
       "source_ref": "sqlite://finance_invoice_packet_facts",
       "trust_status": "needs_operator_confirmation",
-      "value_text": "recipient_decision has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4e606352be02); operator confirmation required"
+      "value_text": "recipient_cc_decision has imported structured evidence in finance_invoice_packet_facts (sha256:4e606352be02); operator confirmation required"
     },
     {
       "approval_required": true,
@@ -1109,7 +1109,7 @@
     {
       "display_name": "To/CC recipient decision",
       "evidence_status": "parsed_evidence_not_truth",
-      "fact_id": "ccmem_fin_2960e3824866acbd8b3f",
+      "fact_id": "ccmem_fin_1812dd99b72e130867f8",
       "field_name": "recipient_decision",
       "next_safe_move": "Operator confirms this governed fact for draft review.",
       "present": true,

@@ -1,28 +1,67 @@
 {
-  "blocked_or_manual_confirmation": [
+  "authority_boundary": {
+    "approval_authority_added": false,
+    "boundary_kind": "review_packet_no_external_authority",
+    "flags": {
+      "calendar_write_triggered": false,
+      "credentials_accessed": false,
+      "email_sent": false,
+      "gmail_reply_sent": false,
+      "old_files_treated_as_truth": false,
+      "portal_submitted": false,
+      "raw_private_data_read": false,
+      "repo_b_executed": false,
+      "review_only": true,
+      "runtime_authority_changed": false,
+      "runtime_execution_triggered": false,
+      "send_authority_added": false,
+      "spreadsheet_cells_read": false,
+      "sqlite_facts_treated_as_final_truth": false,
+      "telegram_send_triggered": false,
+      "used_ad_hoc_memory_as_authority": false
+    },
+    "must_not_do": [
+      "Do not send Telegram, Gmail, email, or calendar messages.",
+      "Do not submit or create portal/Coupa invoices.",
+      "Do not access credentials.",
+      "Do not read spreadsheet cells.",
+      "Do not treat parsed SQLite evidence as confirmed truth."
+    ],
+    "runtime_execution_authority_added": false,
+    "send_or_submit_authority_added": false
+  },
+  "blocked_items": [
     {
-      "blocker_id": "po_coupa_confirmation_required",
       "description": "PO number is still unknown and must be confirmed manually in Coupa.",
+      "item_id": "po_coupa_confirmation_required",
+      "item_type": "blocked_or_unknown_requirement",
       "next_safe_move": "Operator confirms PO/available credit in Coupa without sharing credentials with OpenClaw.",
-      "severity": "blocks_final_submission"
+      "severity": "blocks_final_submission",
+      "source": "capital_hilton_actionable_review_packet.remaining_blockers"
     },
     {
-      "blocker_id": "recipient_confirmation_required",
       "description": "Recipient posture is review-only and business email still needs operator confirmation.",
+      "item_id": "recipient_confirmation_required",
+      "item_type": "blocked_or_unknown_requirement",
       "next_safe_move": "Operator confirms To/CC list before any future email-send lane.",
-      "severity": "blocks_email_send"
+      "severity": "blocks_email_send",
+      "source": "capital_hilton_actionable_review_packet.remaining_blockers"
     },
     {
-      "blocker_id": "coupa_invoice_creation_manual_only",
       "description": "Invoice must be created in Coupa against confirmed PO; OpenClaw has no portal/credential authority.",
+      "item_id": "coupa_invoice_creation_manual_only",
+      "item_type": "blocked_or_unknown_requirement",
       "next_safe_move": "Operator manually prepares/reviews Coupa entry or approves a later bounded no-submit portal-review lane.",
-      "severity": "blocks_openclaw_submission"
+      "severity": "blocks_openclaw_submission",
+      "source": "capital_hilton_actionable_review_packet.remaining_blockers"
     },
     {
-      "blocker_id": "spreadsheet_invoice_number_manual_check",
       "description": "Invoice workbook is known only as metadata; OpenClaw did not read cells or formulas.",
+      "item_id": "spreadsheet_invoice_number_manual_check",
+      "item_type": "blocked_or_unknown_requirement",
       "next_safe_move": "Operator manually opens the Mac invoice workbook and confirms next invoice number/formulas.",
-      "severity": "blocks_final_invoice_number_claim"
+      "severity": "blocks_final_invoice_number_claim",
+      "source": "capital_hilton_actionable_review_packet.remaining_blockers"
     }
   ],
   "boundaries": {
@@ -44,26 +83,95 @@
     "used_ad_hoc_memory_as_authority": false
   },
   "calendar_write_triggered": false,
-  "capital_hilton_fact_summary": {
+  "candidate_actions": [
+    {
+      "action_kind": "operator_manual_review",
+      "candidate_action_id": "manual_invoice_review_preparation",
+      "candidate_amount": "$800 for the two completed governed service-date facts, before any older/upcoming gig review",
+      "openclaw_execution_authorized": false,
+      "send_or_submit_authorized": false,
+      "status": "ready_for_operator_review",
+      "summary": "Review Capital Hilton invoice facts and manually prepare Coupa review outside OpenClaw."
+    },
+    {
+      "action_kind": "operator_manual_confirmation",
+      "candidate_action_id": "manual_po_or_portal_confirmation",
+      "openclaw_execution_authorized": false,
+      "send_or_submit_authorized": false,
+      "status": "blocked_until_operator_confirms",
+      "summary": "Confirm PO/portal posture manually; OpenClaw cannot access credentials or submit."
+    },
+    {
+      "action_kind": "review_only_communication_posture",
+      "candidate_action_id": "review_only_recipient_posture",
+      "openclaw_execution_authorized": false,
+      "send_or_submit_authorized": false,
+      "status": "review_only_not_send_ready",
+      "summary": "Review To/CC posture; no email or Gmail send authority is granted."
+    }
+  ],
+  "credentials_accessed": false,
+  "domain_fact_summary": {
     "all_facts_need_operator_confirmation": true,
     "all_facts_parsed_evidence_not_truth": true,
+    "candidate_subtotal": "$800 for the two completed governed service-date facts, before any older/upcoming gig review",
     "completed_service_dates": [
       "2026-05-08",
       "2026-05-15 (operator said this was yesterday relative to May 16, 2026)"
     ],
-    "contact_candidate_count": 4,
-    "governed_fact_count": 40,
-    "one_invoice_posture": "one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable",
-    "po_coupa_gate": "must_confirm_po_and_credit_in_coupa_before_final_submission",
+    "invoice_count_posture": "one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable",
+    "po_or_portal_gate_status": "must_confirm_po_and_credit_in_coupa_before_final_submission",
     "rate_or_amount_per_gig": "$400 per gig",
-    "receivable_posture_count": 10,
     "recipient_posture_review_only": true,
-    "review_subtotal": "$800 for the two completed governed service-date facts, before any older/upcoming gig review",
-    "source_policy": "imported_cassandra_chief_memory_sqlite_only"
+    "source_policy": "imported_cassandra_chief_memory_sqlite_only",
+    "summary_kind": "invoice_review_fact_summary",
+    "workflow_domain": "finance_ap_invoice",
+    "workflow_name": "capital_hilton_invoice_review"
   },
-  "capital_hilton_packet_ready_for_operator_review": true,
-  "credentials_accessed": false,
   "email_sent": false,
+  "evidence": [
+    {
+      "authority_status": "parsed_evidence_not_truth",
+      "source_id": "business_ops_ledger_sqlite",
+      "source_path": ".openclaw/business_ops/ledger.sqlite",
+      "source_role": "governed_sqlite_fact_surface"
+    },
+    {
+      "authority_status": "review_packet_not_truth",
+      "source_id": "cassandra_clara_fact_packet",
+      "source_path": "generated/read_models/cassandra_clara_fact_packet.json",
+      "source_role": "review_only_fact_packet"
+    },
+    {
+      "authority_status": "review_only_not_submission_authority",
+      "source_id": "capital_hilton_actionable_review_packet",
+      "source_path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+      "source_role": "operator_review_packet"
+    },
+    {
+      "authority_status": "parsed_evidence_not_truth",
+      "old_hitl_imported": false,
+      "raw_logs_imported": false,
+      "records_imported_count": 99,
+      "source_id": "structured_fact_import",
+      "source_path": "generated/read_models/cassandra_chief_structured_fact_import.json",
+      "source_role": "import_receipt"
+    },
+    {
+      "authority_status": "approval_receipt_not_raw_data",
+      "data_imported": false,
+      "raw_content_read": false,
+      "source_id": "memory_import_approval",
+      "source_path": "generated/read_models/cassandra_chief_memory_import_approval.json",
+      "source_role": "operator_approval_receipt"
+    },
+    {
+      "authority_status": "review_approval_not_send_or_submit_authority",
+      "source_id": "capital_hilton_review_packet_approval",
+      "source_path": "generated/read_models/capital_hilton_review_packet_approval.json",
+      "source_role": "manual_review_preparation_approval"
+    }
+  ],
   "facts_and_sources_consulted": [
     {
       "authority_status": "parsed_evidence_not_truth",
@@ -107,11 +215,61 @@
       "source_role": "manual_review_preparation_approval"
     }
   ],
-  "generated_at": "2026-05-17T13:38:59+00:00",
+  "generated_at": "2026-05-17T14:42:34+00:00",
   "generated_by": "codex",
   "gmail_reply_sent": false,
+  "governed_source_summary": {
+    "contact_candidate_count": 4,
+    "governed_fact_count": 40,
+    "receivable_posture_count": 10,
+    "source_packet_approved_for_manual_review_preparation": true,
+    "source_packet_usable": true,
+    "source_policy": "imported_cassandra_chief_memory_sqlite_only",
+    "sqlite_facts_treated_as_final_truth": false,
+    "used_ad_hoc_memory_as_authority": false
+  },
+  "manual_confirmations": [
+    {
+      "confirmation_id": "po_coupa_confirmation_required",
+      "next_safe_move": "Operator confirms PO/available credit in Coupa without sharing credentials with OpenClaw.",
+      "prompt": "PO number is still unknown and must be confirmed manually in Coupa.",
+      "required": true,
+      "required_before": "blocks_final_submission"
+    },
+    {
+      "confirmation_id": "recipient_confirmation_required",
+      "next_safe_move": "Operator confirms To/CC list before any future email-send lane.",
+      "prompt": "Recipient posture is review-only and business email still needs operator confirmation.",
+      "required": true,
+      "required_before": "blocks_email_send"
+    },
+    {
+      "confirmation_id": "coupa_invoice_creation_manual_only",
+      "next_safe_move": "Operator manually prepares/reviews Coupa entry or approves a later bounded no-submit portal-review lane.",
+      "prompt": "Invoice must be created in Coupa against confirmed PO; OpenClaw has no portal/credential authority.",
+      "required": true,
+      "required_before": "blocks_openclaw_submission"
+    },
+    {
+      "confirmation_id": "spreadsheet_invoice_number_manual_check",
+      "next_safe_move": "Operator manually opens the Mac invoice workbook and confirms next invoice number/formulas.",
+      "prompt": "Invoice workbook is known only as metadata; OpenClaw did not read cells or formulas.",
+      "required": true,
+      "required_before": "blocks_final_invoice_number_claim"
+    }
+  ],
   "next_recommended_lane": "Capital Hilton Manual Coupa PO Confirmation",
   "old_files_treated_as_truth": false,
+  "packet_identity": {
+    "packet_id": "finance_capital_hilton_invoice_packet_v0",
+    "packet_kind": "operator_review_packet",
+    "review_only": true,
+    "source_schema_version": "capital_hilton_actionable_review_packet_v1",
+    "target_workflow": "capital_hilton_invoice",
+    "workflow_domain": "finance_ap_invoice",
+    "workflow_name": "capital_hilton_invoice_review",
+    "workflow_specific_label": "Capital Hilton invoice review"
+  },
   "packet_outputs": {
     "artifact_root": "generated/finance_packets/cassandra_clara_fact_packet_v0",
     "capital_hilton_actionable_json": "generated/read_models/capital_hilton_actionable_review_packet.json",
@@ -147,6 +305,7 @@
     "cassandra_clara_json": "generated/read_models/cassandra_clara_fact_packet.json",
     "cassandra_clara_operator": "generated/read_models/cassandra_clara_fact_packet_OPERATOR.md"
   },
+  "packet_ready_for_operator_review": true,
   "packet_review_only": true,
   "portal_submitted": false,
   "prior_lane_status": {
@@ -170,7 +329,9 @@
     {
       "receipt_kind": "route_selected",
       "send_authority_added": false,
-      "status": "capital_hilton_review_packet"
+      "status": "review_packet_route_selected",
+      "workflow_domain": "finance_ap_invoice",
+      "workflow_name": "capital_hilton_invoice_review"
     },
     {
       "packet_ready_for_operator_review": true,
@@ -187,8 +348,48 @@
     }
   ],
   "raw_private_data_read": false,
+  "receipt_proof_status": {
+    "packet_ready_for_operator_review": true,
+    "proof_status": "review_only_packet_refreshed",
+    "receipt_count": 4,
+    "receipts": [
+      {
+        "receipt_kind": "request_received",
+        "request_id": "cass_review_request_7419cc28ba50f4dae228",
+        "status": "observed_command_level_request"
+      },
+      {
+        "receipt_kind": "route_selected",
+        "send_authority_added": false,
+        "status": "review_packet_route_selected",
+        "workflow_domain": "finance_ap_invoice",
+        "workflow_name": "capital_hilton_invoice_review"
+      },
+      {
+        "packet_ready_for_operator_review": true,
+        "receipt_kind": "packet_generated",
+        "status": "review_only_packet_refreshed"
+      },
+      {
+        "gmail_or_email_send_triggered": false,
+        "portal_submit_triggered": false,
+        "receipt_kind": "external_authority_blocked",
+        "runtime_execution_triggered": false,
+        "status": "email_portal_runtime_sends_blocked",
+        "telegram_send_triggered": false
+      }
+    ]
+  },
   "repo_b_executed": false,
   "request": {
+    "command_level_governed_request_used": true,
+    "live_telegram_request_used": false,
+    "request_hash": "7419cc28ba50f4dae228db45563fcbe6b1ca6fb33b8da8fd0acc882fd04251c5",
+    "request_id": "cass_review_request_7419cc28ba50f4dae228",
+    "request_source": "operator_prompt_lane",
+    "request_text": "Refresh the Capital Hilton invoice review packet from governed facts only. Include what is ready to invoice, what is blocked, and what I must confirm manually."
+  },
+  "request_summary": {
     "command_level_governed_request_used": true,
     "live_telegram_request_used": false,
     "request_hash": "7419cc28ba50f4dae228db45563fcbe6b1ca6fb33b8da8fd0acc882fd04251c5",
@@ -208,10 +409,12 @@
   },
   "runtime_authority_changed": false,
   "runtime_execution_triggered": false,
-  "schema_version": "cassandra_governed_review_packet_request_proof_v0",
+  "schema_version": "cassandra_governed_review_packet_request_proof_v1",
   "send_authority_added": false,
   "spreadsheet_cells_read": false,
   "sqlite_facts_treated_as_final_truth": false,
   "telegram_send_triggered": false,
-  "used_ad_hoc_memory_as_authority": false
+  "used_ad_hoc_memory_as_authority": false,
+  "workflow_domain": "finance_ap_invoice",
+  "workflow_name": "capital_hilton_invoice_review"
 }

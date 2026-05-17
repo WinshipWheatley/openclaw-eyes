@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import ast
 from pathlib import Path
 
 import cassandra_governed_review_packet_request as proof
@@ -9,6 +10,7 @@ from cassandra_chief_memory_authority import build_cassandra_chief_structured_im
 from cassandra_chief_memory_import_approval import build_cassandra_chief_memory_import_approval
 from cassandra_chief_structured_fact_import import apply_structured_fact_import
 from cassandra_clara_fact_packet import REQUIRED_FIELDS
+from generated_read_model_files import MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
 
 
 FIXED_NOW = "2026-05-17T14:00:00+00:00"
@@ -83,7 +85,7 @@ def _seed_capital_hilton_facts(db_path: Path) -> None:
         "invoice_count_preference": "one invoice for 2026-05-15 and 2026-05-08; 2026-05-22 and older gigs blocked until operator confirms inclusion",
         "po_numbers": "unknown; PO must be confirmed in Coupa later; no portal login authorized",
         "billing_remit_details": "mail check to operator home address provided in prompt; full street address redacted from committed artifacts",
-        "recipient_decision": "To: Annette Sunga; CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority",
+        "recipient_decision": "To: Annette Sunga (business email pending confirmation); CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority",
         "supplier_portal_reference": "Coupa supplier portal reference provided by operator; credential use/storage not authorized",
         "invoice_attachment_output_path": "invoice must be created in Coupa against confirmed PO; no spreadsheet cells read",
         "spreadsheet_selection": "Invoice Capitol Hilton 20260512 v2.xlsx",
@@ -205,9 +207,12 @@ def test_governed_request_refreshes_review_packet_and_emits_receipt(tmp_path):
     )
 
     assert payload["schema_version"] == proof.SCHEMA_VERSION
+    assert payload["packet_identity"]["workflow_name"] == "capital_hilton_invoice_review"
+    assert payload["workflow_domain"] == "finance_ap_invoice"
+    assert payload["request_summary"]["request_id"] == payload["request"]["request_id"]
     assert payload["prior_lane_status"]["advanced_beyond_startup_guard"] is True
     assert payload["route"]["selected_route"] == "cassandra_clara_capital_hilton_review_packet"
-    assert payload["capital_hilton_packet_ready_for_operator_review"] is True
+    assert payload["packet_ready_for_operator_review"] is True
     assert payload["packet_review_only"] is True
     assert payload["used_ad_hoc_memory_as_authority"] is False
     assert payload["telegram_send_triggered"] is False
@@ -215,13 +220,21 @@ def test_governed_request_refreshes_review_packet_and_emits_receipt(tmp_path):
     assert payload["portal_submitted"] is False
     assert payload["runtime_execution_triggered"] is False
     assert payload["send_authority_added"] is False
-    assert payload["capital_hilton_fact_summary"]["completed_service_dates"] == [
+    assert "capital_hilton_fact_summary" not in payload
+    assert "capital_hilton_packet_ready_for_operator_review" not in payload
+    assert "blocked_or_manual_confirmation" not in payload
+    assert payload["domain_fact_summary"]["completed_service_dates"] == [
         "2026-05-08",
         "2026-05-15 (operator said this was yesterday relative to May 16, 2026)",
     ]
-    assert "$400" in payload["capital_hilton_fact_summary"]["rate_or_amount_per_gig"]
-    assert "$800" in payload["capital_hilton_fact_summary"]["review_subtotal"]
-    assert any(item["blocker_id"] == "po_coupa_confirmation_required" for item in payload["blocked_or_manual_confirmation"])
+    assert "$400" in payload["domain_fact_summary"]["rate_or_amount_per_gig"]
+    assert "$800" in payload["domain_fact_summary"]["candidate_subtotal"]
+    assert "one invoice" in payload["domain_fact_summary"]["invoice_count_posture"]
+    assert any(item["item_id"] == "po_coupa_confirmation_required" for item in payload["blocked_items"])
+    assert any(item["confirmation_id"] == "recipient_confirmation_required" for item in payload["manual_confirmations"])
+    assert any(item["candidate_action_id"] == "manual_invoice_review_preparation" for item in payload["candidate_actions"])
+    assert payload["authority_boundary"]["send_or_submit_authority_added"] is False
+    assert payload["receipt_proof_status"]["packet_ready_for_operator_review"] is True
     assert (artifact_root / "CAPITAL_HILTON_CLARA_DRAFT_EMAIL_REVIEW_ONLY.md").exists()
 
 
@@ -250,24 +263,41 @@ def test_export_writes_json_operator_and_keeps_boundaries(tmp_path):
     assert payload["credentials_accessed"] is False
     assert payload["spreadsheet_cells_read"] is False
     assert payload["repo_b_executed"] is False
+    assert payload["authority_boundary"]["approval_authority_added"] is False
+    assert payload["authority_boundary"]["runtime_execution_authority_added"] is False
     assert "Cassandra Governed Request -> Review Packet Proof" in operator
     assert "No Telegram send" in operator
 
 
-def test_source_avoids_network_send_portal_and_repo_b_execution():
-    source = Path("cassandra_governed_review_packet_request.py").read_text(encoding="utf-8").lower()
-    forbidden = [
-        "/home/openclaw_external/openclaw-runtime",
-        "import requests",
-        "import httpx",
-        "urllib.request",
-        "subprocess",
-        "smtplib",
-        "send_message",
-        "reply_text",
-        "portal_submit(",
-        "browser",
-        "shell=true",
-    ]
-    for token in forbidden:
-        assert token not in source
+def test_review_packet_artifacts_remain_mirror_expected():
+    assert proof.JSON_EXPORT_NAME in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+    assert proof.OPERATOR_EXPORT_NAME in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+
+
+def test_source_ast_avoids_network_send_portal_and_repo_b_execution():
+    tree = ast.parse(Path("cassandra_governed_review_packet_request.py").read_text(encoding="utf-8"))
+    forbidden_modules = {"requests", "httpx", "subprocess", "smtplib", "socket"}
+    forbidden_calls = {"send_message", "reply_text", "portal_submit", "open_browser"}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root_name = alias.name.split(".", 1)[0]
+                assert root_name not in forbidden_modules
+        if isinstance(node, ast.ImportFrom) and node.module:
+            root_name = node.module.split(".", 1)[0]
+            assert root_name not in forbidden_modules
+            assert node.module != "urllib.request"
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                assert func.id not in forbidden_calls
+            if isinstance(func, ast.Attribute):
+                assert func.attr not in forbidden_calls
+                if isinstance(func.value, ast.Name):
+                    assert (func.value.id, func.attr) != ("subprocess", "run")
+            for keyword in node.keywords:
+                if keyword.arg == "shell":
+                    assert not isinstance(keyword.value, ast.Constant) or keyword.value.value is not True
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            assert "/home/openclaw_external/openclaw-runtime" not in node.value
