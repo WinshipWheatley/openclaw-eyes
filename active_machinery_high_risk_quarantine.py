@@ -20,12 +20,14 @@ ROOT = Path(__file__).resolve().parent
 SCHEMA_VERSION = "active_machinery_high_risk_quarantine_v0"
 REVIEW_SCHEMA_VERSION = "active_machinery_quarantine_operator_review_v0"
 DECISION_SCHEMA_VERSION = "active_machinery_quarantine_decision_packet_v0"
+BLOCK_LATER_GUARDRAIL_SCHEMA_VERSION = "active_machinery_block_later_guardrail_v0"
 DEFAULT_DISPOSITION_PATH = Path("generated/read_models/active_machinery_operator_disposition.json")
 DEFAULT_READY_PACKET_PATH = Path("docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json")
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 OPERATOR_EXPORT_NAME = "active_machinery_high_risk_quarantine_OPERATOR.md"
 REVIEW_OPERATOR_EXPORT_NAME = "active_machinery_quarantine_operator_review_OPERATOR.md"
 DECISION_OPERATOR_EXPORT_NAME = "active_machinery_quarantine_decision_packet_OPERATOR.md"
+BLOCK_LATER_GUARDRAIL_OPERATOR_EXPORT_NAME = "active_machinery_block_later_guardrail_OPERATOR.md"
 
 WARNING_DISPOSITIONS = {
     "block_no_go",
@@ -733,6 +735,148 @@ def format_decision_packet(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _block_later_guardrail_record(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_id": item.get("surface_id"),
+        "relative_path": item.get("relative_path"),
+        "decision_bucket": "block_later",
+        "guardrail_status": "metadata_guardrail_only",
+        "runnable_by_agents": False,
+        "runtime_authority": False,
+        "direct_execution_allowed": False,
+        "requires_operator_review": True,
+        "requires_governed_replacement": True,
+        "destructive_quarantine_applied": False,
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "launcher_edited": False,
+        "chmod_changed": False,
+        "repo_b_executed": False,
+        "current_risk": item.get("current_risk"),
+        "what_it_is": item.get("what_it_is"),
+        "why_it_matters": item.get("why_it_matters"),
+        "static_references": item.get("current_static_references") or [],
+        "blocks": item.get("blocks") or {},
+        "must_prove_before_any_action": item.get("what_must_be_proven_before_acting"),
+        "future_action_hint": item.get("recommended_future_action"),
+    }
+
+
+def build_block_later_guardrail_payload(
+    *,
+    decision_packet_path: str | Path = DEFAULT_READ_MODEL_ROOT
+    / "active_machinery_quarantine_decision_packet.json",
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    decision = load_json(decision_packet_path)
+    quarantine = load_json(quarantine_path)
+    if decision.get("schema_version") != DECISION_SCHEMA_VERSION:
+        raise ValueError("expected active machinery quarantine decision packet")
+    if quarantine.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("expected active machinery high-risk quarantine read-model")
+    block_group = (decision.get("decision_buckets") or {}).get("block_later") or {}
+    records = [_block_later_guardrail_record(item) for item in block_group.get("items", [])]
+    missing_evidence = [item["relative_path"] for item in records if not item["must_prove_before_any_action"]]
+    if missing_evidence:
+        raise ValueError(f"block_later guardrail records lack proof requirements: {missing_evidence}")
+    return {
+        "schema_version": BLOCK_LATER_GUARDRAIL_SCHEMA_VERSION,
+        "generated_by": "codex",
+        "generated_at": generated_at or utc_now(),
+        "mode": "metadata_guardrail_read_model_only",
+        "source_files": {
+            "decision_packet": display_path(rooted(decision_packet_path)),
+            "high_risk_quarantine_read_model": display_path(rooted(quarantine_path)),
+        },
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "launchers_edited": False,
+        "chmod_changed": False,
+        "repo_b_executed": False,
+        "agents_enabled": False,
+        "sends_enabled": False,
+        "daemons_enabled": False,
+        "runnable_by_agents": False,
+        "runtime_authority": False,
+        "direct_execution_allowed": False,
+        "destructive_quarantine_applied": False,
+        "guardrail_applies_to_decision_bucket": "block_later",
+        "counts": {
+            "block_later_guardrail_count": len(records),
+            "source_block_later_count": int(decision.get("counts", {}).get("block_later", 0)),
+        },
+        "guardrail_records": records,
+        "not_authorized": [
+            "service_disable",
+            "file_move_delete_rename_chmod",
+            "launcher_edit",
+            "caller_switch",
+            "direct_execution",
+            "agent_runtime_use",
+            "send_enablement",
+            "daemon_enablement",
+            "repo_b_execution",
+        ],
+        "next_safe_move": "Active Machinery Replace-with-Governed-Path Spec v0",
+    }
+
+
+def format_block_later_guardrail(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Active Machinery Block-Later Metadata Guardrail v0",
+        "",
+        "Status:",
+        "- Metadata/read-model only: `true`.",
+        "- Runnable by agents: `false`.",
+        "- Runtime authority: `false`.",
+        "- Direct execution allowed: `false`.",
+        "- Destructive quarantine applied: `false`.",
+        "- Runtime changed: `false`.",
+        "- Files moved or deleted: `false`.",
+        "- Services disabled: `false`.",
+        "",
+        "## Guardrail Records",
+        f"Count: `{payload['counts']['block_later_guardrail_count']}`.",
+        "",
+    ]
+    for item in payload["guardrail_records"]:
+        refs = item["static_references"] or ["no static reference captured"]
+        blocks = [name for name, enabled in item["blocks"].items() if enabled]
+        lines.extend(
+            [
+                f"### `{item['relative_path']}`",
+                f"- Runnable by agents: `{str(item['runnable_by_agents']).lower()}`.",
+                f"- Runtime authority: `{str(item['runtime_authority']).lower()}`.",
+                f"- Direct execution allowed: `{str(item['direct_execution_allowed']).lower()}`.",
+                f"- Requires operator review: `{str(item['requires_operator_review']).lower()}`.",
+                f"- Requires governed replacement: `{str(item['requires_governed_replacement']).lower()}`.",
+                f"- Destructive quarantine applied: `{str(item['destructive_quarantine_applied']).lower()}`.",
+                f"- Static references: {'; '.join(refs)}.",
+                f"- Blocks/affects: {', '.join(blocks) if blocks else 'none flagged'}.",
+                f"- Must prove before action: {item['must_prove_before_any_action']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## What Did Not Happen",
+            "- No high-risk files were edited or executed.",
+            "- No services or launchers were changed.",
+            "- No files were moved, deleted, renamed, or chmodded.",
+            "- No agents, sends, daemons, or runtime activation were enabled.",
+            "- Repo B was not executed.",
+            "",
+            "## Next Safe Move",
+            f"- {payload['next_safe_move']}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def export_quarantine_read_model(
     *,
     disposition_path: str | Path = DEFAULT_DISPOSITION_PATH,
@@ -825,6 +969,40 @@ def export_decision_packet(
     }
 
 
+def export_block_later_guardrail(
+    *,
+    decision_packet_path: str | Path = DEFAULT_READ_MODEL_ROOT
+    / "active_machinery_quarantine_decision_packet.json",
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    payload = build_block_later_guardrail_payload(
+        decision_packet_path=decision_packet_path,
+        quarantine_path=quarantine_path,
+        generated_at=generated_at,
+    )
+    root = rooted(read_model_root)
+    json_path = root / "active_machinery_block_later_guardrail.json"
+    operator_path = root / BLOCK_LATER_GUARDRAIL_OPERATOR_EXPORT_NAME
+    written_json = write_json(json_path, payload)
+    written_operator = write_text(operator_path, format_block_later_guardrail(payload))
+    return {
+        "schema_version": BLOCK_LATER_GUARDRAIL_SCHEMA_VERSION,
+        "read_model_json_path": written_json,
+        "read_model_operator_path": written_operator,
+        "block_later_guardrail_count": payload["counts"]["block_later_guardrail_count"],
+        "runnable_by_agents": False,
+        "runtime_authority": False,
+        "direct_execution_allowed": False,
+        "destructive_quarantine_applied": False,
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "next_recommended_lane": payload["next_safe_move"],
+    }
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export high-risk active machinery quarantine warnings.")
     parser.add_argument("--disposition-path", default=DEFAULT_DISPOSITION_PATH.as_posix())
@@ -837,10 +1015,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--operator-review-path",
         default=(DEFAULT_READ_MODEL_ROOT / "active_machinery_quarantine_operator_review.json").as_posix(),
     )
+    parser.add_argument(
+        "--decision-packet-path",
+        default=(DEFAULT_READ_MODEL_ROOT / "active_machinery_quarantine_decision_packet.json").as_posix(),
+    )
     parser.add_argument("--read-model-root", default=DEFAULT_READ_MODEL_ROOT.as_posix())
     parser.add_argument(
         "--packet",
-        choices=("quarantine", "operator-review", "decision-packet"),
+        choices=("quarantine", "operator-review", "decision-packet", "block-later-guardrail"),
         default="quarantine",
     )
     parser.add_argument("--format", choices=("json", "operator"), default="json")
@@ -870,6 +1052,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "operator":
             payload = load_json(Path(args.read_model_root) / "active_machinery_quarantine_decision_packet.json")
             print(format_decision_packet(payload), end="")
+        else:
+            print(stable_json(summary), end="")
+        return 0
+    if args.packet == "block-later-guardrail":
+        summary = export_block_later_guardrail(
+            decision_packet_path=args.decision_packet_path,
+            quarantine_path=args.quarantine_path,
+            read_model_root=args.read_model_root,
+        )
+        if args.format == "operator":
+            payload = load_json(Path(args.read_model_root) / "active_machinery_block_later_guardrail.json")
+            print(format_block_later_guardrail(payload), end="")
         else:
             print(stable_json(summary), end="")
         return 0

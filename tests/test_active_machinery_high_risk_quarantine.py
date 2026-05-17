@@ -429,6 +429,138 @@ def test_cli_outputs_decision_packet_json_summary(tmp_path, capsys):
     assert payload["counts"]["needs_operator_decision_overlay"] == 3
 
 
+def test_block_later_guardrail_marks_all_block_items_non_runnable(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_decision_packet(
+        operator_review_path=export_root / "active_machinery_quarantine_operator_review.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    payload = quarantine.build_block_later_guardrail_payload(
+        decision_packet_path=export_root / "active_machinery_quarantine_decision_packet.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["runtime_changed"] is False
+    assert payload["files_moved_or_deleted"] is False
+    assert payload["services_disabled"] is False
+    assert payload["direct_execution_allowed"] is False
+    assert payload["runnable_by_agents"] is False
+    assert payload["destructive_quarantine_applied"] is False
+    assert payload["counts"]["block_later_guardrail_count"] == 2
+    assert {item["relative_path"] for item in payload["guardrail_records"]} == {
+        "builder_watcher.sh",
+        "scripts/run_producer_listener.sh",
+    }
+    for item in payload["guardrail_records"]:
+        assert item["runnable_by_agents"] is False
+        assert item["runtime_authority"] is False
+        assert item["direct_execution_allowed"] is False
+        assert item["requires_operator_review"] is True
+        assert item["requires_governed_replacement"] is True
+        assert item["destructive_quarantine_applied"] is False
+
+
+def test_block_later_guardrail_export_writes_json_and_operator_outputs(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_decision_packet(
+        operator_review_path=export_root / "active_machinery_quarantine_operator_review.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    summary = quarantine.export_block_later_guardrail(
+        decision_packet_path=export_root / "active_machinery_quarantine_decision_packet.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    assert summary["block_later_guardrail_count"] == 2
+    assert summary["direct_execution_allowed"] is False
+    assert summary["runtime_changed"] is False
+    assert (export_root / "active_machinery_block_later_guardrail.json").is_file()
+    operator = (export_root / "active_machinery_block_later_guardrail_OPERATOR.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Runnable by agents: `false`" in operator
+    assert "Direct execution allowed: `false`" in operator
+    assert "Destructive quarantine applied: `false`" in operator
+
+
+def test_cli_outputs_block_later_guardrail_json_summary(tmp_path, capsys):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    quarantine.export_decision_packet(
+        operator_review_path=export_root / "active_machinery_quarantine_operator_review.json",
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    code = cli_main(
+        [
+            "--packet",
+            "block-later-guardrail",
+            "--decision-packet-path",
+            (export_root / "active_machinery_quarantine_decision_packet.json").as_posix(),
+            "--quarantine-path",
+            (export_root / "active_machinery_high_risk_quarantine.json").as_posix(),
+            "--read-model-root",
+            export_root.as_posix(),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["block_later_guardrail_count"] == 2
+    assert payload["runnable_by_agents"] is False
+    assert payload["direct_execution_allowed"] is False
+
+
 def test_quarantine_source_does_not_import_or_call_subprocess_network_or_shell_tools():
     source_paths = [
         Path("active_machinery_high_risk_quarantine.py"),

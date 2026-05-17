@@ -1,0 +1,202 @@
+{
+  "agents_enabled": false,
+  "chmod_changed": false,
+  "counts": {
+    "block_later_guardrail_count": 5,
+    "source_block_later_count": 5
+  },
+  "daemons_enabled": false,
+  "destructive_quarantine_applied": false,
+  "direct_execution_allowed": false,
+  "files_moved_or_deleted": false,
+  "generated_at": "2026-05-17T03:27:27+00:00",
+  "generated_by": "codex",
+  "guardrail_applies_to_decision_bucket": "block_later",
+  "guardrail_records": [
+    {
+      "blocks": {
+        "cassandra_chief_utility": false,
+        "module_cleanup": true,
+        "remote_builder": true,
+        "send_paths": false
+      },
+      "chmod_changed": false,
+      "current_risk": "high",
+      "decision_bucket": "block_later",
+      "destructive_quarantine_applied": false,
+      "direct_execution_allowed": false,
+      "files_moved_or_deleted": false,
+      "future_action_hint": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+      "guardrail_status": "metadata_guardrail_only",
+      "launcher_edited": false,
+      "must_prove_before_any_action": "Replace with Work Board / Operator Action handoff and prove bounded receipts; do not run as a watcher.",
+      "relative_path": "builder_watcher.sh",
+      "repo_b_executed": false,
+      "requires_governed_replacement": true,
+      "requires_operator_review": true,
+      "runnable_by_agents": false,
+      "runtime_authority": false,
+      "runtime_changed": false,
+      "services_disabled": false,
+      "static_references": [
+        "loop_supervisor.sh restarts builder_watcher.sh"
+      ],
+      "surface_id": "builder_watcher.sh",
+      "what_it_is": "Shell launcher or watcher surface",
+      "why_it_matters": "Verified watcher/daemon signals on a builder surface; legacy watchdog-style build loops should not run outside a governed Operator Action packet."
+    },
+    {
+      "blocks": {
+        "cassandra_chief_utility": true,
+        "module_cleanup": true,
+        "remote_builder": false,
+        "send_paths": false
+      },
+      "chmod_changed": false,
+      "current_risk": "high",
+      "decision_bucket": "block_later",
+      "destructive_quarantine_applied": false,
+      "direct_execution_allowed": false,
+      "files_moved_or_deleted": false,
+      "future_action_hint": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+      "guardrail_status": "metadata_guardrail_only",
+      "launcher_edited": false,
+      "must_prove_before_any_action": "Replace with bounded Work Board / Operator Action workflow; do not run watcher/process behavior directly.",
+      "relative_path": "chief_watcher_brain.py",
+      "repo_b_executed": false,
+      "requires_governed_replacement": true,
+      "requires_operator_review": true,
+      "runnable_by_agents": false,
+      "runtime_authority": false,
+      "runtime_changed": false,
+      "services_disabled": false,
+      "static_references": [
+        "systemd/user/chief-watcher-brain.service.in references chief_watcher_brain.py"
+      ],
+      "surface_id": "chief_watcher_brain.py",
+      "what_it_is": "Listener, watcher, or daemon-style surface",
+      "why_it_matters": "Verified watcher plus shell/process signals; this is too risky to run as active machinery without a replacement contract."
+    },
+    {
+      "blocks": {
+        "cassandra_chief_utility": false,
+        "module_cleanup": true,
+        "remote_builder": false,
+        "send_paths": true
+      },
+      "chmod_changed": false,
+      "current_risk": "high",
+      "decision_bucket": "block_later",
+      "destructive_quarantine_applied": false,
+      "direct_execution_allowed": false,
+      "files_moved_or_deleted": false,
+      "future_action_hint": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+      "guardrail_status": "metadata_guardrail_only",
+      "launcher_edited": false,
+      "must_prove_before_any_action": "Keep as blocked unless replaced by a no-send proof fixture or explicitly approved bounded demo.",
+      "relative_path": "retry_send_demo_dashboard.sh",
+      "repo_b_executed": false,
+      "requires_governed_replacement": true,
+      "requires_operator_review": true,
+      "runnable_by_agents": false,
+      "runtime_authority": false,
+      "runtime_changed": false,
+      "services_disabled": false,
+      "static_references": [
+        "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+      ],
+      "surface_id": "retry_send_demo_dashboard.sh",
+      "what_it_is": "Send/API-capable surface",
+      "why_it_matters": "Verified send-path signal on a shell demo/retry surface; demos must not become live send machinery."
+    },
+    {
+      "blocks": {
+        "cassandra_chief_utility": false,
+        "module_cleanup": true,
+        "remote_builder": false,
+        "send_paths": false
+      },
+      "chmod_changed": false,
+      "current_risk": "high",
+      "decision_bucket": "block_later",
+      "destructive_quarantine_applied": false,
+      "direct_execution_allowed": false,
+      "files_moved_or_deleted": false,
+      "future_action_hint": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+      "guardrail_status": "metadata_guardrail_only",
+      "launcher_edited": false,
+      "must_prove_before_any_action": "Do not run until Producer listener has a governed contract and operator-approved activation lane.",
+      "relative_path": "scripts/run_producer_listener.sh",
+      "repo_b_executed": false,
+      "requires_governed_replacement": true,
+      "requires_operator_review": true,
+      "runnable_by_agents": false,
+      "runtime_authority": false,
+      "runtime_changed": false,
+      "services_disabled": false,
+      "static_references": [
+        "scripts/run_producer_listener.sh starts producer_listener.py"
+      ],
+      "surface_id": "scripts__run_producer_listener.sh",
+      "what_it_is": "Shell launcher or watcher surface",
+      "why_it_matters": "Verified launcher for listener machinery; shell launchers should not activate daemons outside governed runtime approval."
+    },
+    {
+      "blocks": {
+        "cassandra_chief_utility": false,
+        "module_cleanup": true,
+        "remote_builder": false,
+        "send_paths": true
+      },
+      "chmod_changed": false,
+      "current_risk": "high",
+      "decision_bucket": "block_later",
+      "destructive_quarantine_applied": false,
+      "direct_execution_allowed": false,
+      "files_moved_or_deleted": false,
+      "future_action_hint": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+      "guardrail_status": "metadata_guardrail_only",
+      "launcher_edited": false,
+      "must_prove_before_any_action": "Replace with read-only dashboard proof or approved no-send review artifact.",
+      "relative_path": "send_demo_dashboard.py",
+      "repo_b_executed": false,
+      "requires_governed_replacement": true,
+      "requires_operator_review": true,
+      "runnable_by_agents": false,
+      "runtime_authority": false,
+      "runtime_changed": false,
+      "services_disabled": false,
+      "static_references": [
+        "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+      ],
+      "surface_id": "send_demo_dashboard.py",
+      "what_it_is": "Send/API-capable surface",
+      "why_it_matters": "Verified send/API signal on a demo dashboard sender; demo send paths should remain blocked."
+    }
+  ],
+  "launchers_edited": false,
+  "mode": "metadata_guardrail_read_model_only",
+  "next_safe_move": "Active Machinery Replace-with-Governed-Path Spec v0",
+  "not_authorized": [
+    "service_disable",
+    "file_move_delete_rename_chmod",
+    "launcher_edit",
+    "caller_switch",
+    "direct_execution",
+    "agent_runtime_use",
+    "send_enablement",
+    "daemon_enablement",
+    "repo_b_execution"
+  ],
+  "repo_b_executed": false,
+  "runnable_by_agents": false,
+  "runtime_authority": false,
+  "runtime_changed": false,
+  "schema_version": "active_machinery_block_later_guardrail_v0",
+  "sends_enabled": false,
+  "services_disabled": false,
+  "source_files": {
+    "decision_packet": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+    "high_risk_quarantine_read_model": "generated/read_models/active_machinery_high_risk_quarantine.json"
+  }
+}
