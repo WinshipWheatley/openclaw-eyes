@@ -1,0 +1,173 @@
+{
+  "agents_enabled": false,
+  "blocked_until_proven": [
+    "direct listener activation",
+    "caller switch",
+    "service disable or edit",
+    "launcher edit",
+    "reply/send path",
+    "runtime recovery action",
+    "shell/process execution",
+    "sync bridge authority",
+    "raw Telegram body storage"
+  ],
+  "caller_switched": false,
+  "current_listener_summary": {
+    "source_of_summary": "decision and replacement spec metadata only; cassandra_listener.py was not imported or executed",
+    "static_role": "Listener-style Cassandra intake surface.",
+    "static_signals": [
+      "approval/HITL",
+      "daemon/listener",
+      "importer/exporter",
+      "send/API",
+      "shell/process",
+      "sync bridge"
+    ],
+    "unsafe_as_is": [
+      "can behave like a live listener outside governed intake",
+      "send/API and shell/process signals require Guardian/Operator Action boundary",
+      "service/start references require proof and rollback before caller switch"
+    ]
+  },
+  "expected_input": {
+    "allowed_fields": [
+      "source_surface_id",
+      "source_channel",
+      "agent_target",
+      "source_message_id_hash",
+      "source_user_label_or_hash",
+      "received_at",
+      "message_text_hash",
+      "sanitized_preview_optional",
+      "tenant_id_or_owner_scope_if_available",
+      "idempotency_key",
+      "sensitivity_level"
+    ],
+    "hash_or_sanitized_preview_only": true,
+    "input_kind": "telegram_update_metadata_only",
+    "message_text_storage_allowed": false,
+    "private_content_allowed": false,
+    "raw_telegram_body_allowed": false,
+    "raw_telegram_body_stored": false,
+    "telegram_api_call_allowed": false
+  },
+  "external_send_allowed": false,
+  "generated_at": "2026-05-17T03:36:14+00:00",
+  "generated_by": "codex",
+  "gmail_email_send_allowed": false,
+  "governed_path_names": [
+    "telegram_agent_intake",
+    "governed_intake_spine",
+    "intent_records",
+    "work_board",
+    "agent_work_packet",
+    "operator_action_guardian_hitl_if_actionable"
+  ],
+  "high_risk_file_edited": false,
+  "launchers_edited": false,
+  "legacy_surfaces_remaining": [
+    "cassandra_listener.py",
+    "systemd/user/cassandra-listener.service.in",
+    "start_cassandra_core.sh"
+  ],
+  "live_listener_replaced": false,
+  "live_listener_touched": false,
+  "mapping_to_existing_surfaces": {
+    "agent_work_packet": true,
+    "governed_intake_spine": true,
+    "guardian_hitl": "required only for action-capable proposals",
+    "intent_records": true,
+    "memory_authority": "parsed facts only; no ad hoc listener state authority",
+    "module_registry": "cassandra_clara_fact_intake / operator_comms_stack boundary metadata",
+    "operator_action": true,
+    "operator_action_inbox": true,
+    "sync_bridge": "read-model/export posture only; no sync authority",
+    "telegram_agent_intake": true,
+    "work_board": true
+  },
+  "mode": "shadow_replacement_read_model_only",
+  "next_safe_move": "Cassandra Listener Governed Intake Synthetic Proof v0",
+  "proof_required_before_caller_switch": [
+    "metadata-only intake fixture maps to telegram_agent_intake shape",
+    "governed_intake_spine route is deterministic",
+    "unknown input routes to review/triage",
+    "Work Board / Agent Work Packet outputs are deterministic",
+    "Operator Action is required for any action-capable proposal",
+    "no raw Telegram body or private content is stored",
+    "service/start references are represented but untouched"
+  ],
+  "raw_private_content_read": false,
+  "raw_telegram_body_stored": false,
+  "ready_packet_alignment": {
+    "governed_target": "governed_intake_spine_to_work_board_agent_packet_operator_action",
+    "readiness_scope": "first_shadow_replacement_no_runtime_change",
+    "recommended_lane": "Cassandra Listener Governed Intake Shadow Replacement v0",
+    "runtime_replacement_authorized": false
+  },
+  "replacement_surface": {
+    "current_risk": "high",
+    "current_static_dependencies": {
+      "cassandra_chief_utility": true,
+      "module_cleanup": true,
+      "remote_builder": false,
+      "send_paths": true
+    },
+    "current_static_references": [
+      "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+      "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+    ],
+    "decision_bucket": "replace_with_governed_path",
+    "live_listener_imported_or_executed": false,
+    "relative_path": "cassandra_listener.py",
+    "surface_id": "cassandra_listener.py",
+    "what_it_is": "Listener, watcher, or daemon-style surface"
+  },
+  "repo_b_executed": false,
+  "runtime_activation_allowed": false,
+  "runtime_authority": false,
+  "runtime_authority_changed": false,
+  "schema_version": "cassandra_listener_governed_shadow_v0",
+  "services_disabled": false,
+  "shell_execution_allowed": false,
+  "source_files": {
+    "block_later_guardrail": "generated/read_models/active_machinery_block_later_guardrail.json",
+    "decision_packet": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+    "replacement_ready_packet": "docs/operations/ACTIVE_MACHINERY_REPLACE_WITH_GOVERNED_PATH_READY_PACKET.json"
+  },
+  "sync_bridge_authority": false,
+  "target_governed_path": [
+    {
+      "raw_payload_storage_allowed": false,
+      "role": "store bounded Telegram-facing metadata and hashes",
+      "send_allowed": false,
+      "stage": "telegram_agent_intake"
+    },
+    {
+      "execution_allowed": false,
+      "model_call_allowed": false,
+      "role": "bridge metadata into deterministic intent routing",
+      "stage": "governed_intake_spine"
+    },
+    {
+      "role": "record deterministic route or needs-review result",
+      "stage": "intent_records",
+      "unknown_input_route": "needs_operator_review"
+    },
+    {
+      "auto_execute_allowed": false,
+      "role": "surface a review/planning card when useful",
+      "stage": "work_board"
+    },
+    {
+      "agent_activation_allowed": false,
+      "role": "draft bounded work packet only after route is safe",
+      "stage": "agent_work_packet"
+    },
+    {
+      "approval_required": true,
+      "role": "required for any send, runtime, sync bridge, or external action",
+      "stage": "operator_action_guardian_hitl_if_actionable"
+    }
+  ],
+  "telegram_send_allowed": false
+}
