@@ -1,0 +1,314 @@
+{
+  "agent_presence_imported": false,
+  "album_progress_imported": false,
+  "approved_categories_only": [
+    "contacts/nicknames",
+    "company/contact relationships",
+    "email permission posture",
+    "invoice facts",
+    "receivable/payment tracking"
+  ],
+  "bank_data_imported": false,
+  "boundaries": {
+    "agent_presence_imported": false,
+    "album_progress_imported": false,
+    "bank_data_imported": false,
+    "calendar_bodies_imported": false,
+    "correspondence_bodies_imported": false,
+    "email_send_allowed": false,
+    "gmail_send_allowed": false,
+    "no_runtime_authority": true,
+    "no_send_authority": true,
+    "old_hitl_imported": false,
+    "raw_logs_imported": false,
+    "raw_messages_imported": false,
+    "repo_b_runtime_data_imported": false,
+    "runtime_authority_changed": false,
+    "send_authority_granted": false,
+    "spreadsheet_cells_read": false,
+    "telegram_send_allowed": false
+  },
+  "calendar_bodies_imported": false,
+  "categories_imported": [
+    {
+      "category": "contacts/nicknames",
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "records_imported": 38,
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "category": "company/contact relationships",
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "records_imported": 3,
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "category": "email permission posture",
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "records_imported": 8,
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "category": "invoice facts",
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "records_imported": 40,
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "category": "receivable/payment tracking",
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "records_imported": 10,
+      "trust_status": "needs_operator_confirmation"
+    }
+  ],
+  "categories_skipped": [],
+  "correspondence_bodies_imported": false,
+  "data_imported": true,
+  "db_path": ".openclaw/business_ops/ledger.sqlite",
+  "email_send_allowed": false,
+  "generated_at": "2026-05-17T02:10:22+00:00",
+  "gmail_send_allowed": false,
+  "import_mode": "approved_structured_facts_only",
+  "inserted_tables": {
+    "cassandra_chief_memory_contact_channels": 5,
+    "cassandra_chief_memory_email_permissions": 8,
+    "cassandra_chief_memory_entities": 12,
+    "cassandra_chief_memory_entity_aliases": 21,
+    "cassandra_chief_memory_entity_relationships": 3,
+    "cassandra_chief_memory_finance_source_links": 50
+  },
+  "next_safe_lane": "Cassandra/Clara SQLite Fact Packet Refresh v0",
+  "no_runtime_authority": true,
+  "no_send_authority": true,
+  "old_hitl_imported": false,
+  "raw_logs_imported": false,
+  "raw_messages_imported": false,
+  "records_imported_count": 99,
+  "records_needing_operator_confirmation": 99,
+  "repo_b_runtime_data_imported": false,
+  "runtime_authority_changed": false,
+  "safe_record_samples": [
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_ent_d67f4ea2f13d266df899",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entities",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_ent_a9c5c256494752c2fc64",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entities",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_ent_f0223c0516278ec927fc",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entities",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_ent_104350281c9e8f2bd9ed",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entities",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_ent_3e0dc2de10a8e6907615",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entities",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_alias_5556a29136cf4c29ed17",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entity_aliases",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_alias_43b2c275f2c6b140739e",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entity_aliases",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_alias_82ab85a62d623fae9d21",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entity_aliases",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_alias_1e3a1a7fe7f8cad2b444",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entity_aliases",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_alias_8da63051bd72117f201b",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_entity_aliases",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_channel_1c3bc0bbafb56f9ee3c0",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_contact_channels",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_channel_a29ee5cc100020fb2f90",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_contact_channels",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_channel_01731b6d517ebb78da0e",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_contact_channels",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_channel_ff03a05996462766f3da",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_contact_channels",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_channel_1d5ec8001b618c20a87e",
+      "source_id": "memsrc_contacts_nicknames",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_contact_channels",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_rel_6809a628459aab4a5085",
+      "source_id": "memsrc_company_contact_relationships",
+      "source_type": "governed_finance_contact_candidate",
+      "table_name": "cassandra_chief_memory_entity_relationships",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_rel_a586db9ad34a6f050fec",
+      "source_id": "memsrc_company_contact_relationships",
+      "source_type": "governed_finance_contact_candidate",
+      "table_name": "cassandra_chief_memory_entity_relationships",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_rel_d18e86d9a913bc165b3c",
+      "source_id": "memsrc_company_contact_relationships",
+      "source_type": "governed_finance_contact_candidate",
+      "table_name": "cassandra_chief_memory_entity_relationships",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_emailperm_60e0562b3ff81838e37f",
+      "source_id": "memsrc_email_permission_posture",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_email_permissions",
+      "trust_status": "needs_operator_confirmation"
+    },
+    {
+      "evidence_status": "parsed_evidence_not_truth",
+      "no_runtime_authority": true,
+      "no_send_authority": true,
+      "record_id": "ccmem_emailperm_33a01360d43c388ac8ac",
+      "source_id": "memsrc_email_permission_posture",
+      "source_type": "contact_nicknames_json",
+      "table_name": "cassandra_chief_memory_email_permissions",
+      "trust_status": "needs_operator_confirmation"
+    }
+  ],
+  "schema_version": "cassandra_chief_structured_fact_import_v0",
+  "send_authority_granted": false,
+  "source_access": {
+    "agent_presence_snapshots": "not_read",
+    "contact_nicknames_json": "approved_structured_json_read",
+    "finance_sqlite_surfaces": "approved_governed_sqlite_rows_only",
+    "finance_state_json": "approved_structured_json_read",
+    "old_hitl_json_jsonl": "not_read",
+    "spreadsheet_cells": "not_read"
+  },
+  "spreadsheet_cells_read": false,
+  "telegram_send_allowed": false
+}
