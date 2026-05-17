@@ -74,6 +74,10 @@ def test_default_receipt_does_not_invent_confirmations(tmp_path):
     assert payload["coupa_submit_triggered"] is False
     assert payload["spreadsheet_write_triggered"] is False
     assert payload["send_or_submit_authority_added"] is False
+    assert all(item["operator_supplied"] is False for item in payload["confirmation_items"])
+    assert all(item["evidence_status"] == "manual_confirmation_pending" for item in payload["pending_items"])
+    assert all(item["no_external_action"] is True for item in payload["confirmation_items"])
+    assert payload["remaining_blocked_item_count"] == 4
 
 
 def test_supplied_confirmations_are_recorded_as_evidence_only(tmp_path):
@@ -104,9 +108,60 @@ def test_supplied_confirmations_are_recorded_as_evidence_only(tmp_path):
     assert payload["packet_ready_after_confirmations"]["packet_ready_for_submission"] is False
     assert payload["manual_confirmation_evidence"]
     assert all(item["receipts_are_evidence_only"] is True for item in payload["manual_confirmation_evidence"])
+    assert all(item["operator_supplied"] is True for item in payload["manual_confirmation_evidence"])
+    assert all(item["evidence_status"] == "operator_confirmation_evidence" for item in payload["manual_confirmation_evidence"])
+    assert all(item["no_external_action"] is True for item in payload["manual_confirmation_evidence"])
+    assert payload["remaining_blocked_item_count"] == 0
     assert payload["portal_submitted"] is False
     assert payload["approval_authority_added"] is False
     assert payload["runtime_authority_added"] is False
+
+
+def test_partial_capture_records_only_supplied_value_and_preserves_pending(tmp_path):
+    packet_path = _write_actionable_packet(tmp_path / "capital_hilton_actionable_review_packet.json")
+    inputs = {
+        "confirmations": {
+            "recipient_confirmed": {"confirmed": True, "evidence_ref": "operator_manual_review:recipient_only"}
+        }
+    }
+
+    payload = receipt.build_capital_hilton_manual_confirmation_receipt(
+        actionable_packet_path=packet_path,
+        confirmation_inputs=inputs,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["real_confirmations_recorded"] is True
+    assert payload["recorded_confirmation_count"] == 1
+    assert payload["pending_confirmation_count"] == len(receipt.SUPPORTED_CONFIRMATION_FIELDS) - 1
+    assert payload["recorded_confirmation_keys"] == ["recipient_confirmed"]
+    assert "po_coupa_requirement_confirmed" in payload["pending_confirmation_keys"]
+    assert "include_2026_05_22" in payload["pending_confirmation_keys"]
+    assert "include_older_gigs" in payload["pending_confirmation_keys"]
+    assert payload["hard_blockers_cleared_by_receipt"] is False
+    assert payload["packet_ready_after_confirmations"]["packet_ready_for_manual_preparation"] is False
+    assert any(item["blocker_id"] == "po_coupa_confirmation_required" for item in payload["remaining_blocked_items"])
+
+
+def test_false_confirmation_is_recorded_but_does_not_clear_blocker(tmp_path):
+    packet_path = _write_actionable_packet(tmp_path / "capital_hilton_actionable_review_packet.json")
+    inputs = {"confirmations": {"po_coupa_requirement_confirmed": False}}
+
+    payload = receipt.build_capital_hilton_manual_confirmation_receipt(
+        actionable_packet_path=packet_path,
+        confirmation_inputs=inputs,
+        generated_at=FIXED_NOW,
+    )
+    po_item = next(item for item in payload["confirmation_items"] if item["confirmation_key"] == "po_coupa_requirement_confirmed")
+    po_blocker = next(item for item in payload["remaining_blocked_items"] if item["blocker_id"] == "po_coupa_confirmation_required")
+
+    assert po_item["status"] == "recorded"
+    assert po_item["confirmation_value"] is False
+    assert po_item["operator_supplied"] is True
+    assert po_item["confirmation_satisfied"] is False
+    assert po_blocker["status"] == "explicit_negative_or_unsatisfied_confirmation_recorded"
+    assert payload["hard_blockers_cleared_by_receipt"] is False
+    assert payload["packet_ready_after_confirmations"]["packet_ready_for_submission"] is False
 
 
 def test_credential_like_confirmation_values_are_redacted(tmp_path):
@@ -130,6 +185,8 @@ def test_credential_like_confirmation_values_are_redacted(tmp_path):
     assert "password is" not in text
     assert "secret" not in text
     assert "[redacted credential-bearing confirmation value]" in text
+    po_item = next(item for item in payload["confirmation_items"] if item["confirmation_key"] == "po_coupa_requirement_confirmed")
+    assert po_item["confirmation_value"] is True
 
 
 def test_read_model_output_is_deterministic(tmp_path):
@@ -177,6 +234,48 @@ def test_export_writes_json_operator_and_cli_outputs(tmp_path, capsys):
         ]
     ) == 0
     assert json.loads(capsys.readouterr().out)["real_confirmations_recorded"] is False
+
+
+def test_cli_confirmations_json_records_partial_capture(tmp_path, capsys):
+    packet_path = _write_actionable_packet(tmp_path / "capital_hilton_actionable_review_packet.json")
+    export_root = tmp_path / "read_models"
+    confirmations_path = tmp_path / "confirmations.json"
+    confirmations_path.write_text(
+        json.dumps(
+            {
+                "confirmations": {
+                    "recipient_confirmed": {
+                        "confirmed": True,
+                        "evidence_ref": "operator_manual_review:cli_partial",
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert export_main(
+        [
+            "--actionable-packet-json",
+            str(packet_path),
+            "--confirmations-json",
+            str(confirmations_path),
+            "--export-root",
+            str(export_root),
+            "--format",
+            "json",
+        ]
+    ) == 0
+    summary = json.loads(capsys.readouterr().out)
+    payload = json.loads((export_root / receipt.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert summary["real_confirmations_recorded"] is True
+    assert payload["recorded_confirmation_keys"] == ["recipient_confirmed"]
+    assert payload["pending_confirmation_count"] == len(receipt.SUPPORTED_CONFIRMATION_FIELDS) - 1
+    assert payload["confirmation_contract"]["explicit_operator_values_required"] is True
 
 
 def test_generated_read_model_files_are_safe_mirror_candidates(tmp_path):

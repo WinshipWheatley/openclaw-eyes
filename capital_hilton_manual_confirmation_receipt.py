@@ -174,6 +174,14 @@ def _sanitize_label(value: object) -> str:
     return " ".join(text.split())[:160]
 
 
+def _safe_confirmation_value(value: object) -> object:
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    return _sanitize_label(value)
+
+
 def _normalize_confirmation_inputs(raw: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     if not raw:
         return {}
@@ -199,7 +207,7 @@ def _normalize_confirmation_inputs(raw: dict[str, Any] | None) -> dict[str, dict
             synthetic = bool(raw.get("synthetic", False))
         if supplied:
             normalized[field_name] = {
-                "decision_value": decision_value,
+                "decision_value": _safe_confirmation_value(decision_value),
                 "value_label": _sanitize_label(value_label),
                 "evidence_ref": _sanitize_label(evidence_ref),
                 "confirmed_at": _sanitize_label(confirmed_at),
@@ -241,6 +249,7 @@ def _confirmation_items(
         receipt_id = _receipt_id(packet_id, field_name, supplied_value) if is_recorded else None
         items.append(
             {
+                "confirmation_key": field_name,
                 "field_name": field_name,
                 "display_name": spec["display_name"],
                 "source_blocker_id": spec["source_blocker_id"],
@@ -250,11 +259,17 @@ def _confirmation_items(
                 "pending_status": None if is_recorded else spec["pending_status"],
                 "receipt_id": receipt_id,
                 "decision_value": supplied_value if is_recorded else None,
+                "confirmation_value": supplied_value if is_recorded else None,
                 "decision_value_label": supplied["value_label"] if is_recorded else "",
                 "confirmation_satisfied": satisfied,
                 "evidence_ref": supplied["evidence_ref"] if is_recorded else "",
                 "confirmed_at": supplied["confirmed_at"] if is_recorded else "",
                 "synthetic": bool(supplied.get("synthetic")) if is_recorded else False,
+                "operator_supplied": bool(is_recorded and not supplied.get("synthetic")),
+                "evidence_status": "operator_confirmation_evidence"
+                if is_recorded
+                else "manual_confirmation_pending",
+                "no_external_action": True,
                 "receipt_kind": "manual_confirmation_evidence" if is_recorded else "manual_confirmation_pending",
                 "raw_confirmation_payload_stored": False,
                 "external_action_authorized": False,
@@ -274,6 +289,39 @@ def _source_blocker_map(actionable_packet: dict[str, Any]) -> dict[str, dict[str
     }
 
 
+def _remaining_blocked_items(
+    *,
+    blocker_map: dict[str, dict[str, Any]],
+    confirmations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    by_blocker = {
+        item["source_blocker_id"]: item
+        for item in confirmations
+        if item.get("source_blocker_id")
+    }
+    blocked: list[dict[str, Any]] = []
+    for blocker_id, blocker in sorted(blocker_map.items()):
+        confirmation = by_blocker.get(blocker_id)
+        if confirmation and confirmation["confirmation_satisfied"]:
+            continue
+        if confirmation and confirmation["status"] == "recorded":
+            status = "explicit_negative_or_unsatisfied_confirmation_recorded"
+        else:
+            status = "pending_confirmation"
+        blocked.append(
+            {
+                "blocker_id": blocker_id,
+                "status": status,
+                "confirmation_key": confirmation.get("confirmation_key") if confirmation else "",
+                "description": blocker.get("description", ""),
+                "severity": blocker.get("severity", ""),
+                "next_safe_move": blocker.get("next_safe_move", ""),
+                "external_action_authorized": False,
+            }
+        )
+    return blocked
+
+
 def build_capital_hilton_manual_confirmation_receipt(
     *,
     actionable_packet_path: str | Path = DEFAULT_ACTIONABLE_PACKET_PATH,
@@ -290,6 +338,7 @@ def build_capital_hilton_manual_confirmation_receipt(
     hard = [item for item in confirmations if item["confirmation_group"] == "hard_blocker"]
     scope = [item for item in confirmations if item["confirmation_group"] == "scope_decision"]
     blocker_map = _source_blocker_map(actionable_packet)
+    remaining_blocked_items = _remaining_blocked_items(blocker_map=blocker_map, confirmations=confirmations)
     hard_cleared = bool(hard) and all(item["confirmation_satisfied"] for item in hard)
     scope_pending = any(item["status"] == "pending" for item in scope)
 
@@ -316,6 +365,18 @@ def build_capital_hilton_manual_confirmation_receipt(
             "supported_fields": [item["field_name"] for item in SUPPORTED_CONFIRMATION_FIELDS],
             "generalizable_to_other_review_packets": True,
             "confirmation_values_required_from_operator": True,
+            "explicit_operator_values_required": True,
+            "capture_input_path": "scripts/export_capital_hilton_manual_confirmation_receipt.py --confirmations-json <operator-confirmations.json>",
+            "accepted_input_shape": {
+                "confirmations": {
+                    "po_coupa_requirement_confirmed": "true/false or {confirmed: true/false, evidence_ref: string}",
+                    "recipient_confirmed": "true/false or {confirmed: true/false, evidence_ref: string}",
+                    "coupa_invoice_created_manually": "true/false or {confirmed: true/false, evidence_ref: string}",
+                    "spreadsheet_invoice_number_checked": "true/false or {confirmed: true/false, evidence_ref: string}",
+                    "include_2026_05_22": "include/exclude true/false decision",
+                    "include_older_gigs": "include/exclude true/false decision",
+                }
+            },
             "no_confirmations_invented": True,
         },
         "source_blockers": [
@@ -330,14 +391,23 @@ def build_capital_hilton_manual_confirmation_receipt(
         "confirmation_items": confirmations,
         "confirmed_items": [item for item in confirmations if item["status"] == "recorded"],
         "pending_items": pending,
+        "recorded_confirmation_keys": [item["confirmation_key"] for item in recorded],
+        "pending_confirmation_keys": [item["confirmation_key"] for item in pending],
+        "remaining_blocked_items": remaining_blocked_items,
+        "remaining_blocked_item_count": len(remaining_blocked_items),
         "manual_confirmation_evidence": [
             {
                 "receipt_id": item["receipt_id"],
+                "confirmation_key": item["confirmation_key"],
                 "field_name": item["field_name"],
+                "confirmation_value": item["confirmation_value"],
                 "decision_value_label": item["decision_value_label"],
                 "confirmation_satisfied": item["confirmation_satisfied"],
+                "operator_supplied": item["operator_supplied"],
+                "evidence_status": item["evidence_status"],
                 "evidence_ref": item["evidence_ref"],
                 "synthetic": item["synthetic"],
+                "no_external_action": True,
                 "receipts_are_evidence_only": True,
             }
             for item in recorded
@@ -359,11 +429,13 @@ def build_capital_hilton_manual_confirmation_receipt(
             "review_only": True,
             "receipts_are_evidence_only": True,
             "pending_blockers_preserved": bool(pending),
+            "remaining_blockers_preserved": bool(remaining_blocked_items),
             "confirmations_invented": False,
             "old_packet_blockers_not_deleted": True,
+            "operator_supplied_values_required": True,
         },
         "next_recommended_lane": (
-            "Capital Hilton Manual Confirmation Capture v0"
+            "Capital Hilton Operator Confirmation Values v0"
             if not hard_cleared
             else "Capital Hilton Operator Action Readiness Review v0"
         ),
@@ -380,6 +452,7 @@ def format_capital_hilton_manual_confirmation_receipt(payload: dict[str, Any]) -
         f"- Real confirmations recorded: `{str(payload['real_confirmations_recorded']).lower()}`.",
         f"- Recorded confirmation count: `{payload['recorded_confirmation_count']}`.",
         f"- Pending confirmation count: `{payload['pending_confirmation_count']}`.",
+        f"- Remaining blocked item count: `{payload['remaining_blocked_item_count']}`.",
         f"- Packet ready for manual preparation: `{str(payload['packet_ready_after_confirmations']['packet_ready_for_manual_preparation']).lower()}`.",
         "- Packet ready for submission: `false`.",
         "- Email/Gmail sent: `false`.",
@@ -401,6 +474,13 @@ def format_capital_hilton_manual_confirmation_receipt(payload: dict[str, Any]) -
     lines.extend(["", "## Pending Confirmations"])
     for item in payload["pending_items"]:
         lines.append(f"- `{item['field_name']}`: {item['display_name']} ({item['pending_status']})")
+
+    lines.extend(["", "## Remaining Blocked Items"])
+    if payload["remaining_blocked_items"]:
+        for item in payload["remaining_blocked_items"]:
+            lines.append(f"- `{item['blocker_id']}`: {item['status']} - {item['description']}")
+    else:
+        lines.append("- None cleared by current receipt evidence, but external send/submit remains blocked.")
 
     lines.extend(
         [

@@ -4,6 +4,7 @@ Status:
 - Real confirmations recorded: `false`.
 - Recorded confirmation count: `0`.
 - Pending confirmation count: `6`.
+- Remaining blocked item count: `4`.
 - Packet ready for manual preparation: `false`.
 - Packet ready for submission: `false`.
 - Email/Gmail sent: `false`.
@@ -21,6 +22,12 @@ Status:
 - `include_2026_05_22`: Include 2026-05-22 gig decision (pending_2026_05_22_scope_decision)
 - `include_older_gigs`: Include older gigs decision (pending_older_gigs_scope_decision)
 
+## Remaining Blocked Items
+- `coupa_invoice_creation_manual_only`: pending_confirmation - Invoice must be created in Coupa against confirmed PO; OpenClaw has no portal/credential authority.
+- `po_coupa_confirmation_required`: pending_confirmation - PO number is still unknown and must be confirmed manually in Coupa.
+- `recipient_confirmation_required`: pending_confirmation - Recipient posture is review-only and business email still needs operator confirmation.
+- `spreadsheet_invoice_number_manual_check`: pending_confirmation - Invoice workbook is known only as metadata; OpenClaw did not read cells or formulas.
+
 ## Source Packet Blockers
 - `coupa_invoice_creation_manual_only`: Invoice must be created in Coupa against confirmed PO; OpenClaw has no portal/credential authority.
 - `po_coupa_confirmation_required`: PO number is still unknown and must be confirmed manually in Coupa.
@@ -32,4 +39,4 @@ Status:
 - No send path, Gmail/email path, Coupa submit, spreadsheet write, runtime action, or approval authority was added.
 - Pending items stay pending until explicit operator confirmation values are provided.
 
-Next safe lane: Capital Hilton Manual Confirmation Capture v0
+Next safe lane: Capital Hilton Operator Confirmation Values v0
