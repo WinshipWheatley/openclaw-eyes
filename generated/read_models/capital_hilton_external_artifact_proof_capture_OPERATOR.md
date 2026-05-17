@@ -8,6 +8,13 @@ Status:
 - Raw sensitive artifacts stored in read-model: `false`.
 - Coupa/browser/email/spreadsheet/credential/runtime authority added: `false`.
 
+## Operator Proof Intake
+- Command path: `scripts/export_capital_hilton_external_artifact_proof_capture.py --proof-input-json <path>`.
+- Proof input supplied: `false`.
+- Supplied proof count: `0`.
+- Recorded real proof count: `0`.
+- Intake accepts protected references and metadata only; raw artifact bodies are not allowed.
+
 ## Proof Records
 - `coupa_payment_invoice_proof`: pending_not_recorded (operator supplied: `false`)
 - `excel_companion_invoice_artifact`: pending_not_recorded (operator supplied: `false`)

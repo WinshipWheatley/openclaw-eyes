@@ -76,9 +76,46 @@ def test_no_proof_is_captured_without_explicit_operator_input_or_safe_metadata()
     payload = proof.build_capital_hilton_external_artifact_proof_capture(generated_at=FIXED_NOW)
 
     assert payload["status_summary"]["real_proof_recorded"] is False
+    assert payload["operator_proof_intake"]["intake_path_added"] is True
+    assert payload["operator_proof_intake"]["proof_input_supplied"] is False
+    assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 0
     assert payload["final_send_approval_availability_state"] == "unavailable_missing_coupa_invoice_proof"
     assert all(record["proof_status"] == "pending_not_recorded" for record in payload["proof_records"].values())
     assert payload["proof_capture_requirements"]["proof_requires_explicit_operator_input_or_safe_metadata"] is True
+
+
+def test_partial_proof_intake_records_only_supplied_coupa_metadata():
+    inputs = {
+        "proof_records": {
+            "coupa_payment_invoice_proof": {
+                "proof_status": "captured",
+                "operator_supplied": True,
+                "protected_artifact_reference": "protected://capital-hilton/coupa-invoice-proof/redacted-ref",
+                "protected_artifact_type": "coupa_supplier_portal_invoice_pdf_reference",
+                "artifact_identity_or_hash": "sha256:coupa-proof-redacted-metadata-hash",
+                "invoice_number": "operator-supplied-invoice-number",
+                "invoice_date": "2026-05-18",
+                "invoice_amount": "800.00 USD",
+                "po_number": "DCASH00983536",
+                "raw_artifact_contents": "RAW PDF BODY THAT MUST NOT BE STORED",
+            }
+        }
+    }
+
+    payload = proof.build_capital_hilton_external_artifact_proof_capture(
+        proof_inputs=inputs,
+        generated_at=FIXED_NOW,
+    )
+    text = json.dumps(payload).lower()
+
+    assert payload["operator_proof_intake"]["partial_proof_intake_supported"] is True
+    assert payload["operator_proof_intake"]["supplied_proof_count"] == 1
+    assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 1
+    assert payload["proof_records"]["coupa_payment_invoice_proof"]["proof_status"] == "captured"
+    assert payload["proof_records"]["excel_companion_invoice_artifact"]["proof_status"] == "pending_not_recorded"
+    assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "pending_not_recorded"
+    assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_companion_invoice"
+    assert "raw pdf body" not in text
 
 
 def test_supplied_proof_metadata_is_evidence_only_and_raw_contents_are_not_stored():
@@ -110,6 +147,24 @@ def test_excel_vs_coupa_match_is_not_verified_without_explicit_match_proof():
 
     assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "pending_not_recorded"
     assert payload["final_send_approval_prerequisites"]["excel_companion_invoice_verified_to_match_coupa"] is False
+    assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_match_proof"
+
+
+def test_negative_match_proof_is_recorded_as_evidence_without_unlocking_send_gate():
+    inputs = _real_proof_inputs()
+    inputs["proof_records"]["excel_coupa_match_proof"]["match_status"] = "mismatch"
+    inputs["proof_records"]["excel_coupa_match_proof"]["match_basis"] = "operator_supplied_difference_found"
+
+    payload = proof.build_capital_hilton_external_artifact_proof_capture(
+        proof_inputs=inputs,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["operator_proof_intake"]["supplied_proof_count"] == 3
+    assert payload["proof_records"]["excel_coupa_match_proof"]["operator_supplied"] is True
+    assert payload["proof_records"]["excel_coupa_match_proof"]["match_status"] == "mismatch"
+    assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "pending_not_recorded"
+    assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 2
     assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_match_proof"
 
 
@@ -151,6 +206,34 @@ def test_final_send_approval_can_reference_proof_state_but_stays_blocked_without
     assert proof_payload["status_summary"]["paid_status"] is False
 
 
+def test_partial_proof_intake_keeps_final_send_gate_blocked_until_match_proof_exists(tmp_path):
+    partial_payload = proof.build_capital_hilton_external_artifact_proof_capture(
+        proof_inputs={
+            "proof_records": {
+                "coupa_payment_invoice_proof": _real_proof_inputs()["proof_records"]["coupa_payment_invoice_proof"],
+                "excel_companion_invoice_artifact": _real_proof_inputs()["proof_records"][
+                    "excel_companion_invoice_artifact"
+                ],
+            }
+        },
+        generated_at=FIXED_NOW,
+    )
+    proof_path = tmp_path / "proof.json"
+    proof_path.write_text(proof.stable_json(partial_payload), encoding="utf-8")
+
+    gate_payload = gate.build_capital_hilton_send_approval_gate(
+        execution_path_json=_write_execution_path(tmp_path / "execution.json"),
+        start_approval_json=_write_start_approval(tmp_path / "start.json"),
+        power_stage_json=_write_power_stage(tmp_path / "power.json"),
+        proof_capture_json=proof_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert partial_payload["final_send_approval_availability_state"] == "unavailable_missing_excel_match_proof"
+    assert gate_payload["current_approval_availability_state"] == "unavailable_missing_excel_match_proof"
+    assert gate_payload["send_approval_executable"] is False
+
+
 def test_final_send_approval_remains_unavailable_until_required_proof_exists(tmp_path):
     proof_payload = proof.build_capital_hilton_external_artifact_proof_capture(generated_at=FIXED_NOW)
     proof_path = tmp_path / "proof.json"
@@ -181,10 +264,62 @@ def test_export_writes_deterministic_safe_read_model_operator_and_cli_outputs(tm
     assert result.excel_companion_artifact_modeled is True
     assert result.excel_coupa_match_proof_modeled is True
     assert result.real_proof_recorded is False
+    assert result.operator_proof_intake_enabled is True
+    assert result.partial_proof_intake_supported is True
     assert payload["status_summary"]["no_submit_no_browser_no_email_no_spreadsheet_no_secret_storage"] is True
     assert "Capital Hilton External Artifact Proof Capture" in operator_text
     assert export_main(["--export-root", str(export_root), "--format", "json"]) == 0
     assert json.loads(capsys.readouterr().out)["schema_version"] == proof.SCHEMA_VERSION
+
+
+def test_cli_proof_input_json_records_partial_metadata_without_raw_artifact_storage(tmp_path, capsys):
+    export_root = tmp_path / "read_models"
+    proof_input = tmp_path / "operator_proof_input.json"
+    proof_input.write_text(
+        json.dumps(
+            {
+                "proof_records": {
+                    "coupa_payment_invoice_proof": {
+                        "proof_status": "captured",
+                        "operator_supplied": True,
+                        "protected_artifact_reference": "protected://capital-hilton/coupa-invoice-proof/redacted-ref",
+                        "protected_artifact_type": "coupa_supplier_portal_invoice_pdf_reference",
+                        "artifact_identity_or_hash": "sha256:coupa-proof-redacted-metadata-hash",
+                        "invoice_number": "operator-supplied-invoice-number",
+                        "invoice_amount": "800.00 USD",
+                        "po_number": "DCASH00983536",
+                        "password": "password is not allowed here",
+                        "raw_artifact_contents": "RAW PDF BODY THAT MUST NOT BE STORED",
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert export_main(
+        [
+            "--proof-input-json",
+            str(proof_input),
+            "--export-root",
+            str(export_root),
+            "--format",
+            "summary",
+        ]
+    ) == 0
+    summary = json.loads(capsys.readouterr().out)
+    payload = json.loads((export_root / proof.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    operator_text = (export_root / proof.OPERATOR_EXPORT_NAME).read_text(encoding="utf-8")
+    text = json.dumps(payload).lower()
+
+    assert summary["supplied_proof_count"] == 1
+    assert summary["recorded_real_proof_count"] == 1
+    assert payload["proof_records"]["coupa_payment_invoice_proof"]["proof_status"] == "captured"
+    assert payload["proof_records"]["excel_companion_invoice_artifact"]["proof_status"] == "pending_not_recorded"
+    assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_companion_invoice"
+    assert "Operator Proof Intake" in operator_text
+    assert "raw pdf body" not in text
+    assert "password is" not in text
 
 
 def test_generated_read_model_files_are_safe_mirror_candidates(tmp_path):

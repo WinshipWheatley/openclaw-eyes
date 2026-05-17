@@ -99,6 +99,11 @@ class ExternalArtifactProofCaptureExportResult:
     final_send_approval_availability_state: str
     runtime_authority_added: bool
     send_or_submit_authority_added: bool
+    proof_input_path: str
+    operator_proof_intake_enabled: bool
+    partial_proof_intake_supported: bool
+    supplied_proof_count: int
+    recorded_real_proof_count: int
 
 
 def utc_now() -> str:
@@ -220,6 +225,44 @@ def _proof_inputs_from_path(path: str | Path | None) -> dict[str, Any]:
     return {"proof_records": {}}
 
 
+def _operator_proof_intake_summary(
+    *,
+    raw_inputs: dict[str, Any],
+    proof_input_json: str | Path | None,
+    records: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    supplied = [proof_type for proof_type in PROOF_TYPES if bool(_input_for(raw_inputs, proof_type))]
+    captured = [proof_type for proof_type, record in records.items() if record["proof_status"] == "captured"]
+    synthetic = [
+        proof_type
+        for proof_type, record in records.items()
+        if record["proof_status"] == "synthetic_test_recorded_not_real"
+    ]
+    pending = [proof_type for proof_type, record in records.items() if record["proof_status"] == "pending_not_recorded"]
+    return {
+        "intake_path_added": True,
+        "command_path": "scripts/export_capital_hilton_external_artifact_proof_capture.py --proof-input-json <path>",
+        "proof_input_path": _display_path(proof_input_json) if proof_input_json else "",
+        "proof_input_supplied": bool(supplied),
+        "partial_proof_intake_supported": True,
+        "supported_proof_types": list(PROOF_TYPES),
+        "supported_metadata_fields": sorted(_ALLOWED_METADATA_FIELDS),
+        "supplied_proof_count": len(supplied),
+        "recorded_real_proof_count": len(captured),
+        "pending_proof_count": len(pending),
+        "synthetic_test_proof_count": len(synthetic),
+        "supplied_proof_types": supplied,
+        "recorded_real_proof_types": captured,
+        "pending_proof_types": pending,
+        "synthetic_test_proof_types": synthetic,
+        "requires_operator_supplied_true": True,
+        "requires_protected_reference_or_identity_metadata": True,
+        "metadata_only": True,
+        "raw_artifact_contents_allowed": False,
+        "no_external_action": True,
+    }
+
+
 def final_send_prerequisite_status_from_records(records: dict[str, dict[str, Any]]) -> dict[str, bool]:
     coupa = records["coupa_payment_invoice_proof"]
     excel = records["excel_companion_invoice_artifact"]
@@ -276,6 +319,11 @@ def build_capital_hilton_external_artifact_proof_capture(
     no_authority = dict(NO_AUTHORITY_FLAGS)
     no_authority["real_proof_recorded"] = real_proof_recorded
     no_authority["synthetic_or_test_proof_recorded"] = synthetic_recorded
+    intake_summary = _operator_proof_intake_summary(
+        raw_inputs=raw_inputs,
+        proof_input_json=proof_input_json,
+        records=records,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_by": "codex",
@@ -284,6 +332,7 @@ def build_capital_hilton_external_artifact_proof_capture(
         "workflow": WORKFLOW_ID,
         "workflow_scope": "Capital Hilton / Hilton only",
         "capture_mode": "operator_supplied_safe_metadata_only",
+        "operator_proof_intake": intake_summary,
         "proof_records": records,
         "supported_metadata_fields": sorted(_ALLOWED_METADATA_FIELDS),
         "proof_capture_requirements": {
@@ -300,6 +349,10 @@ def build_capital_hilton_external_artifact_proof_capture(
             "excel_companion_artifact_status": records["excel_companion_invoice_artifact"]["proof_status"],
             "excel_coupa_match_proof_status": records["excel_coupa_match_proof"]["proof_status"],
             "real_proof_recorded": real_proof_recorded,
+            "recorded_real_proof_count": intake_summary["recorded_real_proof_count"],
+            "supplied_proof_count": intake_summary["supplied_proof_count"],
+            "pending_proof_count": intake_summary["pending_proof_count"],
+            "partial_proof_intake_supported": True,
             "paid_status": False,
             "final_send_approval_availability_state": availability,
             "raw_sensitive_artifact_stored_in_read_model": False,
@@ -339,6 +392,13 @@ def format_capital_hilton_external_artifact_proof_capture(payload: dict[str, Any
         f"- Final send approval availability: `{payload['final_send_approval_availability_state']}`.",
         "- Raw sensitive artifacts stored in read-model: `false`.",
         "- Coupa/browser/email/spreadsheet/credential/runtime authority added: `false`.",
+        "",
+        "## Operator Proof Intake",
+        f"- Command path: `{payload['operator_proof_intake']['command_path']}`.",
+        f"- Proof input supplied: `{str(payload['operator_proof_intake']['proof_input_supplied']).lower()}`.",
+        f"- Supplied proof count: `{payload['operator_proof_intake']['supplied_proof_count']}`.",
+        f"- Recorded real proof count: `{payload['operator_proof_intake']['recorded_real_proof_count']}`.",
+        "- Intake accepts protected references and metadata only; raw artifact bodies are not allowed.",
         "",
         "## Proof Records",
     ]
@@ -387,6 +447,11 @@ def export_capital_hilton_external_artifact_proof_capture(
         final_send_approval_availability_state=payload["final_send_approval_availability_state"],
         runtime_authority_added=False,
         send_or_submit_authority_added=False,
+        proof_input_path=payload["operator_proof_intake"]["proof_input_path"],
+        operator_proof_intake_enabled=True,
+        partial_proof_intake_supported=True,
+        supplied_proof_count=payload["operator_proof_intake"]["supplied_proof_count"],
+        recorded_real_proof_count=payload["operator_proof_intake"]["recorded_real_proof_count"],
     )
 
 

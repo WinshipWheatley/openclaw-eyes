@@ -101,12 +101,58 @@
     "pattern_name": "external_artifact_proof_capture_v0",
     "requires_client_specific_authority_boundary": true
   },
-  "generated_at": "2026-05-17T21:08:31+00:00",
+  "generated_at": "2026-05-17T22:55:41+00:00",
   "generated_by": "codex",
   "home_address_stored": false,
   "mission_control_app_changed": false,
   "next_recommended_lane": "Capital Hilton Proof Capture Operator Surface v0",
   "no_external_action": true,
+  "operator_proof_intake": {
+    "command_path": "scripts/export_capital_hilton_external_artifact_proof_capture.py --proof-input-json <path>",
+    "intake_path_added": true,
+    "metadata_only": true,
+    "no_external_action": true,
+    "partial_proof_intake_supported": true,
+    "pending_proof_count": 3,
+    "pending_proof_types": [
+      "coupa_payment_invoice_proof",
+      "excel_companion_invoice_artifact",
+      "excel_coupa_match_proof"
+    ],
+    "proof_input_path": "",
+    "proof_input_supplied": false,
+    "raw_artifact_contents_allowed": false,
+    "recorded_real_proof_count": 0,
+    "recorded_real_proof_types": [],
+    "requires_operator_supplied_true": true,
+    "requires_protected_reference_or_identity_metadata": true,
+    "supplied_proof_count": 0,
+    "supplied_proof_types": [],
+    "supported_metadata_fields": [
+      "artifact_identity_or_hash",
+      "captured_at",
+      "invoice_amount",
+      "invoice_date",
+      "invoice_number",
+      "match_basis",
+      "match_status",
+      "operator_supplied",
+      "po_number",
+      "proof_status",
+      "proof_type",
+      "protected_artifact_reference",
+      "protected_artifact_type",
+      "source_basis",
+      "synthetic_or_test"
+    ],
+    "supported_proof_types": [
+      "coupa_payment_invoice_proof",
+      "excel_companion_invoice_artifact",
+      "excel_coupa_match_proof"
+    ],
+    "synthetic_test_proof_count": 0,
+    "synthetic_test_proof_types": []
+  },
   "packet_kind": "external_artifact_proof_capture_contract",
   "payment_marked_paid": false,
   "portal_password_stored": false,
@@ -202,8 +248,12 @@
     "final_send_approval_availability_state": "unavailable_missing_coupa_invoice_proof",
     "no_submit_no_browser_no_email_no_spreadsheet_no_secret_storage": true,
     "paid_status": false,
+    "partial_proof_intake_supported": true,
+    "pending_proof_count": 3,
     "raw_sensitive_artifact_stored_in_read_model": false,
-    "real_proof_recorded": false
+    "real_proof_recorded": false,
+    "recorded_real_proof_count": 0,
+    "supplied_proof_count": 0
   },
   "supported_metadata_fields": [
     "artifact_identity_or_hash",
