@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T13:31:57+00:00",
+  "generated_at": "2026-05-17T13:34:00+00:00",
   "generated_by": "codex",
   "guard_removed": false,
   "identity_resolution": {
@@ -39,13 +39,35 @@
         "telegram_delivery_blocked": true,
         "voice_delivery_blocked": true
       },
-      "generated_at": "2026-05-17T13:31:57+00:00",
+      "generated_at": "2026-05-17T13:34:00+00:00",
       "mode": "status_dry_run",
       "outbound_delivery_blocked": false,
       "real_briefing_delivery_triggered": false,
       "real_telegram_send_triggered": false,
       "real_voice_delivery_triggered": false,
-      "service": "cassandra-briefing-scheduler.service"
+      "service": "cassandra-briefing-scheduler.service",
+      "would_have_fired": {
+        "briefing_generation": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "due_slots=none",
+          "would_run_if_real_mode": false
+        },
+        "pending_briefing_delivery": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "pending_briefings=0",
+          "would_run_if_real_mode": false
+        },
+        "telegram_briefing_delivery": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "telegram_delivery=blocked",
+          "would_run_if_real_mode": false
+        },
+        "voice_briefing_delivery": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "voice_delivery=blocked",
+          "would_run_if_real_mode": false
+        }
+      }
     },
     "watcher": {
       "advanced_beyond_startup_guard": true,
@@ -81,7 +103,7 @@
           "invalid_chat": 12
         }
       },
-      "generated_at": "2026-05-17T13:31:57+00:00",
+      "generated_at": "2026-05-17T13:34:00+00:00",
       "mode": "status_dry_run",
       "outbound_delivery_blocked": false,
       "pending_followups": {
@@ -99,7 +121,29 @@
       "real_gmail_or_email_send_triggered": false,
       "real_telegram_send_triggered": false,
       "real_voice_delivery_triggered": false,
-      "service": "cassandra-watcher.service"
+      "service": "cassandra-watcher.service",
+      "would_have_fired": {
+        "ambient_chirp_delivery": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "ambient_delivery=blocked",
+          "would_run_if_real_mode": false
+        },
+        "email_gmail_polling": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "email_polling=blocked",
+          "would_run_if_real_mode": true
+        },
+        "future_action_dispatch": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "future_actions_due=0",
+          "would_run_if_real_mode": false
+        },
+        "pending_followup_processing": {
+          "blocked_in_dry_run": true,
+          "proof_marker": "pending_followups=0",
+          "would_run_if_real_mode": false
+        }
+      }
     }
   }
 }

@@ -107,3 +107,13 @@ def test_status_read_model_shape_blocks_all_delivery(monkeypatch):
     assert payload["niles_used_for_cassandra_path"] is False
     assert payload["services"]["watcher"]["advanced_beyond_startup_guard"] is True
     assert payload["services"]["briefing_scheduler"]["advanced_beyond_startup_guard"] is True
+
+    watcher_fired = payload["services"]["watcher"]["would_have_fired"]
+    assert watcher_fired["pending_followup_processing"]["would_run_if_real_mode"] is True
+    assert watcher_fired["future_action_dispatch"]["would_run_if_real_mode"] is True
+    assert watcher_fired["email_gmail_polling"]["blocked_in_dry_run"] is True
+
+    scheduler_fired = payload["services"]["briefing_scheduler"]["would_have_fired"]
+    assert scheduler_fired["briefing_generation"]["would_run_if_real_mode"] is True
+    assert scheduler_fired["telegram_briefing_delivery"]["blocked_in_dry_run"] is True
+    assert scheduler_fired["voice_briefing_delivery"]["blocked_in_dry_run"] is True

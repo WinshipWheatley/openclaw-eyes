@@ -191,14 +191,16 @@ def build_watcher_status(
     future_action_db_path: str | Path = FUTURE_ACTION_DB_PATH,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
+    pending_followups = inspect_pending_followups(followup_path)
+    future_actions = inspect_future_actions(future_action_db_path)
     return {
         "service": "cassandra-watcher.service",
         "generated_at": generated_at or utc_now(),
         "mode": STATUS_DRY_RUN_MODE,
         "advanced_beyond_startup_guard": True,
         "outbound_delivery_blocked": outbound_delivery_blocked(),
-        "pending_followups": inspect_pending_followups(followup_path),
-        "future_actions": inspect_future_actions(future_action_db_path),
+        "pending_followups": pending_followups,
+        "future_actions": future_actions,
         "email_gmail_polling": {
             "posture": "blocked_dry_run_only",
             "polled": False,
@@ -218,6 +220,28 @@ def build_watcher_status(
             "ambient_telegram_chirp",
             "ambient_voice_delivery",
         ],
+        "would_have_fired": {
+            "pending_followup_processing": {
+                "would_run_if_real_mode": pending_followups.get("pending_count", 0) > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": f"pending_followups={pending_followups.get('pending_count', 0)}",
+            },
+            "future_action_dispatch": {
+                "would_run_if_real_mode": future_actions.get("due_count", 0) > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": f"future_actions_due={future_actions.get('due_count', 0)}",
+            },
+            "email_gmail_polling": {
+                "would_run_if_real_mode": True,
+                "blocked_in_dry_run": True,
+                "proof_marker": "email_polling=blocked",
+            },
+            "ambient_chirp_delivery": {
+                "would_run_if_real_mode": False,
+                "blocked_in_dry_run": True,
+                "proof_marker": "ambient_delivery=blocked",
+            },
+        },
         "real_telegram_send_triggered": False,
         "real_gmail_or_email_send_triggered": False,
         "real_voice_delivery_triggered": False,
@@ -226,6 +250,8 @@ def build_watcher_status(
 
 def build_briefing_scheduler_status(*, generated_at: str | None = None) -> dict[str, Any]:
     briefing = inspect_briefing_scheduler()
+    due_count = int(briefing.get("due_count") or 0)
+    pending_count = int(briefing.get("pending_count") or 0)
     return {
         "service": "cassandra-briefing-scheduler.service",
         "generated_at": generated_at or utc_now(),
@@ -239,6 +265,28 @@ def build_briefing_scheduler_status(*, generated_at: str | None = None) -> dict[
             "telegram_briefing_delivery",
             "voice_briefing_delivery",
         ],
+        "would_have_fired": {
+            "briefing_generation": {
+                "would_run_if_real_mode": due_count > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": f"due_slots={','.join(briefing.get('due_slots') or []) or 'none'}",
+            },
+            "pending_briefing_delivery": {
+                "would_run_if_real_mode": pending_count > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": f"pending_briefings={pending_count}",
+            },
+            "telegram_briefing_delivery": {
+                "would_run_if_real_mode": due_count > 0 or pending_count > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": "telegram_delivery=blocked",
+            },
+            "voice_briefing_delivery": {
+                "would_run_if_real_mode": due_count > 0 or pending_count > 0,
+                "blocked_in_dry_run": True,
+                "proof_marker": "voice_delivery=blocked",
+            },
+        },
         "real_telegram_send_triggered": False,
         "real_briefing_delivery_triggered": False,
         "real_voice_delivery_triggered": False,
@@ -321,12 +369,14 @@ def render_operator_markdown(payload: dict[str, Any]) -> str:
         f"- Future actions: {future.get('pending_count', 0)} pending, {future.get('due_count', 0)} due now",
         "- Email/Gmail polling: blocked in dry-run",
         "- Ambient Telegram/voice chirps: blocked in dry-run",
+        "- Would-fire proof: pending followups, due future actions, email polling, and ambient delivery are classified in the JSON read-model before any delivery path runs.",
         "",
         "## Briefing Scheduler",
         f"- Due briefing slots: {', '.join(briefing.get('due_slots') or []) or 'none'}",
         f"- Pending briefings: {briefing.get('pending_count', 0)}",
         "- Telegram briefing delivery: blocked",
         "- Voice briefing delivery: blocked",
+        "- Would-fire proof: due slots and pending briefing delivery are classified in the JSON read-model before any delivery path runs.",
         "",
         "## Next Safe Move",
         payload.get("next_safe_move", "Review dry-run receipts before any send-capable resume."),
