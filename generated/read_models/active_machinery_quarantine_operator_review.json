@@ -1,0 +1,1498 @@
+{
+  "counts": {
+    "block_later": 5,
+    "keep_for_now_current_dependency": 0,
+    "needs_operator_decision": 9,
+    "replace_with_governed_path": 4,
+    "retire_later": 2,
+    "test_only_items_excluded": 3,
+    "total_high_risk_live_script_items": 14,
+    "wrap_with_guardian": 3
+  },
+  "destructive_action_allowed": false,
+  "files_moved_or_deleted": false,
+  "generated_at": "2026-05-17T03:21:07+00:00",
+  "generated_by": "codex",
+  "mode": "operator_review_read_model_only",
+  "next_safe_move": "Active Machinery Quarantine Decision Packet v0",
+  "operator_decisions_needed": [
+    "Approve which block_later surfaces should become denylisted, replaced, or left as warning-only.",
+    "Approve replacement lanes for Cassandra/Chief/Guardian listener surfaces before caller or service changes.",
+    "Approve Guardian-wrapped send-path design before any send-capable surface is allowed to run.",
+    "Approve retirement only after static dependencies and rollback are proven."
+  ],
+  "operator_review_only": true,
+  "repo_b_executed": false,
+  "review_groups": {
+    "block_later": {
+      "count": 5,
+      "display_name": "Block later",
+      "group_id": "block_later",
+      "items": [
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": true,
+            "send_paths": false
+          },
+          "current_disposition": "block_no_go",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "remote builder"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "no external send capability proven from safe static signals"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint"
+            ]
+          },
+          "current_static_references": [
+            "loop_supervisor.sh restarts builder_watcher.sh"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": false,
+          "recommended_future_action": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+          "relative_path": "builder_watcher.sh",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "builder_watcher.sh",
+          "what_it_is": "Shell launcher or watcher surface",
+          "what_must_be_proven_before_acting": "Replace with Work Board / Operator Action handoff and prove bounded receipts; do not run as a watcher.",
+          "why_it_matters": "Verified watcher/daemon signals on a builder surface; legacy watchdog-style build loops should not run outside a governed Operator Action packet."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": false
+          },
+          "current_disposition": "block_no_go",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "no external send capability proven from safe static signals"
+              ],
+              "writes": [
+                "safe static signals indicate local state or generated artifact mutation",
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "shell_or_process",
+              "state_mutator"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/chief-watcher-brain.service.in references chief_watcher_brain.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": false,
+          "recommended_future_action": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+          "relative_path": "chief_watcher_brain.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_watcher_brain.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Replace with bounded Work Board / Operator Action workflow; do not run watcher/process behavior directly.",
+          "why_it_matters": "Verified watcher plus shell/process signals; this is too risky to run as active machinery without a replacement contract."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "block_no_go",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "no read capability proven from safe static signals"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "no write capability proven from safe static signals"
+              ]
+            },
+            "signal_groups": [
+              "path_send_api_hint"
+            ]
+          },
+          "current_static_references": [
+            "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": false,
+          "recommended_future_action": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+          "relative_path": "retry_send_demo_dashboard.sh",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "retry_send_demo_dashboard.sh",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Keep as blocked unless replaced by a no-send proof fixture or explicitly approved bounded demo.",
+          "why_it_matters": "Verified send-path signal on a shell demo/retry surface; demos must not become live send machinery."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": false
+          },
+          "current_disposition": "block_no_go",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Producer/Niles"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "no read capability proven from safe static signals"
+              ],
+              "sends": [
+                "no external send capability proven from safe static signals"
+              ],
+              "writes": [
+                "no write capability proven from safe static signals"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "path_daemon_listener_hint"
+            ]
+          },
+          "current_static_references": [
+            "scripts/run_producer_listener.sh starts producer_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": false,
+          "recommended_future_action": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+          "relative_path": "scripts/run_producer_listener.sh",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "scripts__run_producer_listener.sh",
+          "what_it_is": "Shell launcher or watcher surface",
+          "what_must_be_proven_before_acting": "Do not run until Producer listener has a governed contract and operator-approved activation lane.",
+          "why_it_matters": "Verified launcher for listener machinery; shell launchers should not activate daemons outside governed runtime approval."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "block_no_go",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "importer_exporter",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [
+            "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": false,
+          "recommended_future_action": "Keep warning-only now; later block activation or replace with governed path after operator approval.",
+          "relative_path": "send_demo_dashboard.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "send_demo_dashboard.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Replace with read-only dashboard proof or approved no-send review artifact.",
+          "why_it_matters": "Verified send/API signal on a demo dashboard sender; demo send paths should remain blocked."
+        }
+      ]
+    },
+    "keep_for_now_current_dependency": {
+      "count": 0,
+      "display_name": "Keep for now / current dependency",
+      "group_id": "keep_for_now_current_dependency",
+      "items": []
+    },
+    "needs_operator_decision": {
+      "count": 9,
+      "display_name": "Needs operator decision",
+      "group_id": "needs_operator_decision",
+      "items": [
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Cassandra",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+            "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "cassandra_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "cassandra_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Route through governed intake, Operator Action, and Guardian/HITL receipts before any live listener use.",
+          "why_it_matters": "Verified listener signals on Cassandra intake; current direction is governed intake plus Work Board projection, not an ungated listener."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "retire_later",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Cassandra",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate tool/plugin metadata references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "mcp_tool_plugin_surface",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "shell_or_process"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/cassandra-watcher.service.in references cassandra_watcher.py",
+            "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Prove no active dependency or governed equivalent before retirement.",
+          "relative_path": "cassandra_watcher.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "cassandra_watcher.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Prove it is still needed; otherwise retire after equivalent governed path is confirmed.",
+          "why_it_matters": "Verified watcher/listener signals on a Cassandra surface; likely superseded by governed intake and read-model flows."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": false
+          },
+          "current_disposition": "retire_later",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "no external send capability proven from safe static signals"
+              ],
+              "writes": [
+                "safe static signals indicate local state or generated artifact mutation",
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "state_mutator"
+            ]
+          },
+          "current_static_references": [],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Prove no active dependency or governed equivalent before retirement.",
+          "relative_path": "chief_brainstorm_watcher.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_brainstorm_watcher.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Keep disabled until an operator-approved use case proves it should become a governed Work Board source.",
+          "why_it_matters": "Verified watcher/state-mutator signals on a Chief brainstorming surface; not on the current canonical authority path."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "importer_exporter",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_email_brain.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_email_brain.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Require immutable approved packet, no-send default, and Guardian receipt before any external send behavior.",
+          "why_it_matters": "Verified send/API signals on an email capability; external communication must remain draft/review-only until explicitly approved."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_approval_hitl_hint",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/chief-guardian-listener.service.in references chief_guardian_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "chief_guardian_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_guardian_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Use SQLite-backed Operator Action/HITL surfaces; keep legacy listener compatibility-only until replacement proof exists.",
+          "why_it_matters": "Verified listener plus approval/HITL signals on legacy Guardian machinery; canonical direction is SQLite Operator Action / Guardian contract."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "importer_exporter",
+              "path_approval_hitl_hint",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [
+            "Guardian/HITL surfaces reference chief_guardian_sender.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_guardian_sender.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_guardian_sender.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Allow only approved notification packets and receipts; no raw or freeform send authority.",
+          "why_it_matters": "Verified send/API plus Guardian signals; any notification/sender path needs explicit approval boundaries."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "scheduler_watchdog",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/chief-listener.service.in references chief_listener.py",
+            "start_chief_logged.sh starts chief_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "chief_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Prove caller scope, HITL boundary, and receipt path before live listener activation.",
+          "why_it_matters": "Verified central listener signals; current Chief direction is deterministic control-plane over governed intake, not autonomous listener authority."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "importer_exporter",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [
+            "Chief brain files reference chief_sender.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_sender.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_sender.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Require approved immutable packet, recipient binding, no raw command text, and receipt proof.",
+          "why_it_matters": "Verified send/API signals on a sender surface; external sends require Guardian/operator approval."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Producer/Niles",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "scheduler_watchdog",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "scripts/run_producer_listener.sh starts producer_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "producer_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "producer_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Define Producer/Niles module boundary and route actions through Guardian/HITL before activation.",
+          "why_it_matters": "Verified listener/scheduler/send signals on Producer/Niles-adjacent machinery; not ready as autonomous runtime."
+        }
+      ]
+    },
+    "replace_with_governed_path": {
+      "count": 4,
+      "display_name": "Replace with governed path",
+      "group_id": "replace_with_governed_path",
+      "items": [
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Cassandra",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+            "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "cassandra_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "cassandra_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Route through governed intake, Operator Action, and Guardian/HITL receipts before any live listener use.",
+          "why_it_matters": "Verified listener signals on Cassandra intake; current direction is governed intake plus Work Board projection, not an ungated listener."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_approval_hitl_hint",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/chief-guardian-listener.service.in references chief_guardian_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "chief_guardian_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_guardian_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Use SQLite-backed Operator Action/HITL surfaces; keep legacy listener compatibility-only until replacement proof exists.",
+          "why_it_matters": "Verified listener plus approval/HITL signals on legacy Guardian machinery; canonical direction is SQLite Operator Action / Guardian contract."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "scheduler_watchdog",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/chief-listener.service.in references chief_listener.py",
+            "start_chief_logged.sh starts chief_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "chief_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Prove caller scope, HITL boundary, and receipt path before live listener activation.",
+          "why_it_matters": "Verified central listener signals; current Chief direction is deterministic control-plane over governed intake, not autonomous listener authority."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": false,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "replace_with_governed_path",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Producer/Niles",
+              "send paths",
+              "sync"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "scheduler_watchdog",
+              "send_external_api",
+              "shell_or_process",
+              "sync_bridge"
+            ]
+          },
+          "current_static_references": [
+            "scripts/run_producer_listener.sh starts producer_listener.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Design a governed replacement before any caller switch or service change.",
+          "relative_path": "producer_listener.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "producer_listener.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Define Producer/Niles module boundary and route actions through Guardian/HITL before activation.",
+          "why_it_matters": "Verified listener/scheduler/send signals on Producer/Niles-adjacent machinery; not ready as autonomous runtime."
+        }
+      ]
+    },
+    "retire_later": {
+      "count": 2,
+      "display_name": "Retire later",
+      "group_id": "retire_later",
+      "items": [
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "retire_later",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Cassandra",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior",
+                "safe static signals indicate shell/process execution risk"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate tool/plugin metadata references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "mcp_tool_plugin_surface",
+              "path_daemon_listener_hint",
+              "send_external_api",
+              "shell_or_process"
+            ]
+          },
+          "current_static_references": [
+            "systemd/user/cassandra-watcher.service.in references cassandra_watcher.py",
+            "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Prove no active dependency or governed equivalent before retirement.",
+          "relative_path": "cassandra_watcher.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "cassandra_watcher.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Prove it is still needed; otherwise retire after equivalent governed path is confirmed.",
+          "why_it_matters": "Verified watcher/listener signals on a Cassandra surface; likely superseded by governed intake and read-model flows."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": false
+          },
+          "current_disposition": "retire_later",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief"
+            ],
+            "capabilities": {
+              "executes": [
+                "safe static signals indicate listener/watcher/scheduler runtime behavior"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "no external send capability proven from safe static signals"
+              ],
+              "writes": [
+                "safe static signals indicate local state or generated artifact mutation",
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "daemon_listener",
+              "importer_exporter",
+              "path_daemon_listener_hint",
+              "state_mutator"
+            ]
+          },
+          "current_static_references": [],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Prove no active dependency or governed equivalent before retirement.",
+          "relative_path": "chief_brainstorm_watcher.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_brainstorm_watcher.py",
+          "what_it_is": "Listener, watcher, or daemon-style surface",
+          "what_must_be_proven_before_acting": "Keep disabled until an operator-approved use case proves it should become a governed Work Board source.",
+          "why_it_matters": "Verified watcher/state-mutator signals on a Chief brainstorming surface; not on the current canonical authority path."
+        }
+      ]
+    },
+    "wrap_with_guardian": {
+      "count": 3,
+      "display_name": "Wrap with Guardian",
+      "group_id": "wrap_with_guardian",
+      "items": [
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "importer_exporter",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_email_brain.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_email_brain.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Require immutable approved packet, no-send default, and Guardian receipt before any external send behavior.",
+          "why_it_matters": "Verified send/API signals on an email capability; external communication must remain draft/review-only until explicitly approved."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "Guardian/HITL",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access",
+                "safe static signals indicate approval/HITL state references"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "approval_hitl",
+              "importer_exporter",
+              "path_approval_hitl_hint",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [
+            "Guardian/HITL surfaces reference chief_guardian_sender.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_guardian_sender.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_guardian_sender.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Allow only approved notification packets and receipts; no raw or freeform send authority.",
+          "why_it_matters": "Verified send/API plus Guardian signals; any notification/sender path needs explicit approval boundaries."
+        },
+        {
+          "blocks": {
+            "cassandra_chief_utility": true,
+            "module_cleanup": true,
+            "remote_builder": false,
+            "send_paths": true
+          },
+          "current_disposition": "wrap_with_guardian",
+          "current_risk": "high",
+          "current_static_dependencies": {
+            "affected_domains": [
+              "Chief",
+              "send paths"
+            ],
+            "capabilities": {
+              "executes": [
+                "no execution capability proven from safe static signals"
+              ],
+              "reads": [
+                "safe static signals indicate local file/generated read-model metadata access"
+              ],
+              "sends": [
+                "safe static signals indicate external send/API posture"
+              ],
+              "writes": [
+                "safe static signals indicate importer/exporter or sync output behavior"
+              ]
+            },
+            "signal_groups": [
+              "importer_exporter",
+              "path_send_api_hint",
+              "send_external_api"
+            ]
+          },
+          "current_static_references": [
+            "Chief brain files reference chief_sender.py"
+          ],
+          "files_moved_or_deleted": false,
+          "operator_decision_required": true,
+          "recommended_future_action": "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use.",
+          "relative_path": "chief_sender.py",
+          "runtime_action_allowed_now": false,
+          "services_disabled": false,
+          "surface_id": "chief_sender.py",
+          "what_it_is": "Send/API-capable surface",
+          "what_must_be_proven_before_acting": "Require approved immutable packet, recipient binding, no raw command text, and receipt proof.",
+          "why_it_matters": "Verified send/API signals on a sender surface; external sends require Guardian/operator approval."
+        }
+      ]
+    }
+  },
+  "runtime_changed": false,
+  "schema_version": "active_machinery_quarantine_operator_review_v0",
+  "services_disabled": false,
+  "source_disposition_counts": {
+    "block_no_go": 5,
+    "keep_test_only": 3,
+    "replace_with_governed_path": 4,
+    "retire_later": 2,
+    "wrap_with_guardian": 3
+  },
+  "source_files": {
+    "high_risk_quarantine_read_model": "generated/read_models/active_machinery_high_risk_quarantine.json",
+    "operator_disposition_read_model": "generated/read_models/active_machinery_operator_disposition.json"
+  },
+  "static_reference_findings": [
+    "systemd/user/chief-listener.service.in references chief_listener.py",
+    "systemd/user/chief-watcher-brain.service.in references chief_watcher_brain.py",
+    "systemd/user/cassandra-listener.service.in references cassandra_listener.py",
+    "systemd/user/cassandra-watcher.service.in references cassandra_watcher.py",
+    "systemd/user/chief-guardian-listener.service.in references chief_guardian_listener.py",
+    "start_cassandra_core.sh starts cassandra_listener.py and cassandra_watcher.py",
+    "start_chief_logged.sh starts chief_listener.py",
+    "loop_supervisor.sh restarts builder_watcher.sh",
+    "scripts/run_producer_listener.sh starts producer_listener.py",
+    "retry_send_demo_dashboard.sh invokes send_demo_dashboard.py",
+    "Chief brain files reference chief_sender.py",
+    "Guardian/HITL surfaces reference chief_guardian_sender.py"
+  ],
+  "test_only_items_not_runtime_targets": [
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Cassandra",
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_cassandra_email_thread_analysis.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_cassandra_email_thread_analysis.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "Chief",
+        "send paths",
+        "sync"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "daemon_listener",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_chief_listener_lifecycle.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "daemon_listener",
+        "importer_exporter",
+        "path_daemon_listener_hint",
+        "send_external_api",
+        "state_mutator",
+        "sync_bridge"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "safe static signals indicate listener/watcher/scheduler runtime behavior"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate local state or generated artifact mutation",
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_chief_listener_lifecycle.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    },
+    {
+      "activation_allowed": false,
+      "affected_domains": [
+        "send paths"
+      ],
+      "caller_switch_allowed": false,
+      "chmod_change_allowed": false,
+      "current_authority_risk": "high",
+      "destructive_quarantine_allowed": false,
+      "disposition": "keep_test_only",
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "file_rename_allowed": false,
+      "files_moved_or_deleted": false,
+      "first_safe_action": "generated_read_model_warning",
+      "is_test_only": true,
+      "launcher_edit_allowed": false,
+      "live_runtime_machinery": false,
+      "machinery_type": "send_external_api",
+      "next_safe_move": "keep test-only unless a later audit proves live runtime exposure",
+      "not_ready_for": [
+        "service_disable",
+        "file_rename",
+        "file_delete",
+        "file_move",
+        "chmod_change",
+        "launcher_edit",
+        "caller_switch",
+        "send_wrapper_change",
+        "runtime_activation"
+      ],
+      "operator_approval_required_for_runtime_change": false,
+      "operator_decision_required": false,
+      "quarantine_status": "test_only_warning",
+      "relative_path": "tests/test_send_truth.py",
+      "repo_role": "canonical_repo_a",
+      "repo_root": "/home/openclaw",
+      "runtime_activation_allowed": false,
+      "runtime_changed": false,
+      "send_wrapper_change_allowed": false,
+      "service_disable_allowed": false,
+      "services_disabled": false,
+      "signal_groups": [
+        "importer_exporter",
+        "path_send_api_hint",
+        "send_external_api"
+      ],
+      "static_capabilities": {
+        "executes": [
+          "no execution capability proven from safe static signals"
+        ],
+        "reads": [
+          "safe static signals indicate local file/generated read-model metadata access"
+        ],
+        "sends": [
+          "safe static signals indicate external send/API posture"
+        ],
+        "static_evidence_basis": "active_machinery_gemini_verification signal groups from safe shard headers",
+        "writes": [
+          "safe static signals indicate importer/exporter or sync output behavior"
+        ]
+      },
+      "static_references": [],
+      "surface_id": "tests__test_send_truth.py",
+      "verification_status": "deterministically_verified_from_safe_header",
+      "what_must_happen_before_it_can_run": "Run only as a focused test under normal test validation; never treat it as runtime machinery.",
+      "why_it_matters": "The file is under tests/; treat it as test-only unless a later audit proves it exposes a live unsafe path."
+    }
+  ],
+  "warning_only": true
+}

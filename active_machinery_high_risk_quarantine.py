@@ -18,10 +18,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 
 SCHEMA_VERSION = "active_machinery_high_risk_quarantine_v0"
+REVIEW_SCHEMA_VERSION = "active_machinery_quarantine_operator_review_v0"
 DEFAULT_DISPOSITION_PATH = Path("generated/read_models/active_machinery_operator_disposition.json")
 DEFAULT_READY_PACKET_PATH = Path("docs/operations/ACTIVE_MACHINERY_HIGH_RISK_QUARANTINE_READY_PACKET.json")
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 OPERATOR_EXPORT_NAME = "active_machinery_high_risk_quarantine_OPERATOR.md"
+REVIEW_OPERATOR_EXPORT_NAME = "active_machinery_quarantine_operator_review_OPERATOR.md"
 
 WARNING_DISPOSITIONS = {
     "block_no_go",
@@ -29,6 +31,22 @@ WARNING_DISPOSITIONS = {
     "wrap_with_guardian",
     "retire_later",
     "keep_test_only",
+}
+
+REVIEW_GROUPS = [
+    ("block_later", "Block later"),
+    ("replace_with_governed_path", "Replace with governed path"),
+    ("wrap_with_guardian", "Wrap with Guardian"),
+    ("retire_later", "Retire later"),
+    ("keep_for_now_current_dependency", "Keep for now / current dependency"),
+    ("needs_operator_decision", "Needs operator decision"),
+]
+
+DISPOSITION_TO_PRIMARY_REVIEW_GROUP = {
+    "block_no_go": "block_later",
+    "replace_with_governed_path": "replace_with_governed_path",
+    "wrap_with_guardian": "wrap_with_guardian",
+    "retire_later": "retire_later",
 }
 
 
@@ -252,6 +270,141 @@ def build_quarantine_payload(
     }
 
 
+def _capability_summary(item: dict[str, Any]) -> dict[str, list[str]]:
+    capabilities = item.get("static_capabilities") or {}
+    return {
+        key: [str(value) for value in capabilities.get(key, [])]
+        for key in ("reads", "writes", "executes", "sends")
+    }
+
+
+def _what_it_is(item: dict[str, Any]) -> str:
+    machinery_type = str(item.get("machinery_type") or "active_machinery")
+    if machinery_type == "send_external_api":
+        return "Send/API-capable surface"
+    if machinery_type == "daemon_listener":
+        if str(item.get("relative_path", "")).endswith(".sh"):
+            return "Shell launcher or watcher surface"
+        return "Listener, watcher, or daemon-style surface"
+    return machinery_type.replace("_", " ").title()
+
+
+def _blocks_for_item(item: dict[str, Any]) -> dict[str, bool]:
+    domains = set(item.get("affected_domains") or [])
+    signals = set(item.get("signal_groups") or [])
+    return {
+        "cassandra_chief_utility": bool(domains & {"Cassandra", "Chief", "Guardian/HITL"}),
+        "remote_builder": "remote builder" in domains,
+        "send_paths": "send paths" in domains or bool(signals & {"send_external_api", "path_send_api_hint"}),
+        "module_cleanup": True,
+    }
+
+
+def _recommended_future_action(item: dict[str, Any]) -> str:
+    disposition = item["disposition"]
+    if disposition == "block_no_go":
+        return "Keep warning-only now; later block activation or replace with governed path after operator approval."
+    if disposition == "replace_with_governed_path":
+        return "Design a governed replacement before any caller switch or service change."
+    if disposition == "wrap_with_guardian":
+        return "Keep no-send now; require immutable Guardian/Operator Action packet and receipt proof before runtime use."
+    if disposition == "retire_later":
+        return "Prove no active dependency or governed equivalent before retirement."
+    return "Keep untouched until operator decides a bounded lane."
+
+
+def _review_item_from_warning(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_id": item["surface_id"],
+        "relative_path": item["relative_path"],
+        "what_it_is": _what_it_is(item),
+        "why_it_matters": item.get("why_it_matters"),
+        "current_risk": item.get("current_authority_risk"),
+        "current_disposition": item.get("disposition"),
+        "current_static_references": item.get("static_references") or [],
+        "current_static_dependencies": {
+            "affected_domains": item.get("affected_domains") or [],
+            "signal_groups": item.get("signal_groups") or [],
+            "capabilities": _capability_summary(item),
+        },
+        "recommended_future_action": _recommended_future_action(item),
+        "what_must_be_proven_before_acting": item.get("what_must_happen_before_it_can_run"),
+        "blocks": _blocks_for_item(item),
+        "runtime_action_allowed_now": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "operator_decision_required": bool(item.get("operator_decision_required")),
+    }
+
+
+def _empty_review_groups() -> dict[str, dict[str, Any]]:
+    return {
+        group_id: {"group_id": group_id, "display_name": display_name, "count": 0, "items": []}
+        for group_id, display_name in REVIEW_GROUPS
+    }
+
+
+def build_operator_review_payload(
+    *,
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    disposition_path: str | Path = DEFAULT_DISPOSITION_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    quarantine = load_json(quarantine_path)
+    disposition = load_json(disposition_path)
+    if quarantine.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("expected active machinery high-risk quarantine read-model")
+    if quarantine.get("warning_only") is not True:
+        raise ValueError("quarantine read-model is not warning-only")
+
+    groups = _empty_review_groups()
+    review_items = [_review_item_from_warning(item) for item in quarantine.get("high_risk_warnings", [])]
+    for item in review_items:
+        primary_group = DISPOSITION_TO_PRIMARY_REVIEW_GROUP.get(
+            str(item["current_disposition"]), "needs_operator_decision"
+        )
+        groups[primary_group]["items"].append(item)
+        if item["operator_decision_required"]:
+            groups["needs_operator_decision"]["items"].append(item)
+
+    for group in groups.values():
+        group["count"] = len(group["items"])
+
+    counts = {group_id: groups[group_id]["count"] for group_id, _ in REVIEW_GROUPS}
+    counts["total_high_risk_live_script_items"] = len(review_items)
+    counts["test_only_items_excluded"] = int(quarantine.get("counts", {}).get("test_only_warning_count", 0))
+
+    return {
+        "schema_version": REVIEW_SCHEMA_VERSION,
+        "generated_by": "codex",
+        "generated_at": generated_at or utc_now(),
+        "mode": "operator_review_read_model_only",
+        "source_files": {
+            "high_risk_quarantine_read_model": display_path(rooted(quarantine_path)),
+            "operator_disposition_read_model": display_path(rooted(disposition_path)),
+        },
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "repo_b_executed": False,
+        "warning_only": True,
+        "operator_review_only": True,
+        "destructive_action_allowed": False,
+        "counts": counts,
+        "review_groups": groups,
+        "test_only_items_not_runtime_targets": quarantine.get("test_only_items", []),
+        "static_reference_findings": quarantine.get("static_reference_findings", []),
+        "operator_decisions_needed": [
+            "Approve which block_later surfaces should become denylisted, replaced, or left as warning-only.",
+            "Approve replacement lanes for Cassandra/Chief/Guardian listener surfaces before caller or service changes.",
+            "Approve Guardian-wrapped send-path design before any send-capable surface is allowed to run.",
+            "Approve retirement only after static dependencies and rollback are proven.",
+        ],
+        "next_safe_move": "Active Machinery Quarantine Decision Packet v0",
+        "source_disposition_counts": disposition.get("counts", {}).get("by_high_risk_disposition", {}),
+    }
+
+
 def format_operator_packet(payload: dict[str, Any]) -> str:
     lines = [
         "# Active Machinery High-Risk Quarantine Warnings v0",
@@ -317,6 +470,74 @@ def format_operator_packet(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_operator_review_packet(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Active Machinery Quarantine Operator Review v0",
+        "",
+        "Status:",
+        "- Review/read-model only: `true`.",
+        "- Runtime changed: `false`.",
+        "- Files moved or deleted: `false`.",
+        "- Services disabled: `false`.",
+        "- No blocking, wrapping, replacement, retirement, or caller switch happened.",
+        "",
+        "## Summary",
+        f"- High-risk live/script items: `{payload['counts']['total_high_risk_live_script_items']}`.",
+        f"- Block later: `{payload['counts']['block_later']}`.",
+        f"- Replace with governed path: `{payload['counts']['replace_with_governed_path']}`.",
+        f"- Wrap with Guardian: `{payload['counts']['wrap_with_guardian']}`.",
+        f"- Retire later: `{payload['counts']['retire_later']}`.",
+        f"- Keep for now / current dependency: `{payload['counts']['keep_for_now_current_dependency']}`.",
+        f"- Needs operator decision: `{payload['counts']['needs_operator_decision']}`.",
+        "",
+    ]
+    for group_id, display_name in REVIEW_GROUPS:
+        group = payload["review_groups"][group_id]
+        lines.extend([f"## {display_name}", f"Count: `{group['count']}`.", ""])
+        if not group["items"]:
+            if group_id == "keep_for_now_current_dependency":
+                lines.append("No high-risk live/script item is recommended to stay as-is. Physically leave all files untouched until a separate approved lane acts.")
+            else:
+                lines.append("No items in this bucket.")
+            lines.append("")
+            continue
+        for item in group["items"]:
+            blocks = [name for name, blocked in item["blocks"].items() if blocked]
+            refs = item["current_static_references"] or ["no static reference captured in the warning packet"]
+            lines.extend(
+                [
+                    f"### `{item['relative_path']}`",
+                    f"- What it is: {item['what_it_is']}.",
+                    f"- Why it matters: {item['why_it_matters']}",
+                    f"- Current risk: `{item['current_risk']}`.",
+                    f"- Static references/dependencies: {'; '.join(refs)}.",
+                    f"- Recommended future action: {item['recommended_future_action']}",
+                    f"- Prove before acting: {item['what_must_be_proven_before_acting']}",
+                    f"- Blocks/affects: {', '.join(blocks) if blocks else 'none flagged'}.",
+                    "",
+                ]
+            )
+
+    lines.extend(
+        [
+            "## Operator Decisions Needed",
+            *[f"- {decision}" for decision in payload["operator_decisions_needed"]],
+            "",
+            "## What Did Not Happen",
+            "- No high-risk scripts were executed.",
+            "- Repo B was not run.",
+            "- Runtime behavior did not change.",
+            "- Services, files, launchers, and permissions were left untouched.",
+            "- Agents, sends, and daemons were not enabled.",
+            "",
+            "## Next Safe Move",
+            f"- {payload['next_safe_move']}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def export_quarantine_read_model(
     *,
     disposition_path: str | Path = DEFAULT_DISPOSITION_PATH,
@@ -349,17 +570,64 @@ def export_quarantine_read_model(
     }
 
 
+def export_operator_review(
+    *,
+    quarantine_path: str | Path = DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json",
+    disposition_path: str | Path = DEFAULT_DISPOSITION_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    payload = build_operator_review_payload(
+        quarantine_path=quarantine_path,
+        disposition_path=disposition_path,
+        generated_at=generated_at,
+    )
+    root = rooted(read_model_root)
+    json_path = root / "active_machinery_quarantine_operator_review.json"
+    operator_path = root / REVIEW_OPERATOR_EXPORT_NAME
+    written_json = write_json(json_path, payload)
+    written_operator = write_text(operator_path, format_operator_review_packet(payload))
+    return {
+        "schema_version": REVIEW_SCHEMA_VERSION,
+        "read_model_json_path": written_json,
+        "read_model_operator_path": written_operator,
+        "counts": payload["counts"],
+        "runtime_changed": False,
+        "files_moved_or_deleted": False,
+        "services_disabled": False,
+        "next_recommended_lane": payload["next_safe_move"],
+    }
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export high-risk active machinery quarantine warnings.")
     parser.add_argument("--disposition-path", default=DEFAULT_DISPOSITION_PATH.as_posix())
     parser.add_argument("--ready-packet-path", default=DEFAULT_READY_PACKET_PATH.as_posix())
+    parser.add_argument(
+        "--quarantine-path",
+        default=(DEFAULT_READ_MODEL_ROOT / "active_machinery_high_risk_quarantine.json").as_posix(),
+    )
     parser.add_argument("--read-model-root", default=DEFAULT_READ_MODEL_ROOT.as_posix())
+    parser.add_argument("--packet", choices=("quarantine", "operator-review"), default="quarantine")
     parser.add_argument("--format", choices=("json", "operator"), default="json")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.packet == "operator-review":
+        summary = export_operator_review(
+            quarantine_path=args.quarantine_path,
+            disposition_path=args.disposition_path,
+            read_model_root=args.read_model_root,
+        )
+        if args.format == "operator":
+            payload = load_json(Path(args.read_model_root) / "active_machinery_quarantine_operator_review.json")
+            print(format_operator_review_packet(payload), end="")
+        else:
+            print(stable_json(summary), end="")
+        return 0
+
     summary = export_quarantine_read_model(
         disposition_path=args.disposition_path,
         ready_packet_path=args.ready_packet_path,

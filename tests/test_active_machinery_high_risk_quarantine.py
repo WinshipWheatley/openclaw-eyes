@@ -34,7 +34,7 @@ def _disposition_item(path: str, disposition: str, *, test_only: bool = False) -
         "why_it_matters": f"{path} is high-risk active machinery.",
         "recommended_disposition": disposition,
         "what_must_happen_before_it_can_run": "Operator-approved governed replacement or wrapper proof.",
-        "operator_decision_required": not test_only,
+        "operator_decision_required": not test_only and disposition != "block_no_go",
         "affected_domains": ["send paths"] if "send" in path else ["Chief"],
     }
 
@@ -198,6 +198,74 @@ def test_exporter_writes_json_and_operator_outputs(tmp_path):
     assert "chief_sender.py" in operator
 
 
+def test_operator_review_groups_items_and_cross_cutting_decisions(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    payload = quarantine.build_operator_review_payload(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["runtime_changed"] is False
+    assert payload["files_moved_or_deleted"] is False
+    assert payload["services_disabled"] is False
+    assert payload["counts"]["block_later"] == 2
+    assert payload["counts"]["replace_with_governed_path"] == 1
+    assert payload["counts"]["wrap_with_guardian"] == 1
+    assert payload["counts"]["retire_later"] == 1
+    assert payload["counts"]["keep_for_now_current_dependency"] == 0
+    assert payload["counts"]["needs_operator_decision"] == 3
+
+    chief_sender = payload["review_groups"]["wrap_with_guardian"]["items"][0]
+    assert chief_sender["relative_path"] == "chief_sender.py"
+    assert chief_sender["blocks"]["send_paths"] is True
+    assert chief_sender["runtime_action_allowed_now"] is False
+    assert "Chief brain files reference chief_sender.py" in chief_sender["current_static_references"]
+
+
+def test_operator_review_export_writes_json_and_concise_markdown(tmp_path):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    summary = quarantine.export_operator_review(
+        quarantine_path=export_root / "active_machinery_high_risk_quarantine.json",
+        disposition_path=disposition_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    assert summary["runtime_changed"] is False
+    assert summary["services_disabled"] is False
+    assert (export_root / "active_machinery_quarantine_operator_review.json").is_file()
+    operator = (export_root / "active_machinery_quarantine_operator_review_OPERATOR.md").read_text(
+        encoding="utf-8"
+    )
+    for heading in [
+        "Block later",
+        "Replace with governed path",
+        "Wrap with Guardian",
+        "Retire later",
+        "Keep for now / current dependency",
+        "Needs operator decision",
+    ]:
+        assert heading in operator
+    assert "No high-risk scripts were executed" in operator
+
+
 def test_cli_outputs_json_summary(tmp_path, capsys):
     disposition_path, ready_path = _fixtures(tmp_path)
     code = cli_main(
@@ -218,6 +286,37 @@ def test_cli_outputs_json_summary(tmp_path, capsys):
     assert payload["high_risk_warning_count"] == 5
     assert payload["static_reference_count"] == 4
     assert payload["services_disabled"] is False
+
+
+def test_cli_outputs_operator_review_json_summary(tmp_path, capsys):
+    disposition_path, ready_path = _fixtures(tmp_path)
+    export_root = tmp_path / "generated" / "read_models"
+    quarantine.export_quarantine_read_model(
+        disposition_path=disposition_path,
+        ready_packet_path=ready_path,
+        read_model_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    code = cli_main(
+        [
+            "--packet",
+            "operator-review",
+            "--disposition-path",
+            disposition_path.as_posix(),
+            "--quarantine-path",
+            (export_root / "active_machinery_high_risk_quarantine.json").as_posix(),
+            "--read-model-root",
+            export_root.as_posix(),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["counts"]["block_later"] == 2
+    assert payload["counts"]["needs_operator_decision"] == 3
+    assert payload["files_moved_or_deleted"] is False
 
 
 def test_quarantine_source_does_not_import_or_call_subprocess_network_or_shell_tools():
