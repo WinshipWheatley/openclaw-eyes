@@ -1,0 +1,69 @@
+{
+  "schema_version": "telegram_agent_runtime_readiness_rollup_v0",
+  "generated_by": "codex",
+  "generated_at": "2026-05-17T00:00:00-04:00",
+  "mode": "diagnostic_handoff_not_ready",
+  "runtime_authority_changed": false,
+  "send_authority_added": false,
+  "reply_authority_added": false,
+  "tokens_exposed": false,
+  "raw_chat_ids_exposed": false,
+  "raw_message_bodies_exposed": false,
+  "private_logs_read": false,
+  "cassandra_service": {
+    "service_name": "cassandra-listener.service",
+    "active_state": "active",
+    "sub_state": "running",
+    "working_directory": "/home/openclaw",
+    "exec_path": "/home/openclaw/cassandra_listener.py"
+  },
+  "cassandra_live_receive": {
+    "proven": false,
+    "live_listener_records": 0,
+    "live_operator_records": 0,
+    "metadata_only_live_records": 0,
+    "synthetic_records": 5,
+    "raw_payload_stored_count": 0,
+    "message_text_stored_count": 0,
+    "send_allowed": false,
+    "reply_allowed": false,
+    "source_report": "scripts/query_telegram_agent_intake.py --report cassandra-live"
+  },
+  "runtime_wiring_audit": {
+    "governed_storage_proven": true,
+    "live_receive_proven": false,
+    "reply_ready": false,
+    "unsafe_surface_count": 7,
+    "gap_count": 4,
+    "source_report": "scripts/query_cassandra_runtime_wiring_audit.py --report roundtrip"
+  },
+  "telegram_identity_status": {
+    "cassandra_token_present": true,
+    "cassandra_token_bot_username": "NilesProducerBot",
+    "cassandra_token_bot_first_name": "Niles",
+    "producer_token_present": false,
+    "tokens_exposed": false,
+    "status": "cassandra_token_still_resolves_to_niles_bot_identity"
+  },
+  "niles_briefing_issue": {
+    "status": "not_fixed",
+    "finding": "CASSANDRA_BOT_TOKEN still resolves to the Niles producer bot identity, so Cassandra sender/briefing traffic can appear in the Niles Telegram bot/chat surface.",
+    "send_authority_changed": false
+  },
+  "root_cause": "Cassandra live receive remains unproven because the Cassandra runtime token mapping still points at the Niles producer bot identity; no governed live cassandra_listener rows have landed.",
+  "stop_reason": "cassandra_live_receive_not_proven",
+  "operator_decision_needed": [
+    "Approve correcting CASSANDRA_BOT_TOKEN to the actual Cassandra Telegram bot token.",
+    "Decide whether CASSANDRA_CHAT_ID should be set explicitly or continue falling back to TELEGRAM_AUTHORIZED_USER_ID.",
+    "After credential mapping is corrected, restart only cassandra-listener.service and cassandra-briefing-scheduler.service if they are intended to run."
+  ],
+  "next_live_test": {
+    "message": "Cassandra, receive-only governed intake test: You seeing this through Repo A?",
+    "verification_commands": [
+      "cd /home/openclaw",
+      "PYTHONDONTWRITEBYTECODE=1 python3 scripts/query_telegram_agent_intake.py --report cassandra-live --format operator",
+      "PYTHONDONTWRITEBYTECODE=1 python3 scripts/query_telegram_agent_intake.py --report cassandra-live --format json"
+    ]
+  },
+  "next_recommended_lane": "Telegram Token Mapping Correction v0"
+}
