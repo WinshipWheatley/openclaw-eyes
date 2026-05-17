@@ -1,0 +1,637 @@
+{
+  "actors_and_roles": [
+    {
+      "actor_id": "cassandra",
+      "can_send_now": false,
+      "executor": false,
+      "role": "telegram_intake_and_outward_comms_participant",
+      "summary": "Entry point for operator request and future email draft participant, not the portal/browser executor."
+    },
+    {
+      "actor_id": "guardian",
+      "can_send_now": false,
+      "executor": false,
+      "role": "approval_requester_and_safety_gatekeeper",
+      "summary": "Owns start and send approval requests without granting broad authority."
+    },
+    {
+      "actor_id": "workflow_router",
+      "can_send_now": false,
+      "executor": false,
+      "role": "selects_capital_hilton_workflow",
+      "summary": "Routes governed intent to the Hilton overlay only when evidence selects it."
+    },
+    {
+      "actor_id": "local_mac_execution_agent",
+      "can_send_now": false,
+      "executor": "future_blocked",
+      "role": "future_browser_and_spreadsheet_operator",
+      "summary": "Future local actor for Coupa and Excel steps after approvals; inactive in this lane."
+    },
+    {
+      "actor_id": "protected_secret_pii_broker",
+      "can_send_now": false,
+      "executor": "future_blocked",
+      "role": "future_sensitive_insertion_mechanism",
+      "summary": "Future local mechanism for scoped secret/PII insertion; no raw values stored in read-models."
+    },
+    {
+      "actor_id": "clara_cassandra",
+      "can_send_now": false,
+      "executor": "future_blocked",
+      "role": "future_email_draft_and_send_participant",
+      "summary": "May draft and later send only a specifically approved email with attachment."
+    },
+    {
+      "actor_id": "money_ledger",
+      "can_send_now": false,
+      "executor": false,
+      "role": "payment_verification_source",
+      "summary": "Paid status requires ledger verification, not invoice or email evidence alone."
+    },
+    {
+      "actor_id": "mission_control",
+      "can_send_now": false,
+      "executor": false,
+      "role": "operator_helm_read_model_surface",
+      "summary": "Displays posture and proof; does not execute backend commands."
+    }
+  ],
+  "approval_authority_added": false,
+  "base_invoice_workflow": {
+    "assumes_coupa": false,
+    "assumes_po_budget_tracking": false,
+    "assumes_portal_login": false,
+    "assumes_two_guardian_approvals": false,
+    "assumes_two_invoices": false,
+    "client_specific_complexity_policy": "Portal, PO, two-invoice, two-approval, browser, credential, or payment-rule complexity must be added as client-specific overlays/adapters, not as default invoice architecture.",
+    "payment_generating_artifact_default": "A normal client invoice may use a single operator invoice artifact as payment-generating unless a client-specific portal, PO, or payment rule requires an overlay.",
+    "runtime_authority_added": false,
+    "scope": "client_agnostic_default",
+    "send_or_submit_authority_added": false,
+    "simple_default_preserved": true,
+    "workflow_id": "base_invoice_workflow"
+  },
+  "boundaries": {
+    "approval_authority_added": false,
+    "coupa_browser_automation_enabled": false,
+    "coupa_submit_enabled": false,
+    "credential_broker_active": false,
+    "email_send_enabled": false,
+    "execution_ready_now": false,
+    "modeled_not_enabled": true,
+    "protected_secret_pii_broker_active": false,
+    "raw_secret_or_pii_stored": false,
+    "repo_b_executed": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "spreadsheet_write_enabled": false,
+    "telegram_command_execution_enabled": false
+  },
+  "client_specific_invoice_overlay": {
+    "applies_to_all_clients": false,
+    "browser_automation_enabled": false,
+    "companion_invoice": "excel_companion_invoice",
+    "credential_insertion_enabled": false,
+    "generalized_to_all_clients": false,
+    "overlay_id": "hilton_coupa_supplier_portal",
+    "overlay_reason": "Hilton requires supplier-portal invoice creation from a Hilton-created PO for payment.",
+    "overlay_scope": "Capital Hilton / Hilton only",
+    "payment_generating_invoice": "coupa_payment_invoice",
+    "portal_submit_enabled": false,
+    "two_guardian_approval_model": "hilton_only"
+  },
+  "contract_kind": "client_specific_execution_path_contract",
+  "coupa_browser_automation_enabled": false,
+  "coupa_submit_enabled": false,
+  "credential_broker_active": false,
+  "email_send_enabled": false,
+  "execution_phase_ids": [
+    "requested_from_operator_channel",
+    "governed_intent_routed",
+    "guardian_start_approval_required",
+    "start_approval_recorded",
+    "facts_verified",
+    "credential_access_required",
+    "local_browser_execution_required",
+    "coupa_invoice_creation_pending",
+    "coupa_invoice_proof_capture_pending",
+    "excel_companion_invoice_update_pending",
+    "invoice_match_verification_required",
+    "outward_email_draft_pending",
+    "guardian_send_approval_required",
+    "outward_email_send_blocked_until_gate",
+    "expected_payment_tracking_pending",
+    "money_ledger_payment_verification_pending"
+  ],
+  "execution_phases": [
+    {
+      "actor": "Cassandra",
+      "description": "Operator may request the workflow from Telegram/Cassandra in a future gated lane.",
+      "enabled_now": false,
+      "phase_id": "requested_from_operator_channel",
+      "phase_index": 1,
+      "proof_required": "governed intent intake receipt",
+      "status": "future_supported_intake_shape_modeled"
+    },
+    {
+      "actor": "workflow_router",
+      "description": "Route must select the Capital Hilton Hilton-Coupa overlay, not a generic invoice path.",
+      "enabled_now": false,
+      "phase_id": "governed_intent_routed",
+      "phase_index": 2,
+      "proof_required": "route selection receipt bound to workflow id",
+      "status": "modeled_not_executing"
+    },
+    {
+      "actor": "Guardian",
+      "description": "Guardian must request approval to begin the Capital Hilton invoice workflow.",
+      "enabled_now": false,
+      "phase_id": "guardian_start_approval_required",
+      "phase_index": 3,
+      "proof_required": "start_workflow_approval request receipt",
+      "status": "required_before_workflow_start"
+    },
+    {
+      "actor": "Guardian",
+      "description": "Start approval only authorizes beginning this workflow; it does not authorize final send.",
+      "enabled_now": false,
+      "phase_id": "start_approval_recorded",
+      "phase_index": 4,
+      "proof_required": "start_workflow_approval decision receipt",
+      "status": "not_recorded_for_execution"
+    },
+    {
+      "actor": "workflow_router",
+      "description": "Current packet facts, PO posture, and manual confirmations must be checked after start approval.",
+      "enabled_now": false,
+      "phase_id": "facts_verified",
+      "phase_index": 5,
+      "proof_required": "fact readiness receipt",
+      "status": "pending_evidence_review"
+    },
+    {
+      "actor": "protected_secret_pii_broker",
+      "description": "Sensitive values may be inserted only by a protected local mechanism at the approved time.",
+      "enabled_now": false,
+      "phase_id": "credential_access_required",
+      "phase_index": 6,
+      "proof_required": "redacted protected access receipt",
+      "status": "future_blocked"
+    },
+    {
+      "actor": "local_mac_execution_agent",
+      "description": "A local Mac/Codex Desktop actor may control Coupa only inside approved scope in a future lane.",
+      "enabled_now": false,
+      "phase_id": "local_browser_execution_required",
+      "phase_index": 7,
+      "proof_required": "browser scope approval receipt",
+      "status": "future_blocked"
+    },
+    {
+      "actor": "local_mac_execution_agent",
+      "description": "Create the payment-generating invoice from the Hilton PO in Coupa only after gates pass.",
+      "enabled_now": false,
+      "phase_id": "coupa_invoice_creation_pending",
+      "phase_index": 8,
+      "proof_required": "Coupa invoice creation receipt and protected proof reference",
+      "status": "blocked"
+    },
+    {
+      "actor": "local_mac_execution_agent",
+      "description": "Capture Coupa invoice proof/download as protected evidence and link it through read-model evidence.",
+      "enabled_now": false,
+      "phase_id": "coupa_invoice_proof_capture_pending",
+      "phase_index": 9,
+      "proof_required": "protected Coupa invoice proof reference",
+      "status": "blocked"
+    },
+    {
+      "actor": "local_mac_execution_agent",
+      "description": "Update or generate the Excel companion invoice with Coupa-aligned facts and stakeholder context.",
+      "enabled_now": false,
+      "phase_id": "excel_companion_invoice_update_pending",
+      "phase_index": 10,
+      "proof_required": "Excel companion artifact reference",
+      "status": "blocked"
+    },
+    {
+      "actor": "workflow_router",
+      "description": "Verify the Excel companion invoice reflects/matches the Coupa supplier-portal invoice.",
+      "enabled_now": false,
+      "phase_id": "invoice_match_verification_required",
+      "phase_index": 11,
+      "proof_required": "Coupa-vs-Excel match proof",
+      "status": "required_before_send_approval"
+    },
+    {
+      "actor": "Cassandra",
+      "description": "Cassandra may draft outward-facing email text after invoice artifacts are ready.",
+      "enabled_now": false,
+      "phase_id": "outward_email_draft_pending",
+      "phase_index": 12,
+      "proof_required": "draft record bound to attachment artifact",
+      "status": "draft_only_future"
+    },
+    {
+      "actor": "Guardian",
+      "description": "Guardian send approval is unavailable until Coupa proof and Excel match proof exist.",
+      "enabled_now": false,
+      "phase_id": "guardian_send_approval_required",
+      "phase_index": 13,
+      "proof_required": "send_email_with_invoice_approval request receipt",
+      "status": "blocked_until_artifact_proofs_exist"
+    },
+    {
+      "actor": "Clara/Cassandra",
+      "description": "Email send remains blocked until the specific draft plus attachment receives Guardian approval.",
+      "enabled_now": false,
+      "phase_id": "outward_email_send_blocked_until_gate",
+      "phase_index": 14,
+      "proof_required": "specific send approval decision receipt",
+      "status": "blocked"
+    },
+    {
+      "actor": "money_ledger",
+      "description": "Expected payment can be tracked after Coupa invoice proof exists.",
+      "enabled_now": false,
+      "phase_id": "expected_payment_tracking_pending",
+      "phase_index": 15,
+      "proof_required": "payment expectation record",
+      "status": "future_pending"
+    },
+    {
+      "actor": "money_ledger",
+      "description": "Paid status must only be set after money-ledger payment verification.",
+      "enabled_now": false,
+      "phase_id": "money_ledger_payment_verification_pending",
+      "phase_index": 16,
+      "proof_required": "money ledger payment match receipt",
+      "status": "required_for_paid_status"
+    }
+  ],
+  "execution_ready_now": false,
+  "generated_at": "2026-05-17T16:39:52+00:00",
+  "generated_by": "codex",
+  "guardian_approval_request_ids": [
+    "start_workflow_approval",
+    "send_email_with_invoice_approval"
+  ],
+  "guardian_approval_requests": [
+    {
+      "approval_kind": "guardian_start_approval",
+      "approval_request_id": "start_workflow_approval",
+      "authorizes_coupa_submit": false,
+      "authorizes_email_send": false,
+      "authorizes_final_external_communication": false,
+      "authorizes_workflow_start": true,
+      "client_specific_overlay": "hilton_coupa_supplier_portal",
+      "creates_general_runtime_authority": false,
+      "creates_general_send_authority": false,
+      "purpose": "Authorize beginning the Capital Hilton invoice workflow after governed operator intent.",
+      "required_before_phase": "facts_verified",
+      "sent_by": "Guardian",
+      "status_now": "modeled_not_requested",
+      "workflow_scope": "Capital Hilton / Hilton only"
+    },
+    {
+      "approval_kind": "guardian_send_approval",
+      "approval_request_id": "send_email_with_invoice_approval",
+      "approval_scope": "specific_draft_email_and_attachment_only",
+      "authorizes_coupa_submit": false,
+      "authorizes_email_send": true,
+      "authorizes_general_send": false,
+      "available_now": false,
+      "cannot_be_requested_unless_coupa_invoice_proof_exists": true,
+      "cannot_be_requested_unless_excel_companion_matches_coupa": true,
+      "client_specific_overlay": "hilton_coupa_supplier_portal",
+      "creates_general_runtime_authority": false,
+      "creates_general_send_authority": false,
+      "purpose": "Authorize only Cassandra's specific drafted email and specified Excel invoice attachment.",
+      "requires_coupa_invoice_proof_in_sqlite": true,
+      "requires_excel_match_proof": true,
+      "sent_by": "Guardian",
+      "status_now": "blocked_until_coupa_proof_and_excel_match",
+      "workflow_scope": "Capital Hilton / Hilton only"
+    }
+  ],
+  "modeled_not_enabled": true,
+  "next_recommended_lane": "Capital Hilton Coupa Start Approval Packet Spec v0",
+  "overlay_adapter_policy": {
+    "client_specific_complexity_extension": "overlay_or_adapter_only",
+    "default_invoice_architecture": "simple_base_invoice_workflow",
+    "future_client_specific_overlays_should_reuse": [
+      "operator_intent_gate",
+      "guardian_start_approval_gate_when_action_capable",
+      "protected_sensitive_data_requirements",
+      "proof_artifacts",
+      "client_specific_authority_boundary",
+      "payment_verification_gate"
+    ],
+    "future_overlay_examples": [
+      "client_portal_invoice_overlay",
+      "client_purchase_order_overlay",
+      "client_payment_processor_overlay",
+      "client_companion_invoice_overlay"
+    ],
+    "hilton_complexity_becomes_default": false,
+    "migration_rule": "Add or replace client-specific adapters only when evidence says that client requires the extra process; do not promote one client's process into the base invoice workflow."
+  },
+  "overlay_reason": "Hilton requires supplier-portal invoice creation from a Hilton-created PO for payment.",
+  "overlay_scope": "Capital Hilton / Hilton only",
+  "proof_artifacts": [
+    {
+      "artifact_id": "start_approval_receipt",
+      "artifact_status": "future_required",
+      "protected": false
+    },
+    {
+      "artifact_id": "coupa_invoice_proof_download_reference",
+      "artifact_status": "future_required",
+      "protected": true
+    },
+    {
+      "artifact_id": "excel_invoice_artifact_reference",
+      "artifact_status": "future_required",
+      "protected": true
+    },
+    {
+      "artifact_id": "coupa_vs_excel_match_proof",
+      "artifact_status": "future_required",
+      "protected": false
+    },
+    {
+      "artifact_id": "cassandra_email_draft_record",
+      "artifact_status": "future_required",
+      "protected": false
+    },
+    {
+      "artifact_id": "guardian_send_approval_receipt",
+      "artifact_status": "future_required",
+      "protected": false
+    },
+    {
+      "artifact_id": "email_send_receipt_future_only",
+      "artifact_status": "future_blocked",
+      "protected": false
+    },
+    {
+      "artifact_id": "payment_expectation_record",
+      "artifact_status": "future_required",
+      "protected": false
+    },
+    {
+      "artifact_id": "money_ledger_payment_match",
+      "artifact_status": "future_required_for_paid_status",
+      "protected": true
+    },
+    {
+      "artifact_id": "check_deposit_proof_protected_artifact",
+      "artifact_status": "future_optional",
+      "protected": true
+    }
+  ],
+  "protected_secret_pii_broker_active": false,
+  "protected_sensitive_data_requirements": {
+    "active_now": false,
+    "protected_secret_pii_broker_modeled": true,
+    "protected_value_classes": [
+      {
+        "future_use_requires_gate": "credential_pii_access_gate",
+        "raw_value_stored": false,
+        "value_class": "portal_credentials"
+      },
+      {
+        "future_use_requires_gate": "credential_pii_access_gate",
+        "raw_value_stored": false,
+        "value_class": "remit_pii"
+      },
+      {
+        "future_use_requires_gate": "payment_verification_gate",
+        "raw_value_stored": false,
+        "value_class": "bank_or_payment_details"
+      },
+      {
+        "future_use_requires_gate": "credential_pii_access_gate",
+        "raw_value_stored": false,
+        "value_class": "token_material"
+      },
+      {
+        "future_use_requires_gate": "payment_verification_gate",
+        "raw_value_stored": false,
+        "value_class": "check_or_deposit_images"
+      }
+    ],
+    "raw_values_stored_in_repo_or_read_models": false,
+    "requirements": [
+      "credentials inserted only through a protected local mechanism",
+      "raw secrets, remit PII, bank data, token material, and check images are not stored in repo/read-models",
+      "sensitive value visibility is minimized",
+      "access is scoped to the approved Capital Hilton task",
+      "receipts show protected use occurred without revealing values",
+      "failed or aborted runs must not leak sensitive values"
+    ]
+  },
+  "raw_secret_or_pii_stored": false,
+  "readiness_summary": {
+    "current_readiness": "contract_modeled_execution_not_authorized",
+    "execution_ready_now": false,
+    "missing_gates": [
+      "operator_intent_gate",
+      "guardian_start_approval_gate",
+      "invoice_fact_readiness_gate",
+      "credential_pii_access_gate",
+      "browser_automation_scope_gate",
+      "coupa_submit_gate",
+      "coupa_invoice_proof_capture_gate",
+      "excel_write_generation_gate",
+      "coupa_vs_excel_invoice_match_gate",
+      "email_draft_gate",
+      "guardian_send_approval_gate",
+      "email_send_gate",
+      "payment_verification_gate"
+    ],
+    "modeled_not_enabled": true,
+    "what_is_modeled": [
+      "Hilton-only Coupa overlay execution phases",
+      "two distinct Guardian approval requests",
+      "protected sensitive-data broker requirements",
+      "proof required before final send approval",
+      "payment verification dependency on money ledger"
+    ],
+    "what_is_not_enabled": [
+      "Coupa browser automation",
+      "Coupa submit",
+      "email send",
+      "spreadsheet write",
+      "credential insertion",
+      "Telegram command execution",
+      "runtime authority"
+    ]
+  },
+  "repo_b_executed": false,
+  "required_gate_ids": [
+    "operator_intent_gate",
+    "guardian_start_approval_gate",
+    "invoice_fact_readiness_gate",
+    "credential_pii_access_gate",
+    "browser_automation_scope_gate",
+    "coupa_submit_gate",
+    "coupa_invoice_proof_capture_gate",
+    "excel_write_generation_gate",
+    "coupa_vs_excel_invoice_match_gate",
+    "email_draft_gate",
+    "guardian_send_approval_gate",
+    "email_send_gate",
+    "payment_verification_gate"
+  ],
+  "required_gates": [
+    {
+      "authority_granted_now": false,
+      "description": "Cassandra/governed intake must capture a bounded operator intent.",
+      "gate_id": "operator_intent_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "governed intent receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Guardian must approve starting this Capital Hilton workflow.",
+      "gate_id": "guardian_start_approval_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "start approval receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Required facts, PO posture, and manual confirmations must be reviewed.",
+      "gate_id": "invoice_fact_readiness_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "fact readiness proof"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Protected values must be inserted only through a future local broker.",
+      "gate_id": "credential_pii_access_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "redacted access receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Browser automation must be scoped to the approved Coupa task.",
+      "gate_id": "browser_automation_scope_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "browser scope approval"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Coupa submit is separate from browser navigation and must be explicitly gated.",
+      "gate_id": "coupa_submit_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "Coupa submit receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Coupa invoice proof/download must be captured as protected evidence.",
+      "gate_id": "coupa_invoice_proof_capture_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "protected proof reference"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Excel companion generation/write must be explicitly gated.",
+      "gate_id": "excel_write_generation_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "Excel artifact receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Excel companion invoice must reflect/match the Coupa payment invoice.",
+      "gate_id": "coupa_vs_excel_invoice_match_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "match proof"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Cassandra may only produce a draft record, not send.",
+      "gate_id": "email_draft_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "draft receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Guardian must approve the specific draft and attachment.",
+      "gate_id": "guardian_send_approval_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "send approval receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Email send remains blocked until specific Guardian send approval.",
+      "gate_id": "email_send_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "future send receipt"
+    },
+    {
+      "authority_granted_now": false,
+      "description": "Paid status requires money-ledger verification.",
+      "gate_id": "payment_verification_gate",
+      "gate_status": "not_satisfied",
+      "required": true,
+      "required_proof": "money ledger match"
+    }
+  ],
+  "runtime_authority_added": false,
+  "schema_version": "capital_hilton_coupa_execution_path_v0",
+  "send_approval_preconditions": {
+    "approval_scope_after_available": "specific_draft_email_and_attachment_only",
+    "general_send_authority_created": false,
+    "required_before_guardian_send_approval_request": [
+      "Coupa supplier-portal invoice proof exists in SQLite/read-model evidence as protected artifact reference",
+      "Excel companion invoice artifact exists",
+      "Coupa-vs-Excel match proof says the companion invoice reflects/matches the Coupa payment invoice",
+      "Cassandra email draft is bound to the exact Excel PDF attachment"
+    ],
+    "send_approval_available_now": false,
+    "send_approval_blocked_until_coupa_proof_exists": true,
+    "send_approval_blocked_until_excel_match_verified": true
+  },
+  "send_or_submit_authority_added": false,
+  "spreadsheet_write_enabled": false,
+  "status_summary": {
+    "base_invoice_workflow_remains_simple": true,
+    "cassandra_modeled_as_intake_not_executor": true,
+    "end_to_end_hilton_workflow_modeled": true,
+    "guardian_send_approval_modeled": true,
+    "guardian_start_approval_modeled": true,
+    "hilton_overlay_scoped_only_to_hilton": true,
+    "protected_secret_pii_broker_modeled": true,
+    "raw_secret_or_pii_stored": false,
+    "runtime_authority_added": false,
+    "send_approval_blocked_until_coupa_proof_exists": true,
+    "send_approval_blocked_until_excel_match_verified": true,
+    "send_or_submit_authority_added": false
+  },
+  "telegram_command_execution_enabled": false,
+  "two_invoice_workflow_context": {
+    "coupa_payment_invoice_modeled": true,
+    "excel_companion_invoice_modeled": true,
+    "po_budget_context_modeled": true,
+    "protected_evidence_slots_modeled": true,
+    "schema_version": "capital_hilton_two_invoice_workflow_v0",
+    "source_path": "generated/read_models/capital_hilton_two_invoice_workflow.json",
+    "source_present": true
+  },
+  "workflow_domain": "finance_ap_invoice",
+  "workflow_name": "capital_hilton_invoice_execution_path"
+}
