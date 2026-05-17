@@ -1,0 +1,974 @@
+{
+  "approval_authority_added": false,
+  "batch_gate_all_recommendations_pass": true,
+  "batch_gate_pass_count": 3,
+  "batch_gate_used": true,
+  "broad_private_ingest_performed": false,
+  "built_implemented": [
+    "Capital Hilton invoice manual review",
+    "Cassandra governed request to review packet",
+    "Guardian HITL observational receipts",
+    "Cassandra/Chief structured fact evidence"
+  ],
+  "built_not_integrated": [
+    "Cassandra live receive into governed intake",
+    "Work Board and Agent Work Packets",
+    "Mission Control operator helm visibility",
+    "Active machinery quarantine review",
+    "Report Bridge client-safe status helper"
+  ],
+  "confidence_levels": [
+    "high",
+    "medium",
+    "low"
+  ],
+  "customer_deployment_authority_added": false,
+  "desired_not_built": [
+    "Niles album progress review",
+    "Markdown and source classification for broad workflow discovery"
+  ],
+  "generated_at": "2026-05-17T15:34:17+00:00",
+  "generated_by": "codex",
+  "markdown_source_classification_sufficiency": {
+    "full_system_restructure_requires_ingestion_or_tagging": true,
+    "reason": "Generated read-models and operations docs are sufficient to choose the next real batch lanes. They are not sufficient to claim full workflow coverage across every Markdown/source/file surface.",
+    "required_before_next_post_preflight_batch": false,
+    "smallest_needed_later_lane": {
+      "boundaries": [
+        "metadata/header-only",
+        "no broad drive/cloud scan",
+        "no raw logs",
+        "no private/no-go roots",
+        "old docs evidence only, not truth",
+        "no moves/deletes/reorganization"
+      ],
+      "expected_read_model_output": "generated/read_models/workflow_evidence_header_inventory.json",
+      "lane_name": "Workflow Evidence Header Inventory v0",
+      "source_set": [
+        "docs/operations",
+        "docs/planning",
+        "generated/read_models",
+        "module/capsule/custom-build contract files",
+        "read-model exporter scripts"
+      ],
+      "validation": [
+        "JSON validation",
+        "no private/no-go body reads",
+        "operator review buckets"
+      ]
+    },
+    "sufficient_for_next_post_preflight_batch": true
+  },
+  "md_source_ingestion_required_before_next_batch": false,
+  "mission_control_app_changed": false,
+  "model_execution_authority_added": false,
+  "no_authority_flags": {
+    "approval_authority_added": false,
+    "broad_private_ingest_performed": false,
+    "customer_deployment_authority_added": false,
+    "mission_control_app_changed": false,
+    "model_execution_authority_added": false,
+    "repo_b_executed": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "tool_execution_authority_added": false
+  },
+  "not_built_should_not_build_yet": [
+    "Remote builder bridge",
+    "Send, reply, and portal submission automation",
+    "Hard-drive/cloud/file ingest"
+  ],
+  "old_files_treated_as_evidence_not_truth": true,
+  "operator_manual_rewrite_reason": "Existing Repo A read-models/docs expose enough workflow evidence to propose the next batch lanes. Operator confirmation is still required for specific facts and authority gates.",
+  "operator_manual_rewrite_required": false,
+  "recommended_first_3_post_preflight_batch_lanes": [
+    {
+      "bounded_detangling": {
+        "client_repo_generation_requested": false,
+        "detangling_required_before_workflow_proof": false,
+        "notes": "Keeps finance/AP confirmation separate from send or portal authority.",
+        "opportunistic_only": true,
+        "physical_module_extraction_requested": false,
+        "serves_lane_directly": true
+      },
+      "goal": "Turn the existing Capital Hilton review-only packet into a manual-confirmation receipt surface for PO/Coupa, recipient, and inclusion decisions without sending or submitting.",
+      "lane_name": "Capital Hilton Manual Confirmation Receipt v0",
+      "named_operator_workflow": "Capital Hilton invoice manual review",
+      "operator_approval_required_before_start": false,
+      "operator_confirmation_required_inside_workflow": true,
+      "post_preflight_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Review/receipt only; no send, submit, or runtime action.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Keeps finance/AP confirmation separate from send or portal authority.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "receipt",
+            "path_or_contract": "generated/read_models/capital_hilton_manual_confirmation_receipt.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/capital_hilton_manual_confirmation_receipt_OPERATOR.md"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_1d9c27ab0823f7f589a0",
+        "gate_status": "pass",
+        "lane_name": "Capital Hilton Manual Confirmation Receipt v0",
+        "lane_summary": "Turn the existing Capital Hilton review-only packet into a manual-confirmation receipt surface for PO/Coupa, recipient, and inclusion decisions without sending or submitting.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "none",
+          "reason": "No module split needed for a confirmation receipt lane.",
+          "recorded_future_work": false
+        },
+        "named_operator_workflow": "Capital Hilton invoice manual review",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_bounded_post_preflight_lane",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Generic manual-confirmation receipt fields become reusable for future review packets.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "manual_confirmation_receipt_binding",
+        "steel_thread_contract_link": "cassandra_governed_review_packet_request_proof_v1",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused finance packet tests",
+          "JSON validation",
+          "no-send/no-submit/no-credentials flags"
+        ],
+        "workflow_proof_output": "Capital Hilton manual confirmation checklist/receipt read-model."
+      },
+      "rank": 1,
+      "reusable_substrate_improvement": "Generic manual-confirmation receipt fields become reusable for future review packets.",
+      "shared_bottleneck": "manual_confirmation_receipt_binding",
+      "workflow_proof_output": "Capital Hilton manual confirmation checklist/receipt read-model."
+    },
+    {
+      "bounded_detangling": {
+        "client_repo_generation_requested": false,
+        "detangling_required_before_workflow_proof": false,
+        "notes": "Record Cassandra/Niles boundary pressure without extracting modules.",
+        "opportunistic_only": true,
+        "physical_module_extraction_requested": false,
+        "serves_lane_directly": true
+      },
+      "goal": "Apply the generic review packet shape to the Niles album workflow and produce a review-only packet or missing-facts packet without importing old album logs as truth.",
+      "lane_name": "Niles Album Review Packet From Governed Evidence v0",
+      "named_operator_workflow": "Niles album progress review",
+      "operator_approval_required_before_start": false,
+      "operator_confirmation_required_inside_workflow": false,
+      "post_preflight_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Review-only packet; no sends, model execution, or file ingestion authority.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Record Cassandra/Niles boundary pressure without extracting modules.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "review_packet",
+            "path_or_contract": "generated/read_models/niles_album_review_packet.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/niles_album_review_packet_OPERATOR.md"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_0a3e060eec22d0a9f04c",
+        "gate_status": "pass",
+        "lane_name": "Niles Album Review Packet From Governed Evidence v0",
+        "lane_summary": "Apply the generic review packet shape to the Niles album workflow and produce a review-only packet or missing-facts packet without importing old album logs as truth.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "future_work_id": "niles_album_matrix_boundary_review",
+          "reason": "Niles module boundary should be tracked, not solved abstractly before a packet proof.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Niles album progress review",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Prove the generic packet contract works outside finance/AP.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "generic_review_packet_non_finance_reuse",
+        "steel_thread_contract_link": "cassandra_governed_review_packet_request_proof_v1",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused review packet tests",
+          "old album files evidence-not-truth assertions",
+          "JSON validation"
+        ],
+        "workflow_proof_output": "Niles album review packet or missing-facts packet."
+      },
+      "rank": 2,
+      "reusable_substrate_improvement": "Prove the generic packet contract works outside finance/AP.",
+      "shared_bottleneck": "generic_review_packet_non_finance_reuse",
+      "workflow_proof_output": "Niles album review packet or missing-facts packet."
+    },
+    {
+      "bounded_detangling": {
+        "client_repo_generation_requested": false,
+        "detangling_required_before_workflow_proof": false,
+        "notes": "Records reusable client helper shape without generating a client repo.",
+        "opportunistic_only": true,
+        "physical_module_extraction_requested": false,
+        "serves_lane_directly": true
+      },
+      "goal": "Use Report Bridge and Project Capsule metadata to produce a sanitized client-safe status packet from synthetic or already-sanitized evidence only.",
+      "lane_name": "Report Bridge Client Status Packet Proof v0",
+      "named_operator_workflow": "Client-safe project status review",
+      "operator_approval_required_before_start": false,
+      "operator_confirmation_required_inside_workflow": false,
+      "post_preflight_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Sanitized review-only status packet; no deployment/customer authority.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Records reusable client helper shape without generating a client repo.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "review_packet",
+            "path_or_contract": "generated/read_models/report_bridge_client_status_packet.json"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "tests/test_report_bridge_client_status_packet.py"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_1923b1fc82d44ed16310",
+        "gate_status": "pass",
+        "lane_name": "Report Bridge Client Status Packet Proof v0",
+        "lane_summary": "Use Report Bridge and Project Capsule metadata to produce a sanitized client-safe status packet from synthetic or already-sanitized evidence only.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "future_work_id": "report_bridge_client_status_helper",
+          "reason": "Useful for future custom builds but not an extraction lane.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Client-safe project status review",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Turns report bridge/client capsule boundaries into a reusable review packet contract.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "report_bridge_client_capsule_boundary",
+        "steel_thread_contract_link": "custom_build_module_detangling_contract_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "no raw client data proof",
+          "JSON validation",
+          "no deployment/customer authority flags"
+        ],
+        "workflow_proof_output": "Client-safe status packet proof with no raw client data."
+      },
+      "rank": 3,
+      "reusable_substrate_improvement": "Turns report bridge/client capsule boundaries into a reusable review packet contract.",
+      "shared_bottleneck": "report_bridge_client_capsule_boundary",
+      "workflow_proof_output": "Client-safe status packet proof with no raw client data."
+    }
+  ],
+  "repo_a_canonical": true,
+  "repo_b_executed": false,
+  "repo_b_model": "pre_split_capability_tree_reference_only",
+  "runtime_authority_added": false,
+  "schema_version": "operator_workflow_atlas_v0",
+  "send_or_submit_authority_added": false,
+  "shared_bottleneck_map": {
+    "approval_receipt_equivalence": {
+      "next_safe_lanes": [
+        "HITL Transition Criteria Review v0"
+      ],
+      "status_counts": {
+        "CONFIRMED_BUILT_AND_WIRED": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Guardian HITL observational receipts"
+      ]
+    },
+    "file_estate_ingest_boundary": {
+      "next_safe_lanes": [
+        "Metadata-Only File Estate Boundary Spec v0"
+      ],
+      "status_counts": {
+        "SHOULD_NOT_BUILD_YET": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Hard-drive/cloud/file ingest"
+      ]
+    },
+    "generic_review_packet_contract": {
+      "next_safe_lanes": [
+        "Reuse Generic Review Packet For Second Workflow v0"
+      ],
+      "status_counts": {
+        "CONFIRMED_BUILT_AND_WIRED": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Cassandra governed request to review packet"
+      ]
+    },
+    "generic_review_packet_non_finance_reuse": {
+      "next_safe_lanes": [
+        "Niles Album Review Packet From Governed Evidence v0"
+      ],
+      "status_counts": {
+        "PLANNED_NOT_BUILT": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Niles album progress review"
+      ]
+    },
+    "governed_receive_to_work_packet_projection": {
+      "next_safe_lanes": [
+        "Cassandra Intake-to-Work Packet Current Proof v0"
+      ],
+      "status_counts": {
+        "BUILT_NOT_WIRED_TO_STEEL_THREAD": 2
+      },
+      "workflow_count": 2,
+      "workflows": [
+        "Cassandra live receive into governed intake",
+        "Work Board and Agent Work Packets"
+      ]
+    },
+    "manual_confirmation_receipt_binding": {
+      "next_safe_lanes": [
+        "Capital Hilton Manual Coupa PO Confirmation v0"
+      ],
+      "status_counts": {
+        "CONFIRMED_BUILT_AND_WIRED": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Capital Hilton invoice manual review"
+      ]
+    },
+    "markdown_source_evidence_tagging": {
+      "next_safe_lanes": [
+        "Workflow Evidence Header Inventory v0"
+      ],
+      "status_counts": {
+        "BLOCKED_BY_MISSING_INGEST_OR_TAGGING": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Markdown and source classification for broad workflow discovery"
+      ]
+    },
+    "mission_control_surface": {
+      "next_safe_lanes": [
+        "Mission Control Workflow Atlas Surface v0"
+      ],
+      "status_counts": {
+        "BUILT_NOT_WIRED_TO_STEEL_THREAD": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Mission Control operator helm visibility"
+      ]
+    },
+    "remote_runtime_authority_gate": {
+      "next_safe_lanes": [
+        "Remote Builder Bridge Spec Only v0"
+      ],
+      "status_counts": {
+        "SHOULD_NOT_BUILD_YET": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Remote builder bridge"
+      ]
+    },
+    "report_bridge_client_capsule_boundary": {
+      "next_safe_lanes": [
+        "Report Bridge Client Status Packet Proof v0"
+      ],
+      "status_counts": {
+        "BUILT_NOT_WIRED_TO_STEEL_THREAD": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Report Bridge client-safe status helper"
+      ]
+    },
+    "runtime_machinery_guardrail_review": {
+      "next_safe_lanes": [
+        "Active Machinery Guardrail To Work Board Review v0"
+      ],
+      "status_counts": {
+        "BUILT_NOT_WIRED_TO_STEEL_THREAD": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Active machinery quarantine review"
+      ]
+    },
+    "send_path_authority_gate": {
+      "next_safe_lanes": [
+        "Send Path Approval Packet Spec v0"
+      ],
+      "status_counts": {
+        "SHOULD_NOT_BUILD_YET": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Send, reply, and portal submission automation"
+      ]
+    },
+    "sqlite_fact_coverage": {
+      "next_safe_lanes": [
+        "Operator Confirmation Packet For Imported Facts v0"
+      ],
+      "status_counts": {
+        "CONFIRMED_BUILT_AND_WIRED": 1
+      },
+      "workflow_count": 1,
+      "workflows": [
+        "Cassandra/Chief structured fact evidence"
+      ]
+    }
+  },
+  "status_categories": [
+    "CONFIRMED_BUILT_AND_WIRED",
+    "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+    "PLANNED_NOT_BUILT",
+    "DESIRED_INFERRED_FROM_EVIDENCE",
+    "LEGACY_OR_STALE_EVIDENCE",
+    "BLOCKED_BY_MISSING_INGEST_OR_TAGGING",
+    "SHOULD_NOT_BUILD_YET",
+    "UNKNOWN_NEEDS_OPERATOR_CONFIRMATION"
+  ],
+  "tool_execution_authority_added": false,
+  "workflow_atlas": [
+    {
+      "confidence": "high",
+      "confirmation_reason": "PO/Coupa state, recipient posture, and final inclusion remain manual confirmation gates.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "actionable review-only packet",
+          "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "generic governed review packet proof",
+          "path": "generated/read_models/cassandra_governed_review_packet_request_proof.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "Cassandra/Clara governed facts packet",
+          "path": "generated/read_models/cassandra_clara_fact_packet.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "CONFIRMED_BUILT_AND_WIRED",
+      "domain_world": "finance_ap_invoice",
+      "next_safe_lane": "Capital Hilton Manual Coupa PO Confirmation v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Lets Winship manually prepare the Capital Hilton/Coupa invoice from governed facts, with PO and recipient gates still explicit.",
+      "shared_bottleneck": "manual_confirmation_receipt_binding",
+      "steel_thread_readiness": "review_only_packet_visible_and_mirrored_no_send_or_submit",
+      "workflow_name": "Capital Hilton invoice manual review"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Workflow proof exists; future workflows still need their own evidence packets.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "request route and proof receipts",
+          "path": "generated/read_models/cassandra_governed_review_packet_request_proof.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "send-capable service dry-run status",
+          "path": "generated/read_models/cassandra_send_status_dry_run.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "CONFIRMED_BUILT_AND_WIRED",
+      "domain_world": "operator_comms_to_review_packet",
+      "next_safe_lane": "Reuse Generic Review Packet For Second Workflow v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": false,
+      "operator_value": "Turns a governed Cassandra/Clara ask into a review-only packet without send authority.",
+      "shared_bottleneck": "generic_review_packet_contract",
+      "steel_thread_readiness": "works_for_capital_hilton_review_packet_review_only",
+      "workflow_name": "Cassandra governed request to review packet"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Caller switching, old JSON retirement, and send authority remain separate operator decisions.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "Chief request and decision receipt support",
+          "path": "generated/read_models/guardian_hitl_dual_write_compatibility.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "operator proof note",
+          "path": "docs/operations/GUARDIAN_HITL_DUAL_WRITE_RECEIPT_PROOF_V0.md",
+          "source_present": true,
+          "truth_status": "operator_doc_evidence_only"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "Cassandra HITL proposal shadow",
+          "path": "generated/read_models/guardian_hitl_cassandra_proposal_shadow.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "CONFIRMED_BUILT_AND_WIRED",
+      "domain_world": "approval_hitl_authority",
+      "next_safe_lane": "HITL Transition Criteria Review v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Shows request/decision/proposal approval evidence in SQLite without switching runtime authority.",
+      "shared_bottleneck": "approval_receipt_equivalence",
+      "steel_thread_readiness": "observational_only_old_json_still_authoritative",
+      "workflow_name": "Guardian HITL observational receipts"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Imported records need operator confirmation before external use.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "approved structured fact import read-model",
+          "path": "generated/read_models/cassandra_chief_structured_fact_import.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "operator approval receipt for categories",
+          "path": "generated/read_models/cassandra_chief_memory_import_approval.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "CONFIRMED_BUILT_AND_WIRED",
+      "domain_world": "memory_authority",
+      "next_safe_lane": "Operator Confirmation Packet For Imported Facts v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Provides parsed contact/invoice/email posture facts as evidence, not truth, for review packets.",
+      "shared_bottleneck": "sqlite_fact_coverage",
+      "steel_thread_readiness": "available_as_parsed_evidence_not_truth_no_send_authority",
+      "workflow_name": "Cassandra/Chief structured fact evidence"
+    },
+    {
+      "confidence": "medium",
+      "confirmation_reason": "No new operator facts needed, but current live proof should be refreshed before authority decisions.",
+      "current_evidence_sources": [
+        {
+          "confidence": "medium",
+          "evidence_role": "receive path proof and live-test posture",
+          "path": "generated/read_models/cassandra_listener_governed_intake_synthetic_proof.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "legacy listener to governed intake mapping",
+          "path": "generated/read_models/cassandra_listener_governed_shadow.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+      "domain_world": "operator_comms",
+      "next_safe_lane": "Cassandra Intake-to-Work Packet Current Proof v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": false,
+      "operator_value": "Lets Cassandra receive operator messages through governed intake metadata without replies or sends.",
+      "shared_bottleneck": "governed_receive_to_work_packet_projection",
+      "steel_thread_readiness": "receive_metadata_path_exists_but_work_packet_projection_needs_current_proof",
+      "workflow_name": "Cassandra live receive into governed intake"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Needs proof linkage from live/governed request into board/packet outputs.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "read-only Work Board status",
+          "path": "generated/read_models/work_board.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "agent packet read-model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "non-executing intent routing",
+          "path": "generated/read_models/intent_router.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+      "domain_world": "work_routing",
+      "next_safe_lane": "Cassandra Intake-to-Work Packet Current Proof v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": false,
+      "operator_value": "Turns governed intents into visible work routing artifacts without auto-execution.",
+      "shared_bottleneck": "governed_receive_to_work_packet_projection",
+      "steel_thread_readiness": "substrate_exists_but_zero_or_limited_live_projection_for_new_workflows",
+      "workflow_name": "Work Board and Agent Work Packets"
+    },
+    {
+      "confidence": "medium",
+      "confirmation_reason": "No new authority needed; UI scope should stay read-only.",
+      "current_evidence_sources": [
+        {
+          "confidence": "medium",
+          "evidence_role": "Mac mirror trust status",
+          "path": "generated/read_models/sync_health.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "module posture for helm display",
+          "path": "generated/read_models/approved_module_registry.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "operator roadmap evidence",
+          "path": "docs/operations/OPENCLAW_REMAINING_WORK_STRATIFIER_V0.md",
+          "source_present": true,
+          "truth_status": "operator_doc_evidence_only"
+        }
+      ],
+      "current_implementation_status": "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+      "domain_world": "mission_control",
+      "next_safe_lane": "Mission Control Workflow Atlas Surface v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": false,
+      "operator_value": "Shows ready/blocked/proof posture to Winship without backend clutter or execution buttons.",
+      "shared_bottleneck": "mission_control_surface",
+      "steel_thread_readiness": "Mac surfaces exist_for_some_packets_but_not_all_workflows",
+      "workflow_name": "Mission Control operator helm visibility"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Any destructive quarantine, service disable, or launcher edit needs explicit approval.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "quarantine decision packet",
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "metadata guardrail for block-later items",
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+      "domain_world": "runtime_safety",
+      "next_safe_lane": "Active Machinery Guardrail To Work Board Review v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Helps Winship decide what machinery should be blocked, replaced, wrapped, retired, or kept.",
+      "shared_bottleneck": "runtime_machinery_guardrail_review",
+      "steel_thread_readiness": "warning_and_decision_packets_exist_runtime_not_changed",
+      "workflow_name": "Active machinery quarantine review"
+    },
+    {
+      "confidence": "medium",
+      "confirmation_reason": "Can use synthetic/sanitized metadata first; real client data remains out of scope.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "sanitized report bridge read-model",
+          "path": "generated/read_models/report_bridge.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "project capsule read-model",
+          "path": "generated/read_models/project_capsules.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "synthetic detangling contract examples",
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "source_present": true,
+          "truth_status": "synthetic_example_evidence_only"
+        }
+      ],
+      "current_implementation_status": "BUILT_NOT_WIRED_TO_STEEL_THREAD",
+      "domain_world": "client_project_reporting",
+      "next_safe_lane": "Report Bridge Client Status Packet Proof v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": false,
+      "operator_value": "Could produce sanitized client/project status packets without raw client data or deployment authority.",
+      "shared_bottleneck": "report_bridge_client_capsule_boundary",
+      "steel_thread_readiness": "substrate_exists_but_no_real_operator_workflow_packet_proof_yet",
+      "workflow_name": "Report Bridge client-safe status helper"
+    },
+    {
+      "confidence": "medium",
+      "confirmation_reason": "Album progress source of truth and inclusion rules remain unconfirmed.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "Niles Album Matrix module candidate",
+          "path": "generated/read_models/approved_module_registry.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "roadmap evidence for Niles/album surface",
+          "path": "docs/operations/OPENCLAW_REMAINING_WORK_STRATIFIER_V0.md",
+          "source_present": true,
+          "truth_status": "operator_doc_evidence_only"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "Cassandra/Niles module boundary pressure evidence",
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "source_present": true,
+          "truth_status": "synthetic_example_evidence_only"
+        }
+      ],
+      "current_implementation_status": "PLANNED_NOT_BUILT",
+      "domain_world": "music_art",
+      "next_safe_lane": "Niles Album Review Packet From Governed Evidence v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Would give Winship a review-only album/progress packet without importing old album logs as truth.",
+      "shared_bottleneck": "generic_review_packet_non_finance_reuse",
+      "steel_thread_readiness": "needs_missing_facts_packet_before_any_album_csv_or_session_import",
+      "workflow_name": "Niles album progress review"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Any implementation would add runtime/tool/deployment risk and needs a separate authority gate.",
+      "current_evidence_sources": [
+        {
+          "confidence": "medium",
+          "evidence_role": "roadmap blocker evidence",
+          "path": "docs/operations/OPENCLAW_REMAINING_WORK_STRATIFIER_V0.md",
+          "source_present": true,
+          "truth_status": "operator_doc_evidence_only"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "block-later guardrail evidence for runner surfaces",
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "SHOULD_NOT_BUILD_YET",
+      "domain_world": "remote_build_infrastructure",
+      "next_safe_lane": "Remote Builder Bridge Spec Only v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Eventually lets governed build requests become approved external build jobs.",
+      "shared_bottleneck": "remote_runtime_authority_gate",
+      "steel_thread_readiness": "blocked_until_explicit_operator_action_job_packet_and_receipts",
+      "workflow_name": "Remote builder bridge"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "External actions require explicit approval and receipt binding; no send/submit authority exists now.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "review-only packet explicitly blocks send/submit",
+          "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "HITL proof still observational",
+          "path": "generated/read_models/guardian_hitl_dual_write_compatibility.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "SHOULD_NOT_BUILD_YET",
+      "domain_world": "external_action_authority",
+      "next_safe_lane": "Send Path Approval Packet Spec v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Eventually could send emails/messages or submit portals after exact packet approval.",
+      "shared_bottleneck": "send_path_authority_gate",
+      "steel_thread_readiness": "blocked_until_send_packet_contract_and_operator_approval",
+      "workflow_name": "Send, reply, and portal submission automation"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Any broader source set must be bounded and reviewed before body reads or reorganization.",
+      "current_evidence_sources": [
+        {
+          "confidence": "high",
+          "evidence_role": "metadata-only source inventory",
+          "path": "generated/read_models/source_inventory.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        },
+        {
+          "confidence": "medium",
+          "evidence_role": "classification doctrine evidence",
+          "path": "docs/operations/OPENCLAW_CLASSIFICATION_TAGGING_PATTERN_V0.md",
+          "source_present": true,
+          "truth_status": "contract_doc_evidence_only"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "active machinery shard/classification surface",
+          "path": "generated/read_models/active_machinery_classification_orchestrator.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "BLOCKED_BY_MISSING_INGEST_OR_TAGGING",
+      "domain_world": "source_classification",
+      "next_safe_lane": "Workflow Evidence Header Inventory v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Would improve the atlas and future workflow discovery without asking Winship to rewrite everything.",
+      "shared_bottleneck": "markdown_source_evidence_tagging",
+      "steel_thread_readiness": "not_needed_for_next_batch_but_needed_before_full_system_restructure",
+      "workflow_name": "Markdown and source classification for broad workflow discovery"
+    },
+    {
+      "confidence": "high",
+      "confirmation_reason": "Broad ingest risks private/no-go content and must not precede bounded review.",
+      "current_evidence_sources": [
+        {
+          "confidence": "medium",
+          "evidence_role": "high-level ingest roadmap evidence",
+          "path": "docs/operations/OPENCLAW_REMAINING_WORK_STRATIFIER_V0.md",
+          "source_present": true,
+          "truth_status": "operator_doc_evidence_only"
+        },
+        {
+          "confidence": "high",
+          "evidence_role": "current metadata-only inventory limits",
+          "path": "generated/read_models/source_inventory.json",
+          "source_present": true,
+          "truth_status": "governed_read_model_evidence"
+        }
+      ],
+      "current_implementation_status": "SHOULD_NOT_BUILD_YET",
+      "domain_world": "file_estate_ingest",
+      "next_safe_lane": "Metadata-Only File Estate Boundary Spec v0",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_confirmation_needed": true,
+      "operator_value": "Eventually could classify broader files and cloud assets for workflows.",
+      "shared_bottleneck": "file_estate_ingest_boundary",
+      "steel_thread_readiness": "blocked_until_metadata_only_boundaries_and_operator_review",
+      "workflow_name": "Hard-drive/cloud/file ingest"
+    }
+  ],
+  "workflow_confidence_counts": {
+    "high": 10,
+    "medium": 4
+  },
+  "workflow_count": 14,
+  "workflow_status_counts": {
+    "BLOCKED_BY_MISSING_INGEST_OR_TAGGING": 1,
+    "BUILT_NOT_WIRED_TO_STEEL_THREAD": 5,
+    "CONFIRMED_BUILT_AND_WIRED": 4,
+    "PLANNED_NOT_BUILT": 1,
+    "SHOULD_NOT_BUILD_YET": 3
+  },
+  "workflows_classified_with_confidence": true
+}
