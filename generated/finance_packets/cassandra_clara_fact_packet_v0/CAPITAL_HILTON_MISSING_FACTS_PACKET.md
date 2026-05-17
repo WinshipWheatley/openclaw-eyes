@@ -9,15 +9,15 @@ Packet kind: `capital_hilton_review_packet`
 - None.
 
 ## Invoice Facts Used
-- `tonight_gig_date`: 2026-05-15 (operator said this was yesterday relative to May 16, 2026)
-- `last_friday_gig_date`: 2026-05-08
-- `rate_or_amount_per_gig`: $400 per gig
-- `invoice_count_preference`: one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable
-- `po_numbers`: unknown; operator reports Coupa PO credit may exist and PO must be confirmed in Coupa later; no portal login authorized
-- `billing_remit_details`: mail check to operator home address provided in prompt; full street address redacted from committed artifacts
-- `recipient_decision`: To: Annette Sunga (business email pending confirmation); CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority
-- `supplier_portal_reference`: Coupa supplier portal reference provided by operator; credential use/storage not authorized; credentials must remain tokenized in a later approved lane
-- `invoice_attachment_output_path`: invoice must be created in Coupa against confirmed PO; existing Mac Documents/invoices spreadsheet is metadata-only source workbook; next invoice number should be one higher after workbook review; no spreadsheet cells read
+- `tonight_gig_date`: tonight_gig_date has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:e4843b5c9fd0); operator confirmation required
+- `last_friday_gig_date`: last_friday_gig_date has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:d0c045745ed6); operator confirmation required
+- `rate_or_amount_per_gig`: rate_or_amount_per_gig has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:06ae3c61778f); operator confirmation required
+- `invoice_count_preference`: invoice_count_preference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:62b213bacc10); operator confirmation required
+- `po_numbers`: po_numbers has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:f7b0bbc2f9ec); operator confirmation required
+- `billing_remit_details`: billing_remit_details has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:041800d2eafb); operator confirmation required
+- `recipient_decision`: recipient_decision has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4e606352be02); operator confirmation required
+- `supplier_portal_reference`: supplier_portal_reference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:ac571565822e); operator confirmation required
+- `invoice_attachment_output_path`: invoice_attachment_output_path has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:64c764c0bb9b); operator confirmation required
 
 ## Boundaries
 - No send authority.

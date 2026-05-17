@@ -18,6 +18,7 @@ from typing import Any
 
 from business_ops_ledger import DEFAULT_DB_PATH
 from capital_hilton_invoice_packet import CAPITAL_HILTON_PACKET_ID
+from cassandra_chief_memory_authority import init_cassandra_chief_memory_authority_schema
 from finance_invoice_evidence_packet import init_finance_invoice_evidence_packet_schema
 
 
@@ -46,6 +47,14 @@ REQUIRED_FIELDS = (
 
 FIELD_LABEL_ALIASES = {
     "recipient_decision": {"recipient_decision", "recipient_cc_decision"},
+}
+
+MEMORY_SOURCE_IDS = {
+    "contacts": "memsrc_contacts_nicknames",
+    "relationships": "memsrc_company_contact_relationships",
+    "email_permissions": "memsrc_email_permission_posture",
+    "invoice_facts": "memsrc_invoice_facts",
+    "receivables": "memsrc_receivable_payment_tracking",
 }
 
 NO_AUTHORITY_FLAGS = {
@@ -134,6 +143,27 @@ def _safe_text(value: object, limit: int = 800) -> str:
     return str(value or "").strip()[:limit]
 
 
+def _hash_fragment(value: object) -> str:
+    text = str(value or "")
+    if "sha256:" in text:
+        return "sha256:" + text.split("sha256:", 1)[1][:12]
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return f"sha256:{digest[:12]}"
+
+
+def _safe_field_name_from_finance_link(row: dict[str, Any]) -> str:
+    kind = _safe_text(row.get("finance_link_kind"))
+    if ":" in kind:
+        return kind.split(":", 1)[1]
+    return kind or "finance_fact"
+
+
+def _safe_fact_value_from_finance_link(row: dict[str, Any]) -> str:
+    field_name = _safe_field_name_from_finance_link(row)
+    surface = _safe_text(row.get("finance_surface")) or "sqlite_structured_memory"
+    return f"{field_name} has imported structured evidence in {surface} ({_hash_fragment(row.get('finance_record_ref'))}); operator confirmation required"
+
+
 def _governed_fact(row: dict[str, Any], *, field_name: str, value_key: str = "value_text") -> dict[str, Any]:
     return {
         "fact_id": _safe_text(row.get("fact_update_id") or row.get("fact_id") or _row_id("fact", field_name, row.get(value_key))),
@@ -152,66 +182,109 @@ def _governed_fact(row: dict[str, Any], *, field_name: str, value_key: str = "va
     }
 
 
+def _memory_finance_fact(row: dict[str, Any]) -> dict[str, Any]:
+    field_name = _safe_field_name_from_finance_link(row)
+    return {
+        "fact_id": _safe_text(row.get("finance_link_id") or _row_id("fact", field_name, row.get("finance_record_ref"))),
+        "field_name": field_name,
+        "value_text": _safe_fact_value_from_finance_link(row),
+        "source_ref": _safe_text(row.get("source_ref")),
+        "source_kind": _safe_text(row.get("source_type") or "imported_structured_memory"),
+        "confidence": "imported_structured_evidence",
+        "truth_status": "needs_review",
+        "evidence_status": _safe_text(row.get("evidence_status") or "parsed_evidence_not_truth"),
+        "trust_status": _safe_text(row.get("trust_status") or "needs_operator_confirmation"),
+        "no_send_authority": True,
+        "no_runtime_authority": True,
+        "approval_required": True,
+        "raw_content_read": False,
+        "finance_surface": _safe_text(row.get("finance_surface")),
+        "fact_authority_status": _safe_text(row.get("fact_authority_status")),
+    }
+
+
 def _load_governed_facts(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     facts: list[dict[str, Any]] = []
-    if _table_exists(conn, "capital_hilton_invoice_fact_updates"):
+    if _table_exists(conn, "cassandra_chief_memory_finance_source_links"):
         for row in _dict_rows(
             conn,
             """
-SELECT fact_update_id, field_name, value_text, source_kind, source_ref,
-       confidence, truth_status
-FROM capital_hilton_invoice_fact_updates
-WHERE packet_id = ?
-ORDER BY field_name, created_at
+SELECT finance_link_id, finance_link_kind, finance_surface, finance_record_ref,
+       fact_authority_status, source_ref, source_type, trust_status,
+       evidence_status, no_send_authority, no_runtime_authority, approval_required
+FROM cassandra_chief_memory_finance_source_links
+WHERE source_id = ?
+  AND (finance_link_kind LIKE 'invoice_fact:%'
+       OR finance_link_kind LIKE 'invoice_packet_fact:%')
+ORDER BY finance_link_kind, finance_surface, finance_link_id
 """.strip(),
-            (CAPITAL_HILTON_PACKET_ID,),
+            (MEMORY_SOURCE_IDS["invoice_facts"],),
         ):
-            facts.append(_governed_fact(row, field_name=_safe_text(row.get("field_name"))))
-    if _table_exists(conn, "finance_invoice_packet_facts"):
-        for row in _dict_rows(
-            conn,
-            """
-SELECT fact_id, label, value_text, fact_kind, source_ref, confidence, truth_status
-FROM finance_invoice_packet_facts
-WHERE packet_id = ?
-ORDER BY label, created_at
-""".strip(),
-            (CAPITAL_HILTON_PACKET_ID,),
-        ):
-            facts.append(_governed_fact(row, field_name=_safe_text(row.get("label"))))
+            facts.append(_memory_finance_fact(row))
     return facts
 
 
 def _load_contact_candidates(conn: sqlite3.Connection) -> list[dict[str, Any]]:
-    if not _table_exists(conn, "capital_hilton_contact_candidates"):
+    if not _table_exists(conn, "cassandra_chief_memory_entities"):
         return []
-    rows = _dict_rows(
+    candidates = []
+    entity_rows = _dict_rows(
         conn,
         """
-SELECT contact_candidate_id, organization, contact_name, role, email,
-       confidence, source_basis, allowed_use, external_send_allowed,
-       operator_approval_required, verified
-FROM capital_hilton_contact_candidates
-WHERE packet_id = ?
-ORDER BY contact_name
+SELECT entity_id, entity_kind, display_label_redacted, source_ref, source_type,
+       evidence_status, trust_status, no_send_authority, no_runtime_authority,
+       approval_required
+FROM cassandra_chief_memory_entities
+WHERE source_type = 'governed_finance_contact_candidate'
+ORDER BY entity_kind, display_label_redacted
 """.strip(),
-        (CAPITAL_HILTON_PACKET_ID,),
+        (),
     )
-    candidates = []
-    for row in rows:
+    relationship_rows = _dict_rows(
+        conn,
+        """
+SELECT from_entity_ref, relationship_kind
+FROM cassandra_chief_memory_entity_relationships
+WHERE source_id = ?
+ORDER BY relationship_kind
+""".strip(),
+        (MEMORY_SOURCE_IDS["relationships"],),
+    ) if _table_exists(conn, "cassandra_chief_memory_entity_relationships") else []
+    role_by_entity = {
+        _safe_text(row.get("from_entity_ref")): _safe_text(row.get("relationship_kind"))
+        for row in relationship_rows
+    }
+    permission_count_by_entity: dict[str, int] = {}
+    if _table_exists(conn, "cassandra_chief_memory_email_permissions"):
+        for row in _dict_rows(
+            conn,
+            """
+SELECT entity_ref, COUNT(*) AS count
+FROM cassandra_chief_memory_email_permissions
+WHERE source_id = ?
+GROUP BY entity_ref
+""".strip(),
+            (MEMORY_SOURCE_IDS["email_permissions"],),
+        ):
+            permission_count_by_entity[_safe_text(row.get("entity_ref"))] = int(row.get("count") or 0)
+
+    for row in entity_rows:
+        entity_id = _safe_text(row.get("entity_id"))
+        permission_count = permission_count_by_entity.get(entity_id, 0)
         candidates.append(
             {
-                "contact_candidate_id": _safe_text(row.get("contact_candidate_id")),
-                "organization": _safe_text(row.get("organization")),
-                "contact_name": _safe_text(row.get("contact_name")),
-                "role": _safe_text(row.get("role")),
-                "email": _safe_text(row.get("email")) or None,
-                "confidence": _safe_text(row.get("confidence")),
-                "source_ref": _safe_text(row.get("source_basis")),
-                "allowed_use": _safe_text(row.get("allowed_use")),
-                "verified": bool(row.get("verified")),
-                "evidence_status": "parsed_evidence_not_truth",
-                "trust_status": "needs_operator_confirmation",
+                "contact_candidate_id": entity_id,
+                "organization": "imported structured memory",
+                "contact_name": _safe_text(row.get("display_label_redacted")),
+                "role": role_by_entity.get(entity_id) or _safe_text(row.get("entity_kind")),
+                "email": "hash-only" if permission_count else None,
+                "email_permission_count": permission_count,
+                "confidence": "imported_structured_evidence",
+                "source_ref": _safe_text(row.get("source_ref")),
+                "allowed_use": "review_only_contact_posture",
+                "verified": False,
+                "evidence_status": _safe_text(row.get("evidence_status") or "parsed_evidence_not_truth"),
+                "trust_status": _safe_text(row.get("trust_status") or "needs_operator_confirmation"),
                 "no_send_authority": True,
                 "no_runtime_authority": True,
                 "approval_required": bool(row.get("operator_approval_required", 1)),
@@ -219,6 +292,38 @@ ORDER BY contact_name
             }
         )
     return candidates
+
+
+def _load_receivable_posture(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    if not _table_exists(conn, "cassandra_chief_memory_finance_source_links"):
+        return []
+    rows = _dict_rows(
+        conn,
+        """
+SELECT finance_link_id, finance_link_kind, finance_surface, finance_record_ref,
+       fact_authority_status, source_ref, source_type, evidence_status,
+       trust_status, no_send_authority, no_runtime_authority, approval_required
+FROM cassandra_chief_memory_finance_source_links
+WHERE source_id = ?
+ORDER BY finance_surface, finance_link_kind, finance_link_id
+""".strip(),
+        (MEMORY_SOURCE_IDS["receivables"],),
+    )
+    return [
+        {
+            "finance_link_id": _safe_text(row.get("finance_link_id")),
+            "posture_kind": _safe_text(row.get("finance_link_kind")),
+            "finance_surface": _safe_text(row.get("finance_surface")),
+            "record_ref_summary": _hash_fragment(row.get("finance_record_ref")),
+            "fact_authority_status": _safe_text(row.get("fact_authority_status")),
+            "evidence_status": _safe_text(row.get("evidence_status") or "parsed_evidence_not_truth"),
+            "trust_status": _safe_text(row.get("trust_status") or "needs_operator_confirmation"),
+            "no_send_authority": True,
+            "no_runtime_authority": True,
+            "approval_required": True,
+        }
+        for row in rows
+    ]
 
 
 def _load_missing_items(conn: sqlite3.Connection) -> list[dict[str, Any]]:
@@ -357,7 +462,7 @@ def _render_contact_review(payload: dict[str, Any]) -> str:
     lines = [
         "# Capital Hilton Contact Review",
         "",
-        "Contact candidates are review-only. They do not authorize any email send.",
+        "Contact candidates are imported structured memory posture only. They do not authorize any email send.",
         "",
     ]
     if not payload["contact_candidates"]:
@@ -367,6 +472,7 @@ def _render_contact_review(payload: dict[str, Any]) -> str:
             email = contact["email"] or "unknown"
             lines.append(
                 f"- {contact['contact_name']} ({contact['role']}), email={email}, "
+                f"email_permission_rows={contact.get('email_permission_count', 0)}, "
                 f"allowed_use={contact['allowed_use']}, verified={str(contact['verified']).lower()}"
             )
     lines.extend(["", "Boundary: no-send, no-runtime, needs operator confirmation.", ""])
@@ -457,6 +563,16 @@ Next safe move: operator reviews these facts, confirms missing/unknown portal de
 
 
 def _render_receivable_review(payload: dict[str, Any]) -> str:
+    posture_lines = []
+    if not payload.get("receivable_posture"):
+        posture_lines.append("- No imported receivable/payment posture rows found.")
+    else:
+        for item in payload["receivable_posture"][:20]:
+            posture_lines.append(
+                f"- {item['posture_kind']} from `{item['finance_surface']}` ({item['record_ref_summary']}), "
+                f"{item['evidence_status']} / {item['trust_status']}"
+            )
+
     return f"""# Capital Hilton Receivable Review - Draft Only
 
 owner_internal: {INTERNAL_AGENT}
@@ -470,6 +586,9 @@ Status:
 - Packet kind: {payload['packet_kind']}
 - Usable review packet: {str(payload['usable_capital_hilton_review_packet']).lower()}
 - Missing required facts: {payload['missing_required_fact_count']}
+
+Imported receivable/payment posture:
+{chr(10).join(posture_lines)}
 
 Next safe move:
 {payload['next_safe_lane']}
@@ -505,11 +624,13 @@ def build_cassandra_clara_fact_packet(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     path = init_finance_invoice_evidence_packet_schema(db_path or DEFAULT_DB_PATH)
+    init_cassandra_chief_memory_authority_schema(path)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     try:
         facts = _load_governed_facts(conn)
         contacts = _load_contact_candidates(conn)
+        receivable_posture = _load_receivable_posture(conn)
         missing_rows = _load_missing_items(conn)
     finally:
         conn.close()
@@ -526,22 +647,24 @@ def build_cassandra_clara_fact_packet(
         "packet_id": CAPITAL_HILTON_PACKET_ID,
         "internal_agent": INTERNAL_AGENT,
         "external_persona": EXTERNAL_PERSONA,
-        "source_policy": "governed_repo_a_sqlite_and_read_models_only",
+        "source_policy": "imported_cassandra_chief_memory_sqlite_only",
         "sqlite_db_path": str(path),
         "read_model_sources": [
-            "generated/read_models/finance_invoice_evidence_packets.json",
-            "generated/read_models/cassandra_chief_memory_authority.json",
+            "generated/read_models/cassandra_chief_structured_fact_import.json",
+            "generated/read_models/cassandra_chief_memory_import_approval.json",
         ],
         "packet_kind": packet_kind,
         "usable_capital_hilton_review_packet": usable,
         "missing_required_fact_count": len(missing_required),
         "governed_fact_count": len(facts),
         "contact_candidate_count": len(contacts),
+        "receivable_posture_count": len(receivable_posture),
         "required_fact_status": required_status,
         "missing_required_fields": missing_required,
         "invoice_facts_used": invoice_facts_used,
         "governed_facts": facts,
         "contact_candidates": contacts,
+        "receivable_posture": receivable_posture,
         "sqlite_missing_items": missing_rows,
         "boundaries": dict(NO_AUTHORITY_FLAGS),
         "raw_data_imported": False,
@@ -574,7 +697,9 @@ def format_cassandra_clara_fact_packet(payload: dict[str, Any]) -> str:
         f"Usable Capital Hilton review packet: `{str(payload['usable_capital_hilton_review_packet']).lower()}`",
         f"Governed facts found: `{payload['governed_fact_count']}`",
         f"Contact candidates found: `{payload['contact_candidate_count']}`",
+        f"Receivable/payment posture rows: `{payload['receivable_posture_count']}`",
         f"Missing required facts: `{payload['missing_required_fact_count']}`",
+        f"Source policy: `{payload['source_policy']}`",
         "",
         "## Artifacts",
     ]
@@ -593,6 +718,35 @@ def format_cassandra_clara_fact_packet(payload: dict[str, Any]) -> str:
     else:
         for item in payload["invoice_facts_used"]:
             lines.append(f"- `{item['field_name']}`: {item['value_text']}")
+    lines.extend(["", "## Facts Needing Operator Confirmation"])
+    confirmation_rows = [
+        item
+        for item in payload.get("required_fact_status", [])
+        if item.get("present") and item.get("trust_status") == "needs_operator_confirmation"
+    ]
+    if not confirmation_rows:
+        lines.append("- None.")
+    else:
+        for item in confirmation_rows:
+            lines.append(f"- `{item['field_name']}`: {item['display_name']}")
+    lines.extend(["", "## Contact / Recipient Posture"])
+    if not payload.get("contact_candidates"):
+        lines.append("- No imported contact posture rows found.")
+    else:
+        for item in payload["contact_candidates"][:12]:
+            lines.append(
+                f"- `{item['contact_candidate_id']}`: {item['contact_name']} / {item['role']}; "
+                f"email_permission_rows={item.get('email_permission_count', 0)}; no_send=true"
+            )
+    lines.extend(["", "## Invoice / Receivable Posture"])
+    if not payload.get("receivable_posture"):
+        lines.append("- No imported receivable/payment posture rows found.")
+    else:
+        for item in payload["receivable_posture"][:12]:
+            lines.append(
+                f"- `{item['posture_kind']}` from `{item['finance_surface']}`; "
+                f"{item['evidence_status']} / {item['trust_status']}"
+            )
     lines.extend(
         [
             "",

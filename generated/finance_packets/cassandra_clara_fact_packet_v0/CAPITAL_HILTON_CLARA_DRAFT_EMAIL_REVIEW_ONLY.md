@@ -1,21 +1,21 @@
 # Clara Reid Draft Email - Capital Hilton - Review Only, Do Not Send
 
-To/CC decision: To: Annette Sunga (business email pending confirmation); CC: operator email, Chyna Hardin, Lawrence/Will Valcovic; no send authority
+To/CC decision: recipient_decision has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4e606352be02); operator confirmation required
 Subject: Capital Hilton invoice review - [operator approval required]
 
 Hi [CONFIRM NAME],
 
 I am preparing the Capital Hilton invoice packet for review.
 
-Note: Clara Reid is helping prepare this for Winship; Clara should not independently sign, send, submit, upload, or use credentials.
+Note: clara_draft_note has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:4992c670ec7e); operator confirmation required
 
 Governed facts currently available:
-- Service dates: 2026-05-15 (operator said this was yesterday relative to May 16, 2026); 2026-05-08
-- Rate/amount per gig: $400 per gig
-- Invoice grouping: one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable
-- PO reference: unknown; operator reports Coupa PO credit may exist and PO must be confirmed in Coupa later; no portal login authorized
-- Portal/reference path: Coupa supplier portal reference provided by operator; credential use/storage not authorized; credentials must remain tokenized in a later approved lane
-- Attachment/output path: invoice must be created in Coupa against confirmed PO; existing Mac Documents/invoices spreadsheet is metadata-only source workbook; next invoice number should be one higher after workbook review; no spreadsheet cells read
+- Service dates: tonight_gig_date has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:e4843b5c9fd0); operator confirmation required; last_friday_gig_date has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:d0c045745ed6); operator confirmation required
+- Rate/amount per gig: rate_or_amount_per_gig has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:06ae3c61778f); operator confirmation required
+- Invoice grouping: invoice_count_preference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:62b213bacc10); operator confirmation required
+- PO reference: po_numbers has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:f7b0bbc2f9ec); operator confirmation required
+- Portal/reference path: supplier_portal_reference has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:ac571565822e); operator confirmation required
+- Attachment/output path: invoice_attachment_output_path has imported structured evidence in capital_hilton_invoice_fact_updates (sha256:64c764c0bb9b); operator confirmation required
 
 Before anything is sent or submitted, please confirm the remaining invoice details and recipient list.
 
