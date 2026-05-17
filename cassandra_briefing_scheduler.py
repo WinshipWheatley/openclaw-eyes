@@ -38,7 +38,11 @@ from cassandra_briefing_brain import (
 )
 from cassandra_sender import send_message
 from cassandra_voice import speak_and_send_voice_note
-from cassandra_no_send_reload_guard import is_no_send_reload_guard_enabled
+from cassandra_no_send_reload_guard import (
+    is_status_dry_run_enabled,
+    should_quiesce_send_capable_service,
+)
+from cassandra_send_status_dry_run import build_briefing_scheduler_status, format_service_status_marker
 
 POLL_INTERVAL = 300  # 5 minutes
 _RELOAD_PATHS = (
@@ -121,7 +125,12 @@ def _deliver(entry: dict) -> None:
 # ── Main tick ─────────────────────────────────────────────────────────────────
 
 def _tick() -> None:
-    if is_no_send_reload_guard_enabled():
+    if is_status_dry_run_enabled():
+        status = build_briefing_scheduler_status()
+        print(format_service_status_marker("briefing_scheduler", status), flush=True)
+        return
+
+    if should_quiesce_send_capable_service():
         print(
             "[briefing_scheduler] no-send reload guard active; skipping scheduler tick",
             flush=True,

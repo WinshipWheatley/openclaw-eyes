@@ -39,7 +39,11 @@ from cassandra_brain import (
 from cassandra_sender import send_message as _telegram_send
 from chief_output_utils import tts_clean
 from cassandra_voice import speak
-from cassandra_no_send_reload_guard import is_no_send_reload_guard_enabled
+from cassandra_no_send_reload_guard import (
+    is_status_dry_run_enabled,
+    should_quiesce_send_capable_service,
+)
+from cassandra_send_status_dry_run import build_watcher_status, format_service_status_marker
 
 _VAULT_SYS   = Path("/mnt/c/OpenClawShared/openclaw-vault/System")
 _OPS_PAYMENT = _VAULT_SYS / "Ops Payment Follow-ups.md"
@@ -180,7 +184,12 @@ def _evaluate() -> tuple[str, str] | None:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def _tick_once(last_ambient_eval_at: float) -> float:
-    if is_no_send_reload_guard_enabled():
+    if is_status_dry_run_enabled():
+        status = build_watcher_status()
+        print(format_service_status_marker("cassandra_watcher", status), flush=True)
+        return last_ambient_eval_at
+
+    if should_quiesce_send_capable_service():
         print(
             "[cassandra_watcher] no-send reload guard active; skipping watcher tick",
             flush=True,
