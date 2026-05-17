@@ -367,6 +367,16 @@ def build_capital_hilton_manual_confirmation_receipt(
             "confirmation_values_required_from_operator": True,
             "explicit_operator_values_required": True,
             "capture_input_path": "scripts/export_capital_hilton_manual_confirmation_receipt.py --confirmations-json <operator-confirmations.json>",
+            "client_specific_overlay": "hilton_coupa_supplier_portal",
+            "two_invoice_workflow_contract": "capital_hilton_two_invoice_workflow_v0",
+            "field_alignment": {
+                "po_coupa_requirement_confirmed": "Hilton Coupa PO requirement understood; not portal submission.",
+                "recipient_confirmed": "Excel companion/reference communication posture; not email send authority.",
+                "coupa_invoice_created_manually": "Manual Coupa payment invoice creation evidence; not OpenClaw portal creation.",
+                "spreadsheet_invoice_number_checked": "Excel companion invoice number/workbook check; not spreadsheet write authority.",
+                "include_2026_05_22": "Scope decision for companion invoice/future payment planning.",
+                "include_older_gigs": "Scope decision for companion invoice/historical context.",
+            },
             "accepted_input_shape": {
                 "confirmations": {
                     "po_coupa_requirement_confirmed": "true/false or {confirmed: true/false, evidence_ref: string}",
@@ -435,7 +445,7 @@ def build_capital_hilton_manual_confirmation_receipt(
             "operator_supplied_values_required": True,
         },
         "next_recommended_lane": (
-            "Capital Hilton Operator Confirmation Values v0"
+            "Capital Hilton Coupa Payment Invoice Proof Capture v0"
             if not hard_cleared
             else "Capital Hilton Operator Action Readiness Review v0"
         ),

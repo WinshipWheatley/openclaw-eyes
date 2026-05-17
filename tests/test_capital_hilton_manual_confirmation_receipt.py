@@ -276,6 +276,12 @@ def test_cli_confirmations_json_records_partial_capture(tmp_path, capsys):
     assert payload["recorded_confirmation_keys"] == ["recipient_confirmed"]
     assert payload["pending_confirmation_count"] == len(receipt.SUPPORTED_CONFIRMATION_FIELDS) - 1
     assert payload["confirmation_contract"]["explicit_operator_values_required"] is True
+    assert payload["confirmation_contract"]["client_specific_overlay"] == "hilton_coupa_supplier_portal"
+    assert payload["confirmation_contract"]["two_invoice_workflow_contract"] == "capital_hilton_two_invoice_workflow_v0"
+    assert (
+        "Manual Coupa payment invoice"
+        in payload["confirmation_contract"]["field_alignment"]["coupa_invoice_created_manually"]
+    )
 
 
 def test_generated_read_model_files_are_safe_mirror_candidates(tmp_path):

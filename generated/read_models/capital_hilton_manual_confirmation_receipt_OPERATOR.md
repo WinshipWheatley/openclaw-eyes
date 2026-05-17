@@ -39,4 +39,4 @@ Status:
 - No send path, Gmail/email path, Coupa submit, spreadsheet write, runtime action, or approval authority was added.
 - Pending items stay pending until explicit operator confirmation values are provided.
 
-Next safe lane: Capital Hilton Operator Confirmation Values v0
+Next safe lane: Capital Hilton Coupa Payment Invoice Proof Capture v0

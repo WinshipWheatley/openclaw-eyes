@@ -37,9 +37,18 @@
       }
     },
     "capture_input_path": "scripts/export_capital_hilton_manual_confirmation_receipt.py --confirmations-json <operator-confirmations.json>",
+    "client_specific_overlay": "hilton_coupa_supplier_portal",
     "confirmation_values_required_from_operator": true,
     "contract_kind": "manual_confirmation_receipt_for_review_packet",
     "explicit_operator_values_required": true,
+    "field_alignment": {
+      "coupa_invoice_created_manually": "Manual Coupa payment invoice creation evidence; not OpenClaw portal creation.",
+      "include_2026_05_22": "Scope decision for companion invoice/future payment planning.",
+      "include_older_gigs": "Scope decision for companion invoice/historical context.",
+      "po_coupa_requirement_confirmed": "Hilton Coupa PO requirement understood; not portal submission.",
+      "recipient_confirmed": "Excel companion/reference communication posture; not email send authority.",
+      "spreadsheet_invoice_number_checked": "Excel companion invoice number/workbook check; not spreadsheet write authority."
+    },
     "generalizable_to_other_review_packets": true,
     "no_confirmations_invented": true,
     "supported_fields": [
@@ -49,7 +58,8 @@
       "spreadsheet_invoice_number_checked",
       "include_2026_05_22",
       "include_older_gigs"
-    ]
+    ],
+    "two_invoice_workflow_contract": "capital_hilton_two_invoice_workflow_v0"
   },
   "confirmation_items": [
     {
@@ -223,14 +233,14 @@
   "email_sent": false,
   "external_action_authorized": false,
   "financial_truth_claimed": false,
-  "generated_at": "2026-05-17T15:52:10+00:00",
+  "generated_at": "2026-05-17T16:23:04+00:00",
   "generated_by": "codex",
   "gmail_or_email_send_triggered": false,
   "hard_blocker_confirmation_count": 4,
   "hard_blockers_cleared_by_receipt": false,
   "invoice_number_created": false,
   "manual_confirmation_evidence": [],
-  "next_recommended_lane": "Capital Hilton Operator Confirmation Values v0",
+  "next_recommended_lane": "Capital Hilton Coupa Payment Invoice Proof Capture v0",
   "packet_identity": {
     "packet_id": "finance_capital_hilton_invoice_packet_v0",
     "source_packet_actionable_for_manual_review": true,
