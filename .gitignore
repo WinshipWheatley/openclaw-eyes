@@ -74,6 +74,7 @@
 !business_ops_ledger.py
 !capital_hilton_actionable_review_packet.py
 !capital_hilton_review_packet_approval.py
+!capital_hilton_external_artifact_proof_capture.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -685,6 +686,7 @@
 !scripts/build_context_packet.py
 !scripts/export_capital_hilton_actionable_review_packet.py
 !scripts/export_capital_hilton_review_packet_approval.py
+!scripts/export_capital_hilton_external_artifact_proof_capture.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
 !scripts/build_active_machinery_operator_disposition.py
@@ -732,6 +734,7 @@
 !tests/test_operator_action_inbox.py
 !tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py
+!tests/test_capital_hilton_external_artifact_proof_capture.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
 !tests/test_active_machinery_operator_disposition.py

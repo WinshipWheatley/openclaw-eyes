@@ -123,13 +123,13 @@
     "actor": "guardian",
     "approval_id": "cap_hilton_send_approval_abed0fefa26a5b337443",
     "authority_scope": "specific_email_draft_and_attachment_only_no_general_send",
-    "expires_at": "2026-05-18T01:51:04+00:00",
+    "expires_at": "2026-05-18T03:08:31+00:00",
     "explicit_authorized_packet_ref": "future_required_before_available::future_required_before_available",
     "idempotency_key": "cap_hilton_send_idem_cadeccf35c528b372571",
     "payload_hash": "b57e14db6ebd3c10a67ea8cd5009405150cdc240a293807bbf99bc3bba7723a0",
     "payload_mutable_after_approval": false,
     "payload_schema_version": "capital_hilton_send_approval_gate_v0",
-    "requested_at": "2026-05-17T19:51:04+00:00",
+    "requested_at": "2026-05-17T21:08:31+00:00",
     "risk_tier": "tier_2_external_communication_future_blocked",
     "source_intent_ref": "modeled:cassandra_outward_email_draft:capital_hilton_final_send",
     "target": "capital_hilton_coupa_supplier_portal_invoice",
@@ -271,6 +271,16 @@
     "general runtime authority",
     "future sends"
   ],
+  "external_artifact_proof_capture_context": {
+    "coupa_invoice_proof_status": "pending_not_recorded",
+    "evidence_only": true,
+    "excel_companion_artifact_status": "pending_not_recorded",
+    "excel_coupa_match_proof_status": "pending_not_recorded",
+    "raw_sensitive_artifact_stored_in_read_model": false,
+    "schema_version": "capital_hilton_external_artifact_proof_capture_v0",
+    "source_path": "generated/read_models/capital_hilton_external_artifact_proof_capture.json",
+    "source_present": true
+  },
   "future_implementation_checklist": [
     {
       "check_id": "protected_coupa_invoice_proof",
@@ -322,7 +332,7 @@
     }
   ],
   "general_email_authority_added": false,
-  "generated_at": "2026-05-17T19:51:04+00:00",
+  "generated_at": "2026-05-17T21:08:31+00:00",
   "generated_by": "codex",
   "generic_final_send_approval_contract": {
     "authority_rule": "final-send approval never creates general send, runtime, browser, credential, spreadsheet, or portal authority",

@@ -21,6 +21,7 @@ from typing import Any
 from capital_hilton_actionable_review_packet import DEFAULT_EXPORT_ROOT, stable_json
 from guardian_hitl_sqlite_authority_contract import validate_canonical_approval_payload
 from post_preflight_batch_gate import evaluate_post_preflight_lane
+from capital_hilton_external_artifact_proof_capture import final_send_prerequisite_status_from_records
 
 
 ROOT = Path(__file__).resolve().parent
@@ -30,6 +31,7 @@ OPERATOR_EXPORT_NAME = "capital_hilton_send_approval_gate_OPERATOR.md"
 DEFAULT_EXECUTION_PATH = DEFAULT_EXPORT_ROOT / "capital_hilton_coupa_execution_path.json"
 DEFAULT_START_APPROVAL_PATH = DEFAULT_EXPORT_ROOT / "capital_hilton_coupa_start_approval_packet.json"
 DEFAULT_POWER_STAGE_PATH = DEFAULT_EXPORT_ROOT / "operator_sovereignty_power_stage_gate.json"
+DEFAULT_PROOF_CAPTURE_PATH = DEFAULT_EXPORT_ROOT / "capital_hilton_external_artifact_proof_capture.json"
 
 WORKFLOW_ID = "capital_hilton_coupa_supplier_portal_invoice"
 APPROVAL_TYPE = "send_email_with_invoice_approval"
@@ -188,6 +190,23 @@ def default_prerequisite_evidence() -> dict[str, bool]:
         "no_unresolved_critical_blockers": False,
         "guardian_start_approval_recorded_or_required_upstream": True,
     }
+
+
+def _prerequisite_evidence_from_proof_capture(proof_capture: dict[str, Any]) -> dict[str, bool]:
+    records = proof_capture.get("proof_records")
+    if not isinstance(records, dict):
+        return {}
+    required = {
+        "coupa_payment_invoice_proof",
+        "excel_companion_invoice_artifact",
+        "excel_coupa_match_proof",
+    }
+    if not required.issubset(records):
+        return {}
+    try:
+        return final_send_prerequisite_status_from_records(records)
+    except (KeyError, TypeError):
+        return {}
 
 
 def _availability_state(evidence: dict[str, bool]) -> tuple[str, list[str]]:
@@ -512,6 +531,7 @@ def build_capital_hilton_send_approval_gate(
     execution_path_json: str | Path = DEFAULT_EXECUTION_PATH,
     start_approval_json: str | Path = DEFAULT_START_APPROVAL_PATH,
     power_stage_json: str | Path = DEFAULT_POWER_STAGE_PATH,
+    proof_capture_json: str | Path = DEFAULT_PROOF_CAPTURE_PATH,
     prerequisite_evidence: dict[str, bool] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -519,9 +539,12 @@ def build_capital_hilton_send_approval_gate(
     execution_path = _read_json_if_present(execution_path_json)
     start_approval = _read_json_if_present(start_approval_json)
     power_stage = _read_json_if_present(power_stage_json)
+    proof_capture = _read_json_if_present(proof_capture_json)
     evidence = default_prerequisite_evidence()
     if prerequisite_evidence:
         evidence.update({key: bool(value) for key, value in prerequisite_evidence.items()})
+    else:
+        evidence.update(_prerequisite_evidence_from_proof_capture(proof_capture))
     availability_state, failure_reasons = _availability_state(evidence)
     evidence_records = _prerequisite_records(evidence)
     draft_identity = _draft_identity(evidence)
@@ -612,6 +635,16 @@ def build_capital_hilton_send_approval_gate(
                     "send_approval_blocked_until_excel_match_verified"
                 )
             ),
+        },
+        "external_artifact_proof_capture_context": {
+            "source_path": _display_path(proof_capture_json),
+            "source_present": bool(proof_capture),
+            "schema_version": proof_capture.get("schema_version"),
+            "coupa_invoice_proof_status": (proof_capture.get("status_summary") or {}).get("coupa_invoice_proof_status", "pending_not_recorded"),
+            "excel_companion_artifact_status": (proof_capture.get("status_summary") or {}).get("excel_companion_artifact_status", "pending_not_recorded"),
+            "excel_coupa_match_proof_status": (proof_capture.get("status_summary") or {}).get("excel_coupa_match_proof_status", "pending_not_recorded"),
+            "raw_sensitive_artifact_stored_in_read_model": bool((proof_capture.get("status_summary") or {}).get("raw_sensitive_artifact_stored_in_read_model", False)),
+            "evidence_only": bool((proof_capture.get("authority_boundary") or {}).get("evidence_only", False)),
         },
         "upstream_start_approval_context": {
             "source_path": _display_path(start_approval_json),
@@ -731,6 +764,7 @@ def export_capital_hilton_send_approval_gate(
     execution_path_json: str | Path = DEFAULT_EXECUTION_PATH,
     start_approval_json: str | Path = DEFAULT_START_APPROVAL_PATH,
     power_stage_json: str | Path = DEFAULT_POWER_STAGE_PATH,
+    proof_capture_json: str | Path = DEFAULT_PROOF_CAPTURE_PATH,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
 ) -> SendApprovalGateExportResult:
@@ -738,6 +772,7 @@ def export_capital_hilton_send_approval_gate(
         execution_path_json=execution_path_json,
         start_approval_json=start_approval_json,
         power_stage_json=power_stage_json,
+        proof_capture_json=proof_capture_json,
         generated_at=generated_at,
     )
     root = _rooted(export_root)
@@ -765,6 +800,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--execution-path-json", default=str(DEFAULT_EXECUTION_PATH))
     parser.add_argument("--start-approval-json", default=str(DEFAULT_START_APPROVAL_PATH))
     parser.add_argument("--power-stage-json", default=str(DEFAULT_POWER_STAGE_PATH))
+    parser.add_argument("--proof-capture-json", default=str(DEFAULT_PROOF_CAPTURE_PATH))
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
     parser.add_argument("--format", choices=("json", "operator", "summary"), default="summary")
     return parser.parse_args(argv)
@@ -776,6 +812,7 @@ def main(argv: list[str] | None = None) -> int:
         execution_path_json=args.execution_path_json,
         start_approval_json=args.start_approval_json,
         power_stage_json=args.power_stage_json,
+        proof_capture_json=args.proof_capture_json,
         export_root=args.export_root,
     )
     root = _rooted(args.export_root)
@@ -792,6 +829,7 @@ __all__ = [
     "APPROVAL_TYPE",
     "AVAILABILITY_STATES",
     "DEFAULT_EXECUTION_PATH",
+    "DEFAULT_PROOF_CAPTURE_PATH",
     "GENERIC_CONTRACT_ID",
     "JSON_EXPORT_NAME",
     "NO_AUTHORITY_FLAGS",
