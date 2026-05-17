@@ -1,8 +1,10 @@
-# Cassandra Governed Intake Synthetic Proof v0
+# Cassandra Governed Intake Receive Wiring Proof v0
 
 Status:
+- Live receive wired: `true`.
 - Synthetic receive proven: `true`.
 - Live receive proven: `false`.
+- Live test required: `true`.
 - Raw body stored: `false`.
 - Send authority added: `false`.
 - Reply authority added: `false`.
@@ -10,6 +12,8 @@ Status:
 
 ## What Is Proven
 - A Cassandra-targeted synthetic Telegram-style update can be stored as governed Repo A intake metadata.
+- The live `cassandra_listener.py` receive path calls the governed Cassandra intake helper.
+- The live hook is before unverified-sender return, reply handling, and Cassandra runtime brain calls.
 - The message is routed through deterministic intent records and surfaced on the Work Board.
 - A planning-only Agent Work Packet can be built from the routed intent.
 - Only hash and bounded excerpt metadata are retained; no full raw body is stored.
@@ -28,7 +32,7 @@ Status:
 - Full raw body included in read-model: `false`.
 
 ## What Is Not Proven
-- No live Telegram receive has been proven by this lane.
+- No live Telegram receive has been observed yet; Winship still needs to send the test message.
 - The legacy listener was not imported, executed, changed, restarted, or replaced.
 - No send, reply, runtime, sync, or shell authority was added.
 

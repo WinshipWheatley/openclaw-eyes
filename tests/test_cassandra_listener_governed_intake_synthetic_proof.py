@@ -30,12 +30,34 @@ def test_synthetic_receive_creates_governed_intake_metadata(tmp_path):
 
     assert payload["schema_version"] == "cassandra_listener_governed_intake_synthetic_proof_v0"
     assert payload["synthetic_receive_proven"] is True
+    assert payload["live_receive_wired"] is True
+    assert payload["live_test_required"] is True
     assert route["routed_agent_id"] == "cassandra"
     assert route["routed_lane_id"] == "operator_comms"
     assert route["intent_record_id"]
     assert route["work_board_card_id"]
     assert route["agent_work_packet_id"]
     assert payload["blockers"] == []
+
+
+def test_live_listener_receive_path_is_wired_before_reply_or_runtime_paths():
+    wiring = proof.inspect_cassandra_listener_receive_wiring()
+
+    assert wiring["live_receive_wired"] is True
+    assert wiring["hook_imported"] is True
+    assert wiring["hook_call_present"] is True
+    assert wiring["hook_after_text_strip"] is True
+    assert wiring["hook_before_unverified_sender_return"] is True
+    assert wiring["hook_before_reply_text"] is True
+    assert wiring["hook_before_runtime_brain"] is True
+    assert wiring["operator_message_gates_routing"] is True
+    assert wiring["unverified_sender_metadata_only"] is True
+    assert wiring["source_channel"] == "cassandra_listener"
+    assert wiring["listener_imported_or_executed"] is False
+    assert wiring["service_restarted"] is False
+    assert wiring["send_authority_added"] is False
+    assert wiring["reply_authority_added"] is False
+    assert wiring["runtime_authority_changed"] is False
 
 
 def test_raw_full_body_is_not_stored_and_bounded_excerpt_hash_rules_are_respected(tmp_path):
@@ -129,7 +151,10 @@ def test_export_writes_json_and_operator_packet_with_live_verification_instructi
     )
 
     assert summary["synthetic_receive_proven"] is True
+    assert summary["live_receive_wired"] is True
+    assert summary["live_test_required"] is True
     assert payload["live_receive_proven"] is False
+    assert payload["live_listener_wiring"]["live_receive_wired"] is True
     assert payload["exact_live_test_message"] == proof.LIVE_TEST_MESSAGE
     assert "scripts/query_telegram_agent_intake.py --report cassandra-live --format operator" in "\n".join(
         payload["exact_verification_commands"]
@@ -148,7 +173,8 @@ def test_cli_outputs_json_and_operator(tmp_path, capsys):
 
     assert cli_main(["--db", str(db_path), "--export-root", str(export_root), "--format", "operator"]) == 0
     operator_output = capsys.readouterr().out
-    assert "Cassandra Governed Intake Synthetic Proof" in operator_output
+    assert "Cassandra Governed Intake Receive Wiring Proof" in operator_output
+    assert "Live receive wired: `true`" in operator_output
     assert "Raw body stored: `false`" in operator_output
 
 

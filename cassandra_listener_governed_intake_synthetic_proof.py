@@ -31,6 +31,7 @@ OPERATOR_EXPORT_NAME = "cassandra_listener_governed_intake_synthetic_proof_OPERA
 
 RUN_ID = "cassandra_listener_governed_intake_synthetic_proof_v0"
 SOURCE_CHANNEL = "synthetic_cassandra_governed_intake_proof"
+LIVE_SOURCE_CHANNEL = "cassandra_listener"
 SOURCE_MESSAGE_ID = "synthetic_cassandra_governed_intake_proof_v0"
 RECEIVED_AT = "2026-05-17T00:00:00+00:00"
 LIVE_TEST_MESSAGE = "Cassandra, receive-only governed intake test: You seeing this through Repo A?"
@@ -126,6 +127,70 @@ def _read_observed_rows(db_path: str | Path, update_record_id: str, intent_id: s
 
 def _make_stage(stage: str, observed: bool, **details: Any) -> dict[str, Any]:
     return {"stage": stage, "observed": observed, **details}
+
+
+def inspect_cassandra_listener_receive_wiring(listener_path: str | Path = ROOT / "cassandra_listener.py") -> dict[str, Any]:
+    """Inspect the live listener source without importing or executing it."""
+
+    target = rooted(listener_path)
+    source = target.read_text(encoding="utf-8")
+    handle_index = source.find("async def handle_message")
+    hook_index = source.find("record_cassandra_listener_text_update(", handle_index)
+    unverified_return_index = source.find("if not is_authorized_user and not is_designated_contact:", handle_index)
+    first_reply_index = source.find(".reply_text(", handle_index)
+    runtime_request_index = source.find("_run_request_with_timeout_contract(", handle_index)
+    source_channel_declared = 'source_channel=AGENT_METADATA["cassandra"]["source_channel"]' in Path(
+        ROOT / "telegram_agent_intake.py"
+    ).read_text(encoding="utf-8")
+
+    def line_no(index: int) -> int | None:
+        if index < 0:
+            return None
+        return source[:index].count("\n") + 1
+
+    hook_present = hook_index >= 0
+    hook_after_text_strip = source.find("text = update.message.text.strip()", handle_index) < hook_index if hook_present else False
+    hook_before_unverified_return = hook_present and unverified_return_index > hook_index
+    hook_before_reply = hook_present and first_reply_index > hook_index
+    hook_before_runtime_brain = hook_present and runtime_request_index > hook_index
+    operator_gated_route = (
+        "operator_message=is_authorized_user" in source[hook_index : hook_index + 500]
+        and "route_intent=is_authorized_user" in source[hook_index : hook_index + 500]
+    )
+    wiring_proven = all(
+        (
+            "from telegram_agent_intake import record_cassandra_listener_text_update" in source,
+            hook_present,
+            hook_after_text_strip,
+            hook_before_unverified_return,
+            hook_before_reply,
+            hook_before_runtime_brain,
+            "source_user_label=source_user_label" in source[hook_index : hook_index + 500],
+            operator_gated_route,
+            source_channel_declared,
+        )
+    )
+    return {
+        "listener_path": display_path(target),
+        "live_receive_wired": wiring_proven,
+        "hook_imported": "from telegram_agent_intake import record_cassandra_listener_text_update" in source,
+        "hook_call_present": hook_present,
+        "hook_line": line_no(hook_index),
+        "hook_after_text_strip": hook_after_text_strip,
+        "hook_before_unverified_sender_return": hook_before_unverified_return,
+        "hook_before_reply_text": hook_before_reply,
+        "hook_before_runtime_brain": hook_before_runtime_brain,
+        "operator_message_gates_routing": operator_gated_route,
+        "unverified_sender_metadata_only": hook_before_unverified_return,
+        "source_channel": LIVE_SOURCE_CHANNEL,
+        "source_channel_declared_in_helper": source_channel_declared,
+        "listener_imported_or_executed": False,
+        "service_restarted": False,
+        "caller_switched": False,
+        "send_authority_added": False,
+        "reply_authority_added": False,
+        "runtime_authority_changed": False,
+    }
 
 
 def build_cassandra_listener_governed_intake_synthetic_proof(
@@ -253,6 +318,10 @@ def build_cassandra_listener_governed_intake_synthetic_proof(
     if not no_send_flags:
         blockers.append("no_send_flags_not_proven")
 
+    live_wiring = inspect_cassandra_listener_receive_wiring()
+    if not live_wiring["live_receive_wired"]:
+        blockers.append("live_listener_receive_hook_not_wired")
+
     synthetic_receive_proven = not blockers
     return {
         "schema_version": SCHEMA_VERSION,
@@ -260,9 +329,13 @@ def build_cassandra_listener_governed_intake_synthetic_proof(
         "generated_at": generated_at or utc_now(),
         "db_path": display_path(path),
         "synthetic_receive_proven": synthetic_receive_proven,
+        "live_receive_wired": live_wiring["live_receive_wired"],
+        "live_test_required": True,
         **NO_AUTHORITY_FLAGS,
+        "live_listener_wiring": live_wiring,
         "message_proof": {
             "source_channel": SOURCE_CHANNEL,
+            "live_source_channel": LIVE_SOURCE_CHANNEL,
             "source_message_id": SOURCE_MESSAGE_ID,
             "received_at": RECEIVED_AT,
             "synthetic_message_char_count": len(SYNTHETIC_MESSAGE),
@@ -313,11 +386,13 @@ def build_cassandra_listener_governed_intake_synthetic_proof(
 def format_operator_packet(payload: dict[str, Any]) -> str:
     proof = payload["message_proof"]
     lines = [
-        "# Cassandra Governed Intake Synthetic Proof v0",
+        "# Cassandra Governed Intake Receive Wiring Proof v0",
         "",
         "Status:",
+        f"- Live receive wired: `{str(payload['live_receive_wired']).lower()}`.",
         f"- Synthetic receive proven: `{str(payload['synthetic_receive_proven']).lower()}`.",
         "- Live receive proven: `false`.",
+        "- Live test required: `true`.",
         "- Raw body stored: `false`.",
         "- Send authority added: `false`.",
         "- Reply authority added: `false`.",
@@ -325,6 +400,8 @@ def format_operator_packet(payload: dict[str, Any]) -> str:
         "",
         "## What Is Proven",
         "- A Cassandra-targeted synthetic Telegram-style update can be stored as governed Repo A intake metadata.",
+        "- The live `cassandra_listener.py` receive path calls the governed Cassandra intake helper.",
+        "- The live hook is before unverified-sender return, reply handling, and Cassandra runtime brain calls.",
         "- The message is routed through deterministic intent records and surfaced on the Work Board.",
         "- A planning-only Agent Work Packet can be built from the routed intent.",
         "- Only hash and bounded excerpt metadata are retained; no full raw body is stored.",
@@ -344,7 +421,7 @@ def format_operator_packet(payload: dict[str, Any]) -> str:
             "- Full raw body included in read-model: `false`.",
             "",
             "## What Is Not Proven",
-            "- No live Telegram receive has been proven by this lane.",
+            "- No live Telegram receive has been observed yet; Winship still needs to send the test message.",
             "- The legacy listener was not imported, executed, changed, restarted, or replaced.",
             "- No send, reply, runtime, sync, or shell authority was added.",
             "",
@@ -385,7 +462,9 @@ def export_cassandra_listener_governed_intake_synthetic_proof(
         "read_model_json_path": written_json,
         "read_model_operator_path": written_operator,
         "synthetic_receive_proven": payload["synthetic_receive_proven"],
+        "live_receive_wired": payload["live_receive_wired"],
         "live_receive_proven": False,
+        "live_test_required": True,
         "raw_body_stored": False,
         "send_authority_added": False,
         "reply_authority_added": False,
