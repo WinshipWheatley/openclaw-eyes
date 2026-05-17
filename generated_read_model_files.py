@@ -45,6 +45,13 @@ NO_GO_FILE_HINTS = (
     "tmp",
 )
 
+MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
+    "capital_hilton_actionable_review_packet.json",
+    "capital_hilton_actionable_review_packet_OPERATOR.md",
+    "cassandra_governed_review_packet_request_proof.json",
+    "cassandra_governed_review_packet_request_proof_OPERATOR.md",
+)
+
 CRITICAL_GENERATED_READ_MODEL_FILES = (
     "artifact_registry.json",
     "evidence_freshness.json",
@@ -55,6 +62,7 @@ CRITICAL_GENERATED_READ_MODEL_FILES = (
     "source_inventory.json",
     "world_domain_registry.json",
     "world_status.json",
+    *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
 )
 
 
@@ -155,6 +163,7 @@ def canonical_generated_read_model_expected_files(
 __all__ = [
     "CRITICAL_GENERATED_READ_MODEL_FILES",
     "DEFAULT_GENERATED_READ_MODEL_ROOT",
+    "MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES",
     "NO_GO_FILE_HINTS",
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from corpus_atlas import run_corpus_atlas
+from generated_read_model_files import MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
 from read_model_shuttle import DEFAULT_RETURNED_MANIFEST_PATH, build_mac_generated_read_model_manifest
 from scripts.import_latest_mac_read_model_mirror import (
     CRITICAL_READ_MODEL_FILES,
@@ -38,6 +39,7 @@ def _repo_fixture(tmp_path: Path) -> Path:
         "context_selection_OPERATOR.md",
         "generated_current_state.md",
         "source_inventory.operator.txt",
+        *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     ):
         _write(read_models / name, f"{name}\n")
     _write(read_models / "mac_generated_read_models_manifest.json", "{}\n")

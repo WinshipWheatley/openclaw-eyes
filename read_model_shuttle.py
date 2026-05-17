@@ -20,6 +20,7 @@ from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
 from generated_read_model_files import (
     DEFAULT_GENERATED_READ_MODEL_ROOT,
+    MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     NO_GO_FILE_HINTS,
     NO_GO_PARTS,
     SAFE_READ_MODEL_SUFFIXES,
@@ -89,6 +90,10 @@ EVIDENCE_CATEGORY_BY_NAME = {
     "tool_intake_OPERATOR.md": "context_gate",
     "context_selection.json": "context_gate",
     "context_selection_OPERATOR.md": "context_gate",
+    **{
+        name: "operator_review_packet"
+        for name in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+    },
 }
 
 
@@ -440,6 +445,10 @@ category_by_name = {
     "tool_intake_OPERATOR.md": "context_gate",
     "context_selection.json": "context_gate",
     "context_selection_OPERATOR.md": "context_gate",
+    "capital_hilton_actionable_review_packet.json": "operator_review_packet",
+    "capital_hilton_actionable_review_packet_OPERATOR.md": "operator_review_packet",
+    "cassandra_governed_review_packet_request_proof.json": "operator_review_packet",
+    "cassandra_governed_review_packet_request_proof_OPERATOR.md": "operator_review_packet",
 }
 
 def stable_json(payload):

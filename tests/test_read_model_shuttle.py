@@ -3,6 +3,11 @@ import sqlite3
 from pathlib import Path
 
 from corpus_atlas import run_corpus_atlas
+from generated_read_model_files import (
+    CRITICAL_GENERATED_READ_MODEL_FILES,
+    MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+    canonical_generated_read_model_expected_files,
+)
 from read_model_shuttle import (
     DEFAULT_FROM_MAC_SEARCH_ROOTS,
     DEFAULT_RETURNED_MANIFEST_PATH,
@@ -14,6 +19,8 @@ from read_model_shuttle import (
     mac_apply_script,
     prepare_mac_read_model_shuttle,
 )
+from scripts.import_latest_mac_read_model_mirror import CRITICAL_READ_MODEL_FILES
+from scripts.mac_sync_generated_read_models import KEY_READ_MODEL_FILES
 
 
 def _write(path: Path, text: str = "{}\n") -> None:
@@ -166,6 +173,34 @@ def test_portable_mac_manifest_logic_produces_importable_manifest(tmp_path):
     by_path = {record["relative_path"]: record for record in manifest["path_records"]}
     assert by_path["context_selection.json"]["content_hash"]
     assert by_path["context_selection.json"]["evidence_category"] == "context_gate"
+
+
+def test_capital_hilton_review_packet_files_are_mirror_expected_and_keyed():
+    expected = set(canonical_generated_read_model_expected_files())
+
+    for name in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES:
+        assert name in expected
+        assert name in CRITICAL_GENERATED_READ_MODEL_FILES
+        assert name in KEY_READ_MODEL_FILES
+        assert name in CRITICAL_READ_MODEL_FILES
+
+
+def test_capital_hilton_review_packet_manifest_category(tmp_path):
+    mac_root = tmp_path / "mac_generated"
+    for name in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES:
+        _write(mac_root / name, f"{name}\n")
+    manifest_path = tmp_path / "mac_generated_read_models_manifest.json"
+
+    manifest = build_mac_generated_read_model_manifest(
+        destination_root=mac_root,
+        output=manifest_path,
+        generated_at="2026-05-17T14:00:00+00:00",
+    )
+
+    by_path = {record["relative_path"]: record for record in manifest["path_records"]}
+    for name in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES:
+        assert by_path[name]["content_hash"]
+        assert by_path[name]["evidence_category"] == "operator_review_packet"
 
 
 def test_import_script_logic_imports_fixture_manifest_without_moving_files(tmp_path):
