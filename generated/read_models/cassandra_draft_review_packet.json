@@ -1,0 +1,255 @@
+{
+  "approval_authority_added": false,
+  "approval_requirements": {
+    "approval_receipt_present": false,
+    "approval_receipt_required_before_execution": true,
+    "approval_request_created_in_this_lane": false,
+    "approval_scope": "specific_draft_specific_attachment_specific_workflow_only",
+    "future_approval_gate_reference": {
+      "external_account_accessed": false,
+      "path": "generated/read_models/capital_hilton_send_approval_gate.json",
+      "present": true,
+      "raw_private_body_read": false,
+      "schema_version": "capital_hilton_send_approval_gate_v0"
+    },
+    "generic_send_authority_allowed": false,
+    "guardian_required_before_any_send": true
+  },
+  "attachments_expected": [
+    {
+      "attachment_role": "excel_companion_invoice_pdf",
+      "pdf_generated_in_this_lane": false,
+      "protected_reference_present_now": false,
+      "raw_pdf_attached": false,
+      "required_before_send": true,
+      "status": "protected_reference_placeholder_only"
+    }
+  ],
+  "authority_boundary": {
+    "approval_authority_added": false,
+    "browser_automation_added": false,
+    "calendar_access_triggered": false,
+    "email_sent": false,
+    "gmail_draft_created": false,
+    "gmail_or_email_send_triggered": false,
+    "live_gmail_read_triggered": false,
+    "mission_control_app_changed": false,
+    "oauth_or_credentials_accessed": false,
+    "pdf_generated_or_attached": false,
+    "raw_inbox_or_calendar_content_read": false,
+    "raw_private_contact_scraped": false,
+    "read_model_only": true,
+    "repo_b_executed": false,
+    "review_only": true,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "spreadsheet_mutation_triggered": false
+  },
+  "blockers": [
+    {
+      "blocker_id": "missing_coupa_payment_invoice_proof",
+      "description": "Missing governed Coupa supplier-portal payment invoice proof.",
+      "next_safe_move": "Record protected proof metadata through the governed Capital Hilton proof rail when real proof exists.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_excel_companion_invoice_artifact",
+      "description": "Missing governed Excel companion invoice protected artifact/reference.",
+      "next_safe_move": "Record protected proof metadata through the governed Capital Hilton proof rail when real proof exists.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_excel_coupa_match_proof",
+      "description": "Missing governed Excel companion invoice matches Coupa/payment invoice proof.",
+      "next_safe_move": "Record protected proof metadata through the governed Capital Hilton proof rail when real proof exists.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_email_draft",
+      "description": "missing email draft",
+      "next_safe_move": "Keep the packet review-only until proof, draft identity, attachment reference, and Guardian gate conditions are satisfied.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_attachment_reference",
+      "description": "missing attachment reference",
+      "next_safe_move": "Keep the packet review-only until proof, draft identity, attachment reference, and Guardian gate conditions are satisfied.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_draft_identity_hash_reference",
+      "description": "missing draft identity hash reference",
+      "next_safe_move": "Keep the packet review-only until proof, draft identity, attachment reference, and Guardian gate conditions are satisfied.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "missing_attachment_identity_hash_reference",
+      "description": "missing attachment identity hash reference",
+      "next_safe_move": "Keep the packet review-only until proof, draft identity, attachment reference, and Guardian gate conditions are satisfied.",
+      "severity": "blocks_final_send"
+    },
+    {
+      "blocker_id": "unresolved_critical_blockers",
+      "description": "unresolved critical blockers",
+      "next_safe_move": "Keep the packet review-only until proof, draft identity, attachment reference, and Guardian gate conditions are satisfied.",
+      "severity": "blocks_final_send"
+    }
+  ],
+  "body": {
+    "body_mode": "summary_preview_only",
+    "body_summary": "Review-only companion invoice email packet. Final send remains blocked until governed proof and specific draft/attachment approval requirements are satisfied.",
+    "body_text": "Hello - this is a review-only companion invoice note for the Capital Hilton workflow. It should not be sent until Coupa payment-invoice proof, Excel companion match proof, attachment identity, and specific Guardian final-send approval are recorded.",
+    "body_text_available_for_operator_review": true,
+    "live_gmail_content_used": false,
+    "raw_private_inbox_content_used": false
+  },
+  "bridged_capabilities": {
+    "blocked": [
+      "google_access_broker.py",
+      "generic calendar cleanup",
+      "unknown future email/calendar capability"
+    ],
+    "from_reconciliation_schema": "cassandra_email_calendar_capability_reconciliation_v0",
+    "keep_and_bridge": [
+      "cassandra_email_triage.py",
+      "cassandra_send_status_dry_run.py",
+      "cassandra_governed_review_packet_request.py",
+      "guardian_hitl_authority_reconciliation.py",
+      "templates/agent/*.json"
+    ],
+    "keep_as_reference": [
+      "cassandra_outreach.py",
+      "cassandra_brain.py email/calendar intent paths"
+    ]
+  },
+  "browser_automation_added": false,
+  "calendar_access_triggered": false,
+  "draft_id": "cass_draft_review_c5e93dfda6dfa1c06686",
+  "draft_purpose": "review_companion_invoice_email_before_any_future_send",
+  "draft_status": "proposed_review_packet_not_gmail_draft",
+  "email_sent": false,
+  "generated_at": "2026-05-18T22:21:07+00:00",
+  "generated_by": "codex",
+  "gmail_draft_created": false,
+  "gmail_or_email_send_triggered": false,
+  "intended_workflow": "capital_hilton_two_invoice_final_send_review",
+  "live_gmail_read_triggered": false,
+  "mission_control_app_changed": false,
+  "next_recommended_lane": "Mission Control Cassandra Draft Review Surface v0",
+  "next_safe_move": "Review the packet only; record Coupa proof and Excel match proof through governed evidence rails before any final-send approval lane.",
+  "oauth_or_credentials_accessed": false,
+  "packet_kind": "cassandra_email_draft_review_packet",
+  "packet_status": "review_only_blocked_before_send",
+  "pdf_generated_or_attached": false,
+  "raw_inbox_or_calendar_content_read": false,
+  "raw_private_contact_scraped": false,
+  "read_model_only": true,
+  "receipt_proof_status": {
+    "approval_specific_action_scoped": true,
+    "draft_review_packet_created": true,
+    "email_sent": false,
+    "final_send_remains_blocked": true,
+    "generic_send_authority_added": false,
+    "gmail_draft_created": false,
+    "live_account_accessed": false,
+    "pdf_attached": false,
+    "unknown_capability_fails_closed": true
+  },
+  "recipient_group": {
+    "cc_role_labels": [
+      "operator review copy role",
+      "finance context stakeholders - pending safe modeled confirmation"
+    ],
+    "raw_private_contact_expanded": false,
+    "recipient_roles_only": true,
+    "to_role_labels": [
+      "Capital Hilton payment/invoice recipient role - pending safe modeled confirmation"
+    ]
+  },
+  "repo_b_executed": false,
+  "required_proofs": [
+    {
+      "label": "Coupa supplier-portal payment invoice proof",
+      "present_now": false,
+      "proof_status": "pending_not_recorded",
+      "proof_type": "coupa_payment_invoice_proof",
+      "protected_reference_only": true,
+      "raw_artifact_stored": false,
+      "reference_role": "payment_invoice_proof",
+      "required_before_final_send": true
+    },
+    {
+      "label": "Excel companion invoice protected artifact/reference",
+      "present_now": false,
+      "proof_status": "pending_not_recorded",
+      "proof_type": "excel_companion_invoice_artifact",
+      "protected_reference_only": true,
+      "raw_artifact_stored": false,
+      "reference_role": "companion_invoice_reference",
+      "required_before_final_send": true
+    },
+    {
+      "label": "Excel companion invoice matches Coupa/payment invoice proof",
+      "present_now": false,
+      "proof_status": "pending_not_recorded",
+      "proof_type": "excel_coupa_match_proof",
+      "protected_reference_only": true,
+      "raw_artifact_stored": false,
+      "reference_role": "companion_match_proof",
+      "required_before_final_send": true
+    }
+  ],
+  "review_only": true,
+  "review_status": "operator_review_packet_ready_send_blocked",
+  "runtime_authority_added": false,
+  "schema_version": "cassandra_draft_review_packet_v0",
+  "send_eligibility": {
+    "attachment_available_now": false,
+    "eligible_for_guardian_final_send_approval_later": false,
+    "final_send_gate_state": "unavailable_missing_coupa_invoice_proof",
+    "gmail_draft_available_now": false,
+    "send_available_now": false,
+    "why_blocked": [
+      "missing_coupa_payment_invoice_proof",
+      "missing_excel_companion_invoice_artifact",
+      "missing_excel_coupa_match_proof",
+      "missing_email_draft",
+      "missing_attachment_reference",
+      "missing_draft_identity_hash_reference",
+      "missing_attachment_identity_hash_reference",
+      "unresolved_critical_blockers"
+    ]
+  },
+  "send_or_submit_authority_added": false,
+  "source_facts_used": [
+    {
+      "external_account_accessed": false,
+      "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+      "present": true,
+      "raw_private_body_read": false,
+      "schema_version": "cassandra_email_calendar_capability_reconciliation_v0"
+    },
+    {
+      "external_account_accessed": false,
+      "path": "generated/read_models/capital_hilton_external_artifact_proof_capture.json",
+      "present": true,
+      "raw_private_body_read": false,
+      "schema_version": "capital_hilton_external_artifact_proof_capture_v0"
+    },
+    {
+      "external_account_accessed": false,
+      "path": "generated/read_models/capital_hilton_send_approval_gate.json",
+      "present": true,
+      "raw_private_body_read": false,
+      "schema_version": "capital_hilton_send_approval_gate_v0"
+    }
+  ],
+  "spreadsheet_mutation_triggered": false,
+  "subject": {
+    "contains_private_contact_data": false,
+    "subject_status": "generated_from_governed_workflow_state",
+    "subject_text": "Review only: Capital Hilton companion invoice (unavailable_missing_coupa_invoice_proof)"
+  },
+  "workflow_id": "capital_hilton_companion_invoice_email",
+  "workflow_name": "Capital Hilton companion invoice email"
+}
