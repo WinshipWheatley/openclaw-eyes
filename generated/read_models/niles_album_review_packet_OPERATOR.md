@@ -5,9 +5,15 @@ Status:
 - Review only: `true`.
 - Album state confirmed: `false`.
 - Evidence sufficient for album status: `false`.
+- Operator metadata consumed: `false`.
+- Metadata records consumed: `0`.
+- Evidence sufficient for review packet: `false`.
 - DAW automation added: `false`.
 - Audio file mutation added: `false`.
 - Runtime authority added: `false`.
+
+## Operator Metadata Review Items
+- None. Review packet remains blocked until governed operator metadata exists.
 
 ## Confirmed Governed Evidence
 - Niles Album Matrix is modeled as a planning-only module. Source: `approved_module_registry_niles_album_matrix`; authority=planning_only_not_runtime.

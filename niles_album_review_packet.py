@@ -283,6 +283,92 @@ def _generic_review_packet_identity() -> dict[str, Any]:
     }
 
 
+def _metadata_present(value: Any) -> bool:
+    return value not in (None, "", [], {})
+
+
+def _metadata_label(record: dict[str, Any], index: int) -> str:
+    return (
+        record.get("song_title")
+        or record.get("song_id_or_stable_operator_label")
+        or record.get("album_project_name")
+        or f"operator_metadata_record_{index + 1}"
+    )
+
+
+def _metadata_review_item(record: dict[str, Any], index: int) -> dict[str, Any]:
+    supplied_fields = [
+        key
+        for key in (
+            "album_project_name",
+            "song_title",
+            "song_id_or_stable_operator_label",
+            "track_status_label",
+            "production_stage_label",
+            "source_reference_path_label",
+            "daw_session_existence_flag",
+            "last_known_operator_update",
+            "blocker_labels",
+            "next_safe_move_labels",
+            "confidence",
+            "evidence_status",
+        )
+        if _metadata_present(record.get(key))
+    ]
+    missing_fields = [
+        key
+        for key in (
+            "album_project_name",
+            "song_title",
+            "song_id_or_stable_operator_label",
+            "track_status_label",
+            "production_stage_label",
+            "confidence",
+            "evidence_status",
+        )
+        if not _metadata_present(record.get(key))
+    ]
+    return {
+        "item_id": f"niles_operator_metadata_item_{index + 1:03d}",
+        "item_label": _metadata_label(record, index),
+        "album_project_name": record.get("album_project_name"),
+        "song_title": record.get("song_title"),
+        "song_id_or_stable_operator_label": record.get("song_id_or_stable_operator_label"),
+        "track_status_label": record.get("track_status_label"),
+        "production_stage_label": record.get("production_stage_label"),
+        "source_reference_path_label": record.get("source_reference_path_label"),
+        "daw_session_existence_flag": record.get("daw_session_existence_flag"),
+        "last_known_operator_update": record.get("last_known_operator_update"),
+        "blocker_labels": record.get("blocker_labels", []),
+        "next_safe_move_labels": record.get("next_safe_move_labels", []),
+        "confidence": record.get("confidence"),
+        "evidence_status": record.get("evidence_status"),
+        "supplied_fields": supplied_fields,
+        "missing_or_unknown_fields": missing_fields,
+        "partial_metadata_supported": bool(missing_fields),
+        "metadata_evidence_posture": "operator_supplied_metadata_evidence_not_album_truth",
+        "album_state_confirmed": False,
+        "operator_supplied": record.get("operator_supplied") is True,
+        "metadata_only": record.get("metadata_only", True) is True,
+        "raw_audio_stored": False,
+        "daw_session_contents_stored": False,
+        "file_opened_or_scanned": False,
+    }
+
+
+def _operator_metadata_review_items(intake_boundary: dict[str, Any]) -> list[dict[str, Any]]:
+    records = intake_boundary.get("recorded_operator_metadata", [])
+    if not isinstance(records, list):
+        return []
+    return [
+        _metadata_review_item(record, index)
+        for index, record in enumerate(records)
+        if isinstance(record, dict)
+        and record.get("operator_supplied") is True
+        and record.get("metadata_only") is True
+    ]
+
+
 def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_at: str | None = None) -> dict[str, Any]:
     root = Path(repo_root)
     evidence_sources = [_source_status(source) for source in GOVERNED_EVIDENCE_SOURCES]
@@ -300,15 +386,35 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     runtime = _runtime_readiness_posture(agent_runtime)
     boundary_present = bool(intake_boundary)
     intake_status = intake_boundary.get("operator_metadata_intake_status", {}) if isinstance(intake_boundary, dict) else {}
+    metadata_review_items = _operator_metadata_review_items(intake_boundary)
+    metadata_consumed = bool(metadata_review_items)
+    metadata_record_count = len(metadata_review_items)
     boundary_posture = {
         "boundary_present": boundary_present,
         "boundary_status": intake_boundary.get("boundary_status", "not_available"),
-        "real_album_metadata_recorded": intake_boundary.get("real_album_metadata_recorded", False),
-        "metadata_record_count": intake_status.get("metadata_record_count", len(intake_boundary.get("recorded_operator_metadata", []))),
+        "real_album_metadata_recorded": metadata_consumed,
+        "metadata_record_count": metadata_record_count,
         "partial_metadata_intake_supported": intake_status.get("partial_metadata_intake_supported", False),
         "unknown_album_state_not_treated_as_confirmed": intake_status.get("unknown_album_state_not_treated_as_confirmed", True),
         "unknown_album_state_remains_unknown": intake_boundary.get("unknown_album_state_remains_unknown", True),
         "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+    }
+    metadata_consumption = {
+        "metadata_consumed": metadata_consumed,
+        "metadata_record_count": metadata_record_count,
+        "review_packet_ready": metadata_consumed,
+        "review_packet_status": "ready_for_review_from_governed_operator_metadata"
+        if metadata_consumed
+        else "blocked_needs_governed_album_evidence",
+        "metadata_source": "generated/read_models/niles_album_evidence_intake_boundary.json",
+        "metadata_evidence_posture": "operator_supplied_metadata_evidence_not_album_truth",
+        "partial_metadata_supported": True,
+        "unknown_fields_not_treated_as_confirmed": True,
+        "album_state_confirmed": False,
+        "raw_audio_ingested": False,
+        "daw_session_content_ingested": False,
+        "broad_private_drive_scan_triggered": False,
+        "audio_file_mutation_allowed": False,
     }
 
     confirmed_evidence = [source for source in evidence_sources if source["source_present"]]
@@ -336,9 +442,18 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "item_id": "niles_album_evidence_intake_boundary_defined",
             "label": "A metadata-only Niles album evidence intake boundary is defined." if boundary_present else "A metadata-only Niles album evidence intake boundary is still missing.",
             "source": "niles_album_evidence_intake_boundary",
-            "authority_status": "contract_only_no_real_album_metadata",
+            "authority_status": "operator_metadata_evidence_consumed_not_truth" if metadata_consumed else "contract_only_no_real_album_metadata",
         },
     ]
+    if metadata_consumed:
+        confirmed_items.append(
+            {
+                "item_id": "operator_metadata_consumed_for_review",
+                "label": f"{metadata_record_count} governed operator metadata record(s) are available for Niles review.",
+                "source": "niles_album_evidence_intake_boundary_recorded_operator_metadata",
+                "authority_status": "review_only_metadata_evidence_not_album_truth",
+            }
+        )
     inferred_or_desired = [
         {
             "item_id": "album_matrix_needed",
@@ -366,12 +481,12 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     missing = [
         {
             "item_id": "missing_confirmed_album_project_metadata",
-            "label": "No governed album/project metadata packet exists yet.",
+            "label": "Governed operator metadata exists, but it is not final album truth." if metadata_consumed else "No governed album/project metadata packet exists yet.",
             "needed_for": "album/session status summary",
         },
         {
             "item_id": "missing_current_album_source_of_truth",
-            "label": "No approved source of truth identifies current album, session, track, mix, or release status.",
+            "label": "Operator metadata does not confirm raw session, mix, or release status." if metadata_consumed else "No approved source of truth identifies current album, session, track, mix, or release status.",
             "needed_for": "operator-useful progress review",
         },
         {
@@ -401,7 +516,11 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
         },
     ]
 
-    packet_status = "blocked_needs_governed_album_evidence"
+    packet_status = (
+        "ready_for_review_from_governed_operator_metadata"
+        if metadata_consumed
+        else "blocked_needs_governed_album_evidence"
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_by": "codex",
@@ -416,6 +535,9 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
         "album_state_confirmed": False,
         "unknown_album_state_not_treated_as_confirmed": True,
         "evidence_sufficient_for_album_status": False,
+        "evidence_sufficient_for_review_packet": metadata_consumed,
+        "metadata_consumption": metadata_consumption,
+        "operator_metadata_review_items": metadata_review_items,
         "confirmed_governed_evidence": confirmed_items,
         "inferred_or_desired_album_workflow_evidence": inferred_or_desired,
         "stale_or_legacy_evidence": stale_legacy_evidence,
@@ -438,6 +560,8 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "all_sources_repo_a_read_models_or_docs": True,
             "broad_private_drive_scan_triggered": False,
             "raw_audio_ingested": False,
+            "operator_metadata_consumed": metadata_consumed,
+            "operator_metadata_record_count": metadata_record_count,
         },
         "workflow_posture": workflow,
         "module_posture": module,
@@ -452,7 +576,7 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "external_action_taken": False,
             "old_docs_files_treated_as_evidence_not_truth": True,
         },
-        "next_recommended_lane": "Niles Album Evidence Intake Boundary v0",
+        "next_recommended_lane": "Niles Album Matrix Review Surface v0" if metadata_consumed else "Niles Album Evidence Intake Boundary v0",
         **NO_AUTHORITY_FLAGS,
     }
     return payload
@@ -467,12 +591,38 @@ def format_niles_album_review_packet(payload: dict[str, Any]) -> str:
         "- Review only: `true`.",
         "- Album state confirmed: `false`.",
         "- Evidence sufficient for album status: `false`.",
+        f"- Operator metadata consumed: `{str(payload['metadata_consumption']['metadata_consumed']).lower()}`.",
+        f"- Metadata records consumed: `{payload['metadata_consumption']['metadata_record_count']}`.",
+        f"- Evidence sufficient for review packet: `{str(payload['evidence_sufficient_for_review_packet']).lower()}`.",
         "- DAW automation added: `false`.",
         "- Audio file mutation added: `false`.",
         "- Runtime authority added: `false`.",
         "",
+        "## Operator Metadata Review Items",
+    ]
+    if payload["operator_metadata_review_items"]:
+        for item in payload["operator_metadata_review_items"]:
+            lines.append(
+                f"- `{item['item_id']}` {item['item_label']}: album={item.get('album_project_name') or '[unknown]'}; "
+                f"song={item.get('song_title') or item.get('song_id_or_stable_operator_label') or '[unknown]'}; "
+                f"track_status={item.get('track_status_label') or '[unknown]'}; "
+                f"production_stage={item.get('production_stage_label') or '[unknown]'}; "
+                f"confidence={item.get('confidence') or '[unknown]'}; evidence={item.get('evidence_status') or '[unknown]'}; "
+                f"posture={item['metadata_evidence_posture']}."
+            )
+            if item["blocker_labels"]:
+                lines.append(f"  - Blockers: {', '.join(item['blocker_labels'])}.")
+            if item["next_safe_move_labels"]:
+                lines.append(f"  - Next safe moves: {', '.join(item['next_safe_move_labels'])}.")
+            if item["missing_or_unknown_fields"]:
+                lines.append(f"  - Missing/unknown fields: {', '.join(item['missing_or_unknown_fields'])}.")
+    else:
+        lines.append("- None. Review packet remains blocked until governed operator metadata exists.")
+    lines.extend([
+        "",
         "## Confirmed Governed Evidence",
     ]
+    )
     for item in payload["confirmed_governed_evidence"]:
         lines.append(f"- {item['label']} Source: `{item['source']}`; authority={item['authority_status']}.")
     lines.extend(["", "## Inferred / Desired, Not Confirmed Album State"])

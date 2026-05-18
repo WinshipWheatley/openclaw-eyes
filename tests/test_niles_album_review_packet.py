@@ -9,6 +9,54 @@ from scripts.export_niles_album_review_packet import main as export_main
 FIXED_NOW = "2026-05-17T12:00:00+00:00"
 
 
+def _write_boundary(tmp_path: Path, records: list[dict]) -> Path:
+    read_models = tmp_path / "generated" / "read_models"
+    read_models.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "niles_album_evidence_intake_boundary_v0",
+        "boundary_status": "operator_metadata_recorded_partial_evidence" if records else "contract_ready_no_real_metadata_recorded",
+        "real_album_metadata_recorded": bool(records),
+        "unknown_album_state_remains_unknown": True,
+        "operator_metadata_intake_status": {
+            "real_album_metadata_recorded": bool(records),
+            "metadata_record_count": len(records),
+            "partial_metadata_intake_supported": True,
+            "unknown_album_state_not_treated_as_confirmed": True,
+            "album_state_confirmed": False,
+        },
+        "recorded_operator_metadata": records,
+    }
+    path = read_models / "niles_album_evidence_intake_boundary.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return tmp_path
+
+
+def _metadata_record(**overrides):
+    record = {
+        "album_project_name": None,
+        "song_title": None,
+        "song_id_or_stable_operator_label": None,
+        "track_status_label": None,
+        "production_stage_label": None,
+        "source_reference_path_label": None,
+        "daw_session_existence_flag": None,
+        "last_known_operator_update": None,
+        "blocker_labels": [],
+        "next_safe_move_labels": [],
+        "confidence": None,
+        "evidence_status": "operator_supplied_metadata_evidence",
+        "operator_supplied": True,
+        "no_external_action": True,
+        "metadata_only": True,
+        "raw_audio_stored": False,
+        "daw_session_contents_stored": False,
+        "file_opened_or_scanned": False,
+        "album_state_confirmed": False,
+    }
+    record.update(overrides)
+    return record
+
+
 def test_packet_uses_governed_evidence_only_and_generic_shape():
     payload = packet.build_niles_album_review_packet(generated_at=FIXED_NOW)
 
@@ -32,6 +80,8 @@ def test_unknown_album_state_is_not_confirmed():
     assert payload["unknown_album_state_not_treated_as_confirmed"] is True
     assert payload["evidence_sufficient_for_album_status"] is False
     assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
+    assert payload["metadata_consumption"]["metadata_consumed"] is False
+    assert payload["metadata_consumption"]["metadata_record_count"] == 0
     assert any(item["item_id"] == "missing_current_album_source_of_truth" for item in payload["missing_evidence"])
     assert any(blocker["blocker_id"] == "album_source_of_truth_unconfirmed" for blocker in payload["blockers"])
 
@@ -50,6 +100,132 @@ def test_old_docs_and_repo_b_are_evidence_not_truth():
 def test_review_packet_is_deterministic():
     first = packet.build_niles_album_review_packet(generated_at=FIXED_NOW)
     second = packet.build_niles_album_review_packet(generated_at=FIXED_NOW)
+
+    assert packet.stable_json(first) == packet.stable_json(second)
+
+
+def test_one_operator_metadata_record_produces_review_only_item(tmp_path):
+    repo_root = _write_boundary(
+        tmp_path,
+        [
+            _metadata_record(
+                album_project_name="SYNTHETIC TEST PROJECT - not real",
+                song_title="SYNTHETIC TEST SONG - not real",
+                track_status_label="review",
+                production_stage_label="mix_notes",
+                blocker_labels=["synthetic_missing_reference_mix"],
+                next_safe_move_labels=["synthetic_review_metadata_only"],
+                confidence="medium",
+                evidence_status="synthetic_operator_supplied_pending_review",
+            )
+        ],
+    )
+
+    payload = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
+    item = payload["operator_metadata_review_items"][0]
+
+    assert payload["packet_status"] == "ready_for_review_from_governed_operator_metadata"
+    assert payload["metadata_consumption"]["metadata_consumed"] is True
+    assert payload["metadata_consumption"]["metadata_record_count"] == 1
+    assert payload["evidence_sufficient_for_review_packet"] is True
+    assert item["album_project_name"] == "SYNTHETIC TEST PROJECT - not real"
+    assert item["song_title"] == "SYNTHETIC TEST SONG - not real"
+    assert item["track_status_label"] == "review"
+    assert item["production_stage_label"] == "mix_notes"
+    assert item["blocker_labels"] == ["synthetic_missing_reference_mix"]
+    assert item["next_safe_move_labels"] == ["synthetic_review_metadata_only"]
+    assert item["metadata_evidence_posture"] == "operator_supplied_metadata_evidence_not_album_truth"
+    assert item["album_state_confirmed"] is False
+
+
+def test_partial_operator_metadata_record_is_consumed_without_inventing_fields(tmp_path):
+    repo_root = _write_boundary(
+        tmp_path,
+        [
+            _metadata_record(
+                song_id_or_stable_operator_label="synthetic_song_label_001",
+                blocker_labels=["synthetic_blocker_only"],
+                evidence_status="operator_supplied_partial_metadata_evidence",
+            )
+        ],
+    )
+
+    payload = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
+    item = payload["operator_metadata_review_items"][0]
+
+    assert payload["packet_status"] == "ready_for_review_from_governed_operator_metadata"
+    assert item["item_label"] == "synthetic_song_label_001"
+    assert item["album_project_name"] is None
+    assert item["song_title"] is None
+    assert item["track_status_label"] is None
+    assert item["partial_metadata_supported"] is True
+    assert "album_project_name" in item["missing_or_unknown_fields"]
+    assert "track_status_label" in item["missing_or_unknown_fields"]
+    assert item["album_state_confirmed"] is False
+
+
+def test_operator_metadata_is_evidence_not_truth_even_when_consumed(tmp_path):
+    repo_root = _write_boundary(
+        tmp_path,
+        [
+            _metadata_record(
+                album_project_name="SYNTHETIC TEST PROJECT - not real",
+                confidence="low",
+                evidence_status="operator_supplied_unknown_incomplete",
+            )
+        ],
+    )
+
+    payload = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
+
+    assert payload["metadata_consumption"]["metadata_evidence_posture"] == "operator_supplied_metadata_evidence_not_album_truth"
+    assert payload["metadata_consumption"]["unknown_fields_not_treated_as_confirmed"] is True
+    assert payload["album_state_confirmed"] is False
+    assert payload["evidence_sufficient_for_album_status"] is False
+    assert payload["operator_metadata_review_items"][0]["album_state_confirmed"] is False
+
+
+def test_metadata_consumption_does_not_add_raw_audio_daw_scan_mutation_or_runtime_authority(tmp_path):
+    repo_root = _write_boundary(
+        tmp_path,
+        [
+            _metadata_record(
+                song_title="SYNTHETIC TEST SONG - not real",
+                daw_session_existence_flag=True,
+                blocker_labels=["synthetic_metadata_only_blocker"],
+            )
+        ],
+    )
+
+    payload = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
+    item = payload["operator_metadata_review_items"][0]
+    flags = payload["authority_boundary"]
+
+    assert item["daw_session_existence_flag"] is True
+    assert item["daw_session_contents_stored"] is False
+    assert item["file_opened_or_scanned"] is False
+    assert flags["raw_audio_ingest_allowed"] is False
+    assert flags["logic_or_ableton_open_allowed"] is False
+    assert flags["daw_automation_allowed"] is False
+    assert flags["audio_file_mutation_allowed"] is False
+    assert flags["runtime_authority_added"] is False
+    assert flags["send_or_submit_authority_added"] is False
+
+
+def test_generated_json_with_metadata_is_deterministic(tmp_path):
+    repo_root = _write_boundary(
+        tmp_path,
+        [
+            _metadata_record(
+                song_title="SYNTHETIC TEST SONG - not real",
+                blocker_labels=["synthetic_blocker"],
+                next_safe_move_labels=["synthetic_next"],
+            )
+        ],
+    )
+
+    first = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
+    second = packet.build_niles_album_review_packet(repo_root=repo_root, generated_at=FIXED_NOW)
 
     assert packet.stable_json(first) == packet.stable_json(second)
 

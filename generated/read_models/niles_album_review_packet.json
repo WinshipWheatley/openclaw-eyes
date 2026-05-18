@@ -76,6 +76,7 @@
     "unknown_album_state_remains_unknown": true
   },
   "evidence_sufficient_for_album_status": false,
+  "evidence_sufficient_for_review_packet": false,
   "finder_file_operation_allowed": false,
   "generated_at": "2026-05-17T12:00:00+00:00",
   "generated_by": "codex",
@@ -106,6 +107,21 @@
     "recommended_fate": "defer_operator_review",
     "risk_level": "medium",
     "source_name": "album work, content, and scheduler refs"
+  },
+  "metadata_consumption": {
+    "album_state_confirmed": false,
+    "audio_file_mutation_allowed": false,
+    "broad_private_drive_scan_triggered": false,
+    "daw_session_content_ingested": false,
+    "metadata_consumed": false,
+    "metadata_evidence_posture": "operator_supplied_metadata_evidence_not_album_truth",
+    "metadata_record_count": 0,
+    "metadata_source": "generated/read_models/niles_album_evidence_intake_boundary.json",
+    "partial_metadata_supported": true,
+    "raw_audio_ingested": false,
+    "review_packet_ready": false,
+    "review_packet_status": "blocked_needs_governed_album_evidence",
+    "unknown_fields_not_treated_as_confirmed": true
   },
   "missing_evidence": [
     {
@@ -155,6 +171,7 @@
     "Confirm what metadata-only source can describe album/session status without opening DAWs or raw audio.",
     "Confirm whether legacy Repo B album helper logic is worth porting as metadata-only planning code later."
   ],
+  "operator_metadata_review_items": [],
   "packet_identity": {
     "packet_id": "niles_album_review_packet",
     "packet_kind": "operator_review_packet",
@@ -276,6 +293,8 @@
     "broad_private_drive_scan_triggered": false,
     "confirmed_evidence_source_count": 7,
     "missing_evidence_source_count": 0,
+    "operator_metadata_consumed": false,
+    "operator_metadata_record_count": 0,
     "raw_audio_ingested": false
   },
   "stale_or_legacy_evidence": [

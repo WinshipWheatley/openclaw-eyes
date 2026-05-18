@@ -94,6 +94,9 @@ def test_niles_review_packet_references_boundary_but_remains_blocked_without_rea
     payload = json.loads(Path("generated/read_models/niles_album_review_packet.json").read_text(encoding="utf-8"))
 
     assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
+    assert payload["metadata_consumption"]["metadata_consumed"] is False
+    assert payload["metadata_consumption"]["metadata_record_count"] == 0
+    assert payload["operator_metadata_review_items"] == []
     assert payload["album_state_confirmed"] is False
     assert payload["evidence_sufficient_for_album_status"] is False
     assert payload["evidence_intake_boundary_posture"]["boundary_present"] is True
@@ -337,4 +340,6 @@ def test_review_packet_references_operator_metadata_intake_state_without_confirm
     assert payload["evidence_intake_boundary_posture"]["metadata_record_count"] == 1
     assert payload["album_state_confirmed"] is False
     assert payload["unknown_album_state_not_treated_as_confirmed"] is True
-    assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
+    assert payload["packet_status"] == "ready_for_review_from_governed_operator_metadata"
+    assert payload["metadata_consumption"]["metadata_consumed"] is True
+    assert payload["operator_metadata_review_items"][0]["metadata_evidence_posture"] == "operator_supplied_metadata_evidence_not_album_truth"
