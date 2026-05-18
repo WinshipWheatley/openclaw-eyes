@@ -9,7 +9,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T14:32:08+00:00",
+  "generated_at": "2026-05-18T14:39:16+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -19,7 +19,7 @@
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-18T14:27:15+00:00"
+    "time": "2026-05-18T14:37:16+00:00"
   },
   "last_pc_import": {
     "manifest_hash": "1e50a024ecb3a5faa3dfa3ac150a995168d5dd99726a99bea8eaf5478a874b0f",
@@ -58,11 +58,11 @@
     },
     {
       "present": 1,
-      "source_hash": "b6a9519270e8a4b27de47a00eaf46a1e58126321418baf0e7bf399b71aa737ca",
+      "source_hash": "0bafb6abb30c0a6b80fa9e0b7dc7ad834ae712db3a84d521871687ad40eb09c9",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-18T14:27:15+00:00"
+      "source_time": "2026-05-18T14:37:16+00:00"
     },
     {
       "present": 1,
@@ -74,7 +74,7 @@
     },
     {
       "present": 1,
-      "source_hash": "9dcf223d43f25f93187dbc54feac9f789e13d85093073ffbe7c5490db41fa4c3",
+      "source_hash": "b9f95bb99ccf9ae41b20bcf6ca49f26130bdd8f3b150d53575a23c83cdc6012f",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -86,7 +86,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-18T14:30:39+00:00"
+      "source_time": "2026-05-18T14:34:52+00:00"
     },
     {
       "present": 1,
@@ -110,7 +110,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-18T14:29:47+00:00"
+      "source_time": "2026-05-18T14:34:48+00:00"
     }
   ],
   "recommended_fix": {

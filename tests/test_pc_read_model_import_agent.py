@@ -145,6 +145,145 @@ def test_changed_manifest_triggers_import_and_records_state(tmp_path):
     assert state["last_sync_health_refresh"]["mirror_status"] == "ok"
 
 
+
+def test_unchanged_manifest_health_export_requests_final_mac_mirror(tmp_path):
+    manifest = tmp_path / "mac_generated_read_models_manifest.json"
+    marker = tmp_path / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    completion = tmp_path / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+    _write_manifest(manifest)
+    _write_manifest(completion, '{"status": "synced"}\n')
+    digest = agent.sha256_file(manifest)
+    (tmp_path / "state.json").write_text(
+        json.dumps(
+            {
+                "last_successful_manifest_sha256": digest,
+                "last_imported_at": "2026-05-14T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def refresh(**kwargs):
+        return {
+            "sync_health_refreshed": True,
+            "trust_status": "trusted",
+            "mirror_status": "ok",
+            "sync_lifecycle_state": "health_exported_waiting_for_mac_mirror",
+            "operator_action_required": False,
+            "missing_expected": 0,
+            "hash_mismatch": 0,
+        }
+
+    status = agent.run_import_agent_once(
+        manifest_path=manifest,
+        completion_marker_path=completion,
+        state_path=tmp_path / "state.json",
+        log_path=tmp_path / "agent.log",
+        importer=lambda **kwargs: (_ for _ in ()).throw(AssertionError("import should skip")),
+        sync_health_refresher=refresh,
+        request_marker_path=marker,
+    )
+
+    assert status["status"] == "skipped_unchanged"
+    assert status["final_mac_mirror_request"]["final_mac_mirror_marker_written"] is True
+    payload = json.loads(marker.read_text(encoding="utf-8"))
+    assert payload["requested_by"] == "pc_read_model_import_agent"
+    assert payload["next_expected_responder"] == "mac_read_model_sync_agent"
+    assert payload["sync_lifecycle_state"] == "health_exported_waiting_for_mac_mirror"
+    assert payload["operator_action_required"] is False
+    assert all(value is False for value in payload["no_authority_flags"].values())
+
+
+def test_pending_final_mac_mirror_marker_is_preserved_not_rewritten(tmp_path):
+    marker = tmp_path / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    completion = tmp_path / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+    _write_manifest(marker, '{"request_id": "pending"}\n')
+    _write_manifest(completion, '{"status": "synced"}\n')
+    now = 1800000000
+    import os
+    os.utime(completion, (now - 10, now - 10))
+    os.utime(marker, (now, now))
+
+    result = agent.write_final_mac_mirror_marker_if_needed(
+        sync_health_refresh={"sync_lifecycle_state": "health_exported_waiting_for_mac_mirror"},
+        request_marker_path=marker,
+        completion_marker_path=completion,
+    )
+
+    assert result["final_mac_mirror_marker_needed"] is True
+    assert result["final_mac_mirror_marker_written"] is False
+    assert json.loads(marker.read_text(encoding="utf-8"))["request_id"] == "pending"
+
+
+def test_self_report_only_manifest_change_skips_health_refresh_to_avoid_loop(tmp_path):
+    previous = tmp_path / "imported" / "mac_generated_read_models_manifest.json"
+    current = tmp_path / "mac_generated_read_models_manifest.json"
+    previous_payload = {
+        "path_records": [
+            {"relative_path": "alpha.json", "content_hash": "a" * 64},
+            {"relative_path": "sync_health.json", "content_hash": "1" * 64},
+            {"relative_path": "sync_health_OPERATOR.md", "content_hash": "2" * 64},
+        ]
+    }
+    current_payload = {
+        "path_records": [
+            {"relative_path": "alpha.json", "content_hash": "a" * 64},
+            {"relative_path": "sync_health.json", "content_hash": "3" * 64},
+            {"relative_path": "sync_health_OPERATOR.md", "content_hash": "4" * 64},
+        ]
+    }
+    _write_manifest(previous, json.dumps(previous_payload) + "\n")
+    _write_manifest(current, json.dumps(current_payload) + "\n")
+    refresh_calls = []
+
+    status = agent.run_import_agent_once(
+        manifest_path=current,
+        state_path=tmp_path / "state.json",
+        log_path=tmp_path / "agent.log",
+        import_manifest_path=previous,
+        importer=lambda **kwargs: {
+            "import_run_id": "import_self_report",
+            "root_id": "mac_generated_read_models",
+            "path_count": 3,
+            "generated_read_model_mirror": {"counts": {"missing_expected": 0, "extra": 0, "hash_mismatch": 0}},
+        },
+        sync_health_refresher=lambda **kwargs: refresh_calls.append(kwargs),
+    )
+
+    assert status["status"] == "success"
+    assert status["sync_health_refresh_skipped"] is True
+    assert "volatile sync_health self-report" in status["sync_health_refresh_skip_reason"]
+    assert refresh_calls == []
+    state = _read_json(tmp_path / "state.json")
+    assert state["last_successful_manifest_sha256"] == agent.sha256_file(current)
+    assert state["last_sync_health_refresh_skip_reason"] == status["sync_health_refresh_skip_reason"]
+
+
+def test_non_self_report_manifest_change_still_refreshes_health(tmp_path):
+    previous = tmp_path / "imported" / "mac_generated_read_models_manifest.json"
+    current = tmp_path / "mac_generated_read_models_manifest.json"
+    _write_manifest(previous, json.dumps({"path_records": [{"relative_path": "alpha.json", "content_hash": "a" * 64}]}) + "\n")
+    _write_manifest(current, json.dumps({"path_records": [{"relative_path": "alpha.json", "content_hash": "b" * 64}]}) + "\n")
+    refresh_calls = []
+
+    status = agent.run_import_agent_once(
+        manifest_path=current,
+        state_path=tmp_path / "state.json",
+        log_path=tmp_path / "agent.log",
+        import_manifest_path=previous,
+        importer=lambda **kwargs: {
+            "import_run_id": "import_non_self",
+            "root_id": "mac_generated_read_models",
+            "path_count": 1,
+            "generated_read_model_mirror": {"counts": {"missing_expected": 0, "extra": 0, "hash_mismatch": 0}},
+        },
+        sync_health_refresher=_fake_sync_health_refresher(refresh_calls),
+    )
+
+    assert status["status"] == "success"
+    assert "sync_health_refresh_skipped" not in status
+    assert len(refresh_calls) == 1
+
 def test_failure_records_state_without_marking_success(tmp_path):
     manifest = tmp_path / "mac_generated_read_models_manifest.json"
     _write_manifest(manifest)

@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
+from generated_read_model_files import VOLATILE_SELF_REPORT_READ_MODEL_FILES
 from read_model_shuttle import (
     DEFAULT_IMPORT_MANIFEST_PATH,
     DEFAULT_RETURNED_MANIFEST_PATH,
@@ -32,6 +33,9 @@ DEFAULT_COMPLETION_MARKER_PATH = (
 )
 DEFAULT_STATE_PATH = ROOT / ".openclaw" / "state" / "read_model_import_agent_state.json"
 DEFAULT_LOG_PATH = ROOT / ".openclaw" / "logs" / "read_model_import_agent.log"
+DEFAULT_REQUEST_MARKER_PATH = Path("/mnt/e/openclaw") / "shuttle" / "to_mac" / "read_model_sync_required.json"
+FINAL_MAC_MIRROR_LIFECYCLE_STATE = "health_exported_waiting_for_mac_mirror"
+SELF_REPORT_FILES = frozenset(VOLATILE_SELF_REPORT_READ_MODEL_FILES)
 
 Importer = Callable[..., dict[str, Any]]
 SyncHealthRefresher = Callable[..., dict[str, Any]]
@@ -95,6 +99,105 @@ def write_state(state_path: str | Path, payload: dict[str, Any]) -> None:
     path.write_text(stable_json(payload), encoding="utf-8")
 
 
+def _read_json_object(path: str | Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _manifest_hashes_by_path(path: str | Path) -> dict[str, str]:
+    payload = _read_json_object(path) or {}
+    records = payload.get("path_records") or []
+    hashes: dict[str, str] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        relative_path = record.get("relative_path")
+        content_hash = record.get("content_hash")
+        if isinstance(relative_path, str) and isinstance(content_hash, str):
+            hashes[relative_path] = content_hash
+    return hashes
+
+
+def manifest_change_is_self_report_only(*, previous_manifest: str | Path, current_manifest: str | Path) -> bool:
+    previous = Path(previous_manifest)
+    current = Path(current_manifest)
+    if not previous.is_file() or not current.is_file():
+        return False
+    previous_hashes = _manifest_hashes_by_path(previous)
+    current_hashes = _manifest_hashes_by_path(current)
+    if not previous_hashes or not current_hashes:
+        return False
+    non_self_paths = (set(previous_hashes) | set(current_hashes)) - SELF_REPORT_FILES
+    if any(previous_hashes.get(path) != current_hashes.get(path) for path in non_self_paths):
+        return False
+    return any(previous_hashes.get(path) != current_hashes.get(path) for path in SELF_REPORT_FILES)
+
+
+def _marker_pending(request_marker: Path, completion_marker: Path) -> bool:
+    if not request_marker.is_file():
+        return False
+    if not completion_marker.is_file():
+        return True
+    try:
+        return request_marker.stat().st_mtime > completion_marker.stat().st_mtime
+    except OSError:
+        return True
+
+
+def write_final_mac_mirror_marker_if_needed(
+    *,
+    sync_health_refresh: dict[str, Any],
+    request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
+    completion_marker_path: str | Path = DEFAULT_COMPLETION_MARKER_PATH,
+) -> dict[str, Any]:
+    request_marker = Path(request_marker_path)
+    completion_marker = Path(completion_marker_path)
+    lifecycle = sync_health_refresh.get("sync_lifecycle_state")
+    if lifecycle != FINAL_MAC_MIRROR_LIFECYCLE_STATE:
+        return {
+            "final_mac_mirror_marker_needed": False,
+            "final_mac_mirror_marker_written": False,
+            "reason": "sync health lifecycle does not need a final Mac mirror leg",
+            "sync_lifecycle_state": lifecycle,
+        }
+    if _marker_pending(request_marker, completion_marker):
+        return {
+            "final_mac_mirror_marker_needed": True,
+            "final_mac_mirror_marker_written": False,
+            "reason": "existing request marker is still pending Mac completion",
+            "request_marker_path": request_marker.as_posix(),
+            "sync_lifecycle_state": lifecycle,
+        }
+    import datetime as _datetime
+
+    request_marker.parent.mkdir(parents=True, exist_ok=True)
+    marker = {
+        "schema_version": "read_model_sync_required_v0",
+        "generated_at": _datetime.datetime.now(_datetime.timezone.utc).replace(microsecond=0).isoformat(),
+        "reason": "PC sync health/read-model export is refreshed; mirror generated read-models back to Mac through the normal sync agent.",
+        "requested_by": "pc_read_model_import_agent",
+        "next_expected_responder": "mac_read_model_sync_agent",
+        "sync_lifecycle_state": lifecycle,
+        "operator_action_required": False,
+        "missing_expected_files": [],
+        "hash_mismatch_files": [],
+        "manual_fallback_mac_command": "cd ~/Developer/OpenClawBackend/openclaw\nPYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator",
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+        **NO_AUTHORITY_FLAGS,
+    }
+    request_marker.write_text(stable_json(marker), encoding="utf-8")
+    return {
+        "final_mac_mirror_marker_needed": True,
+        "final_mac_mirror_marker_written": True,
+        "reason": marker["reason"],
+        "request_marker_path": request_marker.as_posix(),
+        "sync_lifecycle_state": lifecycle,
+    }
+
+
 def _completion_marker_summary(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {
@@ -146,6 +249,7 @@ def run_import_agent_once(
     import_manifest_path: str | Path = DEFAULT_IMPORT_MANIFEST_PATH,
     importer: Importer = import_latest_mac_read_model_mirror,
     sync_health_refresher: SyncHealthRefresher = refresh_sync_health_from_manifest,
+    request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
 ) -> dict[str, Any]:
     manifest = Path(manifest_path)
     completion_marker = Path(completion_marker_path)
@@ -231,6 +335,12 @@ def run_import_agent_once(
             )
             return failure
         status["sync_health_refresh"] = sync_health_refresh
+        final_mac_mirror_request = write_final_mac_mirror_marker_if_needed(
+            sync_health_refresh=sync_health_refresh,
+            request_marker_path=request_marker_path,
+            completion_marker_path=completion_marker,
+        )
+        status["final_mac_mirror_request"] = final_mac_mirror_request
         write_state(
             state_file,
             {
@@ -243,6 +353,7 @@ def run_import_agent_once(
                 "last_skip_reason": "unchanged_manifest_hash",
                 "last_sync_health_refreshed_at": refreshed_at,
                 "last_sync_health_refresh": sync_health_refresh,
+                "last_final_mac_mirror_request": final_mac_mirror_request,
                 **NO_AUTHORITY_FLAGS,
             },
         )
@@ -251,8 +362,14 @@ def run_import_agent_once(
             "skipped_unchanged",
             manifest_sha256=manifest_hash,
             sync_health_refreshed=True,
+            final_mac_mirror_marker_written=final_mac_mirror_request.get("final_mac_mirror_marker_written"),
         )
         return status
+
+    self_report_only_manifest_change = manifest_change_is_self_report_only(
+        previous_manifest=import_manifest_path,
+        current_manifest=manifest,
+    )
 
     append_log(log_file, "import_started", manifest_path=manifest.as_posix(), manifest_sha256=manifest_hash)
     try:
@@ -336,6 +453,24 @@ def run_import_agent_once(
         **NO_AUTHORITY_FLAGS,
     }
     write_state(state_file, success_state)
+    if self_report_only_manifest_change:
+        status["sync_health_refresh_skipped"] = True
+        status["sync_health_refresh_skip_reason"] = "manifest changed only for volatile sync_health self-report files"
+        write_state(
+            state_file,
+            {
+                **success_state,
+                "last_sync_health_refresh_skipped_at": status["generated_at"],
+                "last_sync_health_refresh_skip_reason": status["sync_health_refresh_skip_reason"],
+            },
+        )
+        append_log(
+            log_file,
+            "sync_health_refresh_skipped",
+            manifest_sha256=manifest_hash,
+            reason=status["sync_health_refresh_skip_reason"],
+        )
+        return status
     try:
         sync_health_refresh = sync_health_refresher(
             db_path=db_path,
@@ -382,12 +517,19 @@ def run_import_agent_once(
         )
         return failure
     status["sync_health_refresh"] = sync_health_refresh
+    final_mac_mirror_request = write_final_mac_mirror_marker_if_needed(
+        sync_health_refresh=sync_health_refresh,
+        request_marker_path=request_marker_path,
+        completion_marker_path=completion_marker,
+    )
+    status["final_mac_mirror_request"] = final_mac_mirror_request
     write_state(
         state_file,
         {
             **success_state,
             "last_sync_health_refreshed_at": refreshed_at,
             "last_sync_health_refresh": sync_health_refresh,
+            "last_final_mac_mirror_request": final_mac_mirror_request,
         },
     )
     append_log(
@@ -396,6 +538,7 @@ def run_import_agent_once(
         manifest_sha256=manifest_hash,
         import_run_id=status.get("import_run_id"),
         sync_health_refreshed=True,
+        final_mac_mirror_marker_written=final_mac_mirror_request.get("final_mac_mirror_marker_written"),
     )
     return status
 
@@ -475,6 +618,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--log-path", default=DEFAULT_LOG_PATH.as_posix())
     parser.add_argument("--db", default=DEFAULT_DB_PATH)
     parser.add_argument("--import-manifest-path", default=DEFAULT_IMPORT_MANIFEST_PATH.as_posix())
+    parser.add_argument("--request-marker", default=DEFAULT_REQUEST_MARKER_PATH.as_posix())
     parser.add_argument("--format", choices=("operator", "json"), default="operator")
     return parser.parse_args(argv)
 
@@ -488,6 +632,7 @@ def main(argv: list[str] | None = None) -> int:
         "log_path": args.log_path,
         "db_path": args.db,
         "import_manifest_path": args.import_manifest_path,
+        "request_marker_path": args.request_marker,
     }
     if args.loop:
         return run_import_agent_loop(interval_seconds=args.interval, **kwargs)
