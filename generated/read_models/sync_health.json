@@ -3,41 +3,36 @@
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
   "canonical_expected": 158,
-  "display_status": "needs_mac_sync",
+  "display_status": "current",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T02:44:52+00:00",
-  "hash_mismatch": 2,
+  "generated_at": "2026-05-18T03:11:09+00:00",
+  "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-18T00:55:58+00:00"
+    "time": "2026-05-18T02:46:09+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-18T02:41:07+00:00"
+    "time": "2026-05-18T03:06:11+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "842eb167cc672347bf83947fe70c1afc9aeaf1892dc454999657f3971160713e",
+    "manifest_hash": "1e50a024ecb3a5faa3dfa3ac150a995168d5dd99726a99bea8eaf5478a874b0f",
     "pc_scheduler_known": true,
     "status": "skipped_unchanged",
-    "time": "2026-05-18T00:59:52+00:00",
+    "time": "2026-05-18T02:49:52+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 152,
-  "mirror_status": "needs_mac_sync",
-  "missing_expected": 4,
-  "missing_files": [
-    "niles_album_matrix_review.json",
-    "niles_album_matrix_review_OPERATOR.md",
-    "niles_album_metadata_intake_packet.json",
-    "niles_album_metadata_intake_packet_OPERATOR.md"
-  ],
-  "next_expected_actor": "mac_sync_agent",
+  "matched_hash": 158,
+  "mirror_status": "ok",
+  "missing_expected": 0,
+  "missing_files": [],
+  "next_expected_actor": "none",
   "no_authority_flags": {
     "agent_activation_allowed": false,
     "app_direct_execution_allowed": false,
@@ -49,47 +44,47 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 154,
+  "observed": 158,
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "be9d5d343787f083331a519152c03dc0adf76643db8ad9f1f13cc057d5c1bd96",
+      "source_hash": "3791fe78c22a373a1f3f2bc4e55343d67a9263a07c10d46206e39bd2067037eb",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-18T00:55:58+00:00"
+      "source_time": "2026-05-18T02:46:09+00:00"
     },
     {
       "present": 1,
-      "source_hash": "079da35fdc886b65970b7b8551fca5dd7ae2edcac8beccf0de4a11e6e325b25f",
+      "source_hash": "3a757085aa86a2b34507091bada3b8d7c12a9e136cebaf9d845eb89499e5fb03",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-18T02:41:07+00:00"
+      "source_time": "2026-05-18T03:06:11+00:00"
     },
     {
       "present": 1,
-      "source_hash": "842eb167cc672347bf83947fe70c1afc9aeaf1892dc454999657f3971160713e",
+      "source_hash": "1e50a024ecb3a5faa3dfa3ac150a995168d5dd99726a99bea8eaf5478a874b0f",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-18T00:55:58+00:00"
+      "source_time": "2026-05-18T02:46:09+00:00"
     },
     {
       "present": 1,
-      "source_hash": "1fe37e075ea2122f93813fb73f4f901d8b19ecb40988b5fa7d1218b73763dc82",
+      "source_hash": "e9e6a2d2a128b9536f06d623cb56c3c8088de09794d0c78aa0d44c3e402e1b60",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
-      "source_time": "2026-05-18T00:59:52+00:00"
+      "source_time": "2026-05-18T02:49:52+00:00"
     },
     {
       "present": 1,
       "source_hash": null,
       "source_kind": "pc_task_log",
-      "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
+      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
       "source_status": "present",
-      "source_time": "2026-05-18T02:39:51+00:00"
+      "source_time": "2026-05-18T03:09:52+00:00"
     },
     {
       "present": 1,
@@ -97,16 +92,16 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-18T02:44:47+00:00"
+      "source_time": "2026-05-18T03:09:48+00:00"
     }
   ],
   "recommended_fix": {
     "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
-    "can_request_fix_from_app": true,
-    "display_status": "needs_mac_sync",
-    "kind": "request_mac_sync",
-    "next_expected_actor": "mac_sync_agent",
-    "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+    "can_request_fix_from_app": false,
+    "display_status": "current",
+    "kind": "none",
+    "next_expected_actor": "none",
+    "next_safe_move": "No sync repair is needed.",
     "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"
   },
   "remote_control_allowed": false,
@@ -114,13 +109,6 @@
   "schema_version": "sync_health_read_model_v0",
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
-  "stale_files": [
-    "niles_album_matrix_review.json",
-    "niles_album_matrix_review_OPERATOR.md",
-    "niles_album_metadata_intake_packet.json",
-    "niles_album_metadata_intake_packet_OPERATOR.md",
-    "niles_album_review_packet.json",
-    "niles_album_review_packet_OPERATOR.md"
-  ],
-  "trust_status": "stale_needs_mac_sync"
+  "stale_files": [],
+  "trust_status": "trusted"
 }
