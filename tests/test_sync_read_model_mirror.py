@@ -316,3 +316,14 @@ def test_wrapper_sources_have_no_remote_copy_install_or_destructive_behavior():
     ]
     for token in forbidden:
         assert token not in text
+
+
+def test_niles_metadata_packet_and_matrix_are_expected_in_mac_mirror_set():
+    from generated_read_model_files import canonical_generated_read_model_expected_files
+
+    expected = set(canonical_generated_read_model_expected_files())
+
+    assert "niles_album_metadata_intake_packet.json" in expected
+    assert "niles_album_metadata_intake_packet_OPERATOR.md" in expected
+    assert "niles_album_matrix_review.json" in expected
+    assert "niles_album_matrix_review_OPERATOR.md" in expected
