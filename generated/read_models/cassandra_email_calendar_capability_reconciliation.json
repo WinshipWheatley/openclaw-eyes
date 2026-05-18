@@ -1,0 +1,269 @@
+{
+  "approval_authority_added": false,
+  "approval_policy": {
+    "approval_scope": "specific_draft_or_calendar_action_only",
+    "blanket_approval_allowed": false,
+    "cassandra_executor": false,
+    "cassandra_role": "draft_or_review_packet_preparer_only",
+    "fail_closed_when_identity_scope_or_authority_unclear": true,
+    "guardian_remains_gate": true
+  },
+  "audit_only": true,
+  "blocked_until_future_gated_lane": [
+    "live_gmail_read",
+    "gmail_body_read",
+    "gmail_draft_creation",
+    "email_send_or_reply",
+    "google_calendar_read",
+    "apple_calendar_read_or_write",
+    "calendar_create_update_delete",
+    "oauth_or_credential_access",
+    "browser_automation",
+    "generic_calendar_cleanup",
+    "repo_b_runtime_execution",
+    "broad_private_content_scraping"
+  ],
+  "browser_automation_added": false,
+  "calendar_mutation_enabled": false,
+  "calendar_policy": {
+    "generic_cleanup_started": false,
+    "live_calendar_access_enabled": false,
+    "mac_calendar_confusion_recorded_as_context_not_task": true,
+    "normalization_allowed_only_when_workflow_needs_context": true
+  },
+  "classification_map": [
+    {
+      "appears_to_do": "Classifies operator-confirmed Gmail metadata/snippet candidates and blocks full message bodies and mail mutations.",
+      "authority_risk": "Low when fed governed metadata; unsafe if expanded into ambient inbox surveillance.",
+      "capability_area": "email_triage_metadata",
+      "capability_id": "cassandra_metadata_email_triage",
+      "classification": "KEEP_AND_BRIDGE",
+      "evidence": "Module docstring and EMAIL_TRIAGE_DISALLOWED_LIVE_ACTIONS block full body reads, drafts, sends, label changes, archive/delete, and approval requests.",
+      "file_path": "cassandra_email_triage.py",
+      "safe_reuse_path": "Reuse classification schema after a bounded operator-supplied or broker-receipted metadata intake packet exists.",
+      "steel_thread_fit": "Fits operator intent -> governed intake -> facts/context/read-models."
+    },
+    {
+      "appears_to_do": "Older outreach flow can poll Gmail metadata, resolve contacts, and create Gmail drafts through google_access_broker.",
+      "authority_risk": "Draft creation and contact lookup are live external-account actions; not safe to enable in the current lane.",
+      "capability_area": "email_draft_and_known_contact_workflow",
+      "capability_id": "cassandra_outreach_draft_era",
+      "classification": "KEEP_AS_REFERENCE",
+      "evidence": "Tests patch google_access_broker.call and expect draft creation behavior; current reconciliation does not call that path.",
+      "file_path": "cassandra_outreach.py",
+      "safe_reuse_path": "Extract review-packet shape only; leave broker draft creation blocked until a future gated execution lane with specific approval.",
+      "steel_thread_fit": "Useful as historical behavior evidence, but must be split into draft/review packet and later action-scoped approval receipt before execution."
+    },
+    {
+      "appears_to_do": "Detects email, outreach, payment verification, Gmail polling, and calendar-create intent phrases.",
+      "authority_risk": "Intent detection can be useful, but live Gmail/calendar actions would be authority expansion without governed intake and receipts.",
+      "capability_area": "intent_detection_email_calendar",
+      "capability_id": "cassandra_brain_email_calendar_intents",
+      "classification": "KEEP_AS_REFERENCE",
+      "evidence": "tests/test_gmail_intent_gate.py and tests/test_cassandra_calendar_create_intent.py show older intent recognition and broker-call expectations.",
+      "file_path": "cassandra_brain.py",
+      "safe_reuse_path": "Use only to populate bounded intent/review packets; fail closed for calendar mutation and broad inbox reads.",
+      "steel_thread_fit": "Intent detection can become operator intent intake; action execution must remain later and gated."
+    },
+    {
+      "appears_to_do": "Central broker for Google capabilities including Gmail metadata/body/draft and calendar/contact classes.",
+      "authority_risk": "External account access, OAuth/credential reliance, and live reads/writes are outside this lane.",
+      "capability_area": "external_google_account_broker",
+      "capability_id": "google_access_broker_email_calendar_surface",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "evidence": "Guardian reconciliation already warns not to expand Gmail/calendar send/write until approval authority is consolidated.",
+      "file_path": "google_access_broker.py",
+      "safe_reuse_path": "Keep disabled for this bridge; future lanes must bind one draft/action/scope to Guardian approval and a receipt before any broker action.",
+      "steel_thread_fit": "Can be a future gated executor after receipts exist, not a source of current Mission Control authority."
+    },
+    {
+      "appears_to_do": "Inspects safe status counts and dry-run posture while blocking outbound delivery paths.",
+      "authority_risk": "Low; it is explicitly dry-run/status-only and returns metadata counts, not private bodies or chat IDs.",
+      "capability_area": "no_send_status_and_delivery_blocking",
+      "capability_id": "cassandra_send_status_dry_run",
+      "classification": "KEEP_AND_BRIDGE",
+      "evidence": "tests/test_cassandra_send_status_dry_run.py asserts no sends, no raw message text, no chat IDs, and delivery blocked.",
+      "file_path": "cassandra_send_status_dry_run.py",
+      "safe_reuse_path": "Use as proof that readiness/status is not delivery authority.",
+      "steel_thread_fit": "Fits read-model visibility and no-send proof for future Cassandra communication rails."
+    },
+    {
+      "appears_to_do": "Turns a bounded operator request into a review-only Capital Hilton packet from governed facts/read-models.",
+      "authority_risk": "Low in current form; it explicitly blocks email, portal, runtime, Repo B, and send authority.",
+      "capability_area": "governed_review_packet_refresh",
+      "capability_id": "cassandra_governed_review_packet_request",
+      "classification": "KEEP_AND_BRIDGE",
+      "evidence": "NO_AUTHORITY_FLAGS include gmail_reply_sent=false, calendar_write_triggered=false, portal_submitted=false, runtime_execution_triggered=false.",
+      "file_path": "cassandra_governed_review_packet_request.py",
+      "safe_reuse_path": "Use as the model for Cassandra Draft Review Packet v0.",
+      "steel_thread_fit": "Directly matches the desired operator intent -> governed facts -> draft/review packet pattern."
+    },
+    {
+      "appears_to_do": "Maps current and legacy approval surfaces and requires exact action binding, TTL, idempotency, receipts, and no blanket grants.",
+      "authority_risk": "Approval surfaces are powerful if broadened; safe only as a specific scoped receipt boundary.",
+      "capability_area": "guardian_approval_request_and_receipt_boundary",
+      "capability_id": "guardian_specific_approval_contracts",
+      "classification": "KEEP_AND_BRIDGE",
+      "evidence": "tests/test_guardian_hitl_authority_reconciliation.py verifies no raw commands, no freeform shell, no send expansion, and authority conflicts visible.",
+      "file_path": "guardian_hitl_authority_reconciliation.py",
+      "safe_reuse_path": "Future email/calendar execution must consume a specific Guardian receipt and fail closed on ambiguity.",
+      "steel_thread_fit": "Matches Guardian approval request -> specific approval receipt -> later gated action."
+    },
+    {
+      "appears_to_do": "Existing templates cover Cassandra triage/outreach and Guardian approval request/decision packet shapes.",
+      "authority_risk": "Low as templates; unsafe only if treated as executable approval or account access.",
+      "capability_area": "packet_templates",
+      "capability_id": "agent_packet_templates",
+      "classification": "KEEP_AND_BRIDGE",
+      "evidence": "Templates exist for cassandra_email_triage_packet_template, cassandra_outreach_draft_packet_template, guardian_approval_request_packet_template, and guardian_approval_decision_packet_template.",
+      "file_path": "templates/agent/*.json",
+      "safe_reuse_path": "Align Cassandra Draft Review Packet v0 with templates while keeping execution blocked.",
+      "steel_thread_fit": "Good substrate for formal draft/review/approval packets."
+    },
+    {
+      "appears_to_do": "Operator reports Google and Apple Calendar are merged/confusing, but no bounded workflow currently needs cleanup.",
+      "authority_risk": "Generic calendar cleanup would require private calendar inspection and potential mutation.",
+      "capability_area": "calendar_normalization_cleanup",
+      "capability_id": "calendar_source_cleanup",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "evidence": "Lane instruction says calendar reconciliation is scoped discovery/normalization only when a real workflow needs calendar context.",
+      "file_path": "operator_context_only",
+      "safe_reuse_path": "Do not start cleanup; define a Calendar Source Normalization Packet only when explicitly requested.",
+      "steel_thread_fit": "Only safe as future scoped discovery/normalization when a real workflow needs calendar context."
+    },
+    {
+      "appears_to_do": "Repo B may contain older runtime capability, but Repo A already has enough current evidence for this reconciliation.",
+      "authority_risk": "Executing or importing Repo B would expand runtime authority and violate the lane.",
+      "capability_area": "reference_only_external_runtime",
+      "capability_id": "repo_b_runtime_reference",
+      "classification": "KEEP_AS_REFERENCE",
+      "evidence": "Repo B was not executed or imported; Repo A current files/tests/docs were sufficient.",
+      "file_path": "/home/openclaw_external/openclaw-runtime",
+      "safe_reuse_path": "Leave uninspected in this lane unless a future explicit audit needs read-only comparison.",
+      "steel_thread_fit": "Reference-only evidence at most; not needed for this implementation."
+    },
+    {
+      "appears_to_do": "Any email/calendar behavior not captured in this reconciliation is not trusted by default.",
+      "authority_risk": "Unknown capabilities may hide live reads, writes, credentials, broad scraping, or stale approval semantics.",
+      "capability_area": "unknown",
+      "capability_id": "unknown_email_calendar_capability",
+      "classification": "UNKNOWN_NEEDS_REVIEW",
+      "evidence": "Fail-closed policy for unmapped capability.",
+      "file_path": "future_or_unmapped_capability",
+      "safe_reuse_path": "Classify before reuse; do not enable by assumption.",
+      "steel_thread_fit": "Fails closed until mapped into governed intake/review/approval/execution phases."
+    }
+  ],
+  "classification_summary": {
+    "KEEP_AND_BRIDGE": [
+      "cassandra_metadata_email_triage",
+      "cassandra_send_status_dry_run",
+      "cassandra_governed_review_packet_request",
+      "guardian_specific_approval_contracts",
+      "agent_packet_templates"
+    ],
+    "KEEP_AS_REFERENCE": [
+      "cassandra_outreach_draft_era",
+      "cassandra_brain_email_calendar_intents",
+      "repo_b_runtime_reference"
+    ],
+    "NOT_FOUND": [],
+    "SUPERSEDED": [],
+    "UNKNOWN_NEEDS_REVIEW": [
+      "unknown_email_calendar_capability"
+    ],
+    "UNSAFE_OR_BLOCKED": [
+      "google_access_broker_email_calendar_surface",
+      "calendar_source_cleanup"
+    ]
+  },
+  "email_send_enabled": false,
+  "generated_at": "2026-05-18T22:14:03+00:00",
+  "generated_by": "codex",
+  "generic_calendar_cleanup_started": false,
+  "gmail_draft_creation_enabled": false,
+  "lane": "Cassandra Email + Calendar Capability Reconciliation v0",
+  "live_calendar_read_enabled": false,
+  "live_gmail_read_enabled": false,
+  "mission_control_app_changed": false,
+  "next_recommended_lane": "Cassandra Draft Review Packet v0",
+  "oauth_or_credentials_accessed": false,
+  "operator_meaning": "Cassandra has older email/calendar-related capability evidence, but the safe path is governed draft/review packets before any future action-scoped approval or execution.",
+  "raw_private_mail_or_calendar_content_read": false,
+  "read_model_only": true,
+  "receipt_proof_status": {
+    "approval_specific_action_scoped": true,
+    "calendar_cleanup_not_started": true,
+    "draft_review_approval_execution_distinguished": true,
+    "live_gmail_calendar_authority_enabled": false,
+    "reconciliation_read_model_created": true,
+    "repo_b_executed": false,
+    "repo_b_reference_only": true,
+    "send_calendar_mutation_blocked": true,
+    "unknown_capability_fails_closed": true
+  },
+  "repo_b_executed": false,
+  "repo_b_runtime_authority_added": false,
+  "runtime_authority_added": false,
+  "safe_forward_path": [
+    {
+      "allowed_now": true,
+      "authority": "intent capture only",
+      "phase": "operator_intent"
+    },
+    {
+      "allowed_now": true,
+      "authority": "bounded metadata/context packet only",
+      "phase": "governed_intake"
+    },
+    {
+      "allowed_now": true,
+      "authority": "visibility not execution",
+      "phase": "facts_context_read_models"
+    },
+    {
+      "allowed_now": true,
+      "authority": "review-only draft/context; no Gmail draft creation",
+      "phase": "draft_review_packet"
+    },
+    {
+      "allowed_now": false,
+      "authority": "future specific request only",
+      "phase": "guardian_approval_request"
+    },
+    {
+      "allowed_now": false,
+      "authority": "future action/scope-bound receipt only",
+      "phase": "specific_approval_receipt"
+    },
+    {
+      "allowed_now": false,
+      "authority": "future executor only after explicit approved item",
+      "phase": "gated_send_or_calendar_action"
+    }
+  ],
+  "schema_version": "cassandra_email_calendar_capability_reconciliation_v0",
+  "searched_locations": {
+    "repo_a": {
+      "evidence_types": [
+        "source",
+        "tests",
+        "docs",
+        "templates",
+        "generated_read_models"
+      ],
+      "inspected_first": true,
+      "path": "/home/openclaw",
+      "sufficient_for_reconciliation": true
+    },
+    "repo_b": {
+      "executed": false,
+      "imported": false,
+      "inspection_status": "not_inspected_repo_a_sufficient",
+      "path": "/home/openclaw_external/openclaw-runtime",
+      "reference_only_if_future_lane_needs_it": true
+    }
+  },
+  "send_or_submit_authority_added": false,
+  "status": "reconciled_review_only_no_live_authority"
+}
