@@ -1,0 +1,2208 @@
+{
+  "approval_execution_authority_added": false,
+  "browser_or_coupa_authority_added": false,
+  "credential_or_pii_access_added": false,
+  "customer_deployment_authority_added": false,
+  "generated_at": "2026-05-18T23:46:09+00:00",
+  "generated_by": "codex",
+  "generic_calendar_cleanup_performed": false,
+  "known_rail_count": 14,
+  "maturity_counts": {
+    "APPROVAL_RECEIPT_READY": 1,
+    "APPROVAL_REQUEST_CONTRACT_READY": 2,
+    "LEGACY_OR_REFERENCE_IN_REPO_A": 1,
+    "METADATA_ONLY": 2,
+    "READ_MODEL_VISIBLE": 5,
+    "REVIEW_PACKET_READY": 2,
+    "SECURITY_THRESHOLD_READY": 1
+  },
+  "maturity_scale": [
+    "NOT_FOUND",
+    "LEGACY_OR_REFERENCE_IN_REPO_A",
+    "METADATA_ONLY",
+    "READ_MODEL_VISIBLE",
+    "REVIEW_PACKET_READY",
+    "PROOF_RAIL_READY",
+    "APPROVAL_REQUEST_CONTRACT_READY",
+    "APPROVAL_RECEIPT_READY",
+    "EXECUTION_GATE_MODELED",
+    "SECURITY_THRESHOLD_READY",
+    "LIVE_AUTHORITY_BLOCKED"
+  ],
+  "mission_control_app_changed": false,
+  "must_not_activate_yet": [
+    "live sends",
+    "browser/Coupa",
+    "credentials",
+    "approval execution",
+    "runtime/agent automation",
+    "client deployment",
+    "automatic repair"
+  ],
+  "no_authority_flags": {
+    "approval_execution_authority_added": false,
+    "browser_or_coupa_authority_added": false,
+    "credential_or_pii_access_added": false,
+    "customer_deployment_authority_added": false,
+    "generic_calendar_cleanup_performed": false,
+    "mission_control_app_changed": false,
+    "old_files_treated_as_truth": false,
+    "planner_builder_agent_automation_activated": false,
+    "repo_b_inspected": false,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false
+  },
+  "old_files_treated_as_evidence_not_truth": true,
+  "old_files_treated_as_truth": false,
+  "operator_eli5_summary": {
+    "blocked_on_purpose": [
+      "live sends",
+      "browser/Coupa",
+      "credentials",
+      "approval execution",
+      "runtime/agent automation",
+      "client deployment",
+      "automatic repair"
+    ],
+    "next_1_to_3_sensible_lanes": [
+      "Capital Hilton Proof Metadata Capture v0",
+      "Guardian Final-Send Approval Receipt Contract v0",
+      "Niles Governed Metadata Review Packet Completion v0"
+    ],
+    "not_yet_proven": [
+      "real Coupa proof metadata",
+      "specific final-send approval receipt",
+      "live email/Coupa/browser/spreadsheet execution",
+      "what Repo B still contains that Repo A has not already absorbed",
+      "workflows Winship remembers but Repo A evidence has not proven yet"
+    ],
+    "partially_tracked": [
+      "Chief planning/work packets",
+      "Hermes advisory synthesis",
+      "Niles album/Struna creative project rails",
+      "planner/builder automation guardrails"
+    ],
+    "summary_text": "Repo A already tracks the main rails: Capital Hilton finance, Cassandra review packets, Guardian approval boundaries, Operator Action, sync/Mission Control visibility, Niles/Struna, Report Bridge, and capsule/custom-build planning. Capital Hilton is the furthest along, but it is still intentionally blocked before anything live happens. Chief/Hermes/Niles/planner-builder rails are visible or partially modeled, not ready for authority. Repo B should wait until these known Repo A rails finish their proof/request/receipt gaps, so the later Repo B pass only hunts for true leftovers.",
+    "tracked": [
+      "Capital Hilton finance/Cassandra-Clara",
+      "Cassandra draft review",
+      "Guardian approval contracts",
+      "Operator Action",
+      "sync/Mission Control read-model visibility"
+    ]
+  },
+  "planner_builder_agent_automation_activated": false,
+  "rails": [
+    {
+      "authority_boundary": "review/proof/request-contract only; no Coupa, browser, Gmail, send, submit, credential, or spreadsheet authority",
+      "can_wait": false,
+      "domain": "finance_ap_invoice",
+      "live_authority_blocked": true,
+      "maturity": "APPROVAL_REQUEST_CONTRACT_READY",
+      "missing_next_pieces": [
+        "real operator proof metadata/protected references",
+        "specific draft identity and attachment identity",
+        "future approval receipt contract",
+        "execution remains blocked"
+      ],
+      "mission_control_visibility_status": "visible_for_review_packet_and_proof_posture_via_mirror",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Turns governed invoice facts into review, proof, and Guardian request posture for Capital Hilton.",
+      "rail_id": "capital_hilton_cassandra_clara_finance",
+      "rail_name": "Capital Hilton / Cassandra-Clara finance workflow",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": true,
+        "execution_gate": true,
+        "live_workflow": false,
+        "proof_packet": true,
+        "review_packet": true,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "read_model_integrated_sqlite_facts_evidence_only",
+      "steel_thread_stage_reached": "review_packet_plus_proof_rail_plus_final_send_request_contract",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "actionable review packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/capital_hilton_external_artifact_proof_capture.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "proof rail",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/capital_hilton_send_approval_gate.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "final-send gate",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/guardian_draft_approval_request_contract.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft approval request contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "capital_hilton_actionable_review_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "review-only packet builder",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "capital_hilton_external_artifact_proof_capture.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "protected proof metadata capture",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "capital_hilton_send_approval_gate.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "final-send gate model",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "guardian_draft_approval_request_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Guardian draft approval request contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 4,
+          "key_files_present": 4,
+          "read_models_expected": 4,
+          "read_models_present": 4,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_capital_hilton_external_artifact_proof_capture.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "proof rail tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_capital_hilton_send_approval_gate.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "send gate tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_guardian_draft_approval_request_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Guardian request contract tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "no Gmail draft, Gmail send, calendar write, OAuth, or live account access",
+      "can_wait": false,
+      "domain": "cassandra_comms",
+      "live_authority_blocked": true,
+      "maturity": "REVIEW_PACKET_READY",
+      "missing_next_pieces": [
+        "generic second workflow draft packet proof",
+        "future Guardian send approval receipt shape",
+        "execution authority intentionally deferred"
+      ],
+      "mission_control_visibility_status": "draft packet surfaced; execution controls absent by design",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Lets Cassandra produce review-only draft packets while email/calendar execution remains blocked.",
+      "rail_id": "cassandra_draft_review_email_calendar",
+      "rail_name": "Cassandra draft/review/email/calendar capability",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": true,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "read_model_only_no_live_gmail_or_calendar",
+      "steel_thread_stage_reached": "draft_review_packet_and_capability_reconciliation",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/cassandra_draft_review_packet.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft review packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "capability reconciliation",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/cassandra_send_status_dry_run.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "no-send status/dry-run posture",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "cassandra_draft_review_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft review packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "cassandra_email_calendar_capability_reconciliation.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "email/calendar capability reconciliation",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "cassandra_outreach.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "legacy/reference outreach machinery",
+            "truth_status": "legacy_or_reference_evidence_only"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 2,
+          "tests_present": 2
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_cassandra_draft_review_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft review tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_cassandra_email_calendar_capability_reconciliation.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "capability reconciliation tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "Guardian remains gatekeeper/not executor; no live approval execution or send authority",
+      "can_wait": false,
+      "domain": "approval_security",
+      "live_authority_blocked": true,
+      "maturity": "SECURITY_THRESHOLD_READY",
+      "missing_next_pieces": [
+        "approval receipt contract for draft/final send",
+        "old HITL caller transition proof",
+        "security pass later when rails approach execution threshold"
+      ],
+      "mission_control_visibility_status": "read-model visible; app-specific surfaces vary by prior lanes",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Defines Guardian responsibility, approval request/receipt separation, and power-stage limits.",
+      "rail_id": "guardian_hitl_security_sovereignty",
+      "rail_name": "Guardian approval/HITL/security/sovereignty contracts",
+      "ready_for": {
+        "approval_receipt": true,
+        "approval_request_contract": true,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "contract_defined_observational_sqlite_support_present_for_some_legacy_paths",
+      "steel_thread_stage_reached": "contracts_modeled_security_threshold_not_crossed",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/guardian_responsibility_dna_audit.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Guardian DNA audit",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/guardian_hitl_sqlite_authority_contract.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "SQLite authority contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "power-stage gate",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "guardian_responsibility_dna_audit.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Guardian responsibility audit",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "guardian_hitl_sqlite_authority_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "canonical approval contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_sovereignty_power_stage_gate.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "power-stage gate",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_guardian_responsibility_dna_audit.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Guardian DNA tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_guardian_hitl_sqlite_authority_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "authority contract tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_sovereignty_power_stage_gate.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "power-stage tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "planning/read-model only; no agent activation or automatic execution",
+      "can_wait": false,
+      "domain": "planning_work_packets",
+      "live_authority_blocked": true,
+      "maturity": "READ_MODEL_VISIBLE",
+      "missing_next_pieces": [
+        "prove second non-finance real workflow through work packet path",
+        "separate Chief legacy runtime from governed packet substrate"
+      ],
+      "mission_control_visibility_status": "read-model surfaces exist; operator helm integration may be partial",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Routes intents into Work Board and Agent Work Packet posture without activating agents.",
+      "rail_id": "chief_orchestration_work_packets",
+      "rail_name": "Chief orchestration/planning/work packets",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "work_packet_read_models_exist_runtime_agent_activation_blocked",
+      "steel_thread_stage_reached": "work_board_and_agent_work_packets_visible",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/work_board.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Work Board",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/agent_work_packets.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Agent work packets",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/intent_router.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "intent router",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "chief_router.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "legacy Chief router/reference",
+            "truth_status": "legacy_or_reference_evidence_only"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "work_board.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Work Board read-model substrate",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "agent_work_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Agent Work Packet builder",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "intent_router.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "intent router",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 4,
+          "key_files_present": 4,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_work_board.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Work Board tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_agent_work_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Agent work packet tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_intent_router.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "intent router tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "advisory only; no decisions, sends, external expert contact, or truth promotion",
+      "can_wait": true,
+      "domain": "advisory_synthesis",
+      "live_authority_blocked": true,
+      "maturity": "METADATA_ONLY",
+      "missing_next_pieces": [
+        "operator-facing Hermes advisory rail packet",
+        "prove advisory output cannot promote truth or authority"
+      ],
+      "mission_control_visibility_status": "likely indirect through lane/context read-models",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Keeps Hermes as advisory packet-in/proposal-out synthesis, not a decision or authority source.",
+      "rail_id": "hermes_advisory_synthesis",
+      "rail_name": "Hermes advisory synthesis",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "metadata_contract_only_no_decision_authority",
+      "steel_thread_stage_reached": "contract_helpers_and_registry_evidence",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/agent_lanes.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "agent lane registry",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/external_ai_context_packs.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "external AI context packs",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "hermes_advisory_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Hermes advisory packet helper",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "expert_escalation_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sanitized expert escalation helper",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "agent_lane_registry.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Hermes lane registry metadata",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 2,
+          "read_models_present": 2,
+          "tests_expected": 2,
+          "tests_present": 1
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_hermes_advisory_packet.py",
+            "present": false,
+            "repo_a_only": true,
+            "role": "Hermes advisory tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_expert_escalation_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "expert escalation tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "metadata/review only; no raw session/audio/project folder scan or file mutation",
+      "can_wait": false,
+      "domain": "music_art_projects",
+      "live_authority_blocked": true,
+      "maturity": "REVIEW_PACKET_READY",
+      "missing_next_pieces": [
+        "operator-supplied governed metadata capture",
+        "Mission Control visibility if needed",
+        "no raw creative file ingest proof for future expansion"
+      ],
+      "mission_control_visibility_status": "read-models exist; current app visibility not proven here",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Tracks Niles album metadata and Struna project context without scanning private creative files.",
+      "rail_id": "niles_music_album_struna_capsule",
+      "rail_name": "Niles music/album/Struna/project capsule lane",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": true,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "metadata_read_model_only_no_raw_audio_or_project_scan",
+      "steel_thread_stage_reached": "metadata_intake_boundary_and_review_packets",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Niles evidence boundary",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/niles_album_review_packet.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Niles album review packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/struna_obscura_project_capsule.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Struna capsule",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "niles_album_evidence_intake_boundary.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "album evidence intake boundary",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "niles_album_review_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "album review packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "struna_obscura_project_capsule.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Struna project capsule",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_niles_album_evidence_intake_boundary.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Niles boundary tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_niles_album_review_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Niles review tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_struna_obscura_project_capsule.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Struna capsule tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "package metadata/read-model only; no execution or deployment",
+      "can_wait": false,
+      "domain": "package_intake",
+      "live_authority_blocked": true,
+      "maturity": "READ_MODEL_VISIBLE",
+      "missing_next_pieces": [
+        "client capsule boundary proof before external deployments",
+        "operator review for any write-capable package paths"
+      ],
+      "mission_control_visibility_status": "available as read-model surface",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Imports bounded report/read-model packages without granting execution or deployment authority.",
+      "rail_id": "report_bridge_package_intake",
+      "rail_name": "Report Bridge / package intake",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "bounded_package_metadata_sqlite_read_model",
+      "steel_thread_stage_reached": "package_intake_read_model_and_tests",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/report_bridge.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Report Bridge read-model",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "report_bridge.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "report package intake",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "script",
+            "path": "scripts/export_report_bridge_read_model.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Report Bridge exporter",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 2,
+          "key_files_present": 2,
+          "read_models_expected": 1,
+          "read_models_present": 1,
+          "tests_expected": 2,
+          "tests_present": 2
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_report_bridge.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Report Bridge tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_report_bridge_read_model.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Report Bridge read-model tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "warning-only; no planner/builder/agent automation activation",
+      "can_wait": true,
+      "domain": "automation_builder",
+      "live_authority_blocked": true,
+      "maturity": "LEGACY_OR_REFERENCE_IN_REPO_A",
+      "missing_next_pieces": [
+        "keep block-later surfaces non-runnable",
+        "do not resume planner/builder automation before authority/security threshold"
+      ],
+      "mission_control_visibility_status": "read-models exist; no app execution surface",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Keeps builder/planner machinery classified and warning-only until governed execution is explicitly approved.",
+      "rail_id": "deterministic_planner_builder_automation",
+      "rail_name": "Deterministic planner/builder/automation build",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "warning_read_model_only_no_builder_runtime_activation",
+      "steel_thread_stage_reached": "active_machinery_classified_and_guardrailed",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "block-later guardrail",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "warning-only quarantine",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "quarantine decision packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "script",
+            "path": "builder_watcher.sh",
+            "present": true,
+            "repo_a_only": true,
+            "role": "legacy builder watcher",
+            "truth_status": "legacy_or_reference_evidence_only"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "active_machinery_block_later_guardrail.py",
+            "present": false,
+            "repo_a_only": true,
+            "role": "block-later metadata guardrail",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "active_machinery_high_risk_quarantine.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "warning-only quarantine read-model",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 2,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 2,
+          "tests_present": 1
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_active_machinery_block_later_guardrail.py",
+            "present": false,
+            "repo_a_only": true,
+            "role": "block-later guardrail tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_active_machinery_high_risk_quarantine.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "quarantine tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "intent metadata only; no execution from freeform notes",
+      "can_wait": false,
+      "domain": "operator_intake",
+      "live_authority_blocked": true,
+      "maturity": "READ_MODEL_VISIBLE",
+      "missing_next_pieces": [
+        "avoid broad Markdown/private note ingestion",
+        "prove cue parser path is governed before use"
+      ],
+      "mission_control_visibility_status": "read-model surfaces exist; write path remains backend-gated",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Captures or classifies operator intent/cues without treating old freeform notes as truth.",
+      "rail_id": "brain_dump_cue_intent_inbox",
+      "rail_name": "Brain-dump / cue parser / intent inbox / dropped intents",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "strict_inbox_and_read_models_exist_legacy_freeform_parser_reference_only",
+      "steel_thread_stage_reached": "intent_and_dropped_intent_read_models_visible",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/dropped_intents.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "dropped intents",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/intent_router.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "intent router",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/operator_actions.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator action posture",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "brain_dump_parser.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "legacy brain dump parser",
+            "truth_status": "legacy_or_reference_evidence_only"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "dropped_intent_registry.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "dropped intent registry",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_intent_core.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator intent core",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_action_inbox.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "strict operator action request inbox",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 4,
+          "key_files_present": 4,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_dropped_intent_registry.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "dropped intent tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_intent_core.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "intent core tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_action_inbox.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator action inbox tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "read-only mirror; no backend commands from app",
+      "can_wait": false,
+      "domain": "operator_helm",
+      "live_authority_blocked": true,
+      "maturity": "READ_MODEL_VISIBLE",
+      "missing_next_pieces": [
+        "sync-health drift should be handled by existing sync lane if it matters",
+        "surface new map after normal mirror loop"
+      ],
+      "mission_control_visibility_status": "central visibility rail; app changes out of scope here",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Shows operator-useful status from mirrored read-models without backend command paths.",
+      "rail_id": "mission_control_read_model_surfaces",
+      "rail_name": "Mission Control-facing read-model surfaces",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "generated_read_model_mirror_no_app_backend_execution",
+      "steel_thread_stage_reached": "multiple_backend_read_models_mirrored_for_app_consumption",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/sync_health.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync health",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/context_selection.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "context selection",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/helm_state.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "helm state",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "generated_read_model_files.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "safe generated read-model file set",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "read_model_shuttle.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "read-model shuttle",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "mac_read_model_sync_agent.py",
+            "present": false,
+            "repo_a_only": true,
+            "role": "Mac mirror sync agent",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 2,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_sync_read_model_mirror.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync mirror tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_pc_read_model_import_agent.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "PC import agent tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_context_selection_read_model.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "context selection tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "transport/proof only; not source-of-truth edits",
+      "can_wait": false,
+      "domain": "sync_trust",
+      "live_authority_blocked": true,
+      "maturity": "READ_MODEL_VISIBLE",
+      "missing_next_pieces": [
+        "do not commit unrelated volatile sync-health churn in unrelated lanes",
+        "normal mirror loop should pick up new read-model"
+      ],
+      "mission_control_visibility_status": "Mirror Trust surface consumes this posture",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Keeps PC/Mac read-model trust visible and prevents stale mirror state from masquerading as current.",
+      "rail_id": "sync_mirror_read_model_trust",
+      "rail_name": "Sync/mirror/read-model trust",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "manifest_and_marker_based_sync_no_manual_copy_authority",
+      "steel_thread_stage_reached": "durable_sync_health_loop_modeled",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/sync_health.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync health",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/sync_health_OPERATOR.md",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync health operator view",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "read_model_shuttle.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "shuttle package builder",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "script",
+            "path": "scripts/pc_read_model_import_agent.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "PC import agent",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "script",
+            "path": "scripts/export_sync_health_read_model.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync health exporter",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 2,
+          "read_models_present": 2,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_read_model_shuttle.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "shuttle tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_pc_read_model_import_agent.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "import agent tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_sync_read_model_mirror.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "sync tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "no physical module extraction, client repo generation, deployment, or customer authority",
+      "can_wait": true,
+      "domain": "custom_build_capsules",
+      "live_authority_blocked": true,
+      "maturity": "METADATA_ONLY",
+      "missing_next_pieces": [
+        "future real custom-build pressure test",
+        "do not extract modules abstractly before named workflow proof"
+      ],
+      "mission_control_visibility_status": "read-model surfaces exist; no app change here",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Defines client/project capsules and custom-build detangling rules without generating client repos.",
+      "rail_id": "project_client_capsule_custom_build",
+      "rail_name": "Project/client capsule/custom-build substrate",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": false,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "metadata_contract_only_no_client_repo_generation",
+      "steel_thread_stage_reached": "contracts_and_capsule_read_models",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/custom_build_module_detangling_contract.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "custom-build contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/project_capsules.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "project capsules",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/bundle_blueprint_planner.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "bundle planner",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "custom_build_module_detangling_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "custom-build detangling contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "project_capsule.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "project capsule read-model substrate",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "bundle_blueprint_planner.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "bundle planner advisory manifest",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_custom_build_module_detangling_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "custom-build tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_project_capsule_read_model.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "project capsule tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_bundle_blueprint_planner.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "bundle planner tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "narrow allowlisted local actions only; not general external/send/runtime authority",
+      "can_wait": false,
+      "domain": "operator_action",
+      "live_authority_blocked": true,
+      "maturity": "APPROVAL_RECEIPT_READY",
+      "missing_next_pieces": [
+        "do not generalize to sends/runtime/browser",
+        "future Mission Control request writer must stay marker/file-request only if built"
+      ],
+      "mission_control_visibility_status": "read-model visible; Mission Control request writer remains separate future lane",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Provides the narrow SQLite-backed action request/inbox/receipt spine for allowlisted local actions.",
+      "rail_id": "operator_action_intent_gates",
+      "rail_name": "Operator action path / action intent gates",
+      "ready_for": {
+        "approval_receipt": true,
+        "approval_request_contract": true,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "active_narrow_sqlite_spine_for_allowlisted_local_actions",
+      "steel_thread_stage_reached": "canonical_narrow_sqlite_request_approval_receipt_spine",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/operator_actions.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator actions",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_action.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "Operator Action SQLite spine",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_action_inbox.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "strict request inbox",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "operator_action_covenant.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator action covenant",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 1,
+          "read_models_present": 1,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_action.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator action tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_action_inbox.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "operator action inbox tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_operator_action_covenant.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "covenant tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    },
+    {
+      "authority_boundary": "request/receipt/execution distinct; no live approval request, receipt, or executor",
+      "can_wait": false,
+      "domain": "authority_lifecycle",
+      "live_authority_blocked": true,
+      "maturity": "APPROVAL_REQUEST_CONTRACT_READY",
+      "missing_next_pieces": [
+        "specific final-send approval receipt contract",
+        "request delivery remains future and non-live until prerequisites exist",
+        "execution is later security-threshold work"
+      ],
+      "mission_control_visibility_status": "read-model surfaces exist; live approval request delivery not enabled",
+      "old_files_treated_as_evidence_not_truth": true,
+      "operator_value": "Keeps review packet, request, receipt, and execution from collapsing into one unsafe authority object.",
+      "rail_id": "approval_request_receipt_execution_boundaries",
+      "rail_name": "Approval request / approval receipt / execution boundaries",
+      "ready_for": {
+        "approval_receipt": false,
+        "approval_request_contract": true,
+        "execution_gate": false,
+        "live_workflow": false,
+        "proof_packet": false,
+        "review_packet": false,
+        "security_threshold_audit": false,
+        "visibility_only": true
+      },
+      "ready_for_live_workflow": false,
+      "security_threshold_audit_now": false,
+      "security_threshold_audit_posture": "future_threshold_not_current_lane",
+      "sqlite_read_model_integration_status": "request_contracts_defined_receipt_execution_future_only",
+      "steel_thread_stage_reached": "request_contracts_and_receipt_rules_modeled_execution_blocked",
+      "what_exists": {
+        "generated_read_models": [
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/guardian_draft_approval_request_contract.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft approval request contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/guardian_hitl_sqlite_authority_contract.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "authority contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "read_model",
+            "path": "generated/read_models/capital_hilton_coupa_start_approval_packet.json",
+            "present": true,
+            "repo_a_only": true,
+            "role": "start approval packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "key_files": [
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "guardian_draft_approval_request_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft final-send approval request contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "guardian_hitl_sqlite_authority_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "canonical request/decision/receipt contract",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "code",
+            "path": "capital_hilton_coupa_start_approval_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "start approval packet",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ],
+        "present_counts": {
+          "key_files_expected": 3,
+          "key_files_present": 3,
+          "read_models_expected": 3,
+          "read_models_present": 3,
+          "tests_expected": 3,
+          "tests_present": 3
+        },
+        "tests": [
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_guardian_draft_approval_request_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "draft approval request tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_guardian_hitl_sqlite_authority_contract.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "authority contract tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          },
+          {
+            "body_read": false,
+            "evidence_type": "test",
+            "path": "tests/test_capital_hilton_coupa_start_approval_packet.py",
+            "present": true,
+            "repo_a_only": true,
+            "role": "start packet tests",
+            "truth_status": "repo_a_evidence_not_truth"
+          }
+        ]
+      }
+    }
+  ],
+  "rails_needing_completion_before_repo_b": [
+    {
+      "missing_next_pieces": [
+        "real operator proof metadata/protected references",
+        "specific draft identity and attachment identity",
+        "future approval receipt contract",
+        "execution remains blocked"
+      ],
+      "rail_id": "capital_hilton_cassandra_clara_finance",
+      "rail_name": "Capital Hilton / Cassandra-Clara finance workflow"
+    },
+    {
+      "missing_next_pieces": [
+        "generic second workflow draft packet proof",
+        "future Guardian send approval receipt shape",
+        "execution authority intentionally deferred"
+      ],
+      "rail_id": "cassandra_draft_review_email_calendar",
+      "rail_name": "Cassandra draft/review/email/calendar capability"
+    },
+    {
+      "missing_next_pieces": [
+        "approval receipt contract for draft/final send",
+        "old HITL caller transition proof",
+        "security pass later when rails approach execution threshold"
+      ],
+      "rail_id": "guardian_hitl_security_sovereignty",
+      "rail_name": "Guardian approval/HITL/security/sovereignty contracts"
+    },
+    {
+      "missing_next_pieces": [
+        "prove second non-finance real workflow through work packet path",
+        "separate Chief legacy runtime from governed packet substrate"
+      ],
+      "rail_id": "chief_orchestration_work_packets",
+      "rail_name": "Chief orchestration/planning/work packets"
+    },
+    {
+      "missing_next_pieces": [
+        "operator-supplied governed metadata capture",
+        "Mission Control visibility if needed",
+        "no raw creative file ingest proof for future expansion"
+      ],
+      "rail_id": "niles_music_album_struna_capsule",
+      "rail_name": "Niles music/album/Struna/project capsule lane"
+    },
+    {
+      "missing_next_pieces": [
+        "client capsule boundary proof before external deployments",
+        "operator review for any write-capable package paths"
+      ],
+      "rail_id": "report_bridge_package_intake",
+      "rail_name": "Report Bridge / package intake"
+    },
+    {
+      "missing_next_pieces": [
+        "avoid broad Markdown/private note ingestion",
+        "prove cue parser path is governed before use"
+      ],
+      "rail_id": "brain_dump_cue_intent_inbox",
+      "rail_name": "Brain-dump / cue parser / intent inbox / dropped intents"
+    },
+    {
+      "missing_next_pieces": [
+        "sync-health drift should be handled by existing sync lane if it matters",
+        "surface new map after normal mirror loop"
+      ],
+      "rail_id": "mission_control_read_model_surfaces",
+      "rail_name": "Mission Control-facing read-model surfaces"
+    },
+    {
+      "missing_next_pieces": [
+        "do not commit unrelated volatile sync-health churn in unrelated lanes",
+        "normal mirror loop should pick up new read-model"
+      ],
+      "rail_id": "sync_mirror_read_model_trust",
+      "rail_name": "Sync/mirror/read-model trust"
+    },
+    {
+      "missing_next_pieces": [
+        "do not generalize to sends/runtime/browser",
+        "future Mission Control request writer must stay marker/file-request only if built"
+      ],
+      "rail_id": "operator_action_intent_gates",
+      "rail_name": "Operator action path / action intent gates"
+    },
+    {
+      "missing_next_pieces": [
+        "specific final-send approval receipt contract",
+        "request delivery remains future and non-live until prerequisites exist",
+        "execution is later security-threshold work"
+      ],
+      "rail_id": "approval_request_receipt_execution_boundaries",
+      "rail_name": "Approval request / approval receipt / execution boundaries"
+    }
+  ],
+  "rails_ready_enough": [
+    "Capital Hilton / Cassandra-Clara finance workflow",
+    "Cassandra draft/review/email/calendar capability",
+    "Guardian approval/HITL/security/sovereignty contracts",
+    "Niles music/album/Struna/project capsule lane",
+    "Operator action path / action intent gates",
+    "Approval request / approval receipt / execution boundaries"
+  ],
+  "rails_that_can_wait": [
+    "Hermes advisory synthesis",
+    "Deterministic planner/builder/automation build",
+    "Project/client capsule/custom-build substrate"
+  ],
+  "read_model_distinguishes_visibility_review_proof_approval_execution": true,
+  "readiness_counts": {
+    "approval_receipt": 2,
+    "approval_request_contract": 4,
+    "execution_gate": 1,
+    "live_workflow": 0,
+    "proof_packet": 1,
+    "review_packet": 3,
+    "security_threshold_audit": 0,
+    "visibility_only": 14
+  },
+  "readiness_keys": [
+    "visibility_only",
+    "review_packet",
+    "proof_packet",
+    "approval_request_contract",
+    "approval_receipt",
+    "execution_gate",
+    "security_threshold_audit",
+    "live_workflow"
+  ],
+  "recommended_next_lanes_all_gate_pass": true,
+  "recommended_next_lanes_before_repo_b": [
+    {
+      "lane_name": "Capital Hilton Proof Metadata Capture v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/proof/contract completion only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Record structural gaps without extracting modules or activating runtime.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/capital_hilton_external_artifact_proof_capture.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/capital_hilton_external_artifact_proof_capture_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_f3922dcf2c6bdcde31a4",
+        "gate_status": "pass",
+        "lane_name": "Capital Hilton Proof Metadata Capture v0",
+        "lane_summary": "Record operator-supplied protected proof metadata for Coupa payment invoice and Excel match when proof exists.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Any module split found should be recorded, not executed, before Repo B delta inspection.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Capital Hilton companion invoice final-send readiness",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable governed proof metadata capture for review packets.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "protected_proof_metadata_gap",
+        "steel_thread_contract_link": "capital_hilton_external_artifact_proof_capture_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority boundary flags"
+        ],
+        "workflow_proof_output": "Capital Hilton proof rail read-model updated with real metadata/protected references or explicit pending state."
+      },
+      "why_before_repo_b": "Record operator-supplied protected proof metadata for Coupa payment invoice and Excel match when proof exists."
+    },
+    {
+      "lane_name": "Guardian Final-Send Approval Receipt Contract v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/proof/contract completion only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Record structural gaps without extracting modules or activating runtime.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/guardian_final_send_approval_receipt_contract.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/guardian_final_send_approval_receipt_contract_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_8502c3163752162a8fa4",
+        "gate_status": "pass",
+        "lane_name": "Guardian Final-Send Approval Receipt Contract v0",
+        "lane_summary": "Define the future decision receipt shape for a specific Guardian final-send approval without dispatching it.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Any module split found should be recorded, not executed, before Repo B delta inspection.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Capital Hilton final-send approval lifecycle",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable approval receipt contract for draft+attachment outward email workflows.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "approval_receipt_gap",
+        "steel_thread_contract_link": "guardian_draft_approval_request_contract_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority boundary flags"
+        ],
+        "workflow_proof_output": "Guardian final-send receipt contract read-model; no approval, send, or execution."
+      },
+      "why_before_repo_b": "Define the future decision receipt shape for a specific Guardian final-send approval without dispatching it."
+    },
+    {
+      "lane_name": "Niles Governed Metadata Review Packet Completion v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/proof/contract completion only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Record structural gaps without extracting modules or activating runtime.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/niles_album_review_packet.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/niles_album_review_packet_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_8fb8754b79b175096383",
+        "gate_status": "pass",
+        "lane_name": "Niles Governed Metadata Review Packet Completion v0",
+        "lane_summary": "Bring the Niles/Struna creative rail to the same metadata/proof packet clarity without scanning creative files.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Any module split found should be recorded, not executed, before Repo B delta inspection.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Niles album and Struna creative project review",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable metadata-only review packet completion pattern for non-finance rails.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "metadata_review_packet_completion_gap",
+        "steel_thread_contract_link": "niles_album_evidence_intake_boundary_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority boundary flags"
+        ],
+        "workflow_proof_output": "Niles/Struna operator review packet completion map and proof of no raw creative file ingest."
+      },
+      "why_before_repo_b": "Bring the Niles/Struna creative rail to the same metadata/proof packet clarity without scanning creative files."
+    }
+  ],
+  "repo_b_delta_pass_prepared_not_run": true,
+  "repo_b_delta_questions_for_later": [
+    "Which Repo B capabilities are already represented in Repo A read-models, contracts, or tests?",
+    "Which Repo B surfaces are partially represented but still missing a Repo A steel-thread rail?",
+    "Which Repo B code is obsolete, unsafe, or superseded by Repo A contracts?",
+    "Which remembered Winship workflows have no deterministic Repo A evidence yet?",
+    "Which Repo B capabilities are worth bringing forward only after Repo A rails reach proof/request maturity?"
+  ],
+  "repo_b_inspected": false,
+  "repo_scope": "Repo A only",
+  "runtime_authority_added": false,
+  "schema_version": "repo_a_known_rail_completion_map_v0",
+  "security_pass_current": false,
+  "security_pass_posture": "future_when_rails_approach_live_execution_threshold",
+  "security_pass_started": false,
+  "send_or_submit_authority_added": false,
+  "unknown_rail_policy": {
+    "authority_boundary": "fail_closed_until_repo_a_evidence_exists",
+    "maturity": "NOT_FOUND",
+    "old_files_treated_as_evidence_not_truth": true,
+    "operator_confirmation_needed": true,
+    "rail_id": "unknown_unproven",
+    "rail_name": "unproven remembered workflow",
+    "ready_for": {
+      "approval_receipt": false,
+      "approval_request_contract": false,
+      "execution_gate": false,
+      "live_workflow": false,
+      "proof_packet": false,
+      "review_packet": false,
+      "security_threshold_audit": false,
+      "visibility_only": false
+    },
+    "steel_thread_stage_reached": "not_proven"
+  }
+}
