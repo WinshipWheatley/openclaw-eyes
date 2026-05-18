@@ -104,6 +104,10 @@ def test_send_approval_is_unavailable_without_coupa_invoice_proof(tmp_path):
     payload = _build(tmp_path)
 
     assert payload["current_approval_availability_state"] == "unavailable_missing_coupa_invoice_proof"
+    assert payload["capital_hilton_proof_evidence_rail"]["rail_status"] == "blocked_waiting_for_governed_proof"
+    assert payload["capital_hilton_proof_evidence_rail"]["final_send_approval_eligibility"][
+        "send_execution_available_now"
+    ] is False
     assert "missing_coupa_invoice_proof" in payload["blocker_status"]["failure_reasons"]
     assert payload["status_summary"]["send_approval_blocked_until_coupa_proof_exists"] is True
 
@@ -135,6 +139,7 @@ def test_send_approval_is_unavailable_without_specific_draft_and_attachment(tmp_
     payload = _build(tmp_path, evidence=evidence)
 
     assert payload["current_approval_availability_state"] == "unavailable_missing_email_draft"
+    assert payload["capital_hilton_proof_evidence_rail"]["rail_status"] == "blocked_waiting_for_governed_proof"
     assert "missing_email_draft" in payload["blocker_status"]["failure_reasons"]
     assert "missing_attachment_reference" in payload["blocker_status"]["failure_reasons"]
     assert payload["draft_identity"]["draft_present_now"] is False
@@ -235,7 +240,9 @@ def test_export_writes_valid_json_operator_and_cli_outputs(tmp_path, capsys):
     assert result.generic_final_send_approval_contract_added is True
     assert result.send_approval_executable is False
     assert payload["status_summary"]["send_approval_packet_modeled"] is True
+    assert payload["capital_hilton_proof_evidence_rail"]["rail_status"] == "blocked_waiting_for_governed_proof"
     assert "Capital Hilton Send Approval Gate" in operator_text
+    assert "Proof Evidence Rail" in operator_text
     assert export_main(
         [
             "--execution-path-json",

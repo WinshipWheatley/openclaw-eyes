@@ -34,6 +34,24 @@ PROOF_TYPES = (
     "excel_coupa_match_proof",
 )
 
+EXPECTED_CAPITAL_HILTON_PROOF_CONTEXT = {
+    "po_number": "DCASH00983536",
+    "customer": "Hilton | Smart Spend",
+    "po_status": "Issued - Pending Manual",
+    "po_total": "4000.00 USD",
+    "invoiced_to_date": "2000.00 USD",
+    "apparent_remaining": "2000.00 USD",
+    "line_item": "Musician",
+    "requester": "Sam Getachew",
+    "excel_companion_invoice": {
+        "invoice_number": "2026-1005",
+        "invoice_date": "2026-05-17",
+        "total_due": "800.00 USD",
+        "completed_service_dates": ["2026-05-08", "2026-05-15"],
+        "rate": "400.00 USD per gig",
+    },
+}
+
 NO_AUTHORITY_FLAGS = {
     "evidence_only": True,
     "no_external_action": True,
@@ -284,6 +302,72 @@ def final_send_prerequisite_status_from_records(records: dict[str, dict[str, Any
     }
 
 
+def _capital_hilton_proof_evidence_rail(
+    *,
+    records: dict[str, dict[str, Any]],
+    prerequisites: dict[str, bool],
+    availability: str,
+) -> dict[str, Any]:
+    coupa = records["coupa_payment_invoice_proof"]
+    excel = records["excel_companion_invoice_artifact"]
+    match = records["excel_coupa_match_proof"]
+    return {
+        "rail_id": "capital_hilton_two_invoice_proof_evidence_rail_v0",
+        "workflow": WORKFLOW_ID,
+        "rail_status": "eligible_for_final_send_review"
+        if availability == "available_for_guardian_send_approval"
+        else "blocked_waiting_for_governed_proof",
+        "operator_meaning": (
+            "Tracks the protected evidence facts needed before Capital Hilton final send approval can be requested."
+        ),
+        "expected_context": EXPECTED_CAPITAL_HILTON_PROOF_CONTEXT,
+        "proof_lanes": [
+            {
+                "lane_id": "payment_invoice_proof",
+                "operator_label": "Coupa supplier-portal payment invoice proof",
+                "proof_type": "coupa_payment_invoice_proof",
+                "proof_status": coupa["proof_status"],
+                "present_now": bool(prerequisites["coupa_invoice_proof_exists"]),
+                "references_expected_po_context": bool(
+                    prerequisites["coupa_invoice_proof_references_expected_po_invoice_context"]
+                ),
+                "required_to_unlock_final_send_review": True,
+                "raw_artifact_stored_in_read_model": False,
+            },
+            {
+                "lane_id": "companion_invoice_match_proof",
+                "operator_label": "Excel companion invoice match proof",
+                "proof_type": "excel_coupa_match_proof",
+                "proof_status": match["proof_status"],
+                "excel_companion_artifact_status": excel["proof_status"],
+                "excel_companion_artifact_present_now": bool(
+                    prerequisites["excel_companion_invoice_artifact_exists"]
+                ),
+                "match_verified_now": bool(prerequisites["excel_companion_invoice_verified_to_match_coupa"]),
+                "required_to_unlock_final_send_review": True,
+                "raw_artifact_stored_in_read_model": False,
+            },
+        ],
+        "final_send_approval_eligibility": {
+            "availability_state": availability,
+            "payment_invoice_proof_present": bool(prerequisites["coupa_invoice_proof_exists"]),
+            "companion_invoice_match_verified": bool(
+                prerequisites["excel_companion_invoice_verified_to_match_coupa"]
+            ),
+            "eligible_for_guardian_final_send_approval_review": availability == "available_for_guardian_send_approval",
+            "send_execution_available_now": False,
+        },
+        "protected_evidence_boundary": {
+            "metadata_only": True,
+            "raw_coupa_pdf_stored": False,
+            "raw_excel_file_stored": False,
+            "home_address_or_bank_details_stored": False,
+            "portal_credentials_or_tokens_stored": False,
+            "external_action_taken": False,
+        },
+    }
+
+
 def _availability_from_prerequisites(prerequisites: dict[str, bool]) -> str:
     if not prerequisites["coupa_invoice_proof_exists"]:
         return "unavailable_missing_coupa_invoice_proof"
@@ -314,6 +398,11 @@ def build_capital_hilton_external_artifact_proof_capture(
     }
     prerequisites = final_send_prerequisite_status_from_records(records)
     availability = _availability_from_prerequisites(prerequisites)
+    proof_evidence_rail = _capital_hilton_proof_evidence_rail(
+        records=records,
+        prerequisites=prerequisites,
+        availability=availability,
+    )
     real_proof_recorded = any(item["proof_status"] == "captured" for item in records.values())
     synthetic_recorded = any(item["proof_status"] == "synthetic_test_recorded_not_real" for item in records.values())
     no_authority = dict(NO_AUTHORITY_FLAGS)
@@ -334,6 +423,7 @@ def build_capital_hilton_external_artifact_proof_capture(
         "capture_mode": "operator_supplied_safe_metadata_only",
         "operator_proof_intake": intake_summary,
         "proof_records": records,
+        "capital_hilton_proof_evidence_rail": proof_evidence_rail,
         "supported_metadata_fields": sorted(_ALLOWED_METADATA_FIELDS),
         "proof_capture_requirements": {
             "proof_requires_explicit_operator_input_or_safe_metadata": True,
@@ -345,6 +435,7 @@ def build_capital_hilton_external_artifact_proof_capture(
         "final_send_approval_availability_state": availability,
         "final_send_approval_remains_blocked_without_required_proof": availability != "available_for_guardian_send_approval",
         "status_summary": {
+            "proof_evidence_rail_status": proof_evidence_rail["rail_status"],
             "coupa_invoice_proof_status": records["coupa_payment_invoice_proof"]["proof_status"],
             "excel_companion_artifact_status": records["excel_companion_invoice_artifact"]["proof_status"],
             "excel_coupa_match_proof_status": records["excel_coupa_match_proof"]["proof_status"],
@@ -390,6 +481,7 @@ def format_capital_hilton_external_artifact_proof_capture(payload: dict[str, Any
         f"- Excel companion invoice artifact: `{payload['status_summary']['excel_companion_artifact_status']}`.",
         f"- Excel-vs-Coupa match proof: `{payload['status_summary']['excel_coupa_match_proof_status']}`.",
         f"- Final send approval availability: `{payload['final_send_approval_availability_state']}`.",
+        f"- Proof evidence rail: `{payload['capital_hilton_proof_evidence_rail']['rail_status']}`.",
         "- Raw sensitive artifacts stored in read-model: `false`.",
         "- Coupa/browser/email/spreadsheet/credential/runtime authority added: `false`.",
         "",
@@ -407,6 +499,11 @@ def format_capital_hilton_external_artifact_proof_capture(payload: dict[str, Any
     lines.extend(["", "## Final Send Approval Prerequisites"])
     for key, present in payload["final_send_approval_prerequisites"].items():
         lines.append(f"- `{key}`: `{str(bool(present)).lower()}`")
+    lines.extend(["", "## Proof Evidence Rail"])
+    for lane in payload["capital_hilton_proof_evidence_rail"]["proof_lanes"]:
+        lines.append(
+            f"- {lane['operator_label']}: `{lane['proof_status']}`; required before final send review: `true`."
+        )
     lines.extend([
         "",
         "## Boundary",
@@ -486,6 +583,7 @@ __all__ = [
     "PROOF_TYPES",
     "SCHEMA_VERSION",
     "WORKFLOW_ID",
+    "EXPECTED_CAPITAL_HILTON_PROOF_CONTEXT",
     "build_capital_hilton_external_artifact_proof_capture",
     "export_capital_hilton_external_artifact_proof_capture",
     "final_send_prerequisite_status_from_records",

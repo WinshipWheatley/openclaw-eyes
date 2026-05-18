@@ -5,6 +5,7 @@ Status:
 - Excel companion invoice artifact: `pending_not_recorded`.
 - Excel-vs-Coupa match proof: `pending_not_recorded`.
 - Final send approval availability: `unavailable_missing_coupa_invoice_proof`.
+- Proof evidence rail: `blocked_waiting_for_governed_proof`.
 - Raw sensitive artifacts stored in read-model: `false`.
 - Coupa/browser/email/spreadsheet/credential/runtime authority added: `false`.
 
@@ -31,6 +32,10 @@ Status:
 - `attachment_identity_hash_reference_exists`: `false`
 - `no_unresolved_critical_blockers`: `false`
 - `guardian_start_approval_recorded_or_required_upstream`: `true`
+
+## Proof Evidence Rail
+- Coupa supplier-portal payment invoice proof: `pending_not_recorded`; required before final send review: `true`.
+- Excel companion invoice match proof: `pending_not_recorded`; required before final send review: `true`.
 
 ## Boundary
 - Evidence only; no external action was taken.

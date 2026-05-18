@@ -74,8 +74,15 @@ def _write_power_stage(path: Path) -> Path:
 
 def test_no_proof_is_captured_without_explicit_operator_input_or_safe_metadata():
     payload = proof.build_capital_hilton_external_artifact_proof_capture(generated_at=FIXED_NOW)
+    rail = payload["capital_hilton_proof_evidence_rail"]
 
     assert payload["status_summary"]["real_proof_recorded"] is False
+    assert payload["status_summary"]["proof_evidence_rail_status"] == "blocked_waiting_for_governed_proof"
+    assert rail["expected_context"]["po_number"] == "DCASH00983536"
+    assert rail["expected_context"]["excel_companion_invoice"]["invoice_number"] == "2026-1005"
+    assert rail["final_send_approval_eligibility"]["payment_invoice_proof_present"] is False
+    assert rail["final_send_approval_eligibility"]["companion_invoice_match_verified"] is False
+    assert rail["protected_evidence_boundary"]["raw_coupa_pdf_stored"] is False
     assert payload["operator_proof_intake"]["intake_path_added"] is True
     assert payload["operator_proof_intake"]["proof_input_supplied"] is False
     assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 0
@@ -123,9 +130,14 @@ def test_supplied_proof_metadata_is_evidence_only_and_raw_contents_are_not_store
         proof_inputs=_real_proof_inputs(),
         generated_at=FIXED_NOW,
     )
+    rail = payload["capital_hilton_proof_evidence_rail"]
     text = json.dumps(payload).lower()
 
     assert payload["status_summary"]["real_proof_recorded"] is True
+    assert rail["rail_status"] == "blocked_waiting_for_governed_proof"
+    assert rail["final_send_approval_eligibility"]["payment_invoice_proof_present"] is True
+    assert rail["final_send_approval_eligibility"]["companion_invoice_match_verified"] is True
+    assert rail["final_send_approval_eligibility"]["send_execution_available_now"] is False
     assert payload["proof_records"]["coupa_payment_invoice_proof"]["proof_status"] == "captured"
     assert payload["proof_records"]["excel_companion_invoice_artifact"]["proof_status"] == "captured"
     assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "captured"
@@ -267,7 +279,9 @@ def test_export_writes_deterministic_safe_read_model_operator_and_cli_outputs(tm
     assert result.operator_proof_intake_enabled is True
     assert result.partial_proof_intake_supported is True
     assert payload["status_summary"]["no_submit_no_browser_no_email_no_spreadsheet_no_secret_storage"] is True
+    assert payload["capital_hilton_proof_evidence_rail"]["rail_status"] == "blocked_waiting_for_governed_proof"
     assert "Capital Hilton External Artifact Proof Capture" in operator_text
+    assert "Proof Evidence Rail" in operator_text
     assert export_main(["--export-root", str(export_root), "--format", "json"]) == 0
     assert json.loads(capsys.readouterr().out)["schema_version"] == proof.SCHEMA_VERSION
 

@@ -209,6 +209,32 @@ def _prerequisite_evidence_from_proof_capture(proof_capture: dict[str, Any]) -> 
         return {}
 
 
+def _proof_evidence_rail_from_capture(proof_capture: dict[str, Any], availability_state: str) -> dict[str, Any]:
+    rail = proof_capture.get("capital_hilton_proof_evidence_rail")
+    if isinstance(rail, dict):
+        return rail
+    return {
+        "rail_id": "capital_hilton_two_invoice_proof_evidence_rail_v0",
+        "rail_status": "eligible_for_final_send_review"
+        if availability_state == "available_for_guardian_send_approval"
+        else "blocked_waiting_for_governed_proof",
+        "source_present": bool(proof_capture),
+        "proof_lanes": [],
+        "final_send_approval_eligibility": {
+            "availability_state": availability_state,
+            "eligible_for_guardian_final_send_approval_review": availability_state
+            == "available_for_guardian_send_approval",
+            "send_execution_available_now": False,
+        },
+        "protected_evidence_boundary": {
+            "metadata_only": True,
+            "raw_coupa_pdf_stored": False,
+            "raw_excel_file_stored": False,
+            "external_action_taken": False,
+        },
+    }
+
+
 def _availability_state(evidence: dict[str, bool]) -> tuple[str, list[str]]:
     failure_reasons: list[str] = []
     if not evidence.get("coupa_invoice_proof_exists"):
@@ -546,6 +572,7 @@ def build_capital_hilton_send_approval_gate(
     else:
         evidence.update(_prerequisite_evidence_from_proof_capture(proof_capture))
     availability_state, failure_reasons = _availability_state(evidence)
+    proof_evidence_rail = _proof_evidence_rail_from_capture(proof_capture, availability_state)
     evidence_records = _prerequisite_records(evidence)
     draft_identity = _draft_identity(evidence)
     attachment_identity = _attachment_identity(evidence)
@@ -640,12 +667,14 @@ def build_capital_hilton_send_approval_gate(
             "source_path": _display_path(proof_capture_json),
             "source_present": bool(proof_capture),
             "schema_version": proof_capture.get("schema_version"),
+            "proof_evidence_rail_status": proof_evidence_rail["rail_status"],
             "coupa_invoice_proof_status": (proof_capture.get("status_summary") or {}).get("coupa_invoice_proof_status", "pending_not_recorded"),
             "excel_companion_artifact_status": (proof_capture.get("status_summary") or {}).get("excel_companion_artifact_status", "pending_not_recorded"),
             "excel_coupa_match_proof_status": (proof_capture.get("status_summary") or {}).get("excel_coupa_match_proof_status", "pending_not_recorded"),
             "raw_sensitive_artifact_stored_in_read_model": bool((proof_capture.get("status_summary") or {}).get("raw_sensitive_artifact_stored_in_read_model", False)),
             "evidence_only": bool((proof_capture.get("authority_boundary") or {}).get("evidence_only", False)),
         },
+        "capital_hilton_proof_evidence_rail": proof_evidence_rail,
         "upstream_start_approval_context": {
             "source_path": _display_path(start_approval_json),
             "source_present": bool(start_approval),
@@ -712,6 +741,7 @@ def format_capital_hilton_send_approval_gate(payload: dict[str, Any]) -> str:
         "Status:",
         "- Send approval packet modeled: `true`.",
         f"- Current availability: `{payload['current_approval_availability_state']}`.",
+        f"- Proof evidence rail: `{payload['capital_hilton_proof_evidence_rail']['rail_status']}`.",
         "- Packet executable now: `false`.",
         "- Guardian message sent: `false`.",
         "- Email/Coupa/browser/spreadsheet/credential/runtime authority added: `false`.",
@@ -727,6 +757,11 @@ def format_capital_hilton_send_approval_gate(payload: dict[str, Any]) -> str:
     for item in payload["prerequisite_evidence"]:
         status = "present" if item["present_now"] else "missing"
         lines.append(f"- `{item['evidence_key']}`: {status} - {item['description']}")
+    lines.extend(["", "## Proof Evidence Rail"])
+    for item in payload["capital_hilton_proof_evidence_rail"].get("proof_lanes", []):
+        lines.append(
+            f"- {item['operator_label']}: `{item['proof_status']}`; final-send unlock proof: `true`."
+        )
     lines.extend(["", "## If Later Approved, It Would Authorize"])
     lines.extend(f"- {item}" for item in payload["what_send_approval_authorizes"])
     lines.extend(["", "## Still Blocked"])

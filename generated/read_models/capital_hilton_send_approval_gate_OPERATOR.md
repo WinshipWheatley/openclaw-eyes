@@ -3,6 +3,7 @@
 Status:
 - Send approval packet modeled: `true`.
 - Current availability: `unavailable_missing_coupa_invoice_proof`.
+- Proof evidence rail: `blocked_waiting_for_governed_proof`.
 - Packet executable now: `false`.
 - Guardian message sent: `false`.
 - Email/Coupa/browser/spreadsheet/credential/runtime authority added: `false`.
@@ -24,6 +25,10 @@ Status:
 - `attachment_identity_hash_reference_exists`: missing - Attachment identity/hash/reference exists.
 - `no_unresolved_critical_blockers`: missing - No unresolved critical blockers remain.
 - `guardian_start_approval_recorded_or_required_upstream`: present - Guardian start approval is recorded or modeled as required upstream.
+
+## Proof Evidence Rail
+- Coupa supplier-portal payment invoice proof: `pending_not_recorded`; final-send unlock proof: `true`.
+- Excel companion invoice match proof: `pending_not_recorded`; final-send unlock proof: `true`.
 
 ## If Later Approved, It Would Authorize
 - send the specific Cassandra-drafted email
