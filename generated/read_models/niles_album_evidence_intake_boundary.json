@@ -1,0 +1,224 @@
+{
+  "allowed_metadata_types": [
+    {
+      "description": "Operator-supplied album/project label; not inferred from folders.",
+      "field_name": "album_project_name",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_label_or_null"
+    },
+    {
+      "description": "Operator-supplied song title or working title.",
+      "field_name": "song_title",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_label_or_null"
+    },
+    {
+      "description": "A stable operator label that can survive title changes.",
+      "field_name": "song_id_or_stable_operator_label",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_stable_label_or_null"
+    },
+    {
+      "description": "Status label supplied by the operator, such as idea, tracking, editing, mixing, review, parked, or done.",
+      "field_name": "track_status_label",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_enum_or_null"
+    },
+    {
+      "description": "Production-stage label supplied by the operator; not derived from DAW/session inspection.",
+      "field_name": "production_stage_label",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_enum_or_null"
+    },
+    {
+      "description": "A path label or human reference for where evidence lives; the path is not opened or scanned by this contract.",
+      "field_name": "source_reference_path_label",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_reference_label_or_null"
+    },
+    {
+      "description": "Operator-supplied yes/no/unknown flag that a DAW session exists; no DAW content is read.",
+      "field_name": "daw_session_existence_flag",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_boolean_or_null"
+    },
+    {
+      "description": "Operator-supplied last-known status update date or short note.",
+      "field_name": "last_known_operator_update",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_date_or_text_or_null"
+    },
+    {
+      "description": "Operator-supplied blocker labels; no private notes or lyrics.",
+      "field_name": "blocker_labels",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_list_or_empty"
+    },
+    {
+      "description": "Operator-supplied next safe move labels for Niles to review later.",
+      "field_name": "next_safe_move_labels",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_list_or_empty"
+    },
+    {
+      "description": "Confidence in the metadata supplied, not confidence in raw audio/session contents.",
+      "field_name": "confidence",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_low_medium_high_or_null"
+    },
+    {
+      "description": "Evidence posture for metadata only; it does not certify audio/session truth.",
+      "field_name": "evidence_status",
+      "metadata_only": true,
+      "value_policy": "operator_supplied_pending_review_confirmed_or_stale"
+    }
+  ],
+  "audio_file_mutation_allowed": false,
+  "authority_boundary": {
+    "audio_file_mutation_allowed": false,
+    "broad_private_drive_scan_allowed": false,
+    "daw_automation_allowed": false,
+    "daw_session_content_ingest_allowed": false,
+    "finder_file_operation_allowed": false,
+    "metadata_only_intake_contract": true,
+    "mission_control_app_changed": false,
+    "model_execution_authority_added": false,
+    "raw_audio_ingest_allowed": false,
+    "real_album_metadata_recorded": false,
+    "repo_b_authority_allowed": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "tool_execution_authority_added": false
+  },
+  "blocked_evidence_types": [
+    "raw_audio",
+    "daw_session_contents",
+    "stems_mixes_masters",
+    "broad_folder_scans",
+    "private_drive_crawl",
+    "inferred_song_status_without_evidence",
+    "automatic_file_mutation",
+    "unapproved_lyrics_ingest",
+    "unapproved_private_notes_ingest",
+    "repo_b_runtime_execution"
+  ],
+  "boundary_id": "niles_album_evidence_intake_boundary",
+  "boundary_status": "contract_ready_no_real_metadata_recorded",
+  "broad_private_drive_scan_allowed": false,
+  "daw_automation_allowed": false,
+  "daw_session_content_ingest_allowed": false,
+  "finder_file_operation_allowed": false,
+  "first_safe_next_step": "Operator fills a metadata-only Niles album packet from this template; OpenClaw can then record metadata evidence in a later explicit intake lane.",
+  "generated_at": "2026-05-17T12:00:00+00:00",
+  "generated_by": "codex",
+  "metadata_only_intake_contract": true,
+  "mission_control_app_changed": false,
+  "model_execution_authority_added": false,
+  "next_recommended_lane": "Niles Album Operator Metadata Intake v0",
+  "operator_supplied_metadata_packet_shape": {
+    "empty_pending_template": {
+      "metadata_records": [
+        {
+          "album_project_name": null,
+          "blocker_labels": [],
+          "confidence": null,
+          "daw_session_existence_flag": null,
+          "evidence_status": "pending_not_recorded",
+          "last_known_operator_update": null,
+          "next_safe_move_labels": [],
+          "production_stage_label": null,
+          "song_id_or_stable_operator_label": null,
+          "song_title": null,
+          "source_reference_path_label": null,
+          "track_status_label": null
+        }
+      ],
+      "no_external_action": true,
+      "operator_supplied": false,
+      "synthetic_or_test": false,
+      "template_id": "niles_album_metadata_empty_pending_template_v0",
+      "template_status": "empty_pending_no_real_metadata_recorded"
+    },
+    "packet_kind": "niles_album_operator_metadata_packet",
+    "required_posture": [
+      "operator_supplied=true for real metadata",
+      "synthetic_or_test=false for real metadata",
+      "no_external_action=true",
+      "unknown values stay null",
+      "do not paste lyrics, private notes, raw audio bodies, stems, mix files, master files, DAW session contents, credentials, or full private paths"
+    ],
+    "schema_hint": "metadata_only_no_raw_audio_or_daw_contents",
+    "synthetic_test_example": {
+      "metadata_records": [
+        {
+          "album_project_name": "SYNTHETIC TEST ALBUM - not real",
+          "blocker_labels": [
+            "synthetic_blocker_missing_mix_notes"
+          ],
+          "confidence": "medium",
+          "daw_session_existence_flag": true,
+          "evidence_status": "synthetic_test_only_not_real_evidence",
+          "last_known_operator_update": "2026-05-17 synthetic example",
+          "next_safe_move_labels": [
+            "synthetic_next_review_metadata_only"
+          ],
+          "production_stage_label": "synthetic_demo_stage",
+          "song_id_or_stable_operator_label": "synthetic_song_001",
+          "song_title": "SYNTHETIC TEST SONG - not real",
+          "source_reference_path_label": "operator://synthetic/local-reference-label-only",
+          "track_status_label": "mix_review"
+        }
+      ],
+      "no_external_action": true,
+      "operator_supplied": false,
+      "synthetic_or_test": true,
+      "template_id": "niles_album_metadata_synthetic_test_example_v0",
+      "template_status": "synthetic_example_not_real_metadata"
+    }
+  },
+  "proof_requirements_before_album_state_can_be_confirmed": [
+    "Operator supplies metadata-only packet with at least album_project_name or stable song label.",
+    "Every metadata record declares evidence_status and confidence.",
+    "Any source reference is a label/reference only and is not opened or scanned by OpenClaw.",
+    "Raw audio, DAW session contents, stems, mixes, masters, lyrics, and private notes remain outside normal read-models.",
+    "A later Niles review packet consumes only governed metadata, not raw files."
+  ],
+  "purpose": "Define the safe metadata-only path before Niles album/session status can become governed evidence.",
+  "raw_audio_ingest_allowed": false,
+  "real_album_metadata_recorded": false,
+  "receipt_proof_status": {
+    "external_action_taken": false,
+    "operator_packet_written": true,
+    "read_model_written": true,
+    "real_metadata_recorded": false
+  },
+  "repo_b_authority_allowed": false,
+  "runtime_authority_added": false,
+  "schema_version": "niles_album_evidence_intake_boundary_v0",
+  "send_or_submit_authority_added": false,
+  "source_policy": {
+    "allowed_source_types": [
+      "operator_supplied_metadata_json",
+      "operator_supplied_path_label_without_file_open",
+      "governed_repo_a_read_model_reference"
+    ],
+    "blocked_source_types": [
+      "raw_audio",
+      "daw_session_contents",
+      "stems_mixes_masters",
+      "broad_folder_scans",
+      "private_drive_crawl",
+      "inferred_song_status_without_evidence",
+      "automatic_file_mutation",
+      "unapproved_lyrics_ingest",
+      "unapproved_private_notes_ingest",
+      "repo_b_runtime_execution"
+    ],
+    "existing_old_docs_files_are_evidence_not_truth": true
+  },
+  "synthetic_examples_labeled": true,
+  "tool_execution_authority_added": false,
+  "unknown_album_state_remains_unknown": true,
+  "workflow_domain": "music_art",
+  "workflow_name": "Niles album progress review"
+}

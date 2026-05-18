@@ -40,6 +40,13 @@ NO_AUTHORITY_FLAGS = {
 
 GOVERNED_EVIDENCE_SOURCES = (
     {
+        "source_id": "niles_album_evidence_intake_boundary",
+        "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+        "source_role": "metadata-only evidence intake boundary contract",
+        "truth_status": "governed_read_model_evidence_not_truth",
+        "confidence": "high",
+    },
+    {
         "source_id": "operator_workflow_atlas_niles_album_lane",
         "source_path": "generated/read_models/operator_workflow_atlas.json",
         "source_role": "lane recommendation and generic review-packet bottleneck evidence",
@@ -284,12 +291,21 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     memory_dry_run = _read_json_if_present(root / "generated/read_models/cassandra_chief_memory_dry_run.json")
     repo_b_intake = _read_json_if_present(root / "generated/read_models/repo_b_runtime_intake.json")
     agent_runtime = _read_json_if_present(root / "generated/read_models/agent_runtime_readiness.json")
+    intake_boundary = _read_json_if_present(root / "generated/read_models/niles_album_evidence_intake_boundary.json")
 
     workflow = _niles_workflow_posture(workflow_atlas)
     module = _module_posture(module_registry)
     memory = _memory_album_posture(memory_dry_run)
     repo_b = _repo_b_music_candidate_posture(repo_b_intake)
     runtime = _runtime_readiness_posture(agent_runtime)
+    boundary_present = bool(intake_boundary)
+    boundary_posture = {
+        "boundary_present": boundary_present,
+        "boundary_status": intake_boundary.get("boundary_status", "not_available"),
+        "real_album_metadata_recorded": intake_boundary.get("real_album_metadata_recorded", False),
+        "unknown_album_state_remains_unknown": intake_boundary.get("unknown_album_state_remains_unknown", True),
+        "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+    }
 
     confirmed_evidence = [source for source in evidence_sources if source["source_present"]]
     missing_evidence = [source for source in evidence_sources if not source["source_present"]]
@@ -311,6 +327,12 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "label": "Cassandra/Chief memory surfaces defer album/song progress to Niles/music authority.",
             "source": "cassandra_chief_memory_album_progress_deferred",
             "authority_status": "deferred_evidence_not_imported_truth",
+        },
+        {
+            "item_id": "niles_album_evidence_intake_boundary_defined",
+            "label": "A metadata-only Niles album evidence intake boundary is defined." if boundary_present else "A metadata-only Niles album evidence intake boundary is still missing.",
+            "source": "niles_album_evidence_intake_boundary",
+            "authority_status": "contract_only_no_real_album_metadata",
         },
     ]
     inferred_or_desired = [
@@ -349,8 +371,8 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
             "needed_for": "operator-useful progress review",
         },
         {
-            "item_id": "missing_safe_ingestion_boundary",
-            "label": "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
+            "item_id": "missing_real_governed_album_metadata",
+            "label": "The metadata-only boundary exists, but no real operator-supplied album metadata has been recorded through it yet." if boundary_present else "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
             "needed_for": "future Niles Album Matrix population",
         },
     ]
@@ -418,6 +440,7 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
         "memory_album_posture": memory,
         "repo_b_music_candidate_posture": repo_b,
         "runtime_readiness_posture": runtime,
+        "evidence_intake_boundary_posture": boundary_posture,
         "authority_boundary": dict(NO_AUTHORITY_FLAGS),
         "receipt_proof_status": {
             "read_model_written": True,

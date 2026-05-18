@@ -56,12 +56,25 @@
       "item_id": "album_progress_deferred_to_niles",
       "label": "Cassandra/Chief memory surfaces defer album/song progress to Niles/music authority.",
       "source": "cassandra_chief_memory_album_progress_deferred"
+    },
+    {
+      "authority_status": "contract_only_no_real_album_metadata",
+      "item_id": "niles_album_evidence_intake_boundary_defined",
+      "label": "A metadata-only Niles album evidence intake boundary is defined.",
+      "source": "niles_album_evidence_intake_boundary"
     }
   ],
   "daw_automation_allowed": false,
+  "evidence_intake_boundary_posture": {
+    "boundary_present": true,
+    "boundary_status": "contract_ready_no_real_metadata_recorded",
+    "real_album_metadata_recorded": false,
+    "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+    "unknown_album_state_remains_unknown": true
+  },
   "evidence_sufficient_for_album_status": false,
   "finder_file_operation_allowed": false,
-  "generated_at": "2026-05-18T00:23:01+00:00",
+  "generated_at": "2026-05-17T12:00:00+00:00",
   "generated_by": "codex",
   "governed_evidence_only": true,
   "inferred_or_desired_album_workflow_evidence": [
@@ -103,8 +116,8 @@
       "needed_for": "operator-useful progress review"
     },
     {
-      "item_id": "missing_safe_ingestion_boundary",
-      "label": "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
+      "item_id": "missing_real_governed_album_metadata",
+      "label": "The metadata-only boundary exists, but no real operator-supplied album metadata has been recorded through it yet.",
       "needed_for": "future Niles Album Matrix population"
     }
   ],
@@ -180,6 +193,17 @@
     {
       "confidence": "high",
       "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "niles_album_evidence_intake_boundary",
+      "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+      "source_payload_kind": "niles_album_evidence_intake_boundary_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "metadata-only evidence intake boundary contract",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    },
+    {
+      "confidence": "high",
+      "old_files_treated_as_evidence_not_truth": true,
       "source_id": "operator_workflow_atlas_niles_album_lane",
       "source_path": "generated/read_models/operator_workflow_atlas.json",
       "source_payload_kind": "operator_workflow_atlas_v0",
@@ -247,7 +271,7 @@
   "source_summary": {
     "all_sources_repo_a_read_models_or_docs": true,
     "broad_private_drive_scan_triggered": false,
-    "confirmed_evidence_source_count": 6,
+    "confirmed_evidence_source_count": 7,
     "missing_evidence_source_count": 0,
     "raw_audio_ingested": false
   },

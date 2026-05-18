@@ -13,6 +13,7 @@ Status:
 - Niles Album Matrix is modeled as a planning-only module. Source: `approved_module_registry_niles_album_matrix`; authority=planning_only_not_runtime.
 - Workflow Atlas recommends this Niles album review packet as the next non-finance generic packet proof. Source: `operator_workflow_atlas_niles_album_lane`; authority=review_packet_recommendation_not_album_truth.
 - Cassandra/Chief memory surfaces defer album/song progress to Niles/music authority. Source: `cassandra_chief_memory_album_progress_deferred`; authority=deferred_evidence_not_imported_truth.
+- A metadata-only Niles album evidence intake boundary is defined. Source: `niles_album_evidence_intake_boundary`; authority=contract_only_no_real_album_metadata.
 
 ## Inferred / Desired, Not Confirmed Album State
 - A future album matrix should track album/project metadata, mix readiness, production packets, and operator decisions. Basis: approved module and migration-map evidence; confirmation required: `true`.
@@ -24,7 +25,7 @@ Status:
 ## Missing Evidence
 - No governed album/project metadata packet exists yet. Needed for: album/session status summary.
 - No approved source of truth identifies current album, session, track, mix, or release status. Needed for: operator-useful progress review.
-- No approved metadata-only ingestion/tagging boundary exists for music/session evidence. Needed for: future Niles Album Matrix population.
+- The metadata-only boundary exists, but no real operator-supplied album metadata has been recorded through it yet. Needed for: future Niles Album Matrix population.
 
 ## Blockers
 - `album_source_of_truth_unconfirmed` (blocks_album_state_claims): Current governed evidence does not prove album/session status. Next: Create a metadata-only Niles album evidence intake boundary before importing or summarizing album state.
@@ -57,6 +58,7 @@ Status:
 - `mission_control_app_changed` = `false`
 
 ## Source Evidence
+- `generated/read_models/niles_album_evidence_intake_boundary.json` present=`true` role=metadata-only evidence intake boundary contract truth=governed_read_model_evidence_not_truth
 - `generated/read_models/operator_workflow_atlas.json` present=`true` role=lane recommendation and generic review-packet bottleneck evidence truth=governed_read_model_evidence_not_truth
 - `generated/read_models/approved_module_registry.json` present=`true` role=Niles Album Matrix planning module evidence truth=governed_read_model_evidence_not_truth
 - `generated/read_models/cassandra_chief_memory_dry_run.json` present=`true` role=album/song progress deferred to Niles authority truth=governed_read_model_evidence_not_truth
