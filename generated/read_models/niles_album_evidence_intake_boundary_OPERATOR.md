@@ -4,10 +4,17 @@ Status:
 - Boundary status: `contract_ready_no_real_metadata_recorded`.
 - Metadata-only intake contract added: `true`.
 - Real album metadata recorded: `false`.
+- Metadata records: `0`.
 - Unknown album state remains unknown: `true`.
 - Raw audio ingest allowed: `false`.
 - DAW session content ingest allowed: `false`.
 - Broad private drive scan allowed: `false`.
+
+## Metadata Intake Command
+- `python3 scripts/export_niles_album_evidence_intake_boundary.py --metadata-input-json <path>`
+
+## Recorded Operator Metadata
+- None recorded. Empty/pending template only.
 
 ## Allowed Metadata Types
 - `album_project_name`: Operator-supplied album/project label; not inferred from folders. Policy: operator_supplied_label_or_null.
@@ -63,4 +70,4 @@ Status:
 - `mission_control_app_changed` = `false`
 
 ## Next Recommended Lane
-- Niles Album Operator Metadata Intake v0
+- Niles Album Review Packet Metadata Consumption v0

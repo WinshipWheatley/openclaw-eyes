@@ -299,10 +299,14 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
     repo_b = _repo_b_music_candidate_posture(repo_b_intake)
     runtime = _runtime_readiness_posture(agent_runtime)
     boundary_present = bool(intake_boundary)
+    intake_status = intake_boundary.get("operator_metadata_intake_status", {}) if isinstance(intake_boundary, dict) else {}
     boundary_posture = {
         "boundary_present": boundary_present,
         "boundary_status": intake_boundary.get("boundary_status", "not_available"),
         "real_album_metadata_recorded": intake_boundary.get("real_album_metadata_recorded", False),
+        "metadata_record_count": intake_status.get("metadata_record_count", len(intake_boundary.get("recorded_operator_metadata", []))),
+        "partial_metadata_intake_supported": intake_status.get("partial_metadata_intake_supported", False),
+        "unknown_album_state_not_treated_as_confirmed": intake_status.get("unknown_album_state_not_treated_as_confirmed", True),
         "unknown_album_state_remains_unknown": intake_boundary.get("unknown_album_state_remains_unknown", True),
         "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
     }
@@ -372,7 +376,7 @@ def build_niles_album_review_packet(*, repo_root: str | Path = ROOT, generated_a
         },
         {
             "item_id": "missing_real_governed_album_metadata",
-            "label": "The metadata-only boundary exists, but no real operator-supplied album metadata has been recorded through it yet." if boundary_present else "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
+            "label": "The metadata-only boundary exists, but no real operator-supplied album metadata has been recorded through it yet." if boundary_present and not boundary_posture["real_album_metadata_recorded"] else "Operator metadata exists but album state still needs scope/completeness review before confirmation." if boundary_posture["real_album_metadata_recorded"] else "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
             "needed_for": "future Niles Album Matrix population",
         },
     ]

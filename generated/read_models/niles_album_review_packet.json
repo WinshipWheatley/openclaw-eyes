@@ -68,8 +68,11 @@
   "evidence_intake_boundary_posture": {
     "boundary_present": true,
     "boundary_status": "contract_ready_no_real_metadata_recorded",
+    "metadata_record_count": 0,
+    "partial_metadata_intake_supported": true,
     "real_album_metadata_recorded": false,
     "source_path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+    "unknown_album_state_not_treated_as_confirmed": true,
     "unknown_album_state_remains_unknown": true
   },
   "evidence_sufficient_for_album_status": false,

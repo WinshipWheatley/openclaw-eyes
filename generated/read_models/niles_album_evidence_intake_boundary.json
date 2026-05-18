@@ -108,13 +108,22 @@
   "daw_automation_allowed": false,
   "daw_session_content_ingest_allowed": false,
   "finder_file_operation_allowed": false,
-  "first_safe_next_step": "Operator fills a metadata-only Niles album packet from this template; OpenClaw can then record metadata evidence in a later explicit intake lane.",
+  "first_safe_next_step": "Operator fills a metadata-only Niles album packet from this template; OpenClaw can then record metadata evidence in this explicit intake path.",
   "generated_at": "2026-05-17T12:00:00+00:00",
   "generated_by": "codex",
+  "metadata_input_command": "python3 scripts/export_niles_album_evidence_intake_boundary.py --metadata-input-json <path>",
+  "metadata_input_path_supported": true,
   "metadata_only_intake_contract": true,
   "mission_control_app_changed": false,
   "model_execution_authority_added": false,
-  "next_recommended_lane": "Niles Album Operator Metadata Intake v0",
+  "next_recommended_lane": "Niles Album Review Packet Metadata Consumption v0",
+  "operator_metadata_intake_status": {
+    "album_state_confirmed": false,
+    "metadata_record_count": 0,
+    "partial_metadata_intake_supported": true,
+    "real_album_metadata_recorded": false,
+    "unknown_album_state_not_treated_as_confirmed": true
+  },
   "operator_supplied_metadata_packet_shape": {
     "empty_pending_template": {
       "metadata_records": [
@@ -126,6 +135,8 @@
           "evidence_status": "pending_not_recorded",
           "last_known_operator_update": null,
           "next_safe_move_labels": [],
+          "no_external_action": true,
+          "operator_supplied": false,
           "production_stage_label": null,
           "song_id_or_stable_operator_label": null,
           "song_title": null,
@@ -148,6 +159,22 @@
       "do not paste lyrics, private notes, raw audio bodies, stems, mix files, master files, DAW session contents, credentials, or full private paths"
     ],
     "schema_hint": "metadata_only_no_raw_audio_or_daw_contents",
+    "supported_metadata_fields": [
+      "album_project_name",
+      "song_title",
+      "song_id_or_stable_operator_label",
+      "track_status_label",
+      "production_stage_label",
+      "source_reference_path_label",
+      "daw_session_existence_flag",
+      "last_known_operator_update",
+      "blocker_labels",
+      "next_safe_move_labels",
+      "confidence",
+      "evidence_status",
+      "operator_supplied",
+      "no_external_action"
+    ],
     "synthetic_test_example": {
       "metadata_records": [
         {
@@ -162,6 +189,8 @@
           "next_safe_move_labels": [
             "synthetic_next_review_metadata_only"
           ],
+          "no_external_action": true,
+          "operator_supplied": false,
           "production_stage_label": "synthetic_demo_stage",
           "song_id_or_stable_operator_label": "synthetic_song_001",
           "song_title": "SYNTHETIC TEST SONG - not real",
@@ -176,6 +205,11 @@
       "template_status": "synthetic_example_not_real_metadata"
     }
   },
+  "pending_or_unknown_album_evidence": [
+    "album/source of truth remains incomplete unless operator metadata covers the project scope",
+    "missing fields remain null rather than inferred",
+    "track status labels are operator-supplied evidence, not final creative truth"
+  ],
   "proof_requirements_before_album_state_can_be_confirmed": [
     "Operator supplies metadata-only packet with at least album_project_name or stable song label.",
     "Every metadata record declares evidence_status and confidence.",
@@ -192,6 +226,7 @@
     "read_model_written": true,
     "real_metadata_recorded": false
   },
+  "recorded_operator_metadata": [],
   "repo_b_authority_allowed": false,
   "runtime_authority_added": false,
   "schema_version": "niles_album_evidence_intake_boundary_v0",

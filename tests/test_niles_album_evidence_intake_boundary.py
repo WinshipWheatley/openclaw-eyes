@@ -167,3 +167,174 @@ def test_source_write_calls_are_limited_to_generated_read_model_exports():
     ]
 
     assert len(write_calls) == 2
+
+
+def _write_json(path: Path, payload: dict) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def test_no_metadata_input_records_zero_real_album_metadata():
+    payload = boundary.build_niles_album_evidence_intake_boundary(generated_at=FIXED_NOW)
+
+    assert payload["metadata_input_path_supported"] is True
+    assert payload["real_album_metadata_recorded"] is False
+    assert payload["operator_metadata_intake_status"]["metadata_record_count"] == 0
+    assert payload["recorded_operator_metadata"] == []
+    assert payload["operator_metadata_intake_status"]["album_state_confirmed"] is False
+
+
+def test_partial_metadata_intake_records_only_supplied_metadata(tmp_path):
+    input_path = _write_json(
+        tmp_path / "niles_metadata.json",
+        {
+            "metadata_records": [
+                {
+                    "song_title": "Operator supplied title",
+                    "production_stage_label": "tracking",
+                    "evidence_status": "operator_supplied_pending_review",
+                    "operator_supplied": True,
+                    "no_external_action": True,
+                }
+            ]
+        },
+    )
+
+    payload = boundary.build_niles_album_evidence_intake_boundary(
+        metadata_input_json=input_path,
+        generated_at=FIXED_NOW,
+    )
+    record = payload["recorded_operator_metadata"][0]
+
+    assert payload["real_album_metadata_recorded"] is True
+    assert payload["operator_metadata_intake_status"]["metadata_record_count"] == 1
+    assert payload["operator_metadata_intake_status"]["partial_metadata_intake_supported"] is True
+    assert record["song_title"] == "Operator supplied title"
+    assert record["production_stage_label"] == "tracking"
+    assert record["album_project_name"] is None
+    assert record["track_status_label"] is None
+    assert record["album_state_confirmed"] is False
+    assert record["metadata_only"] is True
+
+
+def test_unknown_and_false_values_remain_evidence_not_confirmed_state(tmp_path):
+    input_path = _write_json(
+        tmp_path / "niles_metadata.json",
+        {
+            "album_project_name": "Operator project label",
+            "daw_session_existence_flag": False,
+            "confidence": "low",
+            "evidence_status": "operator_supplied_unknown_incomplete",
+            "operator_supplied": True,
+            "no_external_action": True,
+        },
+    )
+
+    payload = boundary.build_niles_album_evidence_intake_boundary(
+        metadata_input_json=input_path,
+        generated_at=FIXED_NOW,
+    )
+    record = payload["recorded_operator_metadata"][0]
+
+    assert record["daw_session_existence_flag"] is False
+    assert record["evidence_status"] == "operator_supplied_unknown_incomplete"
+    assert payload["unknown_album_state_remains_unknown"] is True
+    assert payload["operator_metadata_intake_status"]["unknown_album_state_not_treated_as_confirmed"] is True
+    assert record["album_state_confirmed"] is False
+
+
+def test_raw_audio_daw_session_and_private_content_inputs_are_rejected(tmp_path):
+    input_path = _write_json(
+        tmp_path / "bad_niles_metadata.json",
+        {
+            "song_title": "Unsafe",
+            "raw_audio": "base64-or-body-would-be-here",
+            "operator_supplied": True,
+            "no_external_action": True,
+        },
+    )
+
+    try:
+        boundary.build_niles_album_evidence_intake_boundary(metadata_input_json=input_path, generated_at=FIXED_NOW)
+    except ValueError as exc:
+        assert "blocked album metadata input keys" in str(exc)
+        assert "raw_audio" in str(exc)
+    else:
+        raise AssertionError("blocked raw audio input was accepted")
+
+
+def test_operator_metadata_requires_explicit_operator_supplied_and_no_external_action(tmp_path):
+    input_path = _write_json(
+        tmp_path / "bad_niles_metadata.json",
+        {
+            "song_title": "Missing flags",
+            "operator_supplied": False,
+            "no_external_action": True,
+        },
+    )
+
+    try:
+        boundary.build_niles_album_evidence_intake_boundary(metadata_input_json=input_path, generated_at=FIXED_NOW)
+    except ValueError as exc:
+        assert "requires operator_supplied=true" in str(exc)
+    else:
+        raise AssertionError("metadata without explicit operator_supplied=true was accepted")
+
+
+def test_export_with_metadata_input_writes_evidence_only_read_model(tmp_path):
+    input_path = _write_json(
+        tmp_path / "niles_metadata.json",
+        {
+            "song_title": "Operator supplied title",
+            "track_status_label": "review",
+            "operator_supplied": True,
+            "no_external_action": True,
+        },
+    )
+    export_root = tmp_path / "read_models"
+
+    result = boundary.export_niles_album_evidence_intake_boundary(
+        export_root=export_root,
+        metadata_input_json=input_path,
+        generated_at=FIXED_NOW,
+    )
+    payload = json.loads((export_root / boundary.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert result.real_album_metadata_recorded is True
+    assert result.metadata_record_count == 1
+    assert payload["recorded_operator_metadata"][0]["song_title"] == "Operator supplied title"
+    assert payload["recorded_operator_metadata"][0]["raw_audio_stored"] is False
+    assert payload["recorded_operator_metadata"][0]["daw_session_contents_stored"] is False
+    assert payload["authority_boundary"]["runtime_authority_added"] is False
+
+
+def test_review_packet_references_operator_metadata_intake_state_without_confirming_album(tmp_path):
+    input_path = _write_json(
+        tmp_path / "niles_metadata.json",
+        {
+            "metadata_records": [
+                {
+                    "album_project_name": "Operator project label",
+                    "song_title": "Operator supplied title",
+                    "operator_supplied": True,
+                    "no_external_action": True,
+                }
+            ]
+        },
+    )
+    export_root = tmp_path / "generated" / "read_models"
+    boundary.export_niles_album_evidence_intake_boundary(
+        export_root=export_root,
+        metadata_input_json=input_path,
+        generated_at=FIXED_NOW,
+    )
+
+    payload = review_packet.build_niles_album_review_packet(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    assert payload["evidence_intake_boundary_posture"]["boundary_present"] is True
+    assert payload["evidence_intake_boundary_posture"]["real_album_metadata_recorded"] is True
+    assert payload["evidence_intake_boundary_posture"]["metadata_record_count"] == 1
+    assert payload["album_state_confirmed"] is False
+    assert payload["unknown_album_state_not_treated_as_confirmed"] is True
+    assert payload["packet_status"] == "blocked_needs_governed_album_evidence"
