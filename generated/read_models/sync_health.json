@@ -9,7 +9,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T14:39:50+00:00",
+  "generated_at": "2026-05-18T14:40:58+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -22,10 +22,10 @@
     "time": "2026-05-18T14:39:39+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "280365a443c97c298b7eb93e57f6e2ef29648235a8ea276da3ac6c9957b51d6a",
+    "manifest_hash": "3827b549b342d6a6f9c6ee38ee401b010b9399564162f65672efd18418ec444f",
     "pc_scheduler_known": true,
     "status": "success",
-    "time": "2026-05-18T14:39:42+00:00",
+    "time": "2026-05-18T14:40:47+00:00",
     "windows_task_log_present": true
   },
   "matched_hash": 158,
@@ -66,19 +66,19 @@
     },
     {
       "present": 1,
-      "source_hash": "280365a443c97c298b7eb93e57f6e2ef29648235a8ea276da3ac6c9957b51d6a",
+      "source_hash": "3827b549b342d6a6f9c6ee38ee401b010b9399564162f65672efd18418ec444f",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-18T14:39:39+00:00"
+      "source_time": "2026-05-18T14:40:46+00:00"
     },
     {
       "present": 1,
-      "source_hash": "dded040e4a44a91380e08857533a4b69db26f975ee2c197df2712f4b79893b2e",
+      "source_hash": "5e3f7e2a097c043624a7eb3efa5b7bc726c248355856b1e3a9a20d56eb9c7130",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "success",
-      "source_time": "2026-05-18T14:39:42+00:00"
+      "source_time": "2026-05-18T14:40:47+00:00"
     },
     {
       "present": 1,
@@ -86,7 +86,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-18T14:39:42+00:00"
+      "source_time": "2026-05-18T14:40:47+00:00"
     },
     {
       "present": 1,

@@ -27,7 +27,7 @@ Recommended fix:
 Proof:
 - Mac heartbeat: `synced` at `2026-05-18T14:39:39+00:00`
 - Mac completion: `synced` at `2026-05-18T14:39:39+00:00`
-- PC import: `success` at `2026-05-18T14:39:42+00:00`
+- PC import: `success` at `2026-05-18T14:40:47+00:00`
 - Windows task log present: `true`
 
 No-authority posture:

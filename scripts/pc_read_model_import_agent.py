@@ -275,6 +275,54 @@ def run_import_agent_once(
     previous_state = load_state(state_file)
     if previous_state.get("last_successful_manifest_sha256") == manifest_hash:
         refreshed_at = utc_now()
+        previous_refresh = previous_state.get("last_sync_health_refresh")
+        if (
+            isinstance(previous_refresh, dict)
+            and previous_refresh.get("sync_lifecycle_state") == "trusted_current"
+            and previous_refresh.get("operator_action_required") is False
+        ):
+            status = _base_status(
+                status="skipped_unchanged",
+                manifest_path=manifest,
+                completion_marker_path=completion_marker,
+                state_path=state_file,
+                log_path=log_file,
+                generated_at=refreshed_at,
+                manifest_sha256=manifest_hash,
+                manifest_size_bytes=manifest_stat.st_size,
+                manifest_mtime=manifest_stat.st_mtime,
+                last_imported_at=previous_state.get("last_imported_at"),
+                message="Manifest hash matches and sync health is already trusted/current; refresh skipped to avoid generated churn.",
+                sync_health_refresh_skipped=True,
+                sync_health_refresh_skip_reason="trusted_current unchanged manifest",
+                final_mac_mirror_request={
+                    "final_mac_mirror_marker_needed": False,
+                    "final_mac_mirror_marker_written": False,
+                    "reason": "sync health is already trusted/current for this manifest",
+                    "sync_lifecycle_state": "trusted_current",
+                },
+                **_completion_marker_summary(completion_marker),
+            )
+            write_state(
+                state_file,
+                {
+                    **previous_state,
+                    "agent_version": AGENT_VERSION,
+                    "status": status["status"],
+                    "updated_at": status["generated_at"],
+                    "last_seen_manifest_sha256": manifest_hash,
+                    "last_seen_manifest_path": manifest.as_posix(),
+                    "last_skip_reason": status["sync_health_refresh_skip_reason"],
+                    **NO_AUTHORITY_FLAGS,
+                },
+            )
+            append_log(
+                log_file,
+                "skipped_unchanged_trusted_current",
+                manifest_sha256=manifest_hash,
+                sync_health_refreshed=False,
+            )
+            return status
         status = _base_status(
             status="skipped_unchanged",
             manifest_path=manifest,

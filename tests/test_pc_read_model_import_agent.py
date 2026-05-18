@@ -146,6 +146,40 @@ def test_changed_manifest_triggers_import_and_records_state(tmp_path):
 
 
 
+
+def test_unchanged_trusted_current_manifest_skips_health_refresh_churn(tmp_path):
+    manifest = tmp_path / "mac_generated_read_models_manifest.json"
+    _write_manifest(manifest)
+    digest = agent.sha256_file(manifest)
+    (tmp_path / "state.json").write_text(
+        json.dumps(
+            {
+                "last_successful_manifest_sha256": digest,
+                "last_imported_at": "2026-05-14T00:00:00+00:00",
+                "last_sync_health_refresh": {
+                    "sync_lifecycle_state": "trusted_current",
+                    "operator_action_required": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    refresh_calls = []
+
+    status = agent.run_import_agent_once(
+        manifest_path=manifest,
+        state_path=tmp_path / "state.json",
+        log_path=tmp_path / "agent.log",
+        importer=lambda **kwargs: (_ for _ in ()).throw(AssertionError("import should skip")),
+        sync_health_refresher=lambda **kwargs: refresh_calls.append(kwargs),
+    )
+
+    assert status["status"] == "skipped_unchanged"
+    assert status["sync_health_refresh_skipped"] is True
+    assert status["sync_health_refresh_skip_reason"] == "trusted_current unchanged manifest"
+    assert status["final_mac_mirror_request"]["final_mac_mirror_marker_needed"] is False
+    assert refresh_calls == []
+
 def test_unchanged_manifest_health_export_requests_final_mac_mirror(tmp_path):
     manifest = tmp_path / "mac_generated_read_models_manifest.json"
     marker = tmp_path / "shuttle" / "to_mac" / "read_model_sync_required.json"
