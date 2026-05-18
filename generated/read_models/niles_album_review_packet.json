@@ -1,0 +1,279 @@
+{
+  "actionable_for_manual_review": true,
+  "album_state_confirmed": false,
+  "audio_file_mutation_allowed": false,
+  "authority_boundary": {
+    "audio_file_mutation_allowed": false,
+    "broad_private_drive_scan_allowed": false,
+    "daw_automation_allowed": false,
+    "finder_file_operation_allowed": false,
+    "logic_or_ableton_open_allowed": false,
+    "mission_control_app_changed": false,
+    "model_execution_authority_added": false,
+    "raw_audio_ingest_allowed": false,
+    "repo_b_authority_allowed": false,
+    "review_only": true,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "tool_execution_authority_added": false
+  },
+  "blockers": [
+    {
+      "blocker_id": "album_source_of_truth_unconfirmed",
+      "description": "Current governed evidence does not prove album/session status.",
+      "next_safe_move": "Create a metadata-only Niles album evidence intake boundary before importing or summarizing album state.",
+      "severity": "blocks_album_state_claims"
+    },
+    {
+      "blocker_id": "raw_audio_and_daw_access_forbidden",
+      "description": "OpenClaw may not open DAWs, inspect raw audio, or mutate music files from this packet.",
+      "next_safe_move": "Operator supplies bounded metadata or approves a later no-raw-audio evidence template.",
+      "severity": "blocks_direct_session_review"
+    },
+    {
+      "blocker_id": "repo_b_reference_only",
+      "description": "Repo B music helpers are not runtime authority and cannot be executed or treated as truth.",
+      "next_safe_move": "Port only safe metadata logic in a later reviewed Niles module lane.",
+      "severity": "blocks_legacy_runtime_reuse"
+    }
+  ],
+  "broad_private_drive_scan_allowed": false,
+  "confirmed_governed_evidence": [
+    {
+      "authority_status": "planning_only_not_runtime",
+      "item_id": "niles_album_matrix_planned",
+      "label": "Niles Album Matrix is modeled as a planning-only module.",
+      "source": "approved_module_registry_niles_album_matrix"
+    },
+    {
+      "authority_status": "review_packet_recommendation_not_album_truth",
+      "item_id": "niles_album_lane_recommended",
+      "label": "Workflow Atlas recommends this Niles album review packet as the next non-finance generic packet proof.",
+      "source": "operator_workflow_atlas_niles_album_lane"
+    },
+    {
+      "authority_status": "deferred_evidence_not_imported_truth",
+      "item_id": "album_progress_deferred_to_niles",
+      "label": "Cassandra/Chief memory surfaces defer album/song progress to Niles/music authority.",
+      "source": "cassandra_chief_memory_album_progress_deferred"
+    }
+  ],
+  "daw_automation_allowed": false,
+  "evidence_sufficient_for_album_status": false,
+  "finder_file_operation_allowed": false,
+  "generated_at": "2026-05-18T00:23:01+00:00",
+  "generated_by": "codex",
+  "governed_evidence_only": true,
+  "inferred_or_desired_album_workflow_evidence": [
+    {
+      "basis": "approved module and migration-map evidence",
+      "confirmation_required": true,
+      "item_id": "album_matrix_needed",
+      "label": "A future album matrix should track album/project metadata, mix readiness, production packets, and operator decisions."
+    },
+    {
+      "basis": "agent runtime readiness smoke-test posture",
+      "confirmation_required": true,
+      "item_id": "logic_file_route_possible_metadata_only",
+      "label": "Niles can route a Logic-file request as metadata-only after file identity is resolved and approved."
+    }
+  ],
+  "logic_or_ableton_open_allowed": false,
+  "memory_album_posture": {
+    "album_progress_evidence_found": true,
+    "album_state_confirmed": false,
+    "category": "album/song progress state",
+    "import_allowed_now": false,
+    "operator_decision_needed": true,
+    "raw_content_read": false,
+    "reason": "Governed memory surfaces say album progress belongs to Niles/music authority, but do not provide confirmed album/session facts.",
+    "recommended_fate": "defer_operator_review",
+    "risk_level": "medium",
+    "source_name": "album work, content, and scheduler refs"
+  },
+  "missing_evidence": [
+    {
+      "item_id": "missing_confirmed_album_project_metadata",
+      "label": "No governed album/project metadata packet exists yet.",
+      "needed_for": "album/session status summary"
+    },
+    {
+      "item_id": "missing_current_album_source_of_truth",
+      "label": "No approved source of truth identifies current album, session, track, mix, or release status.",
+      "needed_for": "operator-useful progress review"
+    },
+    {
+      "item_id": "missing_safe_ingestion_boundary",
+      "label": "No approved metadata-only ingestion/tagging boundary exists for music/session evidence.",
+      "needed_for": "future Niles Album Matrix population"
+    }
+  ],
+  "mission_control_app_changed": false,
+  "model_execution_authority_added": false,
+  "module_posture": {
+    "allowed_authority_level": "planning_only",
+    "display_name": "Niles Album Matrix",
+    "module_found": true,
+    "module_id": "niles_album_matrix",
+    "no_go_data_classes": [
+      "raw_daw_sessions",
+      "unreleased_private_audio",
+      "contracts",
+      "credentials"
+    ],
+    "required_inputs": [
+      "album/project metadata"
+    ],
+    "runtime_authority": false,
+    "sensitive_input_policy": "metadata-only until music/session private-content boundaries are approved",
+    "status": "draft"
+  },
+  "next_recommended_lane": "Niles Album Evidence Intake Boundary v0",
+  "next_safe_moves": [
+    "Create a Niles Album Evidence Intake Boundary packet for operator-supplied metadata only.",
+    "Define allowed album/project metadata fields before any music/session import.",
+    "Keep Repo B music helpers reference-only until a separate port-logic lane is approved."
+  ],
+  "operator_confirmations_needed": [
+    "Confirm the intended album/project scope for Niles.",
+    "Confirm what metadata-only source can describe album/session status without opening DAWs or raw audio.",
+    "Confirm whether legacy Repo B album helper logic is worth porting as metadata-only planning code later."
+  ],
+  "packet_identity": {
+    "packet_id": "niles_album_review_packet",
+    "packet_kind": "operator_review_packet",
+    "review_packet_contract": "generic_review_packet_shape_v0"
+  },
+  "packet_status": "blocked_needs_governed_album_evidence",
+  "raw_audio_ingest_allowed": false,
+  "receipt_proof_status": {
+    "external_action_taken": false,
+    "old_docs_files_treated_as_evidence_not_truth": true,
+    "operator_packet_written": true,
+    "read_model_written": true
+  },
+  "repo_a_canonical": true,
+  "repo_b_authority_allowed": false,
+  "repo_b_music_candidate_posture": {
+    "authority_status": "reference_only_not_runtime_authority",
+    "candidate_summary": "Legacy music/album helpers may contain useful ideas, but this packet does not run or port Repo B code.",
+    "music_candidate_count": 17,
+    "niles_candidate_count": 47,
+    "repo_b_reference_only": true
+  },
+  "repo_b_reference_only": true,
+  "request_summary": "Produce a review-only album/music workflow packet from governed Repo A evidence only.",
+  "review_only": true,
+  "runtime_authority_added": false,
+  "runtime_readiness_posture": {
+    "can_bypass_approval": false,
+    "can_execute_directly": false,
+    "lane_id": "music_art_production",
+    "metadata_only_until_file_resolved": true,
+    "next_safe_test": "route a Logic-file request; metadata-only until file is resolved and approved",
+    "niles_readiness_found": false,
+    "readiness_status": "unknown"
+  },
+  "schema_version": "niles_album_review_packet_v0",
+  "send_or_submit_authority_added": false,
+  "source_evidence": [
+    {
+      "confidence": "high",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "operator_workflow_atlas_niles_album_lane",
+      "source_path": "generated/read_models/operator_workflow_atlas.json",
+      "source_payload_kind": "operator_workflow_atlas_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "lane recommendation and generic review-packet bottleneck evidence",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    },
+    {
+      "confidence": "high",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "approved_module_registry_niles_album_matrix",
+      "source_path": "generated/read_models/approved_module_registry.json",
+      "source_payload_kind": "approved_module_registry_read_model_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "Niles Album Matrix planning module evidence",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    },
+    {
+      "confidence": "medium",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "cassandra_chief_memory_album_progress_deferred",
+      "source_path": "generated/read_models/cassandra_chief_memory_dry_run.json",
+      "source_payload_kind": "cassandra_chief_memory_dry_run_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "album/song progress deferred to Niles authority",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    },
+    {
+      "confidence": "medium",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "agent_capability_migration_niles_album_matrix",
+      "source_path": "generated/read_models/agent_capability_migration_map.json",
+      "source_payload_kind": "agent_capability_migration_map_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "legacy album helper migration evidence, not runtime authority",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    },
+    {
+      "confidence": "low",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "repo_b_runtime_intake_music_candidates",
+      "source_path": "generated/read_models/repo_b_runtime_intake.json",
+      "source_payload_kind": "repo_b_runtime_intake_read_model_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "Repo B reference-only music candidate counts",
+      "truth_status": "reference_only_evidence_not_truth"
+    },
+    {
+      "confidence": "medium",
+      "old_files_treated_as_evidence_not_truth": true,
+      "source_id": "agent_runtime_readiness_niles_metadata_only",
+      "source_path": "generated/read_models/agent_runtime_readiness.json",
+      "source_payload_kind": "agent_runtime_readiness_read_model_v0",
+      "source_present": true,
+      "source_promoted_to_truth": false,
+      "source_role": "Niles lane dry-run readiness and metadata-only Logic-file boundary",
+      "truth_status": "governed_read_model_evidence_not_truth"
+    }
+  ],
+  "source_summary": {
+    "all_sources_repo_a_read_models_or_docs": true,
+    "broad_private_drive_scan_triggered": false,
+    "confirmed_evidence_source_count": 6,
+    "missing_evidence_source_count": 0,
+    "raw_audio_ingested": false
+  },
+  "stale_or_legacy_evidence": [
+    {
+      "basis": "repo_b_runtime_intake and agent_capability_migration_map",
+      "item_id": "repo_b_album_helpers_reference_only",
+      "label": "Repo B album helpers are reference-only candidates, not executable authority.",
+      "music_candidate_count": 17,
+      "niles_candidate_count": 47,
+      "old_files_treated_as_evidence_not_truth": true
+    }
+  ],
+  "tool_execution_authority_added": false,
+  "unknown_album_state_not_treated_as_confirmed": true,
+  "workflow_domain": "music_art",
+  "workflow_name": "Niles album progress review",
+  "workflow_posture": {
+    "confirmation_reason": "Album progress source of truth and inclusion rules remain unconfirmed.",
+    "current_implementation_status": "PLANNED_NOT_BUILT",
+    "next_safe_lane": "Niles Album Review Packet From Governed Evidence v0",
+    "old_files_treated_as_evidence_not_truth": true,
+    "operator_confirmation_needed": true,
+    "shared_bottleneck": "generic_review_packet_non_finance_reuse",
+    "steel_thread_readiness": "needs_missing_facts_packet_before_any_album_csv_or_session_import",
+    "workflow_found": true,
+    "workflow_name": "Niles album progress review"
+  }
+}
