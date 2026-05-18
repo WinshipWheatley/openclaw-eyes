@@ -9,7 +9,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T02:43:57+00:00",
+  "generated_at": "2026-05-18T02:44:52+00:00",
   "hash_mismatch": 2,
   "last_mac_completion": {
     "status": "synced",
@@ -87,7 +87,7 @@
       "present": 1,
       "source_hash": null,
       "source_kind": "pc_task_log",
-      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
+      "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
       "source_time": "2026-05-18T02:39:51+00:00"
     },
@@ -97,7 +97,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-18T02:39:47+00:00"
+      "source_time": "2026-05-18T02:44:47+00:00"
     }
   ],
   "recommended_fix": {
