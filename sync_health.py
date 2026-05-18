@@ -31,6 +31,20 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 JSON_EXPORT_NAME = "sync_health.json"
 OPERATOR_EXPORT_NAME = "sync_health_OPERATOR.md"
 SELF_EXPORT_FILES = frozenset(VOLATILE_SELF_REPORT_READ_MODEL_FILES)
+OPERATOR_INTERRUPT_POLICY = (
+    "routine sync lifecycle states stay in proof/detail; only unresolved "
+    "actionable failures should interrupt the operator"
+)
+ROUTINE_SYNC_LIFECYCLE_STATES = frozenset(
+    {
+        "trusted_current",
+        "sync_requested_waiting_for_mac",
+        "mac_synced_waiting_for_pc_import",
+        "pc_imported_waiting_for_health_export",
+        "health_exported_waiting_for_mac_mirror",
+    }
+)
+ACTIONABLE_SYNC_LIFECYCLE_STATES = frozenset({"actionable_sync_failure"})
 
 DEFAULT_PC_SHARE_ROOT = Path("/mnt/e/openclaw")
 DEFAULT_MANIFEST_PATH = DEFAULT_PC_SHARE_ROOT / "mac_generated_read_models_manifest.json"
@@ -62,6 +76,8 @@ class SyncHealthBuildResult:
     trust_status: str
     mirror_status: str
     recommended_fix_kind: str
+    sync_lifecycle_state: str
+    operator_action_required: bool
     db_path: str
 
 
@@ -144,6 +160,9 @@ CREATE TABLE IF NOT EXISTS sync_health_snapshots (
   windows_task_log_present INTEGER NOT NULL DEFAULT 0,
   pc_scheduler_known INTEGER NOT NULL DEFAULT 0,
   display_status TEXT NOT NULL DEFAULT 'unknown_review',
+  sync_lifecycle_state TEXT NOT NULL DEFAULT 'unknown_review',
+  operator_action_required INTEGER NOT NULL DEFAULT 0,
+  operator_interrupt_policy TEXT NOT NULL DEFAULT 'actionable_failures_only',
   next_expected_actor TEXT NOT NULL DEFAULT 'operator_review',
   next_safe_move TEXT NOT NULL,
   recommended_fix_kind TEXT NOT NULL,
@@ -211,6 +230,12 @@ def _ensure_sync_health_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN display_status TEXT NOT NULL DEFAULT 'unknown_review'")
     if "next_expected_actor" not in table_columns:
         conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN next_expected_actor TEXT NOT NULL DEFAULT 'operator_review'")
+    if "sync_lifecycle_state" not in table_columns:
+        conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN sync_lifecycle_state TEXT NOT NULL DEFAULT 'unknown_review'")
+    if "operator_action_required" not in table_columns:
+        conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN operator_action_required INTEGER NOT NULL DEFAULT 0")
+    if "operator_interrupt_policy" not in table_columns:
+        conn.execute("ALTER TABLE sync_health_snapshots ADD COLUMN operator_interrupt_policy TEXT NOT NULL DEFAULT 'actionable_failures_only'")
 
     recommendation_columns = {
         row[1]
@@ -397,12 +422,78 @@ def _pc_import_state(path: Path) -> dict[str, Any]:
     }
 
 
+def _request_marker_state(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path) or {}
+    return {
+        "present": path.is_file(),
+        "status": payload.get("status") if isinstance(payload.get("status"), str) else None,
+        "time": payload.get("generated_at") if isinstance(payload.get("generated_at"), str) else _mtime_iso(path),
+        "next_expected_responder": (
+            payload.get("next_expected_responder")
+            if isinstance(payload.get("next_expected_responder"), str)
+            else None
+        ),
+        "hash": sha256_file(path) if path.is_file() else None,
+    }
+
+
+def _self_report_state(read_model_root: str | Path, manifest_path: str | Path) -> dict[str, Any]:
+    root = Path(read_model_root)
+    manifest_time = _parse_time(_mtime_iso(manifest_path))
+    present_files: list[str] = []
+    newer_files: list[str] = []
+    for relative_path in sorted(SELF_EXPORT_FILES):
+        path = root / relative_path
+        if not path.is_file():
+            continue
+        present_files.append(relative_path)
+        file_time = _parse_time(_mtime_iso(path))
+        if manifest_time and file_time and file_time > manifest_time:
+            newer_files.append(relative_path)
+    return {
+        "present": bool(present_files),
+        "present_files": present_files,
+        "newer_than_manifest": bool(newer_files),
+        "newer_files": newer_files,
+    }
+
+
+def _classification(
+    *,
+    trust_status: str,
+    mirror_status: str,
+    display_status: str,
+    recommended_fix_kind: str,
+    next_safe_move: str,
+    next_expected_actor: str,
+    can_request_fix_from_app: bool,
+    sync_lifecycle_state: str,
+    operator_action_required: bool | None = None,
+) -> dict[str, Any]:
+    if operator_action_required is None:
+        operator_action_required = sync_lifecycle_state in ACTIONABLE_SYNC_LIFECYCLE_STATES
+    return {
+        "trust_status": trust_status,
+        "mirror_status": mirror_status,
+        "display_status": display_status,
+        "recommended_fix_kind": recommended_fix_kind,
+        "next_safe_move": next_safe_move,
+        "next_expected_actor": next_expected_actor,
+        "can_request_fix_from_app": can_request_fix_from_app,
+        "sync_lifecycle_state": sync_lifecycle_state,
+        "operator_action_required": operator_action_required,
+        "operator_interrupt_policy": OPERATOR_INTERRUPT_POLICY,
+    }
+
+
 def classify_sync_health(
     *,
     manifest_health: dict[str, Any],
     mac_status: dict[str, Any],
     mac_completion: dict[str, Any],
     pc_state: dict[str, Any],
+    request_marker: dict[str, Any],
+    self_report: dict[str, Any],
     windows_task_log_present: bool,
 ) -> dict[str, Any]:
     counts = manifest_health["counts"]
@@ -410,83 +501,118 @@ def classify_sync_health(
     extra = int(counts.get("extra") or 0)
     mismatched = int(counts.get("hash_mismatch") or 0)
     if not manifest_health.get("manifest_present"):
-        return {
-            "trust_status": "unknown_review",
-            "mirror_status": "unknown",
-            "display_status": "manifest_missing",
-            "recommended_fix_kind": "inspect_automation",
-            "next_safe_move": "Mac manifest is missing; inspect the Mac sync service and shared E-drive mount.",
-            "next_expected_actor": "operator_review",
-            "can_request_fix_from_app": False,
-        }
+        return _classification(
+            trust_status="unknown_review",
+            mirror_status="unknown",
+            display_status="manifest_missing",
+            recommended_fix_kind="inspect_automation",
+            next_safe_move="Mac manifest is missing; inspect the Mac sync service and shared E-drive mount.",
+            next_expected_actor="operator_review",
+            can_request_fix_from_app=False,
+            sync_lifecycle_state="actionable_sync_failure",
+        )
     if missing > 0 or mismatched > 0:
-        return {
-            "trust_status": "stale_needs_mac_sync",
-            "mirror_status": "needs_mac_sync",
-            "display_status": "needs_mac_sync",
-            "recommended_fix_kind": "request_mac_sync",
-            "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
-            "next_expected_actor": "mac_sync_agent",
-            "can_request_fix_from_app": True,
-        }
+        request_time = _parse_time(request_marker.get("time"))
+        completion_time = _parse_time(mac_completion.get("time"))
+        if request_marker.get("present") and not (request_time and completion_time and completion_time > request_time):
+            return _classification(
+                trust_status="stale_needs_mac_sync",
+                mirror_status="needs_mac_sync",
+                display_status="sync_requested_waiting_for_mac",
+                recommended_fix_kind="wait_for_mac_sync",
+                next_safe_move="Mac sync has already been requested; waiting for the normal Mac sync agent cycle.",
+                next_expected_actor="mac_sync_agent",
+                can_request_fix_from_app=False,
+                sync_lifecycle_state="sync_requested_waiting_for_mac",
+                operator_action_required=False,
+            )
+        return _classification(
+            trust_status="stale_needs_mac_sync",
+            mirror_status="needs_mac_sync",
+            display_status="needs_mac_sync",
+            recommended_fix_kind="request_mac_sync",
+            next_safe_move="Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+            next_expected_actor="mac_sync_agent",
+            can_request_fix_from_app=True,
+            sync_lifecycle_state="actionable_sync_failure",
+        )
     if extra > 0:
-        return {
-            "trust_status": "mismatch",
-            "mirror_status": "error",
-            "display_status": "manual_review",
-            "recommended_fix_kind": "manual_review",
-            "next_safe_move": "Review extra Mac mirror files before treating the mirror as trusted.",
-            "next_expected_actor": "operator_review",
-            "can_request_fix_from_app": False,
-        }
+        return _classification(
+            trust_status="mismatch",
+            mirror_status="error",
+            display_status="manual_review",
+            recommended_fix_kind="manual_review",
+            next_safe_move="Review extra Mac mirror files before treating the mirror as trusted.",
+            next_expected_actor="operator_review",
+            can_request_fix_from_app=False,
+            sync_lifecycle_state="actionable_sync_failure",
+        )
     manifest_hash = manifest_health.get("manifest_sha256")
     completion_time = _parse_time(mac_completion.get("time"))
     import_time = _parse_time(pc_state.get("time"))
     state_hash = pc_state.get("manifest_hash")
     if pc_state.get("present") and manifest_hash and state_hash and state_hash != manifest_hash:
-        return {
-            "trust_status": "stale_needs_pc_import",
-            "mirror_status": "needs_pc_import",
-            "display_status": "waiting_for_pc_import",
-            "recommended_fix_kind": "wait_for_pc_import",
-            "next_safe_move": "Mac sync appears complete. Waiting for PC import task.",
-            "next_expected_actor": "pc_import_task",
-            "can_request_fix_from_app": False,
-        }
+        return _classification(
+            trust_status="stale_needs_pc_import",
+            mirror_status="needs_pc_import",
+            display_status="waiting_for_pc_import",
+            recommended_fix_kind="wait_for_pc_import",
+            next_safe_move="Mac sync appears complete. Waiting for PC import task.",
+            next_expected_actor="pc_import_task",
+            can_request_fix_from_app=False,
+            sync_lifecycle_state="mac_synced_waiting_for_pc_import",
+            operator_action_required=False,
+        )
     if completion_time and import_time and completion_time > import_time:
-        return {
-            "trust_status": "stale_needs_pc_import",
-            "mirror_status": "needs_pc_import",
-            "display_status": "waiting_for_pc_import",
-            "recommended_fix_kind": "wait_for_pc_import",
-            "next_safe_move": "Mac sync appears complete. Waiting for PC import task.",
-            "next_expected_actor": "pc_import_task",
-            "can_request_fix_from_app": False,
-        }
+        return _classification(
+            trust_status="stale_needs_pc_import",
+            mirror_status="needs_pc_import",
+            display_status="waiting_for_pc_import",
+            recommended_fix_kind="wait_for_pc_import",
+            next_safe_move="Mac sync appears complete. Waiting for PC import task.",
+            next_expected_actor="pc_import_task",
+            can_request_fix_from_app=False,
+            sync_lifecycle_state="mac_synced_waiting_for_pc_import",
+            operator_action_required=False,
+        )
     proof_present = bool(
         (mac_status.get("present") or mac_completion.get("present"))
         and (pc_state.get("present") or windows_task_log_present)
     )
     if proof_present:
-        return {
-            "trust_status": "trusted",
-            "mirror_status": "ok",
-            "display_status": "current",
-            "recommended_fix_kind": "none",
-            "next_safe_move": "No sync repair is needed.",
-            "next_expected_actor": "none",
-            "can_request_fix_from_app": False,
-        }
-    return {
-        "trust_status": "degraded",
-        "mirror_status": "ok",
-        "display_status": "degraded",
-        "recommended_fix_kind": "inspect_automation",
-        "next_safe_move": "Mirror content matches, but automation proof files are missing or incomplete.",
-        "next_expected_actor": "operator_review",
-        "can_request_fix_from_app": False,
-    }
-
+        if self_report.get("newer_than_manifest"):
+            return _classification(
+                trust_status="trusted",
+                mirror_status="ok",
+                display_status="current",
+                recommended_fix_kind="none",
+                next_safe_move="Sync health is current on PC and waiting for the normal Mac mirror cycle to pick up the latest health read-model.",
+                next_expected_actor="mac_sync_agent",
+                can_request_fix_from_app=False,
+                sync_lifecycle_state="health_exported_waiting_for_mac_mirror",
+                operator_action_required=False,
+            )
+        return _classification(
+            trust_status="trusted",
+            mirror_status="ok",
+            display_status="current",
+            recommended_fix_kind="none",
+            next_safe_move="No sync repair is needed.",
+            next_expected_actor="none",
+            can_request_fix_from_app=False,
+            sync_lifecycle_state="trusted_current",
+            operator_action_required=False,
+        )
+    return _classification(
+        trust_status="degraded",
+        mirror_status="ok",
+        display_status="degraded",
+        recommended_fix_kind="inspect_automation",
+        next_safe_move="Mirror content matches, but automation proof files are missing or incomplete.",
+        next_expected_actor="operator_review",
+        can_request_fix_from_app=False,
+        sync_lifecycle_state="actionable_sync_failure",
+    )
 
 def _source_rows(
     *,
@@ -498,15 +624,21 @@ def _source_rows(
     pc_state_path: Path,
     pc_task_log_path: Path,
     windows_task_log_path: Path,
+    request_marker_path: Path,
+    read_model_root_path: Path,
     mac_status: dict[str, Any],
     mac_completion: dict[str, Any],
     pc_state: dict[str, Any],
+    request_marker: dict[str, Any],
+    self_report: dict[str, Any],
 ) -> list[dict[str, Any]]:
     observed = [
         ("mac_manifest", manifest_path, manifest_path.is_file(), None, _mtime_iso(manifest_path), sha256_file(manifest_path) if manifest_path.is_file() else None),
         ("mac_heartbeat", mac_status_path, mac_status["present"], mac_status.get("status"), mac_status.get("time"), mac_status.get("hash")),
         ("mac_completion", mac_completion_path, mac_completion["present"], mac_completion.get("status"), mac_completion.get("time"), mac_completion.get("hash")),
         ("pc_import_state", pc_state_path, pc_state["present"], pc_state.get("status"), pc_state.get("time"), pc_state.get("hash")),
+        ("read_model_sync_request_marker", request_marker_path, request_marker["present"], request_marker.get("status"), request_marker.get("time"), request_marker.get("hash")),
+        ("sync_health_self_report", read_model_root_path, self_report["present"], "newer_than_manifest" if self_report.get("newer_than_manifest") else "not_newer", None, None),
         ("pc_task_log", pc_task_log_path, pc_task_log_path.is_file(), "present" if pc_task_log_path.is_file() else None, _mtime_iso(pc_task_log_path), None),
         ("windows_task_log", windows_task_log_path, windows_task_log_path.is_file(), "present" if windows_task_log_path.is_file() else None, _mtime_iso(windows_task_log_path), None),
     ]
@@ -562,6 +694,8 @@ def build_sync_health_snapshot(
     mac_status = _status_marker(mac_status_file)
     mac_completion = _completion_marker(mac_completion_file)
     pc_state = _pc_import_state(pc_state_file)
+    request_marker_state = _request_marker_state(request_marker)
+    self_report = _self_report_state(read_model_root, manifest)
     windows_log_present = windows_log_file.is_file()
     pc_scheduler_known = bool(windows_log_present or pc_log_file.is_file() or pc_state["present"])
     classification = classify_sync_health(
@@ -569,6 +703,8 @@ def build_sync_health_snapshot(
         mac_status=mac_status,
         mac_completion=mac_completion,
         pc_state=pc_state,
+        request_marker=request_marker_state,
+        self_report=self_report,
         windows_task_log_present=windows_log_present,
     )
     counts = manifest_health["counts"]
@@ -618,10 +754,11 @@ INSERT OR REPLACE INTO sync_health_snapshots (
   mac_manifest_written, mac_completion_status, mac_completion_time,
   pc_import_status, pc_import_time, pc_manifest_hash,
   windows_task_log_present, pc_scheduler_known, display_status,
+  sync_lifecycle_state, operator_action_required, operator_interrupt_policy,
   next_expected_actor, next_safe_move, recommended_fix_kind,
   can_request_fix_from_app, request_marker_path,
   app_request_marker_path, no_authority_json, raw_body_stored
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 """.strip(),
             (
                 snapshot_id,
@@ -650,6 +787,9 @@ INSERT OR REPLACE INTO sync_health_snapshots (
                 1 if windows_log_present else 0,
                 1 if pc_scheduler_known else 0,
                 classification["display_status"],
+                classification["sync_lifecycle_state"],
+                1 if classification["operator_action_required"] else 0,
+                classification["operator_interrupt_policy"],
                 classification["next_expected_actor"],
                 classification["next_safe_move"],
                 classification["recommended_fix_kind"],
@@ -674,9 +814,13 @@ INSERT OR REPLACE INTO sync_health_snapshots (
             pc_state_path=pc_state_file,
             pc_task_log_path=pc_log_file,
             windows_task_log_path=windows_log_file,
+            request_marker_path=request_marker,
+            read_model_root_path=Path(read_model_root),
             mac_status=mac_status,
             mac_completion=mac_completion,
             pc_state=pc_state,
+            request_marker=request_marker_state,
+            self_report=self_report,
         ):
             conn.execute(
                 """
@@ -724,6 +868,8 @@ INSERT INTO sync_health_recommendations (
             "trust_status": classification["trust_status"],
             "mirror_status": classification["mirror_status"],
             "recommended_fix_kind": classification["recommended_fix_kind"],
+            "sync_lifecycle_state": classification["sync_lifecycle_state"],
+            "operator_action_required": classification["operator_action_required"],
             "counts": counts,
             "stale_files": stale_files,
             **NO_AUTHORITY_FLAGS,
@@ -753,6 +899,8 @@ INSERT INTO sync_health_receipts (
         trust_status=classification["trust_status"],
         mirror_status=classification["mirror_status"],
         recommended_fix_kind=classification["recommended_fix_kind"],
+        sync_lifecycle_state=classification["sync_lifecycle_state"],
+        operator_action_required=classification["operator_action_required"],
         db_path=path,
     )
 
@@ -798,6 +946,9 @@ def _snapshot_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
         "windows_task_log_present": bool(row["windows_task_log_present"]),
         "pc_scheduler_known": bool(row["pc_scheduler_known"]),
         "display_status": row["display_status"],
+        "sync_lifecycle_state": row["sync_lifecycle_state"],
+        "operator_action_required": bool(row["operator_action_required"]),
+        "operator_interrupt_policy": row["operator_interrupt_policy"],
         "next_expected_actor": row["next_expected_actor"],
         "next_safe_move": row["next_safe_move"],
         "recommended_fix_kind": row["recommended_fix_kind"],
@@ -859,6 +1010,9 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
         "trust_status": snapshot.get("trust_status", "unknown_review"),
         "mirror_status": snapshot.get("mirror_status", "unknown"),
         "display_status": snapshot.get("display_status", "unknown_review"),
+        "sync_lifecycle_state": snapshot.get("sync_lifecycle_state", "unknown_review"),
+        "operator_action_required": snapshot.get("operator_action_required", False),
+        "operator_interrupt_policy": snapshot.get("operator_interrupt_policy", OPERATOR_INTERRUPT_POLICY),
         "next_expected_actor": snapshot.get("next_expected_actor", "operator_review"),
         "canonical_expected": snapshot.get("canonical_expected", 0),
         "observed": snapshot.get("observed", 0),
@@ -890,6 +1044,8 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
             "kind": snapshot.get("recommended_fix_kind", "manual_review"),
             "display_status": snapshot.get("display_status", "unknown_review"),
             "next_expected_actor": snapshot.get("next_expected_actor", "operator_review"),
+            "sync_lifecycle_state": snapshot.get("sync_lifecycle_state", "unknown_review"),
+            "operator_action_required": snapshot.get("operator_action_required", False),
             "next_safe_move": snapshot.get("next_safe_move", "Build sync health before relying on this read-model."),
             "can_request_fix_from_app": snapshot.get("can_request_fix_from_app", False),
             "request_marker_path": snapshot.get("request_marker_path", DEFAULT_REQUEST_MARKER_PATH.as_posix()),
@@ -909,6 +1065,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"Trust status: `{payload['trust_status']}`",
         f"Mirror status: `{payload['mirror_status']}`",
         f"Display status: `{payload['display_status']}`",
+        f"Lifecycle state: `{payload['sync_lifecycle_state']}`",
+        f"Operator action required: `{str(payload['operator_action_required']).lower()}`",
         f"Next expected actor: `{payload['next_expected_actor']}`",
         "",
         "Mirror counts:",
@@ -923,6 +1081,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- kind: `{recommended['kind']}`",
         f"- display status: `{recommended['display_status']}`",
         f"- next expected actor: `{recommended['next_expected_actor']}`",
+        f"- lifecycle state: `{recommended['sync_lifecycle_state']}`",
+        f"- operator action required: `{str(recommended['operator_action_required']).lower()}`",
         f"- next: {recommended['next_safe_move']}",
         f"- app can request bounded Mac sync marker: `{str(recommended['can_request_fix_from_app']).lower()}`",
         "",
@@ -978,6 +1138,8 @@ def export_sync_health_read_model(
         "trust_status": payload["trust_status"],
         "mirror_status": payload["mirror_status"],
         "display_status": payload["display_status"],
+        "sync_lifecycle_state": payload["sync_lifecycle_state"],
+        "operator_action_required": payload["operator_action_required"],
         "next_expected_actor": payload["next_expected_actor"],
         "recommended_fix_kind": payload["recommended_fix"]["kind"],
         "missing_expected": payload["missing_expected"],
@@ -1034,6 +1196,8 @@ def refresh_sync_health_from_manifest(
         "trust_status": payload["trust_status"],
         "mirror_status": payload["mirror_status"],
         "display_status": payload["display_status"],
+        "sync_lifecycle_state": payload["sync_lifecycle_state"],
+        "operator_action_required": payload["operator_action_required"],
         "canonical_expected": payload["canonical_expected"],
         "observed": payload["observed"],
         "missing_expected": payload["missing_expected"],
@@ -1055,6 +1219,8 @@ def format_sync_health_report(payload: dict[str, Any]) -> str:
                 f"Trust status: `{snapshot['trust_status']}`",
                 f"Mirror status: `{snapshot['mirror_status']}`",
                 f"Display status: `{snapshot['display_status']}`",
+                f"Lifecycle state: `{snapshot['sync_lifecycle_state']}`",
+                f"Operator action required: `{str(snapshot['operator_action_required']).lower()}`",
                 f"Next expected actor: `{snapshot['next_expected_actor']}`",
                 "",
                 "Mirror counts:",

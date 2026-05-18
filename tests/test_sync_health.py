@@ -1,10 +1,12 @@
 import json
+import os
 import sqlite3
 from pathlib import Path
 
 from scripts.build_sync_health import main as build_main
 from scripts.export_sync_health_read_model import main as export_main
 from scripts.query_sync_health import main as query_main
+from generated_read_model_files import canonical_generated_read_model_expected_files
 from sync_health import (
     NO_AUTHORITY_FLAGS,
     build_sync_health_read_model,
@@ -54,7 +56,7 @@ def _proof_files(tmp_path: Path, manifest_hash: str) -> dict[str, Path]:
         "pc_state": tmp_path / "state" / "read_model_import_agent_state.json",
         "pc_log": tmp_path / "logs" / "windows_task_read_model_import.log",
         "windows_log": tmp_path / "share" / "windows_tasks" / "logs" / "OpenClawReadModelImport.log",
-        "request_marker": Path("/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"),
+        "request_marker": tmp_path / "share" / "shuttle" / "to_mac" / "read_model_sync_required.json",
     }
     _write(
         paths["mac_status"],
@@ -113,7 +115,7 @@ def _build_with_manifest(
         "pc_state": tmp_path / "missing_state.json",
         "pc_log": tmp_path / "missing.log",
         "windows_log": tmp_path / "missing_windows.log",
-        "request_marker": Path("/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"),
+        "request_marker": tmp_path / "share" / "shuttle" / "to_mac" / "read_model_sync_required.json",
     }
     if proof and (pc_import_time or pc_import_hash):
         state = json.loads(paths["pc_state"].read_text(encoding="utf-8"))
@@ -169,6 +171,8 @@ def test_trusted_mirror_produces_trusted_status(tmp_path):
     assert snapshot["recommended_fix_kind"] == "none"
     assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "current"
+    assert snapshot["sync_lifecycle_state"] == "trusted_current"
+    assert snapshot["operator_action_required"] is False
     assert snapshot["next_expected_actor"] == "none"
     assert root.is_dir()
 
@@ -184,12 +188,55 @@ def test_missing_expected_produces_stale_needs_mac_sync(tmp_path):
     assert result.trust_status == "stale_needs_mac_sync"
     assert snapshot["mirror_status"] == "needs_mac_sync"
     assert snapshot["recommended_fix_kind"] == "request_mac_sync"
-    assert snapshot["can_request_fix_from_app"] is True
+    assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "needs_mac_sync"
+    assert snapshot["sync_lifecycle_state"] == "actionable_sync_failure"
+    assert snapshot["operator_action_required"] is True
     assert snapshot["next_expected_actor"] == "mac_sync_agent"
     assert snapshot["missing_files"] == ["beta_OPERATOR.md"]
     assert snapshot["request_marker_path"].endswith("read_model_sync_required.json")
 
+
+
+def test_sync_requested_waiting_for_mac_does_not_bother_operator(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit={"beta_OPERATOR.md"})) + "\n")
+    manifest_hash = sha256_file(manifest)
+    paths = _proof_files(tmp_path, manifest_hash)
+    request_marker = tmp_path / "share" / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    _write(
+        request_marker,
+        json.dumps(
+            {
+                "generated_at": "2026-05-15T00:05:00+00:00",
+                "next_expected_responder": "mac_read_model_sync_agent",
+            }
+        )
+        + "\n",
+    )
+
+    build_sync_health_snapshot(
+        db_path=tmp_path / "ledger.sqlite",
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        mac_status_path=paths["mac_status"],
+        mac_completion_path=paths["mac_completion"],
+        pc_import_state_path=paths["pc_state"],
+        pc_task_log_path=paths["pc_log"],
+        windows_task_log_path=paths["windows_log"],
+        request_marker_path=request_marker,
+        run_id="sync_health_fixture",
+    )
+    snapshot = _latest(tmp_path / "ledger.sqlite")
+
+    assert snapshot["mirror_status"] == "needs_mac_sync"
+    assert snapshot["display_status"] == "sync_requested_waiting_for_mac"
+    assert snapshot["sync_lifecycle_state"] == "sync_requested_waiting_for_mac"
+    assert snapshot["operator_action_required"] is False
+    assert snapshot["recommended_fix_kind"] == "wait_for_mac_sync"
+    assert snapshot["can_request_fix_from_app"] is False
 
 def test_hash_mismatch_produces_stale_needs_mac_sync(tmp_path):
     _root, read_models = _fixture_root(tmp_path)
@@ -203,8 +250,10 @@ def test_hash_mismatch_produces_stale_needs_mac_sync(tmp_path):
     assert snapshot["mirror_status"] == "needs_mac_sync"
     assert snapshot["recommended_fix_kind"] == "request_mac_sync"
     assert snapshot["stale_files"] == ["alpha.json"]
-    assert snapshot["can_request_fix_from_app"] is True
+    assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "needs_mac_sync"
+    assert snapshot["sync_lifecycle_state"] == "actionable_sync_failure"
+    assert snapshot["operator_action_required"] is True
     assert snapshot["next_expected_actor"] == "mac_sync_agent"
 
 
@@ -227,6 +276,7 @@ def test_sync_health_self_export_hash_mismatch_does_not_make_health_stale(tmp_pa
     assert snapshot["hash_mismatch"] == 0
     assert snapshot["recommended_fix_kind"] == "none"
     assert snapshot["display_status"] == "current"
+    assert snapshot["operator_action_required"] is False
 
 
 def test_mac_completion_newer_than_pc_import_produces_needs_pc_import(tmp_path):
@@ -243,6 +293,8 @@ def test_mac_completion_newer_than_pc_import_produces_needs_pc_import(tmp_path):
     assert snapshot["recommended_fix_kind"] == "wait_for_pc_import"
     assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "waiting_for_pc_import"
+    assert snapshot["sync_lifecycle_state"] == "mac_synced_waiting_for_pc_import"
+    assert snapshot["operator_action_required"] is False
     assert snapshot["next_expected_actor"] == "pc_import_task"
     assert snapshot["next_safe_move"] == "Mac sync appears complete. Waiting for PC import task."
 
@@ -261,6 +313,8 @@ def test_degraded_if_proof_files_missing(tmp_path):
     assert snapshot["recommended_fix_kind"] == "inspect_automation"
     assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "degraded"
+    assert snapshot["sync_lifecycle_state"] == "actionable_sync_failure"
+    assert snapshot["operator_action_required"] is True
     assert snapshot["next_expected_actor"] == "operator_review"
     assert snapshot["windows_task_log_present"] is False
 
@@ -278,6 +332,8 @@ def test_extra_files_require_manual_review(tmp_path):
     assert snapshot["recommended_fix_kind"] == "manual_review"
     assert snapshot["can_request_fix_from_app"] is False
     assert snapshot["display_status"] == "manual_review"
+    assert snapshot["sync_lifecycle_state"] == "actionable_sync_failure"
+    assert snapshot["operator_action_required"] is True
     assert snapshot["next_expected_actor"] == "operator_review"
     assert snapshot["extra_files"] == ["orphan.json"]
 
@@ -297,8 +353,11 @@ def test_read_model_export_exists_and_no_authority_flags_are_false(tmp_path):
     assert payload["trust_status"] == "trusted"
     assert payload["recommended_fix"]["kind"] == "none"
     assert payload["display_status"] == "current"
+    assert payload["sync_lifecycle_state"] == "trusted_current"
+    assert payload["operator_action_required"] is False
     assert payload["next_expected_actor"] == "none"
     assert payload["recommended_fix"]["next_expected_actor"] == "none"
+    assert payload["recommended_fix"]["operator_action_required"] is False
     assert "OpenClaw Sync Health" in operator_text
     assert all(value is False for value in payload["no_authority_flags"].values())
     assert all(value is False for value in NO_AUTHORITY_FLAGS.values())
@@ -335,6 +394,8 @@ def test_refresh_sync_health_from_manifest_builds_snapshot_and_exports(tmp_path)
     assert summary["mirror_status"] == "ok"
     assert payload["mirror_status"] == "ok"
     assert payload["display_status"] == "current"
+    assert payload["sync_lifecycle_state"] == "trusted_current"
+    assert payload["operator_action_required"] is False
     assert (export_root / "sync_health_OPERATOR.md").is_file()
 
 
@@ -385,6 +446,56 @@ def test_build_script_accepts_fixture_paths_without_destructive_behavior(tmp_pat
     payload = json.loads(capsys.readouterr().out)
     assert payload["trust_status"] == "trusted"
 
+
+
+
+def test_self_report_newer_than_manifest_is_routine_health_mirror_wait(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write(read_models / "sync_health.json", '{"generated": "old"}\n')
+    _write(read_models / "sync_health_OPERATOR.md", "# Old Sync Health\n")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models)) + "\n")
+    manifest_hash = sha256_file(manifest)
+    paths = _proof_files(tmp_path, manifest_hash)
+
+    _write(read_models / "sync_health.json", '{"generated": "newer"}\n')
+    _write(read_models / "sync_health_OPERATOR.md", "# Newer Sync Health\n")
+    future_mtime = manifest.stat().st_mtime + 10
+    os.utime(read_models / "sync_health.json", (future_mtime, future_mtime))
+    os.utime(read_models / "sync_health_OPERATOR.md", (future_mtime, future_mtime))
+
+    build_sync_health_snapshot(
+        db_path=tmp_path / "ledger.sqlite",
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        mac_status_path=paths["mac_status"],
+        mac_completion_path=paths["mac_completion"],
+        pc_import_state_path=paths["pc_state"],
+        pc_task_log_path=paths["pc_log"],
+        windows_task_log_path=paths["windows_log"],
+        request_marker_path=paths["request_marker"],
+        run_id="sync_health_fixture",
+    )
+    snapshot = _latest(tmp_path / "ledger.sqlite")
+
+    assert snapshot["trust_status"] == "trusted"
+    assert snapshot["mirror_status"] == "ok"
+    assert snapshot["display_status"] == "current"
+    assert snapshot["sync_lifecycle_state"] == "health_exported_waiting_for_mac_mirror"
+    assert snapshot["operator_action_required"] is False
+    assert snapshot["next_expected_actor"] == "mac_sync_agent"
+    assert snapshot["recommended_fix_kind"] == "none"
+
+def test_niles_metadata_packet_and_matrix_are_expected_read_models():
+    expected = set(canonical_generated_read_model_expected_files())
+
+    assert "niles_album_metadata_intake_packet.json" in expected
+    assert "niles_album_metadata_intake_packet_OPERATOR.md" in expected
+    assert "niles_album_matrix_review.json" in expected
+    assert "niles_album_matrix_review_OPERATOR.md" in expected
+    assert "niles_album_review_packet.json" in expected
+    assert "niles_album_review_packet_OPERATOR.md" in expected
 
 def test_source_has_no_c_drive_defaults_or_disallowed_runtime_behavior():
     text = Path("sync_health.py").read_text(encoding="utf-8").lower()

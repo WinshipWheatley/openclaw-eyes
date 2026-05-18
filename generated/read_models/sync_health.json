@@ -9,7 +9,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T03:11:09+00:00",
+  "generated_at": "2026-05-18T14:32:08+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -19,7 +19,7 @@
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-18T03:06:11+00:00"
+    "time": "2026-05-18T14:27:15+00:00"
   },
   "last_pc_import": {
     "manifest_hash": "1e50a024ecb3a5faa3dfa3ac150a995168d5dd99726a99bea8eaf5478a874b0f",
@@ -32,7 +32,7 @@
   "mirror_status": "ok",
   "missing_expected": 0,
   "missing_files": [],
-  "next_expected_actor": "none",
+  "next_expected_actor": "mac_sync_agent",
   "no_authority_flags": {
     "agent_activation_allowed": false,
     "app_direct_execution_allowed": false,
@@ -45,6 +45,8 @@
     "ssh_scp_rsync_allowed": false
   },
   "observed": 158,
+  "operator_action_required": false,
+  "operator_interrupt_policy": "routine sync lifecycle states stay in proof/detail; only unresolved actionable failures should interrupt the operator",
   "proof_sources": [
     {
       "present": 1,
@@ -56,11 +58,11 @@
     },
     {
       "present": 1,
-      "source_hash": "3a757085aa86a2b34507091bada3b8d7c12a9e136cebaf9d845eb89499e5fb03",
+      "source_hash": "b6a9519270e8a4b27de47a00eaf46a1e58126321418baf0e7bf399b71aa737ca",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-18T03:06:11+00:00"
+      "source_time": "2026-05-18T14:27:15+00:00"
     },
     {
       "present": 1,
@@ -72,7 +74,7 @@
     },
     {
       "present": 1,
-      "source_hash": "e9e6a2d2a128b9536f06d623cb56c3c8088de09794d0c78aa0d44c3e402e1b60",
+      "source_hash": "9dcf223d43f25f93187dbc54feac9f789e13d85093073ffbe7c5490db41fa4c3",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -82,9 +84,25 @@
       "present": 1,
       "source_hash": null,
       "source_kind": "pc_task_log",
-      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
+      "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-18T03:09:52+00:00"
+      "source_time": "2026-05-18T14:30:39+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": "0fb5944e5bd544d904d222b74da6be691e275f4645d35c55e9bb5f893b0dce34",
+      "source_kind": "read_model_sync_request_marker",
+      "source_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+      "source_status": null,
+      "source_time": "2026-05-18T02:43:48+00:00"
+    },
+    {
+      "present": 1,
+      "source_hash": null,
+      "source_kind": "sync_health_self_report",
+      "source_path": "generated/read_models",
+      "source_status": "newer_than_manifest",
+      "source_time": null
     },
     {
       "present": 1,
@@ -92,7 +110,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-18T03:09:48+00:00"
+      "source_time": "2026-05-18T14:29:47+00:00"
     }
   ],
   "recommended_fix": {
@@ -100,9 +118,11 @@
     "can_request_fix_from_app": false,
     "display_status": "current",
     "kind": "none",
-    "next_expected_actor": "none",
-    "next_safe_move": "No sync repair is needed.",
-    "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"
+    "next_expected_actor": "mac_sync_agent",
+    "next_safe_move": "Sync health is current on PC and waiting for the normal Mac mirror cycle to pick up the latest health read-model.",
+    "operator_action_required": false,
+    "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+    "sync_lifecycle_state": "health_exported_waiting_for_mac_mirror"
   },
   "remote_control_allowed": false,
   "runtime_activation_allowed": false,
@@ -110,5 +130,6 @@
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
   "stale_files": [],
+  "sync_lifecycle_state": "health_exported_waiting_for_mac_mirror",
   "trust_status": "trusted"
 }
