@@ -3,9 +3,9 @@
 Trust status: `trusted`
 Mirror status: `ok`
 Display status: `current`
-Lifecycle state: `health_exported_waiting_for_mac_mirror`
+Lifecycle state: `trusted_current`
 Operator action required: `false`
-Next expected actor: `mac_sync_agent`
+Next expected actor: `none`
 
 Mirror counts:
 - canonical_expected=158
@@ -18,16 +18,16 @@ Mirror counts:
 Recommended fix:
 - kind: `none`
 - display status: `current`
-- next expected actor: `mac_sync_agent`
-- lifecycle state: `health_exported_waiting_for_mac_mirror`
+- next expected actor: `none`
+- lifecycle state: `trusted_current`
 - operator action required: `false`
-- next: Sync health is current on PC and waiting for the normal Mac mirror cycle to pick up the latest health read-model.
+- next: No sync repair is needed.
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-18T14:37:16+00:00`
-- Mac completion: `synced` at `2026-05-18T02:46:09+00:00`
-- PC import: `skipped_unchanged` at `2026-05-18T02:49:52+00:00`
+- Mac heartbeat: `synced` at `2026-05-18T14:39:39+00:00`
+- Mac completion: `synced` at `2026-05-18T14:39:39+00:00`
+- PC import: `success` at `2026-05-18T14:39:42+00:00`
 - Windows task log present: `true`
 
 No-authority posture:
