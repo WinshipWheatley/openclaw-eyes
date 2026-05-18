@@ -15,6 +15,7 @@ Status:
 - Supplied proof count: `0`.
 - Recorded real proof count: `0`.
 - Intake accepts protected references and metadata only; raw artifact bodies are not allowed.
+- Forbidden raw/sensitive input keys refused: `0`.
 
 ## Proof Records
 - `coupa_payment_invoice_proof`: pending_not_recorded (operator supplied: `false`)

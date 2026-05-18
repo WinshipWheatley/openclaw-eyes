@@ -55,6 +55,11 @@ def test_template_sections_and_fields_align_with_proof_intake_command():
         assert record["proof_status"] == "pending_not_recorded"
         assert record["operator_supplied"] is False
         assert record["no_external_action"] is True
+        assert "service_dates" in record
+        assert "mismatch_reasons" in record
+        assert "operator_confirmed" in record
+        assert "redaction_status" in record
+        assert "protection_status" in record
 
 
 def test_empty_template_does_not_record_real_proof_and_send_gate_stays_blocked(tmp_path):
@@ -85,9 +90,12 @@ def test_examples_are_labeled_and_synthetic_examples_never_count_as_real():
 
     assert partial["example_is_real_proof"] is False
     assert partial["proof_records"]["coupa_payment_invoice_proof"]["synthetic_or_test"] is True
+    assert partial["proof_records"]["coupa_payment_invoice_proof"]["service_dates"] == ["<YYYY-MM-DD>", "<YYYY-MM-DD>"]
+    assert partial["proof_records"]["coupa_payment_invoice_proof"]["redaction_status"] == "redacted_or_protected_reference_only"
     assert full["example_is_real_proof"] is False
     assert full["all_records_are_synthetic_test_examples"] is True
     assert all(record["synthetic_or_test"] is True for record in full["proof_records"].values())
+    assert all(record["protection_status"] == "synthetic_protected_reference" for record in full["proof_records"].values())
 
     synthetic_capture = proof.build_capital_hilton_external_artifact_proof_capture(
         proof_inputs=full,

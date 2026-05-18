@@ -93,15 +93,56 @@ _ALLOWED_METADATA_FIELDS = {
     "protected_artifact_reference",
     "protected_artifact_type",
     "artifact_identity_or_hash",
+    "protected_reference_id",
+    "protected_reference_path_token",
     "invoice_number",
     "invoice_date",
     "invoice_amount",
+    "amount",
     "po_number",
+    "po_reference",
+    "service_dates",
     "match_status",
     "match_basis",
+    "mismatch_reasons",
+    "operator_confirmed",
+    "operator_confirmation_status",
+    "operator_confirmation_basis",
+    "redaction_status",
+    "protection_status",
     "source_basis",
+    "date_captured",
     "captured_at",
     "synthetic_or_test",
+}
+
+_FORBIDDEN_INPUT_KEYS = {
+    "raw_pdf_body",
+    "raw_pdf_contents",
+    "pdf_body",
+    "pdf_contents",
+    "raw_excel_body",
+    "raw_excel_contents",
+    "excel_body",
+    "excel_contents",
+    "raw_artifact_contents",
+    "artifact_body",
+    "portal_username",
+    "portal_user",
+    "portal_password",
+    "password",
+    "token",
+    "api_key",
+    "secret",
+    "credential",
+    "credentials",
+    "bank_details",
+    "bank_account",
+    "routing_number",
+    "remit_details",
+    "home_address",
+    "check_image",
+    "check_image_bytes",
 }
 
 
@@ -167,19 +208,66 @@ def _sanitize_text(value: object, *, max_len: int = 180) -> str:
     return text[:max_len]
 
 
+def _sanitize_metadata_value(value: Any) -> Any:
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, list):
+        return [_sanitize_text(item, max_len=80) for item in value[:12]]
+    if isinstance(value, tuple):
+        return [_sanitize_text(item, max_len=80) for item in value[:12]]
+    return _sanitize_text(value)
+
+
 def _safe_metadata(raw: dict[str, Any]) -> dict[str, Any]:
     safe: dict[str, Any] = {}
     for key in _ALLOWED_METADATA_FIELDS:
         if key not in raw:
             continue
-        value = raw[key]
-        if isinstance(value, bool) or value is None:
-            safe[key] = value
-        elif isinstance(value, (int, float)):
-            safe[key] = value
-        else:
-            safe[key] = _sanitize_text(value)
+        safe[key] = _sanitize_metadata_value(raw[key])
     return safe
+
+
+def _input_rejection_summary(raw_inputs: dict[str, Any] | None) -> dict[str, Any]:
+    source = raw_inputs.get("proof_records") if isinstance(raw_inputs, dict) else {}
+    if not isinstance(source, dict):
+        source = {}
+    per_proof: dict[str, dict[str, Any]] = {}
+    refused_key_count = 0
+    unsupported_key_count = 0
+    for proof_type in PROOF_TYPES:
+        raw = source.get(proof_type)
+        if not isinstance(raw, dict):
+            per_proof[proof_type] = {
+                "forbidden_input_keys_refused": [],
+                "unsupported_input_keys_ignored": [],
+                "raw_sensitive_input_refused": False,
+            }
+            continue
+        forbidden_keys = sorted(
+            key for key in raw if str(key).strip().lower() in _FORBIDDEN_INPUT_KEYS
+        )
+        unsupported_keys = sorted(
+            key
+            for key in raw
+            if str(key).strip().lower() not in _FORBIDDEN_INPUT_KEYS
+            and key not in _ALLOWED_METADATA_FIELDS
+        )
+        refused_key_count += len(forbidden_keys)
+        unsupported_key_count += len(unsupported_keys)
+        per_proof[proof_type] = {
+            "forbidden_input_keys_refused": forbidden_keys,
+            "unsupported_input_keys_ignored": unsupported_keys,
+            "raw_sensitive_input_refused": bool(forbidden_keys),
+        }
+    return {
+        "raw_sensitive_input_refused": refused_key_count > 0,
+        "forbidden_input_key_count": refused_key_count,
+        "unsupported_input_key_count": unsupported_key_count,
+        "forbidden_input_keys_are_not_stored_as_values": True,
+        "per_proof_type": per_proof,
+    }
 
 
 def _input_for(raw: dict[str, Any] | None, proof_type: str) -> dict[str, Any]:
@@ -219,14 +307,26 @@ def _proof_record(proof_type: str, raw: dict[str, Any], generated_at: str) -> di
         "protected_artifact_reference": metadata.get("protected_artifact_reference", ""),
         "protected_artifact_type": metadata.get("protected_artifact_type", proof_type),
         "artifact_identity_or_hash": metadata.get("artifact_identity_or_hash", ""),
+        "protected_reference_id": metadata.get("protected_reference_id", ""),
+        "protected_reference_path_token": metadata.get("protected_reference_path_token", ""),
         "invoice_number": metadata.get("invoice_number", ""),
         "invoice_date": metadata.get("invoice_date", ""),
-        "invoice_amount": metadata.get("invoice_amount", ""),
-        "po_number": metadata.get("po_number", ""),
+        "invoice_amount": metadata.get("invoice_amount", metadata.get("amount", "")),
+        "amount": metadata.get("amount", metadata.get("invoice_amount", "")),
+        "po_number": metadata.get("po_number", metadata.get("po_reference", "")),
+        "po_reference": metadata.get("po_reference", metadata.get("po_number", "")),
+        "service_dates": metadata.get("service_dates", []),
         "match_status": metadata.get("match_status", "not_applicable" if proof_type != "excel_coupa_match_proof" else "pending"),
         "match_basis": metadata.get("match_basis", ""),
+        "mismatch_reasons": metadata.get("mismatch_reasons", []),
+        "operator_confirmed": bool(metadata.get("operator_confirmed", False)),
+        "operator_confirmation_status": metadata.get("operator_confirmation_status", ""),
+        "operator_confirmation_basis": metadata.get("operator_confirmation_basis", ""),
+        "redaction_status": metadata.get("redaction_status", ""),
+        "protection_status": metadata.get("protection_status", ""),
         "source_basis": metadata.get("source_basis", "operator_supplied_metadata_only" if operator_supplied else "not_supplied"),
-        "captured_at": metadata.get("captured_at", generated_at if captured else ""),
+        "date_captured": metadata.get("date_captured", ""),
+        "captured_at": metadata.get("captured_at", metadata.get("date_captured", generated_at if captured else "")),
         "synthetic_or_test": synthetic,
         "raw_artifact_contents_stored": False,
         "raw_sensitive_artifact_stored_in_read_model": False,
@@ -257,6 +357,7 @@ def _operator_proof_intake_summary(
         if record["proof_status"] == "synthetic_test_recorded_not_real"
     ]
     pending = [proof_type for proof_type, record in records.items() if record["proof_status"] == "pending_not_recorded"]
+    rejection_summary = _input_rejection_summary(raw_inputs)
     return {
         "intake_path_added": True,
         "command_path": "scripts/export_capital_hilton_external_artifact_proof_capture.py --proof-input-json <path>",
@@ -277,6 +378,10 @@ def _operator_proof_intake_summary(
         "requires_protected_reference_or_identity_metadata": True,
         "metadata_only": True,
         "raw_artifact_contents_allowed": False,
+        "raw_sensitive_input_refused": rejection_summary["raw_sensitive_input_refused"],
+        "forbidden_input_key_count": rejection_summary["forbidden_input_key_count"],
+        "unsupported_input_key_count": rejection_summary["unsupported_input_key_count"],
+        "input_rejection_summary": rejection_summary,
         "no_external_action": True,
     }
 
@@ -430,6 +535,8 @@ def build_capital_hilton_external_artifact_proof_capture(
             "missing_input_does_not_create_proof": True,
             "synthetic_test_proof_never_counts_as_real": True,
             "raw_artifact_contents_allowed_in_read_models": False,
+            "raw_sensitive_input_values_refused": True,
+            "unsupported_input_fields_ignored": True,
         },
         "final_send_approval_prerequisites": prerequisites,
         "final_send_approval_availability_state": availability,
@@ -447,6 +554,9 @@ def build_capital_hilton_external_artifact_proof_capture(
             "paid_status": False,
             "final_send_approval_availability_state": availability,
             "raw_sensitive_artifact_stored_in_read_model": False,
+            "raw_sensitive_input_refused": intake_summary["raw_sensitive_input_refused"],
+            "forbidden_input_key_count": intake_summary["forbidden_input_key_count"],
+            "unsupported_input_key_count": intake_summary["unsupported_input_key_count"],
             "no_submit_no_browser_no_email_no_spreadsheet_no_secret_storage": True,
         },
         "authority_boundary": {
@@ -491,6 +601,7 @@ def format_capital_hilton_external_artifact_proof_capture(payload: dict[str, Any
         f"- Supplied proof count: `{payload['operator_proof_intake']['supplied_proof_count']}`.",
         f"- Recorded real proof count: `{payload['operator_proof_intake']['recorded_real_proof_count']}`.",
         "- Intake accepts protected references and metadata only; raw artifact bodies are not allowed.",
+        f"- Forbidden raw/sensitive input keys refused: `{payload['operator_proof_intake']['forbidden_input_key_count']}`.",
         "",
         "## Proof Records",
     ]

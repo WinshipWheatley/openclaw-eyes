@@ -104,6 +104,11 @@ def test_partial_proof_intake_records_only_supplied_coupa_metadata():
                 "invoice_date": "2026-05-18",
                 "invoice_amount": "800.00 USD",
                 "po_number": "DCASH00983536",
+                "service_dates": ["2026-05-08", "2026-05-15"],
+                "operator_confirmed": True,
+                "operator_confirmation_status": "confirmed_metadata_only",
+                "redaction_status": "redacted_reference_only",
+                "protection_status": "protected_local_reference",
                 "raw_artifact_contents": "RAW PDF BODY THAT MUST NOT BE STORED",
             }
         }
@@ -119,6 +124,14 @@ def test_partial_proof_intake_records_only_supplied_coupa_metadata():
     assert payload["operator_proof_intake"]["supplied_proof_count"] == 1
     assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 1
     assert payload["proof_records"]["coupa_payment_invoice_proof"]["proof_status"] == "captured"
+    assert payload["proof_records"]["coupa_payment_invoice_proof"]["service_dates"] == ["2026-05-08", "2026-05-15"]
+    assert payload["proof_records"]["coupa_payment_invoice_proof"]["operator_confirmed"] is True
+    assert payload["proof_records"]["coupa_payment_invoice_proof"]["redaction_status"] == "redacted_reference_only"
+    assert payload["operator_proof_intake"]["raw_sensitive_input_refused"] is True
+    assert payload["operator_proof_intake"]["forbidden_input_key_count"] == 1
+    assert payload["operator_proof_intake"]["input_rejection_summary"]["per_proof_type"][
+        "coupa_payment_invoice_proof"
+    ]["forbidden_input_keys_refused"] == ["raw_artifact_contents"]
     assert payload["proof_records"]["excel_companion_invoice_artifact"]["proof_status"] == "pending_not_recorded"
     assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "pending_not_recorded"
     assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_companion_invoice"
@@ -166,6 +179,10 @@ def test_negative_match_proof_is_recorded_as_evidence_without_unlocking_send_gat
     inputs = _real_proof_inputs()
     inputs["proof_records"]["excel_coupa_match_proof"]["match_status"] = "mismatch"
     inputs["proof_records"]["excel_coupa_match_proof"]["match_basis"] = "operator_supplied_difference_found"
+    inputs["proof_records"]["excel_coupa_match_proof"]["mismatch_reasons"] = [
+        "amount_does_not_match",
+        "service_dates_need_review",
+    ]
 
     payload = proof.build_capital_hilton_external_artifact_proof_capture(
         proof_inputs=inputs,
@@ -175,6 +192,10 @@ def test_negative_match_proof_is_recorded_as_evidence_without_unlocking_send_gat
     assert payload["operator_proof_intake"]["supplied_proof_count"] == 3
     assert payload["proof_records"]["excel_coupa_match_proof"]["operator_supplied"] is True
     assert payload["proof_records"]["excel_coupa_match_proof"]["match_status"] == "mismatch"
+    assert payload["proof_records"]["excel_coupa_match_proof"]["mismatch_reasons"] == [
+        "amount_does_not_match",
+        "service_dates_need_review",
+    ]
     assert payload["proof_records"]["excel_coupa_match_proof"]["proof_status"] == "pending_not_recorded"
     assert payload["operator_proof_intake"]["recorded_real_proof_count"] == 2
     assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_match_proof"
@@ -302,6 +323,10 @@ def test_cli_proof_input_json_records_partial_metadata_without_raw_artifact_stor
                         "invoice_number": "operator-supplied-invoice-number",
                         "invoice_amount": "800.00 USD",
                         "po_number": "DCASH00983536",
+                        "service_dates": ["2026-05-08", "2026-05-15"],
+                        "operator_confirmed": True,
+                        "redaction_status": "redacted_reference_only",
+                        "protection_status": "protected_local_reference",
                         "password": "password is not allowed here",
                         "raw_artifact_contents": "RAW PDF BODY THAT MUST NOT BE STORED",
                     }
@@ -329,6 +354,13 @@ def test_cli_proof_input_json_records_partial_metadata_without_raw_artifact_stor
     assert summary["supplied_proof_count"] == 1
     assert summary["recorded_real_proof_count"] == 1
     assert payload["proof_records"]["coupa_payment_invoice_proof"]["proof_status"] == "captured"
+    assert payload["operator_proof_intake"]["raw_sensitive_input_refused"] is True
+    assert payload["operator_proof_intake"]["forbidden_input_key_count"] == 2
+    assert sorted(
+        payload["operator_proof_intake"]["input_rejection_summary"]["per_proof_type"][
+            "coupa_payment_invoice_proof"
+        ]["forbidden_input_keys_refused"]
+    ) == ["password", "raw_artifact_contents"]
     assert payload["proof_records"]["excel_companion_invoice_artifact"]["proof_status"] == "pending_not_recorded"
     assert payload["final_send_approval_availability_state"] == "unavailable_missing_excel_companion_invoice"
     assert "Operator Proof Intake" in operator_text
