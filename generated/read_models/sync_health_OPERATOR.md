@@ -8,12 +8,12 @@ Operator action required: `false`
 Next expected actor: `none`
 
 Mirror counts:
-- canonical_expected=158
-- observed=158
+- canonical_expected=192
+- observed=192
 - missing_expected=0
 - extra=0
 - hash_mismatch=0
-- matched_hash=158
+- matched_hash=192
 
 Recommended fix:
 - kind: `none`
@@ -25,9 +25,9 @@ Recommended fix:
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `synced` at `2026-05-18T14:39:39+00:00`
-- Mac completion: `synced` at `2026-05-18T14:39:39+00:00`
-- PC import: `success` at `2026-05-18T14:40:47+00:00`
+- Mac heartbeat: `synced` at `2026-05-19T15:54:51+00:00`
+- Mac completion: `synced` at `2026-05-19T15:54:51+00:00`
+- PC import: `success` at `2026-05-19T15:54:53+00:00`
 - Windows task log present: `true`
 
 No-authority posture:

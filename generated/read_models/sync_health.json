@@ -2,33 +2,33 @@
   "agent_activation_allowed": false,
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
-  "canonical_expected": 158,
+  "canonical_expected": 192,
   "display_status": "current",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-18T14:40:58+00:00",
+  "generated_at": "2026-05-19T15:54:53+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-18T14:39:39+00:00"
+    "time": "2026-05-19T15:54:51+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
     "status": "synced",
-    "time": "2026-05-18T14:39:39+00:00"
+    "time": "2026-05-19T15:54:51+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "3827b549b342d6a6f9c6ee38ee401b010b9399564162f65672efd18418ec444f",
+    "manifest_hash": "9fa39543bf8c85fd6ea68cb6d83856d0206faaba7debfb5f501a9c19b6911ae6",
     "pc_scheduler_known": true,
     "status": "success",
-    "time": "2026-05-18T14:40:47+00:00",
+    "time": "2026-05-19T15:54:53+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 158,
+  "matched_hash": 192,
   "mirror_status": "ok",
   "missing_expected": 0,
   "missing_files": [],
@@ -44,41 +44,41 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 158,
+  "observed": 192,
   "operator_action_required": false,
   "operator_interrupt_policy": "routine sync lifecycle states stay in proof/detail; only unresolved actionable failures should interrupt the operator",
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "da02d4e3910a9eb9130330cb3d68036701a81e5e2f652f968717e9820e585a83",
+      "source_hash": "296f0b94f0c9cc6ff8576d850787c050c5a1f8191519b36e5b87318f8a85de7c",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-18T14:39:39+00:00"
+      "source_time": "2026-05-19T15:54:51+00:00"
     },
     {
       "present": 1,
-      "source_hash": "7059bf3b235864a6700e985a6fb8c9097da3a31721623f880bdb233bc86702b0",
+      "source_hash": "333afb74f2f62bf13ed2fba87a3013eb0d6d742424df7a6b97bb62727af65918",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "synced",
-      "source_time": "2026-05-18T14:39:39+00:00"
+      "source_time": "2026-05-19T15:54:51+00:00"
     },
     {
       "present": 1,
-      "source_hash": "3827b549b342d6a6f9c6ee38ee401b010b9399564162f65672efd18418ec444f",
+      "source_hash": "9fa39543bf8c85fd6ea68cb6d83856d0206faaba7debfb5f501a9c19b6911ae6",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-18T14:40:46+00:00"
+      "source_time": "2026-05-19T15:54:50+00:00"
     },
     {
       "present": 1,
-      "source_hash": "5e3f7e2a097c043624a7eb3efa5b7bc726c248355856b1e3a9a20d56eb9c7130",
+      "source_hash": "ad69063ea936fd89c14b4c3ad23192fe615c01580df5eac791c7ea86a2660ae3",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "success",
-      "source_time": "2026-05-18T14:40:47+00:00"
+      "source_time": "2026-05-19T15:54:53+00:00"
     },
     {
       "present": 1,
@@ -86,15 +86,15 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-18T14:40:47+00:00"
+      "source_time": "2026-05-19T15:54:52+00:00"
     },
     {
       "present": 1,
-      "source_hash": "db575c9a49b6b386c26d5e512efd05818c3edbf6d98beba27011b75d44d5502f",
+      "source_hash": "788913f06d44aaed68c19d5e7a8414d8ac624f81c65b36b235aed7861837d8bb",
       "source_kind": "read_model_sync_request_marker",
       "source_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
       "source_status": null,
-      "source_time": "2026-05-18T14:39:16+00:00"
+      "source_time": "2026-05-19T15:54:27+00:00"
     },
     {
       "present": 1,
@@ -110,7 +110,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-18T14:39:47+00:00"
+      "source_time": "2026-05-19T15:54:47+00:00"
     }
   ],
   "recommended_fix": {
