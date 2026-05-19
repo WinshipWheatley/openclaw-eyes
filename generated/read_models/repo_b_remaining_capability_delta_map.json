@@ -1,0 +1,1884 @@
+{
+  "already_represented": [
+    {
+      "authority_risk": "medium_if_legacy_listener_paths_are_reused_directly",
+      "capability_id": "cassandra_core_listener_review",
+      "classification": "ALREADY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "cassandra_receive_review",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/cassandra_listener_governed_shadow.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "cassandra_listener.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "cassandra_brain.py",
+        "cassandra_capability.py",
+        "cassandra_listener.py"
+      ],
+      "short_description": "Older Cassandra receive/review files are present, but Repo A already has governed receive and draft review rails.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "None unless a specific missing Cassandra behavior is identified",
+      "why_or_why_not": "Repo A already has receive/review rails; only compare deltas, do not re-import legacy listener behavior."
+    }
+  ],
+  "approval_execution_authority_added": false,
+  "authority_risk_summary": {
+    "high": 6,
+    "low": 1,
+    "medium": 8,
+    "very": 2
+  },
+  "baseline_repo_a": {
+    "known_rail_count": 14,
+    "live_workflow_ready_count": 0,
+    "maturity_counts": {
+      "APPROVAL_RECEIPT_READY": 1,
+      "APPROVAL_REQUEST_CONTRACT_READY": 2,
+      "LEGACY_OR_REFERENCE_IN_REPO_A": 1,
+      "METADATA_ONLY": 2,
+      "READ_MODEL_VISIBLE": 5,
+      "REVIEW_PACKET_READY": 2,
+      "SECURITY_THRESHOLD_READY": 1
+    },
+    "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+    "present": true,
+    "readiness_counts": {
+      "approval_receipt": 2,
+      "approval_request_contract": 4,
+      "execution_gate": 1,
+      "live_workflow": 0,
+      "proof_packet": 1,
+      "review_packet": 3,
+      "security_threshold_audit": 0,
+      "visibility_only": 14
+    },
+    "schema_version": "repo_a_known_rail_completion_map_v0",
+    "security_pass_current": false
+  },
+  "browser_or_coupa_authority_added": false,
+  "capability_delta_list": [
+    {
+      "authority_risk": "medium_if_legacy_listener_paths_are_reused_directly",
+      "capability_id": "cassandra_core_listener_review",
+      "classification": "ALREADY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "cassandra_receive_review",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/cassandra_listener_governed_shadow.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "cassandra_listener.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "cassandra_brain.py",
+        "cassandra_capability.py",
+        "cassandra_listener.py"
+      ],
+      "short_description": "Older Cassandra receive/review files are present, but Repo A already has governed receive and draft review rails.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "None unless a specific missing Cassandra behavior is identified",
+      "why_or_why_not": "Repo A already has receive/review rails; only compare deltas, do not re-import legacy listener behavior."
+    },
+    {
+      "authority_risk": "high_live_email_calendar_oauth_if_reused",
+      "capability_id": "cassandra_calendar_email_draft",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "cassandra_email_calendar",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_draft_approval_request_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "cassandra_outreach.py",
+        "chief_calendar_brain.py",
+        "chief_email_brain.py",
+        "google_access_broker.py",
+        "tests/test_cassandra_outreach.py"
+      ],
+      "short_description": "Repo B carries live-adjacent email/calendar/draft surfaces; Repo A has reconciliation and review-only draft rails.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Cassandra Email Calendar Delta Detangle v0",
+      "why_or_why_not": "Bring forward only missing draft/review semantics through existing no-live-authority rails; do not bring forward live OAuth/send behavior."
+    },
+    {
+      "authority_risk": "high_if_legacy_chief_runtime_or_watchers_are_activated",
+      "capability_id": "chief_orchestrator_planner_status",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "chief_work_packets",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_queue_brain.py",
+        "chief_router.py",
+        "chief_session_manager.py",
+        "chief_watcher_brain.py",
+        "chief_worker.py"
+      ],
+      "short_description": "Repo B contains many Chief brains and routing/status surfaces; Repo A has Work Board and Agent Work Packet visibility but not full Chief status maturity.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Chief Status Rail Completion v0",
+      "why_or_why_not": "Bring forward status/readiness semantics, not runtime brains or watchers."
+    },
+    {
+      "authority_risk": "high_legacy_telegram_json_approval_if_reactivated",
+      "capability_id": "guardian_legacy_approval_hitl",
+      "classification": "SUPERSEDED_BY_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "guardian_hitl",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/guardian_hitl_authority_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_hitl_sqlite_authority_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_responsibility_dna_audit.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_approval_brain.py",
+        "chief_guardian_listener.py",
+        "chief_guardian_sender.py",
+        "hitl_flowchart_gen.py"
+      ],
+      "short_description": "Repo B has legacy approval sender/listener/brain files that Repo A has already audited and modeled as compatibility/reference.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "HITL Transition Criteria Review v0",
+      "why_or_why_not": "Repo A contract/read-model rails supersede these as authority; keep as reference only."
+    },
+    {
+      "authority_risk": "high_agentic_runtime_execution_if_activated",
+      "capability_id": "planner_builder_automation_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "automation_builder",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "builder_watcher.sh",
+        "loop_supervisor.sh",
+        "polish_loop/orchestrator.py",
+        "runner_profiles.py",
+        "runner_registry.py"
+      ],
+      "short_description": "Repo B contains builder/watchdog/orchestrator/runner surfaces that should not run before authority and security threshold work.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Planner Builder Delta Safety Review v0",
+      "why_or_why_not": "Do not bring forward as runnable machinery; only later compare specific planner/builder state concepts."
+    },
+    {
+      "authority_risk": "high_automatic_mutation_or_self_repair_if_enabled",
+      "capability_id": "automatic_fix_repair_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "automation_repair",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "polish_loop/pc_review_fallback.py",
+        "polish_loop/run_polish_pass.sh",
+        "queue_balancer.py",
+        "queue_validator.py"
+      ],
+      "short_description": "Repo B has polish-loop and fallback repair surfaces that may contain useful workflow ideas but are unsafe as live repair loops.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Automatic Repair Loop Contract Harvest v0",
+      "why_or_why_not": "Useful ideas may be harvested later as receipts/status contracts, but live repair loops remain blocked."
+    },
+    {
+      "authority_risk": "medium_old_freeform_notes_could_be_misread_as_truth",
+      "capability_id": "brain_dump_inbox_parser",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_intake",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "CURRENT_STATE.md",
+        "NEXT_ACTIONS.md",
+        "inbox_parser.py"
+      ],
+      "short_description": "Repo B has inbox parser evidence; Repo A has intent/dropped-intent surfaces and a legacy brain dump parser requiring governance before use.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Governed Cue Parser Delta v0",
+      "why_or_why_not": "Bring forward only safe cue/intake classification semantics, not broad note ingestion."
+    },
+    {
+      "authority_risk": "medium_if_queue_logic_starts_execution_instead_of_classification",
+      "capability_id": "dropped_intent_task_queue_timing",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_intake_queue",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_queue_brain.py",
+        "queue_balancer.py",
+        "queue_validator.py"
+      ],
+      "short_description": "Repo B queue balancer/validator hints at timing decisions; Repo A has dropped intent and work board visibility.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Build Now Vs Hold Queue Posture v0",
+      "why_or_why_not": "The hold-vs-build timing concept looks useful as read-model decision support before Repo B migration."
+    },
+    {
+      "authority_risk": "medium_if_advisory_output_is_treated_as_decision_authority",
+      "capability_id": "hermes_advisory_synthesis",
+      "classification": "UNKNOWN_NEEDS_OPERATOR_MEMORY_REVIEW",
+      "confidence": "low",
+      "likely_lane_domain": "hermes_advisory",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "hermes_advisory_packet.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/agent_lanes.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": false,
+      "repo_b_paths": [],
+      "short_description": "Repo A has Hermes advisory helpers, but this Repo B inventory did not show a clear Hermes-named rail.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Hermes Memory Review And Advisory Rail Check v0",
+      "why_or_why_not": "Need Winship memory review: Repo B does not obviously expose Hermes by name in safe path inventory."
+    },
+    {
+      "authority_risk": "medium_if_raw_music_session_files_or_legacy_album_runtime_are_scanned",
+      "capability_id": "niles_music_producer_album",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "music_art_projects",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/struna_obscura_project_capsule.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_album_batch.py",
+        "chief_album_brain.py",
+        "chief_album_mixer.py",
+        "chief_musiclaw_brain.py",
+        "start_album_brain.sh"
+      ],
+      "short_description": "Repo B has album/music Chief modules; Repo A has Niles/Struna metadata and review packets.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Niles Governed Metadata Review Packet Completion v0",
+      "why_or_why_not": "Bring forward album/status semantics through metadata-only Niles rail; do not scan creative folders."
+    },
+    {
+      "authority_risk": "medium_to_high_if_demo_send_or_client_reporting_runs_live",
+      "capability_id": "report_bridge_client_company_reporting",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "report_bridge_client_capsules",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/report_bridge.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/project_capsules.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "ceo_briefing_worker.py",
+        "chief_reporter_brain.py",
+        "dashboard_gen.py",
+        "send_demo_dashboard.py"
+      ],
+      "short_description": "Repo B has reporter/dashboard/briefing surfaces; Repo A has Report Bridge and project/client capsule substrate.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Client Reporting Rail Delta Review v0",
+      "why_or_why_not": "Bring forward reporting/capsule semantics only; demo send/dashboard live paths remain blocked or obsolete."
+    },
+    {
+      "authority_risk": "very_high_credentials_oauth_tool_execution",
+      "capability_id": "oauth_tool_browser_credential_bridges",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "protected_access",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "google_access_broker.py",
+        "google_access_policy.py",
+        "pii_vault.py",
+        "skill_loader.py",
+        "skill_vetter.py"
+      ],
+      "short_description": "Repo B contains Google broker/policy and PII vault surfaces that are useful only behind future protected-access controls.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Protected Access Broker Design Review v0",
+      "why_or_why_not": "Do not bring forward until protected broker and Stage 3/4 controls exist; path metadata only for now."
+    },
+    {
+      "authority_risk": "very_high_if_raw_pii_or_secrets_are_read",
+      "capability_id": "pii_vault_protected_broker_concept",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "protected_evidence",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "pii_vault.py"
+      ],
+      "short_description": "Repo B PII vault naming may contain useful concept evidence for later protected proof/credential broker design.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Protected PII Broker Concept Delta v0",
+      "why_or_why_not": "Bring forward only the protected-reference concept later; do not read values or implement credential access now."
+    },
+    {
+      "authority_risk": "medium_if_old_dashboard_send_or_mobile_sync_paths_are_reused",
+      "capability_id": "demo_dashboard_mobile_sync",
+      "classification": "OBSOLETE_OR_STALE",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_helm_legacy",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/sync_health.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/context_selection.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/helm_state.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "dashboard_gen.py",
+        "retry_send_demo_dashboard.sh",
+        "send_demo_dashboard.py",
+        "sync_to_mobile.sh"
+      ],
+      "short_description": "Repo B dashboard/demo/mobile sync surfaces appear superseded by Mission Control and governed read-model mirror posture.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "None before Mission Control asks for a specific missing view",
+      "why_or_why_not": "Mission Control/read-model mirror should remain the helm path; old dashboards are reference only unless a missing view is proven."
+    },
+    {
+      "authority_risk": "medium_if_old_finance_state_or_spreadsheet_cells_are_treated_as_truth",
+      "capability_id": "budget_tracker_finance_legacy",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "finance",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/finance_invoice_evidence_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/finance_invoice_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/capital_hilton_two_invoice_workflow.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "budget_tracker.py",
+        "chief_billing_brain.py",
+        "chief_financial_brain.py",
+        "chief_invoice_brain.py"
+      ],
+      "short_description": "Repo B has old budget tracking; Repo A has Capital Hilton and finance evidence packet rails but not a full generic budget tracker.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Generic Finance Budget Posture Delta v0",
+      "why_or_why_not": "Bring forward only generic finance/budget posture if a named workflow needs it; no spreadsheet/bank reads."
+    },
+    {
+      "authority_risk": "high_if_skill_loading_executes_tools_or_code",
+      "capability_id": "capability_skill_registry",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "module_tooling",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "approved_module_registry.py",
+          "present": false,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "module_registry.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "capability_registry.py",
+        "skill_loader.py",
+        "skill_vetter.py"
+      ],
+      "short_description": "Repo B has capability and skill loading/vetting surfaces; Repo A has module registry and custom-build contracts.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Capability Skill Registry Metadata Delta v0",
+      "why_or_why_not": "Worth reviewing as metadata/tool classification, not as executable skill loading."
+    },
+    {
+      "authority_risk": "low_to_medium_if_old_tool_notes_are_treated_as_current_law",
+      "capability_id": "claude_command_notes",
+      "classification": "MISSING_FROM_REPO_A",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_memory_review",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "OPENCLAW_RUNTIME.md",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "USER.md",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        ".claude/commands/cassandra.md",
+        "CLAUDE.md"
+      ],
+      "short_description": "Repo B contains Claude-oriented command/runtime notes that are not a Repo A steel-thread rail.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Operator Memory Review For Legacy Tool Notes v0",
+      "why_or_why_not": "Do not promote old tool-specific notes to law; compare later only if Winship remembers missing behavior."
+    }
+  ],
+  "classification_counts": {
+    "ALREADY_REPRESENTED_IN_REPO_A": 1,
+    "MISSING_FROM_REPO_A": 1,
+    "OBSOLETE_OR_STALE": 1,
+    "PARTIALLY_REPRESENTED_IN_REPO_A": 6,
+    "SUPERSEDED_BY_REPO_A": 1,
+    "UNKNOWN_NEEDS_OPERATOR_MEMORY_REVIEW": 1,
+    "UNSAFE_OR_BLOCKED": 3,
+    "WORTH_BRINGING_FORWARD": 3
+  },
+  "classification_labels": [
+    "ALREADY_REPRESENTED_IN_REPO_A",
+    "PARTIALLY_REPRESENTED_IN_REPO_A",
+    "MISSING_FROM_REPO_A",
+    "SUPERSEDED_BY_REPO_A",
+    "UNSAFE_OR_BLOCKED",
+    "OBSOLETE_OR_STALE",
+    "WORTH_BRINGING_FORWARD",
+    "UNKNOWN_NEEDS_OPERATOR_MEMORY_REVIEW"
+  ],
+  "credential_or_oauth_accessed": false,
+  "future_lane_recommendations": [
+    {
+      "lane_name": "Chief Status Rail Completion v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract mapping only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Repo B delta is reference-only; record useful concepts as read-models before any migration.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_4c32a7b09fcdd5310f3e",
+        "gate_status": "pass",
+        "lane_name": "Chief Status Rail Completion v0",
+        "lane_summary": "Bring forward Chief status/readiness semantics as read-model proof, not runtime brains.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Potential module splits should be recorded for later, not acted on in this map.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Chief status and work-packet readiness",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable status/readiness rail for legacy orchestration surfaces.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "chief_status_read_model_gap",
+        "steel_thread_contract_link": "repo_a_known_rail_completion_map_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Chief status completion read-model with legacy runtime blocked."
+      },
+      "why_next": "Bring forward Chief status/readiness semantics as read-model proof, not runtime brains."
+    },
+    {
+      "lane_name": "Build Now Vs Hold Queue Posture v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract mapping only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Repo B delta is reference-only; record useful concepts as read-models before any migration.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_12a9a15e2a3be591443a",
+        "gate_status": "pass",
+        "lane_name": "Build Now Vs Hold Queue Posture v0",
+        "lane_summary": "Model the hold-vs-build timing workflow from queue/dropped-intent evidence without executing queues.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Potential module splits should be recorded for later, not acted on in this map.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Dropped intent and build-now-vs-hold workflow",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable queue posture map for operator timing decisions.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "queue_timing_decision_gap",
+        "steel_thread_contract_link": "dropped_intents_work_board_read_models",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Read-model showing what should be built now, held, or memory-reviewed."
+      },
+      "why_next": "Model the hold-vs-build timing workflow from queue/dropped-intent evidence without executing queues."
+    },
+    {
+      "lane_name": "Protected Access Broker Concept Delta v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract mapping only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Repo B delta is reference-only; record useful concepts as read-models before any migration.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_7b5dba1b051387416d29",
+        "gate_status": "pass",
+        "lane_name": "Protected Access Broker Concept Delta v0",
+        "lane_summary": "Review Repo B protected PII/OAuth/tool concepts as metadata only before any security-threshold lane.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Potential module splits should be recorded for later, not acted on in this map.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Future protected credential/PII broker design",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable protected-reference concept map without reading secrets or enabling credentials.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "protected_access_concept_gap",
+        "steel_thread_contract_link": "operator_sovereignty_power_stage_gate_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Protected broker concept delta read-model; no implementation."
+      },
+      "why_next": "Review Repo B protected PII/OAuth/tool concepts as metadata only before any security-threshold lane."
+    }
+  ],
+  "generated_at": "2026-05-19T00:08:11+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "live_execution_recommended": false,
+  "live_workflow_authority_created": false,
+  "missing_from_repo_a": [
+    {
+      "authority_risk": "low_to_medium_if_old_tool_notes_are_treated_as_current_law",
+      "capability_id": "claude_command_notes",
+      "classification": "MISSING_FROM_REPO_A",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_memory_review",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "OPENCLAW_RUNTIME.md",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "USER.md",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        ".claude/commands/cassandra.md",
+        "CLAUDE.md"
+      ],
+      "short_description": "Repo B contains Claude-oriented command/runtime notes that are not a Repo A steel-thread rail.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Operator Memory Review For Legacy Tool Notes v0",
+      "why_or_why_not": "Do not promote old tool-specific notes to law; compare later only if Winship remembers missing behavior."
+    }
+  ],
+  "mission_control_app_changed": false,
+  "no_authority_flags": {
+    "approval_execution_authority_added": false,
+    "browser_or_coupa_authority_added": false,
+    "credential_or_oauth_accessed": false,
+    "gmail_calendar_coupa_accessed": false,
+    "live_workflow_authority_created": false,
+    "mission_control_app_changed": false,
+    "planner_builder_agent_automation_activated": false,
+    "repo_b_code_executed": false,
+    "repo_b_code_migrated": false,
+    "repo_b_modules_imported": false,
+    "repo_b_reference_only": true,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false
+  },
+  "old_files_treated_as_evidence_not_truth": true,
+  "operator_eli5_summary": {
+    "already_handled_or_represented": [
+      "cassandra_core_listener_review"
+    ],
+    "may_need_bring_forward": [
+      "dropped_intent_task_queue_timing",
+      "pii_vault_protected_broker_concept",
+      "capability_skill_registry"
+    ],
+    "needs_winship_memory_review": [
+      "Hermes status"
+    ],
+    "next_1_to_3_sensible_lanes": [
+      "Chief Status Rail Completion v0",
+      "Build Now Vs Hold Queue Posture v0",
+      "Protected Access Broker Concept Delta v0"
+    ],
+    "partly_tracked": [
+      "cassandra_calendar_email_draft",
+      "chief_orchestrator_planner_status",
+      "brain_dump_inbox_parser",
+      "niles_music_producer_album",
+      "report_bridge_client_company_reporting",
+      "budget_tracker_finance_legacy"
+    ],
+    "summary_text": "Repo B still contains a lot of the older OpenClaw machinery, but much of it is already represented in Repo A as safer read-models, proof rails, or blocked contracts. The useful remaining delta looks less like code to copy and more like concepts to harvest: Chief status, queue timing, protected-access ideas, and some music/reporting semantics. The risky old pieces are still the live loops, send/OAuth/tool bridges, and automatic repair machinery. Nothing here is ready for live execution.",
+    "unsafe_old_or_blocked": [
+      "planner_builder_automation_loops",
+      "automatic_fix_repair_loops",
+      "oauth_tool_browser_credential_bridges"
+    ]
+  },
+  "operator_memory_review_items": [
+    {
+      "capability_id": "hermes_advisory_synthesis",
+      "classification": "UNKNOWN_NEEDS_OPERATOR_MEMORY_REVIEW",
+      "found_in_repo_b": false,
+      "needs_operator_memory_review": true,
+      "not_found_yet": false,
+      "partial_match": false,
+      "proven_in_repo_a": true,
+      "remembered_area": "Hermes status",
+      "repo_a_hint": "hermes_advisory",
+      "status": "needs_operator_memory_review"
+    }
+  ],
+  "partially_represented": [
+    {
+      "authority_risk": "high_live_email_calendar_oauth_if_reused",
+      "capability_id": "cassandra_calendar_email_draft",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "cassandra_email_calendar",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_draft_approval_request_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "cassandra_outreach.py",
+        "chief_calendar_brain.py",
+        "chief_email_brain.py",
+        "google_access_broker.py",
+        "tests/test_cassandra_outreach.py"
+      ],
+      "short_description": "Repo B carries live-adjacent email/calendar/draft surfaces; Repo A has reconciliation and review-only draft rails.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Cassandra Email Calendar Delta Detangle v0",
+      "why_or_why_not": "Bring forward only missing draft/review semantics through existing no-live-authority rails; do not bring forward live OAuth/send behavior."
+    },
+    {
+      "authority_risk": "high_if_legacy_chief_runtime_or_watchers_are_activated",
+      "capability_id": "chief_orchestrator_planner_status",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "chief_work_packets",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_queue_brain.py",
+        "chief_router.py",
+        "chief_session_manager.py",
+        "chief_watcher_brain.py",
+        "chief_worker.py"
+      ],
+      "short_description": "Repo B contains many Chief brains and routing/status surfaces; Repo A has Work Board and Agent Work Packet visibility but not full Chief status maturity.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Chief Status Rail Completion v0",
+      "why_or_why_not": "Bring forward status/readiness semantics, not runtime brains or watchers."
+    },
+    {
+      "authority_risk": "medium_old_freeform_notes_could_be_misread_as_truth",
+      "capability_id": "brain_dump_inbox_parser",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_intake",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "CURRENT_STATE.md",
+        "NEXT_ACTIONS.md",
+        "inbox_parser.py"
+      ],
+      "short_description": "Repo B has inbox parser evidence; Repo A has intent/dropped-intent surfaces and a legacy brain dump parser requiring governance before use.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Governed Cue Parser Delta v0",
+      "why_or_why_not": "Bring forward only safe cue/intake classification semantics, not broad note ingestion."
+    },
+    {
+      "authority_risk": "medium_if_raw_music_session_files_or_legacy_album_runtime_are_scanned",
+      "capability_id": "niles_music_producer_album",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "music_art_projects",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/niles_album_evidence_intake_boundary.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/struna_obscura_project_capsule.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_album_batch.py",
+        "chief_album_brain.py",
+        "chief_album_mixer.py",
+        "chief_musiclaw_brain.py",
+        "start_album_brain.sh"
+      ],
+      "short_description": "Repo B has album/music Chief modules; Repo A has Niles/Struna metadata and review packets.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Niles Governed Metadata Review Packet Completion v0",
+      "why_or_why_not": "Bring forward album/status semantics through metadata-only Niles rail; do not scan creative folders."
+    },
+    {
+      "authority_risk": "medium_to_high_if_demo_send_or_client_reporting_runs_live",
+      "capability_id": "report_bridge_client_company_reporting",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "report_bridge_client_capsules",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/report_bridge.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/project_capsules.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "ceo_briefing_worker.py",
+        "chief_reporter_brain.py",
+        "dashboard_gen.py",
+        "send_demo_dashboard.py"
+      ],
+      "short_description": "Repo B has reporter/dashboard/briefing surfaces; Repo A has Report Bridge and project/client capsule substrate.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Client Reporting Rail Delta Review v0",
+      "why_or_why_not": "Bring forward reporting/capsule semantics only; demo send/dashboard live paths remain blocked or obsolete."
+    },
+    {
+      "authority_risk": "medium_if_old_finance_state_or_spreadsheet_cells_are_treated_as_truth",
+      "capability_id": "budget_tracker_finance_legacy",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "finance",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/finance_invoice_evidence_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/finance_invoice_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/capital_hilton_two_invoice_workflow.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "budget_tracker.py",
+        "chief_billing_brain.py",
+        "chief_financial_brain.py",
+        "chief_invoice_brain.py"
+      ],
+      "short_description": "Repo B has old budget tracking; Repo A has Capital Hilton and finance evidence packet rails but not a full generic budget tracker.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Generic Finance Budget Posture Delta v0",
+      "why_or_why_not": "Bring forward only generic finance/budget posture if a named workflow needs it; no spreadsheet/bank reads."
+    }
+  ],
+  "planner_builder_agent_automation_activated": false,
+  "recommended_next_lanes_all_gate_pass": true,
+  "remembered_but_not_proven_gaps": [
+    {
+      "capability_id": "cassandra_calendar_email_draft",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "Cassandra calendar",
+      "repo_a_hint": "cassandra_email_calendar_capability_reconciliation",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "chief_orchestrator_planner_status",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "Chief status",
+      "repo_a_hint": "chief_work_packets",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "hermes_advisory_synthesis",
+      "classification": "UNKNOWN_NEEDS_OPERATOR_MEMORY_REVIEW",
+      "found_in_repo_b": false,
+      "needs_operator_memory_review": true,
+      "not_found_yet": false,
+      "partial_match": false,
+      "proven_in_repo_a": true,
+      "remembered_area": "Hermes status",
+      "repo_a_hint": "hermes_advisory",
+      "status": "needs_operator_memory_review"
+    },
+    {
+      "capability_id": "niles_music_producer_album",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "Niles status",
+      "repo_a_hint": "niles_album_struna",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "planner_builder_automation_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "deterministic + agentic planner/builder automation",
+      "repo_a_hint": "planner_builder_guardrails",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "automatic_fix_repair_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "automatic fix loop",
+      "repo_a_hint": "active_machinery_guardrails",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "brain_dump_inbox_parser",
+      "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "brain-dump/cue parser",
+      "repo_a_hint": "intent_dropped_intent",
+      "status": "partially_matched"
+    },
+    {
+      "capability_id": "dropped_intent_task_queue_timing",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "found_in_repo_b": true,
+      "needs_operator_memory_review": false,
+      "not_found_yet": false,
+      "partial_match": true,
+      "proven_in_repo_a": true,
+      "remembered_area": "dropped intent / build-now-vs-hold-until-right-time workflow",
+      "repo_a_hint": "dropped_intent_work_board",
+      "status": "partially_matched"
+    }
+  ],
+  "repo_b_code_executed": false,
+  "repo_b_code_migrated": false,
+  "repo_b_inspection": {
+    "body_read": false,
+    "inspected_locations": [
+      ".claude",
+      ".mcp.json",
+      "CLAUDE.md",
+      "CURRENT_STATE.md",
+      "DEEPPOCKET.md",
+      "KNOWN_GAPS.md",
+      "NEXT_ACTIONS.md",
+      "RUNBOOK.md",
+      "autonomy_mode.py",
+      "autonomy_qualification.py",
+      "budget_tracker.py",
+      "builder_watcher.sh",
+      "capability_registry.py",
+      "cassandra_brain.py",
+      "cassandra_briefing_brain.py",
+      "cassandra_briefing_scheduler.py",
+      "cassandra_capability.py",
+      "cassandra_listener.py",
+      "cassandra_outreach.py",
+      "cassandra_watcher.py",
+      "cassandra_whisper_relay.py",
+      "ceo_briefing_worker.py",
+      "chief_album_batch.py",
+      "chief_album_brain.py",
+      "chief_album_io.py",
+      "chief_album_mixer.py",
+      "chief_analytics_brain.py",
+      "chief_approval_brain.py",
+      "chief_approval_bridge.py",
+      "chief_approval_policy.py",
+      "chief_backup_brain.py",
+      "chief_billing_brain.py",
+      "chief_brainstorm_brain.py",
+      "chief_brainstorm_router.py",
+      "chief_brainstorm_watcher.py",
+      "chief_brand_brain.py",
+      "chief_calendar_brain.py",
+      "chief_ceo_briefing.py",
+      "chief_chat.py",
+      "chief_content_brain.py",
+      "chief_cpa_brain.py",
+      "chief_email_brain.py",
+      "chief_file_io.py",
+      "chief_financial_brain.py",
+      "chief_focus_shield.py",
+      "chief_fundo_identity.py",
+      "chief_fundo_release.py",
+      "chief_fundo_session.py",
+      "chief_goals_brain.py",
+      "chief_guardian_listener.py",
+      "chief_guardian_sender.py",
+      "chief_integration_brain.py",
+      "chief_invoice_brain.py",
+      "chief_listener.py",
+      "chief_llm.py",
+      "chief_marketing_brain.py",
+      "chief_memory_worker.py",
+      "chief_momentum_brain.py",
+      "chief_musiclaw_brain.py",
+      "chief_nli.py",
+      "chief_notify.py",
+      "chief_obsidian_sync.py",
+      "chief_ops_brain.py",
+      "chief_output_utils.py",
+      "chief_phone_brain.py",
+      "chief_publishing_brain.py",
+      "chief_queue_brain.py",
+      "chief_reflection_brain.py",
+      "chief_reporter_brain.py",
+      "chief_router.py",
+      "chief_scheduler_brain.py",
+      "chief_scout_brain.py",
+      "chief_sender.py",
+      "chief_session_manager.py",
+      "chief_sms_brain.py",
+      "chief_state_worker.py",
+      "chief_trinity_brain.py",
+      "chief_validator_brain.py",
+      "chief_watcher_brain.py",
+      "chief_website_coordinator.py"
+    ],
+    "inspection_mode": "reference_only_path_metadata",
+    "path_count": 118,
+    "repo_b_code_executed": false,
+    "repo_b_modules_imported": false,
+    "repo_b_present": true,
+    "repo_b_root": "/home/openclaw_external/openclaw-runtime",
+    "representative_paths": [
+      ".claude/commands/cassandra.md",
+      ".claude/commands/ops-intake.md",
+      ".mcp.json",
+      "CLAUDE.md",
+      "CURRENT_STATE.md",
+      "DEEPPOCKET.md",
+      "KNOWN_GAPS.md",
+      "NEXT_ACTIONS.md",
+      "RUNBOOK.md",
+      "autonomy_mode.py",
+      "autonomy_qualification.py",
+      "budget_tracker.py",
+      "builder_watcher.sh",
+      "capability_registry.py",
+      "cassandra_brain.py",
+      "cassandra_briefing_brain.py",
+      "cassandra_briefing_scheduler.py",
+      "cassandra_capability.py",
+      "cassandra_listener.py",
+      "cassandra_outreach.py",
+      "cassandra_watcher.py",
+      "cassandra_whisper_relay.py",
+      "ceo_briefing_worker.py",
+      "chief_album_batch.py",
+      "chief_album_brain.py",
+      "chief_album_io.py",
+      "chief_album_mixer.py",
+      "chief_analytics_brain.py",
+      "chief_approval_brain.py",
+      "chief_approval_bridge.py",
+      "chief_approval_policy.py",
+      "chief_backup_brain.py",
+      "chief_billing_brain.py",
+      "chief_brainstorm_brain.py",
+      "chief_brainstorm_router.py",
+      "chief_brainstorm_watcher.py",
+      "chief_brand_brain.py",
+      "chief_calendar_brain.py",
+      "chief_ceo_briefing.py",
+      "chief_chat.py",
+      "chief_content_brain.py",
+      "chief_cpa_brain.py",
+      "chief_email_brain.py",
+      "chief_file_io.py",
+      "chief_financial_brain.py",
+      "chief_focus_shield.py",
+      "chief_fundo_identity.py",
+      "chief_fundo_release.py",
+      "chief_fundo_session.py",
+      "chief_goals_brain.py",
+      "chief_guardian_listener.py",
+      "chief_guardian_sender.py",
+      "chief_integration_brain.py",
+      "chief_invoice_brain.py",
+      "chief_listener.py",
+      "chief_llm.py",
+      "chief_marketing_brain.py",
+      "chief_memory_worker.py",
+      "chief_momentum_brain.py",
+      "chief_musiclaw_brain.py",
+      "chief_nli.py",
+      "chief_notify.py",
+      "chief_obsidian_sync.py",
+      "chief_ops_brain.py",
+      "chief_output_utils.py",
+      "chief_phone_brain.py",
+      "chief_publishing_brain.py",
+      "chief_queue_brain.py",
+      "chief_reflection_brain.py",
+      "chief_reporter_brain.py",
+      "chief_router.py",
+      "chief_scheduler_brain.py",
+      "chief_scout_brain.py",
+      "chief_sender.py",
+      "chief_session_manager.py",
+      "chief_sms_brain.py",
+      "chief_state_worker.py",
+      "chief_trinity_brain.py",
+      "chief_validator_brain.py",
+      "chief_watcher_brain.py"
+    ],
+    "skipped_sensitive_or_no_go_count": 56
+  },
+  "repo_b_modules_imported": false,
+  "repo_b_reference_only": true,
+  "runtime_authority_added": false,
+  "schema_version": "repo_b_remaining_capability_delta_map_v0",
+  "security_pass_current": false,
+  "security_pass_posture": "future_threshold_not_current_delta_lane",
+  "security_pass_started": false,
+  "send_or_submit_authority_added": false,
+  "unsafe_or_obsolete": [
+    {
+      "authority_risk": "high_legacy_telegram_json_approval_if_reactivated",
+      "capability_id": "guardian_legacy_approval_hitl",
+      "classification": "SUPERSEDED_BY_REPO_A",
+      "confidence": "high",
+      "likely_lane_domain": "guardian_hitl",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/guardian_hitl_authority_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_hitl_sqlite_authority_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/guardian_responsibility_dna_audit.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_approval_brain.py",
+        "chief_guardian_listener.py",
+        "chief_guardian_sender.py",
+        "hitl_flowchart_gen.py"
+      ],
+      "short_description": "Repo B has legacy approval sender/listener/brain files that Repo A has already audited and modeled as compatibility/reference.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "HITL Transition Criteria Review v0",
+      "why_or_why_not": "Repo A contract/read-model rails supersede these as authority; keep as reference only."
+    },
+    {
+      "authority_risk": "high_agentic_runtime_execution_if_activated",
+      "capability_id": "planner_builder_automation_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "automation_builder",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "builder_watcher.sh",
+        "loop_supervisor.sh",
+        "polish_loop/orchestrator.py",
+        "runner_profiles.py",
+        "runner_registry.py"
+      ],
+      "short_description": "Repo B contains builder/watchdog/orchestrator/runner surfaces that should not run before authority and security threshold work.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Planner Builder Delta Safety Review v0",
+      "why_or_why_not": "Do not bring forward as runnable machinery; only later compare specific planner/builder state concepts."
+    },
+    {
+      "authority_risk": "high_automatic_mutation_or_self_repair_if_enabled",
+      "capability_id": "automatic_fix_repair_loops",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "automation_repair",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "polish_loop/pc_review_fallback.py",
+        "polish_loop/run_polish_pass.sh",
+        "queue_balancer.py",
+        "queue_validator.py"
+      ],
+      "short_description": "Repo B has polish-loop and fallback repair surfaces that may contain useful workflow ideas but are unsafe as live repair loops.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Automatic Repair Loop Contract Harvest v0",
+      "why_or_why_not": "Useful ideas may be harvested later as receipts/status contracts, but live repair loops remain blocked."
+    },
+    {
+      "authority_risk": "very_high_credentials_oauth_tool_execution",
+      "capability_id": "oauth_tool_browser_credential_bridges",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "confidence": "high",
+      "likely_lane_domain": "protected_access",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "google_access_broker.py",
+        "google_access_policy.py",
+        "pii_vault.py",
+        "skill_loader.py",
+        "skill_vetter.py"
+      ],
+      "short_description": "Repo B contains Google broker/policy and PII vault surfaces that are useful only behind future protected-access controls.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "Protected Access Broker Design Review v0",
+      "why_or_why_not": "Do not bring forward until protected broker and Stage 3/4 controls exist; path metadata only for now."
+    },
+    {
+      "authority_risk": "medium_if_old_dashboard_send_or_mobile_sync_paths_are_reused",
+      "capability_id": "demo_dashboard_mobile_sync",
+      "classification": "OBSOLETE_OR_STALE",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_helm_legacy",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/sync_health.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/context_selection.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/helm_state.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "dashboard_gen.py",
+        "retry_send_demo_dashboard.sh",
+        "send_demo_dashboard.py",
+        "sync_to_mobile.sh"
+      ],
+      "short_description": "Repo B dashboard/demo/mobile sync surfaces appear superseded by Mission Control and governed read-model mirror posture.",
+      "should_bring_forward": false,
+      "suggested_future_lane": "None before Mission Control asks for a specific missing view",
+      "why_or_why_not": "Mission Control/read-model mirror should remain the helm path; old dashboards are reference only unless a missing view is proven."
+    }
+  ],
+  "worth_bringing_forward": [
+    {
+      "authority_risk": "medium_if_queue_logic_starts_execution_instead_of_classification",
+      "capability_id": "dropped_intent_task_queue_timing",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "operator_intake_queue",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "chief_queue_brain.py",
+        "queue_balancer.py",
+        "queue_validator.py"
+      ],
+      "short_description": "Repo B queue balancer/validator hints at timing decisions; Repo A has dropped intent and work board visibility.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Build Now Vs Hold Queue Posture v0",
+      "why_or_why_not": "The hold-vs-build timing concept looks useful as read-model decision support before Repo B migration."
+    },
+    {
+      "authority_risk": "very_high_if_raw_pii_or_secrets_are_read",
+      "capability_id": "pii_vault_protected_broker_concept",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "protected_evidence",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "pii_vault.py"
+      ],
+      "short_description": "Repo B PII vault naming may contain useful concept evidence for later protected proof/credential broker design.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Protected PII Broker Concept Delta v0",
+      "why_or_why_not": "Bring forward only the protected-reference concept later; do not read values or implement credential access now."
+    },
+    {
+      "authority_risk": "high_if_skill_loading_executes_tools_or_code",
+      "capability_id": "capability_skill_registry",
+      "classification": "WORTH_BRINGING_FORWARD",
+      "confidence": "medium",
+      "likely_lane_domain": "module_tooling",
+      "old_files_treated_as_truth": false,
+      "reference_only": true,
+      "repo_a_equivalent": [
+        {
+          "path": "approved_module_registry.py",
+          "present": false,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "module_registry.py",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        },
+        {
+          "path": "generated/read_models/custom_build_module_detangling_contract.json",
+          "present": true,
+          "repo_a_evidence_not_truth": true
+        }
+      ],
+      "repo_a_equivalent_found": true,
+      "repo_b_body_read": false,
+      "repo_b_code_executed": false,
+      "repo_b_found": true,
+      "repo_b_paths": [
+        "capability_registry.py",
+        "skill_loader.py",
+        "skill_vetter.py"
+      ],
+      "short_description": "Repo B has capability and skill loading/vetting surfaces; Repo A has module registry and custom-build contracts.",
+      "should_bring_forward": true,
+      "suggested_future_lane": "Capability Skill Registry Metadata Delta v0",
+      "why_or_why_not": "Worth reviewing as metadata/tool classification, not as executable skill loading."
+    }
+  ]
+}
