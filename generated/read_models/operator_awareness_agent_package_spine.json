@@ -1,0 +1,2611 @@
+{
+  "agent_activation_authority_added": false,
+  "agent_actor_routing_metadata": {
+    "actor_model_recommendation_metadata_fields": [
+      "actor_role_fit",
+      "task_fit",
+      "risk_fit",
+      "collaboration_fit",
+      "availability_status",
+      "unavailable_or_unknown_actor_fails_closed"
+    ],
+    "domain_to_likely_agents": [
+      {
+        "domain": "music",
+        "likely_agents": [
+          "Niles"
+        ]
+      },
+      {
+        "domain": "comms/finance",
+        "likely_agents": [
+          "Cassandra",
+          "Guardian"
+        ]
+      },
+      {
+        "domain": "safety/security",
+        "likely_agents": [
+          "Guardian"
+        ]
+      },
+      {
+        "domain": "coordination/work queue",
+        "likely_agents": [
+          "Chief"
+        ]
+      },
+      {
+        "domain": "big-picture/advisory",
+        "likely_agents": [
+          "Hermes"
+        ]
+      },
+      {
+        "domain": "client/reporting",
+        "likely_agents": [
+          "Report Bridge",
+          "Chief"
+        ]
+      }
+    ],
+    "metadata_only": true,
+    "no_real_api_key_credential_endpoint_or_execution_path": true,
+    "possible_chat_modes": [
+      {
+        "live_chat_created_now": false,
+        "metadata_meaning": "one character receives a future package preview",
+        "mode": "ONE_AGENT"
+      },
+      {
+        "live_chat_created_now": false,
+        "metadata_meaning": "two characters can be compared without letting either execute",
+        "mode": "TWO_SIDE_BY_SIDE_AGENTS"
+      },
+      {
+        "live_chat_created_now": false,
+        "metadata_meaning": "future grouped review, not current runtime",
+        "mode": "GROUP_CHAT"
+      },
+      {
+        "live_chat_created_now": false,
+        "metadata_meaning": "future deterministic ordering, for example Cassandra then Guardian",
+        "mode": "ORDERED_MULTI_AGENT_RESPONSE"
+      },
+      {
+        "live_chat_created_now": false,
+        "metadata_meaning": "routing order is derived from domain and risk before any actor selection",
+        "mode": "DETERMINISTIC_ORDER_BASED_ON_TASK_RISK_DOMAIN"
+      }
+    ],
+    "unavailable_or_unknown_actor_fails_closed": true
+  },
+  "agent_package_spine_contract_layers": {
+    "layer_1_eli5_current_truth": {
+      "layer_id": "layer_1_eli5_current_truth",
+      "next_safe_move": "Show the awareness map, let Winship identify missing X, then use a bounded non-live detour to classify or capture proof before package use.",
+      "what_is_blocked": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ],
+      "what_needs_to_be_found_classified": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ],
+      "what_openclaw_knows": [
+        "Capital Hilton, Cassandra, Chief, Guardian, Niles/Struna, protected proof references, work packets, and cross-repo awareness are visible as read-model-backed surfaces.",
+        "Review packets, proof rails, approval request specs, work-board cards, dropped intents, and capability metadata can be shown as deterministic posture."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ],
+      "what_openclaw_partly_knows": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ],
+      "what_winship_may_remember_that_system_is_not_seeing": [
+        "Capital Hilton needs Coupa/Excel proof",
+        "Niles needs real album metadata",
+        "Hermes status needs memory/proof review",
+        "Google/Apple calendar merge needs clarification",
+        "Agentic loop workflow needs discovery/classification",
+        "Chief test harness needs discovery/classification",
+        "Brain-dump / cue parser needs discovery/classification",
+        "Repo B leftovers need tagging or blocking"
+      ]
+    },
+    "layer_2_human_operator_detail": {
+      "blocked_on_purpose": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "known_but_not_usable": [
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "layer_id": "layer_2_human_operator_detail",
+      "machine_proof_is_primary_human_layer": false,
+      "needs_context": [
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification"
+      ],
+      "needs_discovery_classification": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "needs_operator_memory_comparison": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "needs_proof": [
+        "capital_hilton_coupa_excel_proof",
+        "google_apple_calendar_merge_clarification"
+      ],
+      "parked_on_purpose": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "ready_for_bounded_work": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "brain_dump_cue_parser_classification"
+      ],
+      "ready_to_inspect": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ],
+      "still_to_raise_up": [
+        "capital_hilton_coupa_excel_proof",
+        "niles_real_album_metadata",
+        "hermes_status_memory_proof_review",
+        "google_apple_calendar_merge_clarification",
+        "agentic_loop_workflow_classification",
+        "chief_test_harness_classification",
+        "brain_dump_cue_parser_classification",
+        "repo_b_leftovers_tag_or_block"
+      ]
+    },
+    "layer_3_machine_proof": {
+      "authority_boundaries": {
+        "agent_activation_authority_added": false,
+        "agents_activated": false,
+        "approval_authority_added": false,
+        "browser_accessed": false,
+        "browser_automation_added": false,
+        "button_metadata_only": true,
+        "calendar_cleanup_started": false,
+        "confidence_posture_only": true,
+        "contract_only": true,
+        "coupa_accessed": false,
+        "credential_or_pii_access_added": false,
+        "detour_recommendation_only": true,
+        "email_send_triggered": false,
+        "execution_authority_added": false,
+        "gmail_calendar_coupa_accessed": false,
+        "live_chat_created": false,
+        "lm_called": false,
+        "mission_control_app_changed": false,
+        "model_calls_made": false,
+        "oauth_or_credentials_accessed": false,
+        "package_preview_only": true,
+        "private_raw_content_inspected": false,
+        "raw_protected_content_accessed": false,
+        "read_model_only": true,
+        "repo_b_code_executed": false,
+        "repo_b_filesystem_inspected": false,
+        "repo_b_modules_imported": false,
+        "runtime_authority_added": false,
+        "security_pass_started": false,
+        "send_or_submit_authority_added": false,
+        "sqlite_schema_changed": false,
+        "telegram_send_triggered": false,
+        "tool_execution_authority_added": false,
+        "tools_enabled": false
+      },
+      "blockers": [
+        "activate Hermes",
+        "activate autonomous loop",
+        "activate old loops",
+        "call LLM/Ollama",
+        "call an advisory model",
+        "call model",
+        "execute shell",
+        "import Chief runtime modules",
+        "import Repo B modules",
+        "inspect Repo B body content",
+        "migrate code",
+        "move files",
+        "move or transform audio files",
+        "mutate events",
+        "mutate spreadsheet",
+        "normalize calendars",
+        "open Coupa",
+        "open Excel/PDF proof",
+        "promote cues to truth automatically",
+        "publish or release material",
+        "read calendars",
+        "run Repo B code",
+        "run external research",
+        "run producer bot",
+        "run tools",
+        "scan raw private notes",
+        "send Telegram",
+        "send email",
+        "start OAuth",
+        "start repair",
+        "start services",
+        "submit invoice"
+      ],
+      "classifications": {
+        "awareness_states": [
+          "KNOWN",
+          "PARTLY_KNOWN",
+          "KNOWN_UNKNOWN",
+          "UNDISCOVERED",
+          "OPERATOR_MEMORY_COMPARISON_NEEDED",
+          "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+          "BLOCKED_ON_PURPOSE",
+          "KNOWN_BUT_NOT_USABLE"
+        ],
+        "confidence_postures": [
+          "FULL_TRUST_DISPLAY_QUIET",
+          "HIGH_TRUST",
+          "MEDIUM_TRUST",
+          "LOW_TRUST",
+          "UNKNOWN_FAIL_CLOSED"
+        ],
+        "cross_repo_classification_counts": {
+          "OPERATOR_MEMORY_ONLY": 1,
+          "REPO_A_BLOCKED": 0,
+          "REPO_A_PARTIALLY_TRACKED": 1,
+          "REPO_A_TRACKED": 8,
+          "REPO_B_ALREADY_REPRESENTED": 1,
+          "REPO_B_OBSOLETE_OR_STALE": 2,
+          "REPO_B_PARTIALLY_REPRESENTED": 10,
+          "REPO_B_UNSAFE_OR_BLOCKED": 4,
+          "REPO_B_UNTAGGED": 2,
+          "UNKNOWN_NEEDS_REVIEW": 2
+        },
+        "gap_classification_summary": [
+          {
+            "confidence_posture": "MEDIUM_TRUST",
+            "current_awareness_state": "PARTLY_KNOWN",
+            "gap_id": "capital_hilton_coupa_excel_proof"
+          },
+          {
+            "confidence_posture": "MEDIUM_TRUST",
+            "current_awareness_state": "PARTLY_KNOWN",
+            "gap_id": "niles_real_album_metadata"
+          },
+          {
+            "confidence_posture": "LOW_TRUST",
+            "current_awareness_state": "OPERATOR_MEMORY_COMPARISON_NEEDED",
+            "gap_id": "hermes_status_memory_proof_review"
+          },
+          {
+            "confidence_posture": "LOW_TRUST",
+            "current_awareness_state": "OPERATOR_MEMORY_COMPARISON_NEEDED",
+            "gap_id": "google_apple_calendar_merge_clarification"
+          },
+          {
+            "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+            "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+            "gap_id": "agentic_loop_workflow_classification"
+          },
+          {
+            "confidence_posture": "LOW_TRUST",
+            "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+            "gap_id": "chief_test_harness_classification"
+          },
+          {
+            "confidence_posture": "LOW_TRUST",
+            "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+            "gap_id": "brain_dump_cue_parser_classification"
+          },
+          {
+            "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+            "current_awareness_state": "KNOWN_UNKNOWN",
+            "gap_id": "repo_b_leftovers_tag_or_block"
+          }
+        ]
+      },
+      "generated_outputs": [
+        "generated/read_models/operator_awareness_agent_package_spine.json",
+        "generated/read_models/operator_awareness_agent_package_spine_OPERATOR.md"
+      ],
+      "layer_id": "layer_3_machine_proof",
+      "machine_proof_is_not_main_human_layer": true,
+      "read_model_references": [
+        {
+          "executed_or_dispatched": false,
+          "key": "cross_repo_awareness_matrix",
+          "path": "generated/read_models/cross_repo_awareness_matrix.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "cross-repo awareness and Repo B delta classification surface",
+          "schema_version": "cross_repo_awareness_matrix_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "capability_skill_registry_metadata_delta",
+          "path": "generated/read_models/capability_skill_registry_metadata_delta.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "capability/skill metadata posture",
+          "schema_version": "capability_skill_registry_metadata_delta_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "build_now_vs_hold_queue_posture",
+          "path": "generated/read_models/build_now_vs_hold_queue_posture.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "ready/hold/blocked work posture",
+          "schema_version": "build_now_vs_hold_queue_posture_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "chief_status_rail",
+          "path": "generated/read_models/chief_status_rail.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Chief status visibility rail",
+          "schema_version": "chief_status_rail_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "chief_role_capability_segmentation_map",
+          "path": "generated/read_models/chief_role_capability_segmentation_map.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Chief role/capability segmentation",
+          "schema_version": "chief_role_capability_segmentation_map_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "protected_access_broker_concept",
+          "path": "generated/read_models/protected_access_broker_concept.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "protected access concept",
+          "schema_version": "protected_access_broker_concept_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "protected_evidence_reference_receipt",
+          "path": "generated/read_models/protected_evidence_reference_receipt.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "protected proof reference receipt contract",
+          "schema_version": "protected_evidence_reference_receipt_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "guardian_protected_access_gate_spec",
+          "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Guardian protected-access gate",
+          "schema_version": "guardian_protected_access_gate_spec_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "cassandra_email_calendar_delta_detangle",
+          "path": "generated/read_models/cassandra_email_calendar_delta_detangle.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Cassandra email/calendar detangle",
+          "schema_version": "cassandra_email_calendar_delta_detangle_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "agent_work_packets",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "bounded agent work-packet metadata",
+          "schema_version": "agent_work_packets_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "operator_actions",
+          "path": "generated/read_models/operator_actions.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "operator action posture",
+          "schema_version": "operator_actions_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "intent_router",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "non-executing intent routing metadata",
+          "schema_version": "intent_router_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "dropped_intents",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "deferred/unresolved intent registry",
+          "schema_version": "dropped_intents_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "work_board",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Mission Control work-board substrate",
+          "schema_version": "work_board_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "niles_album_review_packet",
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Niles album review packet",
+          "schema_version": "niles_album_review_packet_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "niles_album_metadata_intake_packet",
+          "path": "generated/read_models/niles_album_metadata_intake_packet.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Niles album metadata intake",
+          "schema_version": "niles_album_metadata_intake_packet_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "struna_obscura_project_capsule",
+          "path": "generated/read_models/struna_obscura_project_capsule.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Struna project capsule",
+          "schema_version": "struna_obscura_project_capsule_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "report_bridge",
+          "path": "generated/read_models/report_bridge.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Report Bridge visibility rail",
+          "schema_version": "report_bridge_read_model_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "repo_a_known_rail_completion_map",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": false,
+          "repo_b_filesystem_inspected": false,
+          "role": "Repo A rail baseline",
+          "schema_version": "repo_a_known_rail_completion_map_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        },
+        {
+          "executed_or_dispatched": false,
+          "key": "repo_b_remaining_capability_delta_map",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "raw_private_content_read": false,
+          "repo_a_only": true,
+          "repo_b_code_executed": false,
+          "repo_b_delta_read_model_used": true,
+          "repo_b_filesystem_inspected": false,
+          "role": "Repo B delta read-model reference only",
+          "schema_version": "repo_b_remaining_capability_delta_map_v0",
+          "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+        }
+      ],
+      "receipts": [
+        "protected_evidence_reference_receipt.json",
+        "guardian_protected_access_gate_spec.json",
+        "operator_actions.json"
+      ],
+      "source_files": [
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "cross_repo_awareness_matrix.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "capability_skill_registry_metadata_delta.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "build_now_vs_hold_queue_posture.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "chief_status_rail.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "chief_role_capability_segmentation_map.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "protected_access_broker_concept.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "protected_evidence_reference_receipt.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "guardian_protected_access_gate_spec.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "cassandra_email_calendar_delta_detangle.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "agent_work_packet.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "work_board.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        },
+        {
+          "body_exported": false,
+          "executed_or_dispatched": false,
+          "path": "intent_router.py",
+          "present": true,
+          "role": "source_contract_or_export_pattern_reference",
+          "runtime_imported": false
+        }
+      ]
+    },
+    "layer_4_full_agent_package_preview": {
+      "actor_model_recommendation_metadata": {
+        "actor_role_fit": "read_model_interpreter_and_future_package_reviewer",
+        "availability_status": "unknown_until_future_runtime_lane",
+        "collaboration_fit": "ordered_by_domain_and_risk_with_guardian_for_protected_or_blocked_surfaces",
+        "risk_fit": "metadata_only_no_live_authority",
+        "task_fit": "summarize_deterministic_package_and_missing_inputs",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "agent_activation_allowed": false,
+      "agent_character_recommendation": "Chief primary for awareness map; route domain slices to Cassandra, Guardian, Niles, Hermes, or Report Bridge as metadata.",
+      "allowed_actions": [
+        "read generated Repo A read-model metadata",
+        "show human operator summary",
+        "show machine proof references",
+        "show package preview",
+        "recommend bounded detour lane"
+      ],
+      "blocked_actions": [
+        "call any model",
+        "activate any agent",
+        "enable tools",
+        "start browser/OAuth/account access",
+        "send email or Telegram",
+        "submit Coupa or payment work",
+        "inspect Repo B",
+        "grant runtime authority"
+      ],
+      "copyable_reviewable_package_body_placeholder": "{\n  \"actor_model_recommendation_metadata\": {\n    \"actor_role_fit\": \"read_model_interpreter_and_future_package_reviewer\",\n    \"availability_status\": \"unknown_until_future_runtime_lane\",\n    \"collaboration_fit\": \"ordered_by_domain_and_risk_with_guardian_for_protected_or_blocked_surfaces\",\n    \"risk_fit\": \"metadata_only_no_live_authority\",\n    \"task_fit\": \"summarize_deterministic_package_and_missing_inputs\",\n    \"unavailable_or_unknown_actor_fails_closed\": true\n  },\n  \"agent_character_recommendation\": \"Chief primary for awareness map; route domain slices to Cassandra, Guardian, Niles, Hermes, or Report Bridge as metadata.\",\n  \"allowed_actions\": [\n    \"read generated Repo A read-model metadata\",\n    \"show human operator summary\",\n    \"show machine proof references\",\n    \"show package preview\",\n    \"recommend bounded detour lane\"\n  ],\n  \"authority_flags\": {\n    \"agent_activation_authority_added\": false,\n    \"agents_activated\": false,\n    \"approval_authority_added\": false,\n    \"browser_accessed\": false,\n    \"browser_automation_added\": false,\n    \"button_metadata_only\": true,\n    \"calendar_cleanup_started\": false,\n    \"confidence_posture_only\": true,\n    \"contract_only\": true,\n    \"coupa_accessed\": false,\n    \"credential_or_pii_access_added\": false,\n    \"detour_recommendation_only\": true,\n    \"email_send_triggered\": false,\n    \"execution_authority_added\": false,\n    \"gmail_calendar_coupa_accessed\": false,\n    \"live_chat_created\": false,\n    \"lm_called\": false,\n    \"mission_control_app_changed\": false,\n    \"model_calls_made\": false,\n    \"oauth_or_credentials_accessed\": false,\n    \"package_preview_only\": true,\n    \"private_raw_content_inspected\": false,\n    \"raw_protected_content_accessed\": false,\n    \"read_model_only\": true,\n    \"repo_b_code_executed\": false,\n    \"repo_b_filesystem_inspected\": false,\n    \"repo_b_modules_imported\": false,\n    \"runtime_authority_added\": false,\n    \"security_pass_started\": false,\n    \"send_or_submit_authority_added\": false,\n    \"sqlite_schema_changed\": false,\n    \"telegram_send_triggered\": false,\n    \"tool_execution_authority_added\": false,\n    \"tools_enabled\": false\n  },\n  \"blocked_actions\": [\n    \"call any model\",\n    \"activate any agent\",\n    \"enable tools\",\n    \"start browser/OAuth/account access\",\n    \"send email or Telegram\",\n    \"submit Coupa or payment work\",\n    \"inspect Repo B\",\n    \"grant runtime authority\"\n  ],\n  \"copyable_reviewable_package_body_placeholder\": \"This body is inspectable text for future handoff review only; it is not sent or executed.\",\n  \"excluded_sensitive_surfaces\": [\n    \"raw Gmail bodies\",\n    \"raw calendar bodies\",\n    \"Coupa portal access\",\n    \"raw Excel/PDF proof bodies\",\n    \"credentials/OAuth tokens\",\n    \"Repo B code or raw private content\"\n  ],\n  \"expected_output\": \"Mission Control-readable awareness map, gap list, proof layer, package preview, confidence posture, and bounded detour recommendation.\",\n  \"included_read_models\": [\n    \"agent_work_packets.json\",\n    \"build_now_vs_hold_queue_posture.json\",\n    \"capability_skill_registry_metadata_delta.json\",\n    \"capital_hilton_actionable_review_packet.json\",\n    \"capital_hilton_external_artifact_proof_capture.json\",\n    \"cassandra_email_calendar_delta_detangle.json\",\n    \"chief_role_capability_segmentation_map.json\",\n    \"chief_status_rail.json\",\n    \"cross_repo_awareness_matrix.json\",\n    \"dropped_intents.json\",\n    \"guardian_protected_access_gate_spec.json\",\n    \"intent_router.json\",\n    \"niles_album_metadata_intake_packet.json\",\n    \"niles_album_review_packet.json\",\n    \"protected_access_broker_concept.json\",\n    \"protected_evidence_reference_receipt.json\",\n    \"repo_a_known_rail_completion_map.json\",\n    \"repo_b_remaining_capability_delta_map.json\",\n    \"struna_obscura_project_capsule.json\",\n    \"work_board.json\"\n  ],\n  \"package_contract_id\": \"operator_awareness_agent_package_spine_v0\",\n  \"receipt_storage_instructions\": \"Future mutations require explicit receipts; this v0 package preview writes only generated read-model JSON and operator Markdown.\",\n  \"selected_surface_domain\": \"operator_awareness_agent_package_spine\",\n  \"task_goal\": \"Explain current system awareness, gaps, proof, package preview, and confidence repair path without execution.\"\n}\n",
+      "excluded_sensitive_surfaces": [
+        "raw Gmail bodies",
+        "raw calendar bodies",
+        "Coupa portal access",
+        "raw Excel/PDF proof bodies",
+        "credentials/OAuth tokens",
+        "Repo B code or raw private content"
+      ],
+      "expected_output": "Mission Control-readable awareness map, gap list, proof layer, package preview, confidence posture, and bounded detour recommendation.",
+      "included_read_models": [
+        "agent_work_packets.json",
+        "build_now_vs_hold_queue_posture.json",
+        "capability_skill_registry_metadata_delta.json",
+        "capital_hilton_actionable_review_packet.json",
+        "capital_hilton_external_artifact_proof_capture.json",
+        "cassandra_email_calendar_delta_detangle.json",
+        "chief_role_capability_segmentation_map.json",
+        "chief_status_rail.json",
+        "cross_repo_awareness_matrix.json",
+        "dropped_intents.json",
+        "guardian_protected_access_gate_spec.json",
+        "intent_router.json",
+        "niles_album_metadata_intake_packet.json",
+        "niles_album_review_packet.json",
+        "protected_access_broker_concept.json",
+        "protected_evidence_reference_receipt.json",
+        "repo_a_known_rail_completion_map.json",
+        "repo_b_remaining_capability_delta_map.json",
+        "struna_obscura_project_capsule.json",
+        "work_board.json"
+      ],
+      "layer_id": "layer_4_full_agent_package_preview",
+      "model_call_allowed": false,
+      "package_hash_or_deterministic_placeholder": "sha256:f0daad9120da4c883502d586b213a32f03c02196c5d099196b4d9c306db22707",
+      "package_preview_exists_without_executing_anything": true,
+      "receipt_storage_instructions": "Future mutations require explicit receipts; this v0 package preview writes only generated read-model JSON and operator Markdown.",
+      "runtime_authority_added": false,
+      "selected_surface_domain": "operator_awareness_agent_package_spine",
+      "send_or_submit_authority_added": false,
+      "task_goal": "Explain current system awareness, gaps, proof, package preview, and confidence repair path without execution.",
+      "tool_execution_allowed": false
+    },
+    "layer_5_confidence_raise_confidence_path": {
+      "confidence_posture": "MEDIUM_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "detour_workspace_type_policy": {
+        "CLASSIFICATION_REVIEW": "Use when an item must be tagged, parked, blocked, or promoted.",
+        "CONTEXT_CAPTURE": "Use when non-proof context is missing.",
+        "DISCOVERY_OR_CLASSIFICATION": "Use when a missing item needs safe classification.",
+        "HTML_WORKSPACE_RECOMMENDED": "Use only when dense comparison or structured controls are needed.",
+        "MARKDOWN_OK": "Use for simple read-only review notes.",
+        "OPERATOR_MEMORY_COMPARISON": "Use when Winship memory must be compared against read-model evidence without becoming truth.",
+        "PROOF_CAPTURE": "Use when protected proof metadata must be collected.",
+        "STRUCTURED_FORM_RECOMMENDED": "Use when exact fields must be captured."
+      },
+      "detour_workspace_types": [
+        "MARKDOWN_OK",
+        "HTML_WORKSPACE_RECOMMENDED",
+        "STRUCTURED_FORM_RECOMMENDED",
+        "OPERATOR_MEMORY_COMPARISON",
+        "DISCOVERY_OR_CLASSIFICATION",
+        "PROOF_CAPTURE",
+        "CONTEXT_CAPTURE",
+        "CLASSIFICATION_REVIEW"
+      ],
+      "fail_closed_for_unknown_or_live_authority": true,
+      "layer_id": "layer_5_confidence_raise_confidence_path",
+      "missing_memory_context_proof_read_models": [
+        {
+          "gap_id": "capital_hilton_coupa_excel_proof",
+          "missing": [
+            "The actual protected Coupa payment proof reference is missing.",
+            "The actual Excel companion proof reference is missing.",
+            "A validated protected reference receipt tied to the current Capital Hilton workflow."
+          ]
+        },
+        {
+          "gap_id": "niles_real_album_metadata",
+          "missing": [
+            "Real album metadata completeness is not proven.",
+            "Canonical track/release/personnel/artifact metadata for the current album workflow."
+          ]
+        },
+        {
+          "gap_id": "hermes_status_memory_proof_review",
+          "missing": [
+            "No completed Hermes status/readiness rail is proven.",
+            "Current Hermes responsibilities, proof sources, and readiness status."
+          ]
+        },
+        {
+          "gap_id": "google_apple_calendar_merge_clarification",
+          "missing": [
+            "No live calendar evidence, source normalization proof, or account-state proof exists.",
+            "Which calendar sources matter for a named workflow and what metadata is safe to record."
+          ]
+        },
+        {
+          "gap_id": "agentic_loop_workflow_classification",
+          "missing": [
+            "Which remembered agentic loop workflow, if any, should be promoted as a safe non-live contract.",
+            "A named, bounded, non-live workflow classification for agentic loops."
+          ]
+        },
+        {
+          "gap_id": "chief_test_harness_classification",
+          "missing": [
+            "Whether the remembered Chief test harness is tests, fixtures, status proof, or runtime validation.",
+            "A named harness contract and its allowed inputs/outputs."
+          ]
+        },
+        {
+          "gap_id": "brain_dump_cue_parser_classification",
+          "missing": [
+            "The governed cue parser boundary and input model are not complete.",
+            "Which cue sources are allowed, what metadata can be stored, and how classification receipts would work."
+          ]
+        },
+        {
+          "gap_id": "repo_b_leftovers_tag_or_block",
+          "missing": [
+            "Any unclassified leftover is not safe to treat as current Repo A capability.",
+            "The next specific leftover item Winship remembers but Mission Control is not seeing."
+          ]
+        }
+      ],
+      "reasons_confidence_is_not_full": [
+        "The shape of the proof rail is known, but real protected proof metadata is absent.",
+        "The rail exists, but real metadata has not been verified as current truth.",
+        "Hermes is known as a concept, not as a proven current rail.",
+        "The system has operator memory/context only and no calendar proof.",
+        "Unknown or broad agentic-loop context could imply live authority, so it fails closed.",
+        "The phrase is remembered, but the system lacks a classified harness contract.",
+        "The safe dropped-intent rail exists, but cue-parser governance is not proven.",
+        "Unknown leftovers must be classified from safe metadata before being treated as facts or capabilities."
+      ],
+      "safe_to_proceed_at_lower_confidence": false,
+      "suggested_detour_to_raise_confidence": "Use each gap item's bounded detour lane before package dispatch."
+    }
+  },
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "awareness_gap_items": [
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "open Coupa",
+        "open Excel/PDF proof",
+        "send email",
+        "submit invoice",
+        "mutate spreadsheet"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "capital_hilton_coupa_excel_proof",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Capital Hilton needs Coupa/Excel proof",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "MEDIUM_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "PARTLY_KNOWN",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Capital Hilton Protected Proof Metadata Population",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "PROOF_CAPTURE"
+      },
+      "detour_workspace_type": "PROOF_CAPTURE",
+      "domain": "comms_finance_protected_proof",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "PROCEED_ANYWAY_IF_SAFE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "capital_hilton_coupa_excel_proof",
+      "machine_proof_refs": [
+        "protected_reference_receipt_contract",
+        "guardian_protected_access_gate"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "read_only_package_preview_or_operator_inspection_only",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "finance_comms_packet_interpreter_with_safety_boundary",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Cassandra with Guardian boundary review",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Cassandra with Guardian boundary review",
+      "safe_next_move": "Show the missing proof gap and prepare a protected-proof metadata capture lane.",
+      "safe_to_proceed_at_lower_confidence": true,
+      "short_eli5_description": "OpenClaw can describe the finance proof lane, but it does not have the real protected Coupa or Excel proof metadata yet.",
+      "source_read_model_refs": [
+        "capital_hilton_actionable_review_packet.json",
+        "capital_hilton_external_artifact_proof_capture.json",
+        "protected_evidence_reference_receipt.json",
+        "guardian_protected_access_gate_spec.json"
+      ],
+      "title": "Capital Hilton needs Coupa/Excel proof",
+      "what_is_blocked": [
+        "Coupa access, browser automation, raw Excel/PDF bodies, Gmail/email send, spreadsheet mutation, and payment status changes."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "A validated protected reference receipt tied to the current Capital Hilton workflow."
+      ],
+      "what_openclaw_knows": [
+        "Capital Hilton review, proof, and send-gate read-model rails exist.",
+        "Protected proof must be represented as metadata or protected references only."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "The actual protected Coupa payment proof reference is missing.",
+        "The actual Excel companion proof reference is missing."
+      ],
+      "what_openclaw_partly_knows": [
+        "The expected Coupa/Excel/PDF proof receipt shape is defined."
+      ],
+      "what_should_be_found_classified_next": [
+        "Find or classify safe protected proof metadata fields, not raw proof bodies."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "protected_reference_id, artifact hash/identity, amount, PO/reference, validation status, and mismatch reasons."
+      ],
+      "what_winship_may_remember": [
+        "Whether the Coupa portal and Excel/PDF evidence already exist outside the current read-models."
+      ],
+      "what_would_raise_confidence": [
+        "Populate protected proof metadata through a future protected-reference receipt lane.",
+        "Confirm which artifact identities belong to this workflow."
+      ],
+      "why_it_matters": "The package should not ask Cassandra or Guardian to reason about invoice completion as if proof exists.",
+      "why_not_full_confidence": "The shape of the proof rail is known, but real protected proof metadata is absent."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "run producer bot",
+        "move or transform audio files",
+        "publish or release material"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "niles_real_album_metadata",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Niles needs real album metadata",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "MEDIUM_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "PARTLY_KNOWN",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Niles Real Album Metadata Intake",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "STRUCTURED_FORM_RECOMMENDED"
+      },
+      "detour_workspace_type": "STRUCTURED_FORM_RECOMMENDED",
+      "domain": "music",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "PROCEED_ANYWAY_IF_SAFE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "niles_real_album_metadata",
+      "machine_proof_refs": [
+        "niles_packet_metadata"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "read_only_album_packet_preview_only",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "music_metadata_interpreter",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Niles",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Niles",
+      "safe_next_move": "Prepare a structured metadata intake/review packet for Niles.",
+      "safe_to_proceed_at_lower_confidence": true,
+      "short_eli5_description": "OpenClaw can see Niles/Struna packet rails, but the real album metadata still has to be captured or verified.",
+      "source_read_model_refs": [
+        "niles_album_review_packet.json",
+        "niles_album_metadata_intake_packet.json",
+        "struna_obscura_project_capsule.json"
+      ],
+      "title": "Niles needs real album metadata",
+      "what_is_blocked": [
+        "Producer runtime, audio/file automation, public release execution, and raw private creative scans."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "Canonical track/release/personnel/artifact metadata for the current album workflow."
+      ],
+      "what_openclaw_knows": [
+        "Niles/Struna review and metadata-intake read-models exist."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "Real album metadata completeness is not proven."
+      ],
+      "what_openclaw_partly_knows": [
+        "The album review packet can hold bounded project metadata."
+      ],
+      "what_should_be_found_classified_next": [
+        "Classify real album metadata inputs as safe metadata, protected/private, stale, or blocked."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "album identity, track metadata, status, source references, and confidence notes."
+      ],
+      "what_winship_may_remember": [
+        "Which Struna/Niles album facts or files should be treated as canonical candidates."
+      ],
+      "what_would_raise_confidence": [
+        "Capture current album metadata in a bounded Niles metadata intake lane.",
+        "Separate canonical metadata from drafts, stale files, and private raw material."
+      ],
+      "why_it_matters": "Music packages should not pretend track, release, personnel, or artifact metadata is known when it is only a rail shape.",
+      "why_not_full_confidence": "The rail exists, but real metadata has not been verified as current truth."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "activate Hermes",
+        "call an advisory model",
+        "run external research"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "hermes_status_memory_proof_review",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Hermes status needs memory/proof review",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "LOW_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "OPERATOR_MEMORY_COMPARISON_NEEDED",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Hermes Status Memory/Proof Review",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "OPERATOR_MEMORY_COMPARISON"
+      },
+      "detour_workspace_type": "OPERATOR_MEMORY_COMPARISON",
+      "domain": "big_picture_advisory",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "hermes_status_memory_proof_review",
+      "machine_proof_refs": [
+        "operator_memory_gap_not_truth"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "not_safe_to_send_as_work_package_until_status_is_classified",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "advisory_status_interpreter",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Hermes",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Hermes",
+      "safe_next_move": "Ask Winship to compare the visible Hermes map against memory, then classify the result.",
+      "safe_to_proceed_at_lower_confidence": false,
+      "short_eli5_description": "OpenClaw remembers Hermes as an advisory role, but it does not have proof of a completed Hermes steel-thread rail.",
+      "source_read_model_refs": [
+        "cross_repo_awareness_matrix.json",
+        "capability_skill_registry_metadata_delta.json",
+        "repo_a_known_rail_completion_map.json"
+      ],
+      "title": "Hermes status needs memory/proof review",
+      "what_is_blocked": [
+        "Live advisory agent activation, LLM/model calls, external research/tool execution."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "Current Hermes responsibilities, proof sources, and readiness status."
+      ],
+      "what_openclaw_knows": [
+        "Hermes is present as advisory metadata/reference."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "No completed Hermes status/readiness rail is proven."
+      ],
+      "what_openclaw_partly_knows": [
+        "Repo A and delta read-models point to Hermes as a remembered or partial surface."
+      ],
+      "what_should_be_found_classified_next": [
+        "Classify Hermes as tracked, partial, parked, blocked, or obsolete from Repo A evidence plus operator memory comparison."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "Hermes status, evidence references, role boundary, and next-safe-lane classification."
+      ],
+      "what_winship_may_remember": [
+        "Whether Hermes had a real advisory status, source set, or synthesis workflow that should be raised up."
+      ],
+      "what_would_raise_confidence": [
+        "Run a Hermes status memory/proof review lane.",
+        "Attach Repo A read-model evidence or explicitly park Hermes as reference-only."
+      ],
+      "why_it_matters": "Mission Control should not show Hermes as fully ready if the system only has memory and metadata hints.",
+      "why_not_full_confidence": "Hermes is known as a concept, not as a proven current rail."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "read calendars",
+        "start OAuth",
+        "normalize calendars",
+        "mutate events"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "google_apple_calendar_merge_clarification",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Google/Apple calendar merge needs clarification",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "LOW_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "OPERATOR_MEMORY_COMPARISON_NEEDED",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Calendar Context Discovery / Memory Comparison",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "OPERATOR_MEMORY_COMPARISON"
+      },
+      "detour_workspace_type": "OPERATOR_MEMORY_COMPARISON",
+      "domain": "comms_calendar",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "google_apple_calendar_merge_clarification",
+      "machine_proof_refs": [
+        "calendar_memory_not_truth"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "not_safe_to_use_calendar_context_in_agent_package_until_clarified",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "calendar_context_interpreter",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Cassandra with Guardian boundary review",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Cassandra with Guardian boundary review",
+      "safe_next_move": "Treat calendar context as memory to compare, not a fact to use.",
+      "safe_to_proceed_at_lower_confidence": false,
+      "short_eli5_description": "OpenClaw has operator context about calendar confusion, but it has not read or normalized calendars.",
+      "source_read_model_refs": [
+        "cassandra_email_calendar_delta_detangle.json",
+        "protected_access_broker_concept.json"
+      ],
+      "title": "Google/Apple calendar merge needs clarification",
+      "what_is_blocked": [
+        "Google Calendar read, Apple Calendar read, OAuth, event scraping, calendar mutation, and generic cleanup."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "Which calendar sources matter for a named workflow and what metadata is safe to record."
+      ],
+      "what_openclaw_knows": [
+        "Cassandra email/calendar detangle records calendar discovery and normalization as blocked/future."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "No live calendar evidence, source normalization proof, or account-state proof exists."
+      ],
+      "what_openclaw_partly_knows": [
+        "Operator context says Google and Apple calendars are merged enough for iPhone while Mac Calendar is confusing."
+      ],
+      "what_should_be_found_classified_next": [
+        "Clarify whether this is a real workflow blocker, parked context, or future protected-access lane."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "calendar context note, named workflow need, source labels, and proof/memory boundary."
+      ],
+      "what_winship_may_remember": [
+        "Which calendar is canonical enough for specific tasks and which confusion should be ignored or tracked."
+      ],
+      "what_would_raise_confidence": [
+        "Run a Calendar Context Discovery / Memory Comparison detour.",
+        "Tie any calendar context to a named workflow before proof capture."
+      ],
+      "why_it_matters": "Calendar context can affect Cassandra packages, but memory about calendar behavior is not proof.",
+      "why_not_full_confidence": "The system has operator memory/context only and no calendar proof."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "activate autonomous loop",
+        "execute shell",
+        "call model",
+        "run tools",
+        "start repair"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "agentic_loop_workflow_classification",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Agentic loop workflow needs discovery/classification",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Agentic Loop Workflow Classification",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "DISCOVERY_OR_CLASSIFICATION"
+      },
+      "detour_workspace_type": "DISCOVERY_OR_CLASSIFICATION",
+      "domain": "coordination_work_queue",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "agentic_loop_workflow_classification",
+      "machine_proof_refs": [
+        "blocked_automation_metadata"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "fail_closed_no_package_send",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "coordination_loop_classifier",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Chief with Guardian boundary review",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Chief with Guardian boundary review",
+      "safe_next_move": "Keep loop ideas blocked until they are classified into bounded read-model/work-packet posture.",
+      "safe_to_proceed_at_lower_confidence": false,
+      "short_eli5_description": "OpenClaw knows old automation-loop ideas exist, but they are not safe or classified as current runtime.",
+      "source_read_model_refs": [
+        "build_now_vs_hold_queue_posture.json",
+        "capability_skill_registry_metadata_delta.json",
+        "chief_role_capability_segmentation_map.json"
+      ],
+      "title": "Agentic loop workflow needs discovery/classification",
+      "what_is_blocked": [
+        "Autonomous build execution, repair loops, shell/runtime activation, LLM/Ollama calls, and tool execution."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "A named, bounded, non-live workflow classification for agentic loops."
+      ],
+      "what_openclaw_knows": [
+        "Planner/builder and repair loops are represented as blocked or future-gated metadata."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "Which remembered agentic loop workflow, if any, should be promoted as a safe non-live contract."
+      ],
+      "what_openclaw_partly_knows": [
+        "Chief and build-now-vs-hold rails can classify work posture without running it."
+      ],
+      "what_should_be_found_classified_next": [
+        "Classify each loop idea as blocked automation, read-model posture, work-packet scaffold, or future security-threshold work."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "loop name, intended role, blocked authorities, safe substitute rail, and future lane recommendation."
+      ],
+      "what_winship_may_remember": [
+        "Which old loop ideas mattered and which should stay blocked or obsolete."
+      ],
+      "what_would_raise_confidence": [
+        "Run an Agentic Loop Workflow Classification detour.",
+        "Name the loop, classify authority boundaries, and map it to a non-live read-model if safe."
+      ],
+      "why_it_matters": "Agentic loop language can accidentally imply execution authority unless it is classified as blocked, future, or bounded.",
+      "why_not_full_confidence": "Unknown or broad agentic-loop context could imply live authority, so it fails closed."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "import Chief runtime modules",
+        "start services",
+        "send Telegram",
+        "call model"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "chief_test_harness_classification",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Chief test harness needs discovery/classification",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "LOW_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Chief Test Harness Capability Classification",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "CLASSIFICATION_REVIEW"
+      },
+      "detour_workspace_type": "CLASSIFICATION_REVIEW",
+      "domain": "coordination_work_queue",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "chief_test_harness_classification",
+      "machine_proof_refs": [
+        "chief_non_executor_status"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "classification_first_no_runtime",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "chief_status_test_contract_classifier",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Chief",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Chief",
+      "safe_next_move": "Create a non-live classification packet before writing or running any harness.",
+      "safe_to_proceed_at_lower_confidence": false,
+      "short_eli5_description": "OpenClaw needs to classify what a Chief test harness means before treating it as ready work.",
+      "source_read_model_refs": [
+        "chief_status_rail.json",
+        "chief_role_capability_segmentation_map.json",
+        "agent_work_packets.json",
+        "work_board.json"
+      ],
+      "title": "Chief test harness needs discovery/classification",
+      "what_is_blocked": [
+        "Chief runtime imports, Telegram/listener activation, service starts, model/tool calls, and shell automation."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "A named harness contract and its allowed inputs/outputs."
+      ],
+      "what_openclaw_knows": [
+        "Chief status, work packets, intent router, and work board are visible as non-executing substrates."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "Whether the remembered Chief test harness is tests, fixtures, status proof, or runtime validation."
+      ],
+      "what_openclaw_partly_knows": [
+        "Chief can support bounded packet/status work."
+      ],
+      "what_should_be_found_classified_next": [
+        "Classify the harness as unit tests, read-model export proof, synthetic fixture, or blocked runtime test."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "harness purpose, source read-models, proof output, blocked authorities, and pass/fail posture."
+      ],
+      "what_winship_may_remember": [
+        "What Chief test harness existed and what outcome it was meant to prove."
+      ],
+      "what_would_raise_confidence": [
+        "Run a Chief Test Harness Capability Classification detour.",
+        "Separate deterministic tests from runtime/service validation."
+      ],
+      "why_it_matters": "A harness might be a safe test/read-model lane or a live runtime lane; unknown context must not be guessed.",
+      "why_not_full_confidence": "The phrase is remembered, but the system lacks a classified harness contract."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "scan raw private notes",
+        "call LLM/Ollama",
+        "move files",
+        "promote cues to truth automatically"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "brain_dump_cue_parser_classification",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Brain-dump / cue parser needs discovery/classification",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "LOW_TRUST",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Cue Parser Intake Classification",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "DISCOVERY_OR_CLASSIFICATION"
+      },
+      "detour_workspace_type": "DISCOVERY_OR_CLASSIFICATION",
+      "domain": "coordination_work_queue",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "PROCEED_ANYWAY_IF_SAFE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "brain_dump_cue_parser_classification",
+      "machine_proof_refs": [
+        "dropped_intent_metadata_only"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "read_only_gap_inspection_and_contract_planning_only",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "operator_cue_intake_classifier",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Chief",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Chief",
+      "safe_next_move": "Keep using dropped-intent metadata until a governed cue parser contract exists.",
+      "safe_to_proceed_at_lower_confidence": true,
+      "short_eli5_description": "OpenClaw preserves dropped-intent metadata, but a governed cue parser is still future work.",
+      "source_read_model_refs": [
+        "dropped_intents.json",
+        "intent_router.json",
+        "build_now_vs_hold_queue_posture.json"
+      ],
+      "title": "Brain-dump / cue parser needs discovery/classification",
+      "what_is_blocked": [
+        "Broad Markdown ingestion, raw private note scans, LLM/Ollama parsing, file moves, and truth promotion."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "Which cue sources are allowed, what metadata can be stored, and how classification receipts would work."
+      ],
+      "what_openclaw_knows": [
+        "Dropped intents and build-now-vs-hold posture preserve ideas without execution."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "The governed cue parser boundary and input model are not complete."
+      ],
+      "what_openclaw_partly_knows": [
+        "A cue parser would likely feed intent routing and Chief posture."
+      ],
+      "what_should_be_found_classified_next": [
+        "Classify cue sources, storage rules, raw-body boundaries, and safe next moves."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "cue id, short sanitized preview/hash metadata, route target, confidence posture, and blocker metadata."
+      ],
+      "what_winship_may_remember": [
+        "Which brain-dump/cue workflow should be revived, parked, or discarded."
+      ],
+      "what_would_raise_confidence": [
+        "Run a Cue Parser Intake Classification detour.",
+        "Define allowed cue inputs and receipt shape before any parser behavior."
+      ],
+      "why_it_matters": "Cue parsing can be useful only if it avoids raw private scans, file moves, and model-driven truth promotion.",
+      "why_not_full_confidence": "The safe dropped-intent rail exists, but cue-parser governance is not proven."
+    },
+    {
+      "awareness_state_breakdown": {
+        "blocked": true,
+        "known": true,
+        "known_unknown": true,
+        "operator_memory_comparison": true,
+        "partly_known": true,
+        "undiscovered": true
+      },
+      "blocked_actions": [
+        "inspect Repo B body content",
+        "run Repo B code",
+        "import Repo B modules",
+        "migrate code",
+        "activate old loops"
+      ],
+      "button_ready_metadata": {
+        "clickable_item_id": "repo_b_leftovers_tag_or_block",
+        "default_button": "INSPECT_LARGER_DESCRIPTION",
+        "display_title": "Repo B leftovers need tagging or blocking",
+        "mutates_state_now": false,
+        "requires_future_receipt_if_mutated": true,
+        "show_confidence_affordance": true,
+        "show_package_preview_affordance": true
+      },
+      "confidence_display_should_be": "visible",
+      "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+      "confidence_should_be_visible_in_helm": true,
+      "current_awareness_state": "KNOWN_UNKNOWN",
+      "detour_to_raise_confidence": {
+        "bounded": true,
+        "lane_name": "Repo B Leftover Classification Packet",
+        "non_live": true,
+        "preserves_blocked_authorities": true,
+        "workspace_type": "CLASSIFICATION_REVIEW"
+      },
+      "detour_workspace_type": "CLASSIFICATION_REVIEW",
+      "domain": "cross_repo_awareness",
+      "future_button_ids": [
+        "INSPECT_LARGER_DESCRIPTION",
+        "SHOW_PACKAGE_PREVIEW",
+        "WHY_NOT_FULL_CONFIDENCE",
+        "DETOUR_TO_RAISE_CONFIDENCE",
+        "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "START_DISCOVERY_CLASSIFICATION",
+        "KEEP_PARKED"
+      ],
+      "gap_id": "repo_b_leftovers_tag_or_block",
+      "machine_proof_refs": [
+        "repo_b_reference_only_delta"
+      ],
+      "operator_memory_comparison_mode": "memory_can_point_to_a_gap_but_does_not_become_truth_without_read_model_or_proof",
+      "operator_memory_is_treated_as_truth": false,
+      "package_preview_ref": "agent_package_spine_contract_layers.layer_4_full_agent_package_preview",
+      "proceed_scope_if_safe": "fail_closed_no_repo_b_inspection_or_package_send",
+      "recommended_actor_model_metadata": {
+        "actor_role_fit": "cross_repo_classification_interpreter",
+        "api_key_or_endpoint_reference": null,
+        "availability_status": "metadata_only_unknown_until_future_actor_runtime_lane",
+        "collaboration_fit": "can_work_with_guardian_or_chief_when_domain_boundary_requires_it",
+        "metadata_only_no_model_call": true,
+        "model_execution_path": null,
+        "recommended_agent_character": "Chief with Guardian boundary review",
+        "risk_fit": "protected_or_low_power_metadata_review",
+        "task_fit": "read_model_interpretation_and_package_review_only",
+        "unavailable_or_unknown_actor_fails_closed": true
+      },
+      "recommended_agent_character": "Chief with Guardian boundary review",
+      "safe_next_move": "Ask Winship for the missing X, then classify it from safe Repo A/read-model metadata in a future lane.",
+      "safe_to_proceed_at_lower_confidence": false,
+      "short_eli5_description": "OpenClaw has a Repo A read-model saying some leftovers may exist, but this lane must not inspect or run Repo B.",
+      "source_read_model_refs": [
+        "cross_repo_awareness_matrix.json",
+        "repo_b_remaining_capability_delta_map.json"
+      ],
+      "title": "Repo B leftovers need tagging or blocking",
+      "what_is_blocked": [
+        "Repo B code execution, Repo B module imports, code migration, private raw content inspection, and live loop activation."
+      ],
+      "what_openclaw_has_not_discovered_yet": [
+        "The next specific leftover item Winship remembers but Mission Control is not seeing."
+      ],
+      "what_openclaw_knows": [
+        "Cross-repo awareness and Repo B delta read-models can represent already-tracked, partial, blocked, and untagged leftovers."
+      ],
+      "what_openclaw_knows_it_does_not_know": [
+        "Any unclassified leftover is not safe to treat as current Repo A capability."
+      ],
+      "what_openclaw_partly_knows": [
+        "Some leftover path metadata may need future tagging or blocking."
+      ],
+      "what_should_be_found_classified_next": [
+        "Use an explicit future classification packet to tag a named leftover as tracked, partial, obsolete, unsafe, or blocked."
+      ],
+      "what_should_be_pulled_into_sqlite_read_models_next": [
+        "leftover id, source path metadata, classification, current Repo A equivalent, blocker, and next lane."
+      ],
+      "what_winship_may_remember": [
+        "A named file, concept, or workflow from older Repo B work that should be classified safely."
+      ],
+      "what_would_raise_confidence": [
+        "Run a Repo B Leftover Classification Packet for one named leftover.",
+        "Keep any unknown leftover fail-closed until classification is complete."
+      ],
+      "why_it_matters": "Mission Control should show leftovers as classification needs, not hidden capabilities.",
+      "why_not_full_confidence": "Unknown leftovers must be classified from safe metadata before being treated as facts or capabilities."
+    }
+  ],
+  "awareness_gap_items_are_button_ready": true,
+  "awareness_states": [
+    "KNOWN",
+    "PARTLY_KNOWN",
+    "KNOWN_UNKNOWN",
+    "UNDISCOVERED",
+    "OPERATOR_MEMORY_COMPARISON_NEEDED",
+    "DISCOVERY_OR_CLASSIFICATION_NEEDED",
+    "BLOCKED_ON_PURPOSE",
+    "KNOWN_BUT_NOT_USABLE"
+  ],
+  "browser_accessed": false,
+  "browser_automation_added": false,
+  "button_behavior_contract": {
+    "button_interaction_modes": [
+      "READ_ONLY",
+      "CAPTURE_ONLY",
+      "FUTURE_GATED"
+    ],
+    "button_types": [
+      {
+        "button_id": "INSPECT_LARGER_DESCRIPTION",
+        "interaction_mode": "READ_ONLY",
+        "label": "Inspect Larger Description",
+        "required_future_receipt_if_it_ever_mutates_state": "not_required_read_only",
+        "visible_condition": "visible_for_every_awareness_gap_item",
+        "what_it_must_not_do": "It must not read raw private content, inspect Repo B, call models, or mutate state.",
+        "what_it_should_show": "Expanded ELI5, operator detail, source refs, and blockers."
+      },
+      {
+        "button_id": "SHOW_PACKAGE_PREVIEW",
+        "interaction_mode": "READ_ONLY",
+        "label": "Show Package Preview",
+        "required_future_receipt_if_it_ever_mutates_state": "not_required_read_only",
+        "visible_condition": "visible_when_a_gap_can_be_mapped_to_a_package_or_future_package",
+        "what_it_must_not_do": "It must not dispatch a package, activate an agent, call an actor/model, or create a live chat.",
+        "what_it_should_show": "The exact reviewable package body placeholder, included/excluded surfaces, allowed/blocked actions, and receipt instructions."
+      },
+      {
+        "button_id": "WHY_NOT_FULL_CONFIDENCE",
+        "interaction_mode": "READ_ONLY",
+        "label": "Why Not Full Confidence?",
+        "required_future_receipt_if_it_ever_mutates_state": "not_required_read_only",
+        "visible_condition": "visible_when_confidence_posture_is_not_FULL_TRUST_DISPLAY_QUIET",
+        "what_it_must_not_do": "It must not fabricate certainty or hide missing context.",
+        "what_it_should_show": "Missing memory, context, proof, read-models, blockers, and why the helm is showing confidence."
+      },
+      {
+        "button_id": "DETOUR_TO_RAISE_CONFIDENCE",
+        "interaction_mode": "FUTURE_GATED",
+        "label": "Detour to Raise Confidence",
+        "required_future_receipt_if_it_ever_mutates_state": "detour_lane_start_receipt_if_future_mutation_occurs",
+        "visible_condition": "visible_when_a_bounded_detour_lane_is_available",
+        "what_it_must_not_do": "It must not start the detour, run tools, access accounts, or mutate read-models without a future receipt.",
+        "what_it_should_show": "A bounded non-live lane recommendation and workspace type."
+      },
+      {
+        "button_id": "PROCEED_ANYWAY_IF_SAFE",
+        "interaction_mode": "FUTURE_GATED",
+        "label": "Proceed Anyway, if safe",
+        "required_future_receipt_if_it_ever_mutates_state": "lower_confidence_proceed_receipt_if_future_mutation_occurs",
+        "visible_condition": "visible_only_when_safe_to_proceed_at_lower_confidence_is_true",
+        "what_it_must_not_do": "It must not bypass blocked authorities or send to an agent when fail-closed is required.",
+        "what_it_should_show": "The limited read-only or capture-only scope that remains safe despite lower confidence."
+      },
+      {
+        "button_id": "KEEP_PARKED",
+        "interaction_mode": "CAPTURE_ONLY",
+        "label": "Keep Parked",
+        "required_future_receipt_if_it_ever_mutates_state": "parked_posture_receipt_if_future_state_changes",
+        "visible_condition": "visible_when_an_item_is_blocked_deferred_or_not_usable",
+        "what_it_must_not_do": "It must not silently delete, hide, or mark the item solved.",
+        "what_it_should_show": "Why the item stays parked and what would change the posture later."
+      },
+      {
+        "button_id": "MARK_NEEDS_OPERATOR_MEMORY_COMPARISON",
+        "interaction_mode": "CAPTURE_ONLY",
+        "label": "Mark Needs Operator Memory Comparison",
+        "required_future_receipt_if_it_ever_mutates_state": "operator_memory_comparison_receipt_if_future_state_changes",
+        "visible_condition": "visible_when_operator_memory_may_identify_missing_context",
+        "what_it_must_not_do": "It must not promote memory into truth or proof by itself.",
+        "what_it_should_show": "A capture target for Winship memory comparison, explicitly labeled memory-not-truth."
+      },
+      {
+        "button_id": "START_DISCOVERY_CLASSIFICATION",
+        "interaction_mode": "FUTURE_GATED",
+        "label": "Start Discovery/Classification",
+        "required_future_receipt_if_it_ever_mutates_state": "discovery_classification_receipt_if_future_state_changes",
+        "visible_condition": "visible_when_the_next_move_is_find_or_classify",
+        "what_it_must_not_do": "It must not inspect Repo B, run tools, call models, access accounts, or broaden scope automatically.",
+        "what_it_should_show": "The future classification lane, allowed evidence sources, and fail-closed defaults."
+      }
+    ],
+    "buttons_are_metadata_only": true,
+    "buttons_mutate_state_now": false
+  },
+  "button_metadata_only": true,
+  "calendar_cleanup_started": false,
+  "confidence_posture_only": true,
+  "confidence_repair_behavior": {
+    "below_full_trust_policy": {
+      "confidence_should_be_visible_in_helm": true,
+      "must_list_missing_inputs": true,
+      "must_not_pretend_missing_context_exists": true,
+      "must_preserve_blocked_authorities": true,
+      "must_propose_bounded_detour": true,
+      "must_surface_why_not_full": true
+    },
+    "confidence_postures": [
+      "FULL_TRUST_DISPLAY_QUIET",
+      "HIGH_TRUST",
+      "MEDIUM_TRUST",
+      "LOW_TRUST",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "default_unknown_or_missing_context": {
+      "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+      "fail_closed": true,
+      "safe_to_proceed_at_lower_confidence": false
+    },
+    "full_trust_display_policy": {
+      "confidence_should_be_visible_in_helm": false,
+      "meaning": "No noisy confidence affordance when the package is fully supported by deterministic read-model/proof posture.",
+      "posture": "FULL_TRUST_DISPLAY_QUIET"
+    },
+    "gap_level_confidence": [
+      {
+        "confidence_posture": "MEDIUM_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Capital Hilton Protected Proof Metadata Population",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "PROOF_CAPTURE"
+        },
+        "gap_id": "capital_hilton_coupa_excel_proof",
+        "safe_to_proceed_at_lower_confidence": true,
+        "what_would_raise_confidence": [
+          "Populate protected proof metadata through a future protected-reference receipt lane.",
+          "Confirm which artifact identities belong to this workflow."
+        ],
+        "why_not_full_confidence": "The shape of the proof rail is known, but real protected proof metadata is absent."
+      },
+      {
+        "confidence_posture": "MEDIUM_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Niles Real Album Metadata Intake",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "STRUCTURED_FORM_RECOMMENDED"
+        },
+        "gap_id": "niles_real_album_metadata",
+        "safe_to_proceed_at_lower_confidence": true,
+        "what_would_raise_confidence": [
+          "Capture current album metadata in a bounded Niles metadata intake lane.",
+          "Separate canonical metadata from drafts, stale files, and private raw material."
+        ],
+        "why_not_full_confidence": "The rail exists, but real metadata has not been verified as current truth."
+      },
+      {
+        "confidence_posture": "LOW_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Hermes Status Memory/Proof Review",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "OPERATOR_MEMORY_COMPARISON"
+        },
+        "gap_id": "hermes_status_memory_proof_review",
+        "safe_to_proceed_at_lower_confidence": false,
+        "what_would_raise_confidence": [
+          "Run a Hermes status memory/proof review lane.",
+          "Attach Repo A read-model evidence or explicitly park Hermes as reference-only."
+        ],
+        "why_not_full_confidence": "Hermes is known as a concept, not as a proven current rail."
+      },
+      {
+        "confidence_posture": "LOW_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Calendar Context Discovery / Memory Comparison",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "OPERATOR_MEMORY_COMPARISON"
+        },
+        "gap_id": "google_apple_calendar_merge_clarification",
+        "safe_to_proceed_at_lower_confidence": false,
+        "what_would_raise_confidence": [
+          "Run a Calendar Context Discovery / Memory Comparison detour.",
+          "Tie any calendar context to a named workflow before proof capture."
+        ],
+        "why_not_full_confidence": "The system has operator memory/context only and no calendar proof."
+      },
+      {
+        "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Agentic Loop Workflow Classification",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "DISCOVERY_OR_CLASSIFICATION"
+        },
+        "gap_id": "agentic_loop_workflow_classification",
+        "safe_to_proceed_at_lower_confidence": false,
+        "what_would_raise_confidence": [
+          "Run an Agentic Loop Workflow Classification detour.",
+          "Name the loop, classify authority boundaries, and map it to a non-live read-model if safe."
+        ],
+        "why_not_full_confidence": "Unknown or broad agentic-loop context could imply live authority, so it fails closed."
+      },
+      {
+        "confidence_posture": "LOW_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Chief Test Harness Capability Classification",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "CLASSIFICATION_REVIEW"
+        },
+        "gap_id": "chief_test_harness_classification",
+        "safe_to_proceed_at_lower_confidence": false,
+        "what_would_raise_confidence": [
+          "Run a Chief Test Harness Capability Classification detour.",
+          "Separate deterministic tests from runtime/service validation."
+        ],
+        "why_not_full_confidence": "The phrase is remembered, but the system lacks a classified harness contract."
+      },
+      {
+        "confidence_posture": "LOW_TRUST",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Cue Parser Intake Classification",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "DISCOVERY_OR_CLASSIFICATION"
+        },
+        "gap_id": "brain_dump_cue_parser_classification",
+        "safe_to_proceed_at_lower_confidence": true,
+        "what_would_raise_confidence": [
+          "Run a Cue Parser Intake Classification detour.",
+          "Define allowed cue inputs and receipt shape before any parser behavior."
+        ],
+        "why_not_full_confidence": "The safe dropped-intent rail exists, but cue-parser governance is not proven."
+      },
+      {
+        "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+        "confidence_should_be_visible_in_helm": true,
+        "detour": {
+          "bounded": true,
+          "lane_name": "Repo B Leftover Classification Packet",
+          "non_live": true,
+          "preserves_blocked_authorities": true,
+          "workspace_type": "CLASSIFICATION_REVIEW"
+        },
+        "gap_id": "repo_b_leftovers_tag_or_block",
+        "safe_to_proceed_at_lower_confidence": false,
+        "what_would_raise_confidence": [
+          "Run a Repo B Leftover Classification Packet for one named leftover.",
+          "Keep any unknown leftover fail-closed until classification is complete."
+        ],
+        "why_not_full_confidence": "Unknown leftovers must be classified from safe metadata before being treated as facts or capabilities."
+      }
+    ],
+    "repair_paths": [
+      {
+        "bounded": true,
+        "detour_workspace_type": "OPERATOR_MEMORY_COMPARISON",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": true,
+        "missing_input_or_confidence_reason": "Missing Hermes confidence",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": false,
+        "suggested_detour_lane": "Hermes Status Memory/Proof Review"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "OPERATOR_MEMORY_COMPARISON",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": true,
+        "missing_input_or_confidence_reason": "Missing calendar proof",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": false,
+        "suggested_detour_lane": "Calendar Context Discovery / Memory Comparison"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "PROOF_CAPTURE",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": false,
+        "missing_input_or_confidence_reason": "Missing Coupa proof",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": true,
+        "suggested_detour_lane": "Capital Hilton Protected Proof Metadata Population"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "CLASSIFICATION_REVIEW",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": true,
+        "missing_input_or_confidence_reason": "Unknown Repo B leftover",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": false,
+        "suggested_detour_lane": "Repo B Leftover Classification Packet"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "STRUCTURED_FORM_RECOMMENDED",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": false,
+        "missing_input_or_confidence_reason": "Missing draft identity",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": true,
+        "suggested_detour_lane": "Cassandra Draft Identity Reference Rail"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "DISCOVERY_OR_CLASSIFICATION",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": true,
+        "missing_input_or_confidence_reason": "Agentic loop unclear",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": false,
+        "suggested_detour_lane": "Agentic Loop Workflow Classification"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "CLASSIFICATION_REVIEW",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": true,
+        "missing_input_or_confidence_reason": "Chief test harness unclear",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": false,
+        "suggested_detour_lane": "Chief Test Harness Capability Classification"
+      },
+      {
+        "bounded": true,
+        "detour_workspace_type": "DISCOVERY_OR_CLASSIFICATION",
+        "does_not_pretend_missing_context_exists": true,
+        "fail_closed": false,
+        "missing_input_or_confidence_reason": "Brain-dump/cue parser unclear",
+        "non_live": true,
+        "preserve_blocked_authorities": true,
+        "safe_to_proceed_at_lower_confidence": true,
+        "suggested_detour_lane": "Cue Parser Intake Classification"
+      }
+    ]
+  },
+  "contract_only": true,
+  "coupa_accessed": false,
+  "credential_or_pii_access_added": false,
+  "current_awareness_examples_from_existing_read_models": {
+    "cassandra": {
+      "gmail_calendar_telegram_live_send_blocked": true,
+      "review_draft_packets_safe_as_visibility": true
+    },
+    "chief_queue_work_board": {
+      "bounded_work_packet_exists": true,
+      "execution_authority": false,
+      "parked_or_deferred_work_exists": true,
+      "ready_to_inspect": true
+    },
+    "cross_repo_awareness": {
+      "aware_of": [
+        "Capital Hilton",
+        "Cassandra",
+        "Chief",
+        "Guardian",
+        "Niles/Struna"
+      ],
+      "google_apple_calendar_merge_needs_clarification": "represented_as_memory_context_not_calendar_truth",
+      "hermes_status_needs_memory_proof_review": "represented_as_operator_memory_comparison_needed",
+      "repo_b_leftovers_not_fully_classified": "represented_as_gap_item_not_fact"
+    },
+    "gap_item_ids": [
+      "capital_hilton_coupa_excel_proof",
+      "niles_real_album_metadata",
+      "hermes_status_memory_proof_review",
+      "google_apple_calendar_merge_clarification",
+      "agentic_loop_workflow_classification",
+      "chief_test_harness_classification",
+      "brain_dump_cue_parser_classification",
+      "repo_b_leftovers_tag_or_block"
+    ],
+    "protected_access": {
+      "guardian_gate_blocks_access_now": true,
+      "protected_proof_can_be_referenced": true,
+      "receipt_is_key_approval_or_execution": false
+    }
+  },
+  "detour_recommendation_only": true,
+  "detour_workspace_types": [
+    "MARKDOWN_OK",
+    "HTML_WORKSPACE_RECOMMENDED",
+    "STRUCTURED_FORM_RECOMMENDED",
+    "OPERATOR_MEMORY_COMPARISON",
+    "DISCOVERY_OR_CLASSIFICATION",
+    "PROOF_CAPTURE",
+    "CONTEXT_CAPTURE",
+    "CLASSIFICATION_REVIEW"
+  ],
+  "email_send_triggered": false,
+  "execution_authority_added": false,
+  "generated_at": "2026-05-19T14:46:47+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "lane": "Operator Awareness + Agent Package Spine Contract v0",
+  "live_chat_created": false,
+  "lm_called": false,
+  "machine_proof_stays_underneath": true,
+  "mission_control_app_changed": false,
+  "mission_control_primary_human_layers": [
+    "layer_1_eli5_current_truth",
+    "layer_2_human_operator_detail"
+  ],
+  "model_calls_made": false,
+  "next_recommended_lanes": [
+    "Hermes Status Memory/Proof Review",
+    "Calendar Context Discovery / Memory Comparison",
+    "Repo B Leftover Classification Packet"
+  ],
+  "no_authority_flags": {
+    "agent_activation_authority_added": false,
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "browser_accessed": false,
+    "browser_automation_added": false,
+    "button_metadata_only": true,
+    "calendar_cleanup_started": false,
+    "confidence_posture_only": true,
+    "contract_only": true,
+    "coupa_accessed": false,
+    "credential_or_pii_access_added": false,
+    "detour_recommendation_only": true,
+    "email_send_triggered": false,
+    "execution_authority_added": false,
+    "gmail_calendar_coupa_accessed": false,
+    "live_chat_created": false,
+    "lm_called": false,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "oauth_or_credentials_accessed": false,
+    "package_preview_only": true,
+    "private_raw_content_inspected": false,
+    "raw_protected_content_accessed": false,
+    "read_model_only": true,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "repo_b_modules_imported": false,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_schema_changed": false,
+    "telegram_send_triggered": false,
+    "tool_execution_authority_added": false,
+    "tools_enabled": false
+  },
+  "no_live_authority_statement": "No model/tool/agent/browser/OAuth/credential/Gmail/calendar/Coupa/send/runtime authority is added.",
+  "oauth_or_credentials_accessed": false,
+  "operator_eli5_summary": {
+    "actors_models_perform_role": "Actors/models are only future performers of a role; this contract stores recommendation metadata, not execution.",
+    "agents_interpret_domain_context": "Agents/characters such as Chief, Cassandra, Guardian, Niles, Hermes, and Report Bridge interpret domain context.",
+    "confidence_explains_missing_when_not_full": "When trust is not full, the helm should explain what is missing and what would raise confidence.",
+    "confidence_quiet_when_full": "When trust is full, confidence stays display-quiet.",
+    "detour_raises_confidence": "A detour is a small bounded workspace for adding memory, context, proof, or classification before running or sending anything.",
+    "missing_things_can_be_found_classified": "Missing things become safe discovery/classification work, then tracked read-model data or explicit blockers.",
+    "mission_control_shows_human_truth": "Mission Control should display deterministic human-readable truth from the package, not hand-authored Swift guesses.",
+    "mission_control_shows_known_unknown": "Mission Control should show what OpenClaw knows, partly knows, knows it does not know, and has not discovered yet.",
+    "nothing_live_runs_from_this_contract": "Nothing live runs from this contract: no model call, tool, agent, browser, OAuth, Gmail, calendar, Coupa, send, or runtime authority.",
+    "openclaw_remembers_in_sqlite_read_models": "OpenClaw remembers durable facts and posture in SQLite-backed records and generated read-models.",
+    "package_preview_shows_exact_context": "The package preview shows what context would be sent later, including included and excluded surfaces.",
+    "proof_sits_underneath": "Machine proof stays underneath as source read-models, receipts, classifications, blockers, and boundaries.",
+    "winship_compares_memory": "Winship compares that map against memory to spot missing X without memory becoming truth by itself."
+  },
+  "output_supports_aware_of_x_not_y": {
+    "aware_of_x": [
+      "Capital Hilton, Cassandra, Chief, Guardian, Niles/Struna, protected proof references, work packets, and cross-repo awareness are visible as read-model-backed surfaces.",
+      "Review packets, proof rails, approval request specs, work-board cards, dropped intents, and capability metadata can be shown as deterministic posture."
+    ],
+    "not_yet_aware_or_not_classified_y": [
+      "Capital Hilton needs Coupa/Excel proof",
+      "Niles needs real album metadata",
+      "Hermes status needs memory/proof review",
+      "Google/Apple calendar merge needs clarification",
+      "Agentic loop workflow needs discovery/classification",
+      "Chief test harness needs discovery/classification",
+      "Brain-dump / cue parser needs discovery/classification",
+      "Repo B leftovers need tagging or blocking"
+    ],
+    "operator_memory_items_are_discovery_needs_not_facts": true
+  },
+  "package_preview_only": true,
+  "private_raw_content_inspected": false,
+  "raw_protected_content_accessed": false,
+  "read_model_only": true,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "repo_b_modules_imported": false,
+  "runtime_authority_added": false,
+  "schema_version": "operator_awareness_agent_package_spine_v0",
+  "security_pass_started": false,
+  "send_or_submit_authority_added": false,
+  "source_read_models": [
+    {
+      "executed_or_dispatched": false,
+      "key": "cross_repo_awareness_matrix",
+      "path": "generated/read_models/cross_repo_awareness_matrix.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "cross-repo awareness and Repo B delta classification surface",
+      "schema_version": "cross_repo_awareness_matrix_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "capability_skill_registry_metadata_delta",
+      "path": "generated/read_models/capability_skill_registry_metadata_delta.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "capability/skill metadata posture",
+      "schema_version": "capability_skill_registry_metadata_delta_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "build_now_vs_hold_queue_posture",
+      "path": "generated/read_models/build_now_vs_hold_queue_posture.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "ready/hold/blocked work posture",
+      "schema_version": "build_now_vs_hold_queue_posture_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "chief_status_rail",
+      "path": "generated/read_models/chief_status_rail.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Chief status visibility rail",
+      "schema_version": "chief_status_rail_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "chief_role_capability_segmentation_map",
+      "path": "generated/read_models/chief_role_capability_segmentation_map.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Chief role/capability segmentation",
+      "schema_version": "chief_role_capability_segmentation_map_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "protected_access_broker_concept",
+      "path": "generated/read_models/protected_access_broker_concept.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "protected access concept",
+      "schema_version": "protected_access_broker_concept_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "protected_evidence_reference_receipt",
+      "path": "generated/read_models/protected_evidence_reference_receipt.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "protected proof reference receipt contract",
+      "schema_version": "protected_evidence_reference_receipt_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "guardian_protected_access_gate_spec",
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Guardian protected-access gate",
+      "schema_version": "guardian_protected_access_gate_spec_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "cassandra_email_calendar_delta_detangle",
+      "path": "generated/read_models/cassandra_email_calendar_delta_detangle.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Cassandra email/calendar detangle",
+      "schema_version": "cassandra_email_calendar_delta_detangle_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "agent_work_packets",
+      "path": "generated/read_models/agent_work_packets.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "bounded agent work-packet metadata",
+      "schema_version": "agent_work_packets_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "operator_actions",
+      "path": "generated/read_models/operator_actions.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "operator action posture",
+      "schema_version": "operator_actions_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "intent_router",
+      "path": "generated/read_models/intent_router.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "non-executing intent routing metadata",
+      "schema_version": "intent_router_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "dropped_intents",
+      "path": "generated/read_models/dropped_intents.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "deferred/unresolved intent registry",
+      "schema_version": "dropped_intents_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "work_board",
+      "path": "generated/read_models/work_board.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Mission Control work-board substrate",
+      "schema_version": "work_board_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "niles_album_review_packet",
+      "path": "generated/read_models/niles_album_review_packet.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Niles album review packet",
+      "schema_version": "niles_album_review_packet_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "niles_album_metadata_intake_packet",
+      "path": "generated/read_models/niles_album_metadata_intake_packet.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Niles album metadata intake",
+      "schema_version": "niles_album_metadata_intake_packet_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "struna_obscura_project_capsule",
+      "path": "generated/read_models/struna_obscura_project_capsule.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Struna project capsule",
+      "schema_version": "struna_obscura_project_capsule_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "report_bridge",
+      "path": "generated/read_models/report_bridge.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Report Bridge visibility rail",
+      "schema_version": "report_bridge_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "repo_a_known_rail_completion_map",
+      "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Repo A rail baseline",
+      "schema_version": "repo_a_known_rail_completion_map_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    },
+    {
+      "executed_or_dispatched": false,
+      "key": "repo_b_remaining_capability_delta_map",
+      "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": true,
+      "repo_b_filesystem_inspected": false,
+      "role": "Repo B delta read-model reference only",
+      "schema_version": "repo_b_remaining_capability_delta_map_v0",
+      "truth_status": "repo_a_read_model_evidence_not_operator_truth_by_itself"
+    }
+  ],
+  "spine_status": "deterministic_read_model_contract_only",
+  "sqlite_schema_changed": false,
+  "telegram_send_triggered": false,
+  "tool_execution_authority_added": false,
+  "tools_enabled": false
+}
