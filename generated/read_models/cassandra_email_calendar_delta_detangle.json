@@ -1,0 +1,657 @@
+{
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "browser_automation_added": false,
+  "calendar_access_triggered": false,
+  "calendar_cleanup_started": false,
+  "calendar_mutation_triggered": false,
+  "calendar_normalization_started": false,
+  "calendar_operator_context": {
+    "calendar_normalization_allowed_now": false,
+    "future_scoped_normalization_requires_named_workflow": true,
+    "generic_calendar_cleanup_started": false,
+    "google_apple_calendar_merged_context_recorded": true,
+    "google_calendar_may_be_messy_context_recorded": true,
+    "iphone_calendar_still_seems_to_work_context_recorded": true,
+    "live_calendar_access_enabled": false,
+    "mac_calendar_confusing_context_recorded": true
+  },
+  "classification_counts": {
+    "CALENDAR_DISCOVERY_BLOCKED": 1,
+    "CALENDAR_NORMALIZATION_FUTURE": 1,
+    "DRAFT_PREVIEW_ONLY": 1,
+    "EMAIL_SEND_BLOCKED": 1,
+    "GOVERNED_REVIEW_PACKET_READY": 1,
+    "LEGACY_REFERENCE_ONLY": 1,
+    "LIVE_GMAIL_BLOCKED": 1,
+    "OAUTH_CREDENTIAL_BLOCKED": 1,
+    "PROTECTED_ACCESS_REQUIRED": 0,
+    "SECURITY_THRESHOLD_REQUIRED": 0,
+    "TELEGRAM_NOTIFICATION_SEPARATE": 1,
+    "UNKNOWN_FAIL_CLOSED": 1
+  },
+  "classification_label_counts": {
+    "CALENDAR_DISCOVERY_BLOCKED": 2,
+    "CALENDAR_NORMALIZATION_FUTURE": 2,
+    "DRAFT_PREVIEW_ONLY": 2,
+    "EMAIL_SEND_BLOCKED": 2,
+    "GOVERNED_REVIEW_PACKET_READY": 2,
+    "LEGACY_REFERENCE_ONLY": 2,
+    "LIVE_GMAIL_BLOCKED": 2,
+    "OAUTH_CREDENTIAL_BLOCKED": 4,
+    "PROTECTED_ACCESS_REQUIRED": 5,
+    "SECURITY_THRESHOLD_REQUIRED": 5,
+    "TELEGRAM_NOTIFICATION_SEPARATE": 1,
+    "UNKNOWN_FAIL_CLOSED": 1
+  },
+  "classification_labels": [
+    "GOVERNED_REVIEW_PACKET_READY",
+    "DRAFT_PREVIEW_ONLY",
+    "TELEGRAM_NOTIFICATION_SEPARATE",
+    "LIVE_GMAIL_BLOCKED",
+    "EMAIL_SEND_BLOCKED",
+    "CALENDAR_DISCOVERY_BLOCKED",
+    "CALENDAR_NORMALIZATION_FUTURE",
+    "OAUTH_CREDENTIAL_BLOCKED",
+    "PROTECTED_ACCESS_REQUIRED",
+    "SECURITY_THRESHOLD_REQUIRED",
+    "LEGACY_REFERENCE_ONLY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "classification_only": true,
+  "current_governed_capabilities": {
+    "approval_receipt_present": false,
+    "draft_preview_read_model_ready": true,
+    "execution_enabled": false,
+    "governed_review_packet_path_ready": true,
+    "guardian_final_send_request_contract_modeled": true,
+    "mission_control_visibility_supported_by_read_model": true
+  },
+  "detangle_status": "classification_only_no_live_authority",
+  "detangled_surfaces": [
+    {
+      "blocked_authorities": [
+        "Gmail draft creation",
+        "email send",
+        "calendar mutation",
+        "runtime execution"
+      ],
+      "classifications": [
+        "GOVERNED_REVIEW_PACKET_READY",
+        "DRAFT_PREVIEW_ONLY"
+      ],
+      "current_posture": "available_as_review_packet_read_model_only",
+      "display_name": "Current governed Cassandra review packet path",
+      "governed_now": true,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": true,
+      "next_safe_move": "Use generated review/draft packets only; keep execution and live account work separate.",
+      "operator_note": "Cassandra can represent a draft/review packet from governed facts without touching Gmail or calendars.",
+      "primary_classification": "GOVERNED_REVIEW_PACKET_READY",
+      "protected_access_gate_applies": false,
+      "review_only": true,
+      "security_threshold_required": false,
+      "source_evidence": [
+        "cassandra_draft_review_packet.json",
+        "cassandra_governed_review_packet_request_proof.json",
+        "guardian_draft_approval_request_contract.json"
+      ],
+      "surface_id": "governed_cassandra_review_packet_path",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Gmail draft creation",
+        "attachment generation",
+        "email send",
+        "approval receipt creation"
+      ],
+      "classifications": [
+        "DRAFT_PREVIEW_ONLY",
+        "GOVERNED_REVIEW_PACKET_READY"
+      ],
+      "current_posture": "review_preview_visible_no_gmail_draft",
+      "display_name": "Cassandra draft preview packet",
+      "governed_now": true,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": true,
+      "next_safe_move": "Create stable draft/attachment identity metadata later; do not create a Gmail draft.",
+      "operator_note": "A draft preview is a packet/read-model, not a live Gmail draft.",
+      "primary_classification": "DRAFT_PREVIEW_ONLY",
+      "protected_access_gate_applies": false,
+      "review_only": true,
+      "security_threshold_required": false,
+      "source_evidence": [
+        "cassandra_draft_review_packet.json",
+        "guardian_draft_approval_request_contract.json"
+      ],
+      "surface_id": "cassandra_draft_preview_packet",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Telegram send",
+        "Guardian live notification",
+        "operator ping behavior change"
+      ],
+      "classifications": [
+        "TELEGRAM_NOTIFICATION_SEPARATE"
+      ],
+      "current_posture": "separate_runtime_surface_unchanged_by_this_lane",
+      "display_name": "Telegram/operator notification path",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Leave Telegram notification behavior unchanged; use Mission Control/read-model visibility for this lane.",
+      "operator_note": "Telegram draft preview/notification behavior is separate from Mission Control read-model visibility.",
+      "primary_classification": "TELEGRAM_NOTIFICATION_SEPARATE",
+      "protected_access_gate_applies": false,
+      "review_only": true,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "cassandra_send_status_dry_run.json",
+        "capability_skill_registry_metadata_delta.json"
+      ],
+      "surface_id": "telegram_operator_notification_path",
+      "telegram_notification_separate": true,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Gmail read",
+        "mailbox body inspection",
+        "OAuth",
+        "credentials",
+        "tool bridge access"
+      ],
+      "classifications": [
+        "LIVE_GMAIL_BLOCKED",
+        "OAUTH_CREDENTIAL_BLOCKED",
+        "PROTECTED_ACCESS_REQUIRED",
+        "SECURITY_THRESHOLD_REQUIRED"
+      ],
+      "current_posture": "blocked_no_live_account_access",
+      "display_name": "Live Gmail account access",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Keep Gmail as protected-access-gated future work tied to a specific workflow.",
+      "operator_note": "Gmail metadata/body access is blocked; review packets must use governed facts/read-models only.",
+      "primary_classification": "LIVE_GMAIL_BLOCKED",
+      "protected_access_gate_applies": true,
+      "review_only": false,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "cassandra_email_calendar_capability_reconciliation.json",
+        "protected_access_broker_concept.json",
+        "guardian_protected_access_gate_spec.json"
+      ],
+      "surface_id": "gmail_live_account_access",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Gmail draft creation",
+        "email send",
+        "email reply",
+        "attachment send",
+        "approval execution"
+      ],
+      "classifications": [
+        "EMAIL_SEND_BLOCKED",
+        "LIVE_GMAIL_BLOCKED",
+        "PROTECTED_ACCESS_REQUIRED",
+        "SECURITY_THRESHOLD_REQUIRED"
+      ],
+      "current_posture": "blocked_no_draft_no_send",
+      "display_name": "Email send and Gmail draft creation",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Model stable draft identity and proof prerequisites before any future send-approval receipt lane.",
+      "operator_note": "A final-send approval request contract exists, but no draft creation, receipt, or send authority exists.",
+      "primary_classification": "EMAIL_SEND_BLOCKED",
+      "protected_access_gate_applies": true,
+      "review_only": false,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "guardian_draft_approval_request_contract.json",
+        "cassandra_draft_review_packet.json"
+      ],
+      "surface_id": "email_send_and_gmail_draft_creation",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Google Calendar read",
+        "Apple Calendar read",
+        "OAuth",
+        "calendar event scraping",
+        "calendar mutation"
+      ],
+      "classifications": [
+        "CALENDAR_DISCOVERY_BLOCKED",
+        "CALENDAR_NORMALIZATION_FUTURE",
+        "OAUTH_CREDENTIAL_BLOCKED",
+        "PROTECTED_ACCESS_REQUIRED",
+        "SECURITY_THRESHOLD_REQUIRED"
+      ],
+      "current_posture": "blocked_context_recorded_no_live_calendar_read",
+      "display_name": "Calendar discovery/understanding",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Only create a scoped calendar source-normalization packet when a named workflow needs calendar evidence.",
+      "operator_note": "The merged Google/Apple calendar situation is context, not a cleanup task in this lane.",
+      "primary_classification": "CALENDAR_DISCOVERY_BLOCKED",
+      "protected_access_gate_applies": true,
+      "review_only": true,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "cassandra_email_calendar_capability_reconciliation.json",
+        "protected_access_broker_concept.json"
+      ],
+      "surface_id": "calendar_discovery_understanding",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "generic calendar cleanup",
+        "calendar mutation",
+        "broad private calendar inspection"
+      ],
+      "classifications": [
+        "CALENDAR_NORMALIZATION_FUTURE",
+        "CALENDAR_DISCOVERY_BLOCKED",
+        "PROTECTED_ACCESS_REQUIRED",
+        "SECURITY_THRESHOLD_REQUIRED"
+      ],
+      "current_posture": "future_scoped_evidence_normalization_only",
+      "display_name": "Calendar source normalization",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Wait for a real workflow needing calendar context; then build a metadata-only normalization packet first.",
+      "operator_note": "Calendar cleanup is not happening yet.",
+      "primary_classification": "CALENDAR_NORMALIZATION_FUTURE",
+      "protected_access_gate_applies": true,
+      "review_only": true,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "cassandra_email_calendar_capability_reconciliation.json"
+      ],
+      "surface_id": "calendar_normalization_future",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "OAuth flow",
+        "credential access",
+        "browser automation",
+        "tool bridge execution",
+        "account access"
+      ],
+      "classifications": [
+        "OAUTH_CREDENTIAL_BLOCKED",
+        "PROTECTED_ACCESS_REQUIRED",
+        "SECURITY_THRESHOLD_REQUIRED",
+        "LEGACY_REFERENCE_ONLY"
+      ],
+      "current_posture": "blocked_reference_or_metadata_only",
+      "display_name": "OAuth/credential/tool/browser bridges",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Keep as protected-access metadata until future security-threshold work.",
+      "operator_note": "Tool/OAuth/browser bridges are unsafe to activate from capability metadata.",
+      "primary_classification": "OAUTH_CREDENTIAL_BLOCKED",
+      "protected_access_gate_applies": true,
+      "review_only": false,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "protected_access_broker_concept.json",
+        "guardian_protected_access_gate_spec.json",
+        "tool_inventory.json",
+        "tool_intake.json"
+      ],
+      "surface_id": "oauth_credential_tool_browser_bridges",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "Repo B execution",
+        "legacy live loops",
+        "legacy send/OAuth bridge reuse"
+      ],
+      "classifications": [
+        "LEGACY_REFERENCE_ONLY",
+        "OAUTH_CREDENTIAL_BLOCKED",
+        "EMAIL_SEND_BLOCKED"
+      ],
+      "current_posture": "existing_delta_read_model_reference_only",
+      "display_name": "Repo B-derived email/calendar delta",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Use the existing Repo B delta read-model only; do not inspect or run Repo B here.",
+      "operator_note": "Repo B email/calendar material is reference metadata until a specific promotion lane exists.",
+      "primary_classification": "LEGACY_REFERENCE_ONLY",
+      "protected_access_gate_applies": false,
+      "review_only": true,
+      "security_threshold_required": true,
+      "source_evidence": [
+        "repo_b_remaining_capability_delta_map.json",
+        "capability_skill_registry_metadata_delta.json"
+      ],
+      "surface_id": "legacy_repo_b_email_calendar_delta",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": false
+    },
+    {
+      "blocked_authorities": [
+        "all live account access",
+        "send",
+        "draft",
+        "calendar mutation",
+        "OAuth",
+        "credentials",
+        "runtime execution"
+      ],
+      "classifications": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "current_posture": "blocked_until_classified",
+      "display_name": "Unknown email/calendar surface",
+      "governed_now": false,
+      "live_behavior_changed_now": false,
+      "mission_control_visibility": false,
+      "next_safe_move": "Create a narrow classification lane before any routing or use.",
+      "operator_note": "Unknown email/calendar capability fails closed.",
+      "primary_classification": "UNKNOWN_FAIL_CLOSED",
+      "protected_access_gate_applies": true,
+      "review_only": false,
+      "security_threshold_required": true,
+      "source_evidence": [],
+      "surface_id": "unknown_email_calendar_surface",
+      "telegram_notification_separate": false,
+      "unknown_fails_closed": true
+    }
+  ],
+  "email_send_triggered": false,
+  "generated_at": "2026-05-19T01:10:51+00:00",
+  "generated_by": "codex",
+  "gmail_draft_created": false,
+  "gmail_or_email_send_triggered": false,
+  "lane": "Cassandra Email Calendar Delta Detangle v0",
+  "live_apple_calendar_access_enabled": false,
+  "live_gmail_access_enabled": false,
+  "live_google_calendar_access_enabled": false,
+  "mission_control_app_changed": false,
+  "mission_control_vs_telegram_boundary": {
+    "draft_preview_packet_can_be_visible_without_telegram_notification": true,
+    "mission_control_visibility_is_read_model_mirror": true,
+    "telegram_behavior_changed_by_this_lane": false,
+    "telegram_operator_notification_is_separate_path": true,
+    "telegram_send_triggered": false
+  },
+  "next_recommended_lane": "Cassandra Draft Identity Reference Rail v0",
+  "no_authority_flags": {
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "browser_automation_added": false,
+    "calendar_access_triggered": false,
+    "calendar_cleanup_started": false,
+    "calendar_mutation_triggered": false,
+    "calendar_normalization_started": false,
+    "classification_only": true,
+    "email_send_triggered": false,
+    "gmail_draft_created": false,
+    "gmail_or_email_send_triggered": false,
+    "live_apple_calendar_access_enabled": false,
+    "live_gmail_access_enabled": false,
+    "live_google_calendar_access_enabled": false,
+    "mission_control_app_changed": false,
+    "oauth_or_credentials_accessed": false,
+    "raw_private_inbox_or_calendar_content_read": false,
+    "read_model_only": true,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "repo_b_modules_imported": false,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false,
+    "telegram_notification_behavior_changed": false,
+    "telegram_send_triggered": false,
+    "tools_enabled": false
+  },
+  "oauth_or_credentials_accessed": false,
+  "operator_eli5_summary": {
+    "calendar_cleanup_not_happening_yet": "Calendar cleanup is not happening yet. The merged Google/Apple calendar situation is recorded only as future context.",
+    "next_1_to_3_sensible_lanes": [
+      "Cassandra Draft Identity Reference Rail v0",
+      "Calendar Source Normalization Packet v0",
+      "Cassandra Email Send Approval Receipt Boundary v0"
+    ],
+    "telegram_vs_mission_control": "Telegram draft preview behavior is separate from Mission Control visibility; this lane changes neither.",
+    "what_cassandra_can_safely_represent_now": "Cassandra can safely represent review-only packets and draft previews from governed read-model facts.",
+    "what_email_calendar_parts_are_blocked": "Gmail access, Gmail draft creation, email send/reply, Google/Apple Calendar access, calendar mutation, OAuth, credentials, and browser/tool bridges are blocked.",
+    "what_must_happen_before_real_email_calendar_work": "A named workflow, protected-access gate, Guardian/security-threshold controls, specific draft/attachment identity, and later approval receipt would be required first."
+  },
+  "protected_access_requirements": {
+    "credential_or_oauth_access_allowed_now": false,
+    "guardian_protected_access_gate_required": true,
+    "protected_access_gate_required_for_live_gmail_calendar": true,
+    "protected_reference_receipts_are_not_access_authority": true,
+    "security_threshold_required": true,
+    "unknown_surfaces_fail_closed": true
+  },
+  "purpose": "Separate governed Cassandra review/draft capability from live email, calendar, OAuth, Telegram notification, and protected-access future work.",
+  "raw_private_inbox_or_calendar_content_read": false,
+  "read_model_only": true,
+  "repo_b_code_executed": false,
+  "repo_b_delta_handling": {
+    "legacy_email_calendar_surfaces_reference_only": true,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "repo_b_modules_imported": false,
+    "used_existing_repo_a_delta_read_model_only": true
+  },
+  "repo_b_filesystem_inspected": false,
+  "repo_b_modules_imported": false,
+  "runtime_authority_added": false,
+  "schema_version": "cassandra_email_calendar_delta_detangle_v0",
+  "security_pass_started": false,
+  "send_or_submit_authority_added": false,
+  "source_read_models": [
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "cassandra_email_calendar_capability_reconciliation",
+      "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "current email/calendar capability reconciliation",
+      "schema_version": "cassandra_email_calendar_capability_reconciliation_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "cassandra_draft_review_packet",
+      "path": "generated/read_models/cassandra_draft_review_packet.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "review-only Cassandra draft packet",
+      "schema_version": "cassandra_draft_review_packet_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "cassandra_send_status_dry_run",
+      "path": "generated/read_models/cassandra_send_status_dry_run.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Cassandra no-send status/dry-run posture",
+      "schema_version": "cassandra_send_status_dry_run_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "cassandra_governed_review_packet_request_proof",
+      "path": "generated/read_models/cassandra_governed_review_packet_request_proof.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "governed request-to-review packet proof",
+      "schema_version": "cassandra_governed_review_packet_request_proof_v1",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "guardian_draft_approval_request_contract",
+      "path": "generated/read_models/guardian_draft_approval_request_contract.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Guardian final-send approval request contract",
+      "schema_version": "guardian_draft_approval_request_contract_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "protected_access_broker_concept",
+      "path": "generated/read_models/protected_access_broker_concept.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "protected access concept",
+      "schema_version": "protected_access_broker_concept_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "protected_evidence_reference_receipt",
+      "path": "generated/read_models/protected_evidence_reference_receipt.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "protected evidence reference receipt",
+      "schema_version": "protected_evidence_reference_receipt_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "guardian_protected_access_gate_spec",
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "Guardian protected-access gate",
+      "schema_version": "guardian_protected_access_gate_spec_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "capability_skill_registry_metadata_delta",
+      "path": "generated/read_models/capability_skill_registry_metadata_delta.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "capability registry metadata delta",
+      "schema_version": "capability_skill_registry_metadata_delta_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "repo_b_remaining_capability_delta_map",
+      "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": true,
+      "repo_b_filesystem_inspected": false,
+      "role": "Repo B delta read-model reference from Repo A only",
+      "schema_version": "repo_b_remaining_capability_delta_map_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "tool_inventory",
+      "path": "generated/read_models/tool_inventory.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "tool inventory metadata",
+      "schema_version": "tool_inventory_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "executed_or_dispatched": false,
+      "external_account_accessed": false,
+      "key": "tool_intake",
+      "path": "generated/read_models/tool_intake.json",
+      "present": true,
+      "raw_private_content_read": false,
+      "repo_a_only": true,
+      "repo_b_code_executed": false,
+      "repo_b_delta_read_model_used": false,
+      "repo_b_filesystem_inspected": false,
+      "role": "tool intake metadata",
+      "schema_version": "tool_intake_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    }
+  ],
+  "telegram_notification_behavior_changed": false,
+  "telegram_send_triggered": false,
+  "tools_enabled": false
+}
