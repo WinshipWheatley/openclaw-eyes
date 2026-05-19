@@ -1,0 +1,627 @@
+{
+  "approval_execution_authority_added": false,
+  "arbitrary_shell_allowed": false,
+  "browser_or_coupa_authority_added": false,
+  "chief_current_proven_role": {
+    "executor": false,
+    "role_confidence": "high_for_visibility_and_planning_low_for_runtime",
+    "role_summary": "Chief is currently proven as a request-only coordination/planning/status lane backed by Agent Lane Registry, Intent Router, Work Board, and Agent Work Packet read-models.",
+    "runtime_or_send_authority": false,
+    "source_basis": "Repo A read-models and contracts only"
+  },
+  "chief_current_status": "safe_status_read_model_only",
+  "chief_modeled_as_executor": false,
+  "chief_runtime_modules_imported": false,
+  "client_deployment_authority_added": false,
+  "credential_or_pii_access_added": false,
+  "current_chief_related_substrates": [
+    {
+      "authority": "request_only_no_execution",
+      "safe_use": "Chief can be routed as a coordination/planning lane.",
+      "status": "proven_request_only_role_metadata",
+      "substrate": "agent_lane_registry"
+    },
+    {
+      "authority": "routing_metadata_only",
+      "safe_use": "Chief-targeted operator intents can be represented as routes.",
+      "status": "chief_intent_routes_visible",
+      "substrate": "intent_router"
+    },
+    {
+      "authority": "visibility_and_planning_only",
+      "safe_use": "Chief-routed work can be visible as board cards.",
+      "status": "chief_routed_cards_visible",
+      "substrate": "work_board"
+    },
+    {
+      "authority": "packet_draft_only",
+      "safe_use": "Chief work can become bounded prompt scaffolding.",
+      "status": "chief_packets_visible",
+      "substrate": "agent_work_packets"
+    },
+    {
+      "authority": "metadata_only",
+      "safe_use": "Chief-adjacent deferred/unresolved work can remain visible without prompting or notifying.",
+      "status": "chief_deferred_or_unresolved_intents_visible",
+      "substrate": "dropped_intents"
+    }
+  ],
+  "execution_authority_added": false,
+  "explicitly_blocked": {
+    "approval_execution": true,
+    "arbitrary_shell": true,
+    "browser_or_coupa": true,
+    "client_deployment": true,
+    "credential_or_pii_access": true,
+    "execution": true,
+    "llm_or_ollama_calls": true,
+    "planner_builder_automation": true,
+    "repair_fix_loops": true,
+    "security_threshold_work": true,
+    "telegram_notification_or_send": true,
+    "tool_execution": true
+  },
+  "generated_at": "2026-05-19T00:30:34+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_credentials_accessed": false,
+  "inferred_but_not_proven": [
+    "Chief as a broader central orchestration spine",
+    "Chief listener/router/session as current canonical flow",
+    "Chief as domain-brain coordinator across Cassandra, Niles, finance, Report Bridge, website, or infrastructure",
+    "Chief queue timing as a completed build-now-vs-hold workflow"
+  ],
+  "live_execution_recommended": false,
+  "llm_ollama_authority_added": false,
+  "llm_ollama_called": false,
+  "mission_control_app_changed": false,
+  "next_safe_chief_lane": {
+    "gate_status": "pass",
+    "lane_name": "Build Now Vs Hold Queue Posture v0",
+    "no_queue_execution": true,
+    "non_live": true,
+    "post_preflight_batch_gate_evaluation": {
+      "abstract_prep_allowed_without_workflow": false,
+      "authority_change_requested": {
+        "authority_types": [],
+        "reason": "Read-model/status work only.",
+        "requested": false
+      },
+      "authority_gate_required": false,
+      "batch_by_shared_bottleneck": true,
+      "briar_patch_operator_language_only": true,
+      "client_repo_generation_added": false,
+      "customer_deployment_authority_added": false,
+      "detangling_scope": {
+        "client_repo_generation_requested": false,
+        "detangling_required_before_workflow_proof": false,
+        "notes": "Queue timing remains status/read-model work; no queue execution or automation.",
+        "opportunistic_only": true,
+        "physical_module_extraction_requested": false,
+        "serves_lane_directly": true
+      },
+      "expected_artifacts": [
+        {
+          "artifact_kind": "read_model",
+          "path_or_contract": "generated/read_models/build_now_vs_hold_queue_posture.json"
+        },
+        {
+          "artifact_kind": "operator_packet",
+          "path_or_contract": "generated/read_models/build_now_vs_hold_queue_posture_OPERATOR.md"
+        },
+        {
+          "artifact_kind": "test_proof",
+          "path_or_contract": "focused queue posture tests"
+        }
+      ],
+      "failure_reasons": [],
+      "gate_object_id": "postpreflightgate_1d7a8840d4179427bcc0",
+      "gate_status": "pass",
+      "lane_name": "Build Now Vs Hold Queue Posture v0",
+      "lane_summary": "Model build-now-vs-hold timing from dropped-intent/work-board evidence without executing queues.",
+      "mission_control_app_changed": false,
+      "model_execution_authority_added": false,
+      "module_extraction_added": false,
+      "module_split_disposition": {
+        "disposition": "record_future_work",
+        "reason": "If queue concepts imply module splits, record them after the posture proof rather than extracting now.",
+        "recorded_future_work": true
+      },
+      "named_operator_workflow": "Winship needs deferred ideas separated from work that is ready to build.",
+      "one_batch_reusable_substrate_plus_workflow_proof": true,
+      "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+      "repo_b_execution_allowed": false,
+      "reusable_substrate_improvement": "Reusable timing posture for Chief/work-board planning.",
+      "runtime_authority_added": false,
+      "send_or_submit_authority_added": false,
+      "shared_bottleneck": "queue_timing_decision_gap",
+      "steel_thread_contract_link": "chief_status_rail_v0",
+      "synthetic_example": false,
+      "tool_execution_authority_added": false,
+      "validation_required": [
+        "focused tests",
+        "JSON validation",
+        "authority flags"
+      ],
+      "workflow_proof_output": "Queue posture read-model showing build-now, hold, and memory-review buckets."
+    },
+    "reason": "The status rail is now complete; the next bounded gap is timing posture for deferred versus ready Chief-adjacent work."
+  },
+  "no_authority_flags": {
+    "approval_execution_authority_added": false,
+    "arbitrary_shell_allowed": false,
+    "browser_or_coupa_authority_added": false,
+    "chief_modeled_as_executor": false,
+    "chief_runtime_modules_imported": false,
+    "client_deployment_authority_added": false,
+    "credential_or_pii_access_added": false,
+    "execution_authority_added": false,
+    "gmail_calendar_coupa_credentials_accessed": false,
+    "llm_ollama_authority_added": false,
+    "llm_ollama_called": false,
+    "mission_control_app_changed": false,
+    "old_files_treated_as_truth": false,
+    "planner_builder_automation_activated": false,
+    "repair_fix_loop_activated": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false,
+    "telegram_notification_live": false,
+    "telegram_send_triggered": false,
+    "tool_execution_authority_added": false
+  },
+  "old_files_treated_as_truth": false,
+  "operator_eli5_summary": {
+    "here_is_the_next_safe_move": "Model the build-now-vs-hold queue posture as another read-model, without running queues.",
+    "here_is_what_chief_can_safely_help_with_now": "Chief can help orient work: what is routed to Chief, what packet exists, what is deferred, and what remains blocked.",
+    "here_is_what_chief_currently_is": "Chief is currently a safe coordination/status rail: it can show routed work, planning packets, and deferred or unresolved work signals.",
+    "here_is_what_chief_is_not_yet": "Chief is not a live executor, Telegram sender, LLM/Ollama service, repair loop, browser operator, or credential holder.",
+    "here_is_what_remains_blocked": "Execution, planner/builder automation, repair loops, Telegram notification, model/tool calls, arbitrary shell, credentials, browser/Coupa, and client deployment stay blocked."
+  },
+  "planner_builder_automation_activated": false,
+  "rail_status": "completed_visibility_planning_only",
+  "repair_fix_loop_activated": false,
+  "repo_a_only_inspection": true,
+  "repo_b_code_executed": false,
+  "repo_b_delta_read_model_used": true,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "schema_version": "chief_status_rail_v0",
+  "security_pass_started": false,
+  "send_or_submit_authority_added": false,
+  "source_read_models": [
+    {
+      "body_read": false,
+      "key": "segmentation",
+      "path": "generated/read_models/chief_role_capability_segmentation_map.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Chief role/capability segmentation baseline",
+      "schema_version": "chief_role_capability_segmentation_map_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "body_read": false,
+      "key": "work_board",
+      "path": "generated/read_models/work_board.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Chief-routed work-board status signals",
+      "schema_version": "work_board_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "body_read": false,
+      "key": "agent_work_packets",
+      "path": "generated/read_models/agent_work_packets.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Chief-routed work packet signals",
+      "schema_version": "agent_work_packets_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "body_read": false,
+      "key": "intent_router",
+      "path": "generated/read_models/intent_router.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Chief-routed intent signals",
+      "schema_version": "intent_router_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    },
+    {
+      "body_read": false,
+      "key": "dropped_intents",
+      "path": "generated/read_models/dropped_intents.json",
+      "present": true,
+      "repo_a_only": true,
+      "role": "Deferred/unresolved Chief-adjacent intent signals",
+      "schema_version": "dropped_intents_read_model_v0",
+      "truth_status": "repo_a_read_model_evidence_not_truth"
+    }
+  ],
+  "status_category_model": {
+    "categories": [
+      "proven",
+      "partially_represented",
+      "inferred_not_proven",
+      "operator_memory_only",
+      "unsafe_blocked",
+      "future_security_threshold"
+    ],
+    "future_security_threshold": [
+      "planner_builder_coordination",
+      "automatic_fix_repair_loop_concepts",
+      "protected_access_broker_concepts",
+      "execution_security_threshold_boundaries"
+    ],
+    "inferred_not_proven": [
+      {
+        "authority_boundary": "Chief may be represented as coordination/status/planning substrate only; executor authority fails closed.",
+        "claim_level": "proven_partial_inferred_broad",
+        "classification": "SEGMENTATION_REQUIRED",
+        "display_name": "Chief identity / role / boundaries",
+        "next_safe_lane": "Chief Status Rail Completion v0",
+        "sub_area_id": "chief_identity_role_boundaries"
+      },
+      {
+        "authority_boundary": "Domain overlaps should route to their governed rails; legacy domain brains remain evidence/reference.",
+        "claim_level": "many_domain_paths_memory_guidance_only_until_subrails",
+        "classification": "SEGMENTATION_REQUIRED",
+        "display_name": "Domain brain overlaps",
+        "next_safe_lane": "Chief Domain Overlap Segmentation Review v0",
+        "sub_area_id": "domain_brain_overlaps"
+      }
+    ],
+    "operator_memory_only": [
+      {
+        "classification": "SEGMENTATION_REQUIRED",
+        "display_name": "Chief identity / role / boundaries",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory suggests Chief may have been a central listener/router/session/approval/domain-brain system."
+        ],
+        "sub_area_id": "chief_identity_role_boundaries"
+      },
+      {
+        "classification": "LEGACY_OR_REFERENCE",
+        "display_name": "Chief listener / router / session concepts",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory map names Telegram to Chief Listener to Chief Router to Chief Session Manager."
+        ],
+        "sub_area_id": "chief_listener_router_session"
+      },
+      {
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Chief status posture",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Chief may have been where real work flowed, but Repo A has not yet completed a single Chief status proof rail."
+        ],
+        "sub_area_id": "chief_status_posture"
+      },
+      {
+        "classification": "TESTED_SUPPORTING_CONTRACT",
+        "display_name": "Chief work packets",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "This may be the safer Repo A replacement for older Chief flow-through work machinery."
+        ],
+        "sub_area_id": "chief_work_packets"
+      },
+      {
+        "classification": "TESTED_SUPPORTING_CONTRACT",
+        "display_name": "Operator intent routing",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Cassandra may have accessed Chief flow indirectly through routing rather than owning the flow."
+        ],
+        "sub_area_id": "operator_intent_routing"
+      },
+      {
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Build-now-vs-hold queue posture",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "The remembered build-now-vs-hold workflow may belong under Chief status/queue posture."
+        ],
+        "sub_area_id": "build_now_vs_hold_queue_posture"
+      },
+      {
+        "classification": "LEGACY_OR_REFERENCE",
+        "display_name": "Brain-dump / cue parser intake",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory mentions brain-dump/cue parsing as part of the work intake environment."
+        ],
+        "sub_area_id": "brain_dump_cue_parser_intake"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Planner/builder coordination",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory suggests deterministic and agentic planner/builder automation existed around Chief."
+        ],
+        "sub_area_id": "planner_builder_coordination"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Automatic fix / repair loop concepts",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older automatic fix loops may have been part of the older Chief/planner ecosystem."
+        ],
+        "sub_area_id": "automatic_fix_repair_loop_concepts"
+      },
+      {
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Capability / skill registry metadata",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory names many domain brains; a safe registry could describe them without activating them."
+        ],
+        "sub_area_id": "capability_skill_registry_metadata"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Protected access / broker concepts",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Older memory and Repo B delta mention protected access/OAuth/PII concepts."
+        ],
+        "sub_area_id": "protected_access_broker_concepts"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Telegram / notification concepts",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Older memory mentions chief_notify.py and Telegram push."
+        ],
+        "sub_area_id": "telegram_notification_concepts"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "LLM / Ollama service concepts",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Older memory map includes Chief LLM / Ollama service."
+        ],
+        "sub_area_id": "llm_ollama_service_concepts"
+      },
+      {
+        "classification": "SEGMENTATION_REQUIRED",
+        "display_name": "Domain brain overlaps",
+        "needs_operator_memory_review": true,
+        "operator_memory_guidance": [
+          "Older memory names domain brains for album production, finance, marketing, communications, health, infrastructure, website, research, analytics, consulting, Fundo, and Trinity audit."
+        ],
+        "sub_area_id": "domain_brain_overlaps"
+      },
+      {
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Mission Control visibility",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Winship needs to know where work should flow without staring at backend plumbing."
+        ],
+        "sub_area_id": "mission_control_visibility"
+      },
+      {
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Execution/security-threshold boundaries",
+        "needs_operator_memory_review": false,
+        "operator_memory_guidance": [
+          "Operator wants the broader system raised to known steel-thread maturity before real live authority."
+        ],
+        "sub_area_id": "execution_security_threshold_boundaries"
+      }
+    ],
+    "partially_represented": [
+      {
+        "authority_boundary": "Status visibility only; no work execution, service control, or live notification.",
+        "claim_level": "partially_proven_read_model_gap",
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Chief status posture",
+        "next_safe_lane": "Chief Status Rail Completion v0",
+        "sub_area_id": "chief_status_posture"
+      },
+      {
+        "authority_boundary": "Queue posture may classify work timing; it must not generate or run work automatically.",
+        "claim_level": "concept_partly_represented_execution_blocked",
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Build-now-vs-hold queue posture",
+        "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+        "sub_area_id": "build_now_vs_hold_queue_posture"
+      },
+      {
+        "authority_boundary": "Capability registry metadata may inform routing; executable skill loading remains blocked.",
+        "claim_level": "metadata_only_partially_represented",
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Capability / skill registry metadata",
+        "next_safe_lane": "Capability Skill Registry Metadata Delta v0",
+        "sub_area_id": "capability_skill_registry_metadata"
+      },
+      {
+        "authority_boundary": "Visibility only; no Mission Control execution path is added.",
+        "claim_level": "read_model_visibility_no_app_change",
+        "classification": "PARTIALLY_REPRESENTED",
+        "display_name": "Mission Control visibility",
+        "next_safe_lane": "Chief Status Rail Completion v0",
+        "sub_area_id": "mission_control_visibility"
+      }
+    ],
+    "proven": [
+      {
+        "authority_boundary": "Work packets are review/planning artifacts; they do not execute commands or activate agents.",
+        "claim_level": "proven_control_plane_artifact",
+        "classification": "TESTED_SUPPORTING_CONTRACT",
+        "display_name": "Chief work packets",
+        "next_safe_lane": "Chief Status Rail Completion v0",
+        "sub_area_id": "chief_work_packets"
+      },
+      {
+        "authority_boundary": "Routing metadata only; unknown authority fails closed.",
+        "claim_level": "proven_non_executing_route_contract",
+        "classification": "TESTED_SUPPORTING_CONTRACT",
+        "display_name": "Operator intent routing",
+        "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+        "sub_area_id": "operator_intent_routing"
+      }
+    ],
+    "unsafe_blocked": [
+      {
+        "authority_boundary": "Existing listener/router/session files are evidence/reference unless later gated; this map does not run them.",
+        "claim_level": "repo_a_files_present_but_live_runtime_blocked",
+        "classification": "LEGACY_OR_REFERENCE",
+        "display_name": "Chief listener / router / session concepts",
+        "next_safe_lane": "Chief Listener Router Reference Disposition v0",
+        "sub_area_id": "chief_listener_router_session"
+      },
+      {
+        "authority_boundary": "Use only governed metadata/intents until a cue parser rail proves boundaries.",
+        "claim_level": "legacy_file_present_safe_governance_not_complete",
+        "classification": "LEGACY_OR_REFERENCE",
+        "display_name": "Brain-dump / cue parser intake",
+        "next_safe_lane": "Governed Cue Parser Delta v0",
+        "sub_area_id": "brain_dump_cue_parser_intake"
+      },
+      {
+        "authority_boundary": "Planner/builder coordination remains blocked until later authority/security threshold work.",
+        "claim_level": "guardrail_only_until_security_threshold",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Planner/builder coordination",
+        "next_safe_lane": "Planner Builder Status Contract v0",
+        "sub_area_id": "planner_builder_coordination"
+      },
+      {
+        "authority_boundary": "Automatic repair is not modeled as current Chief authority.",
+        "claim_level": "unsafe_reference_only",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Automatic fix / repair loop concepts",
+        "next_safe_lane": "Automatic Repair Loop Contract Harvest v0",
+        "sub_area_id": "automatic_fix_repair_loop_concepts"
+      },
+      {
+        "authority_boundary": "No credentials, OAuth, browser, or private data access are available to Chief.",
+        "claim_level": "future_stage_3_or_4_only",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Protected access / broker concepts",
+        "next_safe_lane": "Protected Access Broker Concept Delta v0",
+        "sub_area_id": "protected_access_broker_concepts"
+      },
+      {
+        "authority_boundary": "No live Chief Telegram notification or send path is granted.",
+        "claim_level": "legacy_live_adjacency_blocked",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Telegram / notification concepts",
+        "next_safe_lane": "Chief Notification Boundary Review v0",
+        "sub_area_id": "telegram_notification_concepts"
+      },
+      {
+        "authority_boundary": "No LLM/Ollama call is part of current Chief proof.",
+        "claim_level": "legacy_service_concept_blocked",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "LLM / Ollama service concepts",
+        "next_safe_lane": "Chief LLM Boundary Contract v0",
+        "sub_area_id": "llm_ollama_service_concepts"
+      },
+      {
+        "authority_boundary": "Unknown Chief authority fails closed; this map is not a security pass.",
+        "claim_level": "explicitly_future_threshold",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "display_name": "Execution/security-threshold boundaries",
+        "next_safe_lane": "Chief Status Rail Completion v0",
+        "sub_area_id": "execution_security_threshold_boundaries"
+      }
+    ]
+  },
+  "telegram_notification_live": false,
+  "telegram_send_triggered": false,
+  "tool_execution_authority_added": false,
+  "unknown_chief_authority_fails_closed": true,
+  "visible_status_signals": {
+    "agent_work_packets": {
+      "agent_activation_allowed": false,
+      "chief_packet_count": 1,
+      "counts_by_status": {
+        "draft": 1
+      },
+      "execution_allowed": false,
+      "model_call_allowed": false,
+      "present": true,
+      "status_signal": "chief_packets_visible",
+      "tool_execution_allowed": false
+    },
+    "dropped_intents": {
+      "autonomous_prompting_allowed": false,
+      "chief_dropped_intent_count": 7,
+      "counts_by_status": {
+        "built": 1,
+        "deferred": 6,
+        "unresolved": 2
+      },
+      "model_call_allowed": false,
+      "notification_allowed": false,
+      "present": true,
+      "raw_private_scan_allowed": false,
+      "status_signal": "chief_deferred_or_unresolved_intents_visible"
+    },
+    "intent_router": {
+      "chief_route_count": 2,
+      "counts_by_category": {
+        "communication_summary_request": 1,
+        "file_context_request": 1,
+        "markdown_reorg_request": 1,
+        "read_model_refresh_request": 1,
+        "safety_review_request": 1
+      },
+      "direct_execution_allowed": false,
+      "model_execution_allowed": false,
+      "present": true,
+      "runtime_authority": false,
+      "source_posture": {
+        "cli": "local text source only",
+        "future_client_node": "metadata only until separately approved",
+        "mission_control": "metadata/request source only",
+        "report_bridge": "sanitized package/request metadata only",
+        "telegram": "metadata only; no Telegram API, polling, or sending wired",
+        "unknown": "allowed only as needs-review posture"
+      },
+      "status_signal": "chief_intent_routes_visible",
+      "tool_execution_allowed": false
+    },
+    "work_board": {
+      "agent_activation_allowed": false,
+      "chief_card_count": 23,
+      "counts_by_column": {
+        "completed_with_receipt": 3,
+        "deferred": 7,
+        "needs_review": 13,
+        "pending_approval": 1,
+        "planned": 4,
+        "routed": 25
+      },
+      "direct_execution_allowed": false,
+      "model_call_allowed": false,
+      "present": true,
+      "status_signal": "chief_routed_cards_visible",
+      "tool_execution_allowed": false
+    }
+  },
+  "work_packet_status_surfaces_available": {
+    "agent_work_packets_available": true,
+    "chief_card_count": 23,
+    "chief_dropped_intent_count": 7,
+    "chief_packet_count": 1,
+    "chief_route_count": 2,
+    "dropped_intents_available": true,
+    "intent_router_available": true,
+    "work_board_available": true
+  },
+  "work_packets_are_visibility_review_planning_only": true
+}
