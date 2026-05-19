@@ -34,6 +34,7 @@ DEFAULT_COMPLETION_MARKER_PATH = (
 DEFAULT_STATE_PATH = ROOT / ".openclaw" / "state" / "read_model_import_agent_state.json"
 DEFAULT_LOG_PATH = ROOT / ".openclaw" / "logs" / "read_model_import_agent.log"
 DEFAULT_REQUEST_MARKER_PATH = Path("/mnt/e/openclaw") / "shuttle" / "to_mac" / "read_model_sync_required.json"
+DEFAULT_READ_MODEL_ROOT = ROOT / "generated" / "read_models"
 FINAL_MAC_MIRROR_LIFECYCLE_STATE = "health_exported_waiting_for_mac_mirror"
 SELF_REPORT_FILES = frozenset(VOLATILE_SELF_REPORT_READ_MODEL_FILES)
 
@@ -136,6 +137,74 @@ def manifest_change_is_self_report_only(*, previous_manifest: str | Path, curren
     return any(previous_hashes.get(path) != current_hashes.get(path) for path in SELF_REPORT_FILES)
 
 
+def sync_health_self_report_mirror_state(
+    *,
+    manifest_path: str | Path,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
+    """Compare canonical sync-health self-report files to the Mac-visible manifest.
+
+    The sync-health read-model describes the mirror, but it is also mirrored as a
+    file. This helper detects the one routine case where all read-model content
+    is current but the app-readable sync-health self-report is still stale.
+    """
+
+    manifest = Path(manifest_path)
+    root = Path(read_model_root)
+    manifest_hashes = _manifest_hashes_by_path(manifest)
+    compared_files: list[dict[str, Any]] = []
+    stale_files: list[str] = []
+    missing_canonical_files: list[str] = []
+    missing_manifest_files: list[str] = []
+
+    for relative_path in sorted(SELF_REPORT_FILES):
+        canonical_path = root / relative_path
+        if not canonical_path.is_file():
+            missing_canonical_files.append(relative_path)
+            continue
+        canonical_hash = sha256_file(canonical_path)
+        manifest_hash = manifest_hashes.get(relative_path)
+        compared_files.append(
+            {
+                "relative_path": relative_path,
+                "canonical_sha256": canonical_hash,
+                "manifest_sha256": manifest_hash,
+                "canonical_size_bytes": canonical_path.stat().st_size,
+            }
+        )
+        if not manifest_hash:
+            missing_manifest_files.append(relative_path)
+            stale_files.append(relative_path)
+        elif manifest_hash != canonical_hash:
+            stale_files.append(relative_path)
+
+    marker_needed = bool(stale_files)
+    if marker_needed:
+        status = "stale_self_report_needs_mac_mirror"
+        reason = "Canonical sync-health self-report differs from the Mac-visible mirror copy."
+    elif missing_canonical_files:
+        status = "canonical_self_report_missing"
+        reason = "Canonical sync-health self-report files are missing; no final mirror marker can be requested."
+    else:
+        status = "self_report_current"
+        reason = "Mac-visible sync-health self-report matches canonical files."
+
+    return {
+        "status": status,
+        "reason": reason,
+        "marker_needed": marker_needed,
+        "manifest_path": manifest.as_posix(),
+        "read_model_root": root.as_posix(),
+        "self_report_files": sorted(SELF_REPORT_FILES),
+        "compared_files": compared_files,
+        "stale_files": stale_files,
+        "missing_canonical_files": missing_canonical_files,
+        "missing_manifest_files": missing_manifest_files,
+        "operator_action_required": False,
+        **NO_AUTHORITY_FLAGS,
+    }
+
+
 def _marker_pending(request_marker: Path, completion_marker: Path) -> bool:
     if not request_marker.is_file():
         return False
@@ -198,6 +267,60 @@ def write_final_mac_mirror_marker_if_needed(
     }
 
 
+def write_self_report_mac_mirror_marker_if_needed(
+    *,
+    self_report_state: dict[str, Any],
+    request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
+    completion_marker_path: str | Path = DEFAULT_COMPLETION_MARKER_PATH,
+) -> dict[str, Any]:
+    request_marker = Path(request_marker_path)
+    completion_marker = Path(completion_marker_path)
+    if not self_report_state.get("marker_needed"):
+        return {
+            "final_mac_mirror_marker_needed": False,
+            "final_mac_mirror_marker_written": False,
+            "reason": self_report_state.get("reason", "sync health self-report is current"),
+            "sync_lifecycle_state": "trusted_current",
+            "self_report_mirror_state": self_report_state,
+        }
+    if _marker_pending(request_marker, completion_marker):
+        return {
+            "final_mac_mirror_marker_needed": True,
+            "final_mac_mirror_marker_written": False,
+            "reason": "existing request marker is still pending Mac completion",
+            "request_marker_path": request_marker.as_posix(),
+            "sync_lifecycle_state": FINAL_MAC_MIRROR_LIFECYCLE_STATE,
+            "self_report_mirror_state": self_report_state,
+        }
+    import datetime as _datetime
+
+    request_marker.parent.mkdir(parents=True, exist_ok=True)
+    marker = {
+        "schema_version": "read_model_sync_required_v0",
+        "generated_at": _datetime.datetime.now(_datetime.timezone.utc).replace(microsecond=0).isoformat(),
+        "reason": "Canonical sync-health self-report is newer than the Mac-visible copy; mirror generated read-models back to Mac through the normal sync agent.",
+        "requested_by": "pc_read_model_import_agent",
+        "next_expected_responder": "mac_read_model_sync_agent",
+        "sync_lifecycle_state": FINAL_MAC_MIRROR_LIFECYCLE_STATE,
+        "operator_action_required": False,
+        "missing_expected_files": [],
+        "hash_mismatch_files": [],
+        "stale_self_report_files": list(self_report_state.get("stale_files") or []),
+        "manual_fallback_mac_command": "cd ~/Developer/OpenClawBackend/openclaw\nPYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator",
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+        **NO_AUTHORITY_FLAGS,
+    }
+    request_marker.write_text(stable_json(marker), encoding="utf-8")
+    return {
+        "final_mac_mirror_marker_needed": True,
+        "final_mac_mirror_marker_written": True,
+        "reason": marker["reason"],
+        "request_marker_path": request_marker.as_posix(),
+        "sync_lifecycle_state": FINAL_MAC_MIRROR_LIFECYCLE_STATE,
+        "self_report_mirror_state": self_report_state,
+    }
+
+
 def _completion_marker_summary(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {
@@ -250,6 +373,7 @@ def run_import_agent_once(
     importer: Importer = import_latest_mac_read_model_mirror,
     sync_health_refresher: SyncHealthRefresher = refresh_sync_health_from_manifest,
     request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
 ) -> dict[str, Any]:
     manifest = Path(manifest_path)
     completion_marker = Path(completion_marker_path)
@@ -281,6 +405,15 @@ def run_import_agent_once(
             and previous_refresh.get("sync_lifecycle_state") == "trusted_current"
             and previous_refresh.get("operator_action_required") is False
         ):
+            self_report_state = sync_health_self_report_mirror_state(
+                manifest_path=manifest,
+                read_model_root=read_model_root,
+            )
+            final_mac_mirror_request = write_self_report_mac_mirror_marker_if_needed(
+                self_report_state=self_report_state,
+                request_marker_path=request_marker_path,
+                completion_marker_path=completion_marker,
+            )
             status = _base_status(
                 status="skipped_unchanged",
                 manifest_path=manifest,
@@ -295,12 +428,7 @@ def run_import_agent_once(
                 message="Manifest hash matches and sync health is already trusted/current; refresh skipped to avoid generated churn.",
                 sync_health_refresh_skipped=True,
                 sync_health_refresh_skip_reason="trusted_current unchanged manifest",
-                final_mac_mirror_request={
-                    "final_mac_mirror_marker_needed": False,
-                    "final_mac_mirror_marker_written": False,
-                    "reason": "sync health is already trusted/current for this manifest",
-                    "sync_lifecycle_state": "trusted_current",
-                },
+                final_mac_mirror_request=final_mac_mirror_request,
                 **_completion_marker_summary(completion_marker),
             )
             write_state(
@@ -313,6 +441,8 @@ def run_import_agent_once(
                     "last_seen_manifest_sha256": manifest_hash,
                     "last_seen_manifest_path": manifest.as_posix(),
                     "last_skip_reason": status["sync_health_refresh_skip_reason"],
+                    "last_self_report_mirror_state": self_report_state,
+                    "last_final_mac_mirror_request": final_mac_mirror_request,
                     **NO_AUTHORITY_FLAGS,
                 },
             )
@@ -321,6 +451,7 @@ def run_import_agent_once(
                 "skipped_unchanged_trusted_current",
                 manifest_sha256=manifest_hash,
                 sync_health_refreshed=False,
+                final_mac_mirror_marker_written=final_mac_mirror_request.get("final_mac_mirror_marker_written"),
             )
             return status
         status = _base_status(

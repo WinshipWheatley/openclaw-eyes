@@ -172,6 +172,7 @@ def test_unchanged_trusted_current_manifest_skips_health_refresh_churn(tmp_path)
         log_path=tmp_path / "agent.log",
         importer=lambda **kwargs: (_ for _ in ()).throw(AssertionError("import should skip")),
         sync_health_refresher=lambda **kwargs: refresh_calls.append(kwargs),
+        read_model_root=tmp_path / "empty_read_models",
     )
 
     assert status["status"] == "skipped_unchanged"
@@ -179,6 +180,75 @@ def test_unchanged_trusted_current_manifest_skips_health_refresh_churn(tmp_path)
     assert status["sync_health_refresh_skip_reason"] == "trusted_current unchanged manifest"
     assert status["final_mac_mirror_request"]["final_mac_mirror_marker_needed"] is False
     assert refresh_calls == []
+
+
+def test_unchanged_trusted_current_manifest_requests_marker_for_stale_self_report(tmp_path):
+    read_models = tmp_path / "generated" / "read_models"
+    read_models.mkdir(parents=True)
+    (read_models / "sync_health.json").write_text('{"canonical": "new"}\n', encoding="utf-8")
+    (read_models / "sync_health_OPERATOR.md").write_text("# Canonical New\n", encoding="utf-8")
+    manifest = tmp_path / "mac_generated_read_models_manifest.json"
+    marker = tmp_path / "shuttle" / "to_mac" / "read_model_sync_required.json"
+    completion = tmp_path / "shuttle" / "from_mac" / "read_model_sync_completed.json"
+    _write_manifest(completion, '{"status": "synced"}\n')
+    manifest_payload = {
+        "path_records": [
+            {"relative_path": "alpha.json", "content_hash": "a" * 64},
+            {"relative_path": "sync_health.json", "content_hash": "1" * 64},
+            {"relative_path": "sync_health_OPERATOR.md", "content_hash": "2" * 64},
+        ]
+    }
+    _write_manifest(manifest, json.dumps(manifest_payload) + "\n")
+    digest = agent.sha256_file(manifest)
+    (tmp_path / "state.json").write_text(
+        json.dumps(
+            {
+                "last_successful_manifest_sha256": digest,
+                "last_imported_at": "2026-05-14T00:00:00+00:00",
+                "last_sync_health_refresh": {
+                    "sync_lifecycle_state": "trusted_current",
+                    "operator_action_required": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    refresh_calls = []
+
+    status = agent.run_import_agent_once(
+        manifest_path=manifest,
+        completion_marker_path=completion,
+        state_path=tmp_path / "state.json",
+        log_path=tmp_path / "agent.log",
+        importer=lambda **kwargs: (_ for _ in ()).throw(AssertionError("import should skip")),
+        sync_health_refresher=lambda **kwargs: refresh_calls.append(kwargs),
+        request_marker_path=marker,
+        read_model_root=read_models,
+    )
+
+    assert status["status"] == "skipped_unchanged"
+    assert status["sync_health_refresh_skipped"] is True
+    assert refresh_calls == []
+    final_request = status["final_mac_mirror_request"]
+    assert final_request["final_mac_mirror_marker_needed"] is True
+    assert final_request["final_mac_mirror_marker_written"] is True
+    assert final_request["sync_lifecycle_state"] == agent.FINAL_MAC_MIRROR_LIFECYCLE_STATE
+    assert final_request["self_report_mirror_state"]["stale_files"] == [
+        "sync_health.json",
+        "sync_health_OPERATOR.md",
+    ]
+    payload = _read_json(marker)
+    assert payload["requested_by"] == "pc_read_model_import_agent"
+    assert payload["next_expected_responder"] == "mac_read_model_sync_agent"
+    assert payload["operator_action_required"] is False
+    assert payload["stale_self_report_files"] == [
+        "sync_health.json",
+        "sync_health_OPERATOR.md",
+    ]
+    state = _read_json(tmp_path / "state.json")
+    assert state["last_final_mac_mirror_request"]["final_mac_mirror_marker_written"] is True
+    assert state["last_self_report_mirror_state"]["marker_needed"] is True
+
 
 def test_unchanged_manifest_health_export_requests_final_mac_mirror(tmp_path):
     manifest = tmp_path / "mac_generated_read_models_manifest.json"
