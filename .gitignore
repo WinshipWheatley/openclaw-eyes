@@ -78,6 +78,7 @@
 !protected_access_broker_concept.py
 !protected_evidence_reference_receipt.py
 !guardian_protected_access_gate_spec.py
+!capability_skill_registry_metadata_delta.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -693,6 +694,7 @@
 !scripts/export_protected_access_broker_concept.py
 !scripts/export_protected_evidence_reference_receipt.py
 !scripts/export_guardian_protected_access_gate_spec.py
+!scripts/export_capability_skill_registry_metadata_delta.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
 !scripts/build_active_machinery_operator_disposition.py
@@ -744,6 +746,7 @@
 !tests/test_protected_access_broker_concept.py
 !tests/test_protected_evidence_reference_receipt.py
 !tests/test_guardian_protected_access_gate_spec.py
+!tests/test_capability_skill_registry_metadata_delta.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
 !tests/test_active_machinery_operator_disposition.py
