@@ -1,0 +1,3996 @@
+{
+  "approval_execution_authority_added": false,
+  "arbitrary_shell_allowed": false,
+  "browser_or_coupa_authority_added": false,
+  "chief_complete_as_one_rail_now": false,
+  "chief_modeled_as_executor": false,
+  "chief_runtime_modules_imported": false,
+  "chief_sub_area_count": 16,
+  "chief_sub_areas": [
+    {
+      "authority_boundary": "Chief may be represented as coordination/status/planning substrate only; executor authority fails closed.",
+      "blocked_or_future_gated": [
+        "direct execution",
+        "approval decisions",
+        "live runtime control",
+        "client deployment"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_partial_inferred_broad",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Chief identity / role / boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_lane_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "canonical lane seed for Chief role and authority",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo A rail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears to be a coordination spine across status, routing, work packets, and domain-specific brains.",
+        "Chief should not be collapsed to only planner unless a later rail proves that narrower identity."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Older memory suggests Chief may have been a central listener/router/session/approval/domain-brain system."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "Guardian",
+        "Niles",
+        "Report Bridge",
+        "Mission Control",
+        "custom-build"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Agent Lane Registry describes Chief as request-only coordination that can prepare plans, routing decisions, and Codex work packets.",
+        "Repo A rail map classifies Chief orchestration/work packets as visible but not authority-ready."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_identity_role_boundaries",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Existing listener/router/session files are evidence/reference unless later gated; this map does not run them.",
+      "blocked_or_future_gated": [
+        "Telegram replies",
+        "route_message runtime",
+        "session mutation as authority",
+        "systemd listener activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "repo_a_files_present_but_live_runtime_blocked",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Chief listener / router / session concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_listener.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/live-adjacent Telegram listener",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy router importing many runtime brains",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_session_manager.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy session state helper",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "warning-only machinery read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "The filenames imply an older Telegram-to-router-to-session flow."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Listener Router Reference Disposition v0",
+      "operator_memory_guidance": [
+        "Older memory map names Telegram to Chief Listener to Chief Router to Chief Session Manager."
+      ],
+      "overlaps": [
+        "Telegram intake",
+        "Cassandra intake",
+        "Guardian",
+        "work packets"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Chief listener/router/session files exist in Repo A.",
+        "Active machinery read-models classify Chief listener surfaces as warning-only/high-risk rather than canonical live authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_listener_router_session",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Status visibility only; no work execution, service control, or live notification.",
+      "blocked_or_future_gated": [
+        "live status daemon",
+        "automatic status push",
+        "runtime watcher"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "partially_proven_read_model_gap",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Chief status posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent route visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Chief status delta recommendation",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief status likely needs a separate rail because status is spread across work board, packets, intent routing, and old Chief files."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Chief may have been where real work flowed, but Repo A has not yet completed a single Chief status proof rail."
+      ],
+      "overlaps": [
+        "work_board",
+        "agent_work_packet",
+        "intent_router",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board, Agent Work Packet, and Intent Router read-models contain Chief-routed planning/status artifacts.",
+        "Repo B delta recommends Chief status/readiness semantics as the next safe harvest, not runtime brains."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_status_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Work packets are review/planning artifacts; they do not execute commands or activate agents.",
+      "blocked_or_future_gated": [
+        "auto-execute",
+        "agent activation",
+        "model/tool execution",
+        "approval bypass"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_control_plane_artifact",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Chief work packets",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe work board control-plane module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe agent work packet module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears connected to bounded planning/work packet flow rather than execution authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "This may be the safer Repo A replacement for older Chief flow-through work machinery."
+      ],
+      "overlaps": [
+        "Chief status",
+        "operator intent routing",
+        "Codex work",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board and Agent Work Packet modules explicitly deny direct execution, agent activation, model calls, and tool execution.",
+        "Generated read-models show Chief-routed cards/packets as planning artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "dropped_intent_task_queue_timing"
+      ],
+      "sub_area_id": "chief_work_packets",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Routing metadata only; unknown authority fails closed.",
+      "blocked_or_future_gated": [
+        "action auto-create",
+        "approval auto-execute",
+        "runtime command dispatch"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_non_executing_route_contract",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Operator intent routing",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "intent_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "deterministic non-executing intent router",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "surface-neutral intent classifier",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent router read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent core tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief is one target in a broader operator-intent routing substrate."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "Cassandra may have accessed Chief flow indirectly through routing rather than owning the flow."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "work_board",
+        "agent_lane_registry",
+        "operator_action"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Intent Router records deterministic routes to agent lanes and denies direct execution, model execution, tool execution, and approval bypass.",
+        "Intent Router maps the phrase Chief to the Chief lane for routing, not execution."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "operator_intent_routing",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Queue posture may classify work timing; it must not generate or run work automatically.",
+      "blocked_or_future_gated": [
+        "queue auto-generation",
+        "polish loop activation",
+        "cron/supervisor execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "concept_partly_represented_execution_blocked",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Build-now-vs-hold queue posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue balancer path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_validator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue validator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "queue timing delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old queue files imply timing and workload-balancing concepts, but not safe current authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "The remembered build-now-vs-hold workflow may belong under Chief status/queue posture."
+      ],
+      "overlaps": [
+        "dropped_intents",
+        "work_board",
+        "planner_builder_guardrails"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent read-model tracks deferred/unresolved operator directions as metadata.",
+        "Repo B delta identifies queue timing as worth bringing forward as decision support only."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "build_now_vs_hold_queue_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Use only governed metadata/intents until a cue parser rail proves boundaries.",
+      "blocked_or_future_gated": [
+        "broad Markdown ingestion",
+        "Ollama parsing",
+        "file moves",
+        "raw note truth promotion"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_file_present_safe_governance_not_complete",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Brain-dump / cue parser intake",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy parser with LLM/file movement behavior",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "dropped_intent_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "governed dropped intent metadata registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Cue parsing likely overlaps with Chief intake and queue posture."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Governed Cue Parser Delta v0",
+      "operator_memory_guidance": [
+        "Older memory mentions brain-dump/cue parsing as part of the work intake environment."
+      ],
+      "overlaps": [
+        "operator_intent",
+        "dropped_intents",
+        "Chief status"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent Registry is metadata/read-model only and denies autonomous prompting, model calls, notifications, and raw private scans.",
+        "A legacy brain dump parser exists but is not proven as a governed current rail."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "brain_dump_cue_parser_intake",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Planner/builder coordination remains blocked until later authority/security threshold work.",
+      "blocked_or_future_gated": [
+        "agentic builder loop",
+        "runner activation",
+        "tool/model execution",
+        "self-repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "guardrail_only_until_security_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Planner/builder coordination",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "block-later machinery guardrails",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "planner/builder guardrail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "polish_loop/orchestrator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/high-risk orchestrator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may be adjacent to planner/builder coordination, but current proof is guardrail-only."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Planner Builder Status Contract v0",
+      "operator_memory_guidance": [
+        "Older memory suggests deterministic and agentic planner/builder automation existed around Chief."
+      ],
+      "overlaps": [
+        "Chief",
+        "Codex",
+        "builder",
+        "active_machinery",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A active-machinery guardrails mark high-risk surfaces as warning/read-model only.",
+        "Repo A known rail map says planner/builder automation guardrails are not ready for authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops"
+      ],
+      "sub_area_id": "planner_builder_coordination",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Automatic repair is not modeled as current Chief authority.",
+      "blocked_or_future_gated": [
+        "self-repair",
+        "auto mutation",
+        "unattended test/fix loop",
+        "service restart"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "unsafe_reference_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Automatic fix / repair loop concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "quarantine decision packet",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue automation concept",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Queue and repair-loop concepts may exist as old automation ideas, not current safe behavior."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Automatic Repair Loop Contract Harvest v0",
+      "operator_memory_guidance": [
+        "Older automatic fix loops may have been part of the older Chief/planner ecosystem."
+      ],
+      "overlaps": [
+        "planner_builder_coordination",
+        "operator_sovereignty",
+        "active_machinery"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks higher-power runtime/automation until controls exist.",
+        "Active machinery quarantine rails keep high-risk machinery warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "automatic_fix_repair_loop_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Capability registry metadata may inform routing; executable skill loading remains blocked.",
+      "blocked_or_future_gated": [
+        "skill execution",
+        "tool execution",
+        "runtime plugin loading"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "metadata_only_partially_represented",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Capability / skill registry metadata",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "module_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "module planning registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "capability_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy capability registry",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "custom_build_module_detangling_contract.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "custom-build detangling contract",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "capability registry delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may need capability metadata to route work without loading executable skills."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Capability Skill Registry Metadata Delta v0",
+      "operator_memory_guidance": [
+        "Older memory names many domain brains; a safe registry could describe them without activating them."
+      ],
+      "overlaps": [
+        "module_registry",
+        "custom_build",
+        "Chief domains",
+        "Report Bridge"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Module Registry is planning-only and grants no runtime/tool/deployment/network/model/agent authority.",
+        "Custom-build detangling contract treats capabilities as modular planning substrate."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "capability_skill_registry"
+      ],
+      "sub_area_id": "capability_skill_registry_metadata",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No credentials, OAuth, browser, or private data access are available to Chief.",
+      "blocked_or_future_gated": [
+        "credential access",
+        "PII broker",
+        "OAuth",
+        "browser automation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "future_stage_3_or_4_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Protected access / broker concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "email/calendar boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Protected access may eventually support Chief-routed work, but current Chief should not access secrets."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Protected Access Broker Concept Delta v0",
+      "operator_memory_guidance": [
+        "Older memory and Repo B delta mention protected access/OAuth/PII concepts."
+      ],
+      "overlaps": [
+        "Guardian",
+        "Cassandra",
+        "finance",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks credential/PII broker and browser automation controls until future stages."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "oauth_tool_browser_credential_bridges",
+        "pii_vault_protected_broker_concept"
+      ],
+      "sub_area_id": "protected_access_broker_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No live Chief Telegram notification or send path is granted.",
+      "blocked_or_future_gated": [
+        "Telegram send",
+        "Guardian live notification",
+        "reply authority",
+        "service activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_live_adjacency_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Telegram / notification concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_notify.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Telegram notification path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_sender.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy sender path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "notification surfaces warning-only",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Legacy Chief could notify/push via Telegram, but that is not current safe authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Notification Boundary Review v0",
+      "operator_memory_guidance": [
+        "Older memory mentions chief_notify.py and Telegram push."
+      ],
+      "overlaps": [
+        "Telegram",
+        "Guardian",
+        "Cassandra"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Active machinery quarantine identifies Chief sender/listener surfaces as high-risk warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "guardian_legacy_approval_hitl"
+      ],
+      "sub_area_id": "telegram_notification_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No LLM/Ollama call is part of current Chief proof.",
+      "blocked_or_future_gated": [
+        "Ollama call",
+        "model execution",
+        "tool-augmented LLM flow"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_service_concept_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "LLM / Ollama service concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_llm.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy LLM helper path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Ollama caller path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old Chief code appears to include LLM/Ollama helper concepts."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief LLM Boundary Contract v0",
+      "operator_memory_guidance": [
+        "Older memory map includes Chief LLM / Ollama service."
+      ],
+      "overlaps": [
+        "brain_dump",
+        "planner_builder",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work packet and intent-router rails deny model execution authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "llm_ollama_service_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Domain overlaps should route to their governed rails; legacy domain brains remain evidence/reference.",
+      "blocked_or_future_gated": [
+        "domain brain activation",
+        "raw creative/client scans",
+        "finance/spreadsheet execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "many_domain_paths_memory_guidance_only_until_subrails",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Domain brain overlaps",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_album_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy album domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_financial_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy finance domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_email_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy communications domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Niles music read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "finance read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "communications read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may historically have coordinated many domains; current Repo A should split those overlaps into bounded rails."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Domain Overlap Segmentation Review v0",
+      "operator_memory_guidance": [
+        "Older memory names domain brains for album production, finance, marketing, communications, health, infrastructure, website, research, analytics, consulting, Fundo, and Trinity audit."
+      ],
+      "overlaps": [
+        "Niles",
+        "Capital Hilton finance",
+        "Cassandra",
+        "Report Bridge",
+        "custom-build",
+        "website"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A has separate safer rails for Niles/music, Capital Hilton finance, and Cassandra communications.",
+        "Chief domain brain files exist but are not the canonical authority for those current rails."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "niles_music_producer_album",
+        "budget_tracker_finance_legacy",
+        "report_bridge_client_company_reporting"
+      ],
+      "sub_area_id": "domain_brain_overlaps",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Visibility only; no Mission Control execution path is added.",
+      "blocked_or_future_gated": [
+        "app action buttons",
+        "service controls",
+        "send/submit controls"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "read_model_visibility_no_app_change",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Mission Control visibility",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/sync_health.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "mirror trust read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief-specific Mission Control status likely needs a future read-model surface rather than app changes in this lane."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Winship needs to know where work should flow without staring at backend plumbing."
+      ],
+      "overlaps": [
+        "Mission Control",
+        "sync/mirror trust",
+        "work board"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A emits Chief-adjacent read-models that can be mirrored as visibility artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "mission_control_visibility",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Unknown Chief authority fails closed; this map is not a security pass.",
+      "blocked_or_future_gated": [
+        "live execution",
+        "browser/Coupa",
+        "credentials",
+        "approval execution",
+        "client deployment",
+        "autonomous repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "explicitly_future_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Execution/security-threshold boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "operator sovereignty stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "known rails maturity baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief might eventually coordinate higher-power workflows, but only after separate gated authority lanes."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Operator wants the broader system raised to known steel-thread maturity before real live authority."
+      ],
+      "overlaps": [
+        "Guardian",
+        "operator_sovereignty",
+        "active_machinery",
+        "Estate node registry"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Current OpenClaw power stage is visibility/read-model/review-packet oriented.",
+        "Repo A and Repo B maps both say live execution/security threshold work is future, not current."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "oauth_tool_browser_credential_bridges"
+      ],
+      "sub_area_id": "execution_security_threshold_boundaries",
+      "unknown_authority_fails_closed": true
+    }
+  ],
+  "claim_level_counts": {
+    "concept_partly_represented_execution_blocked": 1,
+    "explicitly_future_threshold": 1,
+    "future_stage_3_or_4_only": 1,
+    "guardrail_only_until_security_threshold": 1,
+    "legacy_file_present_safe_governance_not_complete": 1,
+    "legacy_live_adjacency_blocked": 1,
+    "legacy_service_concept_blocked": 1,
+    "many_domain_paths_memory_guidance_only_until_subrails": 1,
+    "metadata_only_partially_represented": 1,
+    "partially_proven_read_model_gap": 1,
+    "proven_control_plane_artifact": 1,
+    "proven_non_executing_route_contract": 1,
+    "proven_partial_inferred_broad": 1,
+    "read_model_visibility_no_app_change": 1,
+    "repo_a_files_present_but_live_runtime_blocked": 1,
+    "unsafe_reference_only": 1
+  },
+  "classification_counts": {
+    "LEGACY_OR_REFERENCE": 2,
+    "PARTIALLY_REPRESENTED": 4,
+    "SEGMENTATION_REQUIRED": 2,
+    "TESTED_SUPPORTING_CONTRACT": 2,
+    "UNSAFE_OR_BLOCKED": 6
+  },
+  "classification_labels": [
+    "PROVEN_CANONICAL",
+    "TESTED_SUPPORTING_CONTRACT",
+    "PARTIALLY_REPRESENTED",
+    "INFERRED_NOT_PROVEN",
+    "OPERATOR_MEMORY_ONLY",
+    "SEGMENTATION_REQUIRED",
+    "LEGACY_OR_REFERENCE",
+    "UNSAFE_OR_BLOCKED",
+    "UNKNOWN_NEEDS_REVIEW"
+  ],
+  "client_deployment_authority_added": false,
+  "credential_or_pii_access_added": false,
+  "execution_authority_added": false,
+  "future_lane_recommendations": [
+    {
+      "lane_name": "Chief Status Rail Completion v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract/status work only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Segment Chief role safely before any runtime or module extraction work.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_61209cadacddb28a4269",
+        "gate_status": "pass",
+        "lane_name": "Chief Status Rail Completion v0",
+        "lane_summary": "Turn the segmented Chief status evidence into one review-only Chief status/readiness packet.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Chief sub-rails should be recorded and lifted incrementally, not extracted or activated here.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Winship needs truthful Chief status/readiness without running Chief.",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable status/readiness substrate for broad coordination rails.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "chief_status_readiness_gap",
+        "steel_thread_contract_link": "chief_role_capability_segmentation_map_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Chief status read-model and operator packet with runtime blocked."
+      },
+      "why_next": "Turn the segmented Chief status evidence into one review-only Chief status/readiness packet."
+    },
+    {
+      "lane_name": "Build Now Vs Hold Queue Posture v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract/status work only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Segment Chief role safely before any runtime or module extraction work.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_1d7a8840d4179427bcc0",
+        "gate_status": "pass",
+        "lane_name": "Build Now Vs Hold Queue Posture v0",
+        "lane_summary": "Model build-now-vs-hold timing from dropped-intent/work-board evidence without executing queues.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Chief sub-rails should be recorded and lifted incrementally, not extracted or activated here.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Winship needs deferred ideas separated from work that is ready to build.",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable timing posture for Chief/work-board planning.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "queue_timing_decision_gap",
+        "steel_thread_contract_link": "dropped_intents_work_board_read_models",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Queue posture read-model showing build-now, hold, and memory-review buckets."
+      },
+      "why_next": "Model build-now-vs-hold timing from dropped-intent/work-board evidence without executing queues."
+    },
+    {
+      "lane_name": "Chief Domain Overlap Segmentation Review v0",
+      "post_preflight_batch_gate_evaluation": {
+        "abstract_prep_allowed_without_workflow": false,
+        "authority_change_requested": {
+          "authority_types": [],
+          "reason": "Read-model/contract/status work only.",
+          "requested": false
+        },
+        "authority_gate_required": false,
+        "batch_by_shared_bottleneck": true,
+        "briar_patch_operator_language_only": true,
+        "client_repo_generation_added": false,
+        "customer_deployment_authority_added": false,
+        "detangling_scope": {
+          "client_repo_generation_requested": false,
+          "detangling_required_before_workflow_proof": false,
+          "notes": "Segment Chief role safely before any runtime or module extraction work.",
+          "opportunistic_only": true,
+          "physical_module_extraction_requested": false,
+          "serves_lane_directly": true
+        },
+        "expected_artifacts": [
+          {
+            "artifact_kind": "read_model",
+            "path_or_contract": "generated/read_models/<future>.json"
+          },
+          {
+            "artifact_kind": "operator_packet",
+            "path_or_contract": "generated/read_models/<future>_OPERATOR.md"
+          },
+          {
+            "artifact_kind": "test_proof",
+            "path_or_contract": "focused tests"
+          }
+        ],
+        "failure_reasons": [],
+        "gate_object_id": "postpreflightgate_28e63a038d31448b2b96",
+        "gate_status": "pass",
+        "lane_name": "Chief Domain Overlap Segmentation Review v0",
+        "lane_summary": "Split Chief domain-brain overlaps into owned rails like Cassandra, Niles, finance, Report Bridge, and custom-build.",
+        "mission_control_app_changed": false,
+        "model_execution_authority_added": false,
+        "module_extraction_added": false,
+        "module_split_disposition": {
+          "disposition": "record_future_work",
+          "reason": "Chief sub-rails should be recorded and lifted incrementally, not extracted or activated here.",
+          "recorded_future_work": true
+        },
+        "named_operator_workflow": "Winship needs old Chief domain concepts mapped to current steel-thread rails.",
+        "one_batch_reusable_substrate_plus_workflow_proof": true,
+        "recommendation": "proceed_with_lane_and_record_module_split_for_future_work",
+        "repo_b_execution_allowed": false,
+        "reusable_substrate_improvement": "Reusable overlap mapping that prevents old Chief domain brains from becoming default authority.",
+        "runtime_authority_added": false,
+        "send_or_submit_authority_added": false,
+        "shared_bottleneck": "chief_domain_overlap_gap",
+        "steel_thread_contract_link": "chief_role_capability_segmentation_map_v0",
+        "synthetic_example": false,
+        "tool_execution_authority_added": false,
+        "validation_required": [
+          "focused tests",
+          "JSON validation",
+          "authority flags"
+        ],
+        "workflow_proof_output": "Domain-overlap read-model with future rail ownership recommendations."
+      },
+      "why_next": "Split Chief domain-brain overlaps into owned rails like Cassandra, Niles, finance, Report Bridge, and custom-build."
+    }
+  ],
+  "generated_at": "2026-05-19T00:25:22+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_credentials_accessed": false,
+  "inferred_not_proven": [
+    {
+      "authority_boundary": "Chief may be represented as coordination/status/planning substrate only; executor authority fails closed.",
+      "blocked_or_future_gated": [
+        "direct execution",
+        "approval decisions",
+        "live runtime control",
+        "client deployment"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_partial_inferred_broad",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Chief identity / role / boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_lane_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "canonical lane seed for Chief role and authority",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo A rail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears to be a coordination spine across status, routing, work packets, and domain-specific brains.",
+        "Chief should not be collapsed to only planner unless a later rail proves that narrower identity."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Older memory suggests Chief may have been a central listener/router/session/approval/domain-brain system."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "Guardian",
+        "Niles",
+        "Report Bridge",
+        "Mission Control",
+        "custom-build"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Agent Lane Registry describes Chief as request-only coordination that can prepare plans, routing decisions, and Codex work packets.",
+        "Repo A rail map classifies Chief orchestration/work packets as visible but not authority-ready."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_identity_role_boundaries",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Domain overlaps should route to their governed rails; legacy domain brains remain evidence/reference.",
+      "blocked_or_future_gated": [
+        "domain brain activation",
+        "raw creative/client scans",
+        "finance/spreadsheet execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "many_domain_paths_memory_guidance_only_until_subrails",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Domain brain overlaps",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_album_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy album domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_financial_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy finance domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_email_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy communications domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Niles music read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "finance read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "communications read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may historically have coordinated many domains; current Repo A should split those overlaps into bounded rails."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Domain Overlap Segmentation Review v0",
+      "operator_memory_guidance": [
+        "Older memory names domain brains for album production, finance, marketing, communications, health, infrastructure, website, research, analytics, consulting, Fundo, and Trinity audit."
+      ],
+      "overlaps": [
+        "Niles",
+        "Capital Hilton finance",
+        "Cassandra",
+        "Report Bridge",
+        "custom-build",
+        "website"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A has separate safer rails for Niles/music, Capital Hilton finance, and Cassandra communications.",
+        "Chief domain brain files exist but are not the canonical authority for those current rails."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "niles_music_producer_album",
+        "budget_tracker_finance_legacy",
+        "report_bridge_client_company_reporting"
+      ],
+      "sub_area_id": "domain_brain_overlaps",
+      "unknown_authority_fails_closed": true
+    }
+  ],
+  "live_execution_recommended": false,
+  "llm_ollama_authority_added": false,
+  "llm_ollama_called": false,
+  "llm_ollama_tool_concepts_non_live": true,
+  "mission_control_app_changed": false,
+  "no_authority_flags": {
+    "approval_execution_authority_added": false,
+    "arbitrary_shell_allowed": false,
+    "browser_or_coupa_authority_added": false,
+    "chief_modeled_as_executor": false,
+    "chief_runtime_modules_imported": false,
+    "client_deployment_authority_added": false,
+    "credential_or_pii_access_added": false,
+    "execution_authority_added": false,
+    "gmail_calendar_coupa_credentials_accessed": false,
+    "llm_ollama_authority_added": false,
+    "llm_ollama_called": false,
+    "mission_control_app_changed": false,
+    "old_files_treated_as_truth": false,
+    "planner_builder_automation_activated": false,
+    "repair_fix_loop_activated": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "security_pass_started": false,
+    "send_or_submit_authority_added": false,
+    "telegram_notification_live": false,
+    "telegram_send_triggered": false,
+    "tool_or_browser_authority_added": false
+  },
+  "old_automation_fix_loop_concepts_blocked": true,
+  "old_files_treated_as_truth": false,
+  "operator_eli5_summary": {
+    "blocked_or_reference_only": [
+      "Chief listener / router / session concepts",
+      "Brain-dump / cue parser intake",
+      "Planner/builder coordination",
+      "Automatic fix / repair loop concepts",
+      "Protected access / broker concepts",
+      "Telegram / notification concepts",
+      "LLM / Ollama service concepts",
+      "Execution/security-threshold boundaries"
+    ],
+    "can_chief_be_completed_as_one_rail_now": false,
+    "cannot_do_yet": "No live Telegram push, LLM/Ollama calls, watcher loops, arbitrary shell, planner/builder automation, approval execution, credentials, or repair loops.",
+    "needs_winship_memory_review": [
+      "Chief identity / role / boundaries",
+      "Chief listener / router / session concepts",
+      "Build-now-vs-hold queue posture",
+      "Brain-dump / cue parser intake",
+      "Planner/builder coordination",
+      "Automatic fix / repair loop concepts",
+      "Capability / skill registry metadata",
+      "Domain brain overlaps"
+    ],
+    "next_1_to_3_chief_lanes": [
+      "Chief Status Rail Completion v0",
+      "Build Now Vs Hold Queue Posture v0",
+      "Chief Domain Overlap Segmentation Review v0"
+    ],
+    "older_repo_b_vault_map_implication": "The old map looks like a dense multi-domain Chief system; Repo A should harvest concepts through bounded sub-rails, not treat the old shape as current truth.",
+    "safe_help_now": "Use Chief-adjacent read-models for status, routing, deferred-work posture, and bounded work packets.",
+    "summary_text": "Repo A proves pieces of Chief, not one finished Chief rail. The safest current read is that Chief is a coordination/status/work-packet area: it can be represented in routing, Work Board, and packet read-models, but it is not proven as a live executor. The older memory map points to a much larger Chief with listeners, sessions, domain brains, notifications, LLMs, and workers. Those ideas should be split into sub-rails before anything runs.",
+    "tracked_or_partially_tracked": [
+      "Chief status posture",
+      "Chief work packets",
+      "Operator intent routing",
+      "Build-now-vs-hold queue posture",
+      "Capability / skill registry metadata",
+      "Mission Control visibility"
+    ],
+    "what_chief_is_proven_to_be_in_repo_a": "A request-only coordination and planning lane with work-board, intent-routing, and agent-work-packet evidence.",
+    "what_chief_might_be_but_is_not_yet_proven": "A broader central orchestration spine spanning listener/router/session/status/domain-brain concepts."
+  },
+  "operator_memory_or_repo_b_vault_map_guidance": [
+    {
+      "authority_boundary": "Chief may be represented as coordination/status/planning substrate only; executor authority fails closed.",
+      "blocked_or_future_gated": [
+        "direct execution",
+        "approval decisions",
+        "live runtime control",
+        "client deployment"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_partial_inferred_broad",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Chief identity / role / boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_lane_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "canonical lane seed for Chief role and authority",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo A rail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears to be a coordination spine across status, routing, work packets, and domain-specific brains.",
+        "Chief should not be collapsed to only planner unless a later rail proves that narrower identity."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Older memory suggests Chief may have been a central listener/router/session/approval/domain-brain system."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "Guardian",
+        "Niles",
+        "Report Bridge",
+        "Mission Control",
+        "custom-build"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Agent Lane Registry describes Chief as request-only coordination that can prepare plans, routing decisions, and Codex work packets.",
+        "Repo A rail map classifies Chief orchestration/work packets as visible but not authority-ready."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_identity_role_boundaries",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Existing listener/router/session files are evidence/reference unless later gated; this map does not run them.",
+      "blocked_or_future_gated": [
+        "Telegram replies",
+        "route_message runtime",
+        "session mutation as authority",
+        "systemd listener activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "repo_a_files_present_but_live_runtime_blocked",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Chief listener / router / session concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_listener.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/live-adjacent Telegram listener",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy router importing many runtime brains",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_session_manager.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy session state helper",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "warning-only machinery read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "The filenames imply an older Telegram-to-router-to-session flow."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Listener Router Reference Disposition v0",
+      "operator_memory_guidance": [
+        "Older memory map names Telegram to Chief Listener to Chief Router to Chief Session Manager."
+      ],
+      "overlaps": [
+        "Telegram intake",
+        "Cassandra intake",
+        "Guardian",
+        "work packets"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Chief listener/router/session files exist in Repo A.",
+        "Active machinery read-models classify Chief listener surfaces as warning-only/high-risk rather than canonical live authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_listener_router_session",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Status visibility only; no work execution, service control, or live notification.",
+      "blocked_or_future_gated": [
+        "live status daemon",
+        "automatic status push",
+        "runtime watcher"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "partially_proven_read_model_gap",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Chief status posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent route visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Chief status delta recommendation",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief status likely needs a separate rail because status is spread across work board, packets, intent routing, and old Chief files."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Chief may have been where real work flowed, but Repo A has not yet completed a single Chief status proof rail."
+      ],
+      "overlaps": [
+        "work_board",
+        "agent_work_packet",
+        "intent_router",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board, Agent Work Packet, and Intent Router read-models contain Chief-routed planning/status artifacts.",
+        "Repo B delta recommends Chief status/readiness semantics as the next safe harvest, not runtime brains."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_status_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Work packets are review/planning artifacts; they do not execute commands or activate agents.",
+      "blocked_or_future_gated": [
+        "auto-execute",
+        "agent activation",
+        "model/tool execution",
+        "approval bypass"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_control_plane_artifact",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Chief work packets",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe work board control-plane module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe agent work packet module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears connected to bounded planning/work packet flow rather than execution authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "This may be the safer Repo A replacement for older Chief flow-through work machinery."
+      ],
+      "overlaps": [
+        "Chief status",
+        "operator intent routing",
+        "Codex work",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board and Agent Work Packet modules explicitly deny direct execution, agent activation, model calls, and tool execution.",
+        "Generated read-models show Chief-routed cards/packets as planning artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "dropped_intent_task_queue_timing"
+      ],
+      "sub_area_id": "chief_work_packets",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Routing metadata only; unknown authority fails closed.",
+      "blocked_or_future_gated": [
+        "action auto-create",
+        "approval auto-execute",
+        "runtime command dispatch"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_non_executing_route_contract",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Operator intent routing",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "intent_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "deterministic non-executing intent router",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "surface-neutral intent classifier",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent router read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent core tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief is one target in a broader operator-intent routing substrate."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "Cassandra may have accessed Chief flow indirectly through routing rather than owning the flow."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "work_board",
+        "agent_lane_registry",
+        "operator_action"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Intent Router records deterministic routes to agent lanes and denies direct execution, model execution, tool execution, and approval bypass.",
+        "Intent Router maps the phrase Chief to the Chief lane for routing, not execution."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "operator_intent_routing",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Queue posture may classify work timing; it must not generate or run work automatically.",
+      "blocked_or_future_gated": [
+        "queue auto-generation",
+        "polish loop activation",
+        "cron/supervisor execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "concept_partly_represented_execution_blocked",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Build-now-vs-hold queue posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue balancer path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_validator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue validator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "queue timing delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old queue files imply timing and workload-balancing concepts, but not safe current authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "The remembered build-now-vs-hold workflow may belong under Chief status/queue posture."
+      ],
+      "overlaps": [
+        "dropped_intents",
+        "work_board",
+        "planner_builder_guardrails"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent read-model tracks deferred/unresolved operator directions as metadata.",
+        "Repo B delta identifies queue timing as worth bringing forward as decision support only."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "build_now_vs_hold_queue_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Use only governed metadata/intents until a cue parser rail proves boundaries.",
+      "blocked_or_future_gated": [
+        "broad Markdown ingestion",
+        "Ollama parsing",
+        "file moves",
+        "raw note truth promotion"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_file_present_safe_governance_not_complete",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Brain-dump / cue parser intake",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy parser with LLM/file movement behavior",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "dropped_intent_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "governed dropped intent metadata registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Cue parsing likely overlaps with Chief intake and queue posture."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Governed Cue Parser Delta v0",
+      "operator_memory_guidance": [
+        "Older memory mentions brain-dump/cue parsing as part of the work intake environment."
+      ],
+      "overlaps": [
+        "operator_intent",
+        "dropped_intents",
+        "Chief status"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent Registry is metadata/read-model only and denies autonomous prompting, model calls, notifications, and raw private scans.",
+        "A legacy brain dump parser exists but is not proven as a governed current rail."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "brain_dump_cue_parser_intake",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Planner/builder coordination remains blocked until later authority/security threshold work.",
+      "blocked_or_future_gated": [
+        "agentic builder loop",
+        "runner activation",
+        "tool/model execution",
+        "self-repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "guardrail_only_until_security_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Planner/builder coordination",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "block-later machinery guardrails",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "planner/builder guardrail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "polish_loop/orchestrator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/high-risk orchestrator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may be adjacent to planner/builder coordination, but current proof is guardrail-only."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Planner Builder Status Contract v0",
+      "operator_memory_guidance": [
+        "Older memory suggests deterministic and agentic planner/builder automation existed around Chief."
+      ],
+      "overlaps": [
+        "Chief",
+        "Codex",
+        "builder",
+        "active_machinery",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A active-machinery guardrails mark high-risk surfaces as warning/read-model only.",
+        "Repo A known rail map says planner/builder automation guardrails are not ready for authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops"
+      ],
+      "sub_area_id": "planner_builder_coordination",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Automatic repair is not modeled as current Chief authority.",
+      "blocked_or_future_gated": [
+        "self-repair",
+        "auto mutation",
+        "unattended test/fix loop",
+        "service restart"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "unsafe_reference_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Automatic fix / repair loop concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "quarantine decision packet",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue automation concept",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Queue and repair-loop concepts may exist as old automation ideas, not current safe behavior."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Automatic Repair Loop Contract Harvest v0",
+      "operator_memory_guidance": [
+        "Older automatic fix loops may have been part of the older Chief/planner ecosystem."
+      ],
+      "overlaps": [
+        "planner_builder_coordination",
+        "operator_sovereignty",
+        "active_machinery"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks higher-power runtime/automation until controls exist.",
+        "Active machinery quarantine rails keep high-risk machinery warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "automatic_fix_repair_loop_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Capability registry metadata may inform routing; executable skill loading remains blocked.",
+      "blocked_or_future_gated": [
+        "skill execution",
+        "tool execution",
+        "runtime plugin loading"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "metadata_only_partially_represented",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Capability / skill registry metadata",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "module_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "module planning registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "capability_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy capability registry",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "custom_build_module_detangling_contract.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "custom-build detangling contract",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "capability registry delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may need capability metadata to route work without loading executable skills."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Capability Skill Registry Metadata Delta v0",
+      "operator_memory_guidance": [
+        "Older memory names many domain brains; a safe registry could describe them without activating them."
+      ],
+      "overlaps": [
+        "module_registry",
+        "custom_build",
+        "Chief domains",
+        "Report Bridge"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Module Registry is planning-only and grants no runtime/tool/deployment/network/model/agent authority.",
+        "Custom-build detangling contract treats capabilities as modular planning substrate."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "capability_skill_registry"
+      ],
+      "sub_area_id": "capability_skill_registry_metadata",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No credentials, OAuth, browser, or private data access are available to Chief.",
+      "blocked_or_future_gated": [
+        "credential access",
+        "PII broker",
+        "OAuth",
+        "browser automation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "future_stage_3_or_4_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Protected access / broker concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "email/calendar boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Protected access may eventually support Chief-routed work, but current Chief should not access secrets."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Protected Access Broker Concept Delta v0",
+      "operator_memory_guidance": [
+        "Older memory and Repo B delta mention protected access/OAuth/PII concepts."
+      ],
+      "overlaps": [
+        "Guardian",
+        "Cassandra",
+        "finance",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks credential/PII broker and browser automation controls until future stages."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "oauth_tool_browser_credential_bridges",
+        "pii_vault_protected_broker_concept"
+      ],
+      "sub_area_id": "protected_access_broker_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No live Chief Telegram notification or send path is granted.",
+      "blocked_or_future_gated": [
+        "Telegram send",
+        "Guardian live notification",
+        "reply authority",
+        "service activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_live_adjacency_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Telegram / notification concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_notify.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Telegram notification path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_sender.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy sender path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "notification surfaces warning-only",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Legacy Chief could notify/push via Telegram, but that is not current safe authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Notification Boundary Review v0",
+      "operator_memory_guidance": [
+        "Older memory mentions chief_notify.py and Telegram push."
+      ],
+      "overlaps": [
+        "Telegram",
+        "Guardian",
+        "Cassandra"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Active machinery quarantine identifies Chief sender/listener surfaces as high-risk warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "guardian_legacy_approval_hitl"
+      ],
+      "sub_area_id": "telegram_notification_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No LLM/Ollama call is part of current Chief proof.",
+      "blocked_or_future_gated": [
+        "Ollama call",
+        "model execution",
+        "tool-augmented LLM flow"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_service_concept_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "LLM / Ollama service concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_llm.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy LLM helper path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Ollama caller path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old Chief code appears to include LLM/Ollama helper concepts."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief LLM Boundary Contract v0",
+      "operator_memory_guidance": [
+        "Older memory map includes Chief LLM / Ollama service."
+      ],
+      "overlaps": [
+        "brain_dump",
+        "planner_builder",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work packet and intent-router rails deny model execution authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "llm_ollama_service_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Domain overlaps should route to their governed rails; legacy domain brains remain evidence/reference.",
+      "blocked_or_future_gated": [
+        "domain brain activation",
+        "raw creative/client scans",
+        "finance/spreadsheet execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "many_domain_paths_memory_guidance_only_until_subrails",
+      "classification": "SEGMENTATION_REQUIRED",
+      "display_name": "Domain brain overlaps",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_album_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy album domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_financial_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy finance domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_email_brain.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy communications domain path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/niles_album_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Niles music read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "finance read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_draft_review_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "communications read-model evidence",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may historically have coordinated many domains; current Repo A should split those overlaps into bounded rails."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Domain Overlap Segmentation Review v0",
+      "operator_memory_guidance": [
+        "Older memory names domain brains for album production, finance, marketing, communications, health, infrastructure, website, research, analytics, consulting, Fundo, and Trinity audit."
+      ],
+      "overlaps": [
+        "Niles",
+        "Capital Hilton finance",
+        "Cassandra",
+        "Report Bridge",
+        "custom-build",
+        "website"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A has separate safer rails for Niles/music, Capital Hilton finance, and Cassandra communications.",
+        "Chief domain brain files exist but are not the canonical authority for those current rails."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "niles_music_producer_album",
+        "budget_tracker_finance_legacy",
+        "report_bridge_client_company_reporting"
+      ],
+      "sub_area_id": "domain_brain_overlaps",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Visibility only; no Mission Control execution path is added.",
+      "blocked_or_future_gated": [
+        "app action buttons",
+        "service controls",
+        "send/submit controls"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "read_model_visibility_no_app_change",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Mission Control visibility",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/sync_health.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "mirror trust read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief-specific Mission Control status likely needs a future read-model surface rather than app changes in this lane."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Winship needs to know where work should flow without staring at backend plumbing."
+      ],
+      "overlaps": [
+        "Mission Control",
+        "sync/mirror trust",
+        "work board"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A emits Chief-adjacent read-models that can be mirrored as visibility artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "mission_control_visibility",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Unknown Chief authority fails closed; this map is not a security pass.",
+      "blocked_or_future_gated": [
+        "live execution",
+        "browser/Coupa",
+        "credentials",
+        "approval execution",
+        "client deployment",
+        "autonomous repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "explicitly_future_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Execution/security-threshold boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "operator sovereignty stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "known rails maturity baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief might eventually coordinate higher-power workflows, but only after separate gated authority lanes."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Operator wants the broader system raised to known steel-thread maturity before real live authority."
+      ],
+      "overlaps": [
+        "Guardian",
+        "operator_sovereignty",
+        "active_machinery",
+        "Estate node registry"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Current OpenClaw power stage is visibility/read-model/review-packet oriented.",
+        "Repo A and Repo B maps both say live execution/security threshold work is future, not current."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "oauth_tool_browser_credential_bridges"
+      ],
+      "sub_area_id": "execution_security_threshold_boundaries",
+      "unknown_authority_fails_closed": true
+    }
+  ],
+  "path_a_smallest_status_rail_completed": false,
+  "path_b_segmentation_map_used": true,
+  "path_used": "Path B - Chief Role + Capability Segmentation Map",
+  "planner_builder_automation_activated": false,
+  "proven_current_repo_a_behavior": [
+    {
+      "authority_boundary": "Status visibility only; no work execution, service control, or live notification.",
+      "blocked_or_future_gated": [
+        "live status daemon",
+        "automatic status push",
+        "runtime watcher"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "partially_proven_read_model_gap",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Chief status posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent route visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Chief status delta recommendation",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief status likely needs a separate rail because status is spread across work board, packets, intent routing, and old Chief files."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Chief may have been where real work flowed, but Repo A has not yet completed a single Chief status proof rail."
+      ],
+      "overlaps": [
+        "work_board",
+        "agent_work_packet",
+        "intent_router",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board, Agent Work Packet, and Intent Router read-models contain Chief-routed planning/status artifacts.",
+        "Repo B delta recommends Chief status/readiness semantics as the next safe harvest, not runtime brains."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_status_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Work packets are review/planning artifacts; they do not execute commands or activate agents.",
+      "blocked_or_future_gated": [
+        "auto-execute",
+        "agent activation",
+        "model/tool execution",
+        "approval bypass"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_control_plane_artifact",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Chief work packets",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe work board control-plane module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "safe agent work packet module",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent work packet read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_work_board.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_agent_work_packet.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief appears connected to bounded planning/work packet flow rather than execution authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "This may be the safer Repo A replacement for older Chief flow-through work machinery."
+      ],
+      "overlaps": [
+        "Chief status",
+        "operator intent routing",
+        "Codex work",
+        "Mission Control"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work Board and Agent Work Packet modules explicitly deny direct execution, agent activation, model calls, and tool execution.",
+        "Generated read-models show Chief-routed cards/packets as planning artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "dropped_intent_task_queue_timing"
+      ],
+      "sub_area_id": "chief_work_packets",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Routing metadata only; unknown authority fails closed.",
+      "blocked_or_future_gated": [
+        "action auto-create",
+        "approval auto-execute",
+        "runtime command dispatch"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "proven_non_executing_route_contract",
+      "classification": "TESTED_SUPPORTING_CONTRACT",
+      "display_name": "Operator intent routing",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "intent_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "deterministic non-executing intent router",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "surface-neutral intent classifier",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/intent_router.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent router read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "test",
+          "path": "tests/test_operator_intent_core.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "intent core tests",
+          "truth_status": "repo_a_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief is one target in a broader operator-intent routing substrate."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "Cassandra may have accessed Chief flow indirectly through routing rather than owning the flow."
+      ],
+      "overlaps": [
+        "Cassandra",
+        "work_board",
+        "agent_lane_registry",
+        "operator_action"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Intent Router records deterministic routes to agent lanes and denies direct execution, model execution, tool execution, and approval bypass.",
+        "Intent Router maps the phrase Chief to the Chief lane for routing, not execution."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "operator_intent_routing",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Queue posture may classify work timing; it must not generate or run work automatically.",
+      "blocked_or_future_gated": [
+        "queue auto-generation",
+        "polish loop activation",
+        "cron/supervisor execution"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "concept_partly_represented_execution_blocked",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Build-now-vs-hold queue posture",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent visibility",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue balancer path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_validator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue validator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "queue timing delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old queue files imply timing and workload-balancing concepts, but not safe current authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Build Now Vs Hold Queue Posture v0",
+      "operator_memory_guidance": [
+        "The remembered build-now-vs-hold workflow may belong under Chief status/queue posture."
+      ],
+      "overlaps": [
+        "dropped_intents",
+        "work_board",
+        "planner_builder_guardrails"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent read-model tracks deferred/unresolved operator directions as metadata.",
+        "Repo B delta identifies queue timing as worth bringing forward as decision support only."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "dropped_intent_task_queue_timing",
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "build_now_vs_hold_queue_posture",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Capability registry metadata may inform routing; executable skill loading remains blocked.",
+      "blocked_or_future_gated": [
+        "skill execution",
+        "tool execution",
+        "runtime plugin loading"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "metadata_only_partially_represented",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Capability / skill registry metadata",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "module_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "module planning registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "capability_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy capability registry",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "custom_build_module_detangling_contract.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "custom-build detangling contract",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "capability registry delta",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may need capability metadata to route work without loading executable skills."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Capability Skill Registry Metadata Delta v0",
+      "operator_memory_guidance": [
+        "Older memory names many domain brains; a safe registry could describe them without activating them."
+      ],
+      "overlaps": [
+        "module_registry",
+        "custom_build",
+        "Chief domains",
+        "Report Bridge"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Module Registry is planning-only and grants no runtime/tool/deployment/network/model/agent authority.",
+        "Custom-build detangling contract treats capabilities as modular planning substrate."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "capability_skill_registry"
+      ],
+      "sub_area_id": "capability_skill_registry_metadata",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Visibility only; no Mission Control execution path is added.",
+      "blocked_or_future_gated": [
+        "app action buttons",
+        "service controls",
+        "send/submit controls"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "read_model_visibility_no_app_change",
+      "classification": "PARTIALLY_REPRESENTED",
+      "display_name": "Mission Control visibility",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/work_board.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "work board app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/agent_work_packets.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "agent packet app-consumable read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/sync_health.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "mirror trust read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief-specific Mission Control status likely needs a future read-model surface rather than app changes in this lane."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Winship needs to know where work should flow without staring at backend plumbing."
+      ],
+      "overlaps": [
+        "Mission Control",
+        "sync/mirror trust",
+        "work board"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A emits Chief-adjacent read-models that can be mirrored as visibility artifacts."
+      ],
+      "ready_for_status_rail": true,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "mission_control_visibility",
+      "unknown_authority_fails_closed": true
+    }
+  ],
+  "recommended_next_lanes_all_gate_pass": true,
+  "repair_fix_loop_activated": false,
+  "repo_a_baseline": {
+    "chief_related_rails": [
+      {
+        "authority_boundary": "planning/read-model only; no agent activation or automatic execution",
+        "maturity": "READ_MODEL_VISIBLE",
+        "rail_id": "chief_orchestration_work_packets",
+        "rail_name": "Chief orchestration/planning/work packets",
+        "steel_thread_stage_reached": "work_board_and_agent_work_packets_visible"
+      }
+    ],
+    "known_rail_count": 14,
+    "live_workflow_ready_count": 0,
+    "present": true,
+    "schema_version": "repo_a_known_rail_completion_map_v0",
+    "security_pass_current": false
+  },
+  "repo_a_only_inspection": true,
+  "repo_b_code_executed": false,
+  "repo_b_delta_read_model_used": true,
+  "repo_b_delta_reference": {
+    "present": true,
+    "repo_b_filesystem_reinspected_by_this_lane": false,
+    "repo_b_reference_only": true,
+    "schema_version": "repo_b_remaining_capability_delta_map_v0",
+    "selected_capabilities": [
+      {
+        "authority_risk": "high_if_legacy_chief_runtime_or_watchers_are_activated",
+        "capability_id": "chief_orchestrator_planner_status",
+        "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B contains many Chief brains and routing/status surfaces; Repo A has Work Board and Agent Work Packet visibility but not full Chief status maturity.",
+        "suggested_future_lane": "Chief Status Rail Completion v0"
+      },
+      {
+        "authority_risk": "high_legacy_telegram_json_approval_if_reactivated",
+        "capability_id": "guardian_legacy_approval_hitl",
+        "classification": "SUPERSEDED_BY_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has legacy approval sender/listener/brain files that Repo A has already audited and modeled as compatibility/reference.",
+        "suggested_future_lane": "HITL Transition Criteria Review v0"
+      },
+      {
+        "authority_risk": "high_agentic_runtime_execution_if_activated",
+        "capability_id": "planner_builder_automation_loops",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B contains builder/watchdog/orchestrator/runner surfaces that should not run before authority and security threshold work.",
+        "suggested_future_lane": "Planner Builder Delta Safety Review v0"
+      },
+      {
+        "authority_risk": "high_automatic_mutation_or_self_repair_if_enabled",
+        "capability_id": "automatic_fix_repair_loops",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has polish-loop and fallback repair surfaces that may contain useful workflow ideas but are unsafe as live repair loops.",
+        "suggested_future_lane": "Automatic Repair Loop Contract Harvest v0"
+      },
+      {
+        "authority_risk": "medium_old_freeform_notes_could_be_misread_as_truth",
+        "capability_id": "brain_dump_inbox_parser",
+        "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has inbox parser evidence; Repo A has intent/dropped-intent surfaces and a legacy brain dump parser requiring governance before use.",
+        "suggested_future_lane": "Governed Cue Parser Delta v0"
+      },
+      {
+        "authority_risk": "medium_if_queue_logic_starts_execution_instead_of_classification",
+        "capability_id": "dropped_intent_task_queue_timing",
+        "classification": "WORTH_BRINGING_FORWARD",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B queue balancer/validator hints at timing decisions; Repo A has dropped intent and work board visibility.",
+        "suggested_future_lane": "Build Now Vs Hold Queue Posture v0"
+      },
+      {
+        "authority_risk": "medium_if_raw_music_session_files_or_legacy_album_runtime_are_scanned",
+        "capability_id": "niles_music_producer_album",
+        "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has album/music Chief modules; Repo A has Niles/Struna metadata and review packets.",
+        "suggested_future_lane": "Niles Governed Metadata Review Packet Completion v0"
+      },
+      {
+        "authority_risk": "medium_to_high_if_demo_send_or_client_reporting_runs_live",
+        "capability_id": "report_bridge_client_company_reporting",
+        "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has reporter/dashboard/briefing surfaces; Repo A has Report Bridge and project/client capsule substrate.",
+        "suggested_future_lane": "Client Reporting Rail Delta Review v0"
+      },
+      {
+        "authority_risk": "very_high_credentials_oauth_tool_execution",
+        "capability_id": "oauth_tool_browser_credential_bridges",
+        "classification": "UNSAFE_OR_BLOCKED",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B contains Google broker/policy and PII vault surfaces that are useful only behind future protected-access controls.",
+        "suggested_future_lane": "Protected Access Broker Design Review v0"
+      },
+      {
+        "authority_risk": "very_high_if_raw_pii_or_secrets_are_read",
+        "capability_id": "pii_vault_protected_broker_concept",
+        "classification": "WORTH_BRINGING_FORWARD",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B PII vault naming may contain useful concept evidence for later protected proof/credential broker design.",
+        "suggested_future_lane": "Protected PII Broker Concept Delta v0"
+      },
+      {
+        "authority_risk": "medium_if_old_finance_state_or_spreadsheet_cells_are_treated_as_truth",
+        "capability_id": "budget_tracker_finance_legacy",
+        "classification": "PARTIALLY_REPRESENTED_IN_REPO_A",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has old budget tracking; Repo A has Capital Hilton and finance evidence packet rails but not a full generic budget tracker.",
+        "suggested_future_lane": "Generic Finance Budget Posture Delta v0"
+      },
+      {
+        "authority_risk": "high_if_skill_loading_executes_tools_or_code",
+        "capability_id": "capability_skill_registry",
+        "classification": "WORTH_BRINGING_FORWARD",
+        "reference_only": true,
+        "repo_b_body_read": false,
+        "repo_b_code_executed": false,
+        "short_description": "Repo B has capability and skill loading/vetting surfaces; Repo A has module registry and custom-build contracts.",
+        "suggested_future_lane": "Capability Skill Registry Metadata Delta v0"
+      }
+    ]
+  },
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "schema_version": "chief_role_capability_segmentation_map_v0",
+  "security_pass_current": false,
+  "security_pass_started": false,
+  "segmentation_required": true,
+  "send_or_submit_authority_added": false,
+  "telegram_notification_concepts_non_live": true,
+  "telegram_notification_live": false,
+  "telegram_send_triggered": false,
+  "tool_or_browser_authority_added": false,
+  "unknown_authority_fails_closed": true,
+  "unsafe_or_blocked": [
+    {
+      "authority_boundary": "Existing listener/router/session files are evidence/reference unless later gated; this map does not run them.",
+      "blocked_or_future_gated": [
+        "Telegram replies",
+        "route_message runtime",
+        "session mutation as authority",
+        "systemd listener activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "repo_a_files_present_but_live_runtime_blocked",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Chief listener / router / session concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_listener.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/live-adjacent Telegram listener",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_router.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy router importing many runtime brains",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_session_manager.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy session state helper",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "warning-only machinery read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "The filenames imply an older Telegram-to-router-to-session flow."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Chief Listener Router Reference Disposition v0",
+      "operator_memory_guidance": [
+        "Older memory map names Telegram to Chief Listener to Chief Router to Chief Session Manager."
+      ],
+      "overlaps": [
+        "Telegram intake",
+        "Cassandra intake",
+        "Guardian",
+        "work packets"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Chief listener/router/session files exist in Repo A.",
+        "Active machinery read-models classify Chief listener surfaces as warning-only/high-risk rather than canonical live authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status"
+      ],
+      "sub_area_id": "chief_listener_router_session",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Use only governed metadata/intents until a cue parser rail proves boundaries.",
+      "blocked_or_future_gated": [
+        "broad Markdown ingestion",
+        "Ollama parsing",
+        "file moves",
+        "raw note truth promotion"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_file_present_safe_governance_not_complete",
+      "classification": "LEGACY_OR_REFERENCE",
+      "display_name": "Brain-dump / cue parser intake",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy parser with LLM/file movement behavior",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_metadata",
+          "path": "dropped_intent_registry.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "governed dropped intent metadata registry",
+          "truth_status": "repo_a_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/dropped_intents.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "dropped intent read-model",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Cue parsing likely overlaps with Chief intake and queue posture."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Governed Cue Parser Delta v0",
+      "operator_memory_guidance": [
+        "Older memory mentions brain-dump/cue parsing as part of the work intake environment."
+      ],
+      "overlaps": [
+        "operator_intent",
+        "dropped_intents",
+        "Chief status"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Dropped Intent Registry is metadata/read-model only and denies autonomous prompting, model calls, notifications, and raw private scans.",
+        "A legacy brain dump parser exists but is not proven as a governed current rail."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "brain_dump_cue_parser_intake",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Planner/builder coordination remains blocked until later authority/security threshold work.",
+      "blocked_or_future_gated": [
+        "agentic builder loop",
+        "runner activation",
+        "tool/model execution",
+        "self-repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "guardrail_only_until_security_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Planner/builder coordination",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_block_later_guardrail.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "block-later machinery guardrails",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "planner/builder guardrail baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "polish_loop/orchestrator.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy/high-risk orchestrator path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief may be adjacent to planner/builder coordination, but current proof is guardrail-only."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Planner Builder Status Contract v0",
+      "operator_memory_guidance": [
+        "Older memory suggests deterministic and agentic planner/builder automation existed around Chief."
+      ],
+      "overlaps": [
+        "Chief",
+        "Codex",
+        "builder",
+        "active_machinery",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Repo A active-machinery guardrails mark high-risk surfaces as warning/read-model only.",
+        "Repo A known rail map says planner/builder automation guardrails are not ready for authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops"
+      ],
+      "sub_area_id": "planner_builder_coordination",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Automatic repair is not modeled as current Chief authority.",
+      "blocked_or_future_gated": [
+        "self-repair",
+        "auto mutation",
+        "unattended test/fix loop",
+        "service restart"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "unsafe_reference_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Automatic fix / repair loop concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_quarantine_decision_packet.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "quarantine decision packet",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "queue_balancer.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy queue automation concept",
+          "truth_status": "legacy_or_reference_evidence_only"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Queue and repair-loop concepts may exist as old automation ideas, not current safe behavior."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": true,
+      "next_safe_lane": "Automatic Repair Loop Contract Harvest v0",
+      "operator_memory_guidance": [
+        "Older automatic fix loops may have been part of the older Chief/planner ecosystem."
+      ],
+      "overlaps": [
+        "planner_builder_coordination",
+        "operator_sovereignty",
+        "active_machinery"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks higher-power runtime/automation until controls exist.",
+        "Active machinery quarantine rails keep high-risk machinery warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "automatic_fix_repair_loops"
+      ],
+      "sub_area_id": "automatic_fix_repair_loop_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No credentials, OAuth, browser, or private data access are available to Chief.",
+      "blocked_or_future_gated": [
+        "credential access",
+        "PII broker",
+        "OAuth",
+        "browser automation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "future_stage_3_or_4_only",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Protected access / broker concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/cassandra_email_calendar_capability_reconciliation.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "email/calendar boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Protected access may eventually support Chief-routed work, but current Chief should not access secrets."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Protected Access Broker Concept Delta v0",
+      "operator_memory_guidance": [
+        "Older memory and Repo B delta mention protected access/OAuth/PII concepts."
+      ],
+      "overlaps": [
+        "Guardian",
+        "Cassandra",
+        "finance",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Operator Sovereignty gate blocks credential/PII broker and browser automation controls until future stages."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "oauth_tool_browser_credential_bridges",
+        "pii_vault_protected_broker_concept"
+      ],
+      "sub_area_id": "protected_access_broker_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No live Chief Telegram notification or send path is granted.",
+      "blocked_or_future_gated": [
+        "Telegram send",
+        "Guardian live notification",
+        "reply authority",
+        "service activation"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_live_adjacency_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Telegram / notification concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_notify.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Telegram notification path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_sender.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy sender path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/active_machinery_high_risk_quarantine.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "notification surfaces warning-only",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Legacy Chief could notify/push via Telegram, but that is not current safe authority."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Notification Boundary Review v0",
+      "operator_memory_guidance": [
+        "Older memory mentions chief_notify.py and Telegram push."
+      ],
+      "overlaps": [
+        "Telegram",
+        "Guardian",
+        "Cassandra"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Active machinery quarantine identifies Chief sender/listener surfaces as high-risk warning-only."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "chief_orchestrator_planner_status",
+        "guardian_legacy_approval_hitl"
+      ],
+      "sub_area_id": "telegram_notification_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "No LLM/Ollama call is part of current Chief proof.",
+      "blocked_or_future_gated": [
+        "Ollama call",
+        "model execution",
+        "tool-augmented LLM flow"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "legacy_service_concept_blocked",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "LLM / Ollama service concepts",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "chief_llm.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy LLM helper path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "code_path",
+          "path": "brain_dump_parser.py",
+          "present": true,
+          "repo_a_only": true,
+          "role": "legacy Ollama caller path",
+          "truth_status": "legacy_or_reference_evidence_only"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "power-stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Old Chief code appears to include LLM/Ollama helper concepts."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief LLM Boundary Contract v0",
+      "operator_memory_guidance": [
+        "Older memory map includes Chief LLM / Ollama service."
+      ],
+      "overlaps": [
+        "brain_dump",
+        "planner_builder",
+        "operator_sovereignty"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Work packet and intent-router rails deny model execution authority."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "brain_dump_inbox_parser"
+      ],
+      "sub_area_id": "llm_ollama_service_concepts",
+      "unknown_authority_fails_closed": true
+    },
+    {
+      "authority_boundary": "Unknown Chief authority fails closed; this map is not a security pass.",
+      "blocked_or_future_gated": [
+        "live execution",
+        "browser/Coupa",
+        "credentials",
+        "approval execution",
+        "client deployment",
+        "autonomous repair"
+      ],
+      "chief_executor_authority": false,
+      "claim_level": "explicitly_future_threshold",
+      "classification": "UNSAFE_OR_BLOCKED",
+      "display_name": "Execution/security-threshold boundaries",
+      "evidence_sources": [
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/operator_sovereignty_power_stage_gate.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "operator sovereignty stage gate",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "known rails maturity baseline",
+          "truth_status": "read_model_evidence_not_truth"
+        },
+        {
+          "body_read": false,
+          "evidence_type": "read_model",
+          "path": "generated/read_models/repo_b_remaining_capability_delta_map.json",
+          "present": true,
+          "repo_a_only": true,
+          "role": "Repo B delta boundary",
+          "truth_status": "read_model_evidence_not_truth"
+        }
+      ],
+      "inferred_role_from_filenames_or_contracts": [
+        "Chief might eventually coordinate higher-power workflows, but only after separate gated authority lanes."
+      ],
+      "live_runtime_authority": false,
+      "needs_operator_memory_review": false,
+      "next_safe_lane": "Chief Status Rail Completion v0",
+      "operator_memory_guidance": [
+        "Operator wants the broader system raised to known steel-thread maturity before real live authority."
+      ],
+      "overlaps": [
+        "Guardian",
+        "operator_sovereignty",
+        "active_machinery",
+        "Estate node registry"
+      ],
+      "proven_current_repo_a_behavior": [
+        "Current OpenClaw power stage is visibility/read-model/review-packet oriented.",
+        "Repo A and Repo B maps both say live execution/security threshold work is future, not current."
+      ],
+      "ready_for_status_rail": false,
+      "repo_b_delta_reference_ids": [
+        "planner_builder_automation_loops",
+        "oauth_tool_browser_credential_bridges"
+      ],
+      "sub_area_id": "execution_security_threshold_boundaries",
+      "unknown_authority_fails_closed": true
+    }
+  ],
+  "work_packets_are_visibility_review_planning_only": true
+}
