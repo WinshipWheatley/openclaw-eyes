@@ -202,16 +202,18 @@ def test_pc_import_proof_classifies_core_bridge_current_with_backend_match(tmp_p
     }
 
 
-def test_transmission_warning_distinguishes_core_import_complete_from_self_report_echo(tmp_path):
+def test_transmission_quiets_when_trusted_current_overrides_stale_self_report_state(tmp_path):
     payload = _build(tmp_path)
     transmission = _light(payload, "check_transmission")
 
-    assert transmission["current_status"] == "WARNING"
+    assert transmission["current_status"] == "QUIET"
     assert transmission["current_state_kind"] == "transport_warning"
-    assert transmission["current_reason"].startswith("Core PC import proof is current")
+    assert transmission["current_reason"] == (
+        "PC proof agrees with Mac completion and no final Mac-visible self-report echo is pending."
+    )
     assert transmission["current_evidence"]["core_pc_import_proof_complete"] is True
-    assert transmission["current_evidence"]["final_mac_self_report_mirror_pending"] is True
-    assert "sync_health.json" in transmission["current_evidence"]["self_report_stale_files"]
+    assert transmission["current_evidence"]["final_mac_self_report_mirror_pending"] is False
+    assert transmission["current_evidence"]["self_report_stale_files"] == []
     assert transmission["when_quiet"][0].startswith("PC proof agrees")
 
 
@@ -345,7 +347,7 @@ def test_export_writes_generated_json_operator_and_cli(tmp_path, capsys):
     )
 
     assert result.schema_version == lights.SCHEMA_VERSION
-    assert result.check_transmission_status == "WARNING"
+    assert result.check_transmission_status == "QUIET"
     assert result.pc_proof_agrees_with_mac_sync_completion is True
     assert result.sqlite_receipt_supported is True
     assert result.c_drive_artifact_written is False

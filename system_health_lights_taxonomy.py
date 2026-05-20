@@ -292,6 +292,10 @@ def _transmission_status(pc_proof: dict[str, Any], import_state: dict[str, Any])
     final_self_report_pending = bool(self_report_stale_files)
     core_complete = bool(pc_proof["pc_proof_agrees_with_mac_sync_completion"])
     current_expected_current = bool(pc_proof.get("current_expected_set_proof_current"))
+    if pc_proof.get("sync_lifecycle_state") == "trusted_current" and current_expected_current:
+        final_mirror_pending = False
+        final_self_report_pending = False
+        self_report_stale_files = []
     missing_only_self_taxonomy = bool(pc_proof.get("current_expected_set_missing_only_self_taxonomy"))
     if not pc_proof.get("sync_lifecycle_state"):
         status = "UNKNOWN"

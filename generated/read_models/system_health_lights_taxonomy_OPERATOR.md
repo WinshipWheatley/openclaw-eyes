@@ -3,19 +3,19 @@ System Health Lights Taxonomy v0
 PC Import Proof:
 - Mac-to-E-drive-to-PC sync proof complete: `true`
 - canonical_expected=204
-- observed=202
-- missing_expected=2
+- observed=204
+- missing_expected=0
 - hash_mismatch=0
-- backend_head=3c7620c324edbf9883930ec465749f8ca99403f0
-- backend_head_matches_expected=`true`
+- backend_head=54adb983e07690a2ade0211c0554c0e74edbe002
+- backend_head_matches_expected=`false`
 - Core PC import proof is complete.
 
 Current Lights:
 - Check Engine: `WARNING`
   - Chief posture still has older workbench warnings; bridge-specific signals should now be read through Check Transmission.
   - Opens: Chief diagnostic/system health lane
-- Check Transmission: `WARNING`
-  - Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle.
+- Check Transmission: `QUIET`
+  - PC proof agrees with Mac completion and no final Mac-visible self-report echo is pending.
   - Opens: Bridge / mirror / sync trust lane
 - Low Fuel / Low Battery: `WARNING`
   - C: was recently near full and later cleaned to about 22GB free, but this lane did not perform a new live disk measurement.
@@ -36,7 +36,7 @@ Steel Thread Flow:
 - Decide: package/detour/fix path.
 
 Check Transmission Detail:
-- Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle.
+- PC proof agrees with Mac completion and no final Mac-visible self-report echo is pending.
 
 What Makes Lights Quiet:
 - Check Engine: Chief-owned system proof is current, no core workbench fault is active, and bridge faults are owned by Check Transmission.
