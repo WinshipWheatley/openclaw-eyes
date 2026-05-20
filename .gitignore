@@ -85,6 +85,7 @@
 !operator_nested_lane_mission_package_spine.py
 !chief_check_engine_environment_posture.py
 !chief_check_engine_diagnostic_package.py
+!bridge_trust_sync_truth.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -707,6 +708,7 @@
 !scripts/export_operator_nested_lane_mission_package_spine.py
 !scripts/export_chief_check_engine_environment_posture.py
 !scripts/export_chief_check_engine_diagnostic_package.py
+!scripts/export_bridge_trust_sync_truth.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
 !scripts/build_active_machinery_operator_disposition.py
@@ -765,6 +767,7 @@
 !tests/test_operator_nested_lane_mission_package_spine.py
 !tests/test_chief_check_engine_environment_posture.py
 !tests/test_chief_check_engine_diagnostic_package.py
+!tests/test_bridge_trust_sync_truth.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
 !tests/test_active_machinery_operator_disposition.py

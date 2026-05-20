@@ -8,9 +8,9 @@ Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=198
+- canonical_expected=200
 - observed=192
-- missing_expected=6
+- missing_expected=8
 - extra=0
 - hash_mismatch=0
 - matched_hash=192
@@ -31,6 +31,8 @@ Proof:
 - Windows task log present: `true`
 
 Stale files:
+- `bridge_trust_sync_truth.json`
+- `bridge_trust_sync_truth_OPERATOR.md`
 - `chief_check_engine_diagnostic_package.json`
 - `chief_check_engine_diagnostic_package_OPERATOR.md`
 - `chief_check_engine_environment_posture.json`

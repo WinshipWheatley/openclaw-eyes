@@ -1,0 +1,266 @@
+{
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "backend_repair_authority_added": false,
+  "bridge_trust_state": "bridge_mount_missing",
+  "bridge_trust_state_model": [
+    "trusted_current",
+    "local_readback_only",
+    "stale_pc_proof",
+    "waiting_for_mac",
+    "bridge_mount_missing",
+    "blocked",
+    "unknown"
+  ],
+  "broad_temp_listing_stored": false,
+  "browser_accessed": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "check_engine_should_light": true,
+  "cleanup_authority_added": false,
+  "credential_or_oauth_accessed": false,
+  "credential_storage_added": false,
+  "current_classification_explanation": {
+    "what_can_be_trusted": [
+      "PC canonical expected set count",
+      "PC-observed Mac proof count from sync_health",
+      "operator-reported Mac mount/mirror facts as operator_reported context"
+    ],
+    "what_cannot_be_trusted_yet": [
+      "Mac-local file presence as full PC-Mac bridge proof",
+      "Mirror Current status for the latest expected set",
+      "Automatic remount or repair availability"
+    ],
+    "what_mac_local_mirror_appears_to_know": "Mac-local helper report saw 194 files; this is partial local readback, not full bridge proof.",
+    "what_pc_knows": "PC canonical expected=200, observed Mac proof=192, missing=8, hash_mismatch=0.",
+    "what_proof_is_missing": [
+      "Mac mount availability proof for /Volumes/openclaw_e",
+      "current Mac completion marker after the latest expected set",
+      "PC import proof matching the latest Mac manifest",
+      "all missing expected files mirrored with matching hashes"
+    ],
+    "why_this_is_check_engine": "Bridge/mirror proof is stale or blocked while the Mac mount is operator-reported missing; this is system/workbench reliability, not domain lane attention."
+  },
+  "delete_authority_added": false,
+  "execution_authority_added": false,
+  "forbidden_actions": [
+    "write OpenClaw artifacts to C:",
+    "delete files or caches",
+    "remount /Volumes/openclaw_e",
+    "request, handle, or store credentials",
+    "manual-copy generated files as the primary fix",
+    "mutate Mission Control app code",
+    "run backend repair automation",
+    "activate agents or call models",
+    "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+    "inspect raw private logs, broad temp listings, or raw file bodies"
+  ],
+  "generated_at": "2026-05-20T04:15:27+00:00",
+  "gmail_calendar_coupa_accessed": false,
+  "lm_called": false,
+  "local_readback_status_model": [
+    "current",
+    "partial",
+    "unknown"
+  ],
+  "mac_local_mirror_presence": {
+    "basis": "operator_reported_mac_local_helper_pull",
+    "can_be_used_as_full_trust": false,
+    "is_canonical_bridge_proof": false,
+    "local_mac_manifest_count": 194,
+    "local_readback_status": "partial"
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_calls_made": false,
+  "next_recommended_lane": {
+    "goal": "Surface this split so the helm does not treat Mac local readability as full shuttle trust.",
+    "lane_name": "Mission Control Bridge Trust Readback v0",
+    "non_live": true,
+    "operator_action_required_now": false
+  },
+  "no_authority_flags": {
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "backend_repair_authority_added": false,
+    "broad_temp_listing_stored": false,
+    "browser_accessed": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "cleanup_authority_added": false,
+    "credential_or_oauth_accessed": false,
+    "credential_storage_added": false,
+    "delete_authority_added": false,
+    "execution_authority_added": false,
+    "gmail_calendar_coupa_accessed": false,
+    "lm_called": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "raw_file_bodies_stored": false,
+    "raw_logs_stored": false,
+    "raw_private_content_inspected": false,
+    "read_model_only": true,
+    "remount_authority_added": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_receipt_metadata_only": true,
+    "sync_truth_split_only": true,
+    "telegram_send_triggered": false
+  },
+  "operator_action_required": false,
+  "pc_canonical_expected_set": {
+    "basis": "sync_health.canonical_expected",
+    "canonical_expected_count": 200,
+    "source_path": "generated/read_models/sync_health.json"
+  },
+  "pc_observed_mac_proof": {
+    "basis": "sync_health manifest comparison",
+    "hash_mismatch_count": 0,
+    "is_full_bridge_trust": false,
+    "missing_expected_count": 8,
+    "missing_files": [
+      "bridge_trust_sync_truth.json",
+      "bridge_trust_sync_truth_OPERATOR.md",
+      "chief_check_engine_diagnostic_package.json",
+      "chief_check_engine_diagnostic_package_OPERATOR.md",
+      "chief_check_engine_environment_posture.json",
+      "chief_check_engine_environment_posture_OPERATOR.md",
+      "operator_nested_lane_mission_package_spine.json",
+      "operator_nested_lane_mission_package_spine_OPERATOR.md"
+    ],
+    "pc_observed_mac_count": 192,
+    "source_path": "generated/read_models/sync_health.json"
+  },
+  "raw_file_bodies_stored": false,
+  "raw_logs_stored": false,
+  "raw_private_content_inspected": false,
+  "read_model_id": "bridge_trust_sync_truth",
+  "read_model_only": true,
+  "receipt_hash": "sha256:3ba068b3c4d948241fca68b063c02f6217a1005e8e389dc8e2c37a75f8ab07cf",
+  "relationship_to_sync_health": {
+    "extends_or_replaces": "companion_read_model",
+    "purpose": "Split bridge trust truth states that sync_health summarizes as lifecycle and mirror posture.",
+    "sync_health_remains_backward_compatible": true
+  },
+  "remount_authority_added": false,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "safe_next_step": "Keep Mission Control in Check Engine detail: show the truth split, wait for normal Mac sync proof, and ask Winship for manual Mac mount confirmation only if the mount remains unavailable.",
+  "schema_version": "bridge_trust_sync_truth_v0",
+  "secondary_bridge_states": [
+    "local_readback_only",
+    "stale_pc_proof",
+    "waiting_for_mac"
+  ],
+  "send_or_submit_authority_added": false,
+  "shuttle_completion": {
+    "basis": "sync_health.last_mac_completion_plus_counts",
+    "hash_mismatch": 0,
+    "last_mac_completion": {
+      "status": "synced",
+      "time": "2026-05-19T17:55:07+00:00"
+    },
+    "missing_expected": 8,
+    "shuttle_completion_status": "stale"
+  },
+  "shuttle_completion_status_model": [
+    "current",
+    "stale",
+    "missing",
+    "unknown"
+  ],
+  "shuttle_mount": {
+    "basis": "operator_reported",
+    "expected_mac_mount": "/Volumes/openclaw_e",
+    "expected_windows_source": "E:\\openclaw / WSL /mnt/e/openclaw",
+    "launch_agent_status_label": "share_missing",
+    "shuttle_mount_status": "missing"
+  },
+  "shuttle_mount_status_model": [
+    "available",
+    "missing",
+    "unknown"
+  ],
+  "source_inputs": {
+    "chief_diagnostic_package": {
+      "check_engine_on": true,
+      "path": "generated/read_models/chief_check_engine_diagnostic_package.json",
+      "present": true,
+      "schema_version": "chief_check_engine_diagnostic_package_v0"
+    },
+    "chief_environment_posture": {
+      "check_engine_on": true,
+      "path": "generated/read_models/chief_check_engine_environment_posture.json",
+      "present": true,
+      "schema_version": "chief_check_engine_environment_posture_v0"
+    },
+    "operator_context": {
+      "expected_mac_mount": "/Volumes/openclaw_e",
+      "expected_windows_source": "E:\\openclaw / WSL /mnt/e/openclaw",
+      "full_shuttle_completion_proof": "incomplete",
+      "mac_local_mirror_may_have_newer_files": true,
+      "mount_status": "missing",
+      "mount_status_basis": "operator_reported",
+      "pc_canonical_expected_recent": 196,
+      "pc_observed_mac_proof_recent": 192
+    },
+    "sync_health": {
+      "display_status": "sync_requested_waiting_for_mac",
+      "generated_at": "2026-05-20T04:15:21+00:00",
+      "path": "generated/read_models/sync_health.json",
+      "present": true,
+      "trust_status": "stale_needs_mac_sync"
+    }
+  },
+  "sqlite_ledger_receipt_contract": {
+    "authority_status": "generated_status_only",
+    "broad_temp_listing_stored": false,
+    "credentials_stored": false,
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "raw_file_bodies_stored": false,
+    "raw_logs_stored": false,
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_bridge_trust_sync_truth_receipt",
+    "runtime_activation_recorded": false,
+    "sqlite_meaning": "receipt_record_only",
+    "sqlite_schema_changed": false,
+    "supported_by_existing_pattern": true
+  },
+  "sqlite_receipt_metadata_only": true,
+  "storage_policy": {
+    "allowed_openclaw_artifact_roots": [
+      "/home/openclaw",
+      "/mnt/e/openclaw"
+    ],
+    "c_drive_read_only_inspection_allowed_for_posture_evidence": true,
+    "delete_anything_in_this_lane": false,
+    "do_not_write_openclaw_artifacts_to_pc_c_drive": true,
+    "generated_output_root": "generated/read_models"
+  },
+  "sync_marker_request_state": {
+    "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
+    "basis": "sync_health.recommended_fix",
+    "can_request_fix_from_app": false,
+    "next_expected_actor": "mac_sync_agent",
+    "operator_action_required": false,
+    "recommended_fix_kind": "wait_for_mac_sync",
+    "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+    "sync_lifecycle_state": "sync_requested_waiting_for_mac"
+  },
+  "sync_truth_split_only": true,
+  "system_condition_not_operator_interrupt": true,
+  "telegram_send_triggered": false,
+  "truth_split": {
+    "mac_local_readback": "Mac-local readable files reported by operator/helper; not full shuttle proof by itself.",
+    "mount_availability": "Whether /Volumes/openclaw_e is available to Mac.",
+    "operator_action_required": "Only true for actionable failures; routine blocked/stale lifecycle can still light Check Engine.",
+    "pc_canonical_truth": "Repo A generated/read_models expected file set.",
+    "pc_observed_mac_proof": "Mac manifest/shuttle proof as imported or observed by PC.",
+    "shuttle_completion_proof": "Mac completion marker and PC import proof."
+  }
+}

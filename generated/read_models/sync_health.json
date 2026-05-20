@@ -2,14 +2,14 @@
   "agent_activation_allowed": false,
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
-  "canonical_expected": 198,
+  "canonical_expected": 200,
   "display_status": "sync_requested_waiting_for_mac",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-20T04:07:11+00:00",
+  "generated_at": "2026-05-20T04:15:21+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -30,8 +30,10 @@
   },
   "matched_hash": 192,
   "mirror_status": "needs_mac_sync",
-  "missing_expected": 6,
+  "missing_expected": 8,
   "missing_files": [
+    "bridge_trust_sync_truth.json",
+    "bridge_trust_sync_truth_OPERATOR.md",
     "chief_check_engine_diagnostic_package.json",
     "chief_check_engine_diagnostic_package_OPERATOR.md",
     "chief_check_engine_environment_posture.json",
@@ -81,7 +83,7 @@
     },
     {
       "present": 1,
-      "source_hash": "a7366227373ac62127436c404f4222924fa710647c88e4af20ab51c0436abdf0",
+      "source_hash": "6efc0ad17063a8c861e154e64f4a7c7fd3b70c842408903e09f6d0eea753d7b8",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -93,7 +95,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
       "source_status": "present",
-      "source_time": "2026-05-20T04:04:52+00:00"
+      "source_time": "2026-05-20T04:14:52+00:00"
     },
     {
       "present": 1,
@@ -117,7 +119,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-20T04:04:47+00:00"
+      "source_time": "2026-05-20T04:14:47+00:00"
     }
   ],
   "recommended_fix": {
@@ -137,6 +139,8 @@
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
   "stale_files": [
+    "bridge_trust_sync_truth.json",
+    "bridge_trust_sync_truth_OPERATOR.md",
     "chief_check_engine_diagnostic_package.json",
     "chief_check_engine_diagnostic_package_OPERATOR.md",
     "chief_check_engine_environment_posture.json",
