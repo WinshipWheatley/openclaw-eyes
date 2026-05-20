@@ -1,38 +1,34 @@
 # OpenClaw Sync Health
 
-Trust status: `stale_needs_mac_sync`
-Mirror status: `needs_mac_sync`
-Display status: `sync_requested_waiting_for_mac`
-Lifecycle state: `sync_requested_waiting_for_mac`
+Trust status: `trusted`
+Mirror status: `ok`
+Display status: `current`
+Lifecycle state: `trusted_current`
 Operator action required: `false`
-Next expected actor: `mac_sync_agent`
+Next expected actor: `none`
 
 Mirror counts:
 - canonical_expected=204
 - observed=204
 - missing_expected=0
 - extra=0
-- hash_mismatch=2
-- matched_hash=202
+- hash_mismatch=0
+- matched_hash=204
 
 Recommended fix:
-- kind: `wait_for_mac_sync`
-- display status: `sync_requested_waiting_for_mac`
-- next expected actor: `mac_sync_agent`
-- lifecycle state: `sync_requested_waiting_for_mac`
+- kind: `none`
+- display status: `current`
+- next expected actor: `none`
+- lifecycle state: `trusted_current`
 - operator action required: `false`
-- next: Mac sync has already been requested; waiting for the normal Mac sync agent cycle.
+- next: No sync repair is needed.
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `synced` at `2026-05-20T23:04:25+00:00`
-- Mac completion: `synced` at `2026-05-20T23:04:25+00:00`
-- PC import: `skipped_unchanged` at `2026-05-20T23:04:36+00:00`
+- Mac heartbeat: `synced` at `2026-05-20T23:09:26+00:00`
+- Mac completion: `synced` at `2026-05-20T23:09:26+00:00`
+- PC import: `success` at `2026-05-20T23:10:17+00:00`
 - Windows task log present: `true`
-
-Stale files:
-- `system_health_lights_taxonomy.json`
-- `system_health_lights_taxonomy_OPERATOR.md`
 
 No-authority posture:
 - `app_direct_execution_allowed`: `false`
