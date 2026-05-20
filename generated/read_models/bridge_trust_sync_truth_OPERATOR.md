@@ -7,9 +7,9 @@ State:
 - Operator action required: `false`
 
 What PC Knows:
-- canonical_expected_count=200
+- canonical_expected_count=202
 - pc_observed_mac_count=192
-- missing_expected_count=8
+- missing_expected_count=10
 - hash_mismatch_count=0
 
 What Mac Local Mirror Appears To Know:

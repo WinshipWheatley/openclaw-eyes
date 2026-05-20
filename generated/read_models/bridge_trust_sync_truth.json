@@ -32,7 +32,7 @@
       "Automatic remount or repair availability"
     ],
     "what_mac_local_mirror_appears_to_know": "Mac-local helper report saw 194 files; this is partial local readback, not full bridge proof.",
-    "what_pc_knows": "PC canonical expected=200, observed Mac proof=192, missing=8, hash_mismatch=0.",
+    "what_pc_knows": "PC canonical expected=202, observed Mac proof=192, missing=10, hash_mismatch=0.",
     "what_proof_is_missing": [
       "Mac mount availability proof for /Volumes/openclaw_e",
       "current Mac completion marker after the latest expected set",
@@ -55,7 +55,7 @@
     "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
     "inspect raw private logs, broad temp listings, or raw file bodies"
   ],
-  "generated_at": "2026-05-20T04:15:27+00:00",
+  "generated_at": "2026-05-20T13:38:19+00:00",
   "gmail_calendar_coupa_accessed": false,
   "lm_called": false,
   "local_readback_status_model": [
@@ -113,15 +113,17 @@
   "operator_action_required": false,
   "pc_canonical_expected_set": {
     "basis": "sync_health.canonical_expected",
-    "canonical_expected_count": 200,
+    "canonical_expected_count": 202,
     "source_path": "generated/read_models/sync_health.json"
   },
   "pc_observed_mac_proof": {
     "basis": "sync_health manifest comparison",
     "hash_mismatch_count": 0,
     "is_full_bridge_trust": false,
-    "missing_expected_count": 8,
+    "missing_expected_count": 10,
     "missing_files": [
+      "bridge_manual_mount_recovery_packet.json",
+      "bridge_manual_mount_recovery_packet_OPERATOR.md",
       "bridge_trust_sync_truth.json",
       "bridge_trust_sync_truth_OPERATOR.md",
       "chief_check_engine_diagnostic_package.json",
@@ -139,7 +141,7 @@
   "raw_private_content_inspected": false,
   "read_model_id": "bridge_trust_sync_truth",
   "read_model_only": true,
-  "receipt_hash": "sha256:3ba068b3c4d948241fca68b063c02f6217a1005e8e389dc8e2c37a75f8ab07cf",
+  "receipt_hash": "sha256:4a32e486ef2b1501488b31ff2573e9079010bfe342b642fe36a21808ea2afaf8",
   "relationship_to_sync_health": {
     "extends_or_replaces": "companion_read_model",
     "purpose": "Split bridge trust truth states that sync_health summarizes as lifecycle and mirror posture.",
@@ -164,7 +166,7 @@
       "status": "synced",
       "time": "2026-05-19T17:55:07+00:00"
     },
-    "missing_expected": 8,
+    "missing_expected": 10,
     "shuttle_completion_status": "stale"
   },
   "shuttle_completion_status_model": [
@@ -210,7 +212,7 @@
     },
     "sync_health": {
       "display_status": "sync_requested_waiting_for_mac",
-      "generated_at": "2026-05-20T04:15:21+00:00",
+      "generated_at": "2026-05-20T13:38:13+00:00",
       "path": "generated/read_models/sync_health.json",
       "present": true,
       "trust_status": "stale_needs_mac_sync"
