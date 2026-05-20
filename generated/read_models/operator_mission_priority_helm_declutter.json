@@ -1,0 +1,1235 @@
+{
+  "agent_launch_authority_added": false,
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "broad_file_dump_stored": false,
+  "browser_accessed": false,
+  "browser_oauth_or_account_access_enabled": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "check_light_policy": {
+    "not_normal_work_lanes": true,
+    "owned_by": {
+      "Check Engine": "Chief",
+      "Check Transmission": "Mirror Trust / sync",
+      "Parking Brake": "Guardian / authority boundary",
+      "Resources": "Chief",
+      "Traction Control": "confidence/detour spine"
+    },
+    "quiet_when_resolved": true,
+    "visually_semantically_distinct_from_lanes": true
+  },
+  "classification_buckets": [
+    "helm_lanes",
+    "check_lights",
+    "worlds",
+    "proof_detail",
+    "future_gated",
+    "parked"
+  ],
+  "classification_counts": {
+    "check_lights": 5,
+    "future_gated": 2,
+    "helm_lanes": 7,
+    "parked": 1,
+    "proof_detail": 2,
+    "worlds": 1
+  },
+  "classification_items": [
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Current mission: Mission Control app finish sprint",
+      "examples": [],
+      "is_normal_work_lane": true,
+      "item_id": "current_mission_app_finish",
+      "item_kind": "mission_orientation",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Render the mission, mode, first attention item, and next safe move before any proof shelves.",
+      "priority_rank": 1,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_prompt"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "above_fold",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "The current mission is the front-door orientation for all other prioritization."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "System Awareness / Discovery",
+      "examples": [
+        "known/partly-known/known-unknown/undiscovered map",
+        "operator memory comparison"
+      ],
+      "is_normal_work_lane": true,
+      "item_id": "system_awareness_discovery",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show the top lane and one immediate child/focus, not the whole nested tree.",
+      "priority_rank": 2,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_nested_lane_mission_package_spine.json",
+        "operator_awareness_agent_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "visible_summary",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "It is about building and mapping OpenClaw itself, so it belongs on the helm in Developer Mode."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Chief / Cassandra / Guardian / Niles / Hermes awareness tracking",
+      "examples": [
+        "Chief",
+        "Cassandra",
+        "Guardian",
+        "Niles",
+        "Hermes"
+      ],
+      "is_normal_work_lane": true,
+      "item_id": "agent_awareness_tracking",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Collapse agent sublanes into the System Awareness parent unless one has a mission-relevant attention flag.",
+      "priority_rank": 3,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [
+        "meaningful attention flag",
+        "blocked workflow",
+        "build-out need that affects current mission"
+      ],
+      "source_refs": [
+        "operator_nested_lane_mission_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "collapsed_by_default",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "These are active awareness/build sublanes, but the helm should show only the relevant immediate focus."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Mission Control visual/UX and app finish work",
+      "examples": [],
+      "is_normal_work_lane": true,
+      "item_id": "mission_control_visual_ux_app_finish",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Render the next Mac UI change from this taxonomy rather than showing every backend artifact.",
+      "priority_rank": 4,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_prompt",
+        "work_board.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "above_fold",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "Developer/app finish work is about making the operator system usable within the sprint."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Workbench / Actor Host Registry",
+      "examples": [],
+      "is_normal_work_lane": true,
+      "item_id": "workbench_actor_host_registry",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show a small routing summary; keep per-host proof and policies in detail.",
+      "priority_rank": 5,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_workbench_actor_host_registry.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "visible_summary",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "It tells the helm which tool or actor host should receive future packages."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Package preview / detour / proof flow",
+      "examples": [],
+      "is_normal_work_lane": true,
+      "item_id": "package_preview_detour_flow",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show only orientation and next move above the fold; put package/proof lower.",
+      "priority_rank": 6,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_awareness_agent_package_spine.json",
+        "operator_nested_lane_mission_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "visible_summary",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "The steel-thread flow must be consistent before live worlds become useful."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "helm_lanes",
+      "current_status_from_source": null,
+      "display_name": "Design memory inventory",
+      "examples": [],
+      "is_normal_work_lane": true,
+      "item_id": "design_memory_inventory",
+      "item_kind": "operator_system_build_lane",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Keep as a bounded classification lane; do not ingest broad old archives here.",
+      "priority_rank": 7,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [
+        "blocks current UI decision",
+        "operator memory comparison needed"
+      ],
+      "source_refs": [
+        "operator_prompt",
+        "operator_nested_lane_mission_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "collapsed_by_default",
+      "top_level_helm_card_allowed": true,
+      "why_belongs_where": "Design memory matters to app finish, but raw archives and long design trees should not be front-door content."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "check_lights",
+      "current_status_from_source": "WARNING",
+      "display_name": "Check Engine",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "check_engine",
+      "item_kind": "system_health_light",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Open the Chief diagnostic/system health lane when inspected.",
+      "priority_rank": 8,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "system_health_lights_taxonomy.json",
+        "chief_check_engine_diagnostic_package.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "above_fold",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "It is a system/workbench condition, not a normal domain lane."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": true,
+      "bucket": "check_lights",
+      "current_status_from_source": "ON",
+      "display_name": "Check Transmission",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "check_transmission",
+      "item_kind": "system_health_light",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Use the existing sync lifecycle to restore trusted/current mirror proof.",
+      "priority_rank": 9,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "system_health_lights_taxonomy.json",
+        "sync_health.json",
+        "bridge_manual_mount_recovery_packet.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "above_fold",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "PC/Mac bridge and state-transfer proof should be a drivetrain light, not a backend card."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "check_lights",
+      "current_status_from_source": "WARNING",
+      "display_name": "Resources",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "resources",
+      "item_kind": "system_health_light",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show only if resource pressure materially affects the mission.",
+      "priority_rank": 10,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "system_health_lights_taxonomy.json",
+        "chief_check_engine_environment_posture.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "above_fold",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Disk, credits, compute, storage, and tool availability are resource lights."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "check_lights",
+      "current_status_from_source": "ON_NORMAL",
+      "display_name": "Parking Brake",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "parking_brake",
+      "item_kind": "authority_lock_light",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show as intentional lock posture; do not imply malfunction.",
+      "priority_rank": 11,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "system_health_lights_taxonomy.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "visible_summary",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Intentional authority locks are not failures and should be visually distinct from work lanes."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "check_lights",
+      "current_status_from_source": "QUIET",
+      "display_name": "Traction Control",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "traction_control",
+      "item_kind": "confidence_detour_light",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Keep quiet unless a package is below deterministic confidence.",
+      "priority_rank": 12,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "system_health_lights_taxonomy.json",
+        "operator_awareness_agent_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "hidden_until_relevant",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Confidence/detour state should appear only when it materially affects an action."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "worlds",
+      "current_status_from_source": null,
+      "display_name": "Worlds / domains as teleport targets",
+      "examples": [
+        "Music / Art",
+        "Finance",
+        "Operations",
+        "Security",
+        "Build",
+        "Research",
+        "Communications",
+        "Business Development",
+        "Gardening"
+      ],
+      "is_normal_work_lane": true,
+      "item_id": "worlds_teleport_targets",
+      "item_kind": "world_launcher",
+      "machine_detail_front_door": false,
+      "mission_relevance": "visible_destination_not_current_build_blocker",
+      "next_safe_move": "Render as compact destination targets, not as equal helm cards.",
+      "priority_rank": 13,
+      "proof_belongs_underneath": false,
+      "rise_to_helm_when": [
+        "meaningful attention flag",
+        "blocked workflow",
+        "build-out need that affects current mission"
+      ],
+      "source_refs": [
+        "world_domain_registry.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "collapsed_world_launcher",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Worlds are places to enter after the helm is calm; they should not clutter the front door."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "proof_detail",
+      "current_status_from_source": null,
+      "display_name": "Raw contracts, receipts, paths, and machine proof",
+      "examples": [
+        "raw contracts",
+        "receipts",
+        "long paths",
+        "machine tokens",
+        "source refs"
+      ],
+      "is_normal_work_lane": false,
+      "item_id": "raw_contracts_receipts_long_paths",
+      "item_kind": "proof_shelf",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Expose through drill-in/proof shelves only when the operator asks or a lane needs evidence.",
+      "priority_rank": 14,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "generated/read_models",
+        "business_ops_ledger.py"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "proof_detail_shelf",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Machine proof belongs underneath operator orientation, not in the front-door helm."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "proof_detail",
+      "current_status_from_source": null,
+      "display_name": "Deep nested lane tree",
+      "examples": [],
+      "is_normal_work_lane": false,
+      "item_id": "nested_lane_tree",
+      "item_kind": "collapsed_structure",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Show active parent lane, immediate child/focus, and next safe move.",
+      "priority_rank": 15,
+      "proof_belongs_underneath": true,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_nested_lane_mission_package_spine.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "collapsed_by_default",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Nested lanes may exist in backend contracts, but the UI should expose parent plus immediate focus by default."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "future_gated",
+      "current_status_from_source": null,
+      "display_name": "Live execution integrations",
+      "examples": [
+        "model APIs",
+        "agent launch",
+        "browser/OAuth",
+        "send/submit/approval"
+      ],
+      "is_normal_work_lane": false,
+      "item_id": "live_execution_integrations",
+      "item_kind": "blocked_future_authority",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Keep blocked until a later authority lane grants a narrow path.",
+      "priority_rank": 16,
+      "proof_belongs_underneath": false,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "operator_workbench_actor_host_registry.json",
+        "system_health_lights_taxonomy.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "future_gated_hidden",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Live model/tool/agent/browser/account work is not part of the app-finish backend declutter lane."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "future_gated",
+      "current_status_from_source": null,
+      "display_name": "Browser/OAuth/account workflows",
+      "examples": [
+        "Gmail",
+        "calendar",
+        "Coupa",
+        "Telegram"
+      ],
+      "is_normal_work_lane": false,
+      "item_id": "browser_oauth_account_workflows",
+      "item_kind": "blocked_future_authority",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Represent as blocked/future-gated only.",
+      "priority_rank": 17,
+      "proof_belongs_underneath": false,
+      "rise_to_helm_when": [],
+      "source_refs": [
+        "capability_skill_registry_metadata_delta.json",
+        "operator_workbench_actor_host_registry.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "future_gated_hidden",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Account-bearing workflows must remain future-gated and not appear as front-door action cards."
+    },
+    {
+      "authority_boundary_preserved": true,
+      "blocks_current_mission_if_unresolved": false,
+      "bucket": "parked",
+      "current_status_from_source": null,
+      "display_name": "Deep domain work",
+      "examples": [
+        "deep music metadata",
+        "finance workflow execution",
+        "research backlog",
+        "future Gardening world"
+      ],
+      "is_normal_work_lane": true,
+      "item_id": "deep_domain_work",
+      "item_kind": "parked_domain_work",
+      "machine_detail_front_door": false,
+      "mission_relevance": "supports_app_finish_mission",
+      "next_safe_move": "Park deep domain work until the helm is calm, unless a domain has a mission-relevant attention flag.",
+      "priority_rank": 18,
+      "proof_belongs_underneath": false,
+      "rise_to_helm_when": [
+        "blocks current mission",
+        "meaningful attention flag",
+        "explicit operator request"
+      ],
+      "source_refs": [
+        "world_domain_registry.json",
+        "cross_repo_awareness_matrix.json"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "surface_policy": "parked_until_mission_relevant",
+      "top_level_helm_card_allowed": false,
+      "why_belongs_where": "Domain work should wait unless it blocks the app-finish mission or needs operator attention."
+    }
+  ],
+  "cleanup_authority_added": false,
+  "credential_handling_added": false,
+  "credentials_stored": false,
+  "current_mission": {
+    "mission_id": "mission_control_app_finish_sprint",
+    "mission_meaning": "OpenClaw is an Operator System that uses determinism and AI to help the operator navigate, execute, build, and control anything they can and should control.",
+    "not_the_mission": [
+      "build every future world now",
+      "execute live workflows",
+      "turn every read-model into a top-level card",
+      "grant model, browser, account, send, submit, approval, or runtime authority"
+    ],
+    "operator_summary": "Finish Mission Control into a clean, calm, usable helm so Winship can start working from it."
+  },
+  "current_priority_ranking": [
+    {
+      "blocks_current_mission_if_unresolved": true,
+      "current_posture": "visible_health_row_needed",
+      "priority_id": "system_health_intelligible",
+      "rank": 1,
+      "summary": "System health/check lights must be obvious and quiet when resolved."
+    },
+    {
+      "blocks_current_mission_if_unresolved": true,
+      "current_posture": "needs_sync_or_review",
+      "priority_id": "bridge_transmission_trusted",
+      "rank": 2,
+      "summary": "PC/Mac bridge proof must be trusted before Mission Control can claim mirror current."
+    },
+    {
+      "blocks_current_mission_if_unresolved": true,
+      "current_posture": "taxonomy_ready_for_ui_readback",
+      "priority_id": "helm_front_door_calm",
+      "rank": 3,
+      "summary": "The helm front door must stop being a backend card wall."
+    },
+    {
+      "blocks_current_mission_if_unresolved": true,
+      "current_posture": "contract_defined",
+      "priority_id": "steel_thread_pattern_consistent",
+      "rank": 4,
+      "summary": "Every lane/light/world should use orientation, proof, then package/detour path."
+    },
+    {
+      "blocks_current_mission_if_unresolved": false,
+      "current_posture": "registry_available",
+      "priority_id": "workbench_actor_host_registry_clear",
+      "rank": 5,
+      "summary": "Mission Control must know which tools do what before package launch is useful."
+    },
+    {
+      "blocks_current_mission_if_unresolved": true,
+      "current_posture": "spine_available",
+      "priority_id": "package_preview_detour_flow",
+      "rank": 6,
+      "summary": "Package preview/detour workflow must exist before live worlds matter."
+    },
+    {
+      "blocks_current_mission_if_unresolved": false,
+      "current_posture": "registry_available",
+      "priority_id": "worlds_as_teleport_targets",
+      "rank": 7,
+      "summary": "Worlds/domains should become compact destinations after the helm is clean."
+    },
+    {
+      "blocks_current_mission_if_unresolved": false,
+      "current_posture": "parked",
+      "priority_id": "deep_domain_work_waits",
+      "rank": 8,
+      "should_wait_unless_blocks_mission": true,
+      "summary": "Deep domain work waits unless it blocks app finish."
+    }
+  ],
+  "delete_authority_added": false,
+  "email_send_triggered": false,
+  "execution_authority_added": false,
+  "external_model_apis_called": false,
+  "front_door_render_contract": {
+    "above_fold": [
+      "mode_and_mission_strip",
+      "system_health_light_row",
+      "active_mission_next_safe_move",
+      "top_priority_stack_limited_to_current_mission",
+      "compact_world_launcher_hint"
+    ],
+    "collapsed_by_default": [
+      "nested_lane_children",
+      "agent_awareness_sublanes",
+      "workbench_host_detail",
+      "design_memory_inventory",
+      "domain_world_detail"
+    ],
+    "front_door_questions": [
+      "What mode am I in?",
+      "Is the system healthy?",
+      "What is the active mission?",
+      "What needs my attention first?",
+      "What is the next safe move?",
+      "What is blocked/future-gated?",
+      "Where can I inspect proof?"
+    ],
+    "lower_layers_show": [
+      "machine proof",
+      "package preview",
+      "detour/fix path"
+    ],
+    "must_not_render_as_top_level": [
+      "every_read_model_as_equal_card",
+      "deep_nested_lane_tree",
+      "raw_machine_tokens",
+      "receipt_rows",
+      "long_path_lists",
+      "future_gated_live_actions"
+    ],
+    "proof_detail_shelf": [
+      "raw_contracts_and_receipts",
+      "machine_proof",
+      "long_paths",
+      "source_refs",
+      "package_body_preview"
+    ],
+    "top_helm_layer_shows": [
+      "operator orientation",
+      "current mission",
+      "health-light status",
+      "next safe move"
+    ]
+  },
+  "generated_at": "2026-05-20T23:56:21+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "helm_mode": "DEVELOPER_MODE_BUILD_MODE",
+  "lane": "Operator Mission Priority / Helm Declutter Taxonomy v0",
+  "live_launch_buttons_created": false,
+  "lm_called": false,
+  "mac_app_files_mutated": false,
+  "mac_commands_run_from_pc": false,
+  "mac_ui_explicit_warning": "The Mac app should not render every read-model as an equal card.",
+  "machine_proof": {
+    "generated_outputs": [
+      "generated/read_models/operator_mission_priority_helm_declutter.json",
+      "generated/read_models/operator_mission_priority_helm_declutter_OPERATOR.md"
+    ],
+    "ledger_pattern_present": true,
+    "source_files": [
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "scripts/build_helm_state.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "scripts/build_world_domain_registry.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "system_health_lights_taxonomy.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_nested_lane_mission_package_spine.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_awareness_agent_package_spine.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_workbench_actor_host_registry.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "business_ops_ledger.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      }
+    ],
+    "source_read_models": [
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "system_health_lights_taxonomy",
+        "metadata_only": true,
+        "path": "generated/read_models/system_health_lights_taxonomy.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "check-light taxonomy and current light states",
+        "schema_version": "system_health_lights_taxonomy_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_nested_lane_mission_package_spine",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_nested_lane_mission_package_spine.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "nested-lane and mission-package grammar",
+        "schema_version": "operator_nested_lane_mission_package_spine_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_awareness_agent_package_spine",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_awareness_agent_package_spine.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "awareness/gap/package/confidence spine",
+        "schema_version": "operator_awareness_agent_package_spine_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "chief_check_engine_environment_posture",
+        "metadata_only": true,
+        "path": "generated/read_models/chief_check_engine_environment_posture.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "Chief-owned workbench degradation posture",
+        "schema_version": "chief_check_engine_environment_posture_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "chief_check_engine_diagnostic_package",
+        "metadata_only": true,
+        "path": "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "inspect-only Chief diagnostic package",
+        "schema_version": "chief_check_engine_diagnostic_package_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "bridge_manual_mount_recovery_packet",
+        "metadata_only": true,
+        "path": "generated/read_models/bridge_manual_mount_recovery_packet.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "manual bridge recovery packet when mount is blocked",
+        "schema_version": "bridge_manual_mount_recovery_packet_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "sync_health",
+        "metadata_only": true,
+        "path": "generated/read_models/sync_health.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "PC/Mac mirror proof and trusted-current state",
+        "schema_version": "sync_health_read_model_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "world_domain_registry",
+        "metadata_only": true,
+        "path": "generated/read_models/world_domain_registry.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "world/domain registry and teleport-target vocabulary",
+        "schema_version": "world_domain_registry_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "repo_a_known_rail_completion_map",
+        "metadata_only": true,
+        "path": "generated/read_models/repo_a_known_rail_completion_map.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "known Repo A rail completion posture",
+        "schema_version": "repo_a_known_rail_completion_map_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "cross_repo_awareness_matrix",
+        "metadata_only": true,
+        "path": "generated/read_models/cross_repo_awareness_matrix.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "cross-repo awareness and leftover classification posture",
+        "schema_version": "cross_repo_awareness_matrix_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_workbench_actor_host_registry",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "workbench, actor host, autonomy, and receipt registry",
+        "schema_version": "operator_workbench_actor_host_registry_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "business_ops_ledger",
+        "metadata_only": true,
+        "path": "business_ops_ledger.py",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "existing metadata-only SQLite receipt pattern",
+        "schema_version": null,
+        "truth_status": "repo_a_source_or_read_model_evidence_not_front_door_truth_by_itself"
+      }
+    ],
+    "source_read_models_present": {
+      "bridge_manual_mount_recovery_packet": true,
+      "business_ops_ledger": false,
+      "chief_check_engine_diagnostic_package": true,
+      "chief_check_engine_environment_posture": true,
+      "cross_repo_awareness_matrix": true,
+      "operator_awareness_agent_package_spine": true,
+      "operator_nested_lane_mission_package_spine": true,
+      "operator_workbench_actor_host_registry": true,
+      "repo_a_known_rail_completion_map": true,
+      "sync_health": true,
+      "system_health_lights_taxonomy": true,
+      "world_domain_registry": true
+    }
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "mission_deadline_label": "approximately_5_days_app_finish_sprint",
+  "mission_success_conditions": [
+    "system health is obvious",
+    "current build/developer work is organized",
+    "worlds/domains are visible and ready to enter",
+    "package/detour/proof flow is consistent",
+    "operator stops mentally tracking the system manually"
+  ],
+  "model_calls_made": false,
+  "next_safe_lane": "Mission Control Helm Declutter Readback Surface v0",
+  "no_authority_flags": {
+    "agent_launch_authority_added": false,
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "broad_file_dump_stored": false,
+    "browser_accessed": false,
+    "browser_oauth_or_account_access_enabled": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "cleanup_authority_added": false,
+    "credential_handling_added": false,
+    "credentials_stored": false,
+    "delete_authority_added": false,
+    "email_send_triggered": false,
+    "execution_authority_added": false,
+    "external_model_apis_called": false,
+    "gmail_calendar_coupa_accessed": false,
+    "live_launch_buttons_created": false,
+    "lm_called": false,
+    "mac_app_files_mutated": false,
+    "mac_commands_run_from_pc": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "oauth_or_credentials_accessed": false,
+    "plugins_wired": false,
+    "raw_logs_stored": false,
+    "raw_private_content_inspected": false,
+    "read_model_only": true,
+    "remount_authority_added": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_receipt_metadata_only": true,
+    "sqlite_schema_changed": false,
+    "taxonomy_only": true,
+    "telegram_send_triggered": false,
+    "tools_enabled": false,
+    "unknown_sources_fail_closed_or_static_doctrine_only": true
+  },
+  "no_live_authority_statement": "No UI mutation, live integration, model call, agent launch, browser/OAuth, send, submit, approval, or runtime authority is added.",
+  "oauth_or_credentials_accessed": false,
+  "plugins_wired": false,
+  "priority_rules": [
+    {
+      "meaning": "Rank first anything that blocks the approximately five-day Mission Control app finish mission.",
+      "rank": 1,
+      "rule_id": "blocks_app_finish_mission_first"
+    },
+    {
+      "meaning": "System health, bridge proof, resources, authority locks, and confidence conditions must be intelligible before showing lane detail.",
+      "rank": 2,
+      "rule_id": "check_lights_before_lane_noise"
+    },
+    {
+      "meaning": "The front door shows operator orientation and next safe move; proof and package detail sit lower.",
+      "rank": 3,
+      "rule_id": "operator_orientation_before_machine_proof"
+    },
+    {
+      "meaning": "Worlds are compact teleport targets unless they have meaningful attention or block the current mission.",
+      "rank": 4,
+      "rule_id": "worlds_are_destinations_not_card_wall"
+    },
+    {
+      "meaning": "Deep domain work waits unless it blocks app finish, carries a meaningful attention flag, or is explicitly requested.",
+      "rank": 5,
+      "rule_id": "deep_domain_work_waits"
+    }
+  ],
+  "raw_logs_stored": false,
+  "raw_private_content_inspected": false,
+  "read_model_id": "operator_mission_priority_helm_declutter",
+  "read_model_only": true,
+  "relationship_to_existing_contracts": {
+    "added_scope": "mission priority, helm declutter, front-door classification, and render guidance",
+    "does_not_replace_helm_state": true,
+    "does_not_replace_nested_lane_spine": true,
+    "does_not_replace_system_health_lights": true,
+    "does_not_replace_workbench_registry": true,
+    "does_not_replace_world_registry": true,
+    "helm_state_still_owns": "low-level deterministic helm state vocabulary and status checks",
+    "nested_lane_spine_still_owns": "lane topology, package grammar, confidence detours, and workspace posture",
+    "single_source_of_truth_posture": "companion taxonomy classifies surfaces for display without duplicating canonical source contracts",
+    "system_health_lights_still_own": "car-style check lights, current light states, and clicked-lane mapping",
+    "workbench_registry_still_owns": "actor hosts, autonomy, proof, and receipt expectations",
+    "world_registry_still_owns": "durable domain/world vocabulary"
+  },
+  "remount_authority_added": false,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "schema_version": "operator_mission_priority_helm_declutter_v0",
+  "send_or_submit_authority_added": false,
+  "source_state_summary": {
+    "awareness_spine": {
+      "available": true,
+      "button_ready_gap_items": true
+    },
+    "nested_lane_spine": {
+      "available": true,
+      "nested_lane_count": 14,
+      "top_lane_id": "system_awareness_discovery"
+    },
+    "sync_health": {
+      "available": true,
+      "canonical_expected": 208,
+      "hash_mismatch": 0,
+      "mirror_status": "needs_mac_sync",
+      "missing_expected": 2,
+      "observed": 206,
+      "sync_lifecycle_state": "sync_requested_waiting_for_mac",
+      "trust_status": "stale_needs_mac_sync"
+    },
+    "system_health_lights": {
+      "available": true,
+      "current_light_states": {
+        "brake_parking_brake": "ON_NORMAL",
+        "check_engine": "WARNING",
+        "check_transmission": "ON",
+        "low_fuel_low_battery": "WARNING",
+        "oil_pressure_coolant": "WARNING",
+        "traction_control": "QUIET"
+      },
+      "generated_at": "2026-05-20T23:56:17+00:00"
+    },
+    "workbench_actor_host_registry": {
+      "available": true,
+      "host_count": 8
+    },
+    "world_domain_registry": {
+      "available": true,
+      "world_count": 8,
+      "world_labels": [
+        "Music / Art",
+        "Finance",
+        "Operations",
+        "Security",
+        "Build",
+        "Research",
+        "Communications",
+        "Business Development"
+      ]
+    }
+  },
+  "sqlite_ledger_receipt_contract": {
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "payload_hash": "sha256:90e810f0067e4179a48c58b92bd0ea29a04f6d67410d74a441014fa53a48299e",
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_operator_mission_priority_helm_declutter_receipt",
+    "sqlite_meaning": "receipt_record_only",
+    "stores_broad_file_dumps": false,
+    "stores_credentials": false,
+    "stores_raw_logs": false,
+    "stores_raw_private_file_bodies": false,
+    "stores_runtime_activation": false,
+    "stores_secrets": false,
+    "supported_by_existing_pattern": true
+  },
+  "sqlite_receipt_metadata_only": true,
+  "sqlite_schema_changed": false,
+  "steel_thread_pattern": {
+    "flow": [
+      "ELI5/operator orientation",
+      "machine contract/proof",
+      "package/detour/fix path"
+    ],
+    "proof_and_package_layers_lower": true,
+    "top_helm_should_not_show_all_layers_at_once": true,
+    "top_helm_shows_operator_orientation_and_next_move": true
+  },
+  "surface_policies": [
+    "above_fold",
+    "visible_summary",
+    "collapsed_by_default",
+    "collapsed_world_launcher",
+    "proof_detail_shelf",
+    "hidden_until_relevant",
+    "future_gated_hidden",
+    "parked_until_mission_relevant"
+  ],
+  "target_future_mode": "QUIET_OPERATIONAL_HELM",
+  "taxonomy_hash": "sha256:c78c8a7555774ad5632346e66bdccac11e9238defe4bb54ffa0f30ca2fa79dc1",
+  "taxonomy_only": true,
+  "taxonomy_status": "deterministic_metadata_only_mission_priority_declutter",
+  "telegram_send_triggered": false,
+  "tools_enabled": false,
+  "unknown_or_missing_source_policy": {
+    "classification_can_still_render_static_doctrine": true,
+    "do_not_invent_source_facts": true,
+    "missing_source_display": "unavailable_source_reference",
+    "missing_source_never_becomes_truth": true
+  },
+  "unknown_sources_fail_closed_or_static_doctrine_only": true,
+  "what_mac_ui_should_render_next": [
+    {
+      "render_id": "mode_mission_health_strip",
+      "source": "current_mission and system_health_lights_taxonomy",
+      "summary": "Developer Mode / app finish sprint strip plus health-light row."
+    },
+    {
+      "render_id": "top_priority_next_move",
+      "source": "current_priority_ranking",
+      "summary": "Show the top current priority and next safe move, not a full read-model wall."
+    },
+    {
+      "render_id": "system_awareness_single_focus",
+      "source": "operator_nested_lane_mission_package_spine",
+      "summary": "Show active parent lane and one immediate focus child."
+    },
+    {
+      "render_id": "compact_world_launcher",
+      "source": "world_domain_registry",
+      "summary": "Render worlds/domains as compact teleport targets with attention badges only when relevant."
+    },
+    {
+      "render_id": "proof_detail_shelf",
+      "source": "machine_proof",
+      "summary": "Move raw contracts, receipts, long paths, machine proof, and package bodies behind inspect/drill-in affordances."
+    }
+  ],
+  "what_should_not_be_built_yet": [
+    "live workflow execution",
+    "all future worlds",
+    "browser/OAuth/account integrations",
+    "send/submit/approval flows",
+    "full deep nested lane tree on the front door",
+    "every read-model as an equal card"
+  ],
+  "world_policy": {
+    "domain_attention_rises_to_helm_only_when_relevant": true,
+    "examples": [
+      "Music / Art",
+      "Finance",
+      "Operations",
+      "Security",
+      "Build",
+      "Research",
+      "Communications",
+      "Business Development",
+      "Gardening"
+    ],
+    "normal_domain_work_belongs_inside_worlds": true,
+    "worlds_are_teleport_targets_after_helm_is_calm": true,
+    "worlds_should_not_clutter_helm_without_attention": true
+  }
+}

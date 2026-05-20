@@ -8,12 +8,12 @@ Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=206
-- observed=204
+- canonical_expected=208
+- observed=206
 - missing_expected=2
 - extra=0
 - hash_mismatch=2
-- matched_hash=202
+- matched_hash=204
 
 Recommended fix:
 - kind: `wait_for_mac_sync`
@@ -25,14 +25,14 @@ Recommended fix:
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-20T23:44:34+00:00`
-- Mac completion: `synced` at `2026-05-20T23:39:33+00:00`
-- PC import: `skipped_unchanged` at `2026-05-20T23:39:48+00:00`
+- Mac heartbeat: `idle` at `2026-05-20T23:54:36+00:00`
+- Mac completion: `synced` at `2026-05-20T23:49:35+00:00`
+- PC import: `skipped_unchanged` at `2026-05-20T23:49:48+00:00`
 - Windows task log present: `true`
 
 Stale files:
-- `operator_workbench_actor_host_registry.json`
-- `operator_workbench_actor_host_registry_OPERATOR.md`
+- `operator_mission_priority_helm_declutter.json`
+- `operator_mission_priority_helm_declutter_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
 

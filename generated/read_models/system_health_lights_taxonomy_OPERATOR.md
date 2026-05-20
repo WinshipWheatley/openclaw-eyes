@@ -2,11 +2,11 @@ System Health Lights Taxonomy v0
 
 PC Import Proof:
 - Mac-to-E-drive-to-PC sync proof complete: `true`
-- canonical_expected=206
-- observed=204
+- canonical_expected=208
+- observed=206
 - missing_expected=2
 - hash_mismatch=0
-- backend_head=b12ee609796cd24d780b5285a5293450522b058d
+- backend_head=07a8f20b214b6eaf794c4173b82991d125bf369e
 - backend_head_matches_expected=`false`
 - Core PC import proof is complete.
 
