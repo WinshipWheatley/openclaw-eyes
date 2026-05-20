@@ -24,7 +24,7 @@ from read_model_shuttle import (
     DEFAULT_RETURNED_MANIFEST_PATH,
 )
 from scripts.import_latest_mac_read_model_mirror import import_latest_mac_read_model_mirror
-from sync_health import refresh_sync_health_from_manifest
+from sync_health import compare_manifest_to_backend, refresh_sync_health_from_manifest
 
 
 AGENT_VERSION = "openclaw.pc_read_model_import_agent.v0"
@@ -205,6 +205,64 @@ def sync_health_self_report_mirror_state(
     }
 
 
+def canonical_expected_set_mirror_state(
+    *,
+    manifest_path: str | Path,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    repo_root: str | Path = ROOT,
+) -> dict[str, Any]:
+    root = Path(read_model_root)
+    if not root.is_dir():
+        return {
+            "status": "canonical_read_model_root_missing",
+            "reason": "Canonical generated read-model root is missing; expected-set comparison was skipped.",
+            "marker_needed": False,
+            "refresh_needed": False,
+            "manifest_path": Path(manifest_path).as_posix(),
+            "read_model_root": root.as_posix(),
+            "missing_expected_files": [],
+            "hash_mismatch_files": [],
+            "extra_files": [],
+            "counts": {},
+            "operator_action_required": False,
+            **NO_AUTHORITY_FLAGS,
+        }
+    manifest_health = compare_manifest_to_backend(
+        manifest_path=manifest_path,
+        read_model_root=root,
+        repo_root=repo_root,
+    )
+    counts = manifest_health.get("counts", {})
+    missing_files = list(manifest_health.get("missing_expected_files") or [])
+    hash_mismatch_files = list(manifest_health.get("hash_mismatch_files") or [])
+    extra_files = list(manifest_health.get("extra_files") or [])
+    marker_needed = bool(missing_files or hash_mismatch_files)
+    refresh_needed = marker_needed or bool(extra_files)
+    if marker_needed:
+        status = "canonical_expected_set_needs_mac_sync"
+        reason = "Backend canonical generated/read_models contains files that the Mac-visible manifest does not yet match."
+    elif extra_files:
+        status = "canonical_expected_set_extra_files_need_review"
+        reason = "Mac-visible manifest has extra files outside the canonical generated/read_models set."
+    else:
+        status = "canonical_expected_set_current"
+        reason = "Mac-visible manifest matches the canonical generated/read_models expected set."
+    return {
+        "status": status,
+        "reason": reason,
+        "marker_needed": marker_needed,
+        "refresh_needed": refresh_needed,
+        "manifest_path": Path(manifest_path).as_posix(),
+        "read_model_root": root.as_posix(),
+        "missing_expected_files": missing_files,
+        "hash_mismatch_files": hash_mismatch_files,
+        "extra_files": extra_files,
+        "counts": counts,
+        "operator_action_required": False,
+        **NO_AUTHORITY_FLAGS,
+    }
+
+
 def _marker_pending(request_marker: Path, completion_marker: Path) -> bool:
     if not request_marker.is_file():
         return False
@@ -264,6 +322,59 @@ def write_final_mac_mirror_marker_if_needed(
         "reason": marker["reason"],
         "request_marker_path": request_marker.as_posix(),
         "sync_lifecycle_state": lifecycle,
+    }
+
+
+def write_expected_set_mac_sync_marker_if_needed(
+    *,
+    expected_set_state: dict[str, Any],
+    request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
+    completion_marker_path: str | Path = DEFAULT_COMPLETION_MARKER_PATH,
+) -> dict[str, Any]:
+    request_marker = Path(request_marker_path)
+    completion_marker = Path(completion_marker_path)
+    if not expected_set_state.get("marker_needed"):
+        return {
+            "final_mac_mirror_marker_needed": False,
+            "final_mac_mirror_marker_written": False,
+            "reason": expected_set_state.get("reason", "canonical expected set is current"),
+            "sync_lifecycle_state": "trusted_current",
+            "canonical_expected_set_state": expected_set_state,
+        }
+    if _marker_pending(request_marker, completion_marker):
+        return {
+            "final_mac_mirror_marker_needed": True,
+            "final_mac_mirror_marker_written": False,
+            "reason": "existing request marker is still pending Mac completion",
+            "request_marker_path": request_marker.as_posix(),
+            "sync_lifecycle_state": "sync_requested_waiting_for_mac",
+            "canonical_expected_set_state": expected_set_state,
+        }
+    import datetime as _datetime
+
+    request_marker.parent.mkdir(parents=True, exist_ok=True)
+    marker = {
+        "schema_version": "read_model_sync_required_v0",
+        "generated_at": _datetime.datetime.now(_datetime.timezone.utc).replace(microsecond=0).isoformat(),
+        "reason": "Mac generated-read-model folder is behind backend canonical generated/read_models.",
+        "requested_by": "pc_read_model_import_agent",
+        "next_expected_responder": "mac_read_model_sync_agent",
+        "sync_lifecycle_state": "sync_requested_waiting_for_mac",
+        "operator_action_required": False,
+        "missing_expected_files": list(expected_set_state.get("missing_expected_files") or []),
+        "hash_mismatch_files": list(expected_set_state.get("hash_mismatch_files") or []),
+        "manual_fallback_mac_command": "cd ~/Developer/OpenClawBackend/openclaw\nPYTHONDONTWRITEBYTECODE=1 python3 scripts/sync_read_model_mirror.py --pull --format operator",
+        "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
+        **NO_AUTHORITY_FLAGS,
+    }
+    request_marker.write_text(stable_json(marker), encoding="utf-8")
+    return {
+        "final_mac_mirror_marker_needed": True,
+        "final_mac_mirror_marker_written": True,
+        "reason": marker["reason"],
+        "request_marker_path": request_marker.as_posix(),
+        "sync_lifecycle_state": "sync_requested_waiting_for_mac",
+        "canonical_expected_set_state": expected_set_state,
     }
 
 
@@ -405,6 +516,106 @@ def run_import_agent_once(
             and previous_refresh.get("sync_lifecycle_state") == "trusted_current"
             and previous_refresh.get("operator_action_required") is False
         ):
+            expected_set_state = canonical_expected_set_mirror_state(
+                manifest_path=manifest,
+                read_model_root=read_model_root,
+            )
+            if expected_set_state.get("refresh_needed"):
+                try:
+                    sync_health_refresh = sync_health_refresher(
+                        db_path=db_path,
+                        manifest_path=manifest,
+                        pc_import_state_path=state_file,
+                        mac_completion_path=completion_marker,
+                        pc_task_log_path=log_file,
+                    )
+                except Exception as exc:
+                    failure = _base_status(
+                        status="sync_health_refresh_failed",
+                        manifest_path=manifest,
+                        completion_marker_path=completion_marker,
+                        state_path=state_file,
+                        log_path=log_file,
+                        exit_code=1,
+                        manifest_sha256=manifest_hash,
+                        manifest_size_bytes=manifest_stat.st_size,
+                        manifest_mtime=manifest_stat.st_mtime,
+                        failure_reason=type(exc).__name__,
+                        failure_detail=str(exc),
+                        **_completion_marker_summary(completion_marker),
+                    )
+                    write_state(
+                        state_file,
+                        {
+                            **previous_state,
+                            "agent_version": AGENT_VERSION,
+                            "status": failure["status"],
+                            "updated_at": failure["generated_at"],
+                            "last_seen_manifest_sha256": manifest_hash,
+                            "last_seen_manifest_path": manifest.as_posix(),
+                            "last_failure_at": failure["generated_at"],
+                            "last_failure_reason": failure["failure_reason"],
+                            "last_failure_detail": failure["failure_detail"],
+                            "last_canonical_expected_set_state": expected_set_state,
+                            **NO_AUTHORITY_FLAGS,
+                        },
+                    )
+                    append_log(
+                        log_file,
+                        "sync_health_refresh_failed",
+                        manifest_sha256=manifest_hash,
+                        failure_reason=failure["failure_reason"],
+                    )
+                    return failure
+                final_mac_mirror_request = write_expected_set_mac_sync_marker_if_needed(
+                    expected_set_state=expected_set_state,
+                    request_marker_path=request_marker_path,
+                    completion_marker_path=completion_marker,
+                )
+                status = _base_status(
+                    status="skipped_unchanged",
+                    manifest_path=manifest,
+                    completion_marker_path=completion_marker,
+                    state_path=state_file,
+                    log_path=log_file,
+                    generated_at=refreshed_at,
+                    manifest_sha256=manifest_hash,
+                    manifest_size_bytes=manifest_stat.st_size,
+                    manifest_mtime=manifest_stat.st_mtime,
+                    last_imported_at=previous_state.get("last_imported_at"),
+                    message="Manifest hash matches, but backend canonical generated/read_models expected set changed; sync health refreshed.",
+                    sync_health_refresh_skipped=False,
+                    sync_health_refresh_reason="canonical_expected_set_changed",
+                    sync_health_refresh=sync_health_refresh,
+                    final_mac_mirror_request=final_mac_mirror_request,
+                    canonical_expected_set_state=expected_set_state,
+                    **_completion_marker_summary(completion_marker),
+                )
+                write_state(
+                    state_file,
+                    {
+                        **previous_state,
+                        "agent_version": AGENT_VERSION,
+                        "status": status["status"],
+                        "updated_at": status["generated_at"],
+                        "last_seen_manifest_sha256": manifest_hash,
+                        "last_seen_manifest_path": manifest.as_posix(),
+                        "last_skip_reason": "canonical_expected_set_changed",
+                        "last_sync_health_refreshed_at": refreshed_at,
+                        "last_sync_health_refresh": sync_health_refresh,
+                        "last_canonical_expected_set_state": expected_set_state,
+                        "last_final_mac_mirror_request": final_mac_mirror_request,
+                        **NO_AUTHORITY_FLAGS,
+                    },
+                )
+                append_log(
+                    log_file,
+                    "skipped_unchanged_canonical_expected_set_changed",
+                    manifest_sha256=manifest_hash,
+                    sync_health_refreshed=True,
+                    final_mac_mirror_marker_written=final_mac_mirror_request.get("final_mac_mirror_marker_written"),
+                )
+                return status
             self_report_state = sync_health_self_report_mirror_state(
                 manifest_path=manifest,
                 read_model_root=read_model_root,
