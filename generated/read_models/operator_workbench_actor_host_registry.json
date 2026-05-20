@@ -1,0 +1,1437 @@
+{
+  "actor_routing_summary": {
+    "agent_definition": "The agent is the character/persona the actor plays, such as Chief, Cassandra, Guardian, Niles, or Hermes.",
+    "browser_oauth_or_account_integrations_enabled": false,
+    "domain_to_likely_host_examples": {
+      "bounded_shell_validation": [
+        "terminal_shell"
+      ],
+      "canonical_backend_contracts": [
+        "pc_wsl_repo_a"
+      ],
+      "fast_planning_or_critique": [
+        "antigravity_gemini_flash_high"
+      ],
+      "future_remote_agent_hosting": [
+        "vscode_agents_remote_ahp_candidate"
+      ],
+      "mac_app_build_validation": [
+        "codex_vscode_mac_codex_desktop",
+        "xcode_xcodebuild"
+      ],
+      "orchestration_and_package_authoring": [
+        "gpt_5_5_chatgpt_orchestrator"
+      ]
+    },
+    "early_package_assistance_allowed": "LM-assisted drafting may be used later only as bounded package authoring, not authority creation.",
+    "external_model_apis_called": false,
+    "model_definition": "The language model is the actor that may perform work later.",
+    "model_is_actor_agent_is_character_package_is_script": true,
+    "model_must_not_decide_own_authority_context_plugins_clearance_or_lane": true,
+    "package_definition": "The package is the script/context/tools/clearance/steps/boundaries/proof requirements.",
+    "package_generation_target": "deterministic_package_builder_over_time",
+    "registered_host_ids": [
+      "pc_wsl_repo_a",
+      "mac_mission_control_app",
+      "codex_vscode_mac_codex_desktop",
+      "antigravity_gemini_flash_high",
+      "gpt_5_5_chatgpt_orchestrator",
+      "xcode_xcodebuild",
+      "terminal_shell",
+      "vscode_agents_remote_ahp_candidate"
+    ],
+    "system_decides_authority_before_launch": true,
+    "unknown_actor_or_host": {
+      "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+      "routing": "fail_closed",
+      "safe_next_move": "create or update metadata registry entry before launch"
+    }
+  },
+  "agent_launch_authority_added": false,
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "autonomy_level_progression": [
+    {
+      "level_id": "L0",
+      "meaning": "preview package only",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    },
+    {
+      "level_id": "L1",
+      "meaning": "copy/open package in right workbench",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    },
+    {
+      "level_id": "L2",
+      "meaning": "launch bounded session with package",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    },
+    {
+      "level_id": "L3",
+      "meaning": "monitor session and ingest receipt",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    },
+    {
+      "level_id": "L4",
+      "meaning": "auto-run safe maintenance lanes only",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    },
+    {
+      "level_id": "L5",
+      "meaning": "broader execution after security/approval gates",
+      "status_now": "allowed_only_where_host_record_explicitly_allows_it"
+    }
+  ],
+  "browser_accessed": false,
+  "browser_oauth_or_account_access_enabled": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "candidate_models_are_live_integrations": false,
+  "candidate_or_future_gated_host_ids": [
+    "vscode_agents_remote_ahp_candidate"
+  ],
+  "cleanup_authority_added": false,
+  "credential_handling_added": false,
+  "credentials_stored": false,
+  "current_allowed_defaults": {
+    "antigravity": "scoped read/write workspace for explicit lanes; sandbox/read-only for first-time or ambiguous lanes",
+    "browser_oauth_gmail_calendar_coupa_telegram_send_submit_approval": "blocked/future-gated unless later lane grants narrow authority",
+    "codex": "scoped read/write workspace when explicitly prompted",
+    "mac_app": "display/local marker-write only as already implemented",
+    "terminal": "command execution only when explicitly scoped",
+    "vscode_remote_agents_ahp": "candidate/future-gated until intake"
+  },
+  "delete_authority_added": false,
+  "email_send_triggered": false,
+  "execution_authority_added": false,
+  "external_model_apis_called": false,
+  "generated_at": "2026-05-20T23:45:57+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "host_categories": [
+    "canonical_repo",
+    "helm_app",
+    "implementation_worker",
+    "fast_planner_verifier",
+    "orchestrator",
+    "build_environment",
+    "terminal_surface",
+    "agent_host_candidate"
+  ],
+  "host_count": 8,
+  "host_record_contract": {
+    "host_record_is_not_launch_authority": true,
+    "required_fields": [
+      "host_id",
+      "display_name",
+      "category",
+      "machine_location",
+      "known_path_or_entrypoint",
+      "best_roles",
+      "risky_roles",
+      "default_clearance",
+      "allowed_autonomy_level_now",
+      "future_autonomy_levels",
+      "package_input_shape",
+      "expected_receipt_shape",
+      "proof_requirements",
+      "forbidden_actions",
+      "credential_policy",
+      "storage_policy",
+      "c_drive_policy",
+      "current_status",
+      "health_light_relationship",
+      "notes_for_prompting",
+      "authority_boundary"
+    ],
+    "unknown_or_unavailable_hosts_fail_closed": true
+  },
+  "host_statuses": [
+    "available",
+    "candidate",
+    "future_gated",
+    "blocked",
+    "unknown"
+  ],
+  "hosts": [
+    {
+      "allowed_autonomy_level_now": "L2_SCOPED_READ_WRITE_EXPLICIT_PROMPT",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "canonical backend/read-model contracts",
+        "SQLite metadata receipts",
+        "deterministic scripts and focused tests",
+        "generated read-model export"
+      ],
+      "c_drive_policy": {
+        "applies": true,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "canonical_repo",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "repo_a_contract_export_test_only_no_live_workflow_execution",
+      "display_name": "PC/WSL Repo A",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "pc_wsl_repo_a",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L3_MONITOR_SESSION_AND_INGEST_RECEIPT"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Check Engine",
+        "Check Transmission",
+        "Resources",
+        "Parking Brake"
+      ],
+      "host_id": "pc_wsl_repo_a",
+      "known_path_or_entrypoint": "/home/openclaw",
+      "machine_location": "PC/WSL",
+      "notes_for_prompting": "Use exact workspace, file scope, validation, no C-drive writes, receipt expectations, and stop conditions.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "repo_a_contract_export_test_only_no_live_workflow_execution",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "live workflow execution by default",
+        "account access",
+        "external send or submit flows",
+        "PC C: artifact storage"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L1_DISPLAY_AND_EXISTING_MARKER_WRITE_ONLY",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "helm UI display",
+        "read-only local mirror consumption",
+        "existing narrowly implemented sync marker write"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "helm_app",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "display_local_mirror_and_existing_marker_write_only",
+      "display_name": "Mac Mission Control app",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "mac_mission_control_app",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L2_BOUNDED_UI_VALIDATION_PACKAGE",
+        "L3_RECEIPT_READBACK"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Check Transmission",
+        "Parking Brake",
+        "Traction Control"
+      ],
+      "host_id": "mac_mission_control_app",
+      "known_path_or_entrypoint": "/Users/hwinshipwheatley/Developer/OpenClawMissionControl/OpenClaw Mission Controle",
+      "machine_location": "Mac",
+      "notes_for_prompting": "Treat as helm display, not backend executor; app code changes require a separate Mac app lane.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "display_local_mirror_and_existing_marker_write_only",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "backend command authority",
+        "arbitrary filesystem mutation",
+        "credential handling",
+        "live repair control"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L2_SCOPED_READ_WRITE_EXPLICIT_PROMPT",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "scoped file edits",
+        "tests and builds",
+        "Xcode validation",
+        "commits",
+        "screenshots",
+        "repo surgery"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "implementation_worker",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "scoped_read_write_workspace_when_explicitly_prompted",
+      "display_name": "Codex in VS Code / Mac Codex Desktop",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "codex_vscode_mac_codex_desktop",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L3_MONITOR_SESSION_AND_INGEST_RECEIPT"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Check Engine",
+        "Resources",
+        "Traction Control"
+      ],
+      "host_id": "codex_vscode_mac_codex_desktop",
+      "known_path_or_entrypoint": "VS Code Codex or Mac Codex Desktop session",
+      "machine_location": "PC/WSL or Mac",
+      "notes_for_prompting": "Give a clear lane, exact workspace, file boundaries, validation commands, commit rules, and stop conditions.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "scoped_read_write_workspace_when_explicitly_prompted",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "slow long-running loops",
+        "tool friction",
+        "window or screenshot fragility",
+        "accidental scope drift if prompt is vague"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L2_SCOPED_READ_WRITE_EXPLICIT_LANE",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "fast bounded planning",
+        "structured codebase critique",
+        "refactoring within explicit boundaries",
+        "verification and test authoring",
+        "operator explanations"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "fast_planner_verifier",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "scoped_read_write_workspace_for_explicit_lanes_only",
+      "display_name": "Antigravity CLI/Desktop with Gemini 3.5 Flash High",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "antigravity_gemini_flash_high",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "sandbox_or_read_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L3_RECEIPT_INGEST_AFTER_WORKER_RETURN"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Traction Control",
+        "Resources",
+        "Parking Brake"
+      ],
+      "host_id": "antigravity_gemini_flash_high",
+      "known_path_or_entrypoint": "Antigravity CLI/Desktop, Gemini 3.5 Flash High label",
+      "machine_location": "external_workbench_candidate",
+      "notes_for_prompting": "Use a clear lane, exact workspace, exact file boundaries, validation, stop conditions, and receipt; sandbox or read-only when ambiguous.",
+      "observed_metadata": [
+        {
+          "key": "account_tier_label",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "Google AI Pro"
+        },
+        {
+          "key": "model_label",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "Gemini 3.5 Flash High"
+        },
+        {
+          "key": "live_integration_from_this_registry",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "false"
+        }
+      ],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "scoped_read_write_workspace_for_explicit_lanes_only",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "autonomous infrastructure administration",
+        "unbounded shell execution",
+        "final authority for security",
+        "credential-bearing review",
+        "out-of-workspace state transfer",
+        "heavily creative visual design without tokens"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L0_PREVIEW_PACKAGE_ONLY",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "architecture synthesis",
+        "taste and safety judgment",
+        "prompt package authoring",
+        "cross-lane scope control",
+        "worker target selection"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "orchestrator",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "orchestration_and_package_authoring_only",
+      "display_name": "GPT-5.5 / ChatGPT orchestrator",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "gpt_5_5_chatgpt_orchestrator",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L1_OPEN_PACKAGE_IN_RIGHT_WORKBENCH"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Traction Control",
+        "Parking Brake"
+      ],
+      "host_id": "gpt_5_5_chatgpt_orchestrator",
+      "known_path_or_entrypoint": "ChatGPT orchestration session",
+      "machine_location": "orchestration_surface",
+      "notes_for_prompting": "Use for scope, package, and decision framing; local machine truth must come from the workbench that can inspect it.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "orchestration_and_package_authoring_only",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "claiming machine state it cannot observe",
+        "granting authority without Repo A proof",
+        "long implementation without local validation"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L1_EXPLICIT_BUILD_VALIDATION_ONLY",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "Mac app build validation",
+        "compile diagnostics",
+        "simulator or GUI validation when explicitly scoped"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "build_environment",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "build_validation_only_when_explicitly_scoped",
+      "display_name": "Xcode / xcodebuild",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "xcode_xcodebuild",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L2_BOUNDED_VALIDATION_SESSION"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Check Engine",
+        "Resources",
+        "Traction Control"
+      ],
+      "host_id": "xcode_xcodebuild",
+      "known_path_or_entrypoint": "Xcode GUI and xcodebuild command-line validation",
+      "machine_location": "Mac",
+      "notes_for_prompting": "Use exact scheme/project, validation target, timeout, and screenshot proof requirements.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "build_validation_only_when_explicitly_scoped",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "fragile window state",
+        "screenshot validation drift",
+        "slow UI launch loops",
+        "app mutation outside a Mac app lane"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L1_EXPLICIT_SCOPED_COMMANDS_ONLY",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "focused local reads",
+        "tests",
+        "export scripts",
+        "non-interactive validation commands"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "terminal_surface",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "available",
+      "default_clearance": "explicit_scoped_non_interactive_commands_only",
+      "display_name": "Terminal / shell",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "terminal_shell",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L2_BOUNDED_SESSION_WITH_PACKAGE"
+      ],
+      "future_gated_until_intake": false,
+      "health_light_relationship": [
+        "Check Engine",
+        "Resources",
+        "Parking Brake"
+      ],
+      "host_id": "terminal_shell",
+      "known_path_or_entrypoint": "bounded terminal command surface",
+      "machine_location": "PC/WSL or Mac",
+      "notes_for_prompting": "Commands must be scoped, non-interactive where possible, and tied to validation or inspection.",
+      "observed_metadata": [],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "explicit_scoped_non_interactive_commands_only",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "interactive prompts",
+        "credential prompts",
+        "broad destructive commands",
+        "unbounded shell loops"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    },
+    {
+      "allowed_autonomy_level_now": "L0_PREVIEW_PACKAGE_ONLY",
+      "authority_boundary": {
+        "agent_activated": false,
+        "browser_oauth_account_authority_added": false,
+        "c_drive_artifact_written": false,
+        "live_launch_now": false,
+        "metadata_only": true,
+        "model_call_made": false,
+        "read_model_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false,
+        "terminal_authority_added": false,
+        "tool_or_plugin_wired": false
+      },
+      "best_roles": [
+        "future remote agent session coordination",
+        "future persistent bounded sessions",
+        "future mutation sequencing across clients",
+        "Mermaid and HTML preview support"
+      ],
+      "c_drive_policy": {
+        "applies": false,
+        "current_lane_writes_to_c_drive": false,
+        "policy": "No OpenClaw artifacts, generated outputs, temp bundles, caches, or logs on the PC C: drive unless explicitly authorized by a later lane.",
+        "safe_storage_roots": [
+          "/home/openclaw",
+          "/mnt/e/openclaw"
+        ]
+      },
+      "category": "agent_host_candidate",
+      "credential_policy": {
+        "credential_prompts_handled_by_registry": false,
+        "credentials_stored_or_requested": false,
+        "oauth_or_account_access_enabled": false,
+        "unknown_credential_need_fails_closed": true
+      },
+      "current_status": "candidate",
+      "default_clearance": "candidate_metadata_only_until_intake",
+      "display_name": "VS Code 1.121+ / Agents / Remote Agents / AHP",
+      "expected_receipt_shape": {
+        "authority_boundary_confirmation": "required",
+        "blocked_or_unknown_items": "required when incomplete",
+        "commands_run": "explicit list or none",
+        "files_changed": "explicit list or none",
+        "host_id": "vscode_agents_remote_ahp_candidate",
+        "metadata_only": true,
+        "package_id": "same_as_package_or_fail_closed",
+        "raw_private_bodies_or_credentials_stored": false,
+        "receipt_required_before_ingest": true,
+        "tests_or_validation": "explicit result list or not_run_with_reason",
+        "work_performed_summary": "bounded operator-readable summary"
+      },
+      "first_time_or_ambiguous_lane_default": "fail_closed_or_preview_only",
+      "forbidden_actions": [
+        "call external model APIs",
+        "run Antigravity, Codex, VS Code agent, or other live sessions",
+        "mutate Mission Control app files",
+        "create live launch buttons",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "create runtime execution authority",
+        "write OpenClaw artifacts to the PC C: drive",
+        "delete, cleanup, remount, or handle credentials"
+      ],
+      "future_autonomy_levels": [
+        "L1_OPEN_PACKAGE_AFTER_INTAKE",
+        "L2_BOUNDED_REMOTE_SESSION_AFTER_GATES"
+      ],
+      "future_gated_until_intake": true,
+      "health_light_relationship": [
+        "Check Engine",
+        "Check Transmission",
+        "Parking Brake",
+        "Traction Control"
+      ],
+      "host_id": "vscode_agents_remote_ahp_candidate",
+      "known_path_or_entrypoint": "VS Code remote agents and Agent Host Protocol candidate surface",
+      "machine_location": "candidate_remote_or_local_workbench",
+      "notes_for_prompting": "Treat release-note features as candidate host metadata until a dedicated intake proves boundaries, receipts, and failure modes.",
+      "observed_metadata": [
+        {
+          "key": "release_feature_remote_agents",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "can run on remote machines and keep running after client disconnects"
+        },
+        {
+          "key": "release_feature_agent_host_protocol",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "coordinates sessions across clients and sequences mutations"
+        },
+        {
+          "key": "release_feature_vscode_agent_env",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "VSCODE_AGENT terminal marker exists as candidate signal"
+        },
+        {
+          "key": "release_feature_sensitive_prompts",
+          "truth_status": "operator_reported_or_release_note_label_not_live_authority",
+          "value": "sensitive terminal prompts stay in terminal"
+        }
+      ],
+      "package_input_shape": {
+        "actor_model_candidate": "metadata_label_or_unknown_fail_closed",
+        "agent_character": "required_role_persona",
+        "allowed_capabilities": "host-specific explicit list",
+        "clearance": "candidate_metadata_only_until_intake",
+        "context_excluded": "credentials, raw private bodies, broad logs, and unauthorized surfaces",
+        "context_included": "read-model/proof/context references only",
+        "forbidden_capabilities": "host-specific explicit list",
+        "lane_id": "required_future_lane_id",
+        "live_launch_now": false,
+        "metadata_only": true,
+        "mission": "required_bounded_goal",
+        "package_id": "required_future_package_id",
+        "proof_receipt_requirements": "required_before_result_ingest",
+        "steps_and_stop_conditions": "required_before_l2_or_higher"
+      },
+      "proof_requirements": [
+        "package id and lane id are echoed back",
+        "changed files or no-changes result is explicit",
+        "validation run or not-run reason is explicit",
+        "authority boundary confirmation is explicit",
+        "blocked and unknown items are returned without pretending context exists"
+      ],
+      "risky_roles": [
+        "treating candidate features as active OpenClaw authority",
+        "unsupervised remote mutation",
+        "credential-bearing terminal prompts",
+        "state transfer without intake"
+      ],
+      "storage_policy": {
+        "canonical_repo_outputs": "/home/openclaw/generated/read_models",
+        "established_shuttle_root": "/mnt/e/openclaw",
+        "host_outputs_require_receipt_before_ingest": true,
+        "openclaw_artifacts_on_c_drive_allowed": false,
+        "raw_private_content_storage_allowed": false
+      }
+    }
+  ],
+  "how_this_helps_winship": [
+    "Mission Control can show which workbench should receive a future package without requiring Winship to manually map every developer tool.",
+    "OpenClaw can distinguish the helm from underlying workbenches, actor hosts, build environments, and terminal surfaces.",
+    "The registry preserves what each host is good for, what it should never receive, and which receipt must come back.",
+    "Autonomy is explicit and conservative now, with higher levels future-gated behind security and approval lanes."
+  ],
+  "lane": "Operator Workbench / Actor Host Registry v0",
+  "live_launch_buttons_created": false,
+  "lm_called": false,
+  "mac_app_files_mutated": false,
+  "mac_commands_run_from_pc": false,
+  "machine_proof": {
+    "generated_outputs": [
+      "generated/read_models/operator_workbench_actor_host_registry.json",
+      "generated/read_models/operator_workbench_actor_host_registry_OPERATOR.md"
+    ],
+    "ledger_pattern_present": true,
+    "source_files": [
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_nested_lane_mission_package_spine.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "capability_skill_registry_metadata_delta.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "system_health_lights_taxonomy.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "business_ops_ledger.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "generated_read_model_files.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      }
+    ],
+    "source_read_models": [
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_nested_lane_mission_package_spine",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_nested_lane_mission_package_spine.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "lane/package grammar and future-gated workspace launch posture",
+        "schema_version": "operator_nested_lane_mission_package_spine_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "capability_skill_registry_metadata_delta",
+        "metadata_only": true,
+        "path": "generated/read_models/capability_skill_registry_metadata_delta.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "metadata-only capability and skill posture",
+        "schema_version": "capability_skill_registry_metadata_delta_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "system_health_lights_taxonomy",
+        "metadata_only": true,
+        "path": "generated/read_models/system_health_lights_taxonomy.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "helm health lights and lane mapping",
+        "schema_version": "system_health_lights_taxonomy_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "sync_health",
+        "metadata_only": true,
+        "path": "generated/read_models/sync_health.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "PC/Mac read-model mirror proof posture",
+        "schema_version": "sync_health_read_model_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "work_board",
+        "metadata_only": true,
+        "path": "generated/read_models/work_board.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "bounded work visibility and parked/ready work posture",
+        "schema_version": "work_board_read_model_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_actions",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_actions.json",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "operator action posture and existing authority boundary",
+        "schema_version": "operator_actions_read_model_v0",
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      },
+      {
+        "body_exported": false,
+        "credentials_or_private_data_exported": false,
+        "executed_or_dispatched": false,
+        "key": "business_ops_ledger",
+        "metadata_only": true,
+        "path": "business_ops_ledger.py",
+        "present": true,
+        "raw_tool_output_exported": false,
+        "role": "existing metadata-only SQLite receipt pattern",
+        "schema_version": null,
+        "truth_status": "repo_a_source_or_read_model_evidence_not_external_tool_truth_by_itself"
+      }
+    ],
+    "source_read_models_present": {
+      "business_ops_ledger": false,
+      "capability_skill_registry_metadata_delta": true,
+      "operator_actions": true,
+      "operator_nested_lane_mission_package_spine": true,
+      "sync_health": true,
+      "system_health_lights_taxonomy": true,
+      "work_board": true
+    }
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_calls_made": false,
+  "next_safe_lane": "Workbench Actor Host Intake: VS Code Remote Agents / AHP Boundary Packet v0",
+  "no_authority_flags": {
+    "agent_launch_authority_added": false,
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "browser_accessed": false,
+    "browser_oauth_or_account_access_enabled": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "candidate_models_are_live_integrations": false,
+    "cleanup_authority_added": false,
+    "credential_handling_added": false,
+    "credentials_stored": false,
+    "delete_authority_added": false,
+    "email_send_triggered": false,
+    "execution_authority_added": false,
+    "external_model_apis_called": false,
+    "gmail_calendar_coupa_accessed": false,
+    "live_launch_buttons_created": false,
+    "lm_called": false,
+    "mac_app_files_mutated": false,
+    "mac_commands_run_from_pc": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "oauth_or_credentials_accessed": false,
+    "package_preview_only": true,
+    "plugins_wired": false,
+    "raw_private_content_inspected": false,
+    "raw_tool_outputs_stored": false,
+    "read_model_only": true,
+    "registry_only": true,
+    "remount_authority_added": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_receipt_metadata_only": true,
+    "sqlite_schema_changed": false,
+    "telegram_send_triggered": false,
+    "terminal_command_authority_added": false,
+    "tools_enabled": false,
+    "unknown_hosts_fail_closed": true
+  },
+  "no_live_authority_statement": "No live integration, agent launch, model call, browser/OAuth, send, submit, approval, or runtime authority is added.",
+  "oauth_or_credentials_accessed": false,
+  "operator_output_questions_answered": [
+    "what workbenches/actor hosts OpenClaw knows about",
+    "which are usable now",
+    "which are candidate/future-gated",
+    "which actor is best for what kind of lane",
+    "current safe autonomy levels",
+    "proof/receipt each should return",
+    "what should never be delegated",
+    "how this helps Winship avoid manually learning every developer tool"
+  ],
+  "operator_system_doctrine": {
+    "current_contract_grants_execution": false,
+    "determinism_and_ai_help_operator_navigate_execute_build_and_control": true,
+    "openclaw_is_operator_system": true,
+    "underlying_tools": [
+      "VS Code",
+      "Codex",
+      "Antigravity",
+      "Xcode",
+      "Terminal",
+      "Git",
+      "macOS",
+      "Windows",
+      "WSL",
+      "future browser/app integrations"
+    ],
+    "underlying_tools_are_not_the_helm": true
+  },
+  "package_preview_only": true,
+  "plugins_wired": false,
+  "proof_and_receipt_expectations": {
+    "every_host_returns_receipt_before_ingest": true,
+    "missing_context_must_be_reported_not_filled_in": true,
+    "raw_credentials_private_bodies_and_broad_logs_are_excluded": true,
+    "receipt_must_echo_package_and_lane": true,
+    "receipt_must_list_changes_commands_validation_and_boundaries": true
+  },
+  "purpose": "Define external workbenches and actor hosts OpenClaw can monitor, package work for, and eventually launch into without granting live integration authority now.",
+  "raw_private_content_inspected": false,
+  "raw_tool_outputs_stored": false,
+  "read_model_id": "operator_workbench_actor_host_registry",
+  "read_model_only": true,
+  "registry_hash": "sha256:758686d616dde000bfe6c2678d12b9294005823f9222e40e5363ae795a89ac19",
+  "registry_only": true,
+  "registry_status": "deterministic_metadata_only_workbench_actor_host_registry",
+  "relationship_to_existing_contracts": {
+    "added_scope": "external workbench, actor host, autonomy, receipt, storage, and routing registry",
+    "capability_registry_still_owns": "OpenClaw capability/skill surfaces and blocked capability posture",
+    "does_not_replace_capability_registry": true,
+    "does_not_replace_nested_lane_spine": true,
+    "does_not_replace_system_health_lights": true,
+    "nested_lane_spine_still_owns": "lane topology, actor/agent/package grammar, confidence detours, and workspace posture",
+    "single_source_of_truth_posture": "companion read-model references existing contracts rather than duplicating their canonical fields",
+    "system_health_lights_still_own": "helm warning/status taxonomy and clicked-lane mapping"
+  },
+  "remount_authority_added": false,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "schema_version": "operator_workbench_actor_host_registry_v0",
+  "send_or_submit_authority_added": false,
+  "sqlite_ledger_receipt_contract": {
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "payload_hash": "sha256:41c2ead6d50d323d5c3e26228293ff5d5b3e99f9dad12c28b706cad6ece055e6",
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_operator_workbench_actor_host_registry_receipt",
+    "sqlite_meaning": "receipt_record_only",
+    "stores_credentials": false,
+    "stores_private_file_bodies": false,
+    "stores_raw_tool_outputs": false,
+    "stores_runtime_activation": false,
+    "supported_by_existing_pattern": true
+  },
+  "sqlite_receipt_metadata_only": true,
+  "sqlite_schema_changed": false,
+  "telegram_send_triggered": false,
+  "terminal_command_authority_added": false,
+  "tools_enabled": false,
+  "unknown_hosts_fail_closed": true,
+  "usable_now_host_ids": [
+    "pc_wsl_repo_a",
+    "mac_mission_control_app",
+    "codex_vscode_mac_codex_desktop",
+    "antigravity_gemini_flash_high",
+    "gpt_5_5_chatgpt_orchestrator",
+    "xcode_xcodebuild",
+    "terminal_shell"
+  ],
+  "what_remains_future_gated": [
+    "live launch/open package buttons",
+    "external model API integrations",
+    "agent sessions",
+    "browser/OAuth/account bridges",
+    "Gmail/calendar/Coupa/Telegram access",
+    "send/submit/approval authority",
+    "runtime execution authority",
+    "auto-maintenance lanes above L3"
+  ],
+  "what_should_never_be_delegated": {
+    "destructive_cleanup_or_remount": "not from this registry",
+    "security_credentials_legal_sensitive_final_authority": "never to fast planner/verifier without dedicated review",
+    "send_submit_approval": "blocked unless future narrow authority lane grants it",
+    "unbounded_shell_or_infrastructure_admin": "blocked by default"
+  }
+}
