@@ -3,38 +3,35 @@
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
   "canonical_expected": 204,
-  "display_status": "sync_requested_waiting_for_mac",
+  "display_status": "current",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-20T16:10:17+00:00",
+  "generated_at": "2026-05-20T22:55:51+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-20T16:02:08+00:00"
+    "time": "2026-05-20T22:49:21+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-20T16:07:09+00:00"
+    "time": "2026-05-20T22:54:22+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "6ce8750028dcb79d0ff3deafc0900054d93e15fd2ecf76ce7d1909053bb2f4f3",
+    "manifest_hash": "7a0ad854ef6b59b5f0f9b1fa164dba2688a099d46222668ff59f7939fd9e1a7a",
     "pc_scheduler_known": true,
     "status": "skipped_unchanged",
-    "time": "2026-05-20T16:04:48+00:00",
+    "time": "2026-05-20T22:49:48+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 202,
-  "mirror_status": "needs_mac_sync",
-  "missing_expected": 2,
-  "missing_files": [
-    "system_health_lights_taxonomy.json",
-    "system_health_lights_taxonomy_OPERATOR.md"
-  ],
+  "matched_hash": 204,
+  "mirror_status": "ok",
+  "missing_expected": 0,
+  "missing_files": [],
   "next_expected_actor": "mac_sync_agent",
   "no_authority_flags": {
     "agent_activation_allowed": false,
@@ -47,41 +44,41 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 202,
+  "observed": 204,
   "operator_action_required": false,
   "operator_interrupt_policy": "routine sync lifecycle states stay in proof/detail; only unresolved actionable failures should interrupt the operator",
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "1bcb91021c6eb480b6b5d76f12fbc67490e29cccf760b6ac2e6a2e24f2024328",
+      "source_hash": "58657bcc86e92ce01ffeee52ad61005a4f7c2e47a56af4f1f16ba7039c1bd765",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-20T16:02:08+00:00"
+      "source_time": "2026-05-20T22:49:21+00:00"
     },
     {
       "present": 1,
-      "source_hash": "0b2e7d07bc957386f87cf4233dbf21e4c56818cbc3fd2427ff509b911806ed40",
+      "source_hash": "38ef4d52485489a8db716e64c0e056c22a878f1d200fd12040527114906510db",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-20T16:07:09+00:00"
+      "source_time": "2026-05-20T22:54:22+00:00"
     },
     {
       "present": 1,
-      "source_hash": "6ce8750028dcb79d0ff3deafc0900054d93e15fd2ecf76ce7d1909053bb2f4f3",
+      "source_hash": "7a0ad854ef6b59b5f0f9b1fa164dba2688a099d46222668ff59f7939fd9e1a7a",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-20T16:02:08+00:00"
+      "source_time": "2026-05-20T22:49:21+00:00"
     },
     {
       "present": 1,
-      "source_hash": "93b7f5554175b6e1e5dfefb9a8eecf5f9cb6ef6809f025ed71eac7ae97febaef",
+      "source_hash": "65b195916eee9f1ac27a129f205a1f447edf4a80d1797778d510032e1c9e298d",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
-      "source_time": "2026-05-20T16:04:48+00:00"
+      "source_time": "2026-05-20T22:49:48+00:00"
     },
     {
       "present": 1,
@@ -89,15 +86,15 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-20T16:08:21+00:00"
+      "source_time": "2026-05-20T22:54:47+00:00"
     },
     {
       "present": 1,
-      "source_hash": "52c80223c3fe9eede5507c673b32aa058c792ca172b240510727a614d1c55a31",
+      "source_hash": "d10deacc72f48dfa6710a042f6eaf7deac205e24ae6fb604a10b794565a8e917",
       "source_kind": "read_model_sync_request_marker",
       "source_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
       "source_status": null,
-      "source_time": "2026-05-20T16:08:21+00:00"
+      "source_time": "2026-05-20T22:47:10+00:00"
     },
     {
       "present": 1,
@@ -113,29 +110,26 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-20T16:09:47+00:00"
+      "source_time": "2026-05-20T22:54:48+00:00"
     }
   ],
   "recommended_fix": {
     "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
     "can_request_fix_from_app": false,
-    "display_status": "sync_requested_waiting_for_mac",
-    "kind": "wait_for_mac_sync",
+    "display_status": "current",
+    "kind": "none",
     "next_expected_actor": "mac_sync_agent",
-    "next_safe_move": "Mac sync has already been requested; waiting for the normal Mac sync agent cycle.",
+    "next_safe_move": "Sync health is current on PC and waiting for the normal Mac mirror cycle to pick up the latest health read-model.",
     "operator_action_required": false,
     "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
-    "sync_lifecycle_state": "sync_requested_waiting_for_mac"
+    "sync_lifecycle_state": "health_exported_waiting_for_mac_mirror"
   },
   "remote_control_allowed": false,
   "runtime_activation_allowed": false,
   "schema_version": "sync_health_read_model_v0",
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
-  "stale_files": [
-    "system_health_lights_taxonomy.json",
-    "system_health_lights_taxonomy_OPERATOR.md"
-  ],
-  "sync_lifecycle_state": "sync_requested_waiting_for_mac",
-  "trust_status": "stale_needs_mac_sync"
+  "stale_files": [],
+  "sync_lifecycle_state": "health_exported_waiting_for_mac_mirror",
+  "trust_status": "trusted"
 }
