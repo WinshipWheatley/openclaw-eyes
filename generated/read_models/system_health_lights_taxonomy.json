@@ -1,0 +1,656 @@
+{
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "auto_remount_authority_added": false,
+  "backend_repair_authority_added": false,
+  "broad_temp_listing_stored": false,
+  "browser_accessed": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "check_transmission_summary": {
+    "current_status": "WARNING",
+    "final_mac_mirror_pending": true,
+    "final_mac_self_report_mirror_pending": false,
+    "pc_import_proof_complete": true,
+    "why": "Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle."
+  },
+  "cleanup_authority_added": false,
+  "credential_or_oauth_accessed": false,
+  "credential_storage_added": false,
+  "current_light_states": {
+    "brake_parking_brake": "ON_NORMAL",
+    "check_engine": "WARNING",
+    "check_transmission": "WARNING",
+    "low_fuel_low_battery": "WARNING",
+    "oil_pressure_coolant": "WARNING",
+    "traction_control": "QUIET"
+  },
+  "current_lights_on_or_visible": [
+    "check_engine",
+    "check_transmission",
+    "low_fuel_low_battery",
+    "oil_pressure_coolant",
+    "brake_parking_brake"
+  ],
+  "delete_authority_added": false,
+  "execution_authority_added": false,
+  "field_observation_upgrade": {
+    "christmas_tree_rule": "Lights appear only when something needs checking, is broken, intentionally locked, or materially affects operator action.",
+    "source_precedence_rule": "fresh machine proof should beat stale operator-reported bridge facts when deciding Check Transmission and Check Engine state",
+    "split_rule": "PC-Mac bridge/sync/state-transfer belongs to Check Transmission; Check Engine should not duplicate it as a generic fault.",
+    "why": "The orchestrator prompt cannot see live local proof; this read-model lets Repo A classify lights from PC-side evidence."
+  },
+  "generated_at": "2026-05-20T16:09:57+00:00",
+  "gmail_calendar_coupa_accessed": false,
+  "lights": [
+    {
+      "analogy": "Core system/workbench fault",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "bridge_fault_owned_by_check_transmission": true,
+        "chief_posture_source_path": "generated/read_models/chief_check_engine_environment_posture.json",
+        "legacy_chief_posture_still_on": true
+      },
+      "current_reason": "Chief posture still has older workbench warnings; bridge-specific signals should now be read through Check Transmission.",
+      "current_state_kind": "fault",
+      "current_status": "WARNING",
+      "display_name": "Check Engine",
+      "evidence_inputs": [
+        "generated/read_models/chief_check_engine_environment_posture.json",
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/bridge_trust_sync_truth.json",
+        "generated/read_models/sync_health.json"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": true,
+      "light_id": "check_engine",
+      "meaning": "Something in the reasoning, control, or workbench layer needs Chief inspection.",
+      "opens_lane": "Chief diagnostic/system health lane",
+      "owner": "Chief",
+      "safe_next_move": "Open Chief diagnostic/system health lane; do not run repair automatically.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "A core OpenClaw system/workbench fault is stale, unsafe, blocked, internally inconsistent, or failing proof/trust.",
+        "A Chief diagnostic package is required for non-bridge system degradation."
+      ],
+      "when_quiet": [
+        "Chief-owned system proof is current, no core workbench fault is active, and bridge faults are owned by Check Transmission."
+      ]
+    },
+    {
+      "analogy": "PC-Mac drivetrain / state-transfer fault",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "core_pc_import_proof_complete": true,
+        "current_expected_set_missing_only_self_taxonomy": true,
+        "current_expected_set_proof_current": false,
+        "current_missing_files": [
+          "system_health_lights_taxonomy.json",
+          "system_health_lights_taxonomy_OPERATOR.md"
+        ],
+        "final_mac_mirror_marker_written": true,
+        "final_mac_mirror_pending": true,
+        "final_mac_self_report_mirror_pending": false,
+        "self_report_stale_files": [],
+        "self_report_status": null
+      },
+      "current_reason": "Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle.",
+      "current_state_kind": "transport_warning",
+      "current_status": "WARNING",
+      "display_name": "Check Transmission",
+      "evidence_inputs": [
+        "generated/read_models/sync_health.json",
+        "scripts/pc_read_model_import_agent.py state",
+        "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
+        "/mnt/e/openclaw/mac_generated_read_models_manifest.json"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": false,
+      "light_id": "check_transmission",
+      "meaning": "The PC-Mac bridge, shuttle markers, mirror proof, or app-visible sync-health echo needs inspection.",
+      "opens_lane": "Bridge / mirror / sync trust lane",
+      "owner": "Chief / Mirror Trust",
+      "safe_next_move": "If warning only, wait for the normal Mac mirror echo; if ON, inspect bridge proof without remount/delete/credential automation.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "PC proof disagrees with Mac completion.",
+        "missing_expected > 0 or hash_mismatch > 0 for the current expected set.",
+        "/Volumes/openclaw_e is missing or unverified.",
+        "Shuttle completion proof is stale or blocked."
+      ],
+      "when_quiet": [
+        "PC proof agrees with Mac completion, sync_health has missing_expected=0 and hash_mismatch=0, and no final app-visible sync-health echo is pending."
+      ]
+    },
+    {
+      "analogy": "Resource pressure",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "basis": "operator_reported",
+        "c_drive_recently_near_full": true,
+        "cleanup_reported_free_space_about_gb": 22,
+        "live_measurement_in_this_lane": false
+      },
+      "current_reason": "C: was recently near full and later cleaned to about 22GB free, but this lane did not perform a new live disk measurement.",
+      "current_state_kind": "resource_warning",
+      "current_status": "WARNING",
+      "display_name": "Low Fuel / Low Battery",
+      "evidence_inputs": [
+        "generated/read_models/chief_check_engine_environment_posture.json",
+        "operator_reported: C: was near full then cleaned to about 22GB free"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": false,
+      "light_id": "low_fuel_low_battery",
+      "meaning": "Storage, credits/quota, compute, or required tool availability may limit work.",
+      "opens_lane": "Resource posture lane",
+      "owner": "Chief",
+      "safe_next_move": "Keep resource pressure visible as monitor/warning until a bounded resource posture refresh proves it quiet.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "A required resource is below a safe operating threshold.",
+        "Recent resource pressure is unresolved or not re-measured."
+      ],
+      "when_quiet": [
+        "Resource pressure is measured healthy or no longer materially affects operator action."
+      ]
+    },
+    {
+      "analogy": "Maintenance/environment degradation",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "basis": "operator_reported_plus_chief_posture",
+        "mac_validation_friction_reported": true,
+        "rd_client_trace_growth_reported": true
+      },
+      "current_reason": "RD Client trace growth and Mac validation friction are maintenance risks even if the bridge import proof is now current.",
+      "current_state_kind": "maintenance_warning",
+      "current_status": "WARNING",
+      "display_name": "Oil Pressure / Coolant",
+      "evidence_inputs": [
+        "generated/read_models/chief_check_engine_environment_posture.json",
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "operator_reported: RD Client trace growth and Mac validation friction"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": false,
+      "light_id": "oil_pressure_coolant",
+      "meaning": "Recurring logs, traces, caches, latency, or validation friction could become a system failure.",
+      "opens_lane": "Maintenance / environment degradation lane",
+      "owner": "Chief",
+      "safe_next_move": "Open a read-only maintenance posture lane before any cleanup/remount/repair action.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "Maintenance signals are growing or recurring enough to threaten reliability.",
+        "Tool/workbench latency or validation friction makes progress unreliable."
+      ],
+      "when_quiet": [
+        "Maintenance risk is measured stable, bounded, or resolved without recurring warnings."
+      ]
+    },
+    {
+      "analogy": "Authority intentionally locked",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "failure": false,
+        "is_intentional": true,
+        "locked_authorities": [
+          "runtime",
+          "send_submit_approval",
+          "remount",
+          "credential_storage",
+          "delete_cleanup",
+          "model_agent_calls"
+        ]
+      },
+      "current_reason": "Runtime, send, approval, remount, credential, and repair authorities remain intentionally blocked in these contracts.",
+      "current_state_kind": "intentional_lock",
+      "current_status": "ON_NORMAL",
+      "display_name": "Brake / Parking Brake",
+      "evidence_inputs": [
+        "authority_boundary flags across generated packages",
+        "Guardian protected access gate specs",
+        "operator action covenant"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": false,
+      "light_id": "brake_parking_brake",
+      "meaning": "Execution, send, approval, credential, runtime, or destructive authority is blocked on purpose.",
+      "opens_lane": "Authority boundary lane",
+      "owner": "Guardian / Chief",
+      "safe_next_move": "Inspect why the authority is locked; do not treat this as a failure.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "A capability is intentionally unavailable, parked, or requires explicit future authority."
+      ],
+      "when_quiet": [
+        "No relevant authority boundary affects the current lane or package."
+      ]
+    },
+    {
+      "analogy": "Confidence / detour state",
+      "authority_boundary": {
+        "credential_authority_added": false,
+        "delete_authority_added": false,
+        "execution_authority_added": false,
+        "metadata_only": true,
+        "read_model_only": true,
+        "remount_authority_added": false,
+        "runtime_authority_added": false,
+        "send_submit_approval_authority_added": false
+      },
+      "current_evidence": {
+        "active_package_requires_detour": false,
+        "full_trust_display_should_be_quiet": true
+      },
+      "current_reason": "No current action package in this lane needs a confidence detour; deterministic confidence UI should stay quiet.",
+      "current_state_kind": "confidence_state",
+      "current_status": "QUIET",
+      "display_name": "Traction Control",
+      "evidence_inputs": [
+        "operator_awareness_agent_package_spine",
+        "operator_nested_lane_mission_package_spine",
+        "future package confidence inputs"
+      ],
+      "forbidden_actions": [
+        "write OpenClaw artifacts to C:",
+        "delete files or caches",
+        "remount /Volumes/openclaw_e automatically",
+        "handle or store credentials",
+        "create auto-remount authority",
+        "run Mac commands from PC",
+        "manual-copy generated read-model files as the primary fix",
+        "mutate Mission Control app code",
+        "repair backend services from this taxonomy",
+        "activate agents or call models",
+        "open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows",
+        "inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies"
+      ],
+      "is_failure": false,
+      "light_id": "traction_control",
+      "meaning": "The system can proceed cautiously or needs more evidence before acting.",
+      "opens_lane": "Confidence / detour lane",
+      "owner": "Chief / domain owner",
+      "safe_next_move": "If visible, open the detour lane; if confidence is deterministic, keep the UI quiet.",
+      "severity_status_options": [
+        "QUIET",
+        "INFO",
+        "WARNING",
+        "ON",
+        "ON_NORMAL",
+        "UNKNOWN"
+      ],
+      "steel_thread_flow": [
+        "ELI5/operator orientation",
+        "machine contract/proof",
+        "package/detour/fix path"
+      ],
+      "when_on": [
+        "A package is below deterministic/full trust and action would benefit from a bounded detour.",
+        "Confidence repair materially affects an operator decision."
+      ],
+      "when_quiet": [
+        "Current package confidence is deterministic/full-trust or no package is being considered."
+      ]
+    }
+  ],
+  "lm_called": false,
+  "mac_commands_run_from_pc": false,
+  "mac_shuttle_inputs": {
+    "completion_marker_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
+    "completion_marker_present": true,
+    "heartbeat_marker_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
+    "heartbeat_status": "idle",
+    "manifest_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
+    "manifest_present": true,
+    "pc_share_root": "/mnt/e/openclaw",
+    "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json"
+  },
+  "mac_to_e_drive_to_pc_sync_proof_complete": true,
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_calls_made": false,
+  "next_recommended_lane": {
+    "goal": "Render the taxonomy without turning the helm into a permanent status wall.",
+    "lane_name": "Mission Control System Health Lights Readback v0",
+    "non_live": true,
+    "operator_action_required_now": false
+  },
+  "no_authority_flags": {
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "auto_remount_authority_added": false,
+    "backend_repair_authority_added": false,
+    "broad_temp_listing_stored": false,
+    "browser_accessed": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "cleanup_authority_added": false,
+    "credential_or_oauth_accessed": false,
+    "credential_storage_added": false,
+    "delete_authority_added": false,
+    "execution_authority_added": false,
+    "gmail_calendar_coupa_accessed": false,
+    "lm_called": false,
+    "mac_commands_run_from_pc": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "raw_file_bodies_stored": false,
+    "raw_logs_stored": false,
+    "raw_private_content_inspected": false,
+    "raw_trace_contents_stored": false,
+    "read_model_only": true,
+    "remount_authority_added": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_receipt_metadata_only": true,
+    "taxonomy_only": true,
+    "telegram_send_triggered": false
+  },
+  "operator_output_questions_answered": {
+    "is_mac_to_e_drive_to_pc_sync_proof_complete": true,
+    "should_check_transmission_remain_visible": true,
+    "which_lights_are_currently_on": [
+      "Check Engine",
+      "Check Transmission",
+      "Low Fuel / Low Battery",
+      "Oil Pressure / Coolant",
+      "Brake / Parking Brake"
+    ],
+    "which_lights_exist": [
+      "Check Engine",
+      "Check Transmission",
+      "Low Fuel / Low Battery",
+      "Oil Pressure / Coolant",
+      "Brake / Parking Brake",
+      "Traction Control"
+    ],
+    "why_check_transmission_visible": "Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle."
+  },
+  "pc_import_proof": {
+    "backend_head": "3c7620c324edbf9883930ec465749f8ca99403f0",
+    "backend_head_matches_expected": true,
+    "canonical_expected": 204,
+    "completion_copied_file_count": 202,
+    "completion_generated_at": "2026-05-20T16:02:08+00:00",
+    "completion_status": "synced",
+    "current_expected_set_missing_only_self_taxonomy": true,
+    "current_expected_set_proof_current": false,
+    "display_status": "sync_requested_waiting_for_mac",
+    "expected_backend_head": "3c7620c324edbf9883930ec465749f8ca99403f0",
+    "hash_mismatch": 0,
+    "last_import_checkpoint_agrees_with_mac_completion": true,
+    "last_pc_import_status": "skipped_unchanged",
+    "last_pc_import_time": "2026-05-20T16:04:48+00:00",
+    "manifest_path_record_count": 202,
+    "matched_hash": 202,
+    "mirror_status": "needs_mac_sync",
+    "missing_expected": 2,
+    "missing_files": [
+      "system_health_lights_taxonomy.json",
+      "system_health_lights_taxonomy_OPERATOR.md"
+    ],
+    "observed": 202,
+    "operator_action_required": false,
+    "pc_import_state_last_counts": {
+      "canonical_expected": 202,
+      "hash_mismatch": 0,
+      "missing_expected": 0,
+      "observed": 202
+    },
+    "pc_proof_agrees_with_mac_sync_completion": true,
+    "required_files_in_mac_manifest": {
+      "bridge_manual_mount_recovery_packet.json": true,
+      "chief_check_engine_diagnostic_package.json": true,
+      "chief_check_engine_environment_posture.json": true
+    },
+    "sync_lifecycle_state": "sync_requested_waiting_for_mac",
+    "trust_status": "stale_needs_mac_sync"
+  },
+  "purpose": "Define helm health lights, current states, source precedence, and steel-thread lane mappings.",
+  "raw_file_bodies_stored": false,
+  "raw_logs_stored": false,
+  "raw_private_content_inspected": false,
+  "raw_trace_contents_stored": false,
+  "read_model_id": "system_health_lights_taxonomy",
+  "read_model_only": true,
+  "receipt_hash": "sha256:cc2eef35f48fabf1ff929d4e28a43b35c2092d63098dbc2e3f2b34300143d704",
+  "remount_authority_added": false,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "schema_version": "system_health_lights_taxonomy_v0",
+  "send_or_submit_authority_added": false,
+  "source_inputs": {
+    "bridge_trust_sync_truth": {
+      "bridge_trust_state": "bridge_mount_missing",
+      "path": "generated/read_models/bridge_trust_sync_truth.json",
+      "present": true
+    },
+    "chief_diagnostic_package": {
+      "generated_at": "2026-05-20T04:07:48+00:00",
+      "path": "generated/read_models/chief_check_engine_diagnostic_package.json",
+      "present": true
+    },
+    "chief_environment_posture": {
+      "check_engine_on": true,
+      "generated_at": "2026-05-20T03:00:40+00:00",
+      "path": "generated/read_models/chief_check_engine_environment_posture.json",
+      "present": true
+    },
+    "pc_import_state": {
+      "path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
+      "present": true,
+      "status": "skipped_unchanged",
+      "updated_at": "2026-05-20T16:08:21+00:00"
+    },
+    "sync_health": {
+      "display_status": "sync_requested_waiting_for_mac",
+      "generated_at": "2026-05-20T16:09:22+00:00",
+      "mirror_status": "needs_mac_sync",
+      "path": "generated/read_models/sync_health.json",
+      "present": true,
+      "trust_status": "stale_needs_mac_sync"
+    }
+  },
+  "sqlite_ledger_receipt_contract": {
+    "authority_status": "generated_status_only",
+    "broad_temp_listing_stored": false,
+    "credentials_stored": false,
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "raw_file_bodies_stored": false,
+    "raw_logs_stored": false,
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_system_health_lights_taxonomy_receipt",
+    "runtime_activation_recorded": false,
+    "sqlite_meaning": "receipt_record_only",
+    "sqlite_schema_changed": false,
+    "supported_by_existing_pattern": true
+  },
+  "sqlite_receipt_metadata_only": true,
+  "storage_policy": {
+    "allowed_openclaw_artifact_roots": [
+      "/home/openclaw",
+      "/mnt/e/openclaw"
+    ],
+    "delete_anything_in_this_lane": false,
+    "do_not_write_openclaw_artifacts_to_pc_c_drive": true,
+    "generated_output_root": "generated/read_models"
+  },
+  "taxonomy_only": true,
+  "telegram_send_triggered": false
+}

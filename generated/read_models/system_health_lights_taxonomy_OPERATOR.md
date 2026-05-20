@@ -1,0 +1,66 @@
+System Health Lights Taxonomy v0
+
+PC Import Proof:
+- Mac-to-E-drive-to-PC sync proof complete: `true`
+- canonical_expected=204
+- observed=202
+- missing_expected=2
+- hash_mismatch=0
+- backend_head=3c7620c324edbf9883930ec465749f8ca99403f0
+- backend_head_matches_expected=`true`
+- Core PC import proof is complete.
+
+Current Lights:
+- Check Engine: `WARNING`
+  - Chief posture still has older workbench warnings; bridge-specific signals should now be read through Check Transmission.
+  - Opens: Chief diagnostic/system health lane
+- Check Transmission: `WARNING`
+  - Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle.
+  - Opens: Bridge / mirror / sync trust lane
+- Low Fuel / Low Battery: `WARNING`
+  - C: was recently near full and later cleaned to about 22GB free, but this lane did not perform a new live disk measurement.
+  - Opens: Resource posture lane
+- Oil Pressure / Coolant: `WARNING`
+  - RD Client trace growth and Mac validation friction are maintenance risks even if the bridge import proof is now current.
+  - Opens: Maintenance / environment degradation lane
+- Brake / Parking Brake: `ON_NORMAL`
+  - Runtime, send, approval, remount, credential, and repair authorities remain intentionally blocked in these contracts.
+  - Opens: Authority boundary lane
+- Traction Control: `QUIET`
+  - No current action package in this lane needs a confidence detour; deterministic confidence UI should stay quiet.
+  - Opens: Confidence / detour lane
+
+Steel Thread Flow:
+- Understand: ELI5/operator orientation.
+- Inspect: machine contract/proof.
+- Decide: package/detour/fix path.
+
+Check Transmission Detail:
+- Core PC import proof is current; the newly generated health-light taxonomy is waiting for the normal Mac mirror cycle.
+
+What Makes Lights Quiet:
+- Check Engine: Chief-owned system proof is current, no core workbench fault is active, and bridge faults are owned by Check Transmission.
+- Check Transmission: PC proof agrees with Mac completion, sync_health has missing_expected=0 and hash_mismatch=0, and no final app-visible sync-health echo is pending.
+- Low Fuel / Low Battery: Resource pressure is measured healthy or no longer materially affects operator action.
+- Oil Pressure / Coolant: Maintenance risk is measured stable, bounded, or resolved without recurring warnings.
+- Brake / Parking Brake: No relevant authority boundary affects the current lane or package.
+- Traction Control: Current package confidence is deterministic/full-trust or no package is being considered.
+
+What Must Not Be Done Automatically:
+- write OpenClaw artifacts to C:
+- delete files or caches
+- remount /Volumes/openclaw_e automatically
+- handle or store credentials
+- create auto-remount authority
+- run Mac commands from PC
+- manual-copy generated read-model files as the primary fix
+- mutate Mission Control app code
+- repair backend services from this taxonomy
+- activate agents or call models
+- open browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval flows
+- inspect raw private logs, raw trace contents, broad temp listings, or raw file bodies
+
+Boundary:
+- Taxonomy/read-model only; no UI, repair, remount, delete, credential, runtime, model, agent, browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval authority.
+- Fresh machine proof beats stale operator-reported bridge facts for current light classification.
+- No OpenClaw artifacts are written to C:.

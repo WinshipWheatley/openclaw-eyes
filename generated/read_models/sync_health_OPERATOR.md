@@ -8,12 +8,12 @@ Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=202
-- observed=192
-- missing_expected=10
+- canonical_expected=204
+- observed=202
+- missing_expected=2
 - extra=0
 - hash_mismatch=0
-- matched_hash=192
+- matched_hash=202
 
 Recommended fix:
 - kind: `wait_for_mac_sync`
@@ -25,22 +25,14 @@ Recommended fix:
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `synced` at `2026-05-19T17:55:07+00:00`
-- Mac completion: `synced` at `2026-05-19T17:55:07+00:00`
-- PC import: `skipped_unchanged` at `2026-05-19T17:59:54+00:00`
+- Mac heartbeat: `idle` at `2026-05-20T16:07:09+00:00`
+- Mac completion: `synced` at `2026-05-20T16:02:08+00:00`
+- PC import: `skipped_unchanged` at `2026-05-20T16:04:48+00:00`
 - Windows task log present: `true`
 
 Stale files:
-- `bridge_manual_mount_recovery_packet.json`
-- `bridge_manual_mount_recovery_packet_OPERATOR.md`
-- `bridge_trust_sync_truth.json`
-- `bridge_trust_sync_truth_OPERATOR.md`
-- `chief_check_engine_diagnostic_package.json`
-- `chief_check_engine_diagnostic_package_OPERATOR.md`
-- `chief_check_engine_environment_posture.json`
-- `chief_check_engine_environment_posture_OPERATOR.md`
-- `operator_nested_lane_mission_package_spine.json`
-- `operator_nested_lane_mission_package_spine_OPERATOR.md`
+- `system_health_lights_taxonomy.json`
+- `system_health_lights_taxonomy_OPERATOR.md`
 
 No-authority posture:
 - `app_direct_execution_allowed`: `false`
