@@ -8,9 +8,9 @@ Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=194
+- canonical_expected=196
 - observed=192
-- missing_expected=2
+- missing_expected=4
 - extra=0
 - hash_mismatch=0
 - matched_hash=192
@@ -31,6 +31,8 @@ Proof:
 - Windows task log present: `true`
 
 Stale files:
+- `chief_check_engine_environment_posture.json`
+- `chief_check_engine_environment_posture_OPERATOR.md`
 - `operator_nested_lane_mission_package_spine.json`
 - `operator_nested_lane_mission_package_spine_OPERATOR.md`
 

@@ -2,14 +2,14 @@
   "agent_activation_allowed": false,
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
-  "canonical_expected": 194,
+  "canonical_expected": 196,
   "display_status": "sync_requested_waiting_for_mac",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-20T01:37:14+00:00",
+  "generated_at": "2026-05-20T03:00:37+00:00",
   "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
@@ -30,8 +30,10 @@
   },
   "matched_hash": 192,
   "mirror_status": "needs_mac_sync",
-  "missing_expected": 2,
+  "missing_expected": 4,
   "missing_files": [
+    "chief_check_engine_environment_posture.json",
+    "chief_check_engine_environment_posture_OPERATOR.md",
     "operator_nested_lane_mission_package_spine.json",
     "operator_nested_lane_mission_package_spine_OPERATOR.md"
   ],
@@ -77,7 +79,7 @@
     },
     {
       "present": 1,
-      "source_hash": "d81e7b7a699276cf5ebed71b1c38d650105481d69baa4a5de89cf76c80c49e2b",
+      "source_hash": "f644b63dc523ec70aae9706484e6473ce476513f3459afe85a91be395e4cb3f5",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -87,9 +89,9 @@
       "present": 1,
       "source_hash": null,
       "source_kind": "pc_task_log",
-      "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
+      "source_path": "/home/openclaw/.openclaw/logs/windows_task_read_model_import.log",
       "source_status": "present",
-      "source_time": "2026-05-20T01:34:52+00:00"
+      "source_time": "2026-05-20T02:59:54+00:00"
     },
     {
       "present": 1,
@@ -113,7 +115,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-20T01:34:47+00:00"
+      "source_time": "2026-05-20T02:59:47+00:00"
     }
   ],
   "recommended_fix": {
@@ -133,6 +135,8 @@
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
   "stale_files": [
+    "chief_check_engine_environment_posture.json",
+    "chief_check_engine_environment_posture_OPERATOR.md",
     "operator_nested_lane_mission_package_spine.json",
     "operator_nested_lane_mission_package_spine_OPERATOR.md"
   ],
