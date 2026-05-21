@@ -1,0 +1,1129 @@
+{
+  "affects_vocab": [
+    "helm_front_door",
+    "worlds",
+    "check_lights",
+    "steel_thread",
+    "package_compiler",
+    "actor_router",
+    "visual_design",
+    "operator_controls"
+  ],
+  "agent_launch_authority_added": false,
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "broad_file_dump_stored": false,
+  "broad_private_chat_ingested": false,
+  "browser_accessed": false,
+  "browser_oauth_or_account_access_enabled": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "candidate_future_sqlite_promotions": [
+    {
+      "allowed_payload": "metadata, summaries, source paths, hashes, classification, confidence posture",
+      "forbidden_payload": "raw private chat bodies, raw private files, credentials, broad logs, unsourced claims",
+      "promotion_id": "mission_control_design_doctrine_fact_set",
+      "status": "future_gated",
+      "summary": "Promote bounded design doctrine summaries and source refs into canonical facts after a dedicated schema lane."
+    },
+    {
+      "allowed_payload": "reference labels, source refs, operator-visible summaries, missing-source flags",
+      "forbidden_payload": "raw broad chat exports, private account data, raw history ingestion",
+      "promotion_id": "winship_taste_reference_index",
+      "status": "needs_winship_memory_comparison",
+      "summary": "Capture a small operator-approved index of software/game/taste references if Winship supplies source artifacts."
+    }
+  ],
+  "chatgpt_history_ingested": false,
+  "classification_vocab": [
+    "known_and_tracked",
+    "partly_known",
+    "known_unknown",
+    "not_yet_discovered",
+    "needs_winship_memory_comparison",
+    "candidate_future_sqlite_promotion",
+    "blocked_or_not_authorized",
+    "safe_next_source_to_inspect"
+  ],
+  "classifications_summary": {
+    "blocked_or_not_authorized": [
+      "broad_private_design_archive_ingestion_blocked"
+    ],
+    "candidate_future_sqlite_promotion": [
+      "design_memory_future_sqlite_promotion"
+    ],
+    "known_and_tracked": [
+      "mission_control_as_helm_not_chatbot_dashboard",
+      "operator_system_above_workbenches",
+      "calm_command_surface_studio_console_cockpit",
+      "developer_mode_to_quiet_operational_helm",
+      "worlds_are_domain_destinations",
+      "check_lights_are_distinct_from_lanes",
+      "steel_thread_everywhere",
+      "confidence_detour_quiets_when_deterministic",
+      "proof_below_operator_layer",
+      "operator_controls_preview_before_authority",
+      "taste_quality_anti_slop",
+      "quiet_feedback_sound_haptics_future_only"
+    ],
+    "known_unknown": [
+      "gardening_future_world_not_registered"
+    ],
+    "needs_winship_memory_comparison": [
+      "spaceship_doom_space_station_reference_needs_source",
+      "software_likes_dislikes_inventory_missing"
+    ],
+    "not_yet_discovered": [
+      "visual_reference_board_not_yet_discovered"
+    ],
+    "partly_known": [
+      "strategic_gravity_glow_heat_partly_tracked"
+    ],
+    "safe_next_source_to_inspect": [
+      "next_safe_sources_for_design_memory"
+    ]
+  },
+  "cleanup_authority_added": false,
+  "confidence_vocab": [
+    "FULL_TRUST_DISPLAY_QUIET",
+    "HIGH_TRUST_SOURCE_BACKED",
+    "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+    "LOW_TRUST_SOURCE_MISSING",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "deterministic_metadata_only_design_memory_inventory",
+  "credential_handling_added": false,
+  "credentials_stored": false,
+  "delete_authority_added": false,
+  "email_send_triggered": false,
+  "execution_authority_added": false,
+  "external_model_apis_called": false,
+  "generated_at": "2026-05-21T00:27:26+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "inventory_hash": "sha256:ed865bd9fcb006b90ff733a775a6ea1a2babf55bdd44c9127b9ae99e35e1b594",
+  "inventory_only": true,
+  "inventory_scope": {
+    "approved_source_scope": "narrow Repo A source docs and existing generated read-models only",
+    "broad_private_chat_ingested": false,
+    "chatgpt_history_ingested": false,
+    "operator_memory_comparison_supported": true,
+    "operator_memory_treated_as_truth": false,
+    "raw_private_file_bodies_stored": false,
+    "source_bodies_exported": false
+  },
+  "lane": "Mission Control Design Memory Inventory v0",
+  "live_launch_buttons_created": false,
+  "lm_called": false,
+  "mac_app_files_mutated": false,
+  "mac_commands_run_from_pc": false,
+  "machine_proof": {
+    "generated_outputs": [
+      "generated/read_models/mission_control_design_memory_inventory.json",
+      "generated/read_models/mission_control_design_memory_inventory_OPERATOR.md"
+    ],
+    "ledger_pattern_present": true,
+    "runtime_or_live_authority_added": false,
+    "source_docs_present": {
+      "first_screen_composition_spec": true,
+      "generated_current_state": true,
+      "mission_control_fixture_contract": true,
+      "operator_north_star_and_taste": true,
+      "operator_orientation_contract": true,
+      "sound_haptics_quiet_feedback_addendum": true,
+      "taste_and_atmosphere_spec": true
+    },
+    "source_read_models_present": {
+      "operator_awareness_agent_package_spine": true,
+      "operator_mission_priority_helm_declutter": true,
+      "operator_nested_lane_mission_package_spine": true,
+      "operator_workbench_actor_host_registry": true,
+      "package_compiler_contract": true,
+      "steel_thread_lane_template_registry": true,
+      "system_health_lights_taxonomy": true,
+      "world_domain_registry": true
+    }
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_calls_made": false,
+  "no_authority_flags": {
+    "agent_launch_authority_added": false,
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "broad_file_dump_stored": false,
+    "broad_private_chat_ingested": false,
+    "browser_accessed": false,
+    "browser_oauth_or_account_access_enabled": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "chatgpt_history_ingested": false,
+    "cleanup_authority_added": false,
+    "credential_handling_added": false,
+    "credentials_stored": false,
+    "delete_authority_added": false,
+    "email_send_triggered": false,
+    "execution_authority_added": false,
+    "external_model_apis_called": false,
+    "gmail_calendar_coupa_accessed": false,
+    "inventory_only": true,
+    "live_launch_buttons_created": false,
+    "lm_called": false,
+    "mac_app_files_mutated": false,
+    "mac_commands_run_from_pc": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_calls_made": false,
+    "oauth_or_credentials_accessed": false,
+    "plugins_wired": false,
+    "raw_logs_stored": false,
+    "raw_private_content_inspected": false,
+    "raw_private_file_bodies_stored": false,
+    "read_model_only": true,
+    "remount_authority_added": false,
+    "repo_b_code_executed": false,
+    "repo_b_filesystem_inspected": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "sqlite_receipt_metadata_only": true,
+    "sqlite_schema_changed": false,
+    "telegram_send_triggered": false,
+    "tools_enabled": false
+  },
+  "no_live_authority_statement": "This inventory records design doctrine metadata and gaps only; it does not implement UI, ingest broad private archives, call models, launch agents, mutate Mac app files, run workbenches, or grant runtime authority.",
+  "oauth_or_credentials_accessed": false,
+  "operator_memory_policy": {
+    "do_not_infer_taste_from_broad_private_history": true,
+    "do_not_mark_unfound_sources_false": true,
+    "missing_memory_classification": "needs_winship_memory_comparison",
+    "operator_memory_is_not_canonical_truth_by_itself": true,
+    "safe_capture_path": "bounded approved source artifact or metadata-only capture packet",
+    "winship_memory_can_flag_missing_design_doctrine": true
+  },
+  "plugins_wired": false,
+  "purpose": "Classify source-backed Mission Control design doctrine, taste constraints, known unknowns, missing source artifacts, and safe next memory-comparison moves.",
+  "raw_logs_stored": false,
+  "raw_private_content_inspected": false,
+  "raw_private_file_bodies_stored": false,
+  "read_model_id": "mission_control_design_memory_inventory",
+  "read_model_only": true,
+  "recommended_mac_ui_guidance": [
+    {
+      "guidance_id": "front_door_operator_first",
+      "source_refs": [
+        "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md"
+      ],
+      "summary": "Render mode, system health, active mission, active parent lane, immediate focus, next safe move, and blocked/future-gated posture before raw proof."
+    },
+    {
+      "guidance_id": "proof_drawers_not_card_wall",
+      "source_refs": [
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "generated/read_models/steel_thread_lane_template_registry.json"
+      ],
+      "summary": "Keep manifests, receipts, long paths, and nested read-model detail in proof/detail drawers."
+    },
+    {
+      "guidance_id": "worlds_as_teleport_targets",
+      "source_refs": [
+        "generated/read_models/world_domain_registry.json",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "summary": "Show worlds as destinations with attention state, not as deep domain trees on the helm."
+    },
+    {
+      "guidance_id": "check_lights_are_not_lanes",
+      "source_refs": [
+        "generated/read_models/system_health_lights_taxonomy.json",
+        "generated/read_models/steel_thread_lane_template_registry.json"
+      ],
+      "summary": "Show check lights only when they matter; opening one should reveal the standard steel-thread lane."
+    },
+    {
+      "guidance_id": "source_missing_is_not_false",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0"
+      ],
+      "summary": "When a remembered design discussion is not found, show a Winship memory comparison need rather than silently dropping or inventing it."
+    }
+  ],
+  "remount_authority_added": false,
+  "repo_b_code_executed": false,
+  "repo_b_filesystem_inspected": false,
+  "runtime_authority_added": false,
+  "safe_next_lane": {
+    "allowed_now": "operator guidance and metadata-only package preview",
+    "current_availability": "preview_only_future_gated",
+    "lane_id": "mission_control_design_memory_source_capture_packet",
+    "not_allowed_now": [
+      "call external model APIs",
+      "run Codex, Antigravity, VS Code agent, browser, or other live sessions",
+      "mutate Mission Control app files",
+      "create live launch buttons",
+      "create runtime execution authority",
+      "create browser, OAuth, Gmail, calendar, Coupa, Telegram, send, submit, or approval authority",
+      "write OpenClaw artifacts to the PC system drive",
+      "delete, cleanup, remount, or handle credentials",
+      "ingest broad private chat history or raw private file bodies"
+    ],
+    "purpose": "Ask Winship for a bounded approved source artifact for missing Doom/software/video-game/taste references, then classify it without broad ingestion.",
+    "title": "Mission Control Design Memory Source Capture Packet"
+  },
+  "schema_version": "mission_control_design_memory_inventory_v0",
+  "send_or_submit_authority_added": false,
+  "source_refs": {
+    "doctrine_source_labels": [
+      "operator_prompt: Mission Control Design Memory Inventory v0",
+      "repo_a_source: Operator/01_NORTH_STAR_AND_TASTE.md",
+      "repo_a_source: Operator/05_ORIENTATION_CONTRACT.md",
+      "repo_a_source: docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md",
+      "repo_a_source: docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+      "repo_a_source: docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+      "repo_a_source: docs/planning/launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md",
+      "existing_read_model: Operator Mission Priority / Helm Declutter Taxonomy v0",
+      "existing_read_model: Steel Thread Lane Template Registry v0",
+      "existing_read_model: Package Compiler Contract v0",
+      "existing_read_model: Operator Workbench / Actor Host Registry v0",
+      "existing_read_model: System Health Lights Taxonomy v0",
+      "existing_read_model: World Domain Registry"
+    ],
+    "source_docs": [
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "operator_north_star_and_taste",
+        "path": "Operator/01_NORTH_STAR_AND_TASTE.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "operator-level taste, authority, and local-first doctrine",
+        "sha256": "sha256:647d4a905c704e8846d0dfc897cd24265bad41fe3988d12f10122b2f7b3cd02f",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "operator_orientation_contract",
+        "path": "Operator/05_ORIENTATION_CONTRACT.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "operator orientation and anti-dashboard boundary",
+        "sha256": "sha256:d6aef592a36a56241165afaeaf3e881555f4ce08bf3312e83c8c4b1c62e207ac",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "generated_current_state",
+        "path": "Operator/GENERATED_CURRENT_STATE.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "current generated state and world registry posture",
+        "sha256": "sha256:783fd7a40b0d64734205aadfb65720d2e6e41ae278955cc28058884e4301ea52",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "mission_control_fixture_contract",
+        "path": "docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "read-only fixture state and proof semantics",
+        "sha256": "sha256:5018a84f961bb1a9f6d0342b411f4525532c74c023d8825f601776d3e4649dc8",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "first_screen_composition_spec",
+        "path": "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "first-screen composition, calm cockpit, and proof drawer doctrine",
+        "sha256": "sha256:7689d961462f560784ff2a030135d18da75def897c9baa029c978119ab1c199a",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "taste_and_atmosphere_spec",
+        "path": "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "Mission Control taste vocabulary, vibe tests, and anti-vibe tests",
+        "sha256": "sha256:12f3ac69efb9316a9a69fbbe704bfa4025f5df0c63e9c3cbdee4e8188eaad178",
+        "source_kind": "bounded_design_doctrine_source"
+      },
+      {
+        "approved_repo_a_source": true,
+        "broad_private_chat_ingested": false,
+        "key": "sound_haptics_quiet_feedback_addendum",
+        "path": "docs/planning/launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md",
+        "present": true,
+        "raw_body_exported": false,
+        "raw_private_content_read": false,
+        "role": "future quiet feedback posture and forbidden sound/haptic patterns",
+        "sha256": "sha256:b05d042746994f722548397f923be1ac3c134e4f82b2501d01f2587ba26b00c5",
+        "source_kind": "bounded_design_doctrine_source"
+      }
+    ],
+    "source_read_models": [
+      {
+        "executed_or_dispatched": false,
+        "key": "operator_mission_priority_helm_declutter",
+        "path": "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "mission priority, helm/check-light/world/proof-detail classification",
+        "runtime_authority_added": false,
+        "schema_version": "operator_mission_priority_helm_declutter_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "steel_thread_lane_template_registry",
+        "path": "generated/read_models/steel_thread_lane_template_registry.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "reusable steel-thread lane templates",
+        "runtime_authority_added": false,
+        "schema_version": "steel_thread_lane_template_registry_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "package_compiler_contract",
+        "path": "generated/read_models/package_compiler_contract.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "package compiler skeleton and preview-only authority boundary",
+        "runtime_authority_added": false,
+        "schema_version": "package_compiler_contract_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "operator_workbench_actor_host_registry",
+        "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "Operator System workbench and actor-host registry",
+        "runtime_authority_added": false,
+        "schema_version": "operator_workbench_actor_host_registry_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "system_health_lights_taxonomy",
+        "path": "generated/read_models/system_health_lights_taxonomy.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "health light taxonomy and current light posture",
+        "runtime_authority_added": false,
+        "schema_version": "system_health_lights_taxonomy_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "operator_nested_lane_mission_package_spine",
+        "path": "generated/read_models/operator_nested_lane_mission_package_spine.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "nested lane model and mission package doctrine",
+        "runtime_authority_added": false,
+        "schema_version": "operator_nested_lane_mission_package_spine_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "operator_awareness_agent_package_spine",
+        "path": "generated/read_models/operator_awareness_agent_package_spine.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "awareness gaps, confidence repair, and package preview spine",
+        "runtime_authority_added": false,
+        "schema_version": "operator_awareness_agent_package_spine_v0",
+        "source_kind": "generated_read_model_reference"
+      },
+      {
+        "executed_or_dispatched": false,
+        "key": "world_domain_registry",
+        "path": "generated/read_models/world_domain_registry.json",
+        "present": true,
+        "raw_body_exported": false,
+        "role": "world/domain registry and teleport target vocabulary",
+        "runtime_authority_added": false,
+        "schema_version": "world_domain_registry_v0",
+        "source_kind": "generated_read_model_reference"
+      }
+    ]
+  },
+  "source_state_summary": {
+    "doom_or_space_station_reference_found": false,
+    "gardening_registered": false,
+    "read_model_availability": {
+      "operator_awareness_agent_package_spine": true,
+      "operator_mission_priority_helm_declutter": true,
+      "operator_nested_lane_mission_package_spine": true,
+      "operator_workbench_actor_host_registry": true,
+      "package_compiler_contract": true,
+      "steel_thread_lane_template_registry": true,
+      "system_health_lights_taxonomy": true,
+      "world_domain_registry": true
+    },
+    "registered_world_ids": [
+      "music_art",
+      "finance",
+      "operations",
+      "security",
+      "build",
+      "research",
+      "communications",
+      "business_development"
+    ],
+    "software_likes_dislikes_reference_found": false,
+    "source_terms_present_in_bounded_docs": {
+      "chatbot": true,
+      "check_engine": false,
+      "check_transmission": false,
+      "cockpit": true,
+      "doom": false,
+      "helm": true,
+      "mission_control": true,
+      "rag_search": true,
+      "saas": true,
+      "software_dislikes": false,
+      "software_likes": false,
+      "space_station": false,
+      "spaceship": false,
+      "studio_console": true,
+      "teleport": false,
+      "video_game": false,
+      "worlds": true
+    }
+  },
+  "sqlite_ledger_receipt_contract": {
+    "inventory_hash": "sha256:ed865bd9fcb006b90ff733a775a6ea1a2babf55bdd44c9127b9ae99e35e1b594",
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_mission_control_design_memory_inventory_receipt",
+    "sqlite_meaning": "receipt_record_only",
+    "stores_broad_file_dumps": false,
+    "stores_credentials": false,
+    "stores_raw_logs": false,
+    "stores_raw_private_chat_bodies": false,
+    "stores_raw_private_file_bodies": false,
+    "stores_runtime_activation": false,
+    "stores_secrets": false,
+    "supported_by_existing_pattern": true
+  },
+  "sqlite_receipt_metadata_only": true,
+  "sqlite_schema_changed": false,
+  "telegram_send_triggered": false,
+  "theme_count": 20,
+  "themes": [
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": true,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "The Mac UI still needs a finish pass that renders this calmly rather than exposing every read-model equally.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use this inventory with the helm declutter taxonomy before the next Mac UI finish lane.",
+      "source_refs": [
+        "Operator/01_NORTH_STAR_AND_TASTE.md",
+        "Operator/05_ORIENTATION_CONTRACT.md",
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "summary": "Mission Control should be an operator-first command surface with calm orientation, exact state, proof below the surface, and no generic dashboard or chatbot posture.",
+      "theme_id": "mission_control_as_helm_not_chatbot_dashboard",
+      "title": "Mission Control is a helm, not a chatbot or backend dashboard",
+      "what_not_to_build_from_this_yet": "Do not turn this theme into UI code, branding, mascots, or a new app name in this lane.",
+      "why_it_matters": "This prevents Mission Control from becoming a backend table browser or generic assistant panel while the helm is being finished."
+    },
+    {
+      "affects": {
+        "actor_router": true,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": false,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Future launch and monitoring authority remains gated; the current truth is registry/package metadata only.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Keep workbench routing metadata visible in package previews and keep launch authority future-gated.",
+      "source_refs": [
+        "generated/read_models/operator_workbench_actor_host_registry.json",
+        "generated/read_models/package_compiler_contract.json",
+        "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "Operator/01_NORTH_STAR_AND_TASTE.md"
+      ],
+      "summary": "OpenClaw should sit above macOS, Windows, WSL, VS Code, Codex, Antigravity, Xcode, Terminal, files, apps, and future tools as a deterministic operator system.",
+      "theme_id": "operator_system_above_workbenches",
+      "title": "OpenClaw is the Operator System above workbenches",
+      "what_not_to_build_from_this_yet": "Do not wire live Codex, Antigravity, VS Code, terminal, browser, or account sessions from this inventory.",
+      "why_it_matters": "The operator should not need to manually understand every developer tool to route work safely."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "The more specific Doom Eternal or space-station metaphor is not yet sourced in approved Repo A docs.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use source-backed cockpit/studio-console language now and ask Winship for the missing metaphor source if needed.",
+      "source_refs": [
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+        "Operator/01_NORTH_STAR_AND_TASTE.md"
+      ],
+      "summary": "Approved Repo A sources describe a calm cockpit, personal command desk, trusted command surface, studio console, chart table, and evidence drawer.",
+      "theme_id": "calm_command_surface_studio_console_cockpit",
+      "title": "Calm command surface, studio console, and cockpit taste",
+      "what_not_to_build_from_this_yet": "Do not literalize knobs, faders, spaceship panels, or game UI chrome without a later UI design lane.",
+      "why_it_matters": "This is the strongest source-backed taste constraint for the Mac UI finish sprint."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": true,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Quiet-mode switching is not a UI implementation yet.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use mission priority and steel-thread registries to collapse backend detail before adding more cards.",
+      "source_refs": [
+        "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "generated/read_models/operator_nested_lane_mission_package_spine.json"
+      ],
+      "summary": "Current Mission Control is in Developer Mode / Build Mode while OpenClaw is being assembled; the target is a quieter operational helm.",
+      "theme_id": "developer_mode_to_quiet_operational_helm",
+      "title": "Developer Mode now, quiet operational helm later",
+      "what_not_to_build_from_this_yet": "Do not hide check-engine or transmission proof while they still affect operator trust.",
+      "why_it_matters": "This explains why the helm is noisy now and what should make it quiet later."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": false,
+        "worlds": true
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Future worlds such as Gardening are operator-mentioned but not yet tracked in the world registry.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Promote future worlds through the world/domain registry only after a bounded source-backed lane.",
+      "source_refs": [
+        "generated/read_models/world_domain_registry.json",
+        "Operator/GENERATED_CURRENT_STATE.md",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "summary": "Music/Art, Finance, Operations, Security, Build, Research, Communications, and Business Development are tracked as worlds that the operator can enter after the helm is calm.",
+      "theme_id": "worlds_are_domain_destinations",
+      "title": "Worlds are domain destinations, not helm clutter",
+      "what_not_to_build_from_this_yet": "Do not render all domain detail as equal helm cards.",
+      "why_it_matters": "This keeps normal domain work from cluttering the front-door helm unless it affects the current mission or needs attention."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": true,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Mac UI should still decide visual hierarchy, but backend taxonomy is in place.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Keep check lights semantically separate and open the steel-thread lane when inspected.",
+      "source_refs": [
+        "generated/read_models/system_health_lights_taxonomy.json",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "summary": "System health lights are for system/workbench/tooling/resource/authority/confidence conditions, not ordinary domain attention.",
+      "theme_id": "check_lights_are_distinct_from_lanes",
+      "title": "Check lights are distinct from normal lanes",
+      "what_not_to_build_from_this_yet": "Do not create a permanent status wall or dramatic alarm cluster.",
+      "why_it_matters": "This prevents resource, bridge, and authority posture from being confused with normal world/domain work."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Implementation of the Mac steel-thread surface remains a later app lane.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use the template registry and package compiler contract as source truth for future surface work.",
+      "source_refs": [
+        "generated/read_models/steel_thread_lane_template_registry.json",
+        "generated/read_models/package_compiler_contract.json",
+        "generated/read_models/operator_awareness_agent_package_spine.json",
+        "generated/read_models/operator_nested_lane_mission_package_spine.json"
+      ],
+      "summary": "Every lane, check light, and world should follow operator orientation, machine contract/proof, and package/detour/fix path.",
+      "theme_id": "steel_thread_everywhere",
+      "title": "Steel thread everywhere: orient, prove, package",
+      "what_not_to_build_from_this_yet": "Do not add live execution or state mutation buttons under the steel-thread labels.",
+      "why_it_matters": "The Mac app can render one reusable workflow pattern instead of inventing a separate pattern per lane."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "The UI still needs to apply this rule without hiding real gaps.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Render missing inputs and detours only when they materially affect action.",
+      "source_refs": [
+        "generated/read_models/steel_thread_lane_template_registry.json",
+        "generated/read_models/package_compiler_contract.json",
+        "generated/read_models/operator_awareness_agent_package_spine.json"
+      ],
+      "summary": "Confidence is visible when proof/context is missing and quiet when deterministic trust is reached; failure reopens detours.",
+      "theme_id": "confidence_detour_quiets_when_deterministic",
+      "title": "Confidence and detour UI quiets when proof is deterministic",
+      "what_not_to_build_from_this_yet": "Do not show fake numeric certainty or dramatize deterministic proof.",
+      "why_it_matters": "This avoids confidence theater and keeps the helm calm when nothing needs operator attention."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": true,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "The exact Mac proof drawer design remains a UI lane.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Keep proof visible on demand and summarize proof status above the fold.",
+      "source_refs": [
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md",
+        "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "generated/read_models/steel_thread_lane_template_registry.json"
+      ],
+      "summary": "Machine proof, receipts, manifests, markers, long paths, and raw generated detail should sit in drawers or drill-downs below the human orientation layer.",
+      "theme_id": "proof_below_operator_layer",
+      "title": "Proof belongs under operator orientation",
+      "what_not_to_build_from_this_yet": "Do not hide proof so deeply that status claims become unverifiable.",
+      "why_it_matters": "This preserves trust without making the front door feel like a backend inventory."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Future write/capture behavior needs explicit receipt and authority gates.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Render preview-only controls and future targets without dispatch.",
+      "source_refs": [
+        "generated/read_models/steel_thread_lane_template_registry.json",
+        "generated/read_models/package_compiler_contract.json",
+        "docs/planning/launch_ladder/12_MAC_DESKTOP_MISSION_CONTROL_FIXTURE_CONTRACT.md"
+      ],
+      "summary": "Current controls should orient the operator, show proof, preview packages, collect missing-memory posture, raise confidence, or keep work parked; live launch remains future-gated.",
+      "theme_id": "operator_controls_preview_before_authority",
+      "title": "Controls explain, inspect, preview, park, or route before authority exists",
+      "what_not_to_build_from_this_yet": "Do not build live launch buttons from this inventory.",
+      "why_it_matters": "Buttons must not smuggle execution, send, approval, account access, or model/tool calls into a display surface."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "Taste tests are source-backed, but there is not yet a final visual system implementation.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use vibe and anti-vibe tests as static review criteria for the Mac finish sprint.",
+      "source_refs": [
+        "Operator/01_NORTH_STAR_AND_TASTE.md",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+      ],
+      "summary": "Repo A sources define local-first durable quality, human feeling, daily-use calm, and anti-vibe tests against Jira cosplay, AI orb centerpiece, startup dashboard, wall of chips, and agent theater.",
+      "theme_id": "taste_quality_anti_slop",
+      "title": "Taste quality and anti-slop rules are tracked",
+      "what_not_to_build_from_this_yet": "Do not create branding, mascot, slogan, logo, or fake product-name energy.",
+      "why_it_matters": "This gives future Mac implementation lanes a taste guardrail beyond correctness."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": false,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "known_and_tracked",
+      "confidence": "HIGH_TRUST_SOURCE_BACKED",
+      "current_gap": "No sound assets, haptics, settings UI, or app code are authorized here.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Carry this as future design guidance only.",
+      "source_refs": [
+        "docs/planning/launch_ladder/15_MAC_DESKTOP_SOUND_HAPTICS_QUIET_FEEDBACK_ADDENDUM.md"
+      ],
+      "summary": "Sound should be off by default, optional, tied to visible state transitions, and never used as hidden-agent or urgency theater.",
+      "theme_id": "quiet_feedback_sound_haptics_future_only",
+      "title": "Sound and haptics are quiet, optional, and future-only",
+      "what_not_to_build_from_this_yet": "Do not build sound, haptics, notification behavior, or audio assets from this inventory.",
+      "why_it_matters": "This prevents atmosphere work from becoming notification spam or fake AI activity."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": false,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": true
+      },
+      "classification": "needs_winship_memory_comparison",
+      "confidence": "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+      "current_gap": "No approved Repo A source found for Doom, Doom Eternal, or space station wording in the narrow search set.",
+      "operator_memory_is_not_treated_as_fact": true,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Ask Winship to point to the source chat/file or promote a bounded source-backed design note.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "docs/planning/launch_ladder/13_MAC_DESKTOP_FIRST_SCREEN_COMPOSITION_SPEC.md",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+      ],
+      "summary": "The current operator prompt mentions spaceship helm and Doom Eternal-style space station, while approved Repo A sources found in this lane show cockpit, command desk, studio console, chart table, and evidence drawer.",
+      "theme_id": "spaceship_doom_space_station_reference_needs_source",
+      "title": "Spaceship helm / Doom Eternal space-station reference needs source comparison",
+      "what_not_to_build_from_this_yet": "Do not build a game-like or sci-fi visual system solely from memory of the phrase.",
+      "why_it_matters": "This may be important for the visual finish sprint, but the exact game/base metaphor should not be overfit without the source artifact."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "needs_winship_memory_comparison",
+      "confidence": "LOW_TRUST_SOURCE_MISSING",
+      "current_gap": "The approved source set does not contain a dedicated software-likes/dislikes record.",
+      "operator_memory_is_not_treated_as_fact": true,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Winship can point OpenClaw at an approved artifact or request a small capture lane.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+      ],
+      "summary": "Repo A contains taste and anti-vibe tests, but this lane did not find a specific inventory of Winship's software likes, dislikes, or video-game reference discussions.",
+      "theme_id": "software_likes_dislikes_inventory_missing",
+      "title": "Specific software likes/dislikes inventory is missing",
+      "what_not_to_build_from_this_yet": "Do not infer personal taste from broad private history or unsourced memory.",
+      "why_it_matters": "Specific taste references could sharpen the Mac finish pass, but they need bounded source evidence."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": false,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": false,
+        "worlds": true
+      },
+      "classification": "known_unknown",
+      "confidence": "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+      "current_gap": "Gardening is operator-mentioned but not a current registered world.",
+      "operator_memory_is_not_treated_as_fact": true,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Treat Gardening as a future domain candidate until a world/domain registry lane promotes it.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "generated/read_models/world_domain_registry.json",
+        "Operator/GENERATED_CURRENT_STATE.md"
+      ],
+      "summary": "The current operator prompt mentions possible future domains like Gardening, but the current world registry tracks eight worlds and does not include Gardening.",
+      "theme_id": "gardening_future_world_not_registered",
+      "title": "Gardening future world is not registered yet",
+      "what_not_to_build_from_this_yet": "Do not add new world UI entries without a registry update and source-backed purpose.",
+      "why_it_matters": "Future worlds should be promoted deliberately so the helm does not become cluttered."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": false,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": true
+      },
+      "classification": "partly_known",
+      "confidence": "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+      "current_gap": "Dynamic world status, strategic gravity, agent presence, and live attention are explicitly not implemented yet.",
+      "operator_memory_is_not_treated_as_fact": true,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Create a later deterministic world-status/evidence-freshness lane before dynamic visual heat.",
+      "source_refs": [
+        "generated/read_models/world_domain_registry.json",
+        "Operator/GENERATED_CURRENT_STATE.md"
+      ],
+      "summary": "The world registry includes signal vocabulary such as quiet, flagged, glowing, hot, and critical consequence, but dynamic world status and strategic gravity are not implemented.",
+      "theme_id": "strategic_gravity_glow_heat_partly_tracked",
+      "title": "Strategic gravity, glow, heat, and flags are partly tracked",
+      "what_not_to_build_from_this_yet": "Do not fake live world heat, glow, or attention signals.",
+      "why_it_matters": "This affects how worlds can show attention without cluttering the helm."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": false,
+        "package_compiler": false,
+        "steel_thread": false,
+        "visual_design": true,
+        "worlds": true
+      },
+      "classification": "not_yet_discovered",
+      "confidence": "LOW_TRUST_SOURCE_MISSING",
+      "current_gap": "No approved Repo A artifact found for concrete visual references beyond prose taste constraints.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Ask Winship for a small approved reference artifact or create a source-backed design-memory capture packet later.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "docs/planning/launch_ladder/14_MAC_DESKTOP_TASTE_AND_ATMOSPHERE_SPEC.md"
+      ],
+      "summary": "Repo A has strong taste vocabulary and anti-vibe tests, but this lane did not find a bounded visual reference board, selected screenshots, or approved artifact set for the final spaceship/studio-console/world-map feel.",
+      "theme_id": "visual_reference_board_not_yet_discovered",
+      "title": "Concrete visual reference board is not yet discovered",
+      "what_not_to_build_from_this_yet": "Do not scrape images, browse, ingest screenshots, or build a visual system from unsourced memories in this lane.",
+      "why_it_matters": "A bounded reference board could help the Mac finish sprint avoid generic cards while still staying calm and operator-first."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": true,
+        "operator_controls": true,
+        "package_compiler": false,
+        "steel_thread": true,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "candidate_future_sqlite_promotion",
+      "confidence": "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+      "current_gap": "Only a metadata receipt is safe in this lane; a canonical design-memory fact schema remains future work.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Use existing metadata-only receipt pattern now and design a narrow promotion lane later if needed.",
+      "source_refs": [
+        "business_ops_ledger.py",
+        "operator_prompt: Mission Control Design Memory Inventory v0"
+      ],
+      "summary": "This inventory identifies bounded design doctrine summaries and source refs that could later be promoted as metadata-only SQLite facts or receipts.",
+      "theme_id": "design_memory_future_sqlite_promotion",
+      "title": "Design doctrine should be promoted into SQLite/read-model tracking carefully",
+      "what_not_to_build_from_this_yet": "Do not store raw private chat bodies, broad file dumps, or unsourced claims as canonical facts.",
+      "why_it_matters": "Durable tracking lets future app lanes use design doctrine without re-reading broad old conversations."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": false,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": true,
+        "visual_design": false,
+        "worlds": false
+      },
+      "classification": "blocked_or_not_authorized",
+      "confidence": "FULL_TRUST_DISPLAY_QUIET",
+      "current_gap": "Missing memories must be represented as missing until Winship provides an approved source.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Keep missing design memories as operator memory comparison needs.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "OPENCLAW_RUNTIME.md"
+      ],
+      "summary": "This lane may search only narrow approved Repo A sources; broad chat history, raw private files, credentials, logs, and unapproved archives are not authorized.",
+      "theme_id": "broad_private_design_archive_ingestion_blocked",
+      "title": "Broad private design archive ingestion is blocked",
+      "what_not_to_build_from_this_yet": "Do not scan broad private locations, ChatGPT history, browser data, account surfaces, or raw business archives.",
+      "why_it_matters": "This protects privacy and prevents the design inventory from becoming an uncontrolled ingestion lane."
+    },
+    {
+      "affects": {
+        "actor_router": false,
+        "check_lights": false,
+        "helm_front_door": false,
+        "operator_controls": true,
+        "package_compiler": true,
+        "steel_thread": true,
+        "visual_design": true,
+        "worlds": false
+      },
+      "classification": "safe_next_source_to_inspect",
+      "confidence": "MEDIUM_TRUST_PARTLY_SOURCE_BACKED",
+      "current_gap": "The actual missing artifacts have not been supplied in this lane.",
+      "operator_memory_is_not_treated_as_fact": false,
+      "raw_private_content_required": false,
+      "runtime_authority_added": false,
+      "safe_next_move": "Prepare a Design Memory Source Capture Packet that is preview-only and metadata-first.",
+      "source_refs": [
+        "operator_prompt: Mission Control Design Memory Inventory v0",
+        "generated/read_models/package_compiler_contract.json"
+      ],
+      "summary": "The next safe source lane should ask for specific approved artifacts, such as a design note, a selected prior chat export placed in Repo A, or a narrow world/taste source file.",
+      "theme_id": "next_safe_sources_for_design_memory",
+      "title": "Safe next sources to inspect are bounded and operator-approved",
+      "what_not_to_build_from_this_yet": "Do not create a generic RAG search box or chat-with-files ingestion path.",
+      "why_it_matters": "This gives OpenClaw a way to raise design confidence without broad private ingestion."
+    }
+  ],
+  "tools_enabled": false,
+  "what_should_guide_next_mac_ui_finish_pass": [
+    "helm not dashboard/chatbot/backend inventory",
+    "current mission and system health first",
+    "active parent lane, immediate focus, and next safe move above proof",
+    "worlds as destinations, not deep helm clutter",
+    "check lights distinct from normal lanes",
+    "steel-thread drill-in everywhere",
+    "proof/package/confidence lower than operator orientation",
+    "no confidence theater when deterministic",
+    "source-missing memories become comparison needs, not facts"
+  ],
+  "what_should_not_be_built_yet": [
+    "live UI controls from this backend inventory",
+    "brand, mascot, app name, or slogan",
+    "generic RAG search or chat-with-files default",
+    "broad private design archive ingestion",
+    "sound/haptics/assets/notifications",
+    "live workbench, model, agent, browser, account, send, submit, approval, or runtime integration",
+    "fake live world heat, glow, strategic gravity, or attention signals"
+  ]
+}

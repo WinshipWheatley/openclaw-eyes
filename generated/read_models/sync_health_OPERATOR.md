@@ -2,39 +2,37 @@
 
 Trust status: `stale_needs_mac_sync`
 Mirror status: `needs_mac_sync`
-Display status: `sync_requested_waiting_for_mac`
-Lifecycle state: `sync_requested_waiting_for_mac`
-Operator action required: `false`
+Display status: `needs_mac_sync`
+Lifecycle state: `actionable_sync_failure`
+Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=212
-- observed=208
-- missing_expected=4
+- canonical_expected=214
+- observed=212
+- missing_expected=2
 - extra=0
 - hash_mismatch=2
-- matched_hash=206
+- matched_hash=210
 
 Recommended fix:
-- kind: `wait_for_mac_sync`
-- display status: `sync_requested_waiting_for_mac`
+- kind: `request_mac_sync`
+- display status: `needs_mac_sync`
 - next expected actor: `mac_sync_agent`
-- lifecycle state: `sync_requested_waiting_for_mac`
-- operator action required: `false`
-- next: Mac sync has already been requested; waiting for the normal Mac sync agent cycle.
-- app can request bounded Mac sync marker: `false`
+- lifecycle state: `actionable_sync_failure`
+- operator action required: `true`
+- next: Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.
+- app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `synced` at `2026-05-21T00:14:43+00:00`
-- Mac completion: `synced` at `2026-05-21T00:14:43+00:00`
-- PC import: `skipped_unchanged` at `2026-05-21T00:14:48+00:00`
+- Mac heartbeat: `synced` at `2026-05-21T00:29:46+00:00`
+- Mac completion: `synced` at `2026-05-21T00:29:46+00:00`
+- PC import: `success` at `2026-05-21T00:29:48+00:00`
 - Windows task log present: `true`
 
 Stale files:
-- `package_compiler_contract.json`
-- `package_compiler_contract_OPERATOR.md`
-- `steel_thread_lane_template_registry.json`
-- `steel_thread_lane_template_registry_OPERATOR.md`
+- `mission_control_design_memory_inventory.json`
+- `mission_control_design_memory_inventory_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
 
