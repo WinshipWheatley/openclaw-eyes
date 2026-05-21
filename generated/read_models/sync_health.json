@@ -2,38 +2,38 @@
   "agent_activation_allowed": false,
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
-  "canonical_expected": 214,
+  "canonical_expected": 216,
   "display_status": "sync_requested_waiting_for_mac",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-21T00:36:51+00:00",
-  "hash_mismatch": 4,
+  "generated_at": "2026-05-21T00:42:31+00:00",
+  "hash_mismatch": 2,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-21T00:29:46+00:00"
+    "time": "2026-05-21T00:39:48+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
-    "status": "idle",
-    "time": "2026-05-21T00:34:47+00:00"
+    "status": "synced",
+    "time": "2026-05-21T00:39:48+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "f3090aa9ad7f1a6b99b87f9558cb27e55c6e0f4720c758604cc321257e14fbca",
+    "manifest_hash": "bd29a25d409df19783573ed8feef7314dddcce69ff572e5492adaced3bc4f78d",
     "pc_scheduler_known": true,
     "status": "skipped_unchanged",
-    "time": "2026-05-21T00:29:48+00:00",
+    "time": "2026-05-21T00:42:23+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 208,
+  "matched_hash": 212,
   "mirror_status": "needs_mac_sync",
   "missing_expected": 2,
   "missing_files": [
-    "mission_control_design_memory_inventory.json",
-    "mission_control_design_memory_inventory_OPERATOR.md"
+    "operator_question_journey_registry.json",
+    "operator_question_journey_registry_OPERATOR.md"
   ],
   "next_expected_actor": "mac_sync_agent",
   "no_authority_flags": {
@@ -47,41 +47,41 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 212,
+  "observed": 214,
   "operator_action_required": false,
   "operator_interrupt_policy": "routine sync lifecycle states stay in proof/detail; only unresolved actionable failures should interrupt the operator",
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "fd2afa7dee118072bfdccdc77d6cc9527715903bf1ea3d203c128c255d193363",
+      "source_hash": "1897d73c02992daa27cb2c5f082e35307e7026d25f286b214f7ac7c93ba15068",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-21T00:29:46+00:00"
+      "source_time": "2026-05-21T00:39:48+00:00"
     },
     {
       "present": 1,
-      "source_hash": "36513f5776dc59232a3172bcccbac09a881917faf56ccce6acf7085f604fb435",
+      "source_hash": "48a0aa8974856917c586379157c4b75898e8707551bdaed1c3317a8d7a91adb9",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
-      "source_status": "idle",
-      "source_time": "2026-05-21T00:34:47+00:00"
+      "source_status": "synced",
+      "source_time": "2026-05-21T00:39:48+00:00"
     },
     {
       "present": 1,
-      "source_hash": "f3090aa9ad7f1a6b99b87f9558cb27e55c6e0f4720c758604cc321257e14fbca",
+      "source_hash": "bd29a25d409df19783573ed8feef7314dddcce69ff572e5492adaced3bc4f78d",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-21T00:29:46+00:00"
+      "source_time": "2026-05-21T00:39:48+00:00"
     },
     {
       "present": 1,
-      "source_hash": "aca246911efd8f3f180a70774e42308eddf1be02365d8bca34a6d9b4552082df",
+      "source_hash": "8e9dedaf2c3b7f1f0b310c416f0954663831d6b3b16fbe4322b8adac1faae222",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
-      "source_time": "2026-05-21T00:29:48+00:00"
+      "source_time": "2026-05-21T00:42:23+00:00"
     },
     {
       "present": 1,
@@ -89,15 +89,15 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-21T00:36:44+00:00"
+      "source_time": "2026-05-21T00:42:23+00:00"
     },
     {
       "present": 1,
-      "source_hash": "e5ddaf869b5848c1c73d75cfdf767fc85218c5290144e2755e5c6d2b7cf16ace",
+      "source_hash": "7ebd4e5415ff7e5e5e8ece48758e2c81f674a0f3c29e0c141839d048ad2178ef",
       "source_kind": "read_model_sync_request_marker",
       "source_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
       "source_status": null,
-      "source_time": "2026-05-21T00:36:44+00:00"
+      "source_time": "2026-05-21T00:42:23+00:00"
     },
     {
       "present": 1,
@@ -113,7 +113,7 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-21T00:34:48+00:00"
+      "source_time": "2026-05-21T00:39:48+00:00"
     }
   ],
   "recommended_fix": {
@@ -133,10 +133,8 @@
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
   "stale_files": [
-    "mission_control_design_memory_inventory.json",
-    "mission_control_design_memory_inventory_OPERATOR.md",
-    "package_compiler_contract.json",
-    "package_compiler_contract_OPERATOR.md",
+    "operator_question_journey_registry.json",
+    "operator_question_journey_registry_OPERATOR.md",
     "system_health_lights_taxonomy.json",
     "system_health_lights_taxonomy_OPERATOR.md"
   ],

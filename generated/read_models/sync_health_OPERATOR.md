@@ -8,12 +8,12 @@ Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=214
-- observed=212
+- canonical_expected=216
+- observed=214
 - missing_expected=2
 - extra=0
-- hash_mismatch=4
-- matched_hash=208
+- hash_mismatch=2
+- matched_hash=212
 
 Recommended fix:
 - kind: `wait_for_mac_sync`
@@ -25,16 +25,14 @@ Recommended fix:
 - app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-21T00:34:47+00:00`
-- Mac completion: `synced` at `2026-05-21T00:29:46+00:00`
-- PC import: `skipped_unchanged` at `2026-05-21T00:29:48+00:00`
+- Mac heartbeat: `synced` at `2026-05-21T00:39:48+00:00`
+- Mac completion: `synced` at `2026-05-21T00:39:48+00:00`
+- PC import: `skipped_unchanged` at `2026-05-21T00:42:23+00:00`
 - Windows task log present: `true`
 
 Stale files:
-- `mission_control_design_memory_inventory.json`
-- `mission_control_design_memory_inventory_OPERATOR.md`
-- `package_compiler_contract.json`
-- `package_compiler_contract_OPERATOR.md`
+- `operator_question_journey_registry.json`
+- `operator_question_journey_registry_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
 
