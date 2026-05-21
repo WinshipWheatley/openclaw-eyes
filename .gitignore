@@ -90,6 +90,7 @@
 !system_health_lights_taxonomy.py
 !agent_platform_alignment.py
 !agent_identity_actor_router_contract.py
+!model_selection_policy_contract.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -717,6 +718,7 @@
 !scripts/export_system_health_lights_taxonomy.py
 !scripts/export_agent_platform_alignment.py
 !scripts/export_agent_identity_actor_router_contract.py
+!scripts/export_model_selection_policy_contract.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
 !scripts/build_active_machinery_operator_disposition.py
@@ -780,6 +782,7 @@
 !tests/test_system_health_lights_taxonomy.py
 !tests/test_agent_platform_alignment.py
 !tests/test_agent_identity_actor_router_contract.py
+!tests/test_model_selection_policy_contract.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
 !tests/test_active_machinery_operator_disposition.py

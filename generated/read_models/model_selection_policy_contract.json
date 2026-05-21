@@ -1,0 +1,1390 @@
+{
+  "actor_model_policy": [
+    {
+      "actor_id": "operator_winship",
+      "allowed_current_model_classes": [
+        "human_operator"
+      ],
+      "blocked_model_classes": [
+        "local_small_fast",
+        "local_reasoning",
+        "local_sensitive",
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal",
+        "blocked_no_model"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "human_operator"
+      ],
+      "preferred_model_classes": [
+        "human_operator"
+      ],
+      "reason": "Final authority remains human and cannot be replaced by model selection.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": false,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "chief",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_multimodal"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "reason": "Chief needs coordination, work-board, check-engine, and deterministic synthesis support.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "guardian",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "preferred_model_classes": [
+        "local_sensitive",
+        "local_reasoning",
+        "human_operator"
+      ],
+      "reason": "Guardian handles safety/security/protected-access ambiguity and should default local/private or block.",
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "cassandra",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_multimodal"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "preferred_model_classes": [
+        "local_sensitive",
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "reason": "Cassandra may review communications and finance/AP metadata; approval-adjacent or private content needs gates.",
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "hermes",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "reason": "Hermes is useful for architecture, doctrine, coherence, and horizon checks.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "niles",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_sensitive"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "local_small_fast",
+        "external_multimodal",
+        "external_deep_reasoner"
+      ],
+      "preferred_model_classes": [
+        "local_small_fast",
+        "external_multimodal",
+        "external_deep_reasoner"
+      ],
+      "reason": "Niles supports music/art/creative production and should avoid sensitive business authority.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "codex",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_multimodal",
+        "local_sensitive"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "external_code_worker",
+        "local_reasoning"
+      ],
+      "preferred_model_classes": [
+        "external_code_worker",
+        "local_reasoning"
+      ],
+      "reason": "Codex is a scoped implementation worker for file edits, tests, and builds under package boundaries.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    },
+    {
+      "actor_id": "gemini_antigravity",
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_sensitive"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "future_eligible_model_classes": [
+        "external_fast_worker",
+        "external_code_worker",
+        "external_deep_reasoner"
+      ],
+      "preferred_model_classes": [
+        "external_fast_worker",
+        "external_code_worker",
+        "external_deep_reasoner"
+      ],
+      "reason": "Gemini/Antigravity can be a fast planner/verifier/worker later, bounded by the same compiler gates.",
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "routing_execution_allowed_now": false
+    }
+  ],
+  "autonomous_routing_enabled": false,
+  "background_surveillance_enabled": false,
+  "blocked_model_uses": [
+    {
+      "blocked_use_id": "email_send",
+      "description": "Sending email is blocked; Cassandra communication work remains review/visibility until a later gate."
+    },
+    {
+      "blocked_use_id": "calendar_mutation",
+      "description": "Calendar mutation is blocked; calendar work may be reviewed only through approved metadata."
+    },
+    {
+      "blocked_use_id": "browser_coupa_portal_use",
+      "description": "Browser, Coupa, portal, and account flows are blocked before explicit protected-access gates."
+    },
+    {
+      "blocked_use_id": "credential_or_oauth_handling",
+      "description": "Credentials, OAuth tokens, secrets, and account setup cannot be handled by model selection."
+    },
+    {
+      "blocked_use_id": "protected_file_access_without_gate",
+      "description": "Protected files or private bodies cannot be exposed without Guardian/protected-context proof."
+    },
+    {
+      "blocked_use_id": "broad_filesystem_indexing",
+      "description": "Broad filesystem indexing is blocked; source inventories must stay bounded and approved."
+    },
+    {
+      "blocked_use_id": "hidden_memory_capture",
+      "description": "Hidden memory capture is blocked; memory surfaces must be explicit and receipt-backed."
+    },
+    {
+      "blocked_use_id": "surveillance_background_monitoring",
+      "description": "Background surveillance or always-on monitoring is not authorized by this contract."
+    },
+    {
+      "blocked_use_id": "autonomous_tool_execution",
+      "description": "Autonomous tool execution is blocked; model selection is metadata-only."
+    },
+    {
+      "blocked_use_id": "self_authorized_routing",
+      "description": "No model or actor may choose its own authority, clearance, workspace, or tool set."
+    },
+    {
+      "blocked_use_id": "external_model_sensitive_data_without_gate",
+      "description": "External model use on sensitive/private/protected data is blocked without explicit Operator and Guardian gates."
+    }
+  ],
+  "browser_oauth_account_access_enabled": false,
+  "confidence_policy": {
+    "blocked_no_model_is_valid_result": true,
+    "deterministic_success_requires": [
+      "valid package inputs",
+      "sensitivity classification",
+      "actor policy match",
+      "authority boundary match",
+      "required receipts/proof"
+    ],
+    "do_not_display_fake_availability": true,
+    "hide_when": "model posture is deterministic/high trust and no dispatch is happening",
+    "show_confidence_only_when": "uncertainty changes the operator's next safe move",
+    "unknown_or_missing_context": "UNKNOWN_FAIL_CLOSED"
+  },
+  "contract_status": "deterministic_model_selection_policy_metadata_only",
+  "core_doctrine": {
+    "agent_is_character": "Chief, Guardian, Cassandra, Hermes, Niles, Codex, and Gemini/Antigravity remain governed actor/agent roles.",
+    "model_choice_is_recommendation_not_command": true,
+    "model_is_actor_host_or_actor_class": "The model class is a future execution substrate, not the agent identity.",
+    "model_may_not_decide_own_authority": true,
+    "package_decides_context_authority_and_gates": true
+  },
+  "credential_authority": false,
+  "evidence_sources": [
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_platform_alignment.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "platform primitive/gap map that identified model-selection policy as a missing prerequisite",
+      "schema_version": "agent_platform_alignment_v0",
+      "source_id": "agent_platform_alignment"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_identity_actor_router_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "known actor identities, routing modes, package preview requirements, and actor authority boundaries",
+      "schema_version": "agent_identity_actor_router_contract_v0",
+      "source_id": "agent_identity_actor_router_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/package_compiler_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "package schema, deterministic boundary validation, clearance, capability, and receipt requirements",
+      "schema_version": "package_compiler_contract_v0",
+      "source_id": "package_compiler_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "workbench/actor host metadata and conservative autonomy levels",
+      "schema_version": "operator_workbench_actor_host_registry_v0",
+      "source_id": "operator_workbench_actor_host_registry"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/capability_skill_registry_metadata_delta.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "capability/skill metadata; descriptive only, not execution authority",
+      "schema_version": "capability_skill_registry_metadata_delta_v0",
+      "source_id": "capability_skill_registry_metadata_delta"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "protected access and authority gate posture",
+      "schema_version": "guardian_protected_access_gate_spec_v0",
+      "source_id": "guardian_protected_access_gate_spec"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/protected_evidence_reference_receipt.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "protected proof can be referenced by receipt without exposing private bodies",
+      "schema_version": "protected_evidence_reference_receipt_v0",
+      "source_id": "protected_evidence_reference_receipt"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/cassandra_email_calendar_delta_detangle.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "Cassandra email/calendar visibility and mutation boundary",
+      "schema_version": "cassandra_email_calendar_delta_detangle_v0",
+      "source_id": "cassandra_email_calendar_delta_detangle"
+    }
+  ],
+  "external_model_authority": false,
+  "future_receipt_requirements": {
+    "natural_language_claims_count_as_proof": false,
+    "receipt_must_record": [
+      "actor_id",
+      "package_id",
+      "package_type",
+      "model_class_id",
+      "sensitivity",
+      "context_included_hash_or_refs",
+      "context_excluded",
+      "gates_present",
+      "blocked_authorities",
+      "operator_confirmation_if_any"
+    ],
+    "required_before_future_model_execution": [
+      "model selection decision receipt",
+      "package compiler boundary validation receipt",
+      "sensitivity classification receipt",
+      "Operator preview/approval receipt when external or action-capable",
+      "Guardian gate receipt for sensitive/protected/approval-adjacent work",
+      "memory scope receipt",
+      "tool adapter receipt if any capability is requested",
+      "post-result receipt"
+    ]
+  },
+  "generated_at": "2026-05-21T21:45:27+00:00",
+  "gmail_calendar_coupa_telegram_enabled": false,
+  "hidden_memory_capture_enabled": false,
+  "local_model_authority": false,
+  "machine_proof": {
+    "actor_ids": [
+      "operator_winship",
+      "chief",
+      "guardian",
+      "cassandra",
+      "hermes",
+      "niles",
+      "codex",
+      "gemini_antigravity"
+    ],
+    "content_hash": "sha256:8f81ae1bd0302d7375c1aec480f035b1412fe7dc311fdab3e1490ded93441d60",
+    "credentials_or_secrets_included": false,
+    "model_calls_added": false,
+    "model_class_ids": [
+      "local_small_fast",
+      "local_reasoning",
+      "local_sensitive",
+      "external_fast_worker",
+      "external_deep_reasoner",
+      "external_code_worker",
+      "external_multimodal",
+      "human_operator",
+      "blocked_no_model"
+    ],
+    "package_types": [
+      "code_implementation",
+      "test_authoring",
+      "architecture_review",
+      "doctrine_review",
+      "safety_review",
+      "protected_access_review",
+      "communications_review",
+      "finance_ap_review",
+      "music_creative_review",
+      "struna_development",
+      "mission_control_ux",
+      "client_system_build",
+      "legal_sensitive_review",
+      "credential_or_oauth_related",
+      "browser_or_portal_related"
+    ],
+    "raw_private_bodies_included": false,
+    "runtime_activation_added": false,
+    "source_read_models_present": {
+      "agent_identity_actor_router_contract": true,
+      "agent_platform_alignment": true,
+      "capability_skill_registry_metadata_delta": true,
+      "cassandra_email_calendar_delta_detangle": true,
+      "guardian_protected_access_gate_spec": true,
+      "operator_workbench_actor_host_registry": true,
+      "package_compiler_contract": true,
+      "protected_evidence_reference_receipt": true
+    },
+    "tool_execution_added": false
+  },
+  "mission_control_app_authority_added": false,
+  "mission_control_surface_guidance": {
+    "do_not_present_as": [
+      "live model availability",
+      "running agent presence",
+      "vendor scoreboard",
+      "generic backend table",
+      "confidence theater",
+      "action launcher"
+    ],
+    "full_inspection": "Complete model-selection decision record.",
+    "lower_layer": "Package sensitivity, actor fit, proof refs, Guardian/Operator gates, and receipt requirements.",
+    "middle_layer": "Why this model class fits, why other classes are blocked, and what gates are missing.",
+    "show_blocked_no_model_as": "safe fail-closed model posture when routing is unsafe or incomplete",
+    "top_layer": "Recommended model posture"
+  },
+  "model_call_authority": false,
+  "model_classes": [
+    {
+      "blocked_uses": [
+        "credential_or_oauth_handling",
+        "autonomous_tool_execution",
+        "hidden_memory_capture"
+      ],
+      "current_authority": "recommendation_only_no_local_model_call",
+      "display_name": "Local Small Fast",
+      "future_eligibility": "future_eligible_after_local_model_inventory_and_receipts",
+      "intended_use": "Fast local/private triage, summarization, low-risk classification, and draft wording.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_small_fast",
+      "notes_for_mission_control": "Use as a future low-latency local/private candidate; do not imply it is installed or callable now.",
+      "required_gates": [
+        "model inventory receipt",
+        "package preview",
+        "sensitivity classification",
+        "result receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe",
+        "internal_operator_safe"
+      ],
+      "suitable_package_types": [
+        "test_authoring",
+        "doctrine_review",
+        "music_creative_review",
+        "mission_control_ux"
+      ],
+      "unsuitable_package_types": [
+        "legal_sensitive_review",
+        "credential_or_oauth_related",
+        "protected_access_review"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "credential_or_oauth_handling",
+        "browser_coupa_portal_use",
+        "autonomous_tool_execution"
+      ],
+      "current_authority": "recommendation_only_no_local_model_call",
+      "display_name": "Local Reasoning",
+      "future_eligibility": "future_eligible_after_local_model_inventory_benchmark_and_receipts",
+      "intended_use": "Private deeper reasoning on internal OpenClaw context when external exposure is not justified.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_reasoning",
+      "notes_for_mission_control": "Prefer for sensitive internal reasoning once local model capability is proven.",
+      "required_gates": [
+        "local model inventory receipt",
+        "sensitivity classification",
+        "package preview",
+        "Operator preview receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe",
+        "internal_operator_safe",
+        "sensitive_private"
+      ],
+      "suitable_package_types": [
+        "architecture_review",
+        "doctrine_review",
+        "safety_review",
+        "client_system_build"
+      ],
+      "unsuitable_package_types": [
+        "credential_or_oauth_related",
+        "browser_or_portal_related"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "credential_or_oauth_handling",
+        "protected_file_access_without_gate",
+        "surveillance_background_monitoring"
+      ],
+      "current_authority": "recommendation_only_no_local_model_call",
+      "display_name": "Local Sensitive",
+      "future_eligibility": "future_eligible_after_security_audit_and_private_model_receipts",
+      "intended_use": "Private/offline handling posture for sensitive, finance, client, legal, and protected metadata work.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_sensitive",
+      "notes_for_mission_control": "Shows that local/private is the default posture for sensitive material; it still grants no access now.",
+      "required_gates": [
+        "security audit",
+        "Guardian gate",
+        "sensitivity classification receipt",
+        "memory scope receipt",
+        "result receipt"
+      ],
+      "sensitivity_allowed": [
+        "internal_operator_safe",
+        "sensitive_private",
+        "client_or_legal_sensitive",
+        "finance_or_ap_sensitive",
+        "protected_access_metadata"
+      ],
+      "suitable_package_types": [
+        "safety_review",
+        "protected_access_review",
+        "finance_ap_review",
+        "legal_sensitive_review"
+      ],
+      "unsuitable_package_types": [
+        "browser_or_portal_related",
+        "credential_or_oauth_related"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "external_model_sensitive_data_without_gate",
+        "credential_or_oauth_handling",
+        "browser_coupa_portal_use"
+      ],
+      "current_authority": "blocked_no_external_model_call",
+      "display_name": "External Fast Worker",
+      "future_eligibility": "future_eligible_only_after_operator_and_guardian_gates",
+      "intended_use": "Future fast external review for low-sensitivity, bounded packages with explicit preview and receipts.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_fast_worker",
+      "notes_for_mission_control": "May be useful later for speed, but never receives sensitive/protected context by default.",
+      "required_gates": [
+        "package preview",
+        "sensitivity classification",
+        "Operator approval receipt",
+        "external model use receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe"
+      ],
+      "suitable_package_types": [
+        "test_authoring",
+        "doctrine_review",
+        "mission_control_ux"
+      ],
+      "unsuitable_package_types": [
+        "protected_access_review",
+        "finance_ap_review",
+        "legal_sensitive_review",
+        "credential_or_oauth_related"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "external_model_sensitive_data_without_gate",
+        "protected_file_access_without_gate",
+        "hidden_memory_capture"
+      ],
+      "current_authority": "blocked_no_external_model_call",
+      "display_name": "External Deep Reasoner",
+      "future_eligibility": "future_eligible_only_after_operator_and_guardian_gates",
+      "intended_use": "Future high-depth external reasoning for non-sensitive architecture, doctrine, and synthesis.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_deep_reasoner",
+      "notes_for_mission_control": "Appropriate only for sanitized/non-sensitive packets once external model policy exists.",
+      "required_gates": [
+        "package preview",
+        "sensitivity classification",
+        "Operator approval receipt",
+        "Guardian external-model gate receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe"
+      ],
+      "suitable_package_types": [
+        "architecture_review",
+        "doctrine_review",
+        "client_system_build"
+      ],
+      "unsuitable_package_types": [
+        "finance_ap_review",
+        "legal_sensitive_review",
+        "protected_access_review",
+        "credential_or_oauth_related"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "broad_filesystem_indexing",
+        "credential_or_oauth_handling",
+        "autonomous_tool_execution"
+      ],
+      "current_authority": "blocked_no_external_model_call",
+      "display_name": "External Code Worker",
+      "future_eligibility": "future_eligible_after_package_compiler_scope_and_operator_gate",
+      "intended_use": "Future scoped code/test worker for repo-safe implementation packages.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_code_worker",
+      "notes_for_mission_control": "Codex/Gemini-style workers can be routed later only through scoped package boundaries.",
+      "required_gates": [
+        "allowed workspace roots",
+        "forbidden paths",
+        "package boundary validation",
+        "Operator preview receipt",
+        "result receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe",
+        "internal_operator_safe"
+      ],
+      "suitable_package_types": [
+        "code_implementation",
+        "test_authoring",
+        "mission_control_ux"
+      ],
+      "unsuitable_package_types": [
+        "credential_or_oauth_related",
+        "protected_access_review",
+        "legal_sensitive_review"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "external_model_sensitive_data_without_gate",
+        "protected_file_access_without_gate",
+        "hidden_memory_capture"
+      ],
+      "current_authority": "blocked_no_external_model_call",
+      "display_name": "External Multimodal",
+      "future_eligibility": "future_eligible_after_media_source_policy_and_operator_gate",
+      "intended_use": "Future visual/audio/document interpretation for sanitized media or UI proof packages.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_multimodal",
+      "notes_for_mission_control": "Do not imply media or screenshots are automatically safe to send externally.",
+      "required_gates": [
+        "media source classification",
+        "package preview",
+        "Operator approval receipt",
+        "result receipt"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe"
+      ],
+      "suitable_package_types": [
+        "mission_control_ux",
+        "music_creative_review",
+        "struna_development"
+      ],
+      "unsuitable_package_types": [
+        "legal_sensitive_review",
+        "finance_ap_review",
+        "credential_or_oauth_related"
+      ]
+    },
+    {
+      "blocked_uses": [
+        "autonomous_tool_execution",
+        "hidden_memory_capture"
+      ],
+      "current_authority": "human_decision_authority_only",
+      "display_name": "Human Operator",
+      "future_eligibility": "already_available_as_operator_review_not_model_execution",
+      "intended_use": "Final human authority, taste judgment, approval/denial, and memory comparison.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "human_operator",
+      "notes_for_mission_control": "Operator / Winship is not a model. This class means route the decision back to the human.",
+      "required_gates": [
+        "clear package preview",
+        "proof/detail available for inspection"
+      ],
+      "sensitivity_allowed": [
+        "public_or_repo_safe",
+        "internal_operator_safe",
+        "sensitive_private",
+        "client_or_legal_sensitive",
+        "finance_or_ap_sensitive",
+        "protected_access_metadata",
+        "credential_or_oauth_related",
+        "unknown_fail_closed"
+      ],
+      "suitable_package_types": [
+        "code_implementation",
+        "test_authoring",
+        "architecture_review",
+        "doctrine_review",
+        "safety_review",
+        "protected_access_review",
+        "communications_review",
+        "finance_ap_review",
+        "music_creative_review",
+        "struna_development",
+        "mission_control_ux",
+        "client_system_build",
+        "legal_sensitive_review",
+        "credential_or_oauth_related",
+        "browser_or_portal_related"
+      ],
+      "unsuitable_package_types": []
+    },
+    {
+      "blocked_uses": [
+        "email_send",
+        "calendar_mutation",
+        "browser_coupa_portal_use",
+        "credential_or_oauth_handling",
+        "protected_file_access_without_gate",
+        "broad_filesystem_indexing",
+        "hidden_memory_capture",
+        "surveillance_background_monitoring",
+        "autonomous_tool_execution",
+        "self_authorized_routing",
+        "external_model_sensitive_data_without_gate"
+      ],
+      "current_authority": "active_safe_default",
+      "display_name": "Blocked / No Model",
+      "future_eligibility": "always_valid_when_model_selection_is_unsafe_or_incomplete",
+      "intended_use": "Safe fail-closed result when sensitivity, missing package fields, missing gates, or unclear authority blocks model choice.",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "blocked_no_model",
+      "notes_for_mission_control": "A blocked result is a valid model-selection outcome and should be shown plainly when it affects the next move.",
+      "required_gates": [],
+      "sensitivity_allowed": [
+        "public_or_repo_safe",
+        "internal_operator_safe",
+        "sensitive_private",
+        "client_or_legal_sensitive",
+        "finance_or_ap_sensitive",
+        "protected_access_metadata",
+        "credential_or_oauth_related",
+        "unknown_fail_closed"
+      ],
+      "suitable_package_types": [
+        "code_implementation",
+        "test_authoring",
+        "architecture_review",
+        "doctrine_review",
+        "safety_review",
+        "protected_access_review",
+        "communications_review",
+        "finance_ap_review",
+        "music_creative_review",
+        "struna_development",
+        "mission_control_ux",
+        "client_system_build",
+        "legal_sensitive_review",
+        "credential_or_oauth_related",
+        "browser_or_portal_related"
+      ],
+      "unsuitable_package_types": []
+    }
+  ],
+  "network_execution_enabled": false,
+  "operator_final_authority": true,
+  "operator_summary": "OpenClaw now has a deterministic model-selection policy. It can say which model class would be appropriate, future-eligible, or blocked for an actor/package, but it cannot call any model. The safest valid answer remains blocked_no_model.",
+  "package_type_model_policy": [
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "external_code_worker",
+        "local_reasoning"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "code_implementation",
+      "preferred_model_classes": [
+        "external_code_worker",
+        "local_reasoning"
+      ],
+      "reason": "Code work may later use Codex/Gemini-style workers only through scoped package compiler boundaries.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "allowed_workspace_roots",
+        "forbidden_paths",
+        "proof_requirements"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_package_preview_and_boundary_validation_exist",
+      "sensitivity_default": "public_or_repo_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [],
+      "future_eligible_model_classes": [
+        "local_small_fast",
+        "external_code_worker"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "test_authoring",
+      "preferred_model_classes": [
+        "local_small_fast",
+        "external_code_worker"
+      ],
+      "reason": "Tests are safe only when scope and receipts are explicit.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "test_scope",
+        "expected_outputs",
+        "receipt_requirements"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_package_preview_exists",
+      "sensitivity_default": "public_or_repo_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [],
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "architecture_review",
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "reason": "Architecture review can be external later only if the packet is sanitized and approved.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "context_included",
+        "context_excluded",
+        "sensitivity"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_if_context_sensitivity_unknown",
+      "sensitivity_default": "internal_operator_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [],
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "doctrine_review",
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner",
+        "local_small_fast"
+      ],
+      "reason": "Doctrine must distinguish operator memory, proof, and future-gated claims.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "source_refs",
+        "operator_memory_status"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_if_source_refs_missing",
+      "sensitivity_default": "internal_operator_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "safety_review",
+      "preferred_model_classes": [
+        "local_sensitive",
+        "local_reasoning",
+        "human_operator"
+      ],
+      "reason": "Safety review defaults local/private or human until gates are explicit.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "Guardian gate",
+        "authority_boundary",
+        "blocked_actions"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_guardian_gate_exists",
+      "sensitivity_default": "sensitive_private"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "local_sensitive"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "protected_access_review",
+      "preferred_model_classes": [
+        "local_sensitive",
+        "human_operator"
+      ],
+      "reason": "Protected access cannot route to external models by default.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "protected_evidence_receipt",
+        "Guardian gate",
+        "no_private_bodies"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_protected_access_receipts_exist",
+      "sensitivity_default": "protected_access_metadata"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker"
+      ],
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "communications_review",
+      "preferred_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "reason": "Email/calendar work is review-only and never send/mutate authority from model selection.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "Cassandra boundary",
+        "send_blocked",
+        "sensitivity"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_for_private_body_or_send_authority",
+      "sensitivity_default": "sensitive_private"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "finance_ap_review",
+      "preferred_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "reason": "Finance/AP defaults local/private or blocked; Coupa and approvals remain unavailable.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "proof_receipts",
+        "approval_blocked",
+        "Coupa_blocked"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_finance_proof_and_security_gate_exist",
+      "sensitivity_default": "finance_or_ap_sensitive"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_sensitive"
+      ],
+      "future_eligible_model_classes": [
+        "local_small_fast",
+        "external_multimodal",
+        "external_deep_reasoner"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "music_creative_review",
+      "preferred_model_classes": [
+        "local_small_fast",
+        "external_multimodal",
+        "external_deep_reasoner"
+      ],
+      "reason": "Creative review can use Niles-like routing once source rights and sensitivity are clear.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "rights/sensitivity check",
+        "context_refs"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_if_rights_or_source_sensitivity_unknown",
+      "sensitivity_default": "public_or_repo_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_sensitive"
+      ],
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "struna_development",
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "reason": "Struna can combine creative and implementation routing only after workspace and asset gates.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "workspace_scope",
+        "asset_sensitivity",
+        "proof_requirements"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_workspace_and_asset_scope_defined",
+      "sensitivity_default": "internal_operator_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [],
+      "future_eligible_model_classes": [
+        "external_code_worker",
+        "external_multimodal",
+        "local_reasoning"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "mission_control_ux",
+      "preferred_model_classes": [
+        "external_code_worker",
+        "external_multimodal",
+        "local_reasoning"
+      ],
+      "reason": "UX work may use code/multimodal review later, but the Mac app remains a separate lane.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "Mac app boundary",
+        "proof/screenshot scope",
+        "no_app_authority_without_lane"
+      ],
+      "requires_guardian_gate": false,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_ui_lane_scope_and_proof_are_defined",
+      "sensitivity_default": "public_or_repo_safe"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "client_system_build",
+      "preferred_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "reason": "Client system work must be classified before any external model is considered.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "client sensitivity",
+        "context_excluded",
+        "Guardian gate"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_for_unclassified_client_context",
+      "sensitivity_default": "client_or_legal_sensitive"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "local_sensitive"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "legal_sensitive_review",
+      "preferred_model_classes": [
+        "local_sensitive",
+        "human_operator"
+      ],
+      "reason": "Legal/sensitive review must stay local/private or blocked unless a later explicit gate exists.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "legal sensitivity",
+        "Guardian gate",
+        "operator confirmation"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model_until_legal_sensitive_gate_exists",
+      "sensitivity_default": "client_or_legal_sensitive"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_small_fast",
+        "local_reasoning",
+        "local_sensitive",
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "blocked_no_model"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "credential_or_oauth_related",
+      "preferred_model_classes": [
+        "blocked_no_model",
+        "human_operator"
+      ],
+      "reason": "Credential/OAuth work is not model-routable by this contract.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "credential_policy",
+        "no_secret_material"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model",
+      "sensitivity_default": "credential_or_oauth_related"
+    },
+    {
+      "allowed_current_model_classes": [
+        "blocked_no_model"
+      ],
+      "blocked_model_classes": [
+        "local_small_fast",
+        "local_reasoning",
+        "local_sensitive",
+        "external_fast_worker",
+        "external_deep_reasoner",
+        "external_code_worker",
+        "external_multimodal"
+      ],
+      "future_eligible_model_classes": [
+        "blocked_no_model"
+      ],
+      "future_execution_allowed_now": false,
+      "package_type": "browser_or_portal_related",
+      "preferred_model_classes": [
+        "blocked_no_model",
+        "human_operator"
+      ],
+      "reason": "Browser/Coupa/portal workflows remain blocked until a later protected-access adapter lane.",
+      "required_inputs": [
+        "package_type",
+        "actor_id",
+        "portal_policy",
+        "no_account_flow",
+        "Guardian gate"
+      ],
+      "requires_guardian_gate": true,
+      "requires_operator_preview": true,
+      "safe_default_result": "blocked_no_model",
+      "sensitivity_default": "protected_access_metadata"
+    }
+  ],
+  "pc_c_drive_artifact_write_allowed": false,
+  "read_model_id": "model_selection_policy_contract",
+  "recommended_next_lanes": [
+    {
+      "hard_boundary": "preview-only; no launch, send, submit, model call, or tool execution",
+      "lane_id": "agent_package_preview_contract_v0",
+      "priority": "P1",
+      "title": "Agent Package Preview Contract v0",
+      "why_next": "Model policy now needs a stable package preview decision record that Mission Control can inspect before any future dispatch."
+    },
+    {
+      "hard_boundary": "metadata-only; no hidden memory capture or broad indexing",
+      "lane_id": "agent_memory_scope_contract_v0",
+      "priority": "P1",
+      "title": "Agent Memory Scope Contract v0",
+      "why_next": "Model selection must know which memory/read-model surfaces are allowed per actor before execution can be audited."
+    },
+    {
+      "hard_boundary": "descriptive only; no plugin/tool activation",
+      "lane_id": "tool_protocol_adapter_registry_v0",
+      "priority": "P2",
+      "title": "Tool Protocol Adapter Registry v0",
+      "why_next": "Tools/protocols need an adapter registry before any workbench or model can request capability grants."
+    },
+    {
+      "hard_boundary": "UI/read-only lane; no backend command authority",
+      "lane_id": "mission_control_actor_routing_surface_v0",
+      "priority": "P2",
+      "title": "Mission Control Actor Routing Surface v0",
+      "why_next": "The Mac helm can later render who should inspect a lane and why without implying live agents."
+    },
+    {
+      "hard_boundary": "receipt schema only; no model call",
+      "lane_id": "model_selection_receipt_v0",
+      "priority": "P3",
+      "title": "Model Selection Receipt v0",
+      "why_next": "Future model-selection decisions need immutable receipts before routing becomes executable."
+    }
+  ],
+  "routing_execution_authority": false,
+  "runtime_authority": false,
+  "runtime_daemon_enabled": false,
+  "schema_version": "model_selection_policy_contract_v0",
+  "selection_inputs_required": {
+    "invalid_if_missing": true,
+    "required_before_model_selection_is_valid": [
+      "package_id",
+      "package_type",
+      "actor_id",
+      "agent_character",
+      "source_lane_id",
+      "context_included",
+      "context_excluded",
+      "data_sensitivity",
+      "clearance_level",
+      "authority_boundary",
+      "allowed_workspace_roots",
+      "forbidden_paths",
+      "allowed_capabilities",
+      "forbidden_capabilities",
+      "proof_requirements",
+      "receipt_requirements",
+      "operator_preview_required",
+      "guardian_gate_required_if_sensitive_or_protected"
+    ],
+    "unknown_actor_result": "blocked_no_model",
+    "unknown_package_type_result": "blocked_no_model",
+    "unknown_sensitivity_result": "blocked_no_model"
+  },
+  "send_submit_approval_enabled": false,
+  "sensitivity_policy": {
+    "client_legal_finance_defaults_to": "local_sensitive_or_blocked_no_model",
+    "credential_or_oauth_related_defaults_to": "blocked_no_model",
+    "default_for_unknown": "unknown_fail_closed",
+    "external_model_blocked_for": [
+      "credential_or_oauth_related",
+      "protected private bodies",
+      "legal/client sensitive material without gate",
+      "finance/AP sensitive material without gate",
+      "unknown sensitivity"
+    ],
+    "external_model_future_eligible_only_when": [
+      "package preview is complete",
+      "sensitivity classification is explicit",
+      "context excluded is explicit",
+      "Operator preview/approval receipt exists",
+      "Guardian gate exists for sensitive/protected/approval-adjacent work",
+      "result receipt requirement exists"
+    ],
+    "sensitive_private_defaults_to": "local_sensitive_or_blocked_no_model",
+    "sensitivity_levels": [
+      "public_or_repo_safe",
+      "internal_operator_safe",
+      "sensitive_private",
+      "client_or_legal_sensitive",
+      "finance_or_ap_sensitive",
+      "protected_access_metadata",
+      "credential_or_oauth_related",
+      "unknown_fail_closed"
+    ]
+  },
+  "tool_execution_authority": false
+}
