@@ -1,0 +1,525 @@
+{
+  "agent_activation_allowed": false,
+  "agent_council_integration": {
+    "agent_dossier_cards_count": 12,
+    "agent_dossier_cards_included_in_snapshot": true,
+    "cassandra_card_present": true,
+    "featured_agents": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "struna"
+    ],
+    "individual_terrain_read_model_remains_proof_detail": true,
+    "live_agent_activation_allowed": false,
+    "live_chat_launch_allowed": false,
+    "model_launch_allowed": false,
+    "preview_only": true,
+    "system_loop_cards_present": true,
+    "tool_execution_allowed": false
+  },
+  "app_facing_paths_do_not_change_when_new_raw_read_model_added": true,
+  "atomic_sync_lifecycle": {
+    "lifecycle_paths": {
+      "mac_completion_marker": "/mnt/e/openclaw/shuttle/from_mac/map_sync_completed.json",
+      "pc_generation_root": "/mnt/e/openclaw/shuttle/to_mac/map_bundle/<generation_id>",
+      "pc_receipt_readback": "/mnt/e/openclaw/shuttle/from_mac/openclaw_map_receipt.json",
+      "pc_request_marker": "/mnt/e/openclaw/shuttle/to_mac/openclaw_map_sync_required.json"
+    },
+    "mac_steps": [
+      "read map_sync_required.json",
+      "import bundle into a temporary local generation path",
+      "verify hash and parse stable JSON files",
+      "atomically promote to current stable map files",
+      "write map_sync_completed.json and openclaw_map_receipt.json"
+    ],
+    "mission_control_steps": [
+      "read current local openclaw_map_snapshot.json",
+      "fail closed if missing",
+      "show map sync pending if generation is stale",
+      "render map when receipt/current proof agrees"
+    ],
+    "pc_readback_steps": [
+      "import Mac receipt",
+      "compare generation_id and bundle_hash",
+      "update sync_health map-bundle fields"
+    ],
+    "pc_steps": [
+      "generate openclaw_map_snapshot.json",
+      "generate openclaw_map_manifest.json",
+      "hash the stable bundle",
+      "write bundle to a generation folder under /mnt/e/openclaw/shuttle/to_mac/map_bundle/<generation_id>",
+      "write openclaw_map_sync_required.json with generation_id and bundle_hash"
+    ]
+  },
+  "browser_oauth_account_access_allowed": false,
+  "cleanup_remount_repair_allowed": false,
+  "contract_hash": "sha256:fde9f6ba60828935227ae859435982e1b8977b6588b714e544fe58f8325a464a",
+  "contract_status": "stable_map_bundle_sync_contract_metadata_only",
+  "credentials_included": false,
+  "external_model_api_allowed": false,
+  "file_delete_allowed": false,
+  "file_move_allowed": false,
+  "forbidden_actions": [
+    "git push, pull, fetch, or external network operations",
+    "Mission Control Swift or app mutation",
+    "Mac remount, credential handling, or share repair",
+    "browser, OAuth, account, Gmail, calendar, Coupa, or Telegram access",
+    "model, agent, tool, planner, builder, queue, or autonomy execution",
+    "send, submit, approve, or account-flow actions",
+    "file delete, file move, cleanup, remount, or repair commands",
+    "OpenClaw artifact writes to the PC C drive",
+    "broad private file inspection or raw private body ingestion"
+  ],
+  "generated_at": "2026-05-21T23:30:10+00:00",
+  "gmail_calendar_coupa_telegram_allowed": false,
+  "mac_side_change_required": {
+    "entitlement_exception_needed_once": [
+      "openclaw_map_snapshot.json",
+      "openclaw_map_manifest.json",
+      "openclaw_map_OPERATOR.md"
+    ],
+    "fallback_behavior": [
+      "if snapshot missing, show fail-closed map unavailable",
+      "if manifest generation stale, show map sync pending",
+      "if receipt/hash mismatch, show Check Transmission map warning",
+      "do not fall back to claiming raw terrain absence just because a new proof-detail read-model was added"
+    ],
+    "loader_behavior": [
+      "load openclaw_map_manifest.json first",
+      "load and parse openclaw_map_snapshot.json",
+      "verify manifest snapshot_hash when available",
+      "render map from snapshot summaries",
+      "treat individual read-model files as drill-in proof only"
+    ],
+    "no_per_new_file_entitlement_churn": true,
+    "stable_local_paths": {
+      "manifest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_manifest.json",
+      "operator_digest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_OPERATOR.md",
+      "receipt": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_receipt.json",
+      "snapshot": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_snapshot.json"
+    }
+  },
+  "map_manifest": {
+    "authority_boundary": {
+      "agent_activation_allowed": false,
+      "browser_oauth_account_access_allowed": false,
+      "cleanup_remount_repair_allowed": false,
+      "credentials_included": false,
+      "external_model_api_allowed": false,
+      "file_delete_allowed": false,
+      "file_move_allowed": false,
+      "gmail_calendar_coupa_telegram_allowed": false,
+      "map_snapshot_only": true,
+      "metadata_only": true,
+      "mission_control_app_changed": false,
+      "model_execution_allowed": false,
+      "network_operation_allowed": false,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_queue_allowed": false,
+      "raw_private_bodies_included": false,
+      "read_model_only": true,
+      "runtime_activation_allowed": false,
+      "secrets_included": false,
+      "send_submit_approval_allowed": false,
+      "tool_plugin_execution_allowed": false
+    },
+    "bundle_hash": "sha256:16effbab92c8ad71021f2964c27d1c0350996a8cd95fbb172298a1fe39143cb2",
+    "canonical_read_model_count": 234,
+    "created_at": "2026-05-21T23:30:10+00:00",
+    "essential_surface_count": 8,
+    "excluded_surfaces": [
+      {
+        "category": "raw_private_bodies",
+        "reason": "raw private content is never embedded in the stable map bundle"
+      },
+      {
+        "category": "credentials_or_secrets",
+        "reason": "credentials and secrets are never embedded in the stable map bundle"
+      },
+      {
+        "category": "raw_generated_read_model_wall",
+        "reason": "individual generated read-models remain proof/detail, not app front-door dependencies"
+      }
+    ],
+    "included_surfaces": [
+      {
+        "front_door_file_dependency": false,
+        "hash": null,
+        "hash_included_in_bundle": false,
+        "hash_omitted_reason": "volatile_self_report_read_model_excluded_from_map_bundle_hash",
+        "path": "generated/read_models/sync_health.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": null,
+        "role": "current raw read-model mirror proof and lifecycle state",
+        "schema_version": "sync_health_read_model_v0",
+        "surface_id": "sync_health"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:195fbe417124e0a0384389726faf467d77d126991b7344acc9728b5d3f5edee3",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/system_health_lights_taxonomy.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "system_health_lights_taxonomy",
+        "role": "health light definitions and current light posture",
+        "schema_version": "system_health_lights_taxonomy_v0",
+        "surface_id": "system_health_lights_taxonomy"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:22fc14220e62a1825754375431eb23567a0744b31f22558b239fece5a2a7452a",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_threshold_map_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_threshold_map_contract",
+        "role": "pre-security threshold map, lane readiness, and lane destiny",
+        "schema_version": "operator_threshold_map_contract_v0",
+        "surface_id": "operator_threshold_map_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:31f1a9025ddef7513b53b013c46fb37af47c59d4e8d88a23469ab7617bf096a4",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_mission_priority_helm_declutter.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_mission_priority_helm_declutter",
+        "role": "current mission, helm mode, and declutter priority",
+        "schema_version": "operator_mission_priority_helm_declutter_v0",
+        "surface_id": "operator_mission_priority_helm_declutter"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:b615862a8bbbb8a8a28fa02ab85fd543dac218459db04c9810960ad2f58a7fe5",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/world_domain_registry.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": null,
+        "role": "world/domain list and current world posture",
+        "schema_version": null,
+        "surface_id": "world_domain_registry"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:4a2e8f3dd0d32a2e1ca32089993e9ae561568e1f4d0cfa4221e08378e1fb90f5",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/package_compiler_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "package_compiler_contract",
+        "role": "package preview schema and deterministic boundary validation",
+        "schema_version": "package_compiler_contract_v0",
+        "surface_id": "package_compiler_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_workbench_actor_host_registry",
+        "role": "workbench/actor host routing metadata",
+        "schema_version": "operator_workbench_actor_host_registry_v0",
+        "surface_id": "operator_workbench_actor_host_registry"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:cddd69632aa6f005a4252771f140a5008b86a5ab6f1dbf726cffee6882f73e0f",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/steel_thread_lane_template_registry.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "steel_thread_lane_template_registry",
+        "role": "reusable lane rendering/workflow template",
+        "schema_version": "steel_thread_lane_template_registry_v0",
+        "surface_id": "steel_thread_lane_template_registry"
+      }
+    ],
+    "manifest_hash_excludes_files": [
+      "openclaw_map_OPERATOR.md",
+      "openclaw_map_manifest.json",
+      "openclaw_map_snapshot.json",
+      "operator_map_bundle_contract.json",
+      "operator_map_bundle_contract_OPERATOR.md",
+      "sync_health.json",
+      "sync_health_OPERATOR.md"
+    ],
+    "map_generation_id": "map_911cd302343946ad6369",
+    "missing_or_stale_surfaces": [],
+    "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
+    "raw_generated_read_model_file_count_including_map_bundle_self": 241,
+    "raw_private_body_policy": "blocked_excluded_from_bundle",
+    "read_model_id": "openclaw_map_manifest",
+    "read_model_manifest_hash": "sha256:499ac73f122bdf84f0c055791bdbab9317fc34ee89de38e2aaf84fa2902f2e3d",
+    "schema_version": "openclaw_map_manifest_v0",
+    "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
+    "source_commit_if_available_local_only": "9076067fd369602bfb41a93b06486302ae99e69b",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 234,
+    "source_repo": "Repo A /home/openclaw",
+    "source_sqlite_receipt_hash_if_available": null,
+    "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
+    "stable_app_facing_paths": {
+      "mac_local_manifest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_manifest.json",
+      "mac_local_operator_digest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_OPERATOR.md",
+      "mac_local_receipt": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_receipt.json",
+      "mac_local_snapshot": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_snapshot.json"
+    }
+  },
+  "map_snapshot_only": true,
+  "map_snapshot_summary": {
+    "agent_council_preview_only": true,
+    "agent_dossier_cards_count": 12,
+    "featured_agents": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "struna"
+    ],
+    "future_gated_cue_autonomy": true,
+    "health_state": {
+      "check_transmission_summary": {
+        "current_status": "QUIET",
+        "final_mac_mirror_pending": false,
+        "final_mac_self_report_mirror_pending": false,
+        "pc_import_proof_complete": false,
+        "why": "Stable map bundle current"
+      },
+      "current_light_states": {
+        "brake_parking_brake": "ON_NORMAL",
+        "check_engine": "WARNING",
+        "check_transmission": "QUIET",
+        "low_fuel_low_battery": "WARNING",
+        "oil_pressure_coolant": "WARNING",
+        "traction_control": "QUIET"
+      },
+      "mac_to_e_drive_to_pc_sync_proof_complete": false,
+      "present": true,
+      "source_path": "generated/read_models/system_health_lights_taxonomy.json",
+      "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
+    },
+    "map_generation_id": "map_911cd302343946ad6369",
+    "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
+    "threshold_capital_hilton": {
+      "display_name": "Capital Hilton Invoice Lane",
+      "lane_id": "capital_hilton",
+      "live_dispatch_allowed_now": false,
+      "operator_memory_is_proof": false,
+      "readiness_state": "NEEDS_PROOF",
+      "resolution_route": "MOVE_TO_WORLD_ACTION",
+      "safe_next_move": "Capture or point to approved protected proof metadata without opening Coupa, reading private proof bodies, or submitting anything.",
+      "target_world": "Finance"
+    },
+    "threshold_system_awareness": {
+      "display_name": "System Awareness / Discovery",
+      "lane_id": "system_awareness_discovery",
+      "live_dispatch_allowed_now": false,
+      "operator_memory_is_proof": false,
+      "readiness_state": "READY_FOR_SECURITY_AUDIT",
+      "resolution_route": "REQUEUE_FOR_SYSTEM_BUILD",
+      "safe_next_move": "Use the threshold map to review whether each child lane has orientation, proof posture, package preview, and a quiet condition.",
+      "target_world": null
+    }
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_execution_allowed": false,
+  "network_operation_allowed": false,
+  "no_authority_flags": {
+    "agent_activation_allowed": false,
+    "browser_oauth_account_access_allowed": false,
+    "cleanup_remount_repair_allowed": false,
+    "credentials_included": false,
+    "external_model_api_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "gmail_calendar_coupa_telegram_allowed": false,
+    "map_snapshot_only": true,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_execution_allowed": false,
+    "network_operation_allowed": false,
+    "pc_c_drive_artifact_write_allowed": false,
+    "planner_builder_queue_allowed": false,
+    "raw_private_bodies_included": false,
+    "read_model_only": true,
+    "runtime_activation_allowed": false,
+    "secrets_included": false,
+    "send_submit_approval_allowed": false,
+    "tool_plugin_execution_allowed": false
+  },
+  "path_audit": {
+    "canonical_manifest_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
+    "completion_marker": {
+      "backend_head": "200c3e134c2b16e75a2090d33b8498d188396e6e",
+      "copied_file_count": 218,
+      "generated_at": "2026-05-21T18:25:34+00:00",
+      "hash_mismatch_files": [],
+      "missing_expected_files": [],
+      "next_expected_responder": null,
+      "path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
+      "present": true,
+      "reason": null,
+      "status": "synced"
+    },
+    "e_drive_shuttle_export_path": "/mnt/e/openclaw/shuttle/to_mac",
+    "mac_completion_receipt_marker_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
+    "mac_expected_mount_path": "/Volumes/openclaw_e",
+    "mac_local_mirror_path": "/Users/hwinshipwheatley/openclaw_generated_read_models",
+    "pc_import_manifest_copy_path": "/home/openclaw/import_manifests/mac_generated_read_models_manifest.json",
+    "pc_import_readback_receipt_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
+    "pc_transfer_root_present": true,
+    "raw_private_body_read": false,
+    "repair_attempted": false,
+    "repo_a_generated_read_model_source_path": "/home/openclaw/generated/read_models",
+    "request_marker": {
+      "backend_head": null,
+      "copied_file_count": null,
+      "generated_at": "2026-05-21T18:24:43+00:00",
+      "hash_mismatch_files": [
+        "system_health_lights_taxonomy.json",
+        "system_health_lights_taxonomy_OPERATOR.md"
+      ],
+      "missing_expected_files": [
+        "operator_threshold_map_contract.json",
+        "operator_threshold_map_contract_OPERATOR.md"
+      ],
+      "next_expected_responder": "mac_read_model_sync_agent",
+      "path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+      "present": true,
+      "reason": "Mac generated-read-model mirror is stale: it is missing canonical backend files and has hash-mismatched files.",
+      "status": null
+    },
+    "returned_manifest_absolute_root": "/Users/hwinshipwheatley/openclaw_generated_read_models",
+    "returned_manifest_path_record_count": 218,
+    "returned_manifest_points_to_expected_mac_root": true,
+    "returned_manifest_present": true,
+    "sync_health_summary": {
+      "canonical_expected": 241,
+      "display_status": "needs_mac_sync",
+      "hash_mismatch": 4,
+      "mirror_status": "needs_mac_sync",
+      "missing_expected": 23,
+      "observed": 218,
+      "operator_action_required": true,
+      "present": true,
+      "raw_file_count_is_not_front_door_app_truth": true,
+      "recommended_fix": {
+        "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
+        "can_request_fix_from_app": true,
+        "display_status": "needs_mac_sync",
+        "kind": "request_mac_sync",
+        "next_expected_actor": "mac_sync_agent",
+        "next_safe_move": "Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.",
+        "operator_action_required": true,
+        "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+        "sync_lifecycle_state": "actionable_sync_failure"
+      },
+      "source_path": "generated/read_models/sync_health.json",
+      "sync_lifecycle_state": "actionable_sync_failure"
+    },
+    "sync_request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
+    "threshold_break_classification": "pc_proof_or_hash_readback_stale_after_manifest",
+    "threshold_break_reason": "The returned Mac manifest has the threshold files, but PC sync health still sees missing or hash-mismatched canonical files.",
+    "threshold_files_missing_from_returned_manifest": []
+  },
+  "pc_c_drive_artifact_write_allowed": false,
+  "planner_builder_queue_allowed": false,
+  "problem_statement": "Raw generated read-model file counts are too volatile to be the Mission Control front-door app contract.",
+  "raw_private_bodies_included": false,
+  "read_model_id": "operator_map_bundle_contract",
+  "read_model_only": true,
+  "receipt_validation": {
+    "fail_closed": true,
+    "reason": "Mac map receipt schema is not recognized.",
+    "status": "unknown_fail_closed",
+    "valid": false
+  },
+  "runtime_activation_allowed": false,
+  "schema_version": "operator_map_bundle_contract_v0",
+  "secrets_included": false,
+  "send_submit_approval_allowed": false,
+  "sqlite_position": {
+    "mac_mutates_sqlite": false,
+    "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": true,
+    "pc_sqlite_remains_durable_terrain_source": true,
+    "receipt_storage_now": "Mac receipt expected as metadata-only JSON; PC SQLite receipt rows may be added later if existing ledger pattern is explicitly chosen.",
+    "snapshot_format_now": "json",
+    "sqlite_snapshot_future_option": "v1 option after the JSON stable bundle is proven"
+  },
+  "stable_app_facing_file_set": [
+    "openclaw_map_snapshot.json",
+    "openclaw_map_manifest.json",
+    "openclaw_map_OPERATOR.md"
+  ],
+  "stable_artifacts": {
+    "openclaw_map_manifest": {
+      "file_name": "openclaw_map_manifest.json",
+      "purpose": "stable generation, hash, included-surface, and authority manifest",
+      "schema_version": "openclaw_map_manifest_v0"
+    },
+    "openclaw_map_operator_digest": {
+      "file_name": "openclaw_map_OPERATOR.md",
+      "purpose": "human-readable map digest"
+    },
+    "openclaw_map_receipt": {
+      "file_name": "openclaw_map_receipt.json",
+      "generated_by_pc_now": false,
+      "purpose": "Mac import/readback receipt written by the Mac-side map importer later",
+      "schema_version": "openclaw_map_receipt_v0"
+    },
+    "openclaw_map_snapshot": {
+      "file_name": "openclaw_map_snapshot.json",
+      "purpose": "Mission Control front-door system map snapshot",
+      "schema_version": "openclaw_map_snapshot_v0"
+    }
+  },
+  "strategic_correction": {
+    "mac_mission_control_consumes_stable_map_snapshot": true,
+    "not_a_live_execution_lane": true,
+    "not_a_one_off_file_copy": true,
+    "not_a_ui_task": true,
+    "pc_wsl_owns_terrain": true,
+    "raw_read_models_remain_available_as_proof_detail": true
+  },
+  "sync_health_reframe": {
+    "app_visible_map_status": "map_current only when generation_id and bundle_hash receipt validates",
+    "check_transmission_future_source_truth": "controlled by map-generation agreement for app readiness, with raw count mismatch kept as proof/detail unless it blocks map generation",
+    "mac_import_receipt_status": "unknown_fail_closed",
+    "map_bundle_generation_status": "new front-door app contract status",
+    "raw_read_model_manifest_status": "continues to compare full generated/read_models proof/detail set",
+    "required_states": [
+      "map_current",
+      "map_generation_pending_mac_import",
+      "map_imported_waiting_pc_readback",
+      "map_hash_mismatch",
+      "map_missing_from_mac",
+      "mount_missing",
+      "unknown_fail_closed"
+    ]
+  },
+  "threshold_map_integration": {
+    "capital_hilton_finance_destiny_included": true,
+    "cue_autonomy_future_gated": true,
+    "individual_threshold_read_models_remain_proof_detail": true,
+    "system_awareness_discovery_steel_thread_included": true,
+    "threshold_map_included_in_snapshot": true
+  },
+  "tool_plugin_execution_allowed": false
+}

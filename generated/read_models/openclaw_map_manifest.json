@@ -1,0 +1,178 @@
+{
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "browser_oauth_account_access_allowed": false,
+    "cleanup_remount_repair_allowed": false,
+    "credentials_included": false,
+    "external_model_api_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "gmail_calendar_coupa_telegram_allowed": false,
+    "map_snapshot_only": true,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_execution_allowed": false,
+    "network_operation_allowed": false,
+    "pc_c_drive_artifact_write_allowed": false,
+    "planner_builder_queue_allowed": false,
+    "raw_private_bodies_included": false,
+    "read_model_only": true,
+    "runtime_activation_allowed": false,
+    "secrets_included": false,
+    "send_submit_approval_allowed": false,
+    "tool_plugin_execution_allowed": false
+  },
+  "bundle_hash": "sha256:dfa1e6c95bc6b74cb64a5c4652a19005bbfb63033352b43e5fd109f6f344d061",
+  "canonical_read_model_count": 234,
+  "created_at": "2026-05-21T23:30:10+00:00",
+  "essential_surface_count": 8,
+  "excluded_surfaces": [
+    {
+      "category": "raw_private_bodies",
+      "reason": "raw private content is never embedded in the stable map bundle"
+    },
+    {
+      "category": "credentials_or_secrets",
+      "reason": "credentials and secrets are never embedded in the stable map bundle"
+    },
+    {
+      "category": "raw_generated_read_model_wall",
+      "reason": "individual generated read-models remain proof/detail, not app front-door dependencies"
+    }
+  ],
+  "included_surfaces": [
+    {
+      "front_door_file_dependency": false,
+      "hash": null,
+      "hash_included_in_bundle": false,
+      "hash_omitted_reason": "volatile_self_report_read_model_excluded_from_map_bundle_hash",
+      "path": "generated/read_models/sync_health.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": null,
+      "role": "current raw read-model mirror proof and lifecycle state",
+      "schema_version": "sync_health_read_model_v0",
+      "surface_id": "sync_health"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:195fbe417124e0a0384389726faf467d77d126991b7344acc9728b5d3f5edee3",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/system_health_lights_taxonomy.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "system_health_lights_taxonomy",
+      "role": "health light definitions and current light posture",
+      "schema_version": "system_health_lights_taxonomy_v0",
+      "surface_id": "system_health_lights_taxonomy"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:22fc14220e62a1825754375431eb23567a0744b31f22558b239fece5a2a7452a",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/operator_threshold_map_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "operator_threshold_map_contract",
+      "role": "pre-security threshold map, lane readiness, and lane destiny",
+      "schema_version": "operator_threshold_map_contract_v0",
+      "surface_id": "operator_threshold_map_contract"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:31f1a9025ddef7513b53b013c46fb37af47c59d4e8d88a23469ab7617bf096a4",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/operator_mission_priority_helm_declutter.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "operator_mission_priority_helm_declutter",
+      "role": "current mission, helm mode, and declutter priority",
+      "schema_version": "operator_mission_priority_helm_declutter_v0",
+      "surface_id": "operator_mission_priority_helm_declutter"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:b615862a8bbbb8a8a28fa02ab85fd543dac218459db04c9810960ad2f58a7fe5",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/world_domain_registry.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": null,
+      "role": "world/domain list and current world posture",
+      "schema_version": null,
+      "surface_id": "world_domain_registry"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:4a2e8f3dd0d32a2e1ca32089993e9ae561568e1f4d0cfa4221e08378e1fb90f5",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/package_compiler_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "package_compiler_contract",
+      "role": "package preview schema and deterministic boundary validation",
+      "schema_version": "package_compiler_contract_v0",
+      "surface_id": "package_compiler_contract"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "operator_workbench_actor_host_registry",
+      "role": "workbench/actor host routing metadata",
+      "schema_version": "operator_workbench_actor_host_registry_v0",
+      "surface_id": "operator_workbench_actor_host_registry"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:cddd69632aa6f005a4252771f140a5008b86a5ab6f1dbf726cffee6882f73e0f",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/steel_thread_lane_template_registry.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "steel_thread_lane_template_registry",
+      "role": "reusable lane rendering/workflow template",
+      "schema_version": "steel_thread_lane_template_registry_v0",
+      "surface_id": "steel_thread_lane_template_registry"
+    }
+  ],
+  "manifest_hash_excludes_files": [
+    "openclaw_map_OPERATOR.md",
+    "openclaw_map_manifest.json",
+    "openclaw_map_snapshot.json",
+    "operator_map_bundle_contract.json",
+    "operator_map_bundle_contract_OPERATOR.md",
+    "sync_health.json",
+    "sync_health_OPERATOR.md"
+  ],
+  "map_generation_id": "map_911cd302343946ad6369",
+  "missing_or_stale_surfaces": [],
+  "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
+  "raw_generated_read_model_file_count_including_map_bundle_self": 241,
+  "raw_private_body_policy": "blocked_excluded_from_bundle",
+  "read_model_id": "openclaw_map_manifest",
+  "read_model_manifest_hash": "sha256:49188d71d3bdc938a7a1bff1347300badd1c7d46a77f31102063e33086275038",
+  "schema_version": "openclaw_map_manifest_v0",
+  "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
+  "source_commit_if_available_local_only": "9076067fd369602bfb41a93b06486302ae99e69b",
+  "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 234,
+  "source_repo": "Repo A /home/openclaw",
+  "source_sqlite_receipt_hash_if_available": null,
+  "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
+  "stable_app_facing_paths": {
+    "mac_local_manifest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_manifest.json",
+    "mac_local_operator_digest": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_OPERATOR.md",
+    "mac_local_receipt": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_receipt.json",
+    "mac_local_snapshot": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_snapshot.json"
+  }
+}

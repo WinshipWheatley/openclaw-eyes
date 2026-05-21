@@ -8,7 +8,10 @@ from scripts.export_sync_health_read_model import main as export_main
 from scripts.query_sync_health import main as query_main
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from sync_health import (
+    DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
+    STABLE_MAP_REQUIRED_FILES,
     NO_AUTHORITY_FLAGS,
+    build_sync_health_map_raw_split,
     build_sync_health_read_model,
     build_sync_health_report,
     build_sync_health_snapshot,
@@ -31,6 +34,50 @@ def _fixture_root(tmp_path: Path) -> tuple[Path, Path]:
     _write(read_models / "alpha.json", '{"alpha": true}\n')
     _write(read_models / "beta_OPERATOR.md", "# Beta\n")
     return root, read_models
+
+
+def _write_map_bundle(read_models: Path, *, generation_id: str = "map_fixture", bundle_hash: str = "sha256:bundle") -> None:
+    _write(
+        read_models / "openclaw_map_manifest.json",
+        json.dumps(
+            {
+                "schema_version": "openclaw_map_manifest_v0",
+                "read_model_id": "openclaw_map_manifest",
+                "map_generation_id": generation_id,
+                "bundle_hash": bundle_hash,
+            }
+        )
+        + "\n",
+    )
+    _write(
+        read_models / "openclaw_map_snapshot.json",
+        json.dumps(
+            {
+                "schema_version": "openclaw_map_snapshot_v0",
+                "read_model_id": "openclaw_map_snapshot",
+                "map_generation_id": generation_id,
+                "threshold_map": {
+                    "capital_hilton_finance_destiny": {
+                        "current_phase": "HELM_THRESHOLD_LANE",
+                        "resolution_route": "MOVE_TO_WORLD_ACTION",
+                        "target_world": "Finance",
+                    },
+                    "system_awareness_discovery_steel_thread": {
+                        "lane_id": "system_awareness_discovery",
+                    },
+                    "cue_autonomy_placement": {
+                        "status": "post_threshold_post_security_candidate",
+                    },
+                },
+                "authority_boundary": {
+                    "future_gated_cue_autonomy": True,
+                    "live_package_dispatch_allowed": False,
+                },
+            }
+        )
+        + "\n",
+    )
+    _write(read_models / "openclaw_map_OPERATOR.md", "# Stable Map\n")
 
 
 def _manifest_for(read_models: Path, *, omit: set[str] | None = None, mismatch: set[str] | None = None, extra: bool = False) -> dict:
@@ -346,6 +393,8 @@ def test_read_model_export_exists_and_no_authority_flags_are_false(tmp_path):
         db_path=db_path,
         export_root=tmp_path / "exports",
         repo_root=tmp_path,
+        manifest_path=tmp_path / "share" / "mac_generated_read_models_manifest.json",
+        read_model_root=read_models,
     )
     payload = json.loads((tmp_path / summary["json_path"]).read_text(encoding="utf-8"))
     operator_text = (tmp_path / summary["operator_path"]).read_text(encoding="utf-8")
@@ -486,6 +535,223 @@ def test_self_report_newer_than_manifest_is_routine_health_mirror_wait(tmp_path)
     assert snapshot["operator_action_required"] is False
     assert snapshot["next_expected_actor"] == "mac_sync_agent"
     assert snapshot["recommended_fix_kind"] == "none"
+
+
+def test_stable_map_files_are_expected_and_safe_exports(tmp_path):
+    _root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models)
+
+    expected = set(canonical_generated_read_model_expected_files(source_root=read_models, repo_root=tmp_path))
+
+    for name in STABLE_MAP_REQUIRED_FILES:
+        assert (read_models / name).is_file()
+        assert name in expected
+
+
+def test_sync_health_exposes_map_split_and_marker_when_mac_lacks_bundle(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_pending", bundle_hash="sha256:pending")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(
+        manifest,
+        json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n",
+    )
+    manifest_hash = sha256_file(manifest)
+    paths = _proof_files(tmp_path, manifest_hash)
+    export_root = tmp_path / "exports"
+    map_marker = tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json"
+
+    summary = refresh_sync_health_from_manifest(
+        db_path=tmp_path / "ledger.sqlite",
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        mac_status_path=paths["mac_status"],
+        mac_completion_path=paths["mac_completion"],
+        pc_import_state_path=paths["pc_state"],
+        pc_task_log_path=paths["pc_log"],
+        windows_task_log_path=paths["windows_log"],
+        request_marker_path=paths["request_marker"],
+        export_root=export_root,
+        map_sync_request_path=map_marker,
+        map_receipt_path=tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json",
+    )
+    payload = json.loads((export_root / "sync_health.json").read_text(encoding="utf-8"))
+    marker = json.loads(map_marker.read_text(encoding="utf-8"))
+
+    assert summary["app_visible_map_status"]["map_status"] == "map_generation_pending_mac_import"
+    assert payload["app_visible_map_status"]["map_status"] == "map_generation_pending_mac_import"
+    assert payload["app_visible_map_status"]["app_visible"] is False
+    assert payload["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is True
+    assert payload["check_transmission_display"]["headline"] == "Stable map bundle pending"
+    assert payload["check_transmission_display"]["lamp_state"] == "WARNING"
+    assert marker["map_generation_id"] == "map_pending"
+    assert marker["bundle_hash"] == "sha256:pending"
+    assert [item["relative_path"] for item in marker["required_files"]] == list(STABLE_MAP_REQUIRED_FILES)
+    assert marker["expected_next_actor"] == "mac_map_import_agent"
+    assert marker["next_expected_actor"] == "mac_map_import_agent"
+    assert marker["no_execution_no_credential_no_network_boundary"] == {
+        "execution_authority": False,
+        "credential_handling_allowed": False,
+        "network_authority": False,
+    }
+    assert marker["credential_handling_allowed"] is False
+    assert marker["source_path"].endswith("/shuttle/to_mac/map_bundle/map_pending")
+    for item in marker["required_files"]:
+        assert Path(item["source_path"]).is_file()
+        assert item["canonical_source_path"].endswith(f"/generated/read_models/{item['relative_path']}")
+        assert item["target_path"].endswith(f"/openclaw_generated_read_models/{item['relative_path']}")
+    assert {item["relative_path"] for item in marker["bundle_files_written"]} == set(STABLE_MAP_REQUIRED_FILES)
+
+
+def test_raw_mirror_mismatch_does_not_block_app_map_when_receipt_matches(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_current", bundle_hash="sha256:current")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, mismatch={"alpha.json"})) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "schema_version": "openclaw_map_receipt_v0",
+                "map_generation_id": "map_current",
+                "bundle_hash": "sha256:current",
+                "parse_passed": True,
+                "missing_files": [],
+                "hash_mismatch": [],
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+
+    assert split["app_visible_map_status"]["map_status"] == "map_current"
+    assert split["app_visible_map_status"]["app_visible"] is True
+    assert split["raw_read_model_mirror_status"]["hash_mismatch"] == 1
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+    assert "proof/detail" in split["check_transmission_display"]["operator_summary"]
+
+
+def test_map_current_is_not_claimed_without_matching_mac_receipt(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_needs_receipt", bundle_hash="sha256:needsreceipt")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models)) + "\n")
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=tmp_path / "share" / "shuttle" / "from_mac" / "missing_receipt.json",
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+
+    assert split["app_visible_map_status"]["map_status"] == "map_receipt_missing"
+    assert split["app_visible_map_status"]["app_visible"] is False
+    assert split["receipt_status"]["receipt_matches_pc_bundle"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "WARNING"
+
+
+def test_mac_imported_receipt_shape_marks_app_visible_map_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_imported", bundle_hash="sha256:imported")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, mismatch={"alpha.json"})) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "imported",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_imported",
+                "observed_map_generation_id": "map_imported",
+                "bundle_hash": "sha256:imported",
+                "observed_bundle_hash": "sha256:imported",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+
+    assert split["app_visible_map_status"]["map_status"] == "map_current"
+    assert split["app_visible_map_status"]["app_visible"] is True
+    assert split["app_visible_map_status"]["next_expected_actor"] == "none"
+    assert split["receipt_status"]["receipt_parse_passed"] is True
+    assert split["receipt_status"]["receipt_matches_pc_bundle"] is True
+    assert split["receipt_status"]["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["hash_mismatch"] == 1
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
+def test_stable_map_receipt_clears_app_block_even_if_raw_manifest_lacks_map_files(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_imported", bundle_hash="sha256:imported")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(
+        manifest,
+        json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n",
+    )
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "imported",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_imported",
+                "bundle_hash": "sha256:imported",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+
+    assert split["app_visible_map_status"]["map_status"] == "map_current"
+    assert split["raw_read_model_mirror_status"]["missing_expected"] == len(STABLE_MAP_REQUIRED_FILES)
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["raw_read_model_mirror_status"]["raw_mirror_app_visible_block_cleared_by_receipt"] is True
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
 
 def test_niles_metadata_packet_and_matrix_are_expected_read_models():
     expected = set(canonical_generated_read_model_expected_files())

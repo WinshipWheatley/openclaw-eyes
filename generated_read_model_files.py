@@ -57,6 +57,12 @@ VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
     "sync_health_OPERATOR.md",
 )
 
+SAFE_GENERATED_READ_MODEL_MANIFEST_FILES = frozenset(
+    {
+        "openclaw_map_manifest.json",
+    }
+)
+
 CRITICAL_GENERATED_READ_MODEL_FILES = (
     "artifact_registry.json",
     "evidence_freshness.json",
@@ -87,6 +93,8 @@ def sha256_file(path: Path) -> str:
 
 
 def is_no_go_generated_read_model_relative_path(relative_path: str) -> bool:
+    if relative_path in SAFE_GENERATED_READ_MODEL_MANIFEST_FILES:
+        return False
     parts = {part.lower() for part in Path(relative_path).parts}
     lowered = Path(relative_path).name.lower()
     if parts & NO_GO_PARTS:
@@ -185,6 +193,7 @@ __all__ = [
     "NO_GO_FILE_HINTS",
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",
+    "SAFE_GENERATED_READ_MODEL_MANIFEST_FILES",
     "VOLATILE_SELF_REPORT_READ_MODEL_FILES",
     "canonical_generated_read_model_expected_files",
     "canonical_generated_read_model_records",

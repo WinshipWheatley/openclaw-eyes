@@ -55,6 +55,28 @@ DEFAULT_MAC_COMPLETION_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "from_mac" / "
 DEFAULT_PC_IMPORT_STATE_PATH = ROOT / ".openclaw" / "state" / "read_model_import_agent_state.json"
 DEFAULT_PC_TASK_LOG_PATH = ROOT / ".openclaw" / "logs" / "windows_task_read_model_import.log"
 DEFAULT_WINDOWS_TASK_LOG_PATH = DEFAULT_PC_SHARE_ROOT / "windows_tasks" / "logs" / "OpenClawReadModelImport.log"
+DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "to_mac" / "openclaw_map_sync_required.json"
+DEFAULT_MAP_RECEIPT_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+DEFAULT_APP_MAP_RECEIPT_PATH = "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_receipt.json"
+DEFAULT_MAC_LOCAL_MAP_ROOT = "/Users/hwinshipwheatley/openclaw_generated_read_models"
+
+STABLE_MAP_REQUIRED_FILES = (
+    "openclaw_map_snapshot.json",
+    "openclaw_map_manifest.json",
+    "openclaw_map_OPERATOR.md",
+)
+STABLE_MAP_OPTIONAL_RECEIPT_FILE = "openclaw_map_receipt.json"
+STABLE_MAP_STATUS_VALUES = (
+    "map_current",
+    "map_generation_pending_mac_import",
+    "map_imported_waiting_pc_readback",
+    "map_missing_from_mac",
+    "map_hash_mismatch",
+    "map_receipt_missing",
+    "unknown_fail_closed",
+)
+STABLE_MAP_SCHEMA_VERSION = "openclaw_map_manifest_v0"
+STABLE_MAP_RECEIPT_SCHEMA_VERSION = "openclaw_map_receipt_v0"
 
 NO_AUTHORITY_FLAGS = {
     "app_direct_execution_allowed": False,
@@ -66,6 +88,22 @@ NO_AUTHORITY_FLAGS = {
     "agent_activation_allowed": False,
     "file_delete_allowed": False,
     "file_move_allowed": False,
+}
+
+MAP_SYNC_NO_AUTHORITY_FLAGS = {
+    "runtime_authority": False,
+    "agent_activation_allowed": False,
+    "model_execution_allowed": False,
+    "tool_plugin_execution_allowed": False,
+    "browser_oauth_account_access_allowed": False,
+    "gmail_calendar_coupa_telegram_allowed": False,
+    "credential_handling_allowed": False,
+    "network_authority": False,
+    "send_submit_approval_allowed": False,
+    "file_delete_allowed": False,
+    "file_move_allowed": False,
+    "cleanup_remount_repair_allowed": False,
+    "pc_c_drive_artifact_write_allowed": False,
 }
 
 
@@ -285,6 +323,436 @@ def _read_json_object(path: str | Path) -> dict[str, Any] | None:
     except (json.JSONDecodeError, OSError):
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def _manifest_relative_paths(path: str | Path) -> set[str]:
+    payload = _read_json_object(path) or {}
+    records = payload.get("path_records") or []
+    return {
+        record.get("relative_path")
+        for record in records
+        if isinstance(record, dict) and isinstance(record.get("relative_path"), str)
+    }
+
+
+def _sha256_prefixed(path: str | Path) -> str | None:
+    digest = sha256_file(path)
+    return f"sha256:{digest}" if digest else None
+
+
+def _map_manifest_payload(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
+    path = Path(read_model_root) / "openclaw_map_manifest.json"
+    return _read_json_object(path) or {}
+
+
+def _map_file_presence(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+) -> dict[str, Any]:
+    root = Path(read_model_root)
+    manifest_names = _manifest_relative_paths(manifest_path)
+    return {
+        "snapshot_present_on_pc": (root / "openclaw_map_snapshot.json").is_file(),
+        "manifest_present_on_pc": (root / "openclaw_map_manifest.json").is_file(),
+        "operator_digest_present_on_pc": (root / "openclaw_map_OPERATOR.md").is_file(),
+        "mac_snapshot_present": "openclaw_map_snapshot.json" in manifest_names,
+        "mac_manifest_present": "openclaw_map_manifest.json" in manifest_names,
+        "mac_operator_digest_present": "openclaw_map_OPERATOR.md" in manifest_names,
+        "mac_receipt_present_in_manifest": STABLE_MAP_OPTIONAL_RECEIPT_FILE in manifest_names,
+    }
+
+
+def build_receipt_status(
+    *,
+    map_manifest: dict[str, Any],
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+) -> dict[str, Any]:
+    receipt_path = Path(map_receipt_path)
+    receipt = _read_json_object(receipt_path) or {}
+    manifest_names = _manifest_relative_paths(manifest_path)
+    expected_generation = map_manifest.get("map_generation_id")
+    expected_hash = map_manifest.get("bundle_hash")
+    receipt_generation = receipt.get("map_generation_id") or receipt.get("observed_map_generation_id")
+    receipt_hash = receipt.get("bundle_hash") or receipt.get("observed_bundle_hash")
+    explicit_parse_passed = receipt.get("parse_passed")
+    per_file_parse_passed = bool(
+        receipt.get("snapshot_present") is True
+        and receipt.get("manifest_present") is True
+        and receipt.get("operator_digest_present") is True
+        and receipt.get("snapshot_parse_passed") is True
+        and receipt.get("manifest_parse_passed") is True
+        and receipt.get("operator_digest_non_empty") is True
+    )
+    receipt_parse_passed = bool(explicit_parse_passed is True or per_file_parse_passed)
+    missing_files = receipt.get("missing_files")
+    missing_files_blocking = bool(missing_files) if isinstance(missing_files, list) else missing_files not in (None, False)
+    hash_mismatch = receipt.get("hash_mismatch")
+    hash_mismatch_blocking = bool(hash_mismatch) if isinstance(hash_mismatch, list) else hash_mismatch not in (None, False)
+    schema_version = receipt.get("schema_version")
+    schema_compatible = schema_version in (None, STABLE_MAP_RECEIPT_SCHEMA_VERSION)
+    status_imported = receipt.get("receipt_status") in (None, "imported", "synced")
+    receipt_matches = bool(
+        receipt
+        and schema_compatible
+        and status_imported
+        and receipt_generation == expected_generation
+        and receipt_hash == expected_hash
+        and receipt_parse_passed
+        and not missing_files_blocking
+        and not hash_mismatch_blocking
+    )
+    return {
+        "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
+        "map_receipt_present": receipt_path.is_file(),
+        "map_receipt_present_in_mac_manifest": STABLE_MAP_OPTIONAL_RECEIPT_FILE in manifest_names,
+        "receipt_schema_version": schema_version,
+        "receipt_schema_compatible": schema_compatible,
+        "receipt_status": receipt.get("receipt_status"),
+        "receipt_app_visible_candidate": bool(receipt.get("app_visible_candidate")),
+        "receipt_generation_id": receipt_generation,
+        "receipt_bundle_hash": receipt_hash,
+        "receipt_observed_generation_id": receipt.get("observed_map_generation_id"),
+        "receipt_observed_bundle_hash": receipt.get("observed_bundle_hash"),
+        "receipt_parse_passed": receipt_parse_passed,
+        "receipt_missing_files": missing_files if isinstance(missing_files, list) else [],
+        "receipt_hash_mismatch": hash_mismatch if isinstance(hash_mismatch, list) else bool(hash_mismatch),
+        "receipt_matches_pc_bundle": receipt_matches,
+        "pc_readback_imported": receipt_matches,
+        "receipt_path": receipt_path.as_posix(),
+        "expected_generation_id": expected_generation,
+        "expected_bundle_hash": expected_hash,
+    }
+
+
+def build_raw_read_model_mirror_status(manifest_health: dict[str, Any]) -> dict[str, Any]:
+    counts = manifest_health.get("counts", {})
+    missing_files = list(manifest_health.get("missing_expected_files") or [])
+    mismatched_files = list(manifest_health.get("hash_mismatch_files") or [])
+    if not manifest_health.get("manifest_present"):
+        status = "raw_manifest_missing"
+    elif missing_files or mismatched_files:
+        status = "raw_mirror_stale_or_mismatched"
+    elif manifest_health.get("extra_files"):
+        status = "raw_mirror_extra_files_need_review"
+    else:
+        status = "raw_mirror_current"
+    stable_map_files = set(STABLE_MAP_REQUIRED_FILES)
+    raw_blocks_map = bool(stable_map_files & (set(missing_files) | set(mismatched_files)))
+    return {
+        "canonical_expected": int(counts.get("canonical_expected") or 0),
+        "observed": int(counts.get("observed") or 0),
+        "missing_expected": int(counts.get("missing_expected") or 0),
+        "hash_mismatch": int(counts.get("hash_mismatch") or 0),
+        "missing_files": missing_files,
+        "mismatched_files": mismatched_files,
+        "extra_files": list(manifest_health.get("extra_files") or []),
+        "raw_mirror_status": status,
+        "raw_mirror_blocks_app_visible_map": raw_blocks_map,
+    }
+
+
+def build_app_visible_map_status(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
+) -> dict[str, Any]:
+    manifest = _map_manifest_payload(read_model_root=read_model_root)
+    presence = _map_file_presence(read_model_root=read_model_root, manifest_path=manifest_path)
+    receipt = build_receipt_status(
+        map_manifest=manifest,
+        map_receipt_path=map_receipt_path,
+        manifest_path=manifest_path,
+    )
+    pc_has_required = bool(
+        presence["snapshot_present_on_pc"]
+        and presence["manifest_present_on_pc"]
+        and presence["operator_digest_present_on_pc"]
+        and manifest.get("map_generation_id")
+        and manifest.get("bundle_hash")
+    )
+    mac_has_required = bool(
+        presence["mac_snapshot_present"]
+        and presence["mac_manifest_present"]
+        and presence["mac_operator_digest_present"]
+    )
+    request_marker = Path(map_sync_request_path)
+    request_present = request_marker.is_file()
+
+    if not pc_has_required:
+        map_status = "unknown_fail_closed"
+        next_actor = "pc_sync_health_worker"
+        recommended_fix = "generate stable map bundle on PC before requesting Mac import"
+    elif receipt["receipt_matches_pc_bundle"]:
+        map_status = "map_current"
+        next_actor = "none"
+        recommended_fix = "none"
+    elif mac_has_required and receipt["map_receipt_present"]:
+        map_status = "map_hash_mismatch"
+        next_actor = "mac_map_import_agent"
+        recommended_fix = "re-import stable map bundle through the normal map sync lifecycle"
+    elif mac_has_required:
+        map_status = "map_receipt_missing"
+        next_actor = "mac_map_import_agent"
+        recommended_fix = "Mac has stable map files, but PC lacks a matching map receipt"
+    elif request_present:
+        map_status = "map_generation_pending_mac_import"
+        next_actor = "mac_map_import_agent"
+        recommended_fix = "Map generated on PC; waiting for Mac import receipt"
+    else:
+        map_status = "map_missing_from_mac"
+        next_actor = "mac_map_import_agent"
+        recommended_fix = "Write bounded map sync request marker for normal Mac import"
+
+    return {
+        "map_status": map_status,
+        "map_generation_id": manifest.get("map_generation_id"),
+        "bundle_hash": manifest.get("bundle_hash"),
+        **presence,
+        "mac_receipt_present": bool(receipt["map_receipt_present"]),
+        "mac_receipt_present_in_manifest": bool(receipt["map_receipt_present_in_mac_manifest"]),
+        "app_visible": map_status == "map_current",
+        "next_expected_actor": next_actor,
+        "operator_action_required": False,
+        "recommended_fix": recommended_fix,
+        "map_sync_request_marker_path": Path(map_sync_request_path).as_posix(),
+        "map_sync_request_marker_present": request_present,
+        "target_mac_local_mirror_path": DEFAULT_MAC_LOCAL_MAP_ROOT,
+        "required_files": list(STABLE_MAP_REQUIRED_FILES),
+        "optional_future_receipt": STABLE_MAP_OPTIONAL_RECEIPT_FILE,
+    }
+
+
+def build_check_transmission_display(
+    *,
+    app_visible_map_status: dict[str, Any],
+    raw_read_model_mirror_status: dict[str, Any],
+    receipt_status: dict[str, Any],
+) -> dict[str, Any]:
+    map_status = app_visible_map_status["map_status"]
+    if map_status == "map_current":
+        lamp_state = "QUIET"
+        headline = "Stable map bundle current"
+        operator_summary = "Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail."
+        primary_cause = "map_generation_and_receipt_match"
+    elif map_status == "map_generation_pending_mac_import":
+        lamp_state = "WARNING"
+        headline = "Stable map bundle pending"
+        operator_summary = "Map generated on PC; waiting for Mac import receipt."
+        primary_cause = "pc_map_generated_waiting_for_mac_import"
+    elif map_status == "map_receipt_missing":
+        lamp_state = "WARNING"
+        headline = "Stable map receipt missing"
+        operator_summary = "Mac appears to have stable map files, but PC has not received a matching receipt."
+        primary_cause = "map_receipt_missing"
+    elif map_status == "map_missing_from_mac":
+        lamp_state = "WARNING"
+        headline = "Stable map bundle pending"
+        operator_summary = "Stable map files are generated on PC but absent from the Mac mirror proof."
+        primary_cause = "stable_map_files_missing_from_mac_manifest"
+    elif map_status == "map_hash_mismatch":
+        lamp_state = "ON"
+        headline = "Stable map bundle hash mismatch"
+        operator_summary = "Mac map receipt or files do not match the current PC bundle hash."
+        primary_cause = "map_hash_or_receipt_mismatch"
+    else:
+        lamp_state = "ON"
+        headline = "Stable map status unknown"
+        operator_summary = "Stable map proof is not sufficient; fail closed."
+        primary_cause = "unknown_fail_closed"
+
+    raw_detail = (
+        f"raw_status={raw_read_model_mirror_status['raw_mirror_status']}; "
+        f"missing={raw_read_model_mirror_status['missing_expected']}; "
+        f"hash_mismatch={raw_read_model_mirror_status['hash_mismatch']}"
+    )
+    return {
+        "lamp_state": lamp_state,
+        "headline": headline,
+        "operator_summary": operator_summary,
+        "proof_summary": {
+            "map_status": map_status,
+            "map_generation_id": app_visible_map_status.get("map_generation_id"),
+            "bundle_hash": app_visible_map_status.get("bundle_hash"),
+            "receipt_matches_pc_bundle": receipt_status.get("receipt_matches_pc_bundle"),
+        },
+        "primary_cause": primary_cause,
+        "secondary_raw_mirror_detail": raw_detail,
+        "next_safe_move": app_visible_map_status["recommended_fix"],
+    }
+
+
+def build_sync_health_map_raw_split(
+    *,
+    manifest_health: dict[str, Any] | None = None,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    repo_root: str | Path = ROOT,
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
+) -> dict[str, Any]:
+    resolved_manifest_health = manifest_health or compare_manifest_to_backend(
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+    )
+    map_manifest = _map_manifest_payload(read_model_root=read_model_root)
+    app_status = build_app_visible_map_status(
+        read_model_root=read_model_root,
+        manifest_path=manifest_path,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
+    )
+    raw_status = build_raw_read_model_mirror_status(resolved_manifest_health)
+    receipt_status = build_receipt_status(
+        map_manifest=map_manifest,
+        map_receipt_path=map_receipt_path,
+        manifest_path=manifest_path,
+    )
+    if app_status.get("map_status") == "map_current":
+        raw_status = {
+            **raw_status,
+            "raw_mirror_blocks_app_visible_map": False,
+            "raw_mirror_app_visible_block_cleared_by_receipt": True,
+            "raw_mirror_detail_only_reason": (
+                "Mac stable-map receipt matches the PC map generation and bundle hash; "
+                "raw generated read-model mismatches remain proof/detail."
+            ),
+        }
+    transmission = build_check_transmission_display(
+        app_visible_map_status=app_status,
+        raw_read_model_mirror_status=raw_status,
+        receipt_status=receipt_status,
+    )
+    return {
+        "app_visible_map_status": app_status,
+        "raw_read_model_mirror_status": raw_status,
+        "receipt_status": receipt_status,
+        "check_transmission_display": transmission,
+    }
+
+
+def _write_stable_map_bundle_generation(
+    *,
+    read_model_root: str | Path,
+    marker_path: str | Path,
+    map_generation_id: str,
+) -> dict[str, Any]:
+    root = Path(read_model_root)
+    generation_root = Path(marker_path).parent / "map_bundle" / map_generation_id
+    generation_root.mkdir(parents=True, exist_ok=True)
+    written_files: list[dict[str, Any]] = []
+    for name in STABLE_MAP_REQUIRED_FILES:
+        source = root / name
+        target = generation_root / name
+        target.write_bytes(source.read_bytes())
+        written_files.append(
+            {
+                "relative_path": name,
+                "source_path": source.as_posix(),
+                "bundle_source_path": target.as_posix(),
+                "sha256": sha256_file(target),
+                "hash_algorithm": "sha256",
+            }
+        )
+    return {
+        "bundle_generation_path": generation_root.as_posix(),
+        "bundle_files_written": written_files,
+    }
+
+
+def write_openclaw_map_sync_required_marker_if_needed(
+    *,
+    app_visible_map_status: dict[str, Any],
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    marker_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
+    target_mac_local_mirror_path: str = DEFAULT_MAC_LOCAL_MAP_ROOT,
+) -> dict[str, Any]:
+    if app_visible_map_status.get("map_status") == "map_current":
+        return {
+            "map_sync_marker_needed": False,
+            "map_sync_marker_written": False,
+            "reason": "stable map bundle is already current",
+            "marker_path": Path(marker_path).as_posix(),
+        }
+    if not (
+        app_visible_map_status.get("snapshot_present_on_pc")
+        and app_visible_map_status.get("manifest_present_on_pc")
+        and app_visible_map_status.get("operator_digest_present_on_pc")
+    ):
+        return {
+            "map_sync_marker_needed": False,
+            "map_sync_marker_written": False,
+            "reason": "stable map bundle files are not all present on PC",
+            "marker_path": Path(marker_path).as_posix(),
+        }
+
+    marker = Path(marker_path)
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    root = Path(read_model_root)
+    map_generation_id = str(app_visible_map_status.get("map_generation_id") or "unknown_fail_closed")
+    bundle_write = _write_stable_map_bundle_generation(
+        read_model_root=root,
+        marker_path=marker,
+        map_generation_id=map_generation_id,
+    )
+    bundle_root = Path(bundle_write["bundle_generation_path"])
+    required_files = [
+        {
+            "relative_path": name,
+            "source_path": (bundle_root / name).as_posix(),
+            "canonical_source_path": (root / name).as_posix(),
+            "target_path": f"{target_mac_local_mirror_path}/{name}",
+            "sha256": sha256_file(bundle_root / name),
+            "hash_algorithm": "sha256",
+        }
+        for name in STABLE_MAP_REQUIRED_FILES
+    ]
+    payload = {
+        "schema_version": "openclaw_map_sync_required_v0",
+        "created_at": utc_now(),
+        "map_generation_id": app_visible_map_status.get("map_generation_id"),
+        "bundle_hash": app_visible_map_status.get("bundle_hash"),
+        "required_files": required_files,
+        "bundle_generation_path": bundle_write["bundle_generation_path"],
+        "bundle_files_written": bundle_write["bundle_files_written"],
+        "optional_future_receipt": {
+            "relative_path": STABLE_MAP_OPTIONAL_RECEIPT_FILE,
+            "target_path": f"{target_mac_local_mirror_path}/{STABLE_MAP_OPTIONAL_RECEIPT_FILE}",
+            "schema_version": STABLE_MAP_RECEIPT_SCHEMA_VERSION,
+        },
+        "source_path": bundle_write["bundle_generation_path"],
+        "canonical_source_path": root.as_posix(),
+        "target_mac_local_mirror_path": target_mac_local_mirror_path,
+        "expected_next_actor": "mac_map_import_agent",
+        "next_expected_actor": "mac_map_import_agent",
+        "fallback_actor": "mac_read_model_sync_agent",
+        "do_not_fake_completion": True,
+        "no_execution_no_credential_no_network_boundary": {
+            "execution_authority": False,
+            "credential_handling_allowed": False,
+            "network_authority": False,
+        },
+        "no_authority_flags": dict(MAP_SYNC_NO_AUTHORITY_FLAGS),
+        **MAP_SYNC_NO_AUTHORITY_FLAGS,
+    }
+    marker.write_text(stable_json(payload), encoding="utf-8")
+    return {
+        "map_sync_marker_needed": True,
+        "map_sync_marker_written": True,
+        "marker_path": marker.as_posix(),
+        "map_generation_id": app_visible_map_status.get("map_generation_id"),
+        "bundle_hash": app_visible_map_status.get("bundle_hash"),
+        "required_files": list(STABLE_MAP_REQUIRED_FILES),
+        "bundle_generation_path": bundle_write["bundle_generation_path"],
+        "expected_next_actor": "mac_map_import_agent",
+    }
 
 
 def _mtime_iso(path: str | Path) -> str | None:
@@ -1000,9 +1468,30 @@ ORDER BY source_kind
         conn.close()
 
 
-def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str, Any]:
+def build_sync_health_read_model(
+    db_path: str | Path | None = None,
+    *,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    repo_root: str | Path = ROOT,
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
+) -> dict[str, Any]:
     report = build_sync_health_report(db_path=db_path, report="proof")
     snapshot = report["latest_snapshot"] or {}
+    manifest_health = compare_manifest_to_backend(
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+    )
+    map_raw_split = build_sync_health_map_raw_split(
+        manifest_health=manifest_health,
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
+    )
     return {
         "schema_version": READ_MODEL_VERSION,
         "generated_at": utc_now(),
@@ -1051,6 +1540,10 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
             "request_marker_path": snapshot.get("request_marker_path", DEFAULT_REQUEST_MARKER_PATH.as_posix()),
             "app_request_marker_path": snapshot.get("app_request_marker_path", DEFAULT_APP_REQUEST_MARKER_PATH),
         },
+        "app_visible_map_status": map_raw_split["app_visible_map_status"],
+        "raw_read_model_mirror_status": map_raw_split["raw_read_model_mirror_status"],
+        "receipt_status": map_raw_split["receipt_status"],
+        "check_transmission_display": map_raw_split["check_transmission_display"],
         "proof_sources": report["sources"],
         "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         **NO_AUTHORITY_FLAGS,
@@ -1059,6 +1552,9 @@ def build_sync_health_read_model(db_path: str | Path | None = None) -> dict[str,
 
 def _operator_markdown(payload: dict[str, Any]) -> str:
     recommended = payload["recommended_fix"]
+    map_status = payload["app_visible_map_status"]
+    raw_status = payload["raw_read_model_mirror_status"]
+    transmission = payload["check_transmission_display"]
     lines = [
         "# OpenClaw Sync Health",
         "",
@@ -1077,7 +1573,29 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- hash_mismatch={payload['hash_mismatch']}",
         f"- matched_hash={payload['matched_hash']}",
         "",
-        "Recommended fix:",
+        "App-visible stable map:",
+        f"- map_status: `{map_status['map_status']}`",
+        f"- map_generation_id: `{map_status['map_generation_id']}`",
+        f"- bundle_hash: `{map_status['bundle_hash']}`",
+        f"- app_visible: `{str(map_status['app_visible']).lower()}`",
+        f"- front-door operator action required: `{str(map_status['operator_action_required']).lower()}`",
+        f"- next expected actor: `{map_status['next_expected_actor']}`",
+        f"- next: {map_status['recommended_fix']}",
+        "",
+        "Raw read-model mirror detail:",
+        f"- raw_mirror_status: `{raw_status['raw_mirror_status']}`",
+        f"- raw_mirror_blocks_app_visible_map: `{str(raw_status['raw_mirror_blocks_app_visible_map']).lower()}`",
+        "",
+        "Check Transmission display:",
+        f"- lamp_state: `{transmission['lamp_state']}`",
+        f"- headline: {transmission['headline']}",
+        f"- summary: {transmission['operator_summary']}",
+        "",
+        (
+            "Raw read-model mirror proof/detail recommendation:"
+            if map_status["map_status"] == "map_current"
+            else "Recommended fix:"
+        ),
         f"- kind: `{recommended['kind']}`",
         f"- display status: `{recommended['display_status']}`",
         f"- next expected actor: `{recommended['next_expected_actor']}`",
@@ -1122,8 +1640,19 @@ def export_sync_health_read_model(
     db_path: str | Path | None = None,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
     repo_root: str | Path = ROOT,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
 ) -> dict[str, Any]:
-    payload = build_sync_health_read_model(db_path=db_path)
+    payload = build_sync_health_read_model(
+        db_path=db_path,
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
+    )
     root = Path(export_root)
     if not root.is_absolute():
         root = Path(repo_root) / root
@@ -1145,6 +1674,8 @@ def export_sync_health_read_model(
         "missing_expected": payload["missing_expected"],
         "extra": payload["extra"],
         "hash_mismatch": payload["hash_mismatch"],
+        "map_status": payload["app_visible_map_status"]["map_status"],
+        "check_transmission_lamp_state": payload["check_transmission_display"]["lamp_state"],
     }
 
 
@@ -1161,6 +1692,8 @@ def refresh_sync_health_from_manifest(
     windows_task_log_path: str | Path = DEFAULT_WINDOWS_TASK_LOG_PATH,
     request_marker_path: str | Path = DEFAULT_REQUEST_MARKER_PATH,
     export_root: str | Path = DEFAULT_EXPORT_ROOT,
+    map_receipt_path: str | Path = DEFAULT_MAP_RECEIPT_PATH,
+    map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
 ) -> dict[str, Any]:
     """Record and export sync health from the latest mirror manifest.
 
@@ -1181,12 +1714,35 @@ def refresh_sync_health_from_manifest(
         windows_task_log_path=windows_task_log_path,
         request_marker_path=request_marker_path,
     )
+    pre_export_split = build_sync_health_map_raw_split(
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
+    )
+    map_sync_request = write_openclaw_map_sync_required_marker_if_needed(
+        app_visible_map_status=pre_export_split["app_visible_map_status"],
+        read_model_root=read_model_root,
+        marker_path=map_sync_request_path,
+    )
     export = export_sync_health_read_model(
         db_path=db_path,
         export_root=export_root,
         repo_root=repo_root,
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
     )
-    payload = build_sync_health_read_model(db_path=db_path)
+    payload = build_sync_health_read_model(
+        db_path=db_path,
+        manifest_path=manifest_path,
+        read_model_root=read_model_root,
+        repo_root=repo_root,
+        map_receipt_path=map_receipt_path,
+        map_sync_request_path=map_sync_request_path,
+    )
     return {
         "sync_health_refreshed": True,
         "run_id": build.run_id,
@@ -1204,6 +1760,11 @@ def refresh_sync_health_from_manifest(
         "extra": payload["extra"],
         "hash_mismatch": payload["hash_mismatch"],
         "matched_hash": payload["matched_hash"],
+        "app_visible_map_status": payload["app_visible_map_status"],
+        "raw_read_model_mirror_status": payload["raw_read_model_mirror_status"],
+        "receipt_status": payload["receipt_status"],
+        "check_transmission_display": payload["check_transmission_display"],
+        "map_sync_request": map_sync_request,
         **NO_AUTHORITY_FLAGS,
     }
 
@@ -1256,8 +1817,13 @@ def format_sync_health_report(payload: dict[str, Any]) -> str:
 __all__ = [
     "NO_AUTHORITY_FLAGS",
     "build_sync_health_read_model",
+    "build_sync_health_map_raw_split",
     "build_sync_health_report",
     "build_sync_health_snapshot",
+    "build_app_visible_map_status",
+    "build_raw_read_model_mirror_status",
+    "build_receipt_status",
+    "build_check_transmission_display",
     "classify_sync_health",
     "compare_manifest_to_backend",
     "export_sync_health_read_model",
@@ -1265,4 +1831,5 @@ __all__ = [
     "init_sync_health_schema",
     "refresh_sync_health_from_manifest",
     "sync_health_table_names",
+    "write_openclaw_map_sync_required_marker_if_needed",
 ]
