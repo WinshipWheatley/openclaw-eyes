@@ -1,0 +1,1659 @@
+{
+  "actor_model_selection_rules": [
+    {
+      "actor_id": "operator_winship",
+      "agent_character": "Operator / Winship",
+      "blocked_authority": [
+        "model worker replacement",
+        "machine proof by statement alone"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "human_operator",
+      "future_eligible_model_classes": [
+        "human_operator"
+      ],
+      "required_gates": [
+        "clear package preview",
+        "proof/detail available"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Route final sensitive approval and unclear tradeoffs to the human operator.",
+      "sensitivity_posture": "final human authority; operator statements are context, not machine proof"
+    },
+    {
+      "actor_id": "chief",
+      "agent_character": "Chief",
+      "blocked_authority": [
+        "repair execution",
+        "remount",
+        "cleanup/delete",
+        "self-authorized tools"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "required_gates": [
+        "package preview",
+        "operator approval for future execution",
+        "receipts"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Chief may get future reasoning support for diagnostics only through package preview and gates.",
+      "sensitivity_posture": "diagnostic/readback only; no repairs or self-authorization"
+    },
+    {
+      "actor_id": "guardian",
+      "agent_character": "Guardian",
+      "blocked_authority": [
+        "self-authorization",
+        "external sensitive use without gate",
+        "approval execution"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "required_gates": [
+        "Guardian gate",
+        "operator approval",
+        "sensitivity receipt"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Guardian model selection is strict and cannot bypass operator authority.",
+      "sensitivity_posture": "safety/protected-access defaults local/private or blocked"
+    },
+    {
+      "actor_id": "cassandra",
+      "agent_character": "Cassandra",
+      "blocked_authority": [
+        "Gmail/Coupa/calendar raw bodies",
+        "send/submit/approval",
+        "account access"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "local_sensitive",
+        "local_reasoning"
+      ],
+      "required_gates": [
+        "Guardian gate for protected context",
+        "operator approval",
+        "redaction receipt"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Cassandra finance/comms packages require protected metadata and gates before any future model use.",
+      "sensitivity_posture": "finance/comms protected contexts default local/private or blocked"
+    },
+    {
+      "actor_id": "hermes",
+      "agent_character": "Hermes",
+      "blocked_authority": [
+        "runtime execution",
+        "private raw body ingestion",
+        "hidden routing"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_deep_reasoner"
+      ],
+      "required_gates": [
+        "package preview",
+        "sensitivity classification",
+        "operator approval for external use"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Hermes may later use reasoning classes for non-sensitive architecture packages.",
+      "sensitivity_posture": "architecture/doctrine can be future external only when sanitized and non-sensitive"
+    },
+    {
+      "actor_id": "niles",
+      "agent_character": "Niles",
+      "blocked_authority": [
+        "broad private archive ingestion",
+        "release/upload/account action",
+        "unrelated private context"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "local_reasoning",
+        "external_multimodal",
+        "external_deep_reasoner"
+      ],
+      "required_gates": [
+        "project capsule refs",
+        "rights/sensitivity review",
+        "operator approval"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Niles model choice can be creative only when context is scoped and safe.",
+      "sensitivity_posture": "creative/music/art context must be scoped; broad private archive ingestion is blocked"
+    },
+    {
+      "actor_id": "codex",
+      "agent_character": "Codex",
+      "blocked_authority": [
+        "network",
+        "credentials",
+        "broad repo expansion",
+        "hidden memory",
+        "canonical writes"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "external_code_worker",
+        "local_reasoning"
+      ],
+      "required_gates": [
+        "package boundary receipt",
+        "allowed roots",
+        "operator preview",
+        "test/result receipts"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Codex remains manual/scoped worker until future runtime gates exist.",
+      "sensitivity_posture": "implementation worker outside OpenClaw runtime; future routing only through scoped code packages"
+    },
+    {
+      "actor_id": "gemini_antigravity",
+      "agent_character": "Gemini / Antigravity",
+      "blocked_authority": [
+        "retained memory",
+        "canonical writes",
+        "raw protected material",
+        "broad context"
+      ],
+      "can_self_select_model": false,
+      "can_upgrade_model_class": false,
+      "current_live_model_class": "blocked_no_model",
+      "future_eligible_model_classes": [
+        "external_fast_worker",
+        "external_code_worker",
+        "external_deep_reasoner",
+        "external_multimodal"
+      ],
+      "required_gates": [
+        "package preview",
+        "sensitivity classification",
+        "operator approval",
+        "no-retention receipt"
+      ],
+      "runtime_dispatch_allowed_now": false,
+      "selection_guidance": "Gemini/Antigravity can be future-eligible only with package-bounded context and no retention.",
+      "sensitivity_posture": "external worker candidate only through package-bounded sanitized context"
+    }
+  ],
+  "agent_activation_authority": false,
+  "broad_filesystem_indexing_enabled": false,
+  "browser_oauth_account_access_enabled": false,
+  "contract_status": "deterministic_model_selection_receipt_metadata_only",
+  "core_doctrine": {
+    "agent_cannot_choose_its_own_model": true,
+    "agent_is_character": true,
+    "model_cannot_choose_itself": true,
+    "model_is_actor": true,
+    "package_cannot_override_model_policy": true,
+    "package_is_deterministic_mission_payload": true,
+    "sensitive_context_external_routing_requires_policy_gates_redaction_and_receipts": true,
+    "worker_cannot_upgrade_itself": true
+  },
+  "credential_authority": false,
+  "decision_types": [
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_SELECTED",
+      "description": "Future state: a model class is selected by policy and receipts, without implying a current call."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_BLOCKED",
+      "description": "Policy blocks model selection."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_DEFERRED",
+      "description": "Model selection is plausible later but prerequisites are missing."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_ESCALATED_TO_OPERATOR",
+      "description": "Human operator must decide or approve."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_ESCALATED_TO_GUARDIAN",
+      "description": "Guardian gate must review sensitive/protected posture."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_REQUIRES_REDACTION",
+      "description": "Context must be redacted/reference-only before selection."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_REQUIRES_LOCAL_ONLY",
+      "description": "Context requires local/private handling or blocking."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_REQUIRES_PACKAGE_RECOMPILE",
+      "description": "Package lacks required model-selection inputs."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_REQUIRES_MEMORY_SCOPE_REVIEW",
+      "description": "Memory/context scope must be reviewed first."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_REQUIRES_TOOL_GATE_REVIEW",
+      "description": "Requested adapters need registry/gate review first."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_POLICY_CONFLICT",
+      "description": "Inputs conflict with model policy."
+    },
+    {
+      "creates_live_model_call_authority": false,
+      "decision_type": "MODEL_UNKNOWN_FAIL_CLOSED",
+      "description": "Unknown or incomplete inputs fail closed."
+    }
+  ],
+  "evidence_sources": [
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_platform_alignment.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "agent-platform primitive map",
+      "schema_version": "agent_platform_alignment_v0",
+      "source_id": "agent_platform_alignment"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_identity_actor_router_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "actor/agent identities and routing boundaries",
+      "schema_version": "agent_identity_actor_router_contract_v0",
+      "source_id": "agent_identity_actor_router_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/model_selection_policy_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "source policy for model classes and sensitivity posture",
+      "schema_version": "model_selection_policy_contract_v0",
+      "source_id": "model_selection_policy_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_package_preview_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "package preview mission/context/authority boundaries",
+      "schema_version": "agent_package_preview_contract_v0",
+      "source_id": "agent_package_preview_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/agent_memory_scope_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "memory/context inclusion and exclusion policy",
+      "schema_version": "agent_memory_scope_contract_v0",
+      "source_id": "agent_memory_scope_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "tool adapter eligibility and blocked/future-gated posture",
+      "schema_version": "tool_protocol_adapter_registry_contract_v0",
+      "source_id": "tool_protocol_adapter_registry_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/memory_candidate_receipt_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "reviewed candidate context receipt posture",
+      "schema_version": "memory_candidate_receipt_contract_v0",
+      "source_id": "memory_candidate_receipt_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/package_compiler_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "deterministic package boundary validation",
+      "schema_version": "package_compiler_contract_v0",
+      "source_id": "package_compiler_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "Guardian protected-access gate posture",
+      "schema_version": "guardian_protected_access_gate_spec_v0",
+      "source_id": "guardian_protected_access_gate_spec"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/operator_map_bundle_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "stable map contract when present",
+      "schema_version": "operator_map_bundle_contract_v0",
+      "source_id": "stable_map_bundle_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credentials_or_secrets_imported": false,
+      "path": "generated/read_models/operator_threshold_map_contract.json",
+      "present": true,
+      "raw_private_body_imported": false,
+      "role": "threshold/lane destiny contract",
+      "schema_version": "operator_threshold_map_contract_v0",
+      "source_id": "threshold_map_contract"
+    }
+  ],
+  "example_model_selection_receipts": [
+    {
+      "actor_id": "chief",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Chief",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "AUTHORITY_NOT_GRANTED",
+        "MISSING_PACKAGE_PREVIEW"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_BLOCKED",
+      "example_id": "chief_check_engine_diagnostic_package",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": true,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_chief_check_engine_diagnostic_package",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_chief_check_engine_diagnostic",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "check_light_diagnostic_package",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "external_deep_reasoner",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Chief diagnostics may be previewed, but OpenClaw has no live model dispatch authority.",
+      "selection_state": "SELECTION_BLOCKED",
+      "sensitivity": "INTERNAL_SYSTEM",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Chief Check Engine Diagnostic Package",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "No live dispatch authority and package/runtime gates are not active.",
+      "what_would_make_selection_valid": "Package preview, model policy receipt, operator approval, and future runtime gate."
+    },
+    {
+      "actor_id": "cassandra",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Cassandra",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "GUARDIAN_GATE_REQUIRED",
+        "SENSITIVITY_BLOCKED",
+        "TOOL_ADAPTER_BLOCKED",
+        "AUTHORITY_NOT_GRANTED"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_DEFERRED",
+      "example_id": "cassandra_capital_hilton_invoice_review",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": true,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_cassandra_capital_hilton_invoice_review",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_cassandra_capital_hilton_invoice_review",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "finance_ap_review",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "local_sensitive",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Finance protected context needs proof metadata, Guardian gate, and no account access.",
+      "selection_state": "SELECTION_DEFERRED",
+      "sensitivity": "FINANCE_PROTECTED",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Cassandra Capital Hilton Invoice Review",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "Coupa/Excel proof is missing or protected, account access is blocked, and no runtime authority exists.",
+      "what_would_make_selection_valid": "Protected proof metadata, Guardian review, operator approval, and local/private model receipt after security."
+    },
+    {
+      "actor_id": "codex",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Codex",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "AUTHORITY_NOT_GRANTED"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_DEFERRED",
+      "example_id": "codex_backend_contract_implementation",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": false,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_codex_backend_contract_implementation",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_codex_backend_contract_implementation",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "code_implementation",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "external_code_worker",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Manual Codex worker lanes may operate by prompt, but OpenClaw runtime has no model dispatch authority.",
+      "selection_state": "SELECTION_ALLOWED_PREVIEW_ONLY",
+      "sensitivity": "INTERNAL_SYSTEM",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Codex Backend Contract Implementation",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "No OpenClaw runtime model authority; manual worker use remains outside model router execution.",
+      "what_would_make_selection_valid": "Scoped package, allowed roots, receipt requirements, and future runtime gate."
+    },
+    {
+      "actor_id": "niles",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Niles",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "OPERATOR_APPROVAL_REQUIRED",
+        "MISSING_MEMORY_SCOPE"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_DEFERRED",
+      "example_id": "niles_creative_metadata_review",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": true,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_niles_creative_metadata_review",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_niles_creative_metadata_review",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "music_creative_review",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "external_multimodal",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Creative review may be future-eligible with scoped context, but broad private archive ingestion is blocked.",
+      "selection_state": "SELECTION_DEFERRED",
+      "sensitivity": "CREATIVE_PRIVATE",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Niles Creative Metadata Review",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "Creative context is not yet scoped and external retention remains blocked.",
+      "what_would_make_selection_valid": "Scoped project capsule, rights/sensitivity review, operator approval, and no-retention receipt."
+    },
+    {
+      "actor_id": "guardian",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Guardian",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "GUARDIAN_GATE_REQUIRED",
+        "RAW_PRIVATE_CONTEXT_BLOCKED",
+        "AUTHORITY_NOT_GRANTED"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_BLOCKED",
+      "example_id": "guardian_protected_evidence_review",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": true,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_guardian_protected_evidence_review",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_guardian_protected_evidence_review",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "protected_access_review",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "local_sensitive",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Protected evidence review is metadata-only and cannot expose raw private bodies.",
+      "selection_state": "SELECTION_BLOCKED",
+      "sensitivity": "LEGAL_OR_COMPLIANCE",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Guardian Protected Evidence Review",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "Raw protected context is blocked and no live model route exists.",
+      "what_would_make_selection_valid": "Protected metadata refs, Guardian gate receipt, operator approval, and local sensitive model proof."
+    },
+    {
+      "actor_id": "gemini_antigravity",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Gemini / Antigravity",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "OPERATOR_APPROVAL_REQUIRED",
+        "EXTERNAL_RETENTION_BLOCKED"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_DEFERRED",
+      "example_id": "gemini_antigravity_visual_polish",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": false,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_gemini_antigravity_visual_polish",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_gemini_antigravity_visual_polish",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "mission_control_ux",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "external_multimodal",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "External visual worker is only a package-bounded candidate; no memory retention or canonical writes.",
+      "selection_state": "SELECTION_DEFERRED",
+      "sensitivity": "PUBLIC_OR_LOW",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Gemini/Antigravity Visual Polish",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "External model authority and no-retention receipts are not active.",
+      "what_would_make_selection_valid": "Sanitized visual refs, operator approval, external use receipt, and no-retention proof."
+    },
+    {
+      "actor_id": "unknown_actor",
+      "actor_router_reference": "generated/read_models/agent_identity_actor_router_contract.json",
+      "agent_character": "Unknown",
+      "allowed_tool_adapters": [],
+      "authority_level_granted": "preview_only",
+      "authority_level_required": "future_gate_required",
+      "blocked_reasons": [
+        "UNKNOWN_ACTOR",
+        "UNKNOWN_PACKAGE_TYPE",
+        "MISSING_MEMORY_SCOPE",
+        "TOOL_ADAPTER_UNKNOWN",
+        "SENSITIVITY_UNKNOWN"
+      ],
+      "blocked_tool_adapters": [],
+      "context_excluded_refs": [
+        "raw_private_bodies",
+        "credentials",
+        "account_sessions"
+      ],
+      "context_included_refs": [
+        "example_context_refs_only"
+      ],
+      "created_at": "example_static_timestamp",
+      "decision_type": "MODEL_UNKNOWN_FAIL_CLOSED",
+      "example_id": "unknown_tool_memory_package",
+      "expires_or_review_after": "requires_review_before_future_dispatch",
+      "external_model_allowed": false,
+      "guardian_gate_status": "required_if_sensitive_or_protected",
+      "local_model_required": true,
+      "memory_candidate_receipt_refs": [],
+      "memory_scope_reference": "generated/read_models/agent_memory_scope_contract.json",
+      "model_call_performed": false,
+      "model_policy_reference": "generated/read_models/model_selection_policy_contract.json",
+      "model_selection_receipt_id": "model_selection_receipt_unknown_tool_memory_package",
+      "operator_gate_status": "required_if_future_execution_requested",
+      "package_id": "package_unknown_tool_memory",
+      "package_preview_reference": "generated/read_models/agent_package_preview_contract.json",
+      "package_type": "unknown_package_type",
+      "policy_version": "model_selection_receipt_contract_v0",
+      "quarantine_status": "not_quarantined",
+      "receipt_hash": "example_hash_computed_in_real_receipt",
+      "receipt_requirements": [
+        "model selection receipt",
+        "package preview receipt",
+        "result receipt if future action"
+      ],
+      "redaction_status": "reference_only_or_not_required",
+      "requested_model_class": "external_deep_reasoner",
+      "requested_tool_adapters": [],
+      "retention_policy": "no_external_retained_memory",
+      "revocation_status": "not_revoked",
+      "runtime_dispatch_allowed": false,
+      "selected_model_class": "blocked_no_model",
+      "selection_reason": "Missing actor, memory scope, tool adapter, and sensitivity classification.",
+      "selection_state": "UNKNOWN_FAIL_CLOSED",
+      "sensitivity": "UNKNOWN_SENSITIVE_FAIL_CLOSED",
+      "stop_conditions": [
+        "missing required gate",
+        "unknown sensitivity",
+        "authority not granted",
+        "receipt malformed"
+      ],
+      "title": "Unknown Tool/Memory Package",
+      "tool_adapter_registry_reference": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "what_keeps_selection_blocked": "Unknown inputs fail closed.",
+      "what_would_make_selection_valid": "Known actor, known package type, memory scope, tool adapter registry match, and sensitivity classification."
+    }
+  ],
+  "external_api_access_authority": false,
+  "external_retained_memory_enabled": false,
+  "generated_at": "2026-05-21T22:55:31+00:00",
+  "gmail_calendar_coupa_telegram_enabled": false,
+  "hidden_memory_capture_enabled": false,
+  "hidden_model_routing_enabled": false,
+  "mac_sync_or_import_triggered": false,
+  "machine_proof": {
+    "agent_activation_added": false,
+    "content_hash": "sha256:ac70e6da69b81a7d04a3de9b56285861f1963a70ff68697a9754c449c3d3328a",
+    "decision_type_count": 12,
+    "example_receipt_ids": [
+      "model_selection_receipt_chief_check_engine_diagnostic_package",
+      "model_selection_receipt_cassandra_capital_hilton_invoice_review",
+      "model_selection_receipt_codex_backend_contract_implementation",
+      "model_selection_receipt_niles_creative_metadata_review",
+      "model_selection_receipt_guardian_protected_evidence_review",
+      "model_selection_receipt_gemini_antigravity_visual_polish",
+      "model_selection_receipt_unknown_tool_memory_package"
+    ],
+    "external_api_access_added": false,
+    "external_retained_memory_added": false,
+    "hidden_model_routing_added": false,
+    "model_call_performed": false,
+    "model_class_count": 9,
+    "model_router_runtime_added": false,
+    "pc_c_drive_artifact_write_added": false,
+    "receipt_required_field_count": 43,
+    "runtime_dispatch_allowed": false,
+    "selection_state_count": 16,
+    "source_read_models_present": {
+      "agent_identity_actor_router_contract": true,
+      "agent_memory_scope_contract": true,
+      "agent_package_preview_contract": true,
+      "agent_platform_alignment": true,
+      "guardian_protected_access_gate_spec": true,
+      "memory_candidate_receipt_contract": true,
+      "model_selection_policy_contract": true,
+      "package_compiler_contract": true,
+      "stable_map_bundle_contract": true,
+      "threshold_map_contract": true,
+      "tool_protocol_adapter_registry_contract": true
+    },
+    "tool_execution_added": false
+  },
+  "mission_control_app_authority_added": false,
+  "mission_control_surface_guidance": {
+    "actor_detail": [
+      "current live model: blocked/no model unless explicitly future-gated",
+      "future eligible model classes",
+      "sensitivity ceiling",
+      "external model restrictions",
+      "local/private requirement"
+    ],
+    "hide_or_block": [
+      "model launch controls",
+      "provider credential prompts",
+      "browser/OAuth prompts",
+      "fake confidence percentages",
+      "hidden routing",
+      "external retained-memory assumptions",
+      "agent chose its own model claims"
+    ],
+    "model_selection_preview": [
+      "requested model class",
+      "selected or blocked model class",
+      "decision type",
+      "actor/agent",
+      "sensitivity",
+      "memory scope status",
+      "tool adapter status",
+      "Guardian/Operator gates",
+      "external model allowed yes/no",
+      "runtime dispatch allowed yes/no",
+      "blocked reasons",
+      "what would make selection valid"
+    ],
+    "package_preview_model_section": [
+      "actor/model binding",
+      "model policy references",
+      "model selection receipt",
+      "context included/excluded",
+      "stop conditions",
+      "receipt requirements"
+    ]
+  },
+  "model_api_execution_authority": false,
+  "model_call_authority": false,
+  "model_classes": [
+    {
+      "allowed_context_types": [
+        "read_model_summary",
+        "stable_map_reference",
+        "operator_low_risk_context"
+      ],
+      "blocked_context_types": [
+        "credentials",
+        "account_access",
+        "raw_private_body",
+        "finance_protected_raw_context"
+      ],
+      "current_authority_posture": "metadata_only_future_eligible_no_local_call",
+      "external_retention_rule": "no external retention",
+      "future_eligibility": "future low-risk local triage after local inventory and receipts",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_small_fast",
+      "receipt_requirement": "model selection receipt and post-result receipt",
+      "required_guardian_gate": false,
+      "required_memory_scope": "memory_scope_checked",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "read_only_or_preview_only_adapters",
+      "sensitivity_ceiling": "INTERNAL_SYSTEM",
+      "what_blocks_selection": [
+        "missing local model inventory",
+        "sensitivity exceeds internal",
+        "package preview missing"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "read_model_summary",
+        "stable_map_reference",
+        "package_preview_reference",
+        "memory_candidate_refs"
+      ],
+      "blocked_context_types": [
+        "credentials",
+        "account_access",
+        "raw_private_body",
+        "protected_finance_raw_context"
+      ],
+      "current_authority_posture": "metadata_only_future_eligible_no_local_call",
+      "external_retention_rule": "no external retention",
+      "future_eligibility": "future private/internal reasoning after local capability proof",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_reasoning",
+      "receipt_requirement": "model selection receipt, local model inventory receipt, result receipt",
+      "required_guardian_gate": false,
+      "required_memory_scope": "memory_scope_checked",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "known_adapters_only_no_execution",
+      "sensitivity_ceiling": "CREATIVE_PRIVATE",
+      "what_blocks_selection": [
+        "local model proof missing",
+        "unknown sensitivity",
+        "tool adapter unknown"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "protected_metadata_refs",
+        "guardian_approved_protected_metadata",
+        "redacted_source_cards"
+      ],
+      "blocked_context_types": [
+        "credentials",
+        "account_access",
+        "raw_private_body_without_gate",
+        "browser_session_material"
+      ],
+      "current_authority_posture": "metadata_only_future_eligible_no_local_call",
+      "external_retention_rule": "no external retention",
+      "future_eligibility": "future private/offline sensitive handling after security audit",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "local_sensitive",
+      "receipt_requirement": "Guardian gate receipt, model selection receipt, sensitivity receipt, result receipt",
+      "required_guardian_gate": true,
+      "required_memory_scope": "protected_memory_scope_checked",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "Guardian-gated read-only metadata adapters",
+      "sensitivity_ceiling": "LEGAL_OR_COMPLIANCE",
+      "what_blocks_selection": [
+        "security audit missing",
+        "Guardian gate missing",
+        "raw private body included",
+        "credential context"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "public_or_repo_safe_refs",
+        "sanitized_package_preview"
+      ],
+      "blocked_context_types": [
+        "client_private",
+        "finance_protected",
+        "credentials",
+        "account_access",
+        "raw_private_body"
+      ],
+      "current_authority_posture": "blocked_no_external_model_call",
+      "external_retention_rule": "external retention blocked; no retained memory allowed",
+      "future_eligibility": "future low-sensitivity external review after gates",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_fast_worker",
+      "receipt_requirement": "Operator approval receipt and external model use receipt",
+      "required_guardian_gate": false,
+      "required_memory_scope": "memory_scope_checked_and_sanitized",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "preview-only adapters",
+      "sensitivity_ceiling": "PUBLIC_OR_LOW",
+      "what_blocks_selection": [
+        "non-public sensitivity",
+        "operator approval missing",
+        "external retention possible"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "public_or_repo_safe_refs",
+        "sanitized_architecture_packet"
+      ],
+      "blocked_context_types": [
+        "internal_private_unredacted",
+        "client_private",
+        "finance_protected",
+        "credentials",
+        "account_access"
+      ],
+      "current_authority_posture": "blocked_no_external_model_call",
+      "external_retention_rule": "external retention blocked; no retained memory allowed",
+      "future_eligibility": "future sanitized architecture/doctrine reasoning after gates",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_deep_reasoner",
+      "receipt_requirement": "Operator approval receipt, Guardian external-model gate receipt, result receipt",
+      "required_guardian_gate": true,
+      "required_memory_scope": "memory_scope_checked_and_sanitized",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "preview-only adapters",
+      "sensitivity_ceiling": "PUBLIC_OR_LOW",
+      "what_blocks_selection": [
+        "sensitive/private context",
+        "Guardian gate missing",
+        "operator approval missing",
+        "package unsanitized"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "repo_safe_file_refs",
+        "scoped_diff_refs",
+        "test_refs",
+        "package_preview_reference"
+      ],
+      "blocked_context_types": [
+        "credentials",
+        "no_go_paths",
+        "raw_private_body",
+        "broad_repo_context",
+        "protected_context"
+      ],
+      "current_authority_posture": "blocked_no_external_model_call",
+      "external_retention_rule": "external retention blocked; no durable retained memory",
+      "future_eligibility": "future scoped code/test worker after package boundaries",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_code_worker",
+      "receipt_requirement": "package boundary receipt, operator preview receipt, result receipt",
+      "required_guardian_gate": false,
+      "required_memory_scope": "scoped_workspace_memory_scope_checked",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "scoped code/test adapters only; no network/credentials",
+      "sensitivity_ceiling": "INTERNAL_SYSTEM",
+      "what_blocks_selection": [
+        "allowed roots missing",
+        "forbidden path requested",
+        "network/credential path",
+        "broad context"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "sanitized_screenshot_refs",
+        "public_media_refs",
+        "ui_proof_refs"
+      ],
+      "blocked_context_types": [
+        "private_media",
+        "client_private",
+        "finance_protected",
+        "credentials",
+        "account_access"
+      ],
+      "current_authority_posture": "blocked_no_external_model_call",
+      "external_retention_rule": "external retention blocked; no retained media memory",
+      "future_eligibility": "future sanitized visual/audio/document review after media policy",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "external_multimodal",
+      "receipt_requirement": "media source receipt, operator approval receipt, Guardian gate when sensitive",
+      "required_guardian_gate": true,
+      "required_memory_scope": "media_context_scope_checked",
+      "required_operator_approval": true,
+      "required_tool_adapter_posture": "preview-only media/proof adapters",
+      "sensitivity_ceiling": "PUBLIC_OR_LOW",
+      "what_blocks_selection": [
+        "media sensitivity unknown",
+        "operator approval missing",
+        "private media",
+        "Guardian gate missing"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "all summarized refs visible to operator",
+        "proof detail refs"
+      ],
+      "blocked_context_types": [
+        "hidden model memory",
+        "unreviewed secret material surfaced as package context"
+      ],
+      "current_authority_posture": "human_decision_authority_only",
+      "external_retention_rule": "not a model; no external retention",
+      "future_eligibility": "available for operator review and final action authority",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "human_operator",
+      "receipt_requirement": "operator decision receipt when needed",
+      "required_guardian_gate": false,
+      "required_memory_scope": "operator review surface",
+      "required_operator_approval": false,
+      "required_tool_adapter_posture": "none; human is not a tool adapter",
+      "sensitivity_ceiling": "UNKNOWN_SENSITIVE_FAIL_CLOSED",
+      "what_blocks_selection": [
+        "operator absent when approval required",
+        "proof/detail unavailable",
+        "unsafe raw secret display"
+      ]
+    },
+    {
+      "allowed_context_types": [
+        "package metadata refs",
+        "blocked reason refs"
+      ],
+      "blocked_context_types": [],
+      "current_authority_posture": "active_safe_default",
+      "external_retention_rule": "no retention",
+      "future_eligibility": "always valid when model selection is unsafe, incomplete, or pre-runtime",
+      "may_self_select": false,
+      "model_callable_now": false,
+      "model_class_id": "blocked_no_model",
+      "receipt_requirement": "blocked model selection receipt",
+      "required_guardian_gate": false,
+      "required_memory_scope": "none required to block",
+      "required_operator_approval": false,
+      "required_tool_adapter_posture": "none required to block",
+      "sensitivity_ceiling": "UNKNOWN_SENSITIVE_FAIL_CLOSED",
+      "what_blocks_selection": []
+    }
+  ],
+  "model_router_runtime_authority": false,
+  "network_execution_enabled": false,
+  "operator_final_authority": true,
+  "operator_summary": "OpenClaw now has a deterministic receipt grammar for actor/model choice. It proves why a package selected, blocked, deferred, escalated, or failed closed for a model class. It does not call models, activate agents, or grant dispatch authority.",
+  "package_binding_rule": {
+    "fail_closed_reasons": [
+      "UNKNOWN_ACTOR",
+      "UNKNOWN_MODEL_CLASS",
+      "UNKNOWN_PACKAGE_TYPE",
+      "MISSING_PACKAGE_PREVIEW",
+      "MISSING_MEMORY_SCOPE",
+      "SENSITIVITY_UNKNOWN",
+      "SENSITIVITY_BLOCKED",
+      "TOOL_ADAPTER_UNKNOWN",
+      "TOOL_ADAPTER_BLOCKED",
+      "GUARDIAN_GATE_REQUIRED",
+      "OPERATOR_APPROVAL_REQUIRED",
+      "EXTERNAL_RETENTION_BLOCKED",
+      "RAW_PRIVATE_CONTEXT_BLOCKED",
+      "CREDENTIAL_CONTEXT_BLOCKED",
+      "AUTHORITY_NOT_GRANTED",
+      "RECEIPT_REQUIREMENT_MISSING"
+    ],
+    "model_or_actor_self_selection_allowed": false,
+    "package_may_receive_model_selection_receipt_only_if": [
+      "package preview exists",
+      "actor/agent is known",
+      "model policy exists",
+      "memory scope permits included context",
+      "sensitivity is classified",
+      "requested tools/adapters are known and allowed or explicitly blocked",
+      "Guardian/Operator gates are identified",
+      "receipt requirements exist",
+      "stop conditions exist",
+      "runtime authority is explicit and currently false unless future-approved"
+    ],
+    "unknown_package_result": "MODEL_UNKNOWN_FAIL_CLOSED"
+  },
+  "pc_c_drive_artifact_write_allowed": false,
+  "planner_builder_execution_enabled": false,
+  "policy_input_model": {
+    "fail_closed_reasons": [
+      "UNKNOWN_ACTOR",
+      "UNKNOWN_MODEL_CLASS",
+      "UNKNOWN_PACKAGE_TYPE",
+      "MISSING_PACKAGE_PREVIEW",
+      "MISSING_MEMORY_SCOPE",
+      "SENSITIVITY_UNKNOWN",
+      "SENSITIVITY_BLOCKED",
+      "TOOL_ADAPTER_UNKNOWN",
+      "TOOL_ADAPTER_BLOCKED",
+      "GUARDIAN_GATE_REQUIRED",
+      "OPERATOR_APPROVAL_REQUIRED",
+      "EXTERNAL_RETENTION_BLOCKED",
+      "RAW_PRIVATE_CONTEXT_BLOCKED",
+      "CREDENTIAL_CONTEXT_BLOCKED",
+      "AUTHORITY_NOT_GRANTED",
+      "RECEIPT_REQUIREMENT_MISSING"
+    ],
+    "missing_input_result": "MODEL_UNKNOWN_FAIL_CLOSED",
+    "missing_package_detail_result": "MODEL_REQUIRES_PACKAGE_RECOMPILE",
+    "required_policy_inputs": [
+      "package_type",
+      "actor_agent_identity",
+      "task_domain",
+      "task_risk",
+      "sensitivity_class",
+      "memory_scope",
+      "context_refs",
+      "context_exclusions",
+      "requested_tools_adapters",
+      "output_type",
+      "proof_requirements",
+      "receipt_requirements",
+      "external_retention_posture",
+      "operator_approval_requirement",
+      "guardian_gate_requirement",
+      "local_private_requirement",
+      "stop_conditions"
+    ]
+  },
+  "queue_autonomy_execution_enabled": false,
+  "raw_private_body_ingestion_enabled": false,
+  "read_model_id": "model_selection_receipt_contract",
+  "receipt_revocation_quarantine_policy": {
+    "missing_or_malformed_receipt_result": "SELECTION_QUARANTINED",
+    "quarantine_is_non_destructive": true,
+    "quarantine_triggers": [
+      "model selected without policy reference",
+      "model selected without package preview",
+      "model selected with unknown sensitivity",
+      "external model selected with private/protected context",
+      "credential/account context included",
+      "memory scope violation",
+      "tool adapter violation",
+      "Guardian gate missing",
+      "Operator approval missing",
+      "actor self-selected model",
+      "model call occurred without receipt",
+      "external retained memory detected",
+      "receipt malformed",
+      "receipt hash missing",
+      "output claims authority not granted"
+    ],
+    "revocation_triggers": [
+      "policy changed",
+      "sensitivity classification changed",
+      "memory candidate revoked",
+      "package preview revoked",
+      "tool adapter quarantined",
+      "Guardian gate revoked",
+      "Operator approval revoked",
+      "model provider no longer eligible",
+      "receipt conflict discovered"
+    ]
+  },
+  "recommended_next_lanes": [
+    {
+      "hard_boundary": "receipt metadata only; no dispatch",
+      "lane_id": "package_preview_receipt_v0",
+      "priority": "P1",
+      "title": "Package Preview Receipt v0",
+      "why_next": "Model selection receipts depend on package previews; package previews now need their own receipt grammar."
+    },
+    {
+      "hard_boundary": "receipt metadata only; no live tool execution",
+      "lane_id": "tool_adapter_receipt_v0",
+      "priority": "P1",
+      "title": "Tool Adapter Receipt v0",
+      "why_next": "Tool adapter references in model receipts need a receipt grammar before future use."
+    },
+    {
+      "hard_boundary": "read-only UI/contract lane; no canonical memory mutation",
+      "lane_id": "memory_review_promotion_surface_v0",
+      "priority": "P2",
+      "title": "Memory Review / Promotion Surface v0",
+      "why_next": "Reviewed memory candidates need a read-only operator surface before any promotion lane."
+    },
+    {
+      "hard_boundary": "Mac read-only UI; no backend command authority",
+      "lane_id": "mission_control_package_preview_actor_routing_surface_v0",
+      "priority": "P2",
+      "title": "Mission Control Package Preview / Actor Routing Surface v0",
+      "why_next": "Mission Control can render actor/model/tool/memory receipts in package preview."
+    },
+    {
+      "hard_boundary": "plan only; no model router runtime",
+      "lane_id": "model_router_implementation_plan_v0",
+      "priority": "P3",
+      "title": "Model Router Implementation Plan v0",
+      "why_next": "A future router plan can remain preview-only until security gates and receipts are complete."
+    }
+  ],
+  "relationship_to_existing_contracts": {
+    "agent_identity_actor_router_contract": "says which actor/agent should handle the package",
+    "agent_memory_scope_contract": "says what context may be included",
+    "agent_package_preview_contract": "defines mission, context, and boundaries",
+    "agent_platform_alignment": "defines the platform primitive map",
+    "guardian_protected_access_gate_spec": "gates sensitive/protected eligibility",
+    "memory_candidate_receipt_contract": "supplies reviewed context candidates",
+    "model_selection_policy_contract": "says what model classes are eligible",
+    "stable_map_bundle": "may carry a summary in a later refresh",
+    "threshold_map_contract": "can route threshold lanes without granting execution",
+    "tool_protocol_adapter_registry_contract": "says what adapters may be referenced"
+  },
+  "repo_b_mutation_enabled": false,
+  "runtime_authority": false,
+  "runtime_daemon_enabled": false,
+  "schema_version": "model_selection_receipt_contract_v0",
+  "selection_receipt_schema": {
+    "hard_defaults": {
+      "authority_level_granted": "preview_only",
+      "model_call_performed": false,
+      "runtime_dispatch_allowed": false
+    },
+    "missing_required_field_result": "MODEL_UNKNOWN_FAIL_CLOSED",
+    "natural_language_claim_counts_as_proof": false,
+    "required_fields": [
+      "model_selection_receipt_id",
+      "package_id",
+      "package_type",
+      "actor_id",
+      "agent_character",
+      "requested_model_class",
+      "selected_model_class",
+      "decision_type",
+      "selection_state",
+      "selection_reason",
+      "policy_version",
+      "actor_router_reference",
+      "model_policy_reference",
+      "package_preview_reference",
+      "memory_scope_reference",
+      "memory_candidate_receipt_refs",
+      "tool_adapter_registry_reference",
+      "requested_tool_adapters",
+      "allowed_tool_adapters",
+      "blocked_tool_adapters",
+      "sensitivity",
+      "context_included_refs",
+      "context_excluded_refs",
+      "redaction_status",
+      "operator_gate_status",
+      "guardian_gate_status",
+      "external_model_allowed",
+      "local_model_required",
+      "retention_policy",
+      "authority_level_required",
+      "authority_level_granted",
+      "runtime_dispatch_allowed",
+      "model_call_performed",
+      "blocked_reasons",
+      "stop_conditions",
+      "receipt_requirements",
+      "created_at",
+      "expires_or_review_after",
+      "revocation_status",
+      "quarantine_status",
+      "receipt_hash",
+      "what_would_make_selection_valid",
+      "what_keeps_selection_blocked"
+    ]
+  },
+  "selection_states": [
+    {
+      "description": "A package requested a model-selection decision.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_REQUESTED"
+    },
+    {
+      "description": "Required policy inputs have been collected.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "POLICY_INPUTS_COLLECTED"
+    },
+    {
+      "description": "Sensitivity has been classified.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SENSITIVITY_CLASSIFIED"
+    },
+    {
+      "description": "Memory scope has been checked.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "MEMORY_SCOPE_CHECKED"
+    },
+    {
+      "description": "Tool adapter posture has been checked.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "TOOL_ADAPTERS_CHECKED"
+    },
+    {
+      "description": "Actor eligibility has been checked.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "ACTOR_ELIGIBILITY_CHECKED"
+    },
+    {
+      "description": "Requested model class has been evaluated.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "MODEL_CLASS_EVALUATED"
+    },
+    {
+      "description": "Operator/Guardian/tool/memory gates have been identified.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "GATES_IDENTIFIED"
+    },
+    {
+      "description": "Receipt has enough fields for review.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "RECEIPT_READY"
+    },
+    {
+      "description": "Selection may be shown as preview only; no dispatch.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_ALLOWED_PREVIEW_ONLY"
+    },
+    {
+      "description": "Selection is blocked.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_BLOCKED"
+    },
+    {
+      "description": "Selection is deferred until future gates/proof exist.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_DEFERRED"
+    },
+    {
+      "description": "Selection is escalated to operator or Guardian.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_ESCALATED"
+    },
+    {
+      "description": "Selection receipt has been revoked.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_REVOKED"
+    },
+    {
+      "description": "Selection receipt is quarantined.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "SELECTION_QUARANTINED"
+    },
+    {
+      "description": "Selection cannot be trusted and fails closed.",
+      "runtime_dispatch_allowed": false,
+      "selection_state": "UNKNOWN_FAIL_CLOSED"
+    }
+  ],
+  "send_submit_approval_enabled": false,
+  "sensitivity_routing_rules": [
+    {
+      "blocked_contexts": [
+        "credentials",
+        "account access",
+        "raw private body"
+      ],
+      "default_result": "external_or_local_future_eligible_after_preview",
+      "external_model_rule": "external may be future-eligible with operator approval and no retention",
+      "guardian_gate_required": false,
+      "local_private_requirement": "not required unless package says so",
+      "operator_approval_required": true,
+      "sensitivity": "PUBLIC_OR_LOW"
+    },
+    {
+      "blocked_contexts": [
+        "credentials",
+        "account access",
+        "no-go paths",
+        "raw private body"
+      ],
+      "default_result": "local_private_or_blocked_by_default",
+      "external_model_rule": "external only after sanitization, operator approval, and no-retention receipt",
+      "guardian_gate_required": false,
+      "local_private_requirement": "preferred for internal OpenClaw context",
+      "operator_approval_required": true,
+      "sensitivity": "INTERNAL_SYSTEM"
+    },
+    {
+      "blocked_contexts": [
+        "unrelated private archive",
+        "account sessions",
+        "client/legal/finance material"
+      ],
+      "default_result": "local_private_or_blocked_by_default",
+      "external_model_rule": "external only with scoped creative packet, rights/sensitivity review, and no retention",
+      "guardian_gate_required": false,
+      "local_private_requirement": "required unless scoped creative context is explicitly approved",
+      "operator_approval_required": true,
+      "sensitivity": "CREATIVE_PRIVATE"
+    },
+    {
+      "blocked_contexts": [
+        "raw client documents",
+        "unredacted private body",
+        "external retention"
+      ],
+      "default_result": "blocked_no_model_or_local_sensitive_future",
+      "external_model_rule": "external blocked unless a later explicit protected gate allows sanitized metadata",
+      "guardian_gate_required": true,
+      "local_private_requirement": "required",
+      "operator_approval_required": true,
+      "sensitivity": "CLIENT_PRIVATE"
+    },
+    {
+      "blocked_contexts": [
+        "Coupa/Excel raw bodies",
+        "bank/remit/check data",
+        "account access",
+        "submit/approval"
+      ],
+      "default_result": "blocked_no_model_or_local_sensitive_future",
+      "external_model_rule": "external blocked for raw/protected finance context",
+      "guardian_gate_required": true,
+      "local_private_requirement": "required",
+      "operator_approval_required": true,
+      "sensitivity": "FINANCE_PROTECTED"
+    },
+    {
+      "blocked_contexts": [
+        "credentials",
+        "tokens",
+        "cookies",
+        "OAuth state",
+        "secrets"
+      ],
+      "default_result": "blocked_no_model",
+      "external_model_rule": "external blocked",
+      "guardian_gate_required": true,
+      "local_private_requirement": "not applicable; credentials must not be context",
+      "operator_approval_required": true,
+      "sensitivity": "CREDENTIAL_OR_SECRET"
+    },
+    {
+      "blocked_contexts": [
+        "browser session",
+        "portal access",
+        "OAuth",
+        "account mutation"
+      ],
+      "default_result": "blocked_no_model",
+      "external_model_rule": "external blocked",
+      "guardian_gate_required": true,
+      "local_private_requirement": "not applicable; account access must not be model context",
+      "operator_approval_required": true,
+      "sensitivity": "ACCOUNT_ACCESS"
+    },
+    {
+      "blocked_contexts": [
+        "raw legal/client material",
+        "unredacted compliance documents",
+        "external retention"
+      ],
+      "default_result": "blocked_no_model_or_local_sensitive_future",
+      "external_model_rule": "external blocked unless later compliance/security gate explicitly allows sanitized metadata",
+      "guardian_gate_required": true,
+      "local_private_requirement": "required",
+      "operator_approval_required": true,
+      "sensitivity": "LEGAL_OR_COMPLIANCE"
+    },
+    {
+      "blocked_contexts": [
+        "unknown source",
+        "unknown sensitivity",
+        "missing memory scope"
+      ],
+      "default_result": "blocked_no_model",
+      "external_model_rule": "external blocked",
+      "guardian_gate_required": true,
+      "local_private_requirement": "required after classification",
+      "operator_approval_required": true,
+      "sensitivity": "UNKNOWN_SENSITIVE_FAIL_CLOSED"
+    }
+  ],
+  "stable_map_integration": {
+    "next_map_bundle_refresh_requirement": "Include this summary in the next stable map bundle refresh after this contract lands.",
+    "reason_not_included_now": "Stable-map/sync files are separate dirty lane residue in this worktree; this contract does not reopen bridge churn or mutate the stable map bundle.",
+    "registry_generated_as_read_model": true,
+    "safe_summary_to_include_next": {
+      "blocked_states": [
+        "SELECTION_BLOCKED",
+        "SELECTION_REVOKED",
+        "SELECTION_QUARANTINED",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "contract_id": "model_selection_receipt_contract",
+      "current_default_live_model_posture": "blocked_no_model except operator_winship uses human_operator",
+      "decision_types_count": 12,
+      "model_classes_count": 9,
+      "next_recommended_lane": "package_preview_receipt_v0"
+    },
+    "summary_included_in_stable_map_bundle_now": false
+  },
+  "tool_execution_authority": false,
+  "vector_memory_expansion_enabled": false
+}

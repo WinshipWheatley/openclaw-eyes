@@ -95,6 +95,7 @@
 !agent_memory_scope_contract.py
 !tool_protocol_adapter_registry_contract.py
 !memory_candidate_receipt_contract.py
+!model_selection_receipt_contract.py
 !operator_intent_core.py
 !operator_action_covenant.py
 !operator_extension_simulator.py
@@ -727,6 +728,7 @@
 !scripts/export_agent_memory_scope_contract.py
 !scripts/export_tool_protocol_adapter_registry_contract.py
 !scripts/export_memory_candidate_receipt_contract.py
+!scripts/export_model_selection_receipt_contract.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
 !scripts/build_active_machinery_operator_disposition.py
@@ -795,6 +797,7 @@
 !tests/test_agent_memory_scope_contract.py
 !tests/test_tool_protocol_adapter_registry_contract.py
 !tests/test_memory_candidate_receipt_contract.py
+!tests/test_model_selection_receipt_contract.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
 !tests/test_active_machinery_operator_disposition.py
