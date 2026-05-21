@@ -40,7 +40,7 @@
     "split_rule": "PC-Mac bridge/sync/state-transfer belongs to Check Transmission; Check Engine should not duplicate it as a generic fault.",
     "why": "The orchestrator prompt cannot see live local proof; this read-model lets Repo A classify lights from PC-side evidence."
   },
-  "generated_at": "2026-05-21T00:10:55+00:00",
+  "generated_at": "2026-05-21T00:17:34+00:00",
   "gmail_calendar_coupa_accessed": false,
   "lights": [
     {
@@ -128,6 +128,8 @@
         "current_expected_set_missing_only_self_taxonomy": false,
         "current_expected_set_proof_current": false,
         "current_missing_files": [
+          "package_compiler_contract.json",
+          "package_compiler_contract_OPERATOR.md",
           "steel_thread_lane_template_registry.json",
           "steel_thread_lane_template_registry_OPERATOR.md"
         ],
@@ -541,25 +543,27 @@
     "why_check_transmission_visible": "PC proof does not yet agree with Mac completion or has missing/hash-mismatch files."
   },
   "pc_import_proof": {
-    "backend_head": "80dfcb886000fa818d9e6930789e256020eb4971",
+    "backend_head": "c1703ad5e14211bd9bcb107219f99dabb75717f2",
     "backend_head_matches_expected": false,
-    "canonical_expected": 210,
+    "canonical_expected": 212,
     "completion_copied_file_count": 208,
-    "completion_generated_at": "2026-05-21T00:09:39+00:00",
+    "completion_generated_at": "2026-05-21T00:14:43+00:00",
     "completion_status": "synced",
     "current_expected_set_missing_only_self_taxonomy": false,
     "current_expected_set_proof_current": false,
     "display_status": "sync_requested_waiting_for_mac",
     "expected_backend_head": "3c7620c324edbf9883930ec465749f8ca99403f0",
-    "hash_mismatch": 2,
+    "hash_mismatch": 0,
     "last_import_checkpoint_agrees_with_mac_completion": false,
-    "last_pc_import_status": "success",
-    "last_pc_import_time": "2026-05-21T00:09:48+00:00",
+    "last_pc_import_status": "skipped_unchanged",
+    "last_pc_import_time": "2026-05-21T00:14:48+00:00",
     "manifest_path_record_count": 208,
-    "matched_hash": 206,
+    "matched_hash": 208,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 2,
+    "missing_expected": 4,
     "missing_files": [
+      "package_compiler_contract.json",
+      "package_compiler_contract_OPERATOR.md",
       "steel_thread_lane_template_registry.json",
       "steel_thread_lane_template_registry_OPERATOR.md"
     ],
@@ -567,7 +571,7 @@
     "operator_action_required": false,
     "pc_import_state_last_counts": {
       "canonical_expected": 210,
-      "hash_mismatch": 2,
+      "hash_mismatch": 0,
       "missing_expected": 2,
       "observed": 208
     },
@@ -587,7 +591,7 @@
   "raw_trace_contents_stored": false,
   "read_model_id": "system_health_lights_taxonomy",
   "read_model_only": true,
-  "receipt_hash": "sha256:ee4a8d93318a4ae62de5facc3677e969e7cd9614e921fb0dd817a123689607be",
+  "receipt_hash": "sha256:e6035f8868214e7cf527619435fee12ffb4fe01255abf0ece88a99cee774e846",
   "remount_authority_added": false,
   "repo_b_code_executed": false,
   "repo_b_filesystem_inspected": false,
@@ -615,11 +619,11 @@
       "path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "present": true,
       "status": "skipped_unchanged",
-      "updated_at": "2026-05-21T00:10:46+00:00"
+      "updated_at": "2026-05-21T00:17:27+00:00"
     },
     "sync_health": {
       "display_status": "sync_requested_waiting_for_mac",
-      "generated_at": "2026-05-21T00:10:47+00:00",
+      "generated_at": "2026-05-21T00:17:27+00:00",
       "mirror_status": "needs_mac_sync",
       "path": "generated/read_models/sync_health.json",
       "present": true,

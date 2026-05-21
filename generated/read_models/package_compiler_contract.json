@@ -1,0 +1,1009 @@
+{
+  "actor_workbench_routing_hooks": {
+    "actor_must_not_decide_own_authority_context_plugins_clearance_or_lane": true,
+    "agent_character_activated_now": false,
+    "agent_character_examples": [
+      {
+        "agent_character": "Chief",
+        "fit": "system diagnostic, coordination, build/work queue"
+      },
+      {
+        "agent_character": "Guardian",
+        "fit": "boundary, safety, clearance, security posture"
+      },
+      {
+        "agent_character": "Niles",
+        "fit": "music/art lanes"
+      },
+      {
+        "agent_character": "Cassandra",
+        "fit": "communications and operator-facing drafts/proof visibility"
+      },
+      {
+        "agent_character": "Hermes",
+        "fit": "bridge/state-transfer advisory and synthesis"
+      }
+    ],
+    "agent_definition": "The agent is the character/persona the actor plays.",
+    "example_routes": [
+      {
+        "actor_or_workbench": "Codex",
+        "current_status": "package_preview_or_copy_export_only_in_this_contract",
+        "fit": "scoped implementation worker, file edits, tests, builds, screenshots when explicitly prompted",
+        "host_id": "codex_vscode_mac_codex_desktop"
+      },
+      {
+        "actor_or_workbench": "Antigravity / Gemini",
+        "current_status": "package_preview_or_copy_export_only_in_this_contract",
+        "fit": "fast planner, verifier, reviewer, package drafter",
+        "host_id": "antigravity_gemini_flash_high"
+      },
+      {
+        "actor_or_workbench": "GPT-5.5 / ChatGPT orchestrator",
+        "current_status": "metadata_reference_only_in_this_contract",
+        "fit": "orchestration, architecture, taste, safety judgment, package authoring",
+        "host_id": "gpt_5_5_chatgpt_orchestrator"
+      },
+      {
+        "actor_or_workbench": "Repo A",
+        "current_status": "available_for_this_backend_contract_lane",
+        "fit": "canonical contracts, read-model generation, focused tests, metadata receipts",
+        "host_id": "pc_wsl_repo_a"
+      }
+    ],
+    "model_actor_selected_now": false,
+    "model_definition": "The language model is the actor that may perform work later.",
+    "model_is_actor_agent_is_character_package_is_script": true,
+    "package_definition": "The package is the script, context, tools, clearance, steps, boundaries, and proof requirements.",
+    "registered_host_ids_from_source": [
+      "pc_wsl_repo_a",
+      "mac_mission_control_app",
+      "codex_vscode_mac_codex_desktop",
+      "antigravity_gemini_flash_high",
+      "gpt_5_5_chatgpt_orchestrator",
+      "xcode_xcodebuild",
+      "terminal_shell",
+      "vscode_agents_remote_ahp_candidate"
+    ],
+    "route_by": [
+      "lane_type",
+      "package_type",
+      "risk",
+      "domain",
+      "required_proof",
+      "allowed_authority",
+      "workbench_fit"
+    ],
+    "source_registry": "operator_workbench_actor_host_registry",
+    "system_decides_authority_before_launch": true,
+    "unknown_actor_or_host": {
+      "confidence_posture": "UNKNOWN_FAIL_CLOSED",
+      "routing": "fail_closed",
+      "safe_next_move": "add or update metadata registry entry before launch"
+    },
+    "workspace_launched_now": false
+  },
+  "agent_launch_authority_added": false,
+  "agents_activated": false,
+  "approval_authority_added": false,
+  "automatic_repair_authority_added": false,
+  "broad_file_dump_stored": false,
+  "browser_accessed": false,
+  "browser_oauth_or_account_access_enabled": false,
+  "c_drive_artifact_written": false,
+  "c_drive_write_allowed": false,
+  "cleanup_authority_added": false,
+  "compiler_contract_only": true,
+  "confidence_detour_behavior": {
+    "below_deterministic": {
+      "do_not_pretend_missing_context_exists": true,
+      "show_confidence_issue": true,
+      "show_detour_options": true,
+      "show_missing_inputs": true
+    },
+    "deterministic_or_full_trust": {
+      "display_quiet_when_no_attention_needed": true,
+      "hide_confidence_score": true,
+      "hide_detour_ui": true
+    },
+    "job_failure": {
+      "reopen_detour_path": true,
+      "reset_confidence": true,
+      "show_failed_proof_or_receipt": true
+    },
+    "no_confidence_theater_when_proof_is_deterministic": true
+  },
+  "contract_hash": "sha256:d23436021fffad6a0c02853f3cd0b880e03139d2496a5cc354eb5e8a02406018",
+  "contract_status": "deterministic_metadata_only_package_compiler_skeleton",
+  "credential_handling_added": false,
+  "credentials_stored": false,
+  "current_authority_state": {
+    "automatic_repair_allowed_now": false,
+    "browser_oauth_account_access_allowed_now": false,
+    "live_launch_allowed_now": false,
+    "meaning": "This contract can show and export package structure, but it cannot dispatch or execute packages.",
+    "mission_control_buttons_added": false,
+    "model_agent_tool_call_from_app_allowed_now": false,
+    "package_generation_now": [
+      "preview_only",
+      "copy_export_only",
+      "future_gated"
+    ],
+    "package_runner_created": false,
+    "send_submit_approval_runtime_allowed_now": false
+  },
+  "delete_authority_added": false,
+  "deterministic_vs_lm_assisted_generation": {
+    "deterministic_compiler_inputs": [
+      "lane type",
+      "read-model/evidence inputs",
+      "actor/workbench registry metadata",
+      "agent character registry metadata",
+      "clearance and authority boundary",
+      "allowed/forbidden capabilities",
+      "confidence and detour state",
+      "proof and receipt requirements"
+    ],
+    "deterministic_fields_explanation": "Authority, allowed context, clearance, tools, proof, receipts, stops, availability, and quiet conditions come from contracts/read-models, not model improvisation.",
+    "deterministic_required_fields": [
+      "package_id",
+      "package_type",
+      "source_lane_id",
+      "source_lane_type",
+      "steel_thread_template_id",
+      "target_workbench_or_actor_host",
+      "actor_model_candidate",
+      "agent_character",
+      "context_included",
+      "context_excluded",
+      "evidence_refs",
+      "read_model_refs",
+      "allowed_plugins_or_capabilities",
+      "forbidden_plugins_or_capabilities",
+      "security_clearance",
+      "authority_boundary",
+      "steps",
+      "stop_conditions",
+      "proof_requirements",
+      "receipt_requirements",
+      "confidence_state",
+      "confidence_inputs",
+      "detour_options",
+      "current_availability",
+      "failure_reset_behavior",
+      "quiet_condition",
+      "human_confirmation_required"
+    ],
+    "lm_assisted_allowed_fields_early": [
+      "operator_eli5",
+      "mission",
+      "stakes_why_it_matters",
+      "detour_explanation",
+      "package_summary",
+      "prompt_prose",
+      "risk_explanation"
+    ],
+    "lm_assisted_fields_explanation": "Operator prose may be drafted later, but it cannot add authority or missing proof.",
+    "lm_must_not_add_authority_tools_paths_secrets_plugins_or_execution_steps": true,
+    "unknown_or_unavailable_actor_fails_closed": true
+  },
+  "email_send_triggered": false,
+  "execution_authority_added": false,
+  "external_model_apis_called": false,
+  "generated_at": "2026-05-21T00:17:37+00:00",
+  "generated_by": "codex",
+  "gmail_calendar_coupa_accessed": false,
+  "lane": "Package Compiler Skeleton / Prompt Package Contract v0",
+  "live_launch_buttons_created": false,
+  "lm_called": false,
+  "mac_app_files_mutated": false,
+  "mac_mission_control_rendering": {
+    "do_not_render_as_live_button": true,
+    "show_actor_agent_workbench_summary": true,
+    "show_deterministic_boundary": true,
+    "show_future_gated_launch_target_without_launching": true,
+    "show_lm_assisted_prose_as_optional_not_authority": true,
+    "show_package_preview": true
+  },
+  "machine_proof": {
+    "generated_outputs": [
+      "generated/read_models/package_compiler_contract.json",
+      "generated/read_models/package_compiler_contract_OPERATOR.md"
+    ],
+    "ledger_pattern_present": true,
+    "source_files": [
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "agent_work_packet.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_awareness_agent_package_spine.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_nested_lane_mission_package_spine.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "operator_workbench_actor_host_registry.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "steel_thread_lane_template_registry.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "path": "business_ops_ledger.py",
+        "present": true,
+        "role": "source_contract_or_existing_pattern_reference",
+        "runtime_imported_for_execution": false
+      }
+    ],
+    "source_read_models": [
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "steel_thread_lane_template_registry",
+        "metadata_only": true,
+        "path": "generated/read_models/steel_thread_lane_template_registry.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "reusable steel-thread template catalog",
+        "schema_version": "steel_thread_lane_template_registry_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_workbench_actor_host_registry",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_workbench_actor_host_registry.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "actor/workbench host registry and routing metadata",
+        "schema_version": "operator_workbench_actor_host_registry_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_nested_lane_mission_package_spine",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_nested_lane_mission_package_spine.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "nested lane and mission package doctrine",
+        "schema_version": "operator_nested_lane_mission_package_spine_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "operator_awareness_agent_package_spine",
+        "metadata_only": true,
+        "path": "generated/read_models/operator_awareness_agent_package_spine.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "awareness gap package preview and confidence repair doctrine",
+        "schema_version": "operator_awareness_agent_package_spine_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "agent_work_packets",
+        "metadata_only": true,
+        "path": "generated/read_models/agent_work_packets.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "existing bounded planning packet read-model substrate",
+        "schema_version": "agent_work_packets_read_model_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      },
+      {
+        "body_exported": false,
+        "executed_or_dispatched": false,
+        "key": "system_health_lights_taxonomy",
+        "metadata_only": true,
+        "path": "generated/read_models/system_health_lights_taxonomy.json",
+        "present": true,
+        "raw_private_content_read": false,
+        "role": "check-light lane examples and current system-health posture",
+        "schema_version": "system_health_lights_taxonomy_v0",
+        "truth_status": "source_evidence_for_contract_not_runtime_authority"
+      }
+    ],
+    "source_read_models_present": {
+      "agent_work_packets": true,
+      "operator_awareness_agent_package_spine": true,
+      "operator_nested_lane_mission_package_spine": true,
+      "operator_workbench_actor_host_registry": true,
+      "steel_thread_lane_template_registry": true,
+      "system_health_lights_taxonomy": true
+    }
+  },
+  "metadata_only": true,
+  "mission_control_app_changed": false,
+  "model_or_agent_call_allowed": false,
+  "next_safe_lane": "Mission Control Package Preview Readback Surface v0",
+  "no_authority_flags": {
+    "agent_launch_authority_added": false,
+    "agents_activated": false,
+    "approval_authority_added": false,
+    "automatic_repair_authority_added": false,
+    "broad_file_dump_stored": false,
+    "browser_accessed": false,
+    "browser_oauth_or_account_access_enabled": false,
+    "c_drive_artifact_written": false,
+    "c_drive_write_allowed": false,
+    "cleanup_authority_added": false,
+    "compiler_contract_only": true,
+    "credential_handling_added": false,
+    "credentials_stored": false,
+    "delete_authority_added": false,
+    "email_send_triggered": false,
+    "execution_authority_added": false,
+    "external_model_apis_called": false,
+    "gmail_calendar_coupa_accessed": false,
+    "live_launch_buttons_created": false,
+    "lm_called": false,
+    "mac_app_files_mutated": false,
+    "metadata_only": true,
+    "mission_control_app_changed": false,
+    "model_or_agent_call_allowed": false,
+    "oauth_or_credentials_accessed": false,
+    "package_preview_only": true,
+    "plugins_wired": false,
+    "raw_logs_stored": false,
+    "raw_private_content_inspected": false,
+    "read_model_only": true,
+    "remount_authority_added": false,
+    "runtime_authority_added": false,
+    "send_or_submit_authority_added": false,
+    "telegram_send_triggered": false,
+    "tool_or_plugin_execution_authority_added": false,
+    "tools_wired": false
+  },
+  "no_live_authority_statement": "This is a package compiler contract and preview skeleton only; no package runner, launch, model call, agent activation, tool execution, account access, send, submit, approval, repair, or runtime authority is added.",
+  "oauth_or_credentials_accessed": false,
+  "package_preview_only": true,
+  "package_schema": {
+    "actor_does_not_self_assign_authority": true,
+    "current_availability_states": [
+      "preview_only",
+      "copy_export_only",
+      "request_only_future",
+      "launch_future_gated",
+      "launch_allowed_later"
+    ],
+    "field_count": 32,
+    "fields": [
+      "package_id",
+      "package_type",
+      "source_lane_id",
+      "source_lane_type",
+      "steel_thread_template_id",
+      "target_workbench_or_actor_host",
+      "actor_model_candidate",
+      "agent_character",
+      "mission",
+      "operator_eli5",
+      "stakes_why_it_matters",
+      "context_included",
+      "context_excluded",
+      "evidence_refs",
+      "read_model_refs",
+      "allowed_plugins_or_capabilities",
+      "forbidden_plugins_or_capabilities",
+      "security_clearance",
+      "authority_boundary",
+      "steps",
+      "stop_conditions",
+      "expected_outputs",
+      "proof_requirements",
+      "receipt_requirements",
+      "confidence_state",
+      "confidence_inputs",
+      "detour_options",
+      "current_availability",
+      "failure_reset_behavior",
+      "quiet_condition",
+      "human_confirmation_required",
+      "prompt_prose"
+    ],
+    "human_confirmation_required_by_default": true,
+    "package_body_hash_required_before_future_dispatch": true,
+    "schema_is_preview_contract_not_runner": true,
+    "unknown_required_field_fails_closed": true
+  },
+  "package_type_count": 10,
+  "package_types": [
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief with Guardian or Mirror Trust when appropriate",
+      "dispatch_allowed_now": false,
+      "display_name": "Check-Light Diagnostic Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "pc_wsl_repo_a",
+      "package_type": "check_light_diagnostic_package",
+      "purpose": "Diagnose a system health light such as Check Engine, Check Transmission, Resources, Parking Brake, or Traction Control.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "check_light_lane"
+    },
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief",
+      "dispatch_allowed_now": false,
+      "display_name": "Helm Lane Awareness Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "gpt_5_5_chatgpt_orchestrator",
+      "package_type": "helm_lane_awareness_package",
+      "purpose": "Explain an active helm/build lane, its proof, and its next safe move.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "helm_lane"
+    },
+    {
+      "current_availability": "launch_future_gated",
+      "default_agent_character": "domain_character_by_world",
+      "dispatch_allowed_now": false,
+      "display_name": "World Lane Work Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "operator_selected_future_host",
+      "package_type": "world_lane_work_package",
+      "purpose": "Prepare domain/world work without cluttering the helm.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "world_lane"
+    },
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief with Hermes advisory posture",
+      "dispatch_allowed_now": false,
+      "display_name": "Design Memory Discovery Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "antigravity_gemini_flash_high",
+      "package_type": "design_memory_discovery_package",
+      "purpose": "Raise design-memory awareness without ingesting broad raw archives.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "nested_lane"
+    },
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief with Mirror Trust posture",
+      "dispatch_allowed_now": false,
+      "display_name": "Bridge Sync Diagnostic Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "pc_wsl_repo_a",
+      "package_type": "bridge_sync_diagnostic_package",
+      "purpose": "Inspect PC/Mac mirror proof, missing files, stale hashes, and safe next sync proof.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "check_light_lane"
+    },
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief with Guardian boundary review",
+      "dispatch_allowed_now": false,
+      "display_name": "Workbench Actor Review Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "gpt_5_5_chatgpt_orchestrator",
+      "package_type": "workbench_actor_review_package",
+      "purpose": "Review whether a workbench/actor host is suited for a lane.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "package_preview_lane"
+    },
+    {
+      "current_availability": "copy_export_only",
+      "default_agent_character": "Chief",
+      "dispatch_allowed_now": false,
+      "display_name": "Code Implementation Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "codex_vscode_mac_codex_desktop",
+      "package_type": "code_implementation_package",
+      "purpose": "Prepare scoped implementation work with file boundaries, tests, and receipt requirements.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "package_preview_lane"
+    },
+    {
+      "current_availability": "copy_export_only",
+      "default_agent_character": "Guardian or Chief",
+      "dispatch_allowed_now": false,
+      "display_name": "Verification Review Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "antigravity_gemini_flash_high",
+      "package_type": "verification_review_package",
+      "purpose": "Prepare bounded review/verification work for an independent actor.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "package_preview_lane"
+    },
+    {
+      "current_availability": "request_only_future",
+      "default_agent_character": "Chief",
+      "dispatch_allowed_now": false,
+      "display_name": "Tell System What's Missing Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "pc_wsl_repo_a",
+      "package_type": "tell_system_whats_missing_package",
+      "purpose": "Capture an operator memory comparison as a future context artifact, not as truth.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "confidence_detour_lane"
+    },
+    {
+      "current_availability": "preview_only",
+      "default_agent_character": "Chief with domain character if classified",
+      "dispatch_allowed_now": false,
+      "display_name": "Confidence Detour Package",
+      "launch_allowed_now": false,
+      "likely_workbench_or_actor_host": "operator_selected_future_host",
+      "package_type": "confidence_detour_package",
+      "purpose": "Raise confidence by adding bounded context, proof, classification, or operator memory comparison.",
+      "requires_future_receipt_before_state_ingest": true,
+      "runtime_authority_added": false,
+      "steel_thread_template_id": "confidence_detour_lane"
+    }
+  ],
+  "plugins_wired": false,
+  "purpose": "Define how Mission Control should compile previewable package bodies from deterministic lane, proof, actor, character, clearance, steps, confidence, and receipt inputs.",
+  "raw_logs_stored": false,
+  "raw_private_content_inspected": false,
+  "read_model_id": "package_compiler_contract",
+  "read_model_only": true,
+  "relationship_to_existing_contracts": {
+    "added_scope": "package schema, package types, compiler input rules, deterministic versus assisted field boundaries, routing hooks, sample outlines, and preview-only authority posture",
+    "agent_work_packets_still_own": "SQLite-backed bounded planning packets derived from routed intents",
+    "awareness_and_nested_spines_still_own": "specific awareness gap items, nested lane topology, and existing package preview examples",
+    "compiler_contract_role": "defines how future deterministic package compilation should shape package bodies before any launch authority exists",
+    "does_not_replace_agent_work_packets": true,
+    "does_not_replace_awareness_or_nested_package_spines": true,
+    "does_not_replace_steel_thread_template_registry": true,
+    "does_not_replace_workbench_registry": true,
+    "steel_thread_template_registry_still_owns": "lane template rendering pattern and safe control behavior",
+    "workbench_registry_still_owns": "actor/workbench host inventory, autonomy levels, and receipt expectations"
+  },
+  "remount_authority_added": false,
+  "runtime_authority_added": false,
+  "sample_package_count": 3,
+  "sample_package_outlines": [
+    {
+      "actor_model_candidate": "future selected model, not live",
+      "agent_character": "Chief with Mirror Trust posture",
+      "allowed_plugins_or_capabilities": [
+        "read-model inspection metadata",
+        "receipt review metadata"
+      ],
+      "authority_boundary": {
+        "automatic_repair_allowed": false,
+        "browser_oauth_account_access_allowed": false,
+        "c_drive_artifact_written": false,
+        "credential_handling_allowed": false,
+        "metadata_only": true,
+        "model_or_agent_call_allowed": false,
+        "preview_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_allowed": false,
+        "tool_or_plugin_execution_allowed": false
+      },
+      "available_modes": [
+        "preview_only",
+        "copy_export_only",
+        "launch_future_gated"
+      ],
+      "confidence_inputs": [
+        "source read-model presence",
+        "hash/current proof where applicable",
+        "explicit blocked authority list"
+      ],
+      "confidence_state": "below_deterministic_until_returned_receipt_or_proof",
+      "context_excluded": [
+        "credentials",
+        "raw private file bodies",
+        "raw logs",
+        "browser/account sessions",
+        "unapproved external service data"
+      ],
+      "context_included": [
+        "sync health posture",
+        "Mac completion marker metadata",
+        "manifest counts",
+        "missing/stale file names"
+      ],
+      "current_availability": "preview_only",
+      "detour_options": [
+        "raise missing proof",
+        "operator memory comparison",
+        "classification review"
+      ],
+      "dispatch_allowed_now": false,
+      "evidence_refs": [
+        "generated/read_models/sync_health.json",
+        "shuttle completion marker metadata"
+      ],
+      "expected_outputs": [
+        "operator-readable diagnosis or review",
+        "proof/receipt references",
+        "safe next move",
+        "blocked or missing inputs"
+      ],
+      "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "forbidden_plugins_or_capabilities": [
+        "live plugin execution",
+        "account access",
+        "send/submit/approval",
+        "runtime repair"
+      ],
+      "human_confirmation_required": true,
+      "launch_allowed_now": false,
+      "mission": "Diagnose whether PC proof, Mac manifest, and sync health agree without remounting or repairing anything.",
+      "operator_eli5": "Check whether the bridge proof is current and what must happen next.",
+      "package_hash_or_deterministic_placeholder": "sha256:5d49091c61d6f41fb3ec1c0d656b6b5f276746221e4012e42fb9edc0a8758783",
+      "package_id": "sample_check_transmission_diagnostic_package",
+      "package_type": "bridge_sync_diagnostic_package",
+      "prompt_prose": "Example outline only; not dispatched.",
+      "proof_requirements": [
+        "source read-model references",
+        "authority boundary confirmation",
+        "validation or not-run reason"
+      ],
+      "quiet_condition": "quiet only when proof/receipt is current or lane is intentionally parked",
+      "read_model_refs": [
+        "sync_health.json",
+        "system_health_lights_taxonomy.json",
+        "bridge_trust_sync_truth.json"
+      ],
+      "receipt_requirements": [
+        "metadata-only receipt before any future state ingest"
+      ],
+      "sample_only": true,
+      "security_clearance": "metadata_review_only_no_live_authority",
+      "source_lane_id": "check_transmission",
+      "source_lane_type": "check_light_lane",
+      "stakes_why_it_matters": "The operator should see the right package before any future workbench receives it.",
+      "steel_thread_template_id": "check_light_lane",
+      "steps": [
+        "Read operator orientation.",
+        "Inspect machine proof references.",
+        "Verify allowed and excluded context.",
+        "Produce expected output only.",
+        "Stop before any blocked authority."
+      ],
+      "stop_conditions": [
+        "missing deterministic authority boundary",
+        "unknown actor or workbench host",
+        "need for credentials or account access",
+        "need for live model/tool/agent/browser/runtime execution"
+      ],
+      "target_workbench_or_actor_host": "pc_wsl_repo_a"
+    },
+    {
+      "actor_model_candidate": "Codex candidate label only",
+      "agent_character": "Chief implementation worker",
+      "allowed_plugins_or_capabilities": [
+        "read-model inspection metadata",
+        "receipt review metadata"
+      ],
+      "authority_boundary": {
+        "automatic_repair_allowed": false,
+        "browser_oauth_account_access_allowed": false,
+        "c_drive_artifact_written": false,
+        "credential_handling_allowed": false,
+        "metadata_only": true,
+        "model_or_agent_call_allowed": false,
+        "preview_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_allowed": false,
+        "tool_or_plugin_execution_allowed": false
+      },
+      "available_modes": [
+        "preview_only",
+        "copy_export_only",
+        "launch_future_gated"
+      ],
+      "confidence_inputs": [
+        "source read-model presence",
+        "hash/current proof where applicable",
+        "explicit blocked authority list"
+      ],
+      "confidence_state": "below_deterministic_until_returned_receipt_or_proof",
+      "context_excluded": [
+        "credentials",
+        "raw private file bodies",
+        "raw logs",
+        "browser/account sessions",
+        "unapproved external service data"
+      ],
+      "context_included": [
+        "steel-thread template fields",
+        "Mac rendering guidance",
+        "exact file boundaries when supplied later"
+      ],
+      "current_availability": "preview_only",
+      "detour_options": [
+        "raise missing proof",
+        "operator memory comparison",
+        "classification review"
+      ],
+      "dispatch_allowed_now": false,
+      "evidence_refs": [
+        "generated/read_models/steel_thread_lane_template_registry.json"
+      ],
+      "expected_outputs": [
+        "operator-readable diagnosis or review",
+        "proof/receipt references",
+        "safe next move",
+        "blocked or missing inputs"
+      ],
+      "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "forbidden_plugins_or_capabilities": [
+        "live plugin execution",
+        "account access",
+        "send/submit/approval",
+        "runtime repair"
+      ],
+      "human_confirmation_required": true,
+      "launch_allowed_now": false,
+      "mission": "Implement a scoped Mission Control surface after a future UI lane grants explicit Mac app authority.",
+      "operator_eli5": "Show what Codex would receive later for a bounded UI implementation lane.",
+      "package_hash_or_deterministic_placeholder": "sha256:18741234fa8a33f08bfee476c49da17ff814a2d043d643d197ca7a020c1de731",
+      "package_id": "sample_mission_control_ui_implementation_package_for_codex",
+      "package_type": "code_implementation_package",
+      "prompt_prose": "Example outline only; not dispatched.",
+      "proof_requirements": [
+        "source read-model references",
+        "authority boundary confirmation",
+        "validation or not-run reason"
+      ],
+      "quiet_condition": "quiet only when proof/receipt is current or lane is intentionally parked",
+      "read_model_refs": [
+        "steel_thread_lane_template_registry.json",
+        "operator_mission_priority_helm_declutter.json"
+      ],
+      "receipt_requirements": [
+        "metadata-only receipt before any future state ingest"
+      ],
+      "sample_only": true,
+      "security_clearance": "metadata_review_only_no_live_authority",
+      "source_lane_id": "mission_control_steel_thread_surface",
+      "source_lane_type": "helm_lane",
+      "stakes_why_it_matters": "The operator should see the right package before any future workbench receives it.",
+      "steel_thread_template_id": "package_preview_lane",
+      "steps": [
+        "Read operator orientation.",
+        "Inspect machine proof references.",
+        "Verify allowed and excluded context.",
+        "Produce expected output only.",
+        "Stop before any blocked authority."
+      ],
+      "stop_conditions": [
+        "missing deterministic authority boundary",
+        "unknown actor or workbench host",
+        "need for credentials or account access",
+        "need for live model/tool/agent/browser/runtime execution"
+      ],
+      "target_workbench_or_actor_host": "codex_vscode_mac_codex_desktop"
+    },
+    {
+      "actor_model_candidate": "Gemini 3.5 Flash High candidate label only",
+      "agent_character": "Guardian verification reviewer",
+      "allowed_plugins_or_capabilities": [
+        "read-model inspection metadata",
+        "receipt review metadata"
+      ],
+      "authority_boundary": {
+        "automatic_repair_allowed": false,
+        "browser_oauth_account_access_allowed": false,
+        "c_drive_artifact_written": false,
+        "credential_handling_allowed": false,
+        "metadata_only": true,
+        "model_or_agent_call_allowed": false,
+        "preview_only": true,
+        "runtime_authority_added": false,
+        "send_submit_approval_allowed": false,
+        "tool_or_plugin_execution_allowed": false
+      },
+      "available_modes": [
+        "preview_only",
+        "copy_export_only",
+        "launch_future_gated"
+      ],
+      "confidence_inputs": [
+        "source read-model presence",
+        "hash/current proof where applicable",
+        "explicit blocked authority list"
+      ],
+      "confidence_state": "below_deterministic_until_returned_receipt_or_proof",
+      "context_excluded": [
+        "credentials",
+        "raw private file bodies",
+        "raw logs",
+        "browser/account sessions",
+        "unapproved external service data"
+      ],
+      "context_included": [
+        "diff summary",
+        "test list",
+        "authority boundary checklist"
+      ],
+      "current_availability": "preview_only",
+      "detour_options": [
+        "raise missing proof",
+        "operator memory comparison",
+        "classification review"
+      ],
+      "dispatch_allowed_now": false,
+      "evidence_refs": [
+        "focused test output",
+        "generated JSON parse result",
+        "diff check result"
+      ],
+      "expected_outputs": [
+        "operator-readable diagnosis or review",
+        "proof/receipt references",
+        "safe next move",
+        "blocked or missing inputs"
+      ],
+      "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "forbidden_plugins_or_capabilities": [
+        "live plugin execution",
+        "account access",
+        "send/submit/approval",
+        "runtime repair"
+      ],
+      "human_confirmation_required": true,
+      "launch_allowed_now": false,
+      "mission": "Review a bounded contract/read-model change for missing tests, authority creep, and proof gaps.",
+      "operator_eli5": "Show what a fast verifier could review later without giving it control.",
+      "package_hash_or_deterministic_placeholder": "sha256:7647e9f75e33c4df5386e7b8c3d1cd59ba615b21b8000bb11c7aa34eb6130bb3",
+      "package_id": "sample_antigravity_verification_review_package",
+      "package_type": "verification_review_package",
+      "prompt_prose": "Example outline only; not dispatched.",
+      "proof_requirements": [
+        "source read-model references",
+        "authority boundary confirmation",
+        "validation or not-run reason"
+      ],
+      "quiet_condition": "quiet only when proof/receipt is current or lane is intentionally parked",
+      "read_model_refs": [
+        "package_compiler_contract.json",
+        "operator_workbench_actor_host_registry.json"
+      ],
+      "receipt_requirements": [
+        "metadata-only receipt before any future state ingest"
+      ],
+      "sample_only": true,
+      "security_clearance": "metadata_review_only_no_live_authority",
+      "source_lane_id": "package_contract_verification",
+      "source_lane_type": "helm_lane",
+      "stakes_why_it_matters": "The operator should see the right package before any future workbench receives it.",
+      "steel_thread_template_id": "package_preview_lane",
+      "steps": [
+        "Read operator orientation.",
+        "Inspect machine proof references.",
+        "Verify allowed and excluded context.",
+        "Produce expected output only.",
+        "Stop before any blocked authority."
+      ],
+      "stop_conditions": [
+        "missing deterministic authority boundary",
+        "unknown actor or workbench host",
+        "need for credentials or account access",
+        "need for live model/tool/agent/browser/runtime execution"
+      ],
+      "target_workbench_or_actor_host": "antigravity_gemini_flash_high"
+    }
+  ],
+  "schema_version": "package_compiler_contract_v0",
+  "send_or_submit_authority_added": false,
+  "source_state_summary": {
+    "agent_work_packets": {
+      "available": true,
+      "execution_allowed": false,
+      "mode": "agent_work_packets_planning_only"
+    },
+    "operator_awareness_agent_package_spine": {
+      "available": true,
+      "package_preview_only": true
+    },
+    "operator_nested_lane_mission_package_spine": {
+      "available": true,
+      "package_preview_only": true
+    },
+    "operator_workbench_actor_host_registry": {
+      "available": true,
+      "host_count": 8,
+      "registered_host_ids": [
+        "pc_wsl_repo_a",
+        "mac_mission_control_app",
+        "codex_vscode_mac_codex_desktop",
+        "antigravity_gemini_flash_high",
+        "gpt_5_5_chatgpt_orchestrator",
+        "xcode_xcodebuild",
+        "terminal_shell",
+        "vscode_agents_remote_ahp_candidate"
+      ]
+    },
+    "steel_thread_lane_template_registry": {
+      "available": true,
+      "template_type_count": 8,
+      "template_types": [
+        "helm_lane",
+        "check_light_lane",
+        "world_lane",
+        "nested_lane",
+        "proof_detail_lane",
+        "package_preview_lane",
+        "confidence_detour_lane",
+        "parked_lane"
+      ]
+    },
+    "system_health_lights_taxonomy": {
+      "available": true,
+      "current_light_states": {
+        "brake_parking_brake": "ON_NORMAL",
+        "check_engine": "WARNING",
+        "check_transmission": "ON",
+        "low_fuel_low_battery": "WARNING",
+        "oil_pressure_coolant": "WARNING",
+        "traction_control": "QUIET"
+      }
+    }
+  },
+  "sqlite_ledger_receipt_contract": {
+    "contract_hash": "sha256:d23436021fffad6a0c02853f3cd0b880e03139d2496a5cc354eb5e8a02406018",
+    "metadata_only": true,
+    "pattern": "business_ops_ledger.record_receipt",
+    "receipt_type": "generated_status",
+    "receipt_writer_function": "record_package_compiler_contract_receipt",
+    "sqlite_meaning": "receipt_record_only",
+    "stores_broad_file_dumps": false,
+    "stores_credentials": false,
+    "stores_raw_logs": false,
+    "stores_raw_private_file_bodies": false,
+    "stores_runtime_activation": false,
+    "stores_secrets": false,
+    "supported_by_existing_pattern": true
+  },
+  "telegram_send_triggered": false,
+  "tool_or_plugin_execution_authority_added": false,
+  "tools_wired": false,
+  "unknown_or_missing_source_policy": {
+    "do_not_invent_source_facts": true,
+    "missing_source_display": "unavailable_source_reference",
+    "missing_source_never_becomes_truth": true,
+    "static_contract_still_renders": true
+  },
+  "what_is_a_package": {
+    "agent_is_character": true,
+    "mission_impossible_doctrine": "The package should make the actor effective because the role, script, context, tools, boundaries, and proof requirements are prepared before launch.",
+    "model_is_actor": true,
+    "package_is_script_context_tools_clearance_steps_boundaries_proof": true
+  }
+}
