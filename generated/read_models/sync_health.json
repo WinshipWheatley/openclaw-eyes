@@ -3,39 +3,36 @@
   "app_direct_execution_allowed": false,
   "arbitrary_command_allowed": false,
   "canonical_expected": 216,
-  "display_status": "sync_requested_waiting_for_mac",
+  "display_status": "current",
   "docker_ollama_allowed": false,
   "extra": 0,
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-21T00:42:31+00:00",
-  "hash_mismatch": 2,
+  "generated_at": "2026-05-21T00:59:48+00:00",
+  "hash_mismatch": 0,
   "last_mac_completion": {
     "status": "synced",
-    "time": "2026-05-21T00:39:48+00:00"
+    "time": "2026-05-21T00:57:28+00:00"
   },
   "last_mac_heartbeat": {
     "manifest_written": true,
     "marker_seen": true,
     "status": "synced",
-    "time": "2026-05-21T00:39:48+00:00"
+    "time": "2026-05-21T00:57:28+00:00"
   },
   "last_pc_import": {
-    "manifest_hash": "bd29a25d409df19783573ed8feef7314dddcce69ff572e5492adaced3bc4f78d",
+    "manifest_hash": "3973330506584406b01f2461150228143bebad032e9c22d28229939c55d3d1fb",
     "pc_scheduler_known": true,
-    "status": "skipped_unchanged",
-    "time": "2026-05-21T00:42:23+00:00",
+    "status": "success",
+    "time": "2026-05-21T00:59:48+00:00",
     "windows_task_log_present": true
   },
-  "matched_hash": 212,
-  "mirror_status": "needs_mac_sync",
-  "missing_expected": 2,
-  "missing_files": [
-    "operator_question_journey_registry.json",
-    "operator_question_journey_registry_OPERATOR.md"
-  ],
-  "next_expected_actor": "mac_sync_agent",
+  "matched_hash": 216,
+  "mirror_status": "ok",
+  "missing_expected": 0,
+  "missing_files": [],
+  "next_expected_actor": "none",
   "no_authority_flags": {
     "agent_activation_allowed": false,
     "app_direct_execution_allowed": false,
@@ -47,41 +44,41 @@
     "runtime_activation_allowed": false,
     "ssh_scp_rsync_allowed": false
   },
-  "observed": 214,
+  "observed": 216,
   "operator_action_required": false,
   "operator_interrupt_policy": "routine sync lifecycle states stay in proof/detail; only unresolved actionable failures should interrupt the operator",
   "proof_sources": [
     {
       "present": 1,
-      "source_hash": "1897d73c02992daa27cb2c5f082e35307e7026d25f286b214f7ac7c93ba15068",
+      "source_hash": "cf35e3ee031d79f316fde89a84db51981a7166a7dfda55f41e107cb9b5e8b862",
       "source_kind": "mac_completion",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_completed.json",
       "source_status": "synced",
-      "source_time": "2026-05-21T00:39:48+00:00"
+      "source_time": "2026-05-21T00:57:28+00:00"
     },
     {
       "present": 1,
-      "source_hash": "48a0aa8974856917c586379157c4b75898e8707551bdaed1c3317a8d7a91adb9",
+      "source_hash": "707aceb181684baaca5945d8e1118b32f04fd9723b7491822e7ee3de22f4f0ce",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "synced",
-      "source_time": "2026-05-21T00:39:48+00:00"
+      "source_time": "2026-05-21T00:57:28+00:00"
     },
     {
       "present": 1,
-      "source_hash": "bd29a25d409df19783573ed8feef7314dddcce69ff572e5492adaced3bc4f78d",
+      "source_hash": "3973330506584406b01f2461150228143bebad032e9c22d28229939c55d3d1fb",
       "source_kind": "mac_manifest",
       "source_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
       "source_status": null,
-      "source_time": "2026-05-21T00:39:48+00:00"
+      "source_time": "2026-05-21T00:57:27+00:00"
     },
     {
       "present": 1,
-      "source_hash": "8e9dedaf2c3b7f1f0b310c416f0954663831d6b3b16fbe4322b8adac1faae222",
+      "source_hash": "3a92a97876554cf39b03df945f5a98e48acb0073e4626db16526f277465f3512",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
-      "source_status": "skipped_unchanged",
-      "source_time": "2026-05-21T00:42:23+00:00"
+      "source_status": "success",
+      "source_time": "2026-05-21T00:59:48+00:00"
     },
     {
       "present": 1,
@@ -89,22 +86,22 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-21T00:42:23+00:00"
+      "source_time": "2026-05-21T00:59:47+00:00"
     },
     {
       "present": 1,
-      "source_hash": "7ebd4e5415ff7e5e5e8ece48758e2c81f674a0f3c29e0c141839d048ad2178ef",
+      "source_hash": "67a02e27b7c27925e39fe506fb272586a551b4356c5397daebd0bc5be00646bd",
       "source_kind": "read_model_sync_request_marker",
       "source_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
       "source_status": null,
-      "source_time": "2026-05-21T00:42:23+00:00"
+      "source_time": "2026-05-21T00:55:18+00:00"
     },
     {
       "present": 1,
       "source_hash": null,
       "source_kind": "sync_health_self_report",
       "source_path": "generated/read_models",
-      "source_status": "newer_than_manifest",
+      "source_status": "not_newer",
       "source_time": null
     },
     {
@@ -113,31 +110,26 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-21T00:39:48+00:00"
+      "source_time": "2026-05-21T00:59:47+00:00"
     }
   ],
   "recommended_fix": {
     "app_request_marker_path": "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json",
     "can_request_fix_from_app": false,
-    "display_status": "sync_requested_waiting_for_mac",
-    "kind": "wait_for_mac_sync",
-    "next_expected_actor": "mac_sync_agent",
-    "next_safe_move": "Mac sync has already been requested; waiting for the normal Mac sync agent cycle.",
+    "display_status": "current",
+    "kind": "none",
+    "next_expected_actor": "none",
+    "next_safe_move": "No sync repair is needed.",
     "operator_action_required": false,
     "request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
-    "sync_lifecycle_state": "sync_requested_waiting_for_mac"
+    "sync_lifecycle_state": "trusted_current"
   },
   "remote_control_allowed": false,
   "runtime_activation_allowed": false,
   "schema_version": "sync_health_read_model_v0",
   "source_ledger_path": ".openclaw/business_ops/ledger.sqlite",
   "ssh_scp_rsync_allowed": false,
-  "stale_files": [
-    "operator_question_journey_registry.json",
-    "operator_question_journey_registry_OPERATOR.md",
-    "system_health_lights_taxonomy.json",
-    "system_health_lights_taxonomy_OPERATOR.md"
-  ],
-  "sync_lifecycle_state": "sync_requested_waiting_for_mac",
-  "trust_status": "stale_needs_mac_sync"
+  "stale_files": [],
+  "sync_lifecycle_state": "trusted_current",
+  "trust_status": "trusted"
 }
