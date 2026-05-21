@@ -71,6 +71,14 @@ def _sample(payload: dict, package_id: str) -> dict:
     return next(item for item in payload["sample_package_outlines"] if item["package_id"] == package_id)
 
 
+def _safe_sample(tmp_path: Path) -> dict:
+    return _sample(_build(tmp_path), "sample_check_transmission_diagnostic_package")
+
+
+def _blocker_codes(result: dict) -> set[str]:
+    return {item["blocker_code"] for item in result["blockers"]}
+
+
 def test_contract_is_deterministic_and_companion_to_existing_packet_models(tmp_path):
     first = _build(tmp_path)
     second = _build(tmp_path)
@@ -78,7 +86,7 @@ def test_contract_is_deterministic_and_companion_to_existing_packet_models(tmp_p
     assert contract.stable_json(first) == contract.stable_json(second)
     assert first["schema_version"] == contract.SCHEMA_VERSION
     assert first["read_model_id"] == "package_compiler_contract"
-    assert first["contract_status"] == "deterministic_metadata_only_package_compiler_skeleton"
+    assert first["contract_status"] == "deterministic_metadata_only_package_compiler_boundary_hardened"
     assert first["relationship_to_existing_contracts"]["does_not_replace_agent_work_packets"] is True
     assert first["relationship_to_existing_contracts"]["does_not_replace_awareness_or_nested_package_spines"] is True
     assert first["relationship_to_existing_contracts"]["does_not_replace_workbench_registry"] is True
@@ -98,15 +106,63 @@ def test_package_schema_contains_required_fields(tmp_path):
         "target_workbench_or_actor_host",
         "actor_model_candidate",
         "agent_character",
+        "allowed_workspace_roots",
+        "workspace_scope",
+        "allowed_capabilities",
+        "forbidden_capabilities",
+        "clearance_level",
+        "authority_level",
         "authority_boundary",
+        "autonomy_level",
+        "validation_requirements",
+        "required_schema_checks",
+        "required_hash_or_manifest_checks",
+        "required_receipts",
         "confidence_state",
         "detour_options",
         "current_availability",
+        "credential_policy",
+        "storage_policy",
+        "c_drive_policy",
+        "no_go_data_policy",
         "human_confirmation_required",
     ]:
         assert required in fields
     assert payload["package_schema"]["actor_does_not_self_assign_authority"] is True
     assert payload["package_schema"]["unknown_required_field_fails_closed"] is True
+
+
+def test_boundary_validation_contract_defines_explicit_enums_and_blockers(tmp_path):
+    payload = _build(tmp_path)
+    boundary = payload["boundary_validation_contract"]
+
+    assert boundary["contract_name"] == "BoundaryValidationContract"
+    for structure in [
+        "BoundaryValidationContract",
+        "PackageCompileTimeBlocker",
+        "CapabilityGrant",
+        "WorkspaceScope",
+        "AuthorityLevel",
+        "ClearanceLevel",
+        "ValidationRequirement",
+        "ReceiptRequirement",
+        "FailureStopCondition",
+    ]:
+        assert structure in boundary["structures_defined"]
+    assert boundary["authority_level_enum"] == list(contract.AUTHORITY_LEVELS)
+    assert boundary["clearance_level_enum"] == list(contract.CLEARANCE_LEVELS)
+    assert boundary["autonomy_level_enum"] == list(contract.AUTONOMY_LEVELS)
+    assert boundary["capability_class_enum"] == list(contract.CAPABILITY_CLASSES)
+    assert "pc_c_drive_write" in boundary["blocked_by_default_capabilities"]
+    assert "model_call" in boundary["blocked_by_default_capabilities"]
+    assert "browser" in boundary["blocked_by_default_capabilities"]
+    assert "oauth" in boundary["blocked_by_default_capabilities"]
+    assert boundary["natural_language_claims_establish_authority"] is False
+    assert boundary["actor_or_model_may_expand_own_authority"] is False
+    blocker_codes = {item["blocker_code"] for item in boundary["compile_time_blockers"]}
+    assert "path_outside_allowed_roots" in blocker_codes
+    assert "success_claim_without_deterministic_validation" in blocker_codes
+    assert "future_gated_action_made_active" in blocker_codes
 
 
 def test_package_types_are_defined_without_runtime_authority(tmp_path):
@@ -137,6 +193,10 @@ def test_deterministic_and_lm_assisted_fields_are_separated(tmp_path):
 
     assert set(boundary["deterministic_required_fields"]) == set(contract.DETERMINISTIC_REQUIRED_FIELDS)
     assert "authority_boundary" in boundary["deterministic_required_fields"]
+    assert "authority_level" in boundary["deterministic_required_fields"]
+    assert "clearance_level" in boundary["deterministic_required_fields"]
+    assert "allowed_workspace_roots" in boundary["deterministic_required_fields"]
+    assert "required_schema_checks" in boundary["deterministic_required_fields"]
     assert "allowed_plugins_or_capabilities" in boundary["deterministic_required_fields"]
     assert "proof_requirements" in boundary["deterministic_required_fields"]
     assert "operator_eli5" in boundary["lm_assisted_allowed_fields_early"]
@@ -194,8 +254,142 @@ def test_sample_packages_are_non_executing_and_button_ready(tmp_path):
         assert sample["dispatch_allowed_now"] is False
         assert sample["authority_boundary"]["runtime_authority_added"] is False
         assert sample["authority_boundary"]["model_or_agent_call_allowed"] is False
+        assert sample["authority_level"] == "preview_only"
+        assert sample["autonomy_level"] == "L0_preview_package_only"
+        assert sample["allowed_capabilities"] == ["file_read"]
+        assert "pc_c_drive_write" in sample["forbidden_capabilities"]
+        assert contract.validate_package_boundary(sample)["valid"] is True
         assert sample["human_confirmation_required"] is True
         assert "receipt_requirements" in sample
+
+
+def test_package_referencing_path_outside_allowed_roots_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["workspace_scope"] = {
+        **package["workspace_scope"],
+        "path_refs": ["../outside_repo/private_note.md"],
+    }
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "path_outside_allowed_roots" in _blocker_codes(result)
+
+
+def test_package_requesting_forbidden_capability_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["capabilities_requested"] = ["file_read", "browser"]
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "capability_not_allowed" in _blocker_codes(result)
+    assert "forbidden_capability_requested" in _blocker_codes(result)
+    assert "active_external_or_write_capability_requested" in _blocker_codes(result)
+
+
+def test_package_requesting_pc_c_drive_write_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["capabilities_requested"] = ["file_read", "pc_c_drive_write"]
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "pc_system_drive_write_requested" in _blocker_codes(result)
+
+
+def test_package_with_active_model_agent_browser_oauth_or_send_authority_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["capabilities_requested"] = ["file_read", "model_call", "agent_call", "oauth", "email_send"]
+    package["dispatch_allowed_now"] = True
+    package["future_gate_required"] = True
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    codes = _blocker_codes(result)
+    assert "active_external_or_write_capability_requested" in codes
+    assert "future_gated_action_made_active" in codes
+
+
+def test_package_missing_required_receipt_or_proof_validation_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["required_receipts"] = []
+    package["required_schema_checks"] = []
+    package["required_file_existence_checks"] = []
+    package["required_hash_or_manifest_checks"] = []
+    package["required_test_results"] = []
+    package["required_exit_codes"] = []
+    package["validation_requirements"] = []
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "missing_receipt_or_proof" in _blocker_codes(result)
+
+
+def test_package_claiming_success_without_deterministic_validation_is_invalid(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["claimed_success_state"] = "deterministic_success"
+    package["success_validation"] = {
+        "deterministic_success_claimed": True,
+        "deterministic_proof_methods": [],
+    }
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "success_claim_without_deterministic_validation" in _blocker_codes(result)
+
+
+def test_package_cannot_escalate_clearance_beyond_registry_default(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["registry_default_clearance_level"] = "internal_operator_safe"
+    package["clearance_level"] = "protected_context_required"
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "clearance_escalates_registry_default" in _blocker_codes(result)
+
+
+def test_package_cannot_convert_future_gated_action_into_active_action(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["future_gated_actions"] = ["launch_workbench"]
+    package["active_actions"] = ["launch_workbench"]
+    package["launch_allowed_now"] = True
+    package["future_gate_required"] = True
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "future_gated_action_made_active" in _blocker_codes(result)
+
+
+def test_actor_model_cannot_self_assign_authority_tools_or_workspace(tmp_path):
+    package = _safe_sample(tmp_path)
+    package["actor_may_self_assign_authority"] = True
+    package["model_decides_tools"] = True
+
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is False
+    assert "actor_self_assigned_authority" in _blocker_codes(result)
+
+
+def test_preview_only_package_can_carry_context_refs_proof_refs_and_detours_without_live_authority(tmp_path):
+    package = _safe_sample(tmp_path)
+    result = contract.validate_package_boundary(package)
+
+    assert result["valid"] is True
+    assert package["current_availability"] == "preview_only"
+    assert package["context_included"]
+    assert package["evidence_refs"]
+    assert package["read_model_refs"]
+    assert package["detour_options"]
+    assert package["dispatch_allowed_now"] is False
+    assert package["launch_allowed_now"] is False
+    assert package["authority_boundary"]["runtime_authority_added"] is False
 
 
 def test_operator_output_answers_required_questions(tmp_path):
@@ -206,6 +400,11 @@ def test_operator_output_answers_required_questions(tmp_path):
         "What Is A Package?",
         "How Packages Are Compiled",
         "Deterministic Fields",
+        "Boundary Validation",
+        "Compile-Time Blockers",
+        "Blocked By Default",
+        "Safe Preview Package",
+        "Invalid Package Conditions",
         "LM-Assisted Fields",
         "Package Types",
         "Actor / Workbench Routing",

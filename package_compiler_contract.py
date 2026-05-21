@@ -39,6 +39,9 @@ PACKAGE_SCHEMA_FIELDS = (
     "target_workbench_or_actor_host",
     "actor_model_candidate",
     "agent_character",
+    "allowed_workspace_roots",
+    "forbidden_paths",
+    "workspace_scope",
     "mission",
     "operator_eli5",
     "stakes_why_it_matters",
@@ -46,18 +49,42 @@ PACKAGE_SCHEMA_FIELDS = (
     "context_excluded",
     "evidence_refs",
     "read_model_refs",
+    "capabilities_requested",
+    "capability_grants",
+    "allowed_capabilities",
+    "forbidden_capabilities",
     "allowed_plugins_or_capabilities",
     "forbidden_plugins_or_capabilities",
+    "clearance_level",
     "security_clearance",
+    "authority_level",
     "authority_boundary",
+    "autonomy_level",
     "steps",
     "stop_conditions",
+    "failure_stop_conditions",
     "expected_outputs",
+    "validation_requirements",
+    "required_schema_checks",
+    "required_file_existence_checks",
+    "required_hash_or_manifest_checks",
+    "required_test_results",
+    "required_exit_codes",
     "proof_requirements",
+    "required_receipts",
     "receipt_requirements",
     "confidence_state",
     "confidence_inputs",
     "detour_options",
+    "permitted_command_classes",
+    "forbidden_command_classes",
+    "compile_time_blockers",
+    "credential_policy",
+    "storage_policy",
+    "c_drive_policy",
+    "no_go_data_policy",
+    "success_validation",
+    "boundary_validation",
     "current_availability",
     "failure_reset_behavior",
     "quiet_condition",
@@ -106,21 +133,48 @@ DETERMINISTIC_REQUIRED_FIELDS = (
     "target_workbench_or_actor_host",
     "actor_model_candidate",
     "agent_character",
+    "allowed_workspace_roots",
+    "forbidden_paths",
+    "workspace_scope",
     "context_included",
     "context_excluded",
     "evidence_refs",
     "read_model_refs",
+    "capabilities_requested",
+    "capability_grants",
+    "allowed_capabilities",
+    "forbidden_capabilities",
     "allowed_plugins_or_capabilities",
     "forbidden_plugins_or_capabilities",
+    "clearance_level",
     "security_clearance",
+    "authority_level",
     "authority_boundary",
+    "autonomy_level",
     "steps",
     "stop_conditions",
+    "failure_stop_conditions",
+    "validation_requirements",
+    "required_schema_checks",
+    "required_file_existence_checks",
+    "required_hash_or_manifest_checks",
+    "required_test_results",
+    "required_exit_codes",
     "proof_requirements",
+    "required_receipts",
     "receipt_requirements",
     "confidence_state",
     "confidence_inputs",
     "detour_options",
+    "permitted_command_classes",
+    "forbidden_command_classes",
+    "compile_time_blockers",
+    "credential_policy",
+    "storage_policy",
+    "c_drive_policy",
+    "no_go_data_policy",
+    "success_validation",
+    "boundary_validation",
     "current_availability",
     "failure_reset_behavior",
     "quiet_condition",
@@ -135,6 +189,157 @@ LM_ASSISTED_ALLOWED_FIELDS_EARLY = (
     "package_summary",
     "prompt_prose",
     "risk_explanation",
+)
+
+AUTHORITY_LEVELS = (
+    "preview_only",
+    "read_only",
+    "request_only",
+    "scoped_write",
+    "approved_execution_future",
+    "blocked",
+)
+
+CLEARANCE_LEVELS = (
+    "public_or_repo_safe",
+    "internal_operator_safe",
+    "sensitive_metadata_only",
+    "protected_context_required",
+    "blocked_no_go",
+)
+
+AUTONOMY_LEVELS = (
+    "L0_preview_package_only",
+    "L1_copy_open_package",
+    "L2_launch_bounded_session_future_gated",
+    "L3_monitor_and_ingest_receipt_future_gated",
+    "L4_safe_maintenance_autopilot_future_gated",
+    "L5_broad_execution_blocked",
+)
+
+CAPABILITY_CLASSES = (
+    "file_read",
+    "file_write_scoped",
+    "test_run",
+    "build_run",
+    "git_commit",
+    "shell_command_scoped",
+    "app_launch",
+    "model_call",
+    "agent_call",
+    "browser",
+    "oauth",
+    "credential_access",
+    "email_send",
+    "calendar_mutation",
+    "coupa_portal",
+    "telegram_send",
+    "runtime_activation",
+    "cleanup_delete",
+    "remount",
+    "pc_c_drive_write",
+)
+
+SAFE_PREVIEW_CAPABILITIES = (
+    "file_read",
+)
+
+BLOCKED_BY_DEFAULT_CAPABILITIES = (
+    "file_write_scoped",
+    "test_run",
+    "build_run",
+    "git_commit",
+    "shell_command_scoped",
+    "app_launch",
+    "model_call",
+    "agent_call",
+    "browser",
+    "oauth",
+    "credential_access",
+    "email_send",
+    "calendar_mutation",
+    "coupa_portal",
+    "telegram_send",
+    "runtime_activation",
+    "cleanup_delete",
+    "remount",
+    "pc_c_drive_write",
+)
+
+PERMITTED_COMMAND_CLASSES = (
+    "no_command",
+    "read_only_inspection",
+    "focused_test",
+    "json_parse",
+    "export_script",
+    "git_diff_check",
+)
+
+FORBIDDEN_COMMAND_CLASSES = (
+    "destructive_delete",
+    "cleanup",
+    "remount",
+    "credential_prompt",
+    "browser_or_oauth",
+    "model_or_agent_call",
+    "send_submit_approval",
+    "runtime_activation",
+    "pc_system_drive_artifact_write",
+    "broad_private_ingestion",
+)
+
+VALIDATION_REQUIREMENT_TYPES = (
+    "schema_check",
+    "file_existence_check",
+    "hash_or_manifest_check",
+    "receipt_check",
+    "test_result",
+    "exit_code",
+    "allowed_roots_check",
+    "capability_grant_check",
+)
+
+RECEIPT_REQUIREMENT_TYPES = (
+    "metadata_only_generation_receipt",
+    "package_preview_receipt",
+    "validation_result_receipt",
+    "future_state_ingest_receipt",
+)
+
+FAILURE_STOP_CONDITION_CODES = (
+    "path_outside_allowed_roots",
+    "forbidden_capability_requested",
+    "credential_or_secret_requested",
+    "active_external_authority_requested",
+    "preview_escalated_to_execution",
+    "pc_system_drive_write_requested",
+    "missing_receipt_or_proof",
+    "success_claim_without_deterministic_validation",
+    "actor_self_assigned_authority",
+    "future_gated_action_made_active",
+)
+
+BOUNDARY_VALIDATION_REQUIRED_FIELDS = (
+    "allowed_workspace_roots",
+    "forbidden_paths",
+    "allowed_capabilities",
+    "forbidden_capabilities",
+    "clearance_level",
+    "authority_level",
+    "autonomy_level",
+    "required_receipts",
+    "required_schema_checks",
+    "required_file_existence_checks",
+    "required_hash_or_manifest_checks",
+    "permitted_command_classes",
+    "forbidden_command_classes",
+    "compile_time_blockers",
+    "human_confirmation_required",
+    "credential_policy",
+    "storage_policy",
+    "c_drive_policy",
+    "no_go_data_policy",
+    "failure_stop_conditions",
 )
 
 NO_AUTHORITY_FLAGS = {
@@ -193,6 +398,40 @@ class PackageTypeSpec:
     default_agent_character: str
     likely_workbench_or_actor_host: str
     current_availability: str
+
+
+@dataclass(frozen=True)
+class PackageCompileTimeBlocker:
+    blocker_code: str
+    blocked_field: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class CapabilityGrant:
+    capability_class: str
+    grant_state: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class ValidationRequirement:
+    requirement_id: str
+    requirement_type: str
+    required_for_package_validity: bool
+
+
+@dataclass(frozen=True)
+class ReceiptRequirement:
+    receipt_id: str
+    receipt_type: str
+    required_before_state_ingest: bool
+
+
+@dataclass(frozen=True)
+class FailureStopCondition:
+    condition_code: str
+    stop_reason: str
 
 
 @dataclass(frozen=True)
@@ -383,6 +622,278 @@ def _package_schema() -> dict[str, Any]:
         "current_availability_states": list(CURRENT_AVAILABILITY_STATES),
         "package_body_hash_required_before_future_dispatch": True,
         "human_confirmation_required_by_default": True,
+    }
+
+
+def _authority_rank(level: str) -> int:
+    try:
+        return AUTHORITY_LEVELS.index(level)
+    except ValueError:
+        return len(AUTHORITY_LEVELS)
+
+
+def _clearance_rank(level: str) -> int:
+    try:
+        return CLEARANCE_LEVELS.index(level)
+    except ValueError:
+        return len(CLEARANCE_LEVELS)
+
+
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return [value]
+
+
+def _normalize_path_ref(path_ref: Any) -> str:
+    return str(path_ref).replace("\\", "/").strip()
+
+
+def _path_is_under_any_root(path_ref: str, roots: list[str]) -> bool:
+    if not path_ref:
+        return True
+    if not roots:
+        return False
+    normalized = _normalize_path_ref(path_ref).rstrip("/")
+    for root in roots:
+        normalized_root = _normalize_path_ref(root).rstrip("/")
+        if not normalized_root:
+            continue
+        if normalized == normalized_root or normalized.startswith(normalized_root + "/"):
+            return True
+    return False
+
+
+def _compile_time_blocker_catalog() -> list[dict[str, str]]:
+    blockers = (
+        PackageCompileTimeBlocker(
+            "path_outside_allowed_roots",
+            "workspace_scope.path_refs",
+            "Package references a path outside allowed workspace roots.",
+        ),
+        PackageCompileTimeBlocker(
+            "forbidden_capability_requested",
+            "capabilities_requested",
+            "Package requests a capability not explicitly granted.",
+        ),
+        PackageCompileTimeBlocker(
+            "credential_or_secret_requested",
+            "credential_policy",
+            "Package requests credentials, secrets, tokens, or account sessions.",
+        ),
+        PackageCompileTimeBlocker(
+            "active_external_authority_requested",
+            "capabilities_requested",
+            "Package requests browser, OAuth, model, agent, account, send, submit, approval, or portal authority.",
+        ),
+        PackageCompileTimeBlocker(
+            "preview_escalated_to_execution",
+            "authority_level",
+            "Package escalates from preview/read-only posture to write or execution without an approved gate.",
+        ),
+        PackageCompileTimeBlocker(
+            "pc_system_drive_write_requested",
+            "c_drive_policy",
+            "Package attempts to write OpenClaw artifacts to the PC system drive.",
+        ),
+        PackageCompileTimeBlocker(
+            "missing_receipt_or_proof",
+            "required_receipts",
+            "Package omits deterministic receipts, schema checks, or proof requirements.",
+        ),
+        PackageCompileTimeBlocker(
+            "success_claim_without_deterministic_validation",
+            "success_validation",
+            "Package claims success without schema, hash, receipt, test, or exit-code proof.",
+        ),
+        PackageCompileTimeBlocker(
+            "actor_self_assigned_authority",
+            "authority_boundary",
+            "Package lets the actor/model choose its own clearance, tools, authority, workspace, or success criteria.",
+        ),
+        PackageCompileTimeBlocker(
+            "future_gated_action_made_active",
+            "current_availability",
+            "Package converts a future-gated action into active launch, dispatch, runtime, or mutation authority.",
+        ),
+    )
+    return [blocker.__dict__ for blocker in blockers]
+
+
+def _capability_grant_catalog(allowed_capabilities: list[str] | None = None) -> list[dict[str, str]]:
+    allowed = set(allowed_capabilities or SAFE_PREVIEW_CAPABILITIES)
+    grants: list[CapabilityGrant] = []
+    for capability in CAPABILITY_CLASSES:
+        if capability in allowed:
+            grants.append(
+                CapabilityGrant(
+                    capability,
+                    "granted_metadata_only",
+                    "Allowed only as deterministic package metadata; this contract does not execute it.",
+                )
+            )
+        else:
+            grants.append(
+                CapabilityGrant(
+                    capability,
+                    "blocked_by_default",
+                    "Requires a later explicit authority gate before it can become active.",
+                )
+            )
+    return [grant.__dict__ for grant in grants]
+
+
+def _validation_requirement_catalog() -> list[dict[str, Any]]:
+    requirements = (
+        ValidationRequirement("package_schema_fields_present", "schema_check", True),
+        ValidationRequirement("boundary_validation_fields_present", "schema_check", True),
+        ValidationRequirement("workspace_paths_within_allowed_roots", "allowed_roots_check", True),
+        ValidationRequirement("capabilities_match_grants", "capability_grant_check", True),
+        ValidationRequirement("source_read_model_or_file_refs_exist_when_claimed", "file_existence_check", True),
+        ValidationRequirement("package_hash_or_manifest_available", "hash_or_manifest_check", True),
+        ValidationRequirement("metadata_only_receipt_required", "receipt_check", True),
+        ValidationRequirement("focused_validation_results_recorded_when_claiming_success", "test_result", True),
+        ValidationRequirement("permitted_command_exit_codes_recorded_when_commands_are_allowed", "exit_code", True),
+    )
+    return [requirement.__dict__ for requirement in requirements]
+
+
+def _receipt_requirement_catalog() -> list[dict[str, Any]]:
+    receipts = (
+        ReceiptRequirement("metadata_only_generation_receipt", "generated_status", True),
+        ReceiptRequirement("package_preview_receipt", "generated_status", True),
+        ReceiptRequirement("validation_result_receipt", "validation_result", True),
+        ReceiptRequirement("future_state_ingest_receipt", "artifact_checkpoint", True),
+    )
+    return [receipt.__dict__ for receipt in receipts]
+
+
+def _failure_stop_conditions() -> list[dict[str, str]]:
+    return [
+        FailureStopCondition(code, code.replace("_", " ")).__dict__
+        for code in FAILURE_STOP_CONDITION_CODES
+    ]
+
+
+def _boundary_validation_contract() -> dict[str, Any]:
+    return {
+        "contract_name": "BoundaryValidationContract",
+        "structures_defined": [
+            "BoundaryValidationContract",
+            "PackageCompileTimeBlocker",
+            "CapabilityGrant",
+            "WorkspaceScope",
+            "AuthorityLevel",
+            "ClearanceLevel",
+            "ValidationRequirement",
+            "ReceiptRequirement",
+            "FailureStopCondition",
+        ],
+        "authority_level_enum": list(AUTHORITY_LEVELS),
+        "clearance_level_enum": list(CLEARANCE_LEVELS),
+        "autonomy_level_enum": list(AUTONOMY_LEVELS),
+        "capability_class_enum": list(CAPABILITY_CLASSES),
+        "blocked_by_default_capabilities": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
+        "safe_preview_capabilities": list(SAFE_PREVIEW_CAPABILITIES),
+        "permitted_command_classes": list(PERMITTED_COMMAND_CLASSES),
+        "forbidden_command_classes": list(FORBIDDEN_COMMAND_CLASSES),
+        "validation_requirement_types": list(VALIDATION_REQUIREMENT_TYPES),
+        "receipt_requirement_types": list(RECEIPT_REQUIREMENT_TYPES),
+        "required_boundary_fields": list(BOUNDARY_VALIDATION_REQUIRED_FIELDS),
+        "compile_time_blockers": _compile_time_blocker_catalog(),
+        "validation_requirements": _validation_requirement_catalog(),
+        "receipt_requirements": _receipt_requirement_catalog(),
+        "failure_stop_conditions": _failure_stop_conditions(),
+        "natural_language_claims_establish_authority": False,
+        "actor_or_model_may_expand_own_authority": False,
+        "unknown_validation_field_fails_closed": True,
+        "success_requires_deterministic_proof": True,
+    }
+
+
+def _workspace_scope(path_refs: list[str]) -> dict[str, Any]:
+    allowed_roots = ["generated/read_models", "Operator", "docs/planning/launch_ladder"]
+    return {
+        "scope_type": "repo_relative_read_model_and_operator_docs",
+        "allowed_workspace_roots": allowed_roots,
+        "path_refs": path_refs,
+        "forbidden_paths": [
+            "credential stores",
+            "raw private archives",
+            "PC system drive",
+            "Repo B",
+            "Mac app files unless a later UI lane grants explicit scope",
+        ],
+        "path_validation": "repo_relative_prefix_match_required",
+    }
+
+
+def _credential_policy() -> dict[str, Any]:
+    return {
+        "credentials_allowed": False,
+        "secrets_allowed": False,
+        "tokens_allowed": False,
+        "credential_prompts_allowed": False,
+        "unknown_credential_need_fails_closed": True,
+    }
+
+
+def _storage_policy() -> dict[str, Any]:
+    return {
+        "allowed_storage_roots": ["generated/read_models", ".openclaw/business_ops"],
+        "raw_private_content_storage_allowed": False,
+        "broad_file_dump_storage_allowed": False,
+        "runtime_log_storage_allowed": False,
+    }
+
+
+def _c_drive_policy() -> dict[str, Any]:
+    return {
+        "pc_system_drive_artifact_writes_allowed": False,
+        "pc_c_drive_write_capability_allowed": False,
+        "blocker_code": "pc_system_drive_write_requested",
+    }
+
+
+def _no_go_data_policy() -> dict[str, Any]:
+    return {
+        "secrets": "blocked",
+        "credentials": "blocked",
+        "raw_private_file_bodies": "blocked",
+        "raw_logs": "blocked",
+        "broad_file_dumps": "blocked",
+        "browser_or_account_sessions": "blocked",
+        "unknown_sensitive_need": "fail_closed",
+    }
+
+
+def _default_validation_requirements() -> list[dict[str, Any]]:
+    return [
+        {"requirement_id": "package_schema_fields_present", "requirement_type": "schema_check", "required": True},
+        {"requirement_id": "boundary_validation_fields_present", "requirement_type": "schema_check", "required": True},
+        {"requirement_id": "workspace_paths_within_allowed_roots", "requirement_type": "allowed_roots_check", "required": True},
+        {"requirement_id": "capabilities_match_grants", "requirement_type": "capability_grant_check", "required": True},
+        {"requirement_id": "metadata_only_receipt_required", "requirement_type": "receipt_check", "required": True},
+        {"requirement_id": "package_hash_or_manifest_available", "requirement_type": "hash_or_manifest_check", "required": True},
+    ]
+
+
+def _default_success_validation() -> dict[str, Any]:
+    return {
+        "deterministic_success_claimed": False,
+        "natural_language_success_claim_allowed": False,
+        "deterministic_proof_methods": [
+            "schema_check",
+            "hash_or_manifest_check",
+            "receipt_check",
+            "test_result_or_not_run_reason",
+            "exit_code_when_command_allowed",
+        ],
+        "success_without_deterministic_proof_is_invalid": True,
     }
 
 
@@ -633,6 +1144,224 @@ def _authority_boundary() -> dict[str, Any]:
     }
 
 
+def _add_blocker(blockers: list[dict[str, str]], code: str, field: str, reason: str) -> None:
+    blockers.append({"blocker_code": code, "field": field, "reason": reason})
+
+
+def validate_package_boundary(package: dict[str, Any]) -> dict[str, Any]:
+    """Validate a package preview against deterministic boundary rules.
+
+    This is schema/metadata validation only. It does not execute commands,
+    inspect external systems, launch actors, or mutate state.
+    """
+
+    blockers: list[dict[str, str]] = []
+    for field in BOUNDARY_VALIDATION_REQUIRED_FIELDS:
+        if field not in package:
+            _add_blocker(
+                blockers,
+                "missing_boundary_field",
+                field,
+                "Required deterministic boundary field is absent.",
+            )
+
+    authority_level = str(package.get("authority_level", ""))
+    clearance_level = str(package.get("clearance_level", ""))
+    autonomy_level = str(package.get("autonomy_level", ""))
+    current_availability = str(package.get("current_availability", ""))
+
+    if authority_level not in AUTHORITY_LEVELS:
+        _add_blocker(blockers, "invalid_authority_level", "authority_level", "Authority level is not in the enum.")
+    if clearance_level not in CLEARANCE_LEVELS:
+        _add_blocker(blockers, "invalid_clearance_level", "clearance_level", "Clearance level is not in the enum.")
+    if autonomy_level not in AUTONOMY_LEVELS:
+        _add_blocker(blockers, "invalid_autonomy_level", "autonomy_level", "Autonomy level is not in the enum.")
+    if current_availability not in CURRENT_AVAILABILITY_STATES:
+        _add_blocker(blockers, "invalid_current_availability", "current_availability", "Availability state is not in the enum.")
+
+    allowed_roots = [_normalize_path_ref(item) for item in _as_list(package.get("allowed_workspace_roots"))]
+    workspace_scope = package.get("workspace_scope", {})
+    if not isinstance(workspace_scope, dict):
+        workspace_scope = {}
+    path_refs = [_normalize_path_ref(item) for item in _as_list(workspace_scope.get("path_refs"))]
+    path_refs.extend(_normalize_path_ref(item) for item in _as_list(package.get("path_refs")))
+    for path_ref in path_refs:
+        if not _path_is_under_any_root(path_ref, allowed_roots):
+            _add_blocker(
+                blockers,
+                "path_outside_allowed_roots",
+                "workspace_scope.path_refs",
+                f"Path reference is outside allowed workspace roots: {path_ref}",
+            )
+
+    requested_capabilities = {str(item) for item in _as_list(package.get("capabilities_requested"))}
+    allowed_capabilities = {str(item) for item in _as_list(package.get("allowed_capabilities"))}
+    forbidden_capabilities = {str(item) for item in _as_list(package.get("forbidden_capabilities"))}
+    unknown_capabilities = requested_capabilities - set(CAPABILITY_CLASSES)
+    for capability in sorted(unknown_capabilities):
+        _add_blocker(
+            blockers,
+            "unknown_capability_requested",
+            "capabilities_requested",
+            f"Capability is not in the enum: {capability}",
+        )
+    for capability in sorted(requested_capabilities - allowed_capabilities):
+        _add_blocker(
+            blockers,
+            "capability_not_allowed",
+            "capabilities_requested",
+            f"Capability is not explicitly granted: {capability}",
+        )
+    for capability in sorted(requested_capabilities & forbidden_capabilities):
+        _add_blocker(
+            blockers,
+            "forbidden_capability_requested",
+            "capabilities_requested",
+            f"Capability is explicitly forbidden: {capability}",
+        )
+    for capability in sorted(requested_capabilities & set(BLOCKED_BY_DEFAULT_CAPABILITIES)):
+        _add_blocker(
+            blockers,
+            "active_external_or_write_capability_requested",
+            "capabilities_requested",
+            f"Capability is blocked by default unless a later gate grants it: {capability}",
+        )
+
+    if "pc_c_drive_write" in requested_capabilities:
+        _add_blocker(
+            blockers,
+            "pc_system_drive_write_requested",
+            "c_drive_policy",
+            "OpenClaw artifact writes to the PC system drive are blocked.",
+        )
+
+    credential_policy = package.get("credential_policy", {})
+    if not isinstance(credential_policy, dict):
+        credential_policy = {}
+    if any(
+        credential_policy.get(key) is True
+        for key in ("credentials_allowed", "secrets_allowed", "tokens_allowed", "credential_prompts_allowed")
+    ):
+        _add_blocker(
+            blockers,
+            "credential_or_secret_requested",
+            "credential_policy",
+            "Package requests credentials, secrets, tokens, or credential prompts.",
+        )
+
+    if authority_level in {"scoped_write", "approved_execution_future"} and not package.get("approved_gate_ref"):
+        _add_blocker(
+            blockers,
+            "preview_escalated_to_execution",
+            "authority_level",
+            "Write or execution authority requires an explicit approved gate reference.",
+        )
+    if _authority_rank(authority_level) > _authority_rank("request_only") and current_availability == "preview_only":
+        _add_blocker(
+            blockers,
+            "preview_escalated_to_execution",
+            "current_availability",
+            "Preview-only package cannot carry active write or execution authority.",
+        )
+
+    registry_default_clearance = str(package.get("registry_default_clearance_level") or clearance_level)
+    if registry_default_clearance in CLEARANCE_LEVELS and clearance_level in CLEARANCE_LEVELS:
+        if _clearance_rank(clearance_level) > _clearance_rank(registry_default_clearance):
+            _add_blocker(
+                blockers,
+                "clearance_escalates_registry_default",
+                "clearance_level",
+                "Package clearance exceeds the actor/workbench registry default.",
+            )
+
+    future_gated_actions = {str(item) for item in _as_list(package.get("future_gated_actions"))}
+    active_actions = {str(item) for item in _as_list(package.get("active_actions"))}
+    if future_gated_actions & active_actions:
+        _add_blocker(
+            blockers,
+            "future_gated_action_made_active",
+            "active_actions",
+            "A future-gated action is also marked active.",
+        )
+    if package.get("future_gate_required") is True and any(
+        package.get(key) is True
+        for key in ("dispatch_allowed_now", "launch_allowed_now", "runtime_authority_added", "execution_authority_added")
+    ):
+        _add_blocker(
+            blockers,
+            "future_gated_action_made_active",
+            "current_availability",
+            "Future-gated package is marked as active now.",
+        )
+
+    if package.get("actor_may_self_assign_authority") is True or package.get("model_decides_tools") is True:
+        _add_blocker(
+            blockers,
+            "actor_self_assigned_authority",
+            "authority_boundary",
+            "Actor/model is not allowed to choose its own authority, tools, clearance, workspace, or success criteria.",
+        )
+
+    if _as_list(package.get("compile_time_blockers")):
+        _add_blocker(
+            blockers,
+            "package_declares_compile_time_blockers",
+            "compile_time_blockers",
+            "Package already declares compile-time blockers and must not compile.",
+        )
+
+    required_receipts = _as_list(package.get("required_receipts"))
+    required_schema_checks = _as_list(package.get("required_schema_checks"))
+    required_file_checks = _as_list(package.get("required_file_existence_checks"))
+    required_hash_checks = _as_list(package.get("required_hash_or_manifest_checks"))
+    required_tests = _as_list(package.get("required_test_results"))
+    required_exit_codes = _as_list(package.get("required_exit_codes"))
+    validation_requirements = _as_list(package.get("validation_requirements"))
+    if not required_receipts:
+        _add_blocker(blockers, "missing_receipt_or_proof", "required_receipts", "Required receipts are absent.")
+    if not required_schema_checks:
+        _add_blocker(blockers, "missing_receipt_or_proof", "required_schema_checks", "Required schema checks are absent.")
+    if not validation_requirements:
+        _add_blocker(
+            blockers,
+            "missing_receipt_or_proof",
+            "validation_requirements",
+            "Validation requirements are absent.",
+        )
+    if not (required_file_checks or required_hash_checks or required_tests or required_exit_codes):
+        _add_blocker(
+            blockers,
+            "missing_receipt_or_proof",
+            "proof_requirements",
+            "No deterministic file, hash, test, or exit-code proof is required.",
+        )
+
+    success_validation = package.get("success_validation", {})
+    if not isinstance(success_validation, dict):
+        success_validation = {}
+    deterministic_success_claimed = bool(success_validation.get("deterministic_success_claimed")) or str(
+        package.get("claimed_success_state", "")
+    ) in {"deterministic_success", "trusted_current", "complete"}
+    if deterministic_success_claimed and not _as_list(success_validation.get("deterministic_proof_methods")):
+        _add_blocker(
+            blockers,
+            "success_claim_without_deterministic_validation",
+            "success_validation",
+            "Package claims deterministic success without deterministic proof methods.",
+        )
+
+    return {
+        "valid": not blockers,
+        "blocker_count": len(blockers),
+        "blockers": blockers,
+        "validated_fields": list(BOUNDARY_VALIDATION_REQUIRED_FIELDS),
+        "natural_language_claims_establish_authority": False,
+        "runtime_authority_added": False,
+        "model_or_agent_call_allowed": False,
+        "tool_or_plugin_execution_allowed": False,
+    }
+
+
 def _sample_package(
     *,
     package_id: str,
@@ -649,6 +1378,20 @@ def _sample_package(
     evidence_refs: list[str],
     read_model_refs: list[str],
 ) -> dict[str, Any]:
+    read_model_path_refs = [
+        ref if ref.startswith("generated/read_models/") else f"generated/read_models/{ref}"
+        for ref in read_model_refs
+        if ref.endswith((".json", ".md", ".txt"))
+    ]
+    path_refs = sorted(
+        {
+            ref
+            for ref in [*evidence_refs, *read_model_path_refs]
+            if ref.startswith(("generated/read_models/", "Operator/", "docs/planning/launch_ladder/"))
+        }
+    )
+    workspace_scope = _workspace_scope(path_refs)
+    validation_requirements = _default_validation_requirements()
     body = {
         "package_id": package_id,
         "package_type": package_type,
@@ -658,6 +1401,9 @@ def _sample_package(
         "target_workbench_or_actor_host": target_workbench_or_actor_host,
         "actor_model_candidate": actor_model_candidate,
         "agent_character": agent_character,
+        "allowed_workspace_roots": workspace_scope["allowed_workspace_roots"],
+        "forbidden_paths": workspace_scope["forbidden_paths"],
+        "workspace_scope": workspace_scope,
         "mission": mission,
         "operator_eli5": operator_eli5,
         "stakes_why_it_matters": "The operator should see the right package before any future workbench receives it.",
@@ -671,6 +1417,10 @@ def _sample_package(
         ],
         "evidence_refs": evidence_refs,
         "read_model_refs": read_model_refs,
+        "capabilities_requested": ["file_read"],
+        "capability_grants": _capability_grant_catalog(["file_read"]),
+        "allowed_capabilities": ["file_read"],
+        "forbidden_capabilities": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
         "allowed_plugins_or_capabilities": ["read-model inspection metadata", "receipt review metadata"],
         "forbidden_plugins_or_capabilities": [
             "live plugin execution",
@@ -678,8 +1428,12 @@ def _sample_package(
             "send/submit/approval",
             "runtime repair",
         ],
+        "clearance_level": "internal_operator_safe",
+        "registry_default_clearance_level": "internal_operator_safe",
         "security_clearance": "metadata_review_only_no_live_authority",
+        "authority_level": "preview_only",
         "authority_boundary": _authority_boundary(),
+        "autonomy_level": "L0_preview_package_only",
         "steps": [
             "Read operator orientation.",
             "Inspect machine proof references.",
@@ -693,22 +1447,51 @@ def _sample_package(
             "need for credentials or account access",
             "need for live model/tool/agent/browser/runtime execution",
         ],
+        "failure_stop_conditions": list(FAILURE_STOP_CONDITION_CODES),
         "expected_outputs": [
             "operator-readable diagnosis or review",
             "proof/receipt references",
             "safe next move",
             "blocked or missing inputs",
         ],
+        "validation_requirements": validation_requirements,
+        "required_schema_checks": ["package_schema_fields_present", "boundary_validation_fields_present"],
+        "required_file_existence_checks": ["source_read_model_refs_exist_when_claimed"],
+        "required_hash_or_manifest_checks": [
+            "package_hash_or_deterministic_placeholder",
+            "source_manifest_or_hash_refs_when_available",
+        ],
+        "required_test_results": ["not_run_reason_allowed_for_preview_only"],
+        "required_exit_codes": ["not_applicable_no_command_permitted"],
         "proof_requirements": ["source read-model references", "authority boundary confirmation", "validation or not-run reason"],
+        "required_receipts": ["metadata_only_generation_receipt", "package_preview_receipt"],
         "receipt_requirements": ["metadata-only receipt before any future state ingest"],
         "confidence_state": "below_deterministic_until_returned_receipt_or_proof",
         "confidence_inputs": ["source read-model presence", "hash/current proof where applicable", "explicit blocked authority list"],
         "detour_options": ["raise missing proof", "operator memory comparison", "classification review"],
+        "permitted_command_classes": ["no_command", "read_only_inspection"],
+        "forbidden_command_classes": list(FORBIDDEN_COMMAND_CLASSES),
+        "compile_time_blockers": [],
+        "credential_policy": _credential_policy(),
+        "storage_policy": _storage_policy(),
+        "c_drive_policy": _c_drive_policy(),
+        "no_go_data_policy": _no_go_data_policy(),
+        "success_validation": _default_success_validation(),
+        "boundary_validation": {
+            "validation_function": "validate_package_boundary",
+            "expected_valid": True,
+            "natural_language_claims_establish_authority": False,
+        },
         "current_availability": "preview_only",
+        "future_gate_required": True,
+        "future_gated_actions": ["dispatch_to_actor", "launch_workbench", "state_ingest"],
+        "active_actions": [],
         "available_modes": ["preview_only", "copy_export_only", "launch_future_gated"],
         "failure_reset_behavior": "failure resets confidence and reopens detour path",
         "quiet_condition": "quiet only when proof/receipt is current or lane is intentionally parked",
         "human_confirmation_required": True,
+        "actor_may_self_assign_authority": False,
+        "model_decides_tools": False,
         "prompt_prose": "Example outline only; not dispatched.",
         "sample_only": True,
         "dispatch_allowed_now": False,
@@ -816,6 +1599,7 @@ def build_package_compiler_contract(
     ]
     package_types = [_package_type_record(spec) for spec in _package_type_specs()]
     samples = _sample_packages()
+    boundary_contract = _boundary_validation_contract()
     contract_hash = _hash_payload(
         {
             "schema_version": SCHEMA_VERSION,
@@ -823,6 +1607,12 @@ def build_package_compiler_contract(
             "package_types": package_types,
             "deterministic_required_fields": list(DETERMINISTIC_REQUIRED_FIELDS),
             "lm_assisted_allowed_fields_early": list(LM_ASSISTED_ALLOWED_FIELDS_EARLY),
+            "boundary_validation_required_fields": list(BOUNDARY_VALIDATION_REQUIRED_FIELDS),
+            "authority_levels": list(AUTHORITY_LEVELS),
+            "clearance_levels": list(CLEARANCE_LEVELS),
+            "autonomy_levels": list(AUTONOMY_LEVELS),
+            "capability_classes": list(CAPABILITY_CLASSES),
+            "blocked_by_default_capabilities": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
         }
     )
     payload: dict[str, Any] = {
@@ -831,7 +1621,7 @@ def build_package_compiler_contract(
         "generated_by": "codex",
         "generated_at": generated_at or utc_now(),
         "lane": "Package Compiler Skeleton / Prompt Package Contract v0",
-        "contract_status": "deterministic_metadata_only_package_compiler_skeleton",
+        "contract_status": "deterministic_metadata_only_package_compiler_boundary_hardened",
         "purpose": "Define how Mission Control should compile previewable package bodies from deterministic lane, proof, actor, character, clearance, steps, confidence, and receipt inputs.",
         "what_is_a_package": {
             "model_is_actor": True,
@@ -841,6 +1631,22 @@ def build_package_compiler_contract(
         },
         "relationship_to_existing_contracts": _relationship_to_existing_contracts(),
         "package_schema": _package_schema(),
+        "boundary_validation_contract": boundary_contract,
+        "deterministic_boundary_fields": list(BOUNDARY_VALIDATION_REQUIRED_FIELDS),
+        "compile_time_blockers": boundary_contract["compile_time_blockers"],
+        "capability_grant_catalog": _capability_grant_catalog(),
+        "capabilities_blocked_by_default": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
+        "safe_preview_package_requirements": {
+            "authority_level": "preview_only",
+            "autonomy_level": "L0_preview_package_only",
+            "allowed_capabilities": list(SAFE_PREVIEW_CAPABILITIES),
+            "must_include_context_refs": True,
+            "must_include_proof_refs": True,
+            "must_include_detour_options": True,
+            "must_include_required_receipts": True,
+            "must_include_schema_or_hash_validation": True,
+            "live_launch_or_execute_authority": False,
+        },
         "package_types": package_types,
         "package_type_count": len(package_types),
         "actor_workbench_routing_hooks": _actor_workbench_routing_hooks(sources),
@@ -883,11 +1689,12 @@ def build_package_compiler_contract(
 def format_package_compiler_contract(payload: dict[str, Any]) -> str:
     generation = payload["deterministic_vs_lm_assisted_generation"]
     authority = payload["current_authority_state"]
+    boundary = payload["boundary_validation_contract"]
     lines = [
         "# Package Compiler Contract v0",
         "",
         "Status:",
-        "- Deterministic metadata-only package compiler skeleton.",
+        "- Deterministic metadata-only package compiler skeleton with boundary validation.",
         "- Backend/read-model contract only; no live runner, model call, agent launch, or app UI lane.",
         "",
         "## What Is A Package?",
@@ -902,12 +1709,39 @@ def format_package_compiler_contract(payload: dict[str, Any]) -> str:
         "## Deterministic Fields",
         "- " + ", ".join(f"`{field}`" for field in generation["deterministic_required_fields"]) + ".",
         "",
-        "## LM-Assisted Fields",
-        "- " + ", ".join(f"`{field}`" for field in generation["lm_assisted_allowed_fields_early"]) + ".",
-        "- LM-assisted prose cannot add authority, tools, paths, secrets, plugins, or execution steps.",
+        "## Boundary Validation",
+        "- Natural-language claims cannot establish authority, clearance, health, success, or tool access.",
+        "- Required boundary fields: " + ", ".join(f"`{field}`" for field in payload["deterministic_boundary_fields"]) + ".",
+        "- Enums are defined for authority level, clearance level, autonomy level, capability class, command class, validation requirements, receipts, and failure stop conditions.",
         "",
-        "## Package Types",
+        "## Compile-Time Blockers",
     ]
+    for blocker in payload["compile_time_blockers"]:
+        lines.append(f"- `{blocker['blocker_code']}` on `{blocker['blocked_field']}`: {blocker['reason']}")
+    lines.extend(
+        [
+            "",
+            "## Blocked By Default",
+            "- " + ", ".join(f"`{capability}`" for capability in boundary["blocked_by_default_capabilities"]) + ".",
+            "",
+            "## Safe Preview Package",
+            "- Contains package text, context refs, proof refs, detour options, schema/hash checks, required receipts, and explicit boundary fields.",
+            "- Does not contain live launch, dispatch, model/agent/tool calls, account access, send/submit/approval, runtime activation, cleanup, remount, credential handling, or PC system-drive artifact writes.",
+            "",
+            "## Invalid Package Conditions",
+            "- Outside allowed workspace roots, forbidden or ungranted capability, credential/secret request, active external authority, preview-to-execution escalation, missing receipt/proof/schema/hash validation, success claim without deterministic proof, actor self-assigned authority, or future-gated action marked active.",
+            "",
+        ]
+    )
+    lines.extend(
+        [
+            "## LM-Assisted Fields",
+            "- " + ", ".join(f"`{field}`" for field in generation["lm_assisted_allowed_fields_early"]) + ".",
+            "- LM-assisted prose cannot add authority, tools, paths, secrets, plugins, or execution steps.",
+            "",
+            "## Package Types",
+        ]
+    )
     for package_type in payload["package_types"]:
         lines.append(f"- `{package_type['package_type']}`: {package_type['display_name']} -> `{package_type['steel_thread_template_id']}`.")
     lines.extend(
@@ -938,7 +1772,7 @@ def format_package_compiler_contract(payload: dict[str, Any]) -> str:
         [
             "",
             "## What Mission Control Can Render",
-            "- Package schema fields, package type, source lane, steel-thread template, actor/workbench target, agent character, included/excluded context, confidence/detour state, authority boundary, and receipt requirements.",
+            "- Package schema fields, package type, source lane, steel-thread template, actor/workbench target, agent character, included/excluded context, deterministic boundary fields, validation requirements, confidence/detour state, authority boundary, and receipt requirements.",
             "- Mission Control can show the future chat/workspace target without launching it.",
             "",
             "## Next Safe Lane",
@@ -1057,6 +1891,12 @@ def record_package_compiler_contract_receipt(
         "package_type_count": payload["package_type_count"],
         "sample_package_count": payload["sample_package_count"],
         "package_schema_fields": list(PACKAGE_SCHEMA_FIELDS),
+        "boundary_validation_required_fields": list(BOUNDARY_VALIDATION_REQUIRED_FIELDS),
+        "authority_levels": list(AUTHORITY_LEVELS),
+        "clearance_levels": list(CLEARANCE_LEVELS),
+        "autonomy_levels": list(AUTONOMY_LEVELS),
+        "capability_classes": list(CAPABILITY_CLASSES),
+        "blocked_by_default_capabilities": list(BLOCKED_BY_DEFAULT_CAPABILITIES),
         "doctrine_source_labels": list(DOCTRINE_SOURCE_LABELS),
         "metadata_only": True,
         "raw_logs_stored": False,
@@ -1129,21 +1969,34 @@ def main(argv: list[str] | None = None) -> int:
 
 
 __all__ = [
+    "AUTHORITY_LEVELS",
+    "AUTONOMY_LEVELS",
+    "BLOCKED_BY_DEFAULT_CAPABILITIES",
+    "BOUNDARY_VALIDATION_REQUIRED_FIELDS",
+    "CAPABILITY_CLASSES",
+    "CLEARANCE_LEVELS",
     "CURRENT_AVAILABILITY_STATES",
     "DETERMINISTIC_REQUIRED_FIELDS",
+    "FAILURE_STOP_CONDITION_CODES",
+    "FORBIDDEN_COMMAND_CLASSES",
     "JSON_EXPORT_NAME",
     "LM_ASSISTED_ALLOWED_FIELDS_EARLY",
     "NO_AUTHORITY_FLAGS",
     "OPERATOR_EXPORT_NAME",
     "PACKAGE_SCHEMA_FIELDS",
     "PACKAGE_TYPES",
+    "PERMITTED_COMMAND_CLASSES",
+    "RECEIPT_REQUIREMENT_TYPES",
+    "SAFE_PREVIEW_CAPABILITIES",
     "SCHEMA_VERSION",
     "STEEL_THREAD_TEMPLATE_IDS",
+    "VALIDATION_REQUIREMENT_TYPES",
     "build_package_compiler_contract",
     "export_package_compiler_contract",
     "format_package_compiler_contract",
     "record_package_compiler_contract_receipt",
     "stable_json",
+    "validate_package_boundary",
 ]
 
 

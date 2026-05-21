@@ -2,9 +2,9 @@
 
 Trust status: `stale_needs_mac_sync`
 Mirror status: `needs_mac_sync`
-Display status: `needs_mac_sync`
-Lifecycle state: `actionable_sync_failure`
-Operator action required: `true`
+Display status: `sync_requested_waiting_for_mac`
+Lifecycle state: `sync_requested_waiting_for_mac`
+Operator action required: `false`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
@@ -12,27 +12,29 @@ Mirror counts:
 - observed=212
 - missing_expected=2
 - extra=0
-- hash_mismatch=2
-- matched_hash=210
+- hash_mismatch=4
+- matched_hash=208
 
 Recommended fix:
-- kind: `request_mac_sync`
-- display status: `needs_mac_sync`
+- kind: `wait_for_mac_sync`
+- display status: `sync_requested_waiting_for_mac`
 - next expected actor: `mac_sync_agent`
-- lifecycle state: `actionable_sync_failure`
-- operator action required: `true`
-- next: Request Mac sync through the shared marker and let the Mac LaunchAgent refresh the mirror.
-- app can request bounded Mac sync marker: `true`
+- lifecycle state: `sync_requested_waiting_for_mac`
+- operator action required: `false`
+- next: Mac sync has already been requested; waiting for the normal Mac sync agent cycle.
+- app can request bounded Mac sync marker: `false`
 
 Proof:
-- Mac heartbeat: `synced` at `2026-05-21T00:29:46+00:00`
+- Mac heartbeat: `idle` at `2026-05-21T00:34:47+00:00`
 - Mac completion: `synced` at `2026-05-21T00:29:46+00:00`
-- PC import: `success` at `2026-05-21T00:29:48+00:00`
+- PC import: `skipped_unchanged` at `2026-05-21T00:29:48+00:00`
 - Windows task log present: `true`
 
 Stale files:
 - `mission_control_design_memory_inventory.json`
 - `mission_control_design_memory_inventory_OPERATOR.md`
+- `package_compiler_contract.json`
+- `package_compiler_contract_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
 

@@ -87,12 +87,495 @@
   "agents_activated": false,
   "approval_authority_added": false,
   "automatic_repair_authority_added": false,
+  "boundary_validation_contract": {
+    "actor_or_model_may_expand_own_authority": false,
+    "authority_level_enum": [
+      "preview_only",
+      "read_only",
+      "request_only",
+      "scoped_write",
+      "approved_execution_future",
+      "blocked"
+    ],
+    "autonomy_level_enum": [
+      "L0_preview_package_only",
+      "L1_copy_open_package",
+      "L2_launch_bounded_session_future_gated",
+      "L3_monitor_and_ingest_receipt_future_gated",
+      "L4_safe_maintenance_autopilot_future_gated",
+      "L5_broad_execution_blocked"
+    ],
+    "blocked_by_default_capabilities": [
+      "file_write_scoped",
+      "test_run",
+      "build_run",
+      "git_commit",
+      "shell_command_scoped",
+      "app_launch",
+      "model_call",
+      "agent_call",
+      "browser",
+      "oauth",
+      "credential_access",
+      "email_send",
+      "calendar_mutation",
+      "coupa_portal",
+      "telegram_send",
+      "runtime_activation",
+      "cleanup_delete",
+      "remount",
+      "pc_c_drive_write"
+    ],
+    "capability_class_enum": [
+      "file_read",
+      "file_write_scoped",
+      "test_run",
+      "build_run",
+      "git_commit",
+      "shell_command_scoped",
+      "app_launch",
+      "model_call",
+      "agent_call",
+      "browser",
+      "oauth",
+      "credential_access",
+      "email_send",
+      "calendar_mutation",
+      "coupa_portal",
+      "telegram_send",
+      "runtime_activation",
+      "cleanup_delete",
+      "remount",
+      "pc_c_drive_write"
+    ],
+    "clearance_level_enum": [
+      "public_or_repo_safe",
+      "internal_operator_safe",
+      "sensitive_metadata_only",
+      "protected_context_required",
+      "blocked_no_go"
+    ],
+    "compile_time_blockers": [
+      {
+        "blocked_field": "workspace_scope.path_refs",
+        "blocker_code": "path_outside_allowed_roots",
+        "reason": "Package references a path outside allowed workspace roots."
+      },
+      {
+        "blocked_field": "capabilities_requested",
+        "blocker_code": "forbidden_capability_requested",
+        "reason": "Package requests a capability not explicitly granted."
+      },
+      {
+        "blocked_field": "credential_policy",
+        "blocker_code": "credential_or_secret_requested",
+        "reason": "Package requests credentials, secrets, tokens, or account sessions."
+      },
+      {
+        "blocked_field": "capabilities_requested",
+        "blocker_code": "active_external_authority_requested",
+        "reason": "Package requests browser, OAuth, model, agent, account, send, submit, approval, or portal authority."
+      },
+      {
+        "blocked_field": "authority_level",
+        "blocker_code": "preview_escalated_to_execution",
+        "reason": "Package escalates from preview/read-only posture to write or execution without an approved gate."
+      },
+      {
+        "blocked_field": "c_drive_policy",
+        "blocker_code": "pc_system_drive_write_requested",
+        "reason": "Package attempts to write OpenClaw artifacts to the PC system drive."
+      },
+      {
+        "blocked_field": "required_receipts",
+        "blocker_code": "missing_receipt_or_proof",
+        "reason": "Package omits deterministic receipts, schema checks, or proof requirements."
+      },
+      {
+        "blocked_field": "success_validation",
+        "blocker_code": "success_claim_without_deterministic_validation",
+        "reason": "Package claims success without schema, hash, receipt, test, or exit-code proof."
+      },
+      {
+        "blocked_field": "authority_boundary",
+        "blocker_code": "actor_self_assigned_authority",
+        "reason": "Package lets the actor/model choose its own clearance, tools, authority, workspace, or success criteria."
+      },
+      {
+        "blocked_field": "current_availability",
+        "blocker_code": "future_gated_action_made_active",
+        "reason": "Package converts a future-gated action into active launch, dispatch, runtime, or mutation authority."
+      }
+    ],
+    "contract_name": "BoundaryValidationContract",
+    "failure_stop_conditions": [
+      {
+        "condition_code": "path_outside_allowed_roots",
+        "stop_reason": "path outside allowed roots"
+      },
+      {
+        "condition_code": "forbidden_capability_requested",
+        "stop_reason": "forbidden capability requested"
+      },
+      {
+        "condition_code": "credential_or_secret_requested",
+        "stop_reason": "credential or secret requested"
+      },
+      {
+        "condition_code": "active_external_authority_requested",
+        "stop_reason": "active external authority requested"
+      },
+      {
+        "condition_code": "preview_escalated_to_execution",
+        "stop_reason": "preview escalated to execution"
+      },
+      {
+        "condition_code": "pc_system_drive_write_requested",
+        "stop_reason": "pc system drive write requested"
+      },
+      {
+        "condition_code": "missing_receipt_or_proof",
+        "stop_reason": "missing receipt or proof"
+      },
+      {
+        "condition_code": "success_claim_without_deterministic_validation",
+        "stop_reason": "success claim without deterministic validation"
+      },
+      {
+        "condition_code": "actor_self_assigned_authority",
+        "stop_reason": "actor self assigned authority"
+      },
+      {
+        "condition_code": "future_gated_action_made_active",
+        "stop_reason": "future gated action made active"
+      }
+    ],
+    "forbidden_command_classes": [
+      "destructive_delete",
+      "cleanup",
+      "remount",
+      "credential_prompt",
+      "browser_or_oauth",
+      "model_or_agent_call",
+      "send_submit_approval",
+      "runtime_activation",
+      "pc_system_drive_artifact_write",
+      "broad_private_ingestion"
+    ],
+    "natural_language_claims_establish_authority": false,
+    "permitted_command_classes": [
+      "no_command",
+      "read_only_inspection",
+      "focused_test",
+      "json_parse",
+      "export_script",
+      "git_diff_check"
+    ],
+    "receipt_requirement_types": [
+      "metadata_only_generation_receipt",
+      "package_preview_receipt",
+      "validation_result_receipt",
+      "future_state_ingest_receipt"
+    ],
+    "receipt_requirements": [
+      {
+        "receipt_id": "metadata_only_generation_receipt",
+        "receipt_type": "generated_status",
+        "required_before_state_ingest": true
+      },
+      {
+        "receipt_id": "package_preview_receipt",
+        "receipt_type": "generated_status",
+        "required_before_state_ingest": true
+      },
+      {
+        "receipt_id": "validation_result_receipt",
+        "receipt_type": "validation_result",
+        "required_before_state_ingest": true
+      },
+      {
+        "receipt_id": "future_state_ingest_receipt",
+        "receipt_type": "artifact_checkpoint",
+        "required_before_state_ingest": true
+      }
+    ],
+    "required_boundary_fields": [
+      "allowed_workspace_roots",
+      "forbidden_paths",
+      "allowed_capabilities",
+      "forbidden_capabilities",
+      "clearance_level",
+      "authority_level",
+      "autonomy_level",
+      "required_receipts",
+      "required_schema_checks",
+      "required_file_existence_checks",
+      "required_hash_or_manifest_checks",
+      "permitted_command_classes",
+      "forbidden_command_classes",
+      "compile_time_blockers",
+      "human_confirmation_required",
+      "credential_policy",
+      "storage_policy",
+      "c_drive_policy",
+      "no_go_data_policy",
+      "failure_stop_conditions"
+    ],
+    "safe_preview_capabilities": [
+      "file_read"
+    ],
+    "structures_defined": [
+      "BoundaryValidationContract",
+      "PackageCompileTimeBlocker",
+      "CapabilityGrant",
+      "WorkspaceScope",
+      "AuthorityLevel",
+      "ClearanceLevel",
+      "ValidationRequirement",
+      "ReceiptRequirement",
+      "FailureStopCondition"
+    ],
+    "success_requires_deterministic_proof": true,
+    "unknown_validation_field_fails_closed": true,
+    "validation_requirement_types": [
+      "schema_check",
+      "file_existence_check",
+      "hash_or_manifest_check",
+      "receipt_check",
+      "test_result",
+      "exit_code",
+      "allowed_roots_check",
+      "capability_grant_check"
+    ],
+    "validation_requirements": [
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "package_schema_fields_present",
+        "requirement_type": "schema_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "boundary_validation_fields_present",
+        "requirement_type": "schema_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "workspace_paths_within_allowed_roots",
+        "requirement_type": "allowed_roots_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "capabilities_match_grants",
+        "requirement_type": "capability_grant_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "source_read_model_or_file_refs_exist_when_claimed",
+        "requirement_type": "file_existence_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "package_hash_or_manifest_available",
+        "requirement_type": "hash_or_manifest_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "metadata_only_receipt_required",
+        "requirement_type": "receipt_check"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "focused_validation_results_recorded_when_claiming_success",
+        "requirement_type": "test_result"
+      },
+      {
+        "required_for_package_validity": true,
+        "requirement_id": "permitted_command_exit_codes_recorded_when_commands_are_allowed",
+        "requirement_type": "exit_code"
+      }
+    ]
+  },
   "broad_file_dump_stored": false,
   "browser_accessed": false,
   "browser_oauth_or_account_access_enabled": false,
   "c_drive_artifact_written": false,
   "c_drive_write_allowed": false,
+  "capabilities_blocked_by_default": [
+    "file_write_scoped",
+    "test_run",
+    "build_run",
+    "git_commit",
+    "shell_command_scoped",
+    "app_launch",
+    "model_call",
+    "agent_call",
+    "browser",
+    "oauth",
+    "credential_access",
+    "email_send",
+    "calendar_mutation",
+    "coupa_portal",
+    "telegram_send",
+    "runtime_activation",
+    "cleanup_delete",
+    "remount",
+    "pc_c_drive_write"
+  ],
+  "capability_grant_catalog": [
+    {
+      "capability_class": "file_read",
+      "grant_state": "granted_metadata_only",
+      "reason": "Allowed only as deterministic package metadata; this contract does not execute it."
+    },
+    {
+      "capability_class": "file_write_scoped",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "test_run",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "build_run",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "git_commit",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "shell_command_scoped",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "app_launch",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "model_call",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "agent_call",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "browser",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "oauth",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "credential_access",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "email_send",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "calendar_mutation",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "coupa_portal",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "telegram_send",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "runtime_activation",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "cleanup_delete",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "remount",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    },
+    {
+      "capability_class": "pc_c_drive_write",
+      "grant_state": "blocked_by_default",
+      "reason": "Requires a later explicit authority gate before it can become active."
+    }
+  ],
   "cleanup_authority_added": false,
+  "compile_time_blockers": [
+    {
+      "blocked_field": "workspace_scope.path_refs",
+      "blocker_code": "path_outside_allowed_roots",
+      "reason": "Package references a path outside allowed workspace roots."
+    },
+    {
+      "blocked_field": "capabilities_requested",
+      "blocker_code": "forbidden_capability_requested",
+      "reason": "Package requests a capability not explicitly granted."
+    },
+    {
+      "blocked_field": "credential_policy",
+      "blocker_code": "credential_or_secret_requested",
+      "reason": "Package requests credentials, secrets, tokens, or account sessions."
+    },
+    {
+      "blocked_field": "capabilities_requested",
+      "blocker_code": "active_external_authority_requested",
+      "reason": "Package requests browser, OAuth, model, agent, account, send, submit, approval, or portal authority."
+    },
+    {
+      "blocked_field": "authority_level",
+      "blocker_code": "preview_escalated_to_execution",
+      "reason": "Package escalates from preview/read-only posture to write or execution without an approved gate."
+    },
+    {
+      "blocked_field": "c_drive_policy",
+      "blocker_code": "pc_system_drive_write_requested",
+      "reason": "Package attempts to write OpenClaw artifacts to the PC system drive."
+    },
+    {
+      "blocked_field": "required_receipts",
+      "blocker_code": "missing_receipt_or_proof",
+      "reason": "Package omits deterministic receipts, schema checks, or proof requirements."
+    },
+    {
+      "blocked_field": "success_validation",
+      "blocker_code": "success_claim_without_deterministic_validation",
+      "reason": "Package claims success without schema, hash, receipt, test, or exit-code proof."
+    },
+    {
+      "blocked_field": "authority_boundary",
+      "blocker_code": "actor_self_assigned_authority",
+      "reason": "Package lets the actor/model choose its own clearance, tools, authority, workspace, or success criteria."
+    },
+    {
+      "blocked_field": "current_availability",
+      "blocker_code": "future_gated_action_made_active",
+      "reason": "Package converts a future-gated action into active launch, dispatch, runtime, or mutation authority."
+    }
+  ],
   "compiler_contract_only": true,
   "confidence_detour_behavior": {
     "below_deterministic": {
@@ -113,8 +596,8 @@
     },
     "no_confidence_theater_when_proof_is_deterministic": true
   },
-  "contract_hash": "sha256:d23436021fffad6a0c02853f3cd0b880e03139d2496a5cc354eb5e8a02406018",
-  "contract_status": "deterministic_metadata_only_package_compiler_skeleton",
+  "contract_hash": "sha256:b5b4927d2fd09196d7e74fdea80b91bc25428e1349d06abfb200c7d3acf74b21",
+  "contract_status": "deterministic_metadata_only_package_compiler_boundary_hardened",
   "credential_handling_added": false,
   "credentials_stored": false,
   "current_authority_state": {
@@ -133,6 +616,28 @@
     "send_submit_approval_runtime_allowed_now": false
   },
   "delete_authority_added": false,
+  "deterministic_boundary_fields": [
+    "allowed_workspace_roots",
+    "forbidden_paths",
+    "allowed_capabilities",
+    "forbidden_capabilities",
+    "clearance_level",
+    "authority_level",
+    "autonomy_level",
+    "required_receipts",
+    "required_schema_checks",
+    "required_file_existence_checks",
+    "required_hash_or_manifest_checks",
+    "permitted_command_classes",
+    "forbidden_command_classes",
+    "compile_time_blockers",
+    "human_confirmation_required",
+    "credential_policy",
+    "storage_policy",
+    "c_drive_policy",
+    "no_go_data_policy",
+    "failure_stop_conditions"
+  ],
   "deterministic_vs_lm_assisted_generation": {
     "deterministic_compiler_inputs": [
       "lane type",
@@ -154,21 +659,48 @@
       "target_workbench_or_actor_host",
       "actor_model_candidate",
       "agent_character",
+      "allowed_workspace_roots",
+      "forbidden_paths",
+      "workspace_scope",
       "context_included",
       "context_excluded",
       "evidence_refs",
       "read_model_refs",
+      "capabilities_requested",
+      "capability_grants",
+      "allowed_capabilities",
+      "forbidden_capabilities",
       "allowed_plugins_or_capabilities",
       "forbidden_plugins_or_capabilities",
+      "clearance_level",
       "security_clearance",
+      "authority_level",
       "authority_boundary",
+      "autonomy_level",
       "steps",
       "stop_conditions",
+      "failure_stop_conditions",
+      "validation_requirements",
+      "required_schema_checks",
+      "required_file_existence_checks",
+      "required_hash_or_manifest_checks",
+      "required_test_results",
+      "required_exit_codes",
       "proof_requirements",
+      "required_receipts",
       "receipt_requirements",
       "confidence_state",
       "confidence_inputs",
       "detour_options",
+      "permitted_command_classes",
+      "forbidden_command_classes",
+      "compile_time_blockers",
+      "credential_policy",
+      "storage_policy",
+      "c_drive_policy",
+      "no_go_data_policy",
+      "success_validation",
+      "boundary_validation",
       "current_availability",
       "failure_reset_behavior",
       "quiet_condition",
@@ -190,7 +722,7 @@
   "email_send_triggered": false,
   "execution_authority_added": false,
   "external_model_apis_called": false,
-  "generated_at": "2026-05-21T00:17:37+00:00",
+  "generated_at": "2026-05-21T00:36:30+00:00",
   "generated_by": "codex",
   "gmail_calendar_coupa_accessed": false,
   "lane": "Package Compiler Skeleton / Prompt Package Contract v0",
@@ -398,7 +930,7 @@
       "launch_future_gated",
       "launch_allowed_later"
     ],
-    "field_count": 32,
+    "field_count": 59,
     "fields": [
       "package_id",
       "package_type",
@@ -408,6 +940,9 @@
       "target_workbench_or_actor_host",
       "actor_model_candidate",
       "agent_character",
+      "allowed_workspace_roots",
+      "forbidden_paths",
+      "workspace_scope",
       "mission",
       "operator_eli5",
       "stakes_why_it_matters",
@@ -415,18 +950,42 @@
       "context_excluded",
       "evidence_refs",
       "read_model_refs",
+      "capabilities_requested",
+      "capability_grants",
+      "allowed_capabilities",
+      "forbidden_capabilities",
       "allowed_plugins_or_capabilities",
       "forbidden_plugins_or_capabilities",
+      "clearance_level",
       "security_clearance",
+      "authority_level",
       "authority_boundary",
+      "autonomy_level",
       "steps",
       "stop_conditions",
+      "failure_stop_conditions",
       "expected_outputs",
+      "validation_requirements",
+      "required_schema_checks",
+      "required_file_existence_checks",
+      "required_hash_or_manifest_checks",
+      "required_test_results",
+      "required_exit_codes",
       "proof_requirements",
+      "required_receipts",
       "receipt_requirements",
       "confidence_state",
       "confidence_inputs",
       "detour_options",
+      "permitted_command_classes",
+      "forbidden_command_classes",
+      "compile_time_blockers",
+      "credential_policy",
+      "storage_policy",
+      "c_drive_policy",
+      "no_go_data_policy",
+      "success_validation",
+      "boundary_validation",
       "current_availability",
       "failure_reset_behavior",
       "quiet_condition",
@@ -591,14 +1150,37 @@
   },
   "remount_authority_added": false,
   "runtime_authority_added": false,
+  "safe_preview_package_requirements": {
+    "allowed_capabilities": [
+      "file_read"
+    ],
+    "authority_level": "preview_only",
+    "autonomy_level": "L0_preview_package_only",
+    "live_launch_or_execute_authority": false,
+    "must_include_context_refs": true,
+    "must_include_detour_options": true,
+    "must_include_proof_refs": true,
+    "must_include_required_receipts": true,
+    "must_include_schema_or_hash_validation": true
+  },
   "sample_package_count": 3,
   "sample_package_outlines": [
     {
+      "active_actions": [],
+      "actor_may_self_assign_authority": false,
       "actor_model_candidate": "future selected model, not live",
       "agent_character": "Chief with Mirror Trust posture",
+      "allowed_capabilities": [
+        "file_read"
+      ],
       "allowed_plugins_or_capabilities": [
         "read-model inspection metadata",
         "receipt review metadata"
+      ],
+      "allowed_workspace_roots": [
+        "generated/read_models",
+        "Operator",
+        "docs/planning/launch_ladder"
       ],
       "authority_boundary": {
         "automatic_repair_allowed": false,
@@ -612,11 +1194,130 @@
         "send_submit_approval_allowed": false,
         "tool_or_plugin_execution_allowed": false
       },
+      "authority_level": "preview_only",
+      "autonomy_level": "L0_preview_package_only",
       "available_modes": [
         "preview_only",
         "copy_export_only",
         "launch_future_gated"
       ],
+      "boundary_validation": {
+        "expected_valid": true,
+        "natural_language_claims_establish_authority": false,
+        "validation_function": "validate_package_boundary"
+      },
+      "c_drive_policy": {
+        "blocker_code": "pc_system_drive_write_requested",
+        "pc_c_drive_write_capability_allowed": false,
+        "pc_system_drive_artifact_writes_allowed": false
+      },
+      "capabilities_requested": [
+        "file_read"
+      ],
+      "capability_grants": [
+        {
+          "capability_class": "file_read",
+          "grant_state": "granted_metadata_only",
+          "reason": "Allowed only as deterministic package metadata; this contract does not execute it."
+        },
+        {
+          "capability_class": "file_write_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "test_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "build_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "git_commit",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "shell_command_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "app_launch",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "model_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "agent_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "browser",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "oauth",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "credential_access",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "email_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "calendar_mutation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "coupa_portal",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "telegram_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "runtime_activation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "cleanup_delete",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "remount",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "pc_c_drive_write",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        }
+      ],
+      "clearance_level": "internal_operator_safe",
+      "compile_time_blockers": [],
       "confidence_inputs": [
         "source read-model presence",
         "hash/current proof where applicable",
@@ -636,6 +1337,13 @@
         "manifest counts",
         "missing/stale file names"
       ],
+      "credential_policy": {
+        "credential_prompts_allowed": false,
+        "credentials_allowed": false,
+        "secrets_allowed": false,
+        "tokens_allowed": false,
+        "unknown_credential_need_fails_closed": true
+      },
       "current_availability": "preview_only",
       "detour_options": [
         "raise missing proof",
@@ -654,19 +1362,91 @@
         "blocked or missing inputs"
       ],
       "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "failure_stop_conditions": [
+        "path_outside_allowed_roots",
+        "forbidden_capability_requested",
+        "credential_or_secret_requested",
+        "active_external_authority_requested",
+        "preview_escalated_to_execution",
+        "pc_system_drive_write_requested",
+        "missing_receipt_or_proof",
+        "success_claim_without_deterministic_validation",
+        "actor_self_assigned_authority",
+        "future_gated_action_made_active"
+      ],
+      "forbidden_capabilities": [
+        "file_write_scoped",
+        "test_run",
+        "build_run",
+        "git_commit",
+        "shell_command_scoped",
+        "app_launch",
+        "model_call",
+        "agent_call",
+        "browser",
+        "oauth",
+        "credential_access",
+        "email_send",
+        "calendar_mutation",
+        "coupa_portal",
+        "telegram_send",
+        "runtime_activation",
+        "cleanup_delete",
+        "remount",
+        "pc_c_drive_write"
+      ],
+      "forbidden_command_classes": [
+        "destructive_delete",
+        "cleanup",
+        "remount",
+        "credential_prompt",
+        "browser_or_oauth",
+        "model_or_agent_call",
+        "send_submit_approval",
+        "runtime_activation",
+        "pc_system_drive_artifact_write",
+        "broad_private_ingestion"
+      ],
+      "forbidden_paths": [
+        "credential stores",
+        "raw private archives",
+        "PC system drive",
+        "Repo B",
+        "Mac app files unless a later UI lane grants explicit scope"
+      ],
       "forbidden_plugins_or_capabilities": [
         "live plugin execution",
         "account access",
         "send/submit/approval",
         "runtime repair"
       ],
+      "future_gate_required": true,
+      "future_gated_actions": [
+        "dispatch_to_actor",
+        "launch_workbench",
+        "state_ingest"
+      ],
       "human_confirmation_required": true,
       "launch_allowed_now": false,
       "mission": "Diagnose whether PC proof, Mac manifest, and sync health agree without remounting or repairing anything.",
+      "model_decides_tools": false,
+      "no_go_data_policy": {
+        "broad_file_dumps": "blocked",
+        "browser_or_account_sessions": "blocked",
+        "credentials": "blocked",
+        "raw_logs": "blocked",
+        "raw_private_file_bodies": "blocked",
+        "secrets": "blocked",
+        "unknown_sensitive_need": "fail_closed"
+      },
       "operator_eli5": "Check whether the bridge proof is current and what must happen next.",
-      "package_hash_or_deterministic_placeholder": "sha256:5d49091c61d6f41fb3ec1c0d656b6b5f276746221e4012e42fb9edc0a8758783",
+      "package_hash_or_deterministic_placeholder": "sha256:1a66cee2916fc903838883f476ec192e7b1111abb4338ebdac12a44bd25f62fa",
       "package_id": "sample_check_transmission_diagnostic_package",
       "package_type": "bridge_sync_diagnostic_package",
+      "permitted_command_classes": [
+        "no_command",
+        "read_only_inspection"
+      ],
       "prompt_prose": "Example outline only; not dispatched.",
       "proof_requirements": [
         "source read-model references",
@@ -681,6 +1461,28 @@
       ],
       "receipt_requirements": [
         "metadata-only receipt before any future state ingest"
+      ],
+      "registry_default_clearance_level": "internal_operator_safe",
+      "required_exit_codes": [
+        "not_applicable_no_command_permitted"
+      ],
+      "required_file_existence_checks": [
+        "source_read_model_refs_exist_when_claimed"
+      ],
+      "required_hash_or_manifest_checks": [
+        "package_hash_or_deterministic_placeholder",
+        "source_manifest_or_hash_refs_when_available"
+      ],
+      "required_receipts": [
+        "metadata_only_generation_receipt",
+        "package_preview_receipt"
+      ],
+      "required_schema_checks": [
+        "package_schema_fields_present",
+        "boundary_validation_fields_present"
+      ],
+      "required_test_results": [
+        "not_run_reason_allowed_for_preview_only"
       ],
       "sample_only": true,
       "security_clearance": "metadata_review_only_no_live_authority",
@@ -701,14 +1503,98 @@
         "need for credentials or account access",
         "need for live model/tool/agent/browser/runtime execution"
       ],
-      "target_workbench_or_actor_host": "pc_wsl_repo_a"
+      "storage_policy": {
+        "allowed_storage_roots": [
+          "generated/read_models",
+          ".openclaw/business_ops"
+        ],
+        "broad_file_dump_storage_allowed": false,
+        "raw_private_content_storage_allowed": false,
+        "runtime_log_storage_allowed": false
+      },
+      "success_validation": {
+        "deterministic_proof_methods": [
+          "schema_check",
+          "hash_or_manifest_check",
+          "receipt_check",
+          "test_result_or_not_run_reason",
+          "exit_code_when_command_allowed"
+        ],
+        "deterministic_success_claimed": false,
+        "natural_language_success_claim_allowed": false,
+        "success_without_deterministic_proof_is_invalid": true
+      },
+      "target_workbench_or_actor_host": "pc_wsl_repo_a",
+      "validation_requirements": [
+        {
+          "required": true,
+          "requirement_id": "package_schema_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "boundary_validation_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "workspace_paths_within_allowed_roots",
+          "requirement_type": "allowed_roots_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "capabilities_match_grants",
+          "requirement_type": "capability_grant_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "metadata_only_receipt_required",
+          "requirement_type": "receipt_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "package_hash_or_manifest_available",
+          "requirement_type": "hash_or_manifest_check"
+        }
+      ],
+      "workspace_scope": {
+        "allowed_workspace_roots": [
+          "generated/read_models",
+          "Operator",
+          "docs/planning/launch_ladder"
+        ],
+        "forbidden_paths": [
+          "credential stores",
+          "raw private archives",
+          "PC system drive",
+          "Repo B",
+          "Mac app files unless a later UI lane grants explicit scope"
+        ],
+        "path_refs": [
+          "generated/read_models/bridge_trust_sync_truth.json",
+          "generated/read_models/sync_health.json",
+          "generated/read_models/system_health_lights_taxonomy.json"
+        ],
+        "path_validation": "repo_relative_prefix_match_required",
+        "scope_type": "repo_relative_read_model_and_operator_docs"
+      }
     },
     {
+      "active_actions": [],
+      "actor_may_self_assign_authority": false,
       "actor_model_candidate": "Codex candidate label only",
       "agent_character": "Chief implementation worker",
+      "allowed_capabilities": [
+        "file_read"
+      ],
       "allowed_plugins_or_capabilities": [
         "read-model inspection metadata",
         "receipt review metadata"
+      ],
+      "allowed_workspace_roots": [
+        "generated/read_models",
+        "Operator",
+        "docs/planning/launch_ladder"
       ],
       "authority_boundary": {
         "automatic_repair_allowed": false,
@@ -722,11 +1608,130 @@
         "send_submit_approval_allowed": false,
         "tool_or_plugin_execution_allowed": false
       },
+      "authority_level": "preview_only",
+      "autonomy_level": "L0_preview_package_only",
       "available_modes": [
         "preview_only",
         "copy_export_only",
         "launch_future_gated"
       ],
+      "boundary_validation": {
+        "expected_valid": true,
+        "natural_language_claims_establish_authority": false,
+        "validation_function": "validate_package_boundary"
+      },
+      "c_drive_policy": {
+        "blocker_code": "pc_system_drive_write_requested",
+        "pc_c_drive_write_capability_allowed": false,
+        "pc_system_drive_artifact_writes_allowed": false
+      },
+      "capabilities_requested": [
+        "file_read"
+      ],
+      "capability_grants": [
+        {
+          "capability_class": "file_read",
+          "grant_state": "granted_metadata_only",
+          "reason": "Allowed only as deterministic package metadata; this contract does not execute it."
+        },
+        {
+          "capability_class": "file_write_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "test_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "build_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "git_commit",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "shell_command_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "app_launch",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "model_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "agent_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "browser",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "oauth",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "credential_access",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "email_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "calendar_mutation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "coupa_portal",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "telegram_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "runtime_activation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "cleanup_delete",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "remount",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "pc_c_drive_write",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        }
+      ],
+      "clearance_level": "internal_operator_safe",
+      "compile_time_blockers": [],
       "confidence_inputs": [
         "source read-model presence",
         "hash/current proof where applicable",
@@ -745,6 +1750,13 @@
         "Mac rendering guidance",
         "exact file boundaries when supplied later"
       ],
+      "credential_policy": {
+        "credential_prompts_allowed": false,
+        "credentials_allowed": false,
+        "secrets_allowed": false,
+        "tokens_allowed": false,
+        "unknown_credential_need_fails_closed": true
+      },
       "current_availability": "preview_only",
       "detour_options": [
         "raise missing proof",
@@ -762,19 +1774,91 @@
         "blocked or missing inputs"
       ],
       "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "failure_stop_conditions": [
+        "path_outside_allowed_roots",
+        "forbidden_capability_requested",
+        "credential_or_secret_requested",
+        "active_external_authority_requested",
+        "preview_escalated_to_execution",
+        "pc_system_drive_write_requested",
+        "missing_receipt_or_proof",
+        "success_claim_without_deterministic_validation",
+        "actor_self_assigned_authority",
+        "future_gated_action_made_active"
+      ],
+      "forbidden_capabilities": [
+        "file_write_scoped",
+        "test_run",
+        "build_run",
+        "git_commit",
+        "shell_command_scoped",
+        "app_launch",
+        "model_call",
+        "agent_call",
+        "browser",
+        "oauth",
+        "credential_access",
+        "email_send",
+        "calendar_mutation",
+        "coupa_portal",
+        "telegram_send",
+        "runtime_activation",
+        "cleanup_delete",
+        "remount",
+        "pc_c_drive_write"
+      ],
+      "forbidden_command_classes": [
+        "destructive_delete",
+        "cleanup",
+        "remount",
+        "credential_prompt",
+        "browser_or_oauth",
+        "model_or_agent_call",
+        "send_submit_approval",
+        "runtime_activation",
+        "pc_system_drive_artifact_write",
+        "broad_private_ingestion"
+      ],
+      "forbidden_paths": [
+        "credential stores",
+        "raw private archives",
+        "PC system drive",
+        "Repo B",
+        "Mac app files unless a later UI lane grants explicit scope"
+      ],
       "forbidden_plugins_or_capabilities": [
         "live plugin execution",
         "account access",
         "send/submit/approval",
         "runtime repair"
       ],
+      "future_gate_required": true,
+      "future_gated_actions": [
+        "dispatch_to_actor",
+        "launch_workbench",
+        "state_ingest"
+      ],
       "human_confirmation_required": true,
       "launch_allowed_now": false,
       "mission": "Implement a scoped Mission Control surface after a future UI lane grants explicit Mac app authority.",
+      "model_decides_tools": false,
+      "no_go_data_policy": {
+        "broad_file_dumps": "blocked",
+        "browser_or_account_sessions": "blocked",
+        "credentials": "blocked",
+        "raw_logs": "blocked",
+        "raw_private_file_bodies": "blocked",
+        "secrets": "blocked",
+        "unknown_sensitive_need": "fail_closed"
+      },
       "operator_eli5": "Show what Codex would receive later for a bounded UI implementation lane.",
-      "package_hash_or_deterministic_placeholder": "sha256:18741234fa8a33f08bfee476c49da17ff814a2d043d643d197ca7a020c1de731",
+      "package_hash_or_deterministic_placeholder": "sha256:85b9fe5975d7029d4f0de1a579c8394323c697a44483b083ff34c4b5bf9062d4",
       "package_id": "sample_mission_control_ui_implementation_package_for_codex",
       "package_type": "code_implementation_package",
+      "permitted_command_classes": [
+        "no_command",
+        "read_only_inspection"
+      ],
       "prompt_prose": "Example outline only; not dispatched.",
       "proof_requirements": [
         "source read-model references",
@@ -788,6 +1872,28 @@
       ],
       "receipt_requirements": [
         "metadata-only receipt before any future state ingest"
+      ],
+      "registry_default_clearance_level": "internal_operator_safe",
+      "required_exit_codes": [
+        "not_applicable_no_command_permitted"
+      ],
+      "required_file_existence_checks": [
+        "source_read_model_refs_exist_when_claimed"
+      ],
+      "required_hash_or_manifest_checks": [
+        "package_hash_or_deterministic_placeholder",
+        "source_manifest_or_hash_refs_when_available"
+      ],
+      "required_receipts": [
+        "metadata_only_generation_receipt",
+        "package_preview_receipt"
+      ],
+      "required_schema_checks": [
+        "package_schema_fields_present",
+        "boundary_validation_fields_present"
+      ],
+      "required_test_results": [
+        "not_run_reason_allowed_for_preview_only"
       ],
       "sample_only": true,
       "security_clearance": "metadata_review_only_no_live_authority",
@@ -808,14 +1914,97 @@
         "need for credentials or account access",
         "need for live model/tool/agent/browser/runtime execution"
       ],
-      "target_workbench_or_actor_host": "codex_vscode_mac_codex_desktop"
+      "storage_policy": {
+        "allowed_storage_roots": [
+          "generated/read_models",
+          ".openclaw/business_ops"
+        ],
+        "broad_file_dump_storage_allowed": false,
+        "raw_private_content_storage_allowed": false,
+        "runtime_log_storage_allowed": false
+      },
+      "success_validation": {
+        "deterministic_proof_methods": [
+          "schema_check",
+          "hash_or_manifest_check",
+          "receipt_check",
+          "test_result_or_not_run_reason",
+          "exit_code_when_command_allowed"
+        ],
+        "deterministic_success_claimed": false,
+        "natural_language_success_claim_allowed": false,
+        "success_without_deterministic_proof_is_invalid": true
+      },
+      "target_workbench_or_actor_host": "codex_vscode_mac_codex_desktop",
+      "validation_requirements": [
+        {
+          "required": true,
+          "requirement_id": "package_schema_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "boundary_validation_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "workspace_paths_within_allowed_roots",
+          "requirement_type": "allowed_roots_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "capabilities_match_grants",
+          "requirement_type": "capability_grant_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "metadata_only_receipt_required",
+          "requirement_type": "receipt_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "package_hash_or_manifest_available",
+          "requirement_type": "hash_or_manifest_check"
+        }
+      ],
+      "workspace_scope": {
+        "allowed_workspace_roots": [
+          "generated/read_models",
+          "Operator",
+          "docs/planning/launch_ladder"
+        ],
+        "forbidden_paths": [
+          "credential stores",
+          "raw private archives",
+          "PC system drive",
+          "Repo B",
+          "Mac app files unless a later UI lane grants explicit scope"
+        ],
+        "path_refs": [
+          "generated/read_models/operator_mission_priority_helm_declutter.json",
+          "generated/read_models/steel_thread_lane_template_registry.json"
+        ],
+        "path_validation": "repo_relative_prefix_match_required",
+        "scope_type": "repo_relative_read_model_and_operator_docs"
+      }
     },
     {
+      "active_actions": [],
+      "actor_may_self_assign_authority": false,
       "actor_model_candidate": "Gemini 3.5 Flash High candidate label only",
       "agent_character": "Guardian verification reviewer",
+      "allowed_capabilities": [
+        "file_read"
+      ],
       "allowed_plugins_or_capabilities": [
         "read-model inspection metadata",
         "receipt review metadata"
+      ],
+      "allowed_workspace_roots": [
+        "generated/read_models",
+        "Operator",
+        "docs/planning/launch_ladder"
       ],
       "authority_boundary": {
         "automatic_repair_allowed": false,
@@ -829,11 +2018,130 @@
         "send_submit_approval_allowed": false,
         "tool_or_plugin_execution_allowed": false
       },
+      "authority_level": "preview_only",
+      "autonomy_level": "L0_preview_package_only",
       "available_modes": [
         "preview_only",
         "copy_export_only",
         "launch_future_gated"
       ],
+      "boundary_validation": {
+        "expected_valid": true,
+        "natural_language_claims_establish_authority": false,
+        "validation_function": "validate_package_boundary"
+      },
+      "c_drive_policy": {
+        "blocker_code": "pc_system_drive_write_requested",
+        "pc_c_drive_write_capability_allowed": false,
+        "pc_system_drive_artifact_writes_allowed": false
+      },
+      "capabilities_requested": [
+        "file_read"
+      ],
+      "capability_grants": [
+        {
+          "capability_class": "file_read",
+          "grant_state": "granted_metadata_only",
+          "reason": "Allowed only as deterministic package metadata; this contract does not execute it."
+        },
+        {
+          "capability_class": "file_write_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "test_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "build_run",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "git_commit",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "shell_command_scoped",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "app_launch",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "model_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "agent_call",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "browser",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "oauth",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "credential_access",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "email_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "calendar_mutation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "coupa_portal",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "telegram_send",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "runtime_activation",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "cleanup_delete",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "remount",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        },
+        {
+          "capability_class": "pc_c_drive_write",
+          "grant_state": "blocked_by_default",
+          "reason": "Requires a later explicit authority gate before it can become active."
+        }
+      ],
+      "clearance_level": "internal_operator_safe",
+      "compile_time_blockers": [],
       "confidence_inputs": [
         "source read-model presence",
         "hash/current proof where applicable",
@@ -852,6 +2160,13 @@
         "test list",
         "authority boundary checklist"
       ],
+      "credential_policy": {
+        "credential_prompts_allowed": false,
+        "credentials_allowed": false,
+        "secrets_allowed": false,
+        "tokens_allowed": false,
+        "unknown_credential_need_fails_closed": true
+      },
       "current_availability": "preview_only",
       "detour_options": [
         "raise missing proof",
@@ -871,19 +2186,91 @@
         "blocked or missing inputs"
       ],
       "failure_reset_behavior": "failure resets confidence and reopens detour path",
+      "failure_stop_conditions": [
+        "path_outside_allowed_roots",
+        "forbidden_capability_requested",
+        "credential_or_secret_requested",
+        "active_external_authority_requested",
+        "preview_escalated_to_execution",
+        "pc_system_drive_write_requested",
+        "missing_receipt_or_proof",
+        "success_claim_without_deterministic_validation",
+        "actor_self_assigned_authority",
+        "future_gated_action_made_active"
+      ],
+      "forbidden_capabilities": [
+        "file_write_scoped",
+        "test_run",
+        "build_run",
+        "git_commit",
+        "shell_command_scoped",
+        "app_launch",
+        "model_call",
+        "agent_call",
+        "browser",
+        "oauth",
+        "credential_access",
+        "email_send",
+        "calendar_mutation",
+        "coupa_portal",
+        "telegram_send",
+        "runtime_activation",
+        "cleanup_delete",
+        "remount",
+        "pc_c_drive_write"
+      ],
+      "forbidden_command_classes": [
+        "destructive_delete",
+        "cleanup",
+        "remount",
+        "credential_prompt",
+        "browser_or_oauth",
+        "model_or_agent_call",
+        "send_submit_approval",
+        "runtime_activation",
+        "pc_system_drive_artifact_write",
+        "broad_private_ingestion"
+      ],
+      "forbidden_paths": [
+        "credential stores",
+        "raw private archives",
+        "PC system drive",
+        "Repo B",
+        "Mac app files unless a later UI lane grants explicit scope"
+      ],
       "forbidden_plugins_or_capabilities": [
         "live plugin execution",
         "account access",
         "send/submit/approval",
         "runtime repair"
       ],
+      "future_gate_required": true,
+      "future_gated_actions": [
+        "dispatch_to_actor",
+        "launch_workbench",
+        "state_ingest"
+      ],
       "human_confirmation_required": true,
       "launch_allowed_now": false,
       "mission": "Review a bounded contract/read-model change for missing tests, authority creep, and proof gaps.",
+      "model_decides_tools": false,
+      "no_go_data_policy": {
+        "broad_file_dumps": "blocked",
+        "browser_or_account_sessions": "blocked",
+        "credentials": "blocked",
+        "raw_logs": "blocked",
+        "raw_private_file_bodies": "blocked",
+        "secrets": "blocked",
+        "unknown_sensitive_need": "fail_closed"
+      },
       "operator_eli5": "Show what a fast verifier could review later without giving it control.",
-      "package_hash_or_deterministic_placeholder": "sha256:7647e9f75e33c4df5386e7b8c3d1cd59ba615b21b8000bb11c7aa34eb6130bb3",
+      "package_hash_or_deterministic_placeholder": "sha256:87c3706d3b462d8929b802895ebe7f81a1c79d8945e89e820e718d6b9be4baa8",
       "package_id": "sample_antigravity_verification_review_package",
       "package_type": "verification_review_package",
+      "permitted_command_classes": [
+        "no_command",
+        "read_only_inspection"
+      ],
       "prompt_prose": "Example outline only; not dispatched.",
       "proof_requirements": [
         "source read-model references",
@@ -897,6 +2284,28 @@
       ],
       "receipt_requirements": [
         "metadata-only receipt before any future state ingest"
+      ],
+      "registry_default_clearance_level": "internal_operator_safe",
+      "required_exit_codes": [
+        "not_applicable_no_command_permitted"
+      ],
+      "required_file_existence_checks": [
+        "source_read_model_refs_exist_when_claimed"
+      ],
+      "required_hash_or_manifest_checks": [
+        "package_hash_or_deterministic_placeholder",
+        "source_manifest_or_hash_refs_when_available"
+      ],
+      "required_receipts": [
+        "metadata_only_generation_receipt",
+        "package_preview_receipt"
+      ],
+      "required_schema_checks": [
+        "package_schema_fields_present",
+        "boundary_validation_fields_present"
+      ],
+      "required_test_results": [
+        "not_run_reason_allowed_for_preview_only"
       ],
       "sample_only": true,
       "security_clearance": "metadata_review_only_no_live_authority",
@@ -917,7 +2326,80 @@
         "need for credentials or account access",
         "need for live model/tool/agent/browser/runtime execution"
       ],
-      "target_workbench_or_actor_host": "antigravity_gemini_flash_high"
+      "storage_policy": {
+        "allowed_storage_roots": [
+          "generated/read_models",
+          ".openclaw/business_ops"
+        ],
+        "broad_file_dump_storage_allowed": false,
+        "raw_private_content_storage_allowed": false,
+        "runtime_log_storage_allowed": false
+      },
+      "success_validation": {
+        "deterministic_proof_methods": [
+          "schema_check",
+          "hash_or_manifest_check",
+          "receipt_check",
+          "test_result_or_not_run_reason",
+          "exit_code_when_command_allowed"
+        ],
+        "deterministic_success_claimed": false,
+        "natural_language_success_claim_allowed": false,
+        "success_without_deterministic_proof_is_invalid": true
+      },
+      "target_workbench_or_actor_host": "antigravity_gemini_flash_high",
+      "validation_requirements": [
+        {
+          "required": true,
+          "requirement_id": "package_schema_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "boundary_validation_fields_present",
+          "requirement_type": "schema_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "workspace_paths_within_allowed_roots",
+          "requirement_type": "allowed_roots_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "capabilities_match_grants",
+          "requirement_type": "capability_grant_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "metadata_only_receipt_required",
+          "requirement_type": "receipt_check"
+        },
+        {
+          "required": true,
+          "requirement_id": "package_hash_or_manifest_available",
+          "requirement_type": "hash_or_manifest_check"
+        }
+      ],
+      "workspace_scope": {
+        "allowed_workspace_roots": [
+          "generated/read_models",
+          "Operator",
+          "docs/planning/launch_ladder"
+        ],
+        "forbidden_paths": [
+          "credential stores",
+          "raw private archives",
+          "PC system drive",
+          "Repo B",
+          "Mac app files unless a later UI lane grants explicit scope"
+        ],
+        "path_refs": [
+          "generated/read_models/operator_workbench_actor_host_registry.json",
+          "generated/read_models/package_compiler_contract.json"
+        ],
+        "path_validation": "repo_relative_prefix_match_required",
+        "scope_type": "repo_relative_read_model_and_operator_docs"
+      }
     }
   ],
   "schema_version": "package_compiler_contract_v0",
@@ -977,7 +2459,7 @@
     }
   },
   "sqlite_ledger_receipt_contract": {
-    "contract_hash": "sha256:d23436021fffad6a0c02853f3cd0b880e03139d2496a5cc354eb5e8a02406018",
+    "contract_hash": "sha256:b5b4927d2fd09196d7e74fdea80b91bc25428e1349d06abfb200c7d3acf74b21",
     "metadata_only": true,
     "pattern": "business_ops_ledger.record_receipt",
     "receipt_type": "generated_status",
