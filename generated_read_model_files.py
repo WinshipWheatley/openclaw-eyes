@@ -91,7 +91,20 @@ def is_no_go_generated_read_model_relative_path(relative_path: str) -> bool:
     lowered = Path(relative_path).name.lower()
     if parts & NO_GO_PARTS:
         return True
-    return any(hint in lowered for hint in NO_GO_FILE_HINTS)
+    for hint in NO_GO_FILE_HINTS:
+        if hint == "temp":
+            if (
+                lowered.startswith(("temp_", "tmp_", "temporary_"))
+                or "_temp_" in lowered
+                or "-temp-" in lowered
+                or lowered.startswith("temp.")
+                or lowered.startswith("tmp.")
+            ):
+                return True
+            continue
+        if hint in lowered:
+            return True
+    return False
 
 
 def is_safe_generated_read_model_file(path: Path, source_root: Path) -> bool:
