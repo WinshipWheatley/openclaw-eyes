@@ -1,5 +1,1718 @@
 {
   "actor_agent_activation_authority": false,
+  "agent_council_dossier_summary": {
+    "allowed_interactions": [
+      "Inspect Dossier",
+      "Show Package Preview",
+      "Show Permissions",
+      "Show Missing Proof",
+      "Show Operator Questions",
+      "Mark Memory Candidate",
+      "Future Chat Target Metadata"
+    ],
+    "cards_count": 12,
+    "featured_agents": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "struna"
+    ],
+    "forbidden_interactions": [
+      "live chat launch",
+      "agent activation",
+      "model launch",
+      "tool execution",
+      "credential/account prompts",
+      "browser/OAuth launch",
+      "Gmail/calendar/Coupa/Telegram controls",
+      "send/submit/approval",
+      "fake confidence percentages",
+      "raw private context",
+      "hidden memory claims"
+    ],
+    "mission_control_may_render": [
+      "one featured selected card",
+      "roster rail or carousel",
+      "permission chips",
+      "strengths",
+      "current allowed actions",
+      "blocked actions",
+      "future-gated actions",
+      "missing proof",
+      "operator questions",
+      "package preview route"
+    ],
+    "summary_id": "agent_council_dossier_summary",
+    "system_component_cards": [
+      "agentic_loop",
+      "cue_parser_brain_dump_parser",
+      "repo_b_planner_builder_orchestrator",
+      "package_compiler",
+      "model_router",
+      "tool_plugin_registry"
+    ]
+  },
+  "agent_dossier_card_model": {
+    "allowed_interactions": [
+      "Inspect Dossier",
+      "Show Package Preview",
+      "Show Permissions",
+      "Show Missing Proof",
+      "Show Operator Questions",
+      "Mark Memory Candidate",
+      "Future Chat Target Metadata"
+    ],
+    "asset_policy": {
+      "cassandra_reference_image_handling": "Operator-provided Cassandra reference exists as task-context metadata only. Repo A must not store, copy, embed, or process the image body.",
+      "image_embedding_allowed": false,
+      "portrait_refs_are_metadata_only": true,
+      "raw_images_stored_in_repo_a": false
+    },
+    "card_types": [
+      "agent_persona",
+      "project_lane",
+      "system_loop_component",
+      "registry_component",
+      "world_workflow_candidate"
+    ],
+    "forbidden_interactions": [
+      "live chat launch",
+      "agent activation",
+      "model launch",
+      "tool execution",
+      "credential/account prompts",
+      "browser/OAuth launch",
+      "Gmail/calendar/Coupa/Telegram controls",
+      "send/submit/approval",
+      "fake confidence percentages",
+      "raw private context",
+      "hidden memory claims"
+    ],
+    "interaction_authority": "read_only_capture_only_preview_only_future_gated_where_applicable",
+    "portrait_asset_statuses": [
+      "OPERATOR_PROVIDED_REFERENCE",
+      "NEEDS_APPROVED_ASSET",
+      "PLACEHOLDER_ONLY",
+      "BLOCKED_NO_ASSET"
+    ],
+    "required_fields": [
+      "agent_id",
+      "display_name",
+      "card_type",
+      "agent_class",
+      "visual_archetype",
+      "portrait_asset_status",
+      "portrait_asset_ref",
+      "tagline",
+      "plain_english_role",
+      "domains",
+      "strengths",
+      "known_capabilities",
+      "partly_known_capabilities",
+      "known_unknowns",
+      "not_discovered",
+      "current_allowed_actions",
+      "current_blocked_actions",
+      "future_eligible_actions",
+      "authority_boundary",
+      "permissions_summary",
+      "memory_scope_summary",
+      "tool_adapter_summary",
+      "model_selection_summary",
+      "package_types_supported",
+      "package_preview_available",
+      "required_gates",
+      "required_receipts",
+      "operator_questions",
+      "safe_next_detour",
+      "lane_destiny",
+      "quiet_condition",
+      "world_affinity",
+      "relationship_to_other_agents",
+      "mission_control_display_guidance"
+    ],
+    "visual_direction": "Mission Control may render classy cyberpunk command roster cards: premium executive dossier, rockstar command app, cyberpunk intelligence card, elegant game-character card; not fighting-game aggression, not goofy avatars, and not backend admin rows."
+  },
+  "agent_dossier_cards": [
+    {
+      "agent_class": "finance_comms_cassandra",
+      "agent_id": "cassandra",
+      "authority_boundary": "Cassandra is package-preview/proof-reference only; live finance/comms/account authority is blocked.",
+      "card_type": "agent_persona",
+      "current_allowed_actions": [
+        "preview",
+        "readback",
+        "package metadata inspection",
+        "proof reference orientation"
+      ],
+      "current_blocked_actions": [
+        "Coupa access",
+        "Gmail/calendar access",
+        "OAuth/browser/account flows",
+        "send/submit/approval",
+        "raw private bodies",
+        "credential handling"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Cassandra",
+      "domains": [
+        "Finance",
+        "Communications",
+        "Accounts Payable"
+      ],
+      "future_eligible_actions": [
+        "future protected metadata review",
+        "future local/private model review",
+        "future Finance World package"
+      ],
+      "known_capabilities": [
+        "Cassandra is represented as communications, finance/AP, email/calendar review character.",
+        "Capital Hilton relates to Cassandra as protected finance/AP workflow context.",
+        "Cassandra can receive package previews but no live account or send authority."
+      ],
+      "known_unknowns": [
+        "The system does not know live Coupa, Gmail, calendar, or Excel facts.",
+        "Which exact source of truth matters for Capital Hilton remains proof-gated."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+        "resolution_route": "SECURITY_AUDIT_REQUIRED",
+        "target_world": "Finance"
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "May receive governed metadata/proof refs; raw Gmail/calendar/Coupa/finance bodies are blocked unless a future Guardian gate permits protected references.",
+      "mission_control_display_guidance": "Render as a premium calm intelligence dossier with permission chips and protected-proof status; never show account controls.",
+      "model_selection_summary": "Current live model is blocked_no_model; future local/private review only after sensitivity, Guardian, Operator, and receipt gates.",
+      "not_discovered": [
+        "Protected proof metadata for Coupa/Excel/invoice source.",
+        "Safe source cards for finance/comms context."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What is Cassandra's current source of truth for Capital Hilton: Coupa, email, Excel, or protected proof packets?",
+          "question_id": "cassandra_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What metadata could prove the invoice source without exposing raw finance bodies?",
+          "question_id": "cassandra_002"
+        },
+        {
+          "classification": "world_transition_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which Cassandra workflow belongs in Finance World versus Communications World?",
+          "question_id": "cassandra_003"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What Guardian gate should be required before any protected context is routed?",
+          "question_id": "cassandra_004"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "finance_ap_review",
+        "communications_review",
+        "protected_access_review",
+        "capital_hilton_invoice_review"
+      ],
+      "partly_known_capabilities": [
+        "Cassandra can reason over governed metadata/proof references later.",
+        "Email/calendar/draft identity and finance proof rails are partly represented."
+      ],
+      "permissions_summary": "Preview/readback/package metadata only; no account or send authority.",
+      "plain_english_role": "Cassandra reads governed finance/comms packets and helps route evidence without touching accounts.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Operator provided a Cassandra reference image in task context; Repo A stores metadata only, no image body."
+      },
+      "portrait_asset_status": "OPERATOR_PROVIDED_REFERENCE",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Cassandra is quiet when each finance/comms workflow has proof refs, memory gaps, or explicit blockers.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "works with Guardian for protected evidence",
+        "routes Capital Hilton proof into Finance World",
+        "may receive Chief diagnostics as readback context"
+      ],
+      "required_gates": [
+        "Guardian protected-access gate",
+        "Operator approval for future protected action",
+        "security audit before account flows"
+      ],
+      "required_receipts": [
+        "protected proof metadata receipt",
+        "package preview receipt",
+        "future model selection receipt",
+        "future action receipt if ever authorized"
+      ],
+      "safe_next_detour": "Capital Hilton Protected Proof Metadata Population",
+      "strengths": [
+        "structured review",
+        "finance/comms interpretation",
+        "packet reading",
+        "exception detection",
+        "evidence routing"
+      ],
+      "tagline": "Protected finance and communications intelligence.",
+      "tool_adapter_summary": "Finance/comms adapters are future-gated; Coupa, Gmail, calendar, browser/OAuth, send, submit, and approval are blocked.",
+      "visual_archetype": "classy cyberpunk executive analyst; calm, sharp, protected finance/comms intelligence posture",
+      "world_affinity": [
+        "Finance",
+        "Communications"
+      ]
+    },
+    {
+      "agent_class": "diagnostic_chief",
+      "agent_id": "chief",
+      "authority_boundary": "Chief can be a package character/persona and readback lane only; no live backend/app authority.",
+      "card_type": "agent_persona",
+      "current_allowed_actions": [
+        "inspect read-model posture",
+        "show package preview",
+        "review proof refs",
+        "classify missing harness proof"
+      ],
+      "current_blocked_actions": [
+        "live Chief activation",
+        "service starts",
+        "model calls",
+        "tool execution",
+        "repair/remount/cleanup",
+        "Telegram/send actions"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Chief",
+      "domains": [
+        "System Health",
+        "Build",
+        "Operations"
+      ],
+      "future_eligible_actions": [
+        "future Chief test harness receipts",
+        "future package routing",
+        "post-security diagnostics"
+      ],
+      "known_capabilities": [
+        "Chief is represented as a coordinator/diagnostic/work-board/check-engine character in current contracts.",
+        "Chief can be routed in package previews as a character/persona, not as a live backend authority.",
+        "Chief-related read-models exist for check-engine diagnostic and environment posture."
+      ],
+      "known_unknowns": [
+        "Whether any remembered Chief system-wide fix/run rail exists outside current read-model visibility.",
+        "Which Chief outputs should be test-harness evidence versus operator-facing briefing."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+        "resolution_route": "SECURITY_AUDIT_REQUIRED",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "May receive system posture refs and receipts; cannot treat memory or worker claims as proof without receipts.",
+      "mission_control_display_guidance": "Render as the calm diagnostic commander; show system health, proof refs, and blocked repair authority.",
+      "model_selection_summary": "Current live model is blocked_no_model; future reasoning review requires package and security gates.",
+      "not_discovered": [
+        "Complete inventory of Chief-owned artifacts and exact harness inputs/outputs.",
+        "Executable Chief runtime authority proof, which is intentionally absent now."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What do you remember Chief actually owning: work-board posture, test harness, parser input, or runtime repair?",
+          "question_id": "chief_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which Chief output should count as proof rather than a briefing?",
+          "question_id": "chief_002"
+        },
+        {
+          "classification": "repo_discovery_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Did Chief ever have a safe test harness, and where was it represented?",
+          "question_id": "chief_003"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What package fields would Chief need before it can review a lane?",
+          "question_id": "chief_004"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "check_light_diagnostic_package",
+        "helm_lane_awareness_package",
+        "verification_review_package"
+      ],
+      "partly_known_capabilities": [
+        "Chief can organize diagnostic posture and work-board metadata.",
+        "Chief package shape is implied by package compiler and actor router contracts."
+      ],
+      "permissions_summary": "Inspect/readback/package preview only.",
+      "plain_english_role": "Chief helps explain system health and validate receipts without fixing or running anything.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "No approved Chief portrait asset in Repo A."
+      },
+      "portrait_asset_status": "NEEDS_APPROVED_ASSET",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Chief is quiet when character, package, harness, and blocked execution boundaries are classified and receipted.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "can verify others but cannot self-authorize success",
+        "pairs with Hermes for coherence",
+        "uses Guardian for authority questions"
+      ],
+      "required_gates": [
+        "package compiler boundary",
+        "receipt requirement",
+        "Guardian review if authority boundary is touched"
+      ],
+      "required_receipts": [
+        "diagnostic package receipt",
+        "test harness receipt if classified",
+        "proof/readback receipt"
+      ],
+      "safe_next_detour": "Chief Test Harness Capability Classification",
+      "strengths": [
+        "system health",
+        "proof review",
+        "Check Engine diagnosis",
+        "receipt validation",
+        "test harness review"
+      ],
+      "tagline": "System diagnosis, proof review, and work-board posture.",
+      "tool_adapter_summary": "Diagnostic/readback adapters only; repairs, remounts, cleanup, services, Telegram, and runtime adapters are blocked.",
+      "visual_archetype": "executive system-health commander; calm command desk, diagnostic authority without repair authority",
+      "world_affinity": [
+        "Build",
+        "Operations"
+      ]
+    },
+    {
+      "agent_class": "protected_access_guardian",
+      "agent_id": "guardian",
+      "authority_boundary": "Guardian is a gate/review character only; no execution or self-grant authority.",
+      "card_type": "agent_persona",
+      "current_allowed_actions": [
+        "recommend allow/block/redact/quarantine/revoke",
+        "show gate status",
+        "inspect protected-access metadata"
+      ],
+      "current_blocked_actions": [
+        "self-authorization",
+        "approval bypass",
+        "credential access",
+        "protected raw body access",
+        "send/submit authority"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Guardian",
+      "domains": [
+        "Security",
+        "Protected Access",
+        "Authority Boundary"
+      ],
+      "future_eligible_actions": [
+        "future protected access gate receipts",
+        "future revocation/kill-switch receipts"
+      ],
+      "known_capabilities": [
+        "Guardian is represented as safety/security/protected-access boundary character.",
+        "Guardian may recommend block/redact/quarantine/revoke in contracts.",
+        "Guardian cannot self-authorize or bypass the Operator."
+      ],
+      "known_unknowns": [
+        "No generic approval, credential, account, or protected access authority exists."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Hide from front door unless trigger condition changes or briefing surface asks for it.",
+        "resolution_route": "PARK_WITH_PROOF",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "May review sensitive metadata candidates; raw protected bodies remain blocked unless future gates explicitly permit references.",
+      "mission_control_display_guidance": "Render as a restrained authority card with allow/block/redact/quarantine chips; no approval bypass controls.",
+      "model_selection_summary": "Current live model is blocked_no_model; future local_sensitive/local_reasoning only under strict gates.",
+      "not_discovered": [],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which Guardian rule, if any, is missing from the current contracts?",
+          "question_id": "guardian_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What receipt should prove a protected-access gate was checked?",
+          "question_id": "guardian_002"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which lanes should require Guardian before operator approval?",
+          "question_id": "guardian_003"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "protected_access_review",
+        "safety_review",
+        "verification_review_package"
+      ],
+      "partly_known_capabilities": [
+        "Exact per-lane future receipt requirements still need refinement."
+      ],
+      "permissions_summary": "Can recommend gate posture; cannot self-authorize or bypass the Operator.",
+      "plain_english_role": "Guardian reviews safety, sensitivity, redaction, quarantine, revocation, and approval boundaries.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "No approved Guardian portrait asset in Repo A."
+      },
+      "portrait_asset_status": "NEEDS_APPROVED_ASSET",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Guardian is quiet unless a lane tries to cross an authority boundary or needs clearance classification.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "gates Cassandra protected finance context",
+        "blocks Chief self-authorization",
+        "reviews tool/model/memory boundary crossings"
+      ],
+      "required_gates": [
+        "Operator final authority",
+        "protected access gate receipt",
+        "security audit for future sensitive action"
+      ],
+      "required_receipts": [
+        "Guardian gate receipt",
+        "redaction receipt",
+        "quarantine/revocation receipt when relevant"
+      ],
+      "safe_next_detour": "Guardian Gate Receipt Definition when a protected lane requests it",
+      "strengths": [
+        "redaction",
+        "quarantine",
+        "revocation",
+        "approval boundaries",
+        "sensitivity classification"
+      ],
+      "tagline": "Boundary review before sensitive action.",
+      "tool_adapter_summary": "Guardian gate adapters are check/recommendation only; no live protected access or tool grant authority.",
+      "visual_archetype": "quiet security sentinel; high-status protected-access gate with redaction and quarantine posture",
+      "world_affinity": [
+        "Security",
+        "Operations"
+      ]
+    },
+    {
+      "agent_class": "architecture_hermes",
+      "agent_id": "hermes",
+      "authority_boundary": "Hermes can appear in package previews and terrain readback only; no live agent/model/tool authority.",
+      "card_type": "agent_persona",
+      "current_allowed_actions": [
+        "readback",
+        "package preview",
+        "doctrine consistency review metadata"
+      ],
+      "current_blocked_actions": [
+        "live advisory agent activation",
+        "external research",
+        "model/API calls",
+        "tool execution",
+        "architecture authority without operator review"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Hermes",
+      "domains": [
+        "Architecture",
+        "Doctrine",
+        "Research",
+        "Build"
+      ],
+      "future_eligible_actions": [
+        "future advisory package",
+        "future doctrine review receipt",
+        "future horizon-check packet"
+      ],
+      "known_capabilities": [
+        "Hermes is represented in actor-router and package-preview contracts as architecture/doctrine/system-coherence advisory character.",
+        "Hermes has no current live agent or model authority."
+      ],
+      "known_unknowns": [
+        "Current Hermes source set and responsibility boundary are not fully proven.",
+        "Whether Hermes owns horizon checks, doctrine review, or another concrete workflow needs comparison."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Hide from front door unless trigger condition changes or briefing surface asks for it.",
+        "resolution_route": "PARK_WITH_PROOF",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "May receive architecture/doctrine/system coherence refs; no private raw bodies or external research authority.",
+      "mission_control_display_guidance": "Render as a high-status doctrine/coherence dossier; show exact unknowns and memory-comparison questions.",
+      "model_selection_summary": "Current live model is blocked_no_model; future deep reasoner only for non-sensitive architecture packets with gates.",
+      "not_discovered": [
+        "Hermes-specific status rail, receipts, or source inventory."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What does Hermes actually own today: architecture, doctrine, coherence, horizon checks, or another lane?",
+          "question_id": "hermes_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What source artifact should prove Hermes' current role?",
+          "question_id": "hermes_002"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Should Hermes be paired with Chief by default for system-coherence review?",
+          "question_id": "hermes_003"
+        },
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which remembered Hermes notes should be compared against current read-models?",
+          "question_id": "hermes_004"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "architecture_review",
+        "doctrine_review",
+        "helm_lane_awareness_package"
+      ],
+      "partly_known_capabilities": [
+        "Hermes can be paired with Chief for big-picture doctrine and system coherence.",
+        "Hermes package preview exists as a non-executing architecture review example."
+      ],
+      "permissions_summary": "Readback/package preview only.",
+      "plain_english_role": "Hermes checks whether the system story, contracts, and architecture still fit together.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "No approved Hermes portrait asset in Repo A."
+      },
+      "portrait_asset_status": "NEEDS_APPROVED_ASSET",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Hermes is quiet when classified as tracked, parked, obsolete, blocked, or backed by source proof.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "pairs with Chief for coherence",
+        "uses Guardian when architecture touches authority",
+        "helps Cassandra/Niles stay inside doctrine"
+      ],
+      "required_gates": [
+        "Operator review for doctrine promotion",
+        "package preview receipt",
+        "memory candidate receipt for remembered doctrine"
+      ],
+      "required_receipts": [
+        "architecture review receipt",
+        "memory candidate receipt",
+        "future doctrine promotion receipt"
+      ],
+      "safe_next_detour": "Hermes Status Memory/Proof Review",
+      "strengths": [
+        "system framing",
+        "design doctrine",
+        "contract consistency",
+        "ontology",
+        "narrative coherence"
+      ],
+      "tagline": "Architecture, doctrine, and system coherence.",
+      "tool_adapter_summary": "Contract/read-model review only; no runtime execution or network research adapters.",
+      "visual_archetype": "elegant systems emissary; doctrine, ontology, horizon, and coherence intelligence",
+      "world_affinity": [
+        "Build",
+        "Research"
+      ]
+    },
+    {
+      "agent_class": "creative_niles",
+      "agent_id": "niles",
+      "authority_boundary": "Niles can receive scoped creative/package refs only; no broad archive ingestion or release authority.",
+      "card_type": "agent_persona",
+      "current_allowed_actions": [
+        "metadata preview",
+        "project capsule readback",
+        "package context orientation"
+      ],
+      "current_blocked_actions": [
+        "broad private archive ingestion",
+        "audio automation",
+        "public release/platform actions",
+        "external account actions",
+        "raw unrelated private material"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Niles",
+      "domains": [
+        "Music / Art",
+        "Creative Production"
+      ],
+      "future_eligible_actions": [
+        "future Music/Art World package",
+        "future creative metadata receipt",
+        "future release action gate"
+      ],
+      "known_capabilities": [
+        "Niles is represented as music/art/producer/creative operator character.",
+        "Niles/Struna context can be package-previewed through scoped project capsules/metadata refs."
+      ],
+      "known_unknowns": [
+        "Canonical current Struna/album/release/personnel/artifact status is not fully proven here."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Move to Music / Art world for domain work; helm keeps only a quiet global marker if needed.",
+        "resolution_route": "MOVE_TO_WORLD_ACTION",
+        "target_world": "Music / Art"
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "May receive scoped music/art refs and operator preference candidates; unrelated private/client material is blocked.",
+      "mission_control_display_guidance": "Render as a tasteful studio dossier with project context and missing metadata, not a generic backend card.",
+      "model_selection_summary": "Current live model is blocked_no_model; future creative model class only with scoped context and no retention.",
+      "not_discovered": [
+        "Current music/art metadata set and source references.",
+        "Rights/release/platform action boundaries for future work."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What does Niles know about Struna now versus what exists only in your memory?",
+          "question_id": "niles_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which album/project metadata should become source-backed first?",
+          "question_id": "niles_002"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which creative context is safe for package preview without broad archive ingestion?",
+          "question_id": "niles_003"
+        },
+        {
+          "classification": "world_transition_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "When should this move from helm terrain to Music/Art World action?",
+          "question_id": "niles_004"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "music_creative_review",
+        "struna_development",
+        "world_lane_work_package"
+      ],
+      "partly_known_capabilities": [
+        "The system can hold creative metadata, but real current album/project metadata is not fully verified.",
+        "Operator creative preference can guide work but is context, not proof."
+      ],
+      "permissions_summary": "Scoped creative metadata only; no broad archive or release/platform authority.",
+      "plain_english_role": "Niles helps organize music/art context and creative metadata without scanning private archives.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "No approved Niles portrait asset in Repo A."
+      },
+      "portrait_asset_status": "NEEDS_APPROVED_ASSET",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Niles is quiet when current creative metadata is captured, marked stale/private, or explicitly blocked.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "owns creative side of Struna",
+        "uses Codex only for implementation lanes",
+        "uses Guardian for rights/sensitivity questions"
+      ],
+      "required_gates": [
+        "operator approval for creative context",
+        "rights/sensitivity review for future release action",
+        "package preview receipt"
+      ],
+      "required_receipts": [
+        "creative metadata receipt",
+        "project capsule receipt",
+        "future release gate receipt if ever authorized"
+      ],
+      "safe_next_detour": "Niles Real Album Metadata Intake",
+      "strengths": [
+        "album/track/creative context",
+        "Struna/Niles project framing",
+        "metadata intake",
+        "creative preference handling"
+      ],
+      "tagline": "Creative context, music metadata, and project framing.",
+      "tool_adapter_summary": "Music/art metadata adapters may be preview/read-only later; release/platform/account actions are blocked.",
+      "visual_archetype": "polished studio-console creative operator; music/art producer intelligence, tasteful and calm",
+      "world_affinity": [
+        "Music / Art"
+      ]
+    },
+    {
+      "agent_class": "music_project_struna",
+      "agent_id": "struna",
+      "authority_boundary": "Struna is creative metadata/context only until scoped sources and package boundaries exist.",
+      "card_type": "project_lane",
+      "current_allowed_actions": [
+        "project metadata readback",
+        "memory/proof question display",
+        "package preview if scoped"
+      ],
+      "current_blocked_actions": [
+        "raw creative archive scan",
+        "public platform/release action",
+        "external account mutation",
+        "unrelated private material ingestion"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Struna",
+      "domains": [
+        "Music / Art"
+      ],
+      "future_eligible_actions": [
+        "future Music/Art World action",
+        "future Niles package",
+        "future release gate"
+      ],
+      "known_capabilities": [
+        "Struna appears as a music/art project capsule/source reference in current awareness surfaces.",
+        "Struna belongs under Niles/Music-Art world posture, not generic helm clutter."
+      ],
+      "known_unknowns": [
+        "Current canonical Struna metadata, artifact state, and next work target are not fully proven."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Move to Music / Art world for domain work; helm keeps only a quiet global marker if needed.",
+        "resolution_route": "MOVE_TO_WORLD_ACTION",
+        "target_world": "Music / Art"
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Operator creative memory may become candidate context; current project facts still need proof.",
+      "mission_control_display_guidance": "Render as a project dossier linked to Niles; show proof gaps and memory-only posture clearly.",
+      "model_selection_summary": "No live model; future Niles-scoped creative review only after proof and package gates.",
+      "not_discovered": [
+        "Current project capsule completeness.",
+        "Which source refs are current versus stale."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What is the current Struna source of truth: project capsule, files, memory, or another artifact?",
+          "question_id": "struna_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which Struna metadata needs machine proof before Niles can use it?",
+          "question_id": "struna_002"
+        },
+        {
+          "classification": "world_transition_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What should remain parked until Music/Art World is ready?",
+          "question_id": "struna_003"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "music_creative_review",
+        "struna_development"
+      ],
+      "partly_known_capabilities": [
+        "Struna can be represented as project metadata, capsule refs, and creative preference candidates."
+      ],
+      "permissions_summary": "Project/lane metadata only; not an autonomous agent.",
+      "plain_english_role": "Struna is a project/lane entity whose metadata can move to Music/Art World when source-backed.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": true,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "No approved Struna visual asset in Repo A."
+      },
+      "portrait_asset_status": "NEEDS_APPROVED_ASSET",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Struna is quiet when current project context is captured as metadata or intentionally parked.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "belongs under Niles",
+        "may need Guardian for rights/sensitivity",
+        "may need Codex only for implementation artifacts"
+      ],
+      "required_gates": [
+        "source proof review",
+        "operator promotion for creative memory",
+        "package preview receipt"
+      ],
+      "required_receipts": [
+        "project capsule receipt",
+        "creative context memory candidate receipt"
+      ],
+      "safe_next_detour": "Struna Project Capsule Memory/Proof Review",
+      "strengths": [
+        "project capsule framing",
+        "music/art metadata lane",
+        "creative context routing"
+      ],
+      "tagline": "Music/art project lane under Niles.",
+      "tool_adapter_summary": "No external release/platform/account adapters; metadata context only.",
+      "visual_archetype": "premium music-project artifact card; elegant album/project intelligence, not an agent avatar",
+      "world_affinity": [
+        "Music / Art"
+      ]
+    },
+    {
+      "agent_class": "system_loop_component",
+      "agent_id": "agentic_loop",
+      "authority_boundary": "Operator-reported architecture candidate only; no current execution, queue, parser, or agent authority.",
+      "card_type": "system_loop_component",
+      "current_allowed_actions": [
+        "readback",
+        "classification questions",
+        "future-gated metadata display"
+      ],
+      "current_blocked_actions": [
+        "live loop activation",
+        "model calls",
+        "tool execution",
+        "planner/builder runtime",
+        "queue/autonomy execution",
+        "Repo B execution",
+        "repair loops"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Agentic Loop",
+      "domains": [
+        "Build",
+        "Operations",
+        "Agent Platform"
+      ],
+      "future_eligible_actions": [
+        "post-security cue/autonomy spine",
+        "future queue lifecycle receipts",
+        "future planner/builder contracts"
+      ],
+      "known_capabilities": [
+        "operator-reported parser/queue/planner/builder/orchestrator idea",
+        "Chief test harness relationship candidate",
+        "post-security future-gated posture"
+      ],
+      "known_unknowns": [
+        "Repo A does not currently have machine proof that this loop is safe, current, or executable.",
+        "The system does not know which parts live in Repo B, Repo A, or memory."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+        "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Operator memory can classify components but cannot prove or activate them.",
+      "mission_control_display_guidance": "Render as a future-gated system-loop component card; no run buttons, only proof gaps and classification questions.",
+      "model_selection_summary": "No live model; no hidden routing; no agent self-selection.",
+      "not_discovered": [
+        "Approved metadata proving loop components, boundaries, and current status.",
+        "Queue lifecycle receipts and failure routing rules."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Where did the planner/builder loop live?",
+          "question_id": "agentic_loop_001"
+        },
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which loop parts should queue now later, and which should go to holding cell?",
+          "question_id": "agentic_loop_002"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What machine proof would confirm the loop components without executing them?",
+          "question_id": "agentic_loop_003"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which failure path should return work to queue, orchestrator, planner, or builder?",
+          "question_id": "agentic_loop_004"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What must wait until post-security autonomy?",
+          "question_id": "agentic_loop_005"
+        }
+      ],
+      "package_preview_available": false,
+      "package_types_supported": [
+        "helm_lane_awareness_package",
+        "tell_system_whats_missing_package",
+        "confidence_detour_package"
+      ],
+      "partly_known_capabilities": [
+        "some parsed work may later queue",
+        "some parsed work may later move to holding cell",
+        "failed work may later requeue to loop component"
+      ],
+      "permissions_summary": "Operator-reported architecture candidate only; no queue/autonomy/planner-builder execution.",
+      "plain_english_role": "A future system loop concept that may organize parsed work, receipts, requeue, and fix paths after security gates.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "System-loop component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "The agentic loop is quiet when each component is classified as blocked, parked, obsolete, or future-gated with proof refs.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "Chief may classify/harness outputs later",
+        "Guardian blocks authority expansion",
+        "Package compiler supplies future packet grammar"
+      ],
+      "required_gates": [
+        "security audit",
+        "queue lifecycle receipt contract",
+        "tool adapter receipt contract",
+        "Operator approval"
+      ],
+      "required_receipts": [
+        "cue intake receipt",
+        "planner handoff receipt",
+        "builder output receipt",
+        "Chief harness receipt",
+        "requeue/fix-path receipt"
+      ],
+      "safe_next_detour": "Agentic Loop Workflow Classification",
+      "strengths": [
+        "workflow classification",
+        "holding-cell routing concept",
+        "requeue/fix-path concept",
+        "receipt spine relationship"
+      ],
+      "tagline": "Parser, queue, planner, builder, orchestrator, harness, holding cell.",
+      "tool_adapter_summary": "Planner, builder, orchestrator, and queue adapters are future-gated or blocked.",
+      "visual_archetype": "classified systems-loop schematic card; command roster component, future-gated and fail-closed",
+      "world_affinity": [
+        "Build",
+        "Operations"
+      ]
+    },
+    {
+      "agent_class": "system_loop_component",
+      "agent_id": "cue_parser_brain_dump_parser",
+      "authority_boundary": "Cue parser remains capture/preview contract terrain only; no parsing runtime or queue authority.",
+      "card_type": "system_loop_component",
+      "current_allowed_actions": [
+        "show parser questions",
+        "preview capture rules",
+        "mark memory candidate metadata"
+      ],
+      "current_blocked_actions": [
+        "raw private note scans",
+        "LLM parsing",
+        "file moves",
+        "automatic truth promotion",
+        "queue execution",
+        "Repo B execution"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Cue Parser / Brain Dump Parser",
+      "domains": [
+        "Build",
+        "Operations",
+        "Agent Platform"
+      ],
+      "future_eligible_actions": [
+        "future cue parser receipt",
+        "future holding-cell intake",
+        "future package compiler input"
+      ],
+      "known_capabilities": [
+        "Operator reports a parser that may turn operator/Chief ideas into queued work or holding-cell candidates.",
+        "Awareness surfaces name brain-dump/cue parser as a classification gap."
+      ],
+      "known_unknowns": [
+        "The system does not know allowed cue inputs, output grammar, or where the parser lived.",
+        "The system does not know how parser output should become memory candidates without becoming proof."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+        "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Brain-dump answers become memory candidates; raw private scans and hidden memory are blocked.",
+      "mission_control_display_guidance": "Render as capture-only intake card with operator questions and blocked raw-context warnings.",
+      "model_selection_summary": "No model selection or launch; parsing remains future-gated.",
+      "not_discovered": [
+        "Cue parser contract, accepted input classes, output receipt shape, and holding-cell trigger rules."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Was the cue parser in Repo B, Repo A, or a separate workspace?",
+          "question_id": "cue_parser_001"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What should Tell System What's Missing capture now without executing?",
+          "question_id": "cue_parser_002"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which brain-dump inputs are safe metadata and which are raw private bodies?",
+          "question_id": "cue_parser_003"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What proof would confirm parser behavior without running it?",
+          "question_id": "cue_parser_004"
+        }
+      ],
+      "package_preview_available": false,
+      "package_types_supported": [
+        "tell_system_whats_missing_package",
+        "helm_lane_awareness_package"
+      ],
+      "partly_known_capabilities": [
+        "The parser likely relates to memory candidate receipts, package previews, holding cell, and queue posture."
+      ],
+      "permissions_summary": "Capture/preview only; no parser runtime or queue authority.",
+      "plain_english_role": "A future parser concept for operator/Chief ideas; currently only classification/readback.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Parser component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "The cue parser is quiet when accepted inputs, blocked inputs, output receipts, and future-gated status are explicit.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "may accept Chief ideas later",
+        "feeds holding cell/package compiler only after contracts",
+        "Guardian blocks raw private inputs"
+      ],
+      "required_gates": [
+        "memory candidate receipt",
+        "source/context gate",
+        "security audit before parser runtime"
+      ],
+      "required_receipts": [
+        "cue intake receipt",
+        "memory candidate receipt",
+        "holding-cell marker receipt"
+      ],
+      "safe_next_detour": "Cue Parser Intake Classification",
+      "strengths": [
+        "operator idea intake",
+        "now/later/holding-cell classification",
+        "memory candidate routing"
+      ],
+      "tagline": "Turns ideas into now, later, or holding-cell candidates.",
+      "tool_adapter_summary": "No live parser, no model/Ollama call, no file moves.",
+      "visual_archetype": "operator-intake decoder card; clean now/later/holding-cell triage, capture-only",
+      "world_affinity": [
+        "Build",
+        "Operations"
+      ]
+    },
+    {
+      "agent_class": "system_loop_component",
+      "agent_id": "repo_b_planner_builder_orchestrator",
+      "authority_boundary": "Future-gated candidate capability only; no planner/builder/orchestrator runtime.",
+      "card_type": "system_loop_component",
+      "current_allowed_actions": [
+        "reference approved metadata",
+        "ask classification questions",
+        "park/block/promote candidate labels"
+      ],
+      "current_blocked_actions": [
+        "planner execution",
+        "builder execution",
+        "orchestrator runtime",
+        "queue/autonomy execution",
+        "model/agent launch",
+        "Repo B execution"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Repo B Planner / Builder / Orchestrator",
+      "domains": [
+        "Build",
+        "Agent Platform",
+        "Repo B Awareness"
+      ],
+      "future_eligible_actions": [
+        "post-security autonomy",
+        "future task queue lifecycle",
+        "future tool adapter receipts"
+      ],
+      "known_capabilities": [
+        "Operator reports planner, builder, and orchestrator roles may exist as part of a future agentic loop.",
+        "Current tool adapter registry lists planner/builder/orchestrator/queue adapters as candidate/future-gated or blocked."
+      ],
+      "known_unknowns": [
+        "No current machine proof establishes the loop as safe, current, or executable.",
+        "No lifecycle receipts exist for planner-builder handoff."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Hold as future-gated autonomy/cue terrain; no run controls before security.",
+        "resolution_route": "POST_SECURITY_AUTONOMY_CANDIDATE",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Winship memory may identify a component; it cannot prove or activate it.",
+      "mission_control_display_guidance": "Render as a quarantined/suspected component card with strict blocked-authority chips.",
+      "model_selection_summary": "No live model; no planner/builder model loop.",
+      "not_discovered": [
+        "Planner input/output schema.",
+        "Builder input/output schema.",
+        "Orchestrator failure/return rules.",
+        "Queue lifecycle receipts."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What did the planner do versus the builder versus the orchestrator?",
+          "question_id": "planner_builder_001"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Where should failed work return: queue, orchestrator, planner, or builder?",
+          "question_id": "planner_builder_002"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What receipt should prove a future handoff occurred?",
+          "question_id": "planner_builder_003"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which parts must wait until after security audit?",
+          "question_id": "planner_builder_004"
+        }
+      ],
+      "package_preview_available": false,
+      "package_types_supported": [
+        "workbench_actor_review_package",
+        "helm_lane_awareness_package"
+      ],
+      "partly_known_capabilities": [
+        "Planner/builder may later consume cue parser output and package compiler artifacts.",
+        "Failed work may later return to queue/orchestrator/planner/builder, but no route is active."
+      ],
+      "permissions_summary": "No broad Repo B body inspection, mutation, import, or execution.",
+      "plain_english_role": "A suspected Repo B loop that must be classified from approved metadata before it is trusted.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Repo B loop component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "This loop is quiet when each component has a non-live contract, is parked, or is explicitly blocked.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "Chief may classify later",
+        "Guardian blocks broad inspection",
+        "Package compiler may preview a classification packet"
+      ],
+      "required_gates": [
+        "approved metadata source",
+        "Repo B classification packet",
+        "security audit before any execution concept"
+      ],
+      "required_receipts": [
+        "Repo B leftover classification receipt",
+        "planner/builder/orchestrator metadata receipt"
+      ],
+      "safe_next_detour": "Planner/Builder/Orchestrator Classification Packet",
+      "strengths": [
+        "planner role candidate",
+        "builder role candidate",
+        "orchestrator failure path candidate"
+      ],
+      "tagline": "Suspected legacy planner/builder/orchestrator capability.",
+      "tool_adapter_summary": "Repo B planner/builder adapter is candidate/future-gated; execution blocked.",
+      "visual_archetype": "quarantined legacy-capability dossier; suspected architecture, no broad inspection or execution",
+      "world_affinity": [
+        "Build"
+      ]
+    },
+    {
+      "agent_class": "package_compiler_component",
+      "agent_id": "package_compiler",
+      "authority_boundary": "Package compiler is schema/preview/proof only; no send, launch, or execution.",
+      "card_type": "registry_component",
+      "current_allowed_actions": [
+        "package preview",
+        "schema/readback",
+        "contract export",
+        "validation metadata"
+      ],
+      "current_blocked_actions": [
+        "live package dispatch",
+        "model/agent launch",
+        "tool execution",
+        "send/submit/approval",
+        "runtime activation"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Package Compiler",
+      "domains": [
+        "Build",
+        "Agent Platform",
+        "Mission Control"
+      ],
+      "future_eligible_actions": [
+        "future package preview receipts",
+        "future workbench launch gate",
+        "future action receipt"
+      ],
+      "known_capabilities": [
+        "Package compiler and package preview contracts define package schema, context, authority, gates, stop conditions, and receipts.",
+        "Package compiler relates actor, model, tool, memory, sensitivity, and proof contracts.",
+        "Packages are preview/contract artifacts only now."
+      ],
+      "known_unknowns": [
+        "No live package dispatch or workbench launch authority exists."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Disappear from helm or remain only as quiet proof/detail.",
+        "resolution_route": "QUIET_BACKEND_RESOLVED",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Includes refs and approved context packets; excludes raw private bodies and credentials.",
+      "mission_control_display_guidance": "Render as the mission-packet compiler; show what would be sent, to whom, and why, with no execution button.",
+      "model_selection_summary": "Uses model policy/receipt metadata; cannot call or route models.",
+      "not_discovered": [
+        "Package Preview Receipt v0.",
+        "Package compilation examples tied to live Mission Control surfaces."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which package preview should Mission Control show first?",
+          "question_id": "package_compiler_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What receipt proves a package was previewed but not dispatched?",
+          "question_id": "package_compiler_002"
+        },
+        {
+          "classification": "package_contract_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which package fields are still missing before security audit?",
+          "question_id": "package_compiler_003"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "code_implementation_package",
+        "verification_review_package",
+        "finance_ap_review",
+        "music_creative_review",
+        "architecture_review"
+      ],
+      "partly_known_capabilities": [
+        "Package Preview Receipt remains the next missing receipt layer.",
+        "Future package export/copy or dispatch is not active."
+      ],
+      "permissions_summary": "Preview-only; no dispatch, launch, send, or execution.",
+      "plain_english_role": "Compiles context, roles, tool metadata, gates, proof, stop conditions, and receipts into preview packages.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Registry component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Package compiler is quiet when package previews have receipts and blocked execution is visible in proof/detail.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "packages work for all actors",
+        "uses Guardian for sensitive gates",
+        "feeds Codex/Gemini only through explicit boundaries"
+      ],
+      "required_gates": [
+        "package compiler boundary",
+        "model selection policy",
+        "memory scope",
+        "tool registry",
+        "Operator/Guardian gates when sensitive"
+      ],
+      "required_receipts": [
+        "package preview receipt",
+        "model selection receipt",
+        "tool adapter receipt if future use",
+        "post-action receipt if ever authorized"
+      ],
+      "safe_next_detour": "Package Preview Receipt v0",
+      "strengths": [
+        "deterministic mission payloads",
+        "context boundaries",
+        "stop conditions",
+        "proof requirements",
+        "receipt requirements"
+      ],
+      "tagline": "Builds the packet before anyone acts.",
+      "tool_adapter_summary": "May list relevant inactive adapters; cannot run them.",
+      "visual_archetype": "Mission Impossible mission-packet compiler card; crisp contract assembly, preview-only",
+      "world_affinity": [
+        "Build",
+        "Mission Control"
+      ]
+    },
+    {
+      "agent_class": "model_router_component",
+      "agent_id": "model_router",
+      "authority_boundary": "Model router is deterministic policy/receipt metadata only; live dispatch is blocked.",
+      "card_type": "registry_component",
+      "current_allowed_actions": [
+        "show model posture",
+        "show blocked_no_model default",
+        "show future eligibility metadata"
+      ],
+      "current_blocked_actions": [
+        "live model calls",
+        "model router runtime",
+        "hidden routing",
+        "external retained memory",
+        "self-selected models"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Model Router",
+      "domains": [
+        "Agent Platform",
+        "Build",
+        "Security"
+      ],
+      "future_eligible_actions": [
+        "future model router implementation plan",
+        "future dispatch receipt",
+        "future security audit gate"
+      ],
+      "known_capabilities": [
+        "Model Selection Policy and Model Selection Receipt define model classes and decision receipts.",
+        "Current live default is blocked_no_model for all actors except Operator as human_operator.",
+        "Model choices are recommendations/readiness results, not execution commands."
+      ],
+      "known_unknowns": [
+        "No runtime router proof exists because no runtime router is allowed here."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+        "resolution_route": "SECURITY_AUDIT_REQUIRED",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Model selection must respect memory scope and sensitivity; external retained memory is blocked.",
+      "mission_control_display_guidance": "Render as model posture, not availability; show blocked_no_model as a safe valid result.",
+      "model_selection_summary": "Current live default is blocked_no_model; Operator is human_operator.",
+      "not_discovered": [
+        "Model router implementation plan, still preview-only.",
+        "Model selection execution receipts if ever authorized later."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Is any actor/model pairing missing from the current policy?",
+          "question_id": "model_router_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What proof should be required before a model route becomes executable later?",
+          "question_id": "model_router_002"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which contexts must always return blocked_no_model?",
+          "question_id": "model_router_003"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "model_selection_receipt",
+        "package_preview_model_section",
+        "architecture_review"
+      ],
+      "partly_known_capabilities": [
+        "Future router implementation plan could use these contracts after security and receipt lanes."
+      ],
+      "permissions_summary": "No hidden routing, no model launch, no agent self-selected model.",
+      "plain_english_role": "Defines model class posture and proves why model selection is blocked, deferred, or future-eligible.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Registry component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Model router is quiet when packages can show selected/blocked/deferred posture without implying live routing.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "binds actors to model classes later",
+        "Guardian blocks sensitive routing",
+        "Package compiler provides inputs"
+      ],
+      "required_gates": [
+        "model selection policy",
+        "package preview",
+        "memory scope",
+        "Guardian/Operator when sensitive"
+      ],
+      "required_receipts": [
+        "model selection receipt",
+        "package preview receipt",
+        "future dispatch receipt if ever authorized"
+      ],
+      "safe_next_detour": "Model Router Implementation Plan v0, preview-only",
+      "strengths": [
+        "model class policy",
+        "sensitivity routing",
+        "actor/model fit",
+        "fail-closed receipts"
+      ],
+      "tagline": "Chooses no model until policy, gates, and receipts allow it.",
+      "tool_adapter_summary": "Requested adapters must be known and allowed or selection fails closed.",
+      "visual_archetype": "quiet routing policy card; actor/model fit matrix, blocked-by-default",
+      "world_affinity": [
+        "Build",
+        "Security"
+      ]
+    },
+    {
+      "agent_class": "tool_registry_component",
+      "agent_id": "tool_plugin_registry",
+      "authority_boundary": "Tool/plugin registry is capability metadata only; adapters cannot self-authorize or run.",
+      "card_type": "registry_component",
+      "current_allowed_actions": [
+        "read-model inspection",
+        "stable-map inspection",
+        "package preview metadata",
+        "static validation metadata"
+      ],
+      "current_blocked_actions": [
+        "live tool execution",
+        "browser/OAuth/account flows",
+        "Gmail/calendar/Coupa/Telegram access",
+        "credentials/tokens/cookies",
+        "send/submit/approval",
+        "queue/autonomy execution"
+      ],
+      "current_interaction_authority": "read_only_capture_only_preview_only",
+      "display_name": "Tool / Plugin Registry",
+      "domains": [
+        "Agent Platform",
+        "Security",
+        "Build"
+      ],
+      "future_eligible_actions": [
+        "future tool adapter receipts",
+        "future protected access gates",
+        "future read-only adapters"
+      ],
+      "known_capabilities": [
+        "Tool Protocol Adapter Registry defines adapter states, capability classes, package binding, receipts, and quarantine.",
+        "Active/read-only and preview-only adapters are distinct from future-gated or blocked adapters.",
+        "High-risk adapters such as browser/OAuth/Gmail/calendar/Coupa/Telegram remain blocked/future-gated."
+      ],
+      "known_unknowns": [
+        "No live adapter runtime or account integration exists."
+      ],
+      "lane_destiny": {
+        "helm_after_resolution": "Show as audit-ready or proof/detail, not as executable.",
+        "resolution_route": "SECURITY_AUDIT_REQUIRED",
+        "target_world": null
+      },
+      "live_activation_allowed": false,
+      "memory_scope_summary": "Adapters may only see context permitted by memory scope; raw private bodies and credentials are blocked.",
+      "mission_control_display_guidance": "Render as capability/gate chips; show included/excluded tools in package preview without live controls.",
+      "model_selection_summary": "Model policy must permit context before any future adapter package can proceed.",
+      "not_discovered": [
+        "Tool Adapter Receipt v0.",
+        "Per-adapter proof and gate decisions."
+      ],
+      "operator_questions": [
+        {
+          "classification": "memory_only_clarification",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which adapter should become useful first, and should it be read-only, preview-only, or receipt-only?",
+          "question_id": "tool_registry_001"
+        },
+        {
+          "classification": "proof_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "What receipt should prove a future adapter did nothing unsafe?",
+          "question_id": "tool_registry_002"
+        },
+        {
+          "classification": "security_gate_needed",
+          "execution_authority_created": false,
+          "operator_answer_becomes": "memory_candidate_not_machine_proof",
+          "prompt": "Which blocked adapters should remain blocked even after security audit?",
+          "question_id": "tool_registry_003"
+        }
+      ],
+      "package_preview_available": true,
+      "package_types_supported": [
+        "tool_adapter_review",
+        "workbench_actor_review_package",
+        "protected_access_review"
+      ],
+      "partly_known_capabilities": [
+        "Some adapter proof and future receipt shapes need deeper per-adapter lanes."
+      ],
+      "permissions_summary": "No live tool execution; adapters cannot self-authorize and actors cannot grant themselves tools.",
+      "plain_english_role": "Shows which adapters are read-only, preview-only, future-gated, blocked, or quarantined.",
+      "portrait_asset_ref": {
+        "approved_asset_needed_before_render": false,
+        "image_embedded": false,
+        "raw_image_body_stored": false,
+        "repo_asset_path": null,
+        "source_note": "Registry component uses symbolic placeholder only."
+      },
+      "portrait_asset_status": "PLACEHOLDER_ONLY",
+      "portrait_raw_image_stored": false,
+      "quiet_condition": "Tool registry is quiet when package previews can explain included/excluded adapters and all high-risk adapters stay gated.",
+      "raw_private_context_allowed": false,
+      "relationship_to_other_agents": [
+        "Guardian can quarantine/revoke",
+        "Cassandra tool candidates remain blocked",
+        "Chief can inspect readback but not repair"
+      ],
+      "required_gates": [
+        "tool registry state",
+        "memory scope",
+        "Guardian gate when sensitive",
+        "Operator approval when required"
+      ],
+      "required_receipts": [
+        "tool adapter receipt",
+        "quarantine/revocation receipt",
+        "future action receipt if ever authorized"
+      ],
+      "safe_next_detour": "Tool Adapter Receipt v0",
+      "strengths": [
+        "active read-only adapter map",
+        "preview-only adapter map",
+        "future-gated adapter map",
+        "blocked high-risk adapter map"
+      ],
+      "tagline": "Tools are listed, not granted.",
+      "tool_adapter_summary": "Browser/OAuth/Gmail/calendar/Coupa/Telegram/network/runtime adapters remain blocked/future-gated.",
+      "visual_archetype": "capability vault card; adapter states, gates, receipts, and quarantine posture",
+      "world_affinity": [
+        "Build",
+        "Security",
+        "Operations"
+      ]
+    }
+  ],
   "agent_persona_focus": {
     "cassandra": {
       "blocked_authorities": [
@@ -1675,7 +3388,7 @@
     }
   ],
   "external_retained_memory_enabled": false,
-  "generated_at": "2026-05-21T23:05:51+00:00",
+  "generated_at": "2026-05-21T23:15:42+00:00",
   "gmail_calendar_coupa_telegram_enabled": false,
   "hidden_memory_capture_enabled": false,
   "hidden_model_routing_enabled": false,
@@ -1690,7 +3403,25 @@
   ],
   "mac_sync_or_import_triggered": false,
   "machine_proof": {
-    "content_hash": "sha256:ab2aa0816c98486cd54ea164e78bf1aacd1ad8163332cb7eb41b362882655df5",
+    "agent_dossier_card_count": 12,
+    "agent_dossier_card_ids": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "hermes",
+      "niles",
+      "struna",
+      "agentic_loop",
+      "cue_parser_brain_dump_parser",
+      "repo_b_planner_builder_orchestrator",
+      "package_compiler",
+      "model_router",
+      "tool_plugin_registry"
+    ],
+    "cassandra_reference_image_embedded": false,
+    "cassandra_reference_image_stored": false,
+    "content_hash": "sha256:8a10e31737c8219032d972c5e0b4664e3eb30858b03e123d13a5af0f6f44e601",
+    "dossier_card_interactions_read_only": true,
     "lane_count": 16,
     "mac_sync_import_triggered": false,
     "missing_required_lane_ids": [],
@@ -3255,10 +4986,28 @@
     "reason_not_included_now": "Stable-map/sync files are separate dirty lane residue in this worktree; this contract does not reopen bridge churn, run Mac sync, or mutate the stable map bundle.",
     "registry_generated_as_read_model": true,
     "safe_summary_to_include_next": {
+      "agent_dossier_cards_count": 12,
       "contract_id": "agent_terrain_awareness_readback_contract",
+      "featured_agents": [
+        "cassandra",
+        "chief",
+        "guardian",
+        "hermes",
+        "niles",
+        "struna"
+      ],
+      "future_gated_cards_count": 7,
       "lanes_inventoried_count": 16,
+      "next_operator_questions_count": 59,
       "operator_memory_questions_count": 59,
       "recommended_next_detour": "Pick one terrain gap and answer its guided memory question as a memory candidate.",
+      "top_missing_proof_items": [
+        "Capital Hilton Coupa/Excel protected proof metadata",
+        "Chief test harness receipt shape",
+        "Hermes current source/proof surface",
+        "Struna current project metadata proof",
+        "Repo B planner/builder/orchestrator approved metadata"
+      ],
       "top_unknown_lanes": [
         "agentic_loop",
         "repo_b_leftovers",

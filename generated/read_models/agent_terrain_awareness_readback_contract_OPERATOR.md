@@ -21,6 +21,45 @@ OpenClaw now has a deterministic terrain readback for major agent/persona and sy
 - `capital_hilton`: status `helm_threshold_lane_finance_world_candidate_not_executable`; confidence `MEDIUM_TRUST`; destiny `MOVE_TO_WORLD_ACTION`; quiet when Capital Hilton is quiet on the helm when workflow proof, package boundaries, protected metadata, and security requirements are mapped; action then moves to Finance World.
 - `future_domain_workflow_lanes`: status `valid_but_premature_world_work_holding_cell`; confidence `LOW_TRUST`; destiny `HOLDING_CELL`; quiet when Future domain lanes are quiet when parked with triggers or moved into worlds only after readiness/security gates.
 
+## Agent Council / Dossier Summary
+- Dossier cards: `12`
+- Mission Control may later render one featured selected card, roster rail/carousel, permission chips, strengths, allowed/blocked/future actions, missing proof, operator questions, and package preview route.
+- Cards are read-only, capture-only, preview-only, and future-gated where applicable.
+- Visual direction: premium executive dossier / cyberpunk intelligence card / elegant command roster, not backend admin rows.
+- Cards:
+  - `cassandra`: Cassandra | `agent_persona` / `finance_comms_cassandra` | portrait `OPERATOR_PROVIDED_REFERENCE` | Protected finance and communications intelligence.
+  - `chief`: Chief | `agent_persona` / `diagnostic_chief` | portrait `NEEDS_APPROVED_ASSET` | System diagnosis, proof review, and work-board posture.
+  - `guardian`: Guardian | `agent_persona` / `protected_access_guardian` | portrait `NEEDS_APPROVED_ASSET` | Boundary review before sensitive action.
+  - `hermes`: Hermes | `agent_persona` / `architecture_hermes` | portrait `NEEDS_APPROVED_ASSET` | Architecture, doctrine, and system coherence.
+  - `niles`: Niles | `agent_persona` / `creative_niles` | portrait `NEEDS_APPROVED_ASSET` | Creative context, music metadata, and project framing.
+  - `struna`: Struna | `project_lane` / `music_project_struna` | portrait `NEEDS_APPROVED_ASSET` | Music/art project lane under Niles.
+  - `agentic_loop`: Agentic Loop | `system_loop_component` / `system_loop_component` | portrait `PLACEHOLDER_ONLY` | Parser, queue, planner, builder, orchestrator, harness, holding cell.
+  - `cue_parser_brain_dump_parser`: Cue Parser / Brain Dump Parser | `system_loop_component` / `system_loop_component` | portrait `PLACEHOLDER_ONLY` | Turns ideas into now, later, or holding-cell candidates.
+  - `repo_b_planner_builder_orchestrator`: Repo B Planner / Builder / Orchestrator | `system_loop_component` / `system_loop_component` | portrait `PLACEHOLDER_ONLY` | Suspected legacy planner/builder/orchestrator capability.
+  - `package_compiler`: Package Compiler | `registry_component` / `package_compiler_component` | portrait `PLACEHOLDER_ONLY` | Builds the packet before anyone acts.
+  - `model_router`: Model Router | `registry_component` / `model_router_component` | portrait `PLACEHOLDER_ONLY` | Chooses no model until policy, gates, and receipts allow it.
+  - `tool_plugin_registry`: Tool / Plugin Registry | `registry_component` / `tool_registry_component` | portrait `PLACEHOLDER_ONLY` | Tools are listed, not granted.
+- Allowed card interactions:
+  - Inspect Dossier
+  - Show Package Preview
+  - Show Permissions
+  - Show Missing Proof
+  - Show Operator Questions
+  - Mark Memory Candidate
+  - Future Chat Target Metadata
+- Forbidden card interactions:
+  - live chat launch
+  - agent activation
+  - model launch
+  - tool execution
+  - credential/account prompts
+  - browser/OAuth launch
+  - Gmail/calendar/Coupa/Telegram controls
+  - send/submit/approval
+  - fake confidence percentages
+  - raw private context
+  - hidden memory claims
+
 ## Agentic Loop
 - Operator-reported architecture candidate: `true`
 - Machine-proven current runtime: `false`

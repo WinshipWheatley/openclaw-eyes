@@ -130,6 +130,82 @@ MATRIX_COLUMNS = (
     "quiet_condition",
 )
 
+DOSSIER_CARD_TYPES = (
+    "agent_persona",
+    "project_lane",
+    "system_loop_component",
+    "registry_component",
+    "world_workflow_candidate",
+)
+
+PORTRAIT_ASSET_STATUSES = (
+    "OPERATOR_PROVIDED_REFERENCE",
+    "NEEDS_APPROVED_ASSET",
+    "PLACEHOLDER_ONLY",
+    "BLOCKED_NO_ASSET",
+)
+
+DOSSIER_REQUIRED_FIELDS = (
+    "agent_id",
+    "display_name",
+    "card_type",
+    "agent_class",
+    "visual_archetype",
+    "portrait_asset_status",
+    "portrait_asset_ref",
+    "tagline",
+    "plain_english_role",
+    "domains",
+    "strengths",
+    "known_capabilities",
+    "partly_known_capabilities",
+    "known_unknowns",
+    "not_discovered",
+    "current_allowed_actions",
+    "current_blocked_actions",
+    "future_eligible_actions",
+    "authority_boundary",
+    "permissions_summary",
+    "memory_scope_summary",
+    "tool_adapter_summary",
+    "model_selection_summary",
+    "package_types_supported",
+    "package_preview_available",
+    "required_gates",
+    "required_receipts",
+    "operator_questions",
+    "safe_next_detour",
+    "lane_destiny",
+    "quiet_condition",
+    "world_affinity",
+    "relationship_to_other_agents",
+    "mission_control_display_guidance",
+)
+
+ALLOWED_DOSSIER_CARD_INTERACTIONS = (
+    "Inspect Dossier",
+    "Show Package Preview",
+    "Show Permissions",
+    "Show Missing Proof",
+    "Show Operator Questions",
+    "Mark Memory Candidate",
+    "Future Chat Target Metadata",
+)
+
+FORBIDDEN_DOSSIER_CARD_INTERACTIONS = (
+    "live chat launch",
+    "agent activation",
+    "model launch",
+    "tool execution",
+    "credential/account prompts",
+    "browser/OAuth launch",
+    "Gmail/calendar/Coupa/Telegram controls",
+    "send/submit/approval",
+    "fake confidence percentages",
+    "raw private context",
+    "hidden memory claims",
+)
+
 
 @dataclass(frozen=True)
 class EvidenceSource:
@@ -189,6 +265,7 @@ class TerrainAwarenessExportResult:
     operator_path: str
     lane_count: int
     operator_question_count: int
+    dossier_card_count: int
     runtime_authority_added: bool
     repo_b_mutation_added: bool
 
@@ -1504,6 +1581,411 @@ def _focused_capital_hilton(lanes: dict[str, dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _metadata_only_portrait_ref(
+    *,
+    source_note: str,
+    approved_asset_needed: bool = True,
+) -> dict[str, Any]:
+    return {
+        "source_note": source_note,
+        "repo_asset_path": None,
+        "raw_image_body_stored": False,
+        "image_embedded": False,
+        "approved_asset_needed_before_render": approved_asset_needed,
+    }
+
+
+def _dossier_card(
+    *,
+    lane: dict[str, Any],
+    agent_id: str,
+    display_name: str,
+    card_type: str,
+    agent_class: str,
+    visual_archetype: str,
+    portrait_asset_status: str,
+    portrait_asset_ref: dict[str, Any],
+    tagline: str,
+    plain_english_role: str,
+    domains: tuple[str, ...],
+    strengths: tuple[str, ...],
+    current_allowed_actions: tuple[str, ...],
+    permissions_summary: str,
+    memory_scope_summary: str,
+    tool_adapter_summary: str,
+    model_selection_summary: str,
+    package_types_supported: tuple[str, ...],
+    required_gates: tuple[str, ...],
+    required_receipts: tuple[str, ...],
+    world_affinity: tuple[str, ...],
+    relationship_to_other_agents: tuple[str, ...],
+    mission_control_display_guidance: str,
+    known_capabilities: tuple[str, ...] | None = None,
+    partly_known_capabilities: tuple[str, ...] | None = None,
+    known_unknowns: tuple[str, ...] | None = None,
+    not_discovered: tuple[str, ...] | None = None,
+    current_blocked_actions: tuple[str, ...] | None = None,
+    future_eligible_actions: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
+    if card_type not in DOSSIER_CARD_TYPES:
+        raise ValueError(f"unknown dossier card type: {card_type}")
+    if portrait_asset_status not in PORTRAIT_ASSET_STATUSES:
+        raise ValueError(f"unknown portrait asset status: {portrait_asset_status}")
+    card = {
+        "agent_id": agent_id,
+        "display_name": display_name,
+        "card_type": card_type,
+        "agent_class": agent_class,
+        "visual_archetype": visual_archetype,
+        "portrait_asset_status": portrait_asset_status,
+        "portrait_asset_ref": portrait_asset_ref,
+        "tagline": tagline,
+        "plain_english_role": plain_english_role,
+        "domains": list(domains),
+        "strengths": list(strengths),
+        "known_capabilities": list(known_capabilities or tuple(lane["known"])),
+        "partly_known_capabilities": list(partly_known_capabilities or tuple(lane["partly_known"])),
+        "known_unknowns": list(known_unknowns or tuple(lane["known_unknown"])),
+        "not_discovered": list(not_discovered or tuple(lane["not_discovered"])),
+        "current_allowed_actions": list(current_allowed_actions),
+        "current_blocked_actions": list(current_blocked_actions or tuple(lane["blocked_authorities"])),
+        "future_eligible_actions": list(future_eligible_actions or tuple(lane["future_gated_actions"])),
+        "authority_boundary": lane["current_authority_boundary"],
+        "permissions_summary": permissions_summary,
+        "memory_scope_summary": memory_scope_summary,
+        "tool_adapter_summary": tool_adapter_summary,
+        "model_selection_summary": model_selection_summary,
+        "package_types_supported": list(package_types_supported),
+        "package_preview_available": lane["package_preview_available"],
+        "required_gates": list(required_gates),
+        "required_receipts": list(required_receipts),
+        "operator_questions": list(lane["recommended_operator_questions"]),
+        "safe_next_detour": lane["safe_next_detour"],
+        "lane_destiny": lane["lane_destiny"],
+        "quiet_condition": lane["what_makes_quiet"],
+        "world_affinity": list(world_affinity),
+        "relationship_to_other_agents": list(relationship_to_other_agents),
+        "mission_control_display_guidance": mission_control_display_guidance,
+        "current_interaction_authority": "read_only_capture_only_preview_only",
+        "live_activation_allowed": False,
+        "raw_private_context_allowed": False,
+        "portrait_raw_image_stored": False,
+    }
+    missing = [field for field in DOSSIER_REQUIRED_FIELDS if field not in card]
+    if missing:
+        raise ValueError(f"dossier card missing fields: {missing}")
+    return card
+
+
+def _agent_dossier_cards(lanes: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        _dossier_card(
+            lane=_focus("cassandra", lanes),
+            agent_id="cassandra",
+            display_name="Cassandra",
+            card_type="agent_persona",
+            agent_class="finance_comms_cassandra",
+            visual_archetype="classy cyberpunk executive analyst; calm, sharp, protected finance/comms intelligence posture",
+            portrait_asset_status="OPERATOR_PROVIDED_REFERENCE",
+            portrait_asset_ref=_metadata_only_portrait_ref(
+                source_note="Operator provided a Cassandra reference image in task context; Repo A stores metadata only, no image body."
+            ),
+            tagline="Protected finance and communications intelligence.",
+            plain_english_role="Cassandra reads governed finance/comms packets and helps route evidence without touching accounts.",
+            domains=("Finance", "Communications", "Accounts Payable"),
+            strengths=("structured review", "finance/comms interpretation", "packet reading", "exception detection", "evidence routing"),
+            current_allowed_actions=("preview", "readback", "package metadata inspection", "proof reference orientation"),
+            permissions_summary="Preview/readback/package metadata only; no account or send authority.",
+            memory_scope_summary="May receive governed metadata/proof refs; raw Gmail/calendar/Coupa/finance bodies are blocked unless a future Guardian gate permits protected references.",
+            tool_adapter_summary="Finance/comms adapters are future-gated; Coupa, Gmail, calendar, browser/OAuth, send, submit, and approval are blocked.",
+            model_selection_summary="Current live model is blocked_no_model; future local/private review only after sensitivity, Guardian, Operator, and receipt gates.",
+            package_types_supported=("finance_ap_review", "communications_review", "protected_access_review", "capital_hilton_invoice_review"),
+            required_gates=("Guardian protected-access gate", "Operator approval for future protected action", "security audit before account flows"),
+            required_receipts=("protected proof metadata receipt", "package preview receipt", "future model selection receipt", "future action receipt if ever authorized"),
+            world_affinity=("Finance", "Communications"),
+            relationship_to_other_agents=("works with Guardian for protected evidence", "routes Capital Hilton proof into Finance World", "may receive Chief diagnostics as readback context"),
+            mission_control_display_guidance="Render as a premium calm intelligence dossier with permission chips and protected-proof status; never show account controls.",
+        ),
+        _dossier_card(
+            lane=_focus("chief", lanes),
+            agent_id="chief",
+            display_name="Chief",
+            card_type="agent_persona",
+            agent_class="diagnostic_chief",
+            visual_archetype="executive system-health commander; calm command desk, diagnostic authority without repair authority",
+            portrait_asset_status="NEEDS_APPROVED_ASSET",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="No approved Chief portrait asset in Repo A."),
+            tagline="System diagnosis, proof review, and work-board posture.",
+            plain_english_role="Chief helps explain system health and validate receipts without fixing or running anything.",
+            domains=("System Health", "Build", "Operations"),
+            strengths=("system health", "proof review", "Check Engine diagnosis", "receipt validation", "test harness review"),
+            current_allowed_actions=("inspect read-model posture", "show package preview", "review proof refs", "classify missing harness proof"),
+            permissions_summary="Inspect/readback/package preview only.",
+            memory_scope_summary="May receive system posture refs and receipts; cannot treat memory or worker claims as proof without receipts.",
+            tool_adapter_summary="Diagnostic/readback adapters only; repairs, remounts, cleanup, services, Telegram, and runtime adapters are blocked.",
+            model_selection_summary="Current live model is blocked_no_model; future reasoning review requires package and security gates.",
+            package_types_supported=("check_light_diagnostic_package", "helm_lane_awareness_package", "verification_review_package"),
+            required_gates=("package compiler boundary", "receipt requirement", "Guardian review if authority boundary is touched"),
+            required_receipts=("diagnostic package receipt", "test harness receipt if classified", "proof/readback receipt"),
+            world_affinity=("Build", "Operations"),
+            relationship_to_other_agents=("can verify others but cannot self-authorize success", "pairs with Hermes for coherence", "uses Guardian for authority questions"),
+            mission_control_display_guidance="Render as the calm diagnostic commander; show system health, proof refs, and blocked repair authority.",
+        ),
+        _dossier_card(
+            lane=_focus("guardian", lanes),
+            agent_id="guardian",
+            display_name="Guardian",
+            card_type="agent_persona",
+            agent_class="protected_access_guardian",
+            visual_archetype="quiet security sentinel; high-status protected-access gate with redaction and quarantine posture",
+            portrait_asset_status="NEEDS_APPROVED_ASSET",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="No approved Guardian portrait asset in Repo A."),
+            tagline="Boundary review before sensitive action.",
+            plain_english_role="Guardian reviews safety, sensitivity, redaction, quarantine, revocation, and approval boundaries.",
+            domains=("Security", "Protected Access", "Authority Boundary"),
+            strengths=("redaction", "quarantine", "revocation", "approval boundaries", "sensitivity classification"),
+            current_allowed_actions=("recommend allow/block/redact/quarantine/revoke", "show gate status", "inspect protected-access metadata"),
+            permissions_summary="Can recommend gate posture; cannot self-authorize or bypass the Operator.",
+            memory_scope_summary="May review sensitive metadata candidates; raw protected bodies remain blocked unless future gates explicitly permit references.",
+            tool_adapter_summary="Guardian gate adapters are check/recommendation only; no live protected access or tool grant authority.",
+            model_selection_summary="Current live model is blocked_no_model; future local_sensitive/local_reasoning only under strict gates.",
+            package_types_supported=("protected_access_review", "safety_review", "verification_review_package"),
+            required_gates=("Operator final authority", "protected access gate receipt", "security audit for future sensitive action"),
+            required_receipts=("Guardian gate receipt", "redaction receipt", "quarantine/revocation receipt when relevant"),
+            world_affinity=("Security", "Operations"),
+            relationship_to_other_agents=("gates Cassandra protected finance context", "blocks Chief self-authorization", "reviews tool/model/memory boundary crossings"),
+            mission_control_display_guidance="Render as a restrained authority card with allow/block/redact/quarantine chips; no approval bypass controls.",
+        ),
+        _dossier_card(
+            lane=_focus("hermes", lanes),
+            agent_id="hermes",
+            display_name="Hermes",
+            card_type="agent_persona",
+            agent_class="architecture_hermes",
+            visual_archetype="elegant systems emissary; doctrine, ontology, horizon, and coherence intelligence",
+            portrait_asset_status="NEEDS_APPROVED_ASSET",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="No approved Hermes portrait asset in Repo A."),
+            tagline="Architecture, doctrine, and system coherence.",
+            plain_english_role="Hermes checks whether the system story, contracts, and architecture still fit together.",
+            domains=("Architecture", "Doctrine", "Research", "Build"),
+            strengths=("system framing", "design doctrine", "contract consistency", "ontology", "narrative coherence"),
+            current_allowed_actions=("readback", "package preview", "doctrine consistency review metadata"),
+            permissions_summary="Readback/package preview only.",
+            memory_scope_summary="May receive architecture/doctrine/system coherence refs; no private raw bodies or external research authority.",
+            tool_adapter_summary="Contract/read-model review only; no runtime execution or network research adapters.",
+            model_selection_summary="Current live model is blocked_no_model; future deep reasoner only for non-sensitive architecture packets with gates.",
+            package_types_supported=("architecture_review", "doctrine_review", "helm_lane_awareness_package"),
+            required_gates=("Operator review for doctrine promotion", "package preview receipt", "memory candidate receipt for remembered doctrine"),
+            required_receipts=("architecture review receipt", "memory candidate receipt", "future doctrine promotion receipt"),
+            world_affinity=("Build", "Research"),
+            relationship_to_other_agents=("pairs with Chief for coherence", "uses Guardian when architecture touches authority", "helps Cassandra/Niles stay inside doctrine"),
+            mission_control_display_guidance="Render as a high-status doctrine/coherence dossier; show exact unknowns and memory-comparison questions.",
+        ),
+        _dossier_card(
+            lane=_focus("niles", lanes),
+            agent_id="niles",
+            display_name="Niles",
+            card_type="agent_persona",
+            agent_class="creative_niles",
+            visual_archetype="polished studio-console creative operator; music/art producer intelligence, tasteful and calm",
+            portrait_asset_status="NEEDS_APPROVED_ASSET",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="No approved Niles portrait asset in Repo A."),
+            tagline="Creative context, music metadata, and project framing.",
+            plain_english_role="Niles helps organize music/art context and creative metadata without scanning private archives.",
+            domains=("Music / Art", "Creative Production"),
+            strengths=("album/track/creative context", "Struna/Niles project framing", "metadata intake", "creative preference handling"),
+            current_allowed_actions=("metadata preview", "project capsule readback", "package context orientation"),
+            permissions_summary="Scoped creative metadata only; no broad archive or release/platform authority.",
+            memory_scope_summary="May receive scoped music/art refs and operator preference candidates; unrelated private/client material is blocked.",
+            tool_adapter_summary="Music/art metadata adapters may be preview/read-only later; release/platform/account actions are blocked.",
+            model_selection_summary="Current live model is blocked_no_model; future creative model class only with scoped context and no retention.",
+            package_types_supported=("music_creative_review", "struna_development", "world_lane_work_package"),
+            required_gates=("operator approval for creative context", "rights/sensitivity review for future release action", "package preview receipt"),
+            required_receipts=("creative metadata receipt", "project capsule receipt", "future release gate receipt if ever authorized"),
+            world_affinity=("Music / Art",),
+            relationship_to_other_agents=("owns creative side of Struna", "uses Codex only for implementation lanes", "uses Guardian for rights/sensitivity questions"),
+            mission_control_display_guidance="Render as a tasteful studio dossier with project context and missing metadata, not a generic backend card.",
+        ),
+        _dossier_card(
+            lane=_focus("struna", lanes),
+            agent_id="struna",
+            display_name="Struna",
+            card_type="project_lane",
+            agent_class="music_project_struna",
+            visual_archetype="premium music-project artifact card; elegant album/project intelligence, not an agent avatar",
+            portrait_asset_status="NEEDS_APPROVED_ASSET",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="No approved Struna visual asset in Repo A."),
+            tagline="Music/art project lane under Niles.",
+            plain_english_role="Struna is a project/lane entity whose metadata can move to Music/Art World when source-backed.",
+            domains=("Music / Art",),
+            strengths=("project capsule framing", "music/art metadata lane", "creative context routing"),
+            current_allowed_actions=("project metadata readback", "memory/proof question display", "package preview if scoped"),
+            permissions_summary="Project/lane metadata only; not an autonomous agent.",
+            memory_scope_summary="Operator creative memory may become candidate context; current project facts still need proof.",
+            tool_adapter_summary="No external release/platform/account adapters; metadata context only.",
+            model_selection_summary="No live model; future Niles-scoped creative review only after proof and package gates.",
+            package_types_supported=("music_creative_review", "struna_development"),
+            required_gates=("source proof review", "operator promotion for creative memory", "package preview receipt"),
+            required_receipts=("project capsule receipt", "creative context memory candidate receipt"),
+            world_affinity=("Music / Art",),
+            relationship_to_other_agents=("belongs under Niles", "may need Guardian for rights/sensitivity", "may need Codex only for implementation artifacts"),
+            mission_control_display_guidance="Render as a project dossier linked to Niles; show proof gaps and memory-only posture clearly.",
+        ),
+        _dossier_card(
+            lane=_focus("agentic_loop", lanes),
+            agent_id="agentic_loop",
+            display_name="Agentic Loop",
+            card_type="system_loop_component",
+            agent_class="system_loop_component",
+            visual_archetype="classified systems-loop schematic card; command roster component, future-gated and fail-closed",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="System-loop component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Parser, queue, planner, builder, orchestrator, harness, holding cell.",
+            plain_english_role="A future system loop concept that may organize parsed work, receipts, requeue, and fix paths after security gates.",
+            domains=("Build", "Operations", "Agent Platform"),
+            strengths=("workflow classification", "holding-cell routing concept", "requeue/fix-path concept", "receipt spine relationship"),
+            known_capabilities=("operator-reported parser/queue/planner/builder/orchestrator idea", "Chief test harness relationship candidate", "post-security future-gated posture"),
+            partly_known_capabilities=("some parsed work may later queue", "some parsed work may later move to holding cell", "failed work may later requeue to loop component"),
+            current_allowed_actions=("readback", "classification questions", "future-gated metadata display"),
+            permissions_summary="Operator-reported architecture candidate only; no queue/autonomy/planner-builder execution.",
+            memory_scope_summary="Operator memory can classify components but cannot prove or activate them.",
+            tool_adapter_summary="Planner, builder, orchestrator, and queue adapters are future-gated or blocked.",
+            model_selection_summary="No live model; no hidden routing; no agent self-selection.",
+            package_types_supported=("helm_lane_awareness_package", "tell_system_whats_missing_package", "confidence_detour_package"),
+            required_gates=("security audit", "queue lifecycle receipt contract", "tool adapter receipt contract", "Operator approval"),
+            required_receipts=("cue intake receipt", "planner handoff receipt", "builder output receipt", "Chief harness receipt", "requeue/fix-path receipt"),
+            world_affinity=("Build", "Operations"),
+            relationship_to_other_agents=("Chief may classify/harness outputs later", "Guardian blocks authority expansion", "Package compiler supplies future packet grammar"),
+            mission_control_display_guidance="Render as a future-gated system-loop component card; no run buttons, only proof gaps and classification questions.",
+        ),
+        _dossier_card(
+            lane=_focus("cue_parser_brain_dump_parser", lanes),
+            agent_id="cue_parser_brain_dump_parser",
+            display_name="Cue Parser / Brain Dump Parser",
+            card_type="system_loop_component",
+            agent_class="system_loop_component",
+            visual_archetype="operator-intake decoder card; clean now/later/holding-cell triage, capture-only",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="Parser component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Turns ideas into now, later, or holding-cell candidates.",
+            plain_english_role="A future parser concept for operator/Chief ideas; currently only classification/readback.",
+            domains=("Build", "Operations", "Agent Platform"),
+            strengths=("operator idea intake", "now/later/holding-cell classification", "memory candidate routing"),
+            current_allowed_actions=("show parser questions", "preview capture rules", "mark memory candidate metadata"),
+            permissions_summary="Capture/preview only; no parser runtime or queue authority.",
+            memory_scope_summary="Brain-dump answers become memory candidates; raw private scans and hidden memory are blocked.",
+            tool_adapter_summary="No live parser, no model/Ollama call, no file moves.",
+            model_selection_summary="No model selection or launch; parsing remains future-gated.",
+            package_types_supported=("tell_system_whats_missing_package", "helm_lane_awareness_package"),
+            required_gates=("memory candidate receipt", "source/context gate", "security audit before parser runtime"),
+            required_receipts=("cue intake receipt", "memory candidate receipt", "holding-cell marker receipt"),
+            world_affinity=("Build", "Operations"),
+            relationship_to_other_agents=("may accept Chief ideas later", "feeds holding cell/package compiler only after contracts", "Guardian blocks raw private inputs"),
+            mission_control_display_guidance="Render as capture-only intake card with operator questions and blocked raw-context warnings.",
+        ),
+        _dossier_card(
+            lane=_focus("planner_builder_orchestrator_loop", lanes),
+            agent_id="repo_b_planner_builder_orchestrator",
+            display_name="Repo B Planner / Builder / Orchestrator",
+            card_type="system_loop_component",
+            agent_class="system_loop_component",
+            visual_archetype="quarantined legacy-capability dossier; suspected architecture, no broad inspection or execution",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="Repo B loop component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Suspected legacy planner/builder/orchestrator capability.",
+            plain_english_role="A suspected Repo B loop that must be classified from approved metadata before it is trusted.",
+            domains=("Build", "Agent Platform", "Repo B Awareness"),
+            strengths=("planner role candidate", "builder role candidate", "orchestrator failure path candidate"),
+            current_allowed_actions=("reference approved metadata", "ask classification questions", "park/block/promote candidate labels"),
+            permissions_summary="No broad Repo B body inspection, mutation, import, or execution.",
+            memory_scope_summary="Winship memory may identify a component; it cannot prove or activate it.",
+            tool_adapter_summary="Repo B planner/builder adapter is candidate/future-gated; execution blocked.",
+            model_selection_summary="No live model; no planner/builder model loop.",
+            package_types_supported=("workbench_actor_review_package", "helm_lane_awareness_package"),
+            required_gates=("approved metadata source", "Repo B classification packet", "security audit before any execution concept"),
+            required_receipts=("Repo B leftover classification receipt", "planner/builder/orchestrator metadata receipt"),
+            world_affinity=("Build",),
+            relationship_to_other_agents=("Chief may classify later", "Guardian blocks broad inspection", "Package compiler may preview a classification packet"),
+            mission_control_display_guidance="Render as a quarantined/suspected component card with strict blocked-authority chips.",
+        ),
+        _dossier_card(
+            lane=_focus("package_compiler", lanes),
+            agent_id="package_compiler",
+            display_name="Package Compiler",
+            card_type="registry_component",
+            agent_class="package_compiler_component",
+            visual_archetype="Mission Impossible mission-packet compiler card; crisp contract assembly, preview-only",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="Registry component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Builds the packet before anyone acts.",
+            plain_english_role="Compiles context, roles, tool metadata, gates, proof, stop conditions, and receipts into preview packages.",
+            domains=("Build", "Agent Platform", "Mission Control"),
+            strengths=("deterministic mission payloads", "context boundaries", "stop conditions", "proof requirements", "receipt requirements"),
+            current_allowed_actions=("package preview", "schema/readback", "contract export", "validation metadata"),
+            permissions_summary="Preview-only; no dispatch, launch, send, or execution.",
+            memory_scope_summary="Includes refs and approved context packets; excludes raw private bodies and credentials.",
+            tool_adapter_summary="May list relevant inactive adapters; cannot run them.",
+            model_selection_summary="Uses model policy/receipt metadata; cannot call or route models.",
+            package_types_supported=("code_implementation_package", "verification_review_package", "finance_ap_review", "music_creative_review", "architecture_review"),
+            required_gates=("package compiler boundary", "model selection policy", "memory scope", "tool registry", "Operator/Guardian gates when sensitive"),
+            required_receipts=("package preview receipt", "model selection receipt", "tool adapter receipt if future use", "post-action receipt if ever authorized"),
+            world_affinity=("Build", "Mission Control"),
+            relationship_to_other_agents=("packages work for all actors", "uses Guardian for sensitive gates", "feeds Codex/Gemini only through explicit boundaries"),
+            mission_control_display_guidance="Render as the mission-packet compiler; show what would be sent, to whom, and why, with no execution button.",
+        ),
+        _dossier_card(
+            lane=_focus("model_router", lanes),
+            agent_id="model_router",
+            display_name="Model Router",
+            card_type="registry_component",
+            agent_class="model_router_component",
+            visual_archetype="quiet routing policy card; actor/model fit matrix, blocked-by-default",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="Registry component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Chooses no model until policy, gates, and receipts allow it.",
+            plain_english_role="Defines model class posture and proves why model selection is blocked, deferred, or future-eligible.",
+            domains=("Agent Platform", "Build", "Security"),
+            strengths=("model class policy", "sensitivity routing", "actor/model fit", "fail-closed receipts"),
+            current_allowed_actions=("show model posture", "show blocked_no_model default", "show future eligibility metadata"),
+            permissions_summary="No hidden routing, no model launch, no agent self-selected model.",
+            memory_scope_summary="Model selection must respect memory scope and sensitivity; external retained memory is blocked.",
+            tool_adapter_summary="Requested adapters must be known and allowed or selection fails closed.",
+            model_selection_summary="Current live default is blocked_no_model; Operator is human_operator.",
+            package_types_supported=("model_selection_receipt", "package_preview_model_section", "architecture_review"),
+            required_gates=("model selection policy", "package preview", "memory scope", "Guardian/Operator when sensitive"),
+            required_receipts=("model selection receipt", "package preview receipt", "future dispatch receipt if ever authorized"),
+            world_affinity=("Build", "Security"),
+            relationship_to_other_agents=("binds actors to model classes later", "Guardian blocks sensitive routing", "Package compiler provides inputs"),
+            mission_control_display_guidance="Render as model posture, not availability; show blocked_no_model as a safe valid result.",
+        ),
+        _dossier_card(
+            lane=_focus("tool_plugin_registry", lanes),
+            agent_id="tool_plugin_registry",
+            display_name="Tool / Plugin Registry",
+            card_type="registry_component",
+            agent_class="tool_registry_component",
+            visual_archetype="capability vault card; adapter states, gates, receipts, and quarantine posture",
+            portrait_asset_status="PLACEHOLDER_ONLY",
+            portrait_asset_ref=_metadata_only_portrait_ref(source_note="Registry component uses symbolic placeholder only.", approved_asset_needed=False),
+            tagline="Tools are listed, not granted.",
+            plain_english_role="Shows which adapters are read-only, preview-only, future-gated, blocked, or quarantined.",
+            domains=("Agent Platform", "Security", "Build"),
+            strengths=("active read-only adapter map", "preview-only adapter map", "future-gated adapter map", "blocked high-risk adapter map"),
+            current_allowed_actions=("read-model inspection", "stable-map inspection", "package preview metadata", "static validation metadata"),
+            permissions_summary="No live tool execution; adapters cannot self-authorize and actors cannot grant themselves tools.",
+            memory_scope_summary="Adapters may only see context permitted by memory scope; raw private bodies and credentials are blocked.",
+            tool_adapter_summary="Browser/OAuth/Gmail/calendar/Coupa/Telegram/network/runtime adapters remain blocked/future-gated.",
+            model_selection_summary="Model policy must permit context before any future adapter package can proceed.",
+            package_types_supported=("tool_adapter_review", "workbench_actor_review_package", "protected_access_review"),
+            required_gates=("tool registry state", "memory scope", "Guardian gate when sensitive", "Operator approval when required"),
+            required_receipts=("tool adapter receipt", "quarantine/revocation receipt", "future action receipt if ever authorized"),
+            world_affinity=("Build", "Security", "Operations"),
+            relationship_to_other_agents=("Guardian can quarantine/revoke", "Cassandra tool candidates remain blocked", "Chief can inspect readback but not repair"),
+            mission_control_display_guidance="Render as capability/gate chips; show included/excluded tools in package preview without live controls.",
+        ),
+    ]
+
+
 def _operator_questions(lanes: tuple[TerrainLane, ...]) -> list[dict[str, Any]]:
     questions: list[dict[str, Any]] = []
     for lane in lanes:
@@ -1536,6 +2018,7 @@ def build_agent_terrain_awareness_readback_contract(
     lanes_by_id = {lane["lane_id"]: lane for lane in lane_records}
     matrix = [_matrix_row(lane) for lane in TERRAIN_LANES]
     questions = _operator_questions(TERRAIN_LANES)
+    dossier_cards = _agent_dossier_cards(lanes_by_id)
     missing_required_lanes = [lane_id for lane_id in REQUIRED_LANE_IDS if lane_id not in lanes_by_id]
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -1581,6 +2064,56 @@ def build_agent_terrain_awareness_readback_contract(
         "agent_persona_focus": _focused_agent_personas(lanes_by_id),
         "model_tool_package_focus": _focused_model_tool_package(lanes_by_id),
         "capital_hilton_focus": _focused_capital_hilton(lanes_by_id),
+        "agent_dossier_card_model": {
+            "required_fields": list(DOSSIER_REQUIRED_FIELDS),
+            "card_types": list(DOSSIER_CARD_TYPES),
+            "portrait_asset_statuses": list(PORTRAIT_ASSET_STATUSES),
+            "visual_direction": (
+                "Mission Control may render classy cyberpunk command roster cards: premium executive dossier, "
+                "rockstar command app, cyberpunk intelligence card, elegant game-character card; not fighting-game aggression, "
+                "not goofy avatars, and not backend admin rows."
+            ),
+            "asset_policy": {
+                "raw_images_stored_in_repo_a": False,
+                "image_embedding_allowed": False,
+                "portrait_refs_are_metadata_only": True,
+                "cassandra_reference_image_handling": (
+                    "Operator-provided Cassandra reference exists as task-context metadata only. Repo A must not store, copy, embed, "
+                    "or process the image body."
+                ),
+            },
+            "allowed_interactions": list(ALLOWED_DOSSIER_CARD_INTERACTIONS),
+            "forbidden_interactions": list(FORBIDDEN_DOSSIER_CARD_INTERACTIONS),
+            "interaction_authority": "read_only_capture_only_preview_only_future_gated_where_applicable",
+        },
+        "agent_dossier_cards": dossier_cards,
+        "agent_council_dossier_summary": {
+            "summary_id": "agent_council_dossier_summary",
+            "cards_count": len(dossier_cards),
+            "featured_agents": ["cassandra", "chief", "guardian", "hermes", "niles", "struna"],
+            "system_component_cards": [
+                "agentic_loop",
+                "cue_parser_brain_dump_parser",
+                "repo_b_planner_builder_orchestrator",
+                "package_compiler",
+                "model_router",
+                "tool_plugin_registry",
+            ],
+            "mission_control_may_render": [
+                "one featured selected card",
+                "roster rail or carousel",
+                "permission chips",
+                "strengths",
+                "current allowed actions",
+                "blocked actions",
+                "future-gated actions",
+                "missing proof",
+                "operator questions",
+                "package preview route",
+            ],
+            "allowed_interactions": list(ALLOWED_DOSSIER_CARD_INTERACTIONS),
+            "forbidden_interactions": list(FORBIDDEN_DOSSIER_CARD_INTERACTIONS),
+        },
         "operator_memory_comparison_questions": questions,
         "mission_control_surface_guidance": {
             "show": [
@@ -1617,6 +2150,24 @@ def build_agent_terrain_awareness_readback_contract(
             "safe_summary_to_include_next": {
                 "contract_id": "agent_terrain_awareness_readback_contract",
                 "lanes_inventoried_count": len(lane_records),
+                "agent_dossier_cards_count": len(dossier_cards),
+                "featured_agents": ["cassandra", "chief", "guardian", "hermes", "niles", "struna"],
+                "future_gated_cards_count": len(
+                    [
+                        card
+                        for card in dossier_cards
+                        if card["lane_destiny"]["resolution_route"]
+                        in {"SECURITY_AUDIT_REQUIRED", "POST_SECURITY_AUTONOMY_CANDIDATE", "HOLDING_CELL"}
+                    ]
+                ),
+                "top_missing_proof_items": [
+                    "Capital Hilton Coupa/Excel protected proof metadata",
+                    "Chief test harness receipt shape",
+                    "Hermes current source/proof surface",
+                    "Struna current project metadata proof",
+                    "Repo B planner/builder/orchestrator approved metadata",
+                ],
+                "next_operator_questions_count": len(questions),
                 "top_unknown_lanes": [
                     lane["lane_id"]
                     for lane in lane_records
@@ -1647,6 +2198,11 @@ def build_agent_terrain_awareness_readback_contract(
             "required_lane_ids": list(REQUIRED_LANE_IDS),
             "missing_required_lane_ids": missing_required_lanes,
             "lane_count": len(lane_records),
+            "agent_dossier_card_count": len(dossier_cards),
+            "agent_dossier_card_ids": [card["agent_id"] for card in dossier_cards],
+            "cassandra_reference_image_stored": False,
+            "cassandra_reference_image_embedded": False,
+            "dossier_card_interactions_read_only": True,
             "operator_question_count": len(questions),
             "operator_reported_only_lanes": [
                 lane["lane_id"] for lane in lane_records if lane["operator_reported_only"]
@@ -1687,6 +2243,24 @@ def format_agent_terrain_awareness_readback_contract(payload: dict[str, Any]) ->
             f"- `{row['lane_id']}`: status `{row['current_status']}`; confidence `{row['confidence']}`; "
             f"destiny `{row['lane_destiny']}`; quiet when {row['quiet_condition']}"
         )
+    lines.extend(["", "## Agent Council / Dossier Summary"])
+    dossier = payload["agent_council_dossier_summary"]
+    lines.append(f"- Dossier cards: `{dossier['cards_count']}`")
+    lines.append("- Mission Control may later render one featured selected card, roster rail/carousel, permission chips, strengths, allowed/blocked/future actions, missing proof, operator questions, and package preview route.")
+    lines.append("- Cards are read-only, capture-only, preview-only, and future-gated where applicable.")
+    lines.append("- Visual direction: premium executive dossier / cyberpunk intelligence card / elegant command roster, not backend admin rows.")
+    lines.append("- Cards:")
+    for card in payload["agent_dossier_cards"]:
+        lines.append(
+            f"  - `{card['agent_id']}`: {card['display_name']} | `{card['card_type']}` / `{card['agent_class']}` | "
+            f"portrait `{card['portrait_asset_status']}` | {card['tagline']}"
+        )
+    lines.append("- Allowed card interactions:")
+    for item in dossier["allowed_interactions"]:
+        lines.append(f"  - {item}")
+    lines.append("- Forbidden card interactions:")
+    for item in dossier["forbidden_interactions"]:
+        lines.append(f"  - {item}")
     lines.extend(["", "## Agentic Loop"])
     agentic = payload["agentic_loop_focus"]
     lines.append(f"- Operator-reported architecture candidate: `{str(agentic['operator_reported_architecture_candidate']).lower()}`")
@@ -1755,6 +2329,7 @@ def export_agent_terrain_awareness_readback_contract(
         operator_path=operator_path.as_posix(),
         lane_count=payload["machine_proof"]["lane_count"],
         operator_question_count=payload["machine_proof"]["operator_question_count"],
+        dossier_card_count=payload["machine_proof"]["agent_dossier_card_count"],
         runtime_authority_added=bool(payload["runtime_authority"]),
         repo_b_mutation_added=bool(payload["repo_b_mutation_enabled"]),
     )
@@ -1785,6 +2360,7 @@ def main(argv: list[str] | None = None) -> int:
                     "operator_path": result.operator_path,
                     "lane_count": result.lane_count,
                     "operator_question_count": result.operator_question_count,
+                    "dossier_card_count": result.dossier_card_count,
                     "runtime_authority_added": result.runtime_authority_added,
                     "repo_b_mutation_added": result.repo_b_mutation_added,
                 }
@@ -1795,13 +2371,18 @@ def main(argv: list[str] | None = None) -> int:
 
 
 __all__ = [
+    "ALLOWED_DOSSIER_CARD_INTERACTIONS",
     "CONFIDENCE_STATES",
+    "DOSSIER_CARD_TYPES",
+    "DOSSIER_REQUIRED_FIELDS",
+    "FORBIDDEN_DOSSIER_CARD_INTERACTIONS",
     "JSON_EXPORT_NAME",
     "LANE_DESTINY_ROUTES",
     "MATRIX_COLUMNS",
     "NO_AUTHORITY_FLAGS",
     "OPERATOR_EXPORT_NAME",
     "OPERATOR_QUESTION_TYPES",
+    "PORTRAIT_ASSET_STATUSES",
     "READINESS_STATES",
     "REQUIRED_LANE_IDS",
     "SCHEMA_VERSION",
