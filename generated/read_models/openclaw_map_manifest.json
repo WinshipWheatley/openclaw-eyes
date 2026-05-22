@@ -22,10 +22,10 @@
     "send_submit_approval_allowed": false,
     "tool_plugin_execution_allowed": false
   },
-  "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
-  "canonical_read_model_count": 240,
-  "created_at": "2026-05-22T04:06:43+00:00",
-  "essential_surface_count": 11,
+  "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
+  "canonical_read_model_count": 242,
+  "created_at": "2026-05-22T15:01:15+00:00",
+  "essential_surface_count": 12,
   "excluded_surfaces": [
     {
       "category": "raw_private_bodies",
@@ -147,7 +147,7 @@
     },
     {
       "front_door_file_dependency": false,
-      "hash": "sha256:51d35c7c8bba2ee9b7031d2a0fbb00fe309528db2c03b4705ab887a5d91dc3a9",
+      "hash": "sha256:e70abb8251c8a47a61522dce51221bc668fea05a0690a9243b3c2a6ef1b81def",
       "hash_included_in_bundle": true,
       "hash_omitted_reason": null,
       "path": "generated/read_models/capital_hilton_proof_metadata_packet.json",
@@ -157,6 +157,19 @@
       "role": "Capital Hilton Finance steel-thread proof metadata posture",
       "schema_version": "capital_hilton_proof_metadata_packet_v0",
       "surface_id": "capital_hilton_proof_metadata_packet"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:d3949b8824529bb10510446e0841b31f118f9d813209b162cf22a1e7e47ccfb3",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/security_audit_readiness_packet.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "security_audit_readiness_packet",
+      "role": "security audit readiness provenance, coverage gaps, parked breadcrumbs, and pass criteria",
+      "schema_version": "security_audit_readiness_packet_v0_pass_2",
+      "surface_id": "security_audit_readiness_packet"
     },
     {
       "front_door_file_dependency": false,
@@ -194,17 +207,17 @@
     "sync_health.json",
     "sync_health_OPERATOR.md"
   ],
-  "map_generation_id": "map_fbda77b8af4e9c796c03",
+  "map_generation_id": "map_3cf7a1d5f26147ae993a",
   "missing_or_stale_surfaces": [],
   "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-  "raw_generated_read_model_file_count_including_map_bundle_self": 247,
+  "raw_generated_read_model_file_count_including_map_bundle_self": 249,
   "raw_private_body_policy": "blocked_excluded_from_bundle",
   "read_model_id": "openclaw_map_manifest",
-  "read_model_manifest_hash": "sha256:38cf91b38ace695ac7d6ed656f1cef8bfa3ecf4bc94e8b4043b18b90cfe67cdb",
+  "read_model_manifest_hash": "sha256:88fc48bb6e55f2a42492ef8cb474a83111ce4d9f65f4784d91e99b4b0d6dbd34",
   "schema_version": "openclaw_map_manifest_v0",
-  "snapshot_hash": "sha256:fbda77b8af4e9c796c03de49e484d1e9a1d037a63db5096ad1c0502536aec768",
-  "source_commit_if_available_local_only": "2a9bede14bd63eb621293c007ec56ee4e4622e42",
-  "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 240,
+  "snapshot_hash": "sha256:3cf7a1d5f26147ae993a8581574020c2724a9662e503de119bfe78223e7b2278",
+  "source_commit_if_available_local_only": "02ec429efd689bfef3393a1767c55f1994e28017",
+  "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 242,
   "source_repo": "Repo A /home/openclaw",
   "source_sqlite_receipt_hash_if_available": null,
   "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",

@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_fbda77b8af4e9c796c03`
-- Bundle hash: `sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39`
+- Map generation: `map_3cf7a1d5f26147ae993a`
+- Bundle hash: `sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `247`
+- Raw canonical expected: `249`
 - Raw observed: `218`
-- Raw missing expected: `29`
+- Raw missing expected: `31`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -95,6 +95,81 @@
 - `world_transition_needed`: Should the invoice go through Coupa only, email/AP contact, or another payment route?
 - `security_gate_needed`: Is there any protected client material that must be represented only as metadata?
 - `world_transition_needed`: What would convince you the invoice is ready to move from helm threshold lane into Finance World action?
+
+## Security Audit Readiness Summary
+
+- ELI5: OpenClaw is ready for a security pass review because the audit packet can show provenance, answer capture, quieting, shared paths, focus mode, coverage gaps, parked breadcrumbs, and Capital Hilton readiness without granting authority.
+- Summary present: `true`
+- Schema: `security_audit_readiness_packet_v0_pass_2`
+- Ready for security pass: `true`
+- Security approval granted: `false`
+- Action authority granted: `false`
+- All authority flags false: `true`
+- Zero execution authority leaked: `true`
+
+### Map-To-Terrain Provenance
+
+- Stable map is source truth: `false`
+- Stable map is app-facing reflection: `true`
+- Claims require source/candidate status: `true`
+- Candidate claims are not proof: `true`
+
+### Operator Answer Capture
+
+- Schema present: `true`
+- Operator answers are memory candidates: `true`
+- Operator answers are not proof: `true`
+- Question quieting states: `10`
+- Answer popup implemented: `false`
+
+### Shared Execution Paths
+
+- Shared paths: `3`
+- Protected finance proof metadata intake: `true`
+- Operator memory question capture: `true`
+- Stable map receipt readback: `true`
+- Non-executing: `true`
+
+### Helm Issue Focus
+
+- Focus mode defined: `true`
+- Issue focus cards: `3`
+- No live controls: `true`
+- Capital Hilton focus available: `true`
+
+### Coverage Gap / Unmapped Terrain
+
+- Coverage gap records: `5`
+- Markdown terrain present: `true`
+- Tagging system capability present: `true`
+- Mission Control visibility gap present: `true`
+- Operator memory gap present: `true`
+- Repo terrain gap present: `true`
+- Broad markdown scan allowed: `false`
+- File moves allowed: `false`
+- Repo B body inspection allowed: `false`
+
+### Parked Breadcrumbs
+
+- Breadcrumbs reviewed: `15`
+- Auto-promotion allowed: `false`
+- Queue creation allowed: `false`
+- Trigger engine allowed: `false`
+- Highlighted breadcrumbs: `Operator Attention Promotion Contract v0`, `Breadcrumb -> Holding Cell -> Cue -> Queue -> Quiet Helm Doctrine`, `Operator Sleep Mode / Queue Priority Posture`, `Agent Lifecycle Telemetry / Animation Contract`, `Agent Chat / Package Workspace Surface`, `Tell System What's Missing Capture Path`, `Holding Cell / Future Trigger Registry`, `Chief Test Harness Receipt`, `Repo B Planner/Builder Classification Packet`, `Package Execution Queue Doctrine`, `Finance World Action Shell`, `Music / Art World - Niles + Struna Operating Surface`, `World Graduation Rules`, `Operator Morning / Midday / Evening Brief Surfaces`, `Compromise / Suspicion / Kill-Switch Posture`
+
+### Capital Hilton Security Readiness
+
+- Phase: `HELM_THRESHOLD_LANE`
+- Target world: `Finance`
+- Lane destiny: `MOVE_TO_WORLD_ACTION`
+- Missing proof count: `10`
+- Protected proof required: `true`
+- Candidate facts proven: `false`
+- Security pass complete: `false`
+- Action authority granted: `false`
+- Shared execution path: `protected_finance_proof_metadata_intake`
+
+- Next safe move: Run security pass review; do not grant action authority from this packet.
 
 ## What Mission Control Can Render Next
 

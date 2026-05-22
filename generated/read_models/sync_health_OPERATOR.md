@@ -8,23 +8,25 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=247
+- canonical_expected=249
 - observed=218
-- missing_expected=29
+- missing_expected=31
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
 
 App-visible stable map:
 - map_status: `map_generation_pending_mac_import`
-- map_generation_id: `map_fbda77b8af4e9c796c03`
-- bundle_hash: `sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39`
+- map_generation_id: `map_3cf7a1d5f26147ae993a`
+- bundle_hash: `sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af`
 - app_visible: `false`
 - receipt_matches_pc_bundle: `false`
 - agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
 - agent_dossier_cards_path_status: `accepted_canonical_nested_path`
 - package_preview_summary: `true` count=`8`
 - tool_adapter_receipt_summary: `true` count=`12`
+- capital_hilton_summary: `true` missing_proof=`10` protected_proof=`true`
+- capital_hilton_authority_flags_false: `true`
 - front-door operator action required: `false`
 - next expected actor: `mac_map_import_agent`
 - next: Map generated on PC; waiting for Mac import receipt
@@ -48,7 +50,7 @@ Recommended fix:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-22T04:06:32+00:00`
+- Mac heartbeat: `idle` at `2026-05-22T14:57:38+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -81,6 +83,8 @@ Stale files:
 - `operator_threshold_map_contract_OPERATOR.md`
 - `package_preview_receipt_contract.json`
 - `package_preview_receipt_contract_OPERATOR.md`
+- `security_audit_readiness_packet.json`
+- `security_audit_readiness_packet_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
 - `tool_adapter_receipt_contract.json`

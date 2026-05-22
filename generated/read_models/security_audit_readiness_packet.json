@@ -77,7 +77,7 @@
   "browser_oauth_allowed": false,
   "capital_hilton_current_stable_map_posture": {
     "all_live_authority_flags_false": true,
-    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
     "candidate_facts_are_not_machine_proven": true,
     "current_phase": "HELM_THRESHOLD_LANE",
     "lane_destiny": "MOVE_TO_WORLD_ACTION",
@@ -88,7 +88,7 @@
     "operator_questions_count": 7,
     "protected_proof_required": true,
     "section_key": "capital_hilton_proof_metadata",
-    "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+    "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
     "target_world": "Finance"
   },
   "capital_hilton_security_readiness": {
@@ -301,7 +301,7 @@
   "credential_handling_allowed": false,
   "excel_raw_body_ingestion_allowed": false,
   "external_retained_memory_allowed": false,
-  "generated_at": "2026-05-22T14:51:30+00:00",
+  "generated_at": "2026-05-22T15:01:15+00:00",
   "gmail_calendar_access_allowed": false,
   "helm_issue_focus_modes": [
     {
@@ -642,15 +642,15 @@
   "mac_sync_or_import_triggered": false,
   "machine_proof": {
     "all_dangerous_authority_flags_false": true,
-    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
     "capital_hilton_candidate_facts_proven": false,
     "capital_hilton_missing_proof_count": 10,
     "capital_hilton_protected_proof_required": true,
-    "content_hash": "sha256:1b2ec3e770e6f4327074b47eb91f1a0c56aee6021583e29cba48700fac24de83",
+    "content_hash": "sha256:2979dbaceeafd78433f35bf2a6798c458589f4939729039b38ca683ecadc99b6",
     "coverage_gap_record_count": 5,
     "credential_or_secret_included": false,
     "helm_issue_focus_mode_count": 3,
-    "map_generation_id": "map_fbda77b8af4e9c796c03",
+    "map_generation_id": "map_3cf7a1d5f26147ae993a",
     "map_to_terrain_provenance_count": 5,
     "mission_control_app_code_touched": false,
     "operator_answer_capture_count": 7,
@@ -709,7 +709,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_completed_performance_dates",
       "display_name": "Capital Hilton completed performance dates",
@@ -730,7 +730,7 @@
         "generated/read_models/capital_hilton_proof_metadata_packet.json",
         "generated/read_models/openclaw_map_snapshot.json"
       ],
-      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
       "verification_status": "CANDIDATE"
     },
     {
@@ -765,7 +765,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_rate",
       "display_name": "Capital Hilton candidate rate",
@@ -786,7 +786,7 @@
         "generated/read_models/capital_hilton_proof_metadata_packet.json",
         "generated/read_models/openclaw_map_snapshot.json"
       ],
-      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
       "verification_status": "CANDIDATE"
     },
     {
@@ -821,7 +821,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_subtotal",
       "display_name": "Capital Hilton candidate subtotal posture",
@@ -842,7 +842,7 @@
         "generated/read_models/capital_hilton_proof_metadata_packet.json",
         "generated/read_models/openclaw_map_snapshot.json"
       ],
-      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
       "verification_status": "CANDIDATE"
     },
     {
@@ -877,7 +877,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_one_invoice_posture",
       "display_name": "Capital Hilton one-invoice posture",
@@ -899,7 +899,7 @@
         "generated/read_models/capital_hilton_proof_metadata_packet.json",
         "generated/read_models/openclaw_map_snapshot.json"
       ],
-      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
       "verification_status": "CANDIDATE"
     },
     {
@@ -934,7 +934,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
       "candidate_status": "read_model_reported_missing_proof_posture",
       "claim_id": "capital_hilton_missing_proof_count",
       "display_name": "Capital Hilton missing proof count",
@@ -960,7 +960,7 @@
         "generated/read_models/capital_hilton_proof_metadata_packet.json",
         "generated/read_models/openclaw_map_snapshot.json"
       ],
-      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
       "verification_status": "MISSING_PROOF"
     }
   ],
@@ -1366,7 +1366,7 @@
       "send_submit_approval_allowed": false,
       "tool_execution_allowed": false
     },
-    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
     "candidate_claims": [
       "dates",
       "rate",
@@ -1412,7 +1412,7 @@
       "generated/read_models/model_selection_receipt_contract.json",
       "generated/read_models/agent_memory_scope_contract.json"
     ],
-    "stable_map_generation_id": "map_fbda77b8af4e9c796c03"
+    "stable_map_generation_id": "map_3cf7a1d5f26147ae993a"
   },
   "parked_breadcrumb_review": {
     "purpose": "Preserve and periodically classify high-value parked ideas without executing or auto-promoting them.",

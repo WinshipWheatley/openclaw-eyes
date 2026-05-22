@@ -62,6 +62,7 @@ AGENT_TERRAIN_READ_MODEL_PATH = "generated/read_models/agent_terrain_awareness_r
 PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH = "generated/read_models/package_preview_receipt_contract.json"
 TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH = "generated/read_models/tool_adapter_receipt_contract.json"
 CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_metadata_packet.json"
+SECURITY_AUDIT_READINESS_READ_MODEL_PATH = "generated/read_models/security_audit_readiness_packet.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -108,6 +109,11 @@ ESSENTIAL_SURFACES = (
         "surface_id": "capital_hilton_proof_metadata_packet",
         "path": CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH,
         "role": "Capital Hilton Finance steel-thread proof metadata posture",
+    },
+    {
+        "surface_id": "security_audit_readiness_packet",
+        "path": SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
+        "role": "security audit readiness provenance, coverage gaps, parked breadcrumbs, and pass criteria",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -886,6 +892,238 @@ def _summarize_capital_hilton_proof_metadata(payload: dict[str, Any]) -> dict[st
     }
 
 
+def _display_name_from_breadcrumb_id(breadcrumb_id: str) -> str:
+    special = {
+        "operator_attention_promotion_contract_v0": "Operator Attention Promotion Contract v0",
+        "breadcrumb_holding_cell_cue_queue_quiet_helm_doctrine": "Breadcrumb -> Holding Cell -> Cue -> Queue -> Quiet Helm Doctrine",
+        "operator_sleep_mode_queue_priority_posture": "Operator Sleep Mode / Queue Priority Posture",
+        "agent_lifecycle_telemetry_animation_contract": "Agent Lifecycle Telemetry / Animation Contract",
+        "agent_chat_package_workspace_surface": "Agent Chat / Package Workspace Surface",
+        "tell_system_whats_missing_capture_path": "Tell System What's Missing Capture Path",
+        "holding_cell_future_trigger_registry": "Holding Cell / Future Trigger Registry",
+        "chief_test_harness_receipt": "Chief Test Harness Receipt",
+        "repo_b_planner_builder_classification_packet": "Repo B Planner/Builder Classification Packet",
+        "package_execution_queue_doctrine": "Package Execution Queue Doctrine",
+        "finance_world_action_shell": "Finance World Action Shell",
+        "music_art_world_niles_struna_operating_surface": "Music / Art World - Niles + Struna Operating Surface",
+        "world_graduation_rules": "World Graduation Rules",
+        "operator_morning_midday_evening_brief_surfaces": "Operator Morning / Midday / Evening Brief Surfaces",
+        "compromise_suspicion_kill_switch_posture": "Compromise / Suspicion / Kill-Switch Posture",
+    }
+    return special.get(breadcrumb_id, breadcrumb_id.replace("_", " ").title())
+
+
+def _summarize_security_audit_readiness(payload: dict[str, Any]) -> dict[str, Any]:
+    criteria = (
+        payload.get("security_pass_readiness_criteria")
+        if isinstance(payload.get("security_pass_readiness_criteria"), dict)
+        else {}
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    coverage = (
+        payload.get("coverage_gap_unmapped_terrain_registry")
+        if isinstance(payload.get("coverage_gap_unmapped_terrain_registry"), dict)
+        else {}
+    )
+    coverage_records = coverage.get("records") if isinstance(coverage.get("records"), list) else []
+    coverage_ids = {
+        record.get("coverage_item_id")
+        for record in coverage_records
+        if isinstance(record, dict)
+    }
+    breadcrumb_review = (
+        payload.get("parked_breadcrumb_review")
+        if isinstance(payload.get("parked_breadcrumb_review"), dict)
+        else {}
+    )
+    breadcrumb_records = (
+        breadcrumb_review.get("records")
+        if isinstance(breadcrumb_review.get("records"), list)
+        else []
+    )
+    breadcrumb_ids = [
+        str(record.get("breadcrumb_id"))
+        for record in breadcrumb_records
+        if isinstance(record, dict) and record.get("breadcrumb_id")
+    ]
+    shared_paths = (
+        payload.get("shared_execution_paths")
+        if isinstance(payload.get("shared_execution_paths"), list)
+        else []
+    )
+    shared_path_ids = {
+        path.get("shared_execution_path_id")
+        for path in shared_paths
+        if isinstance(path, dict)
+    }
+    focus_modes = (
+        payload.get("helm_issue_focus_modes")
+        if isinstance(payload.get("helm_issue_focus_modes"), list)
+        else []
+    )
+    focus_ids = {
+        focus.get("issue_focus_id")
+        for focus in focus_modes
+        if isinstance(focus, dict)
+    }
+    quieting = (
+        payload.get("question_quieting_rule")
+        if isinstance(payload.get("question_quieting_rule"), dict)
+        else {}
+    )
+    answer_capture = (
+        payload.get("operator_answer_capture_contract")
+        if isinstance(payload.get("operator_answer_capture_contract"), list)
+        else []
+    )
+    capital = (
+        payload.get("capital_hilton_security_readiness")
+        if isinstance(payload.get("capital_hilton_security_readiness"), dict)
+        else {}
+    )
+    capital_posture = (
+        payload.get("capital_hilton_current_stable_map_posture")
+        if isinstance(payload.get("capital_hilton_current_stable_map_posture"), dict)
+        else {}
+    )
+    map_to_terrain = (
+        payload.get("map_to_terrain_provenance")
+        if isinstance(payload.get("map_to_terrain_provenance"), list)
+        else []
+    )
+    package_rule = (
+        payload.get("package_map_slice_rule")
+        if isinstance(payload.get("package_map_slice_rule"), dict)
+        else {}
+    )
+    supported_modalities = (
+        payload.get("allowed_answer_modalities")
+        if isinstance(payload.get("allowed_answer_modalities"), list)
+        else []
+    )
+    next_safe_move = criteria.get("next_safe_move") or "Run security pass review; do not grant action authority from this map."
+    known_breadcrumbs = [
+        _display_name_from_breadcrumb_id(breadcrumb_id)
+        for breadcrumb_id in breadcrumb_ids
+    ]
+    return {
+        "source_path": SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/security_audit_readiness_packet_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_packet_read_model_remains_proof_detail": True,
+        "packet_id": payload.get("read_model_id", "security_audit_readiness_packet"),
+        "schema_version": payload.get("schema_version"),
+        "ready_for_security_pass": criteria.get("ready_for_security_pass") is True,
+        "security_approval_granted": False,
+        "action_authority_granted": False,
+        "map_to_terrain_provenance_present": bool(map_to_terrain),
+        "package_map_slice_rule_present": bool(package_rule),
+        "operator_answer_capture_present": bool(answer_capture),
+        "question_quieting_model_present": bool(quieting),
+        "shared_execution_paths_present": bool(shared_paths),
+        "helm_issue_focus_mode_present": bool(focus_modes),
+        "coverage_gap_registry_present": bool(coverage_records),
+        "parked_breadcrumb_review_present": bool(breadcrumb_records),
+        "capital_hilton_security_readiness_present": bool(capital),
+        "all_authority_flags_false": machine.get("all_dangerous_authority_flags_false") is True
+        or criteria.get("all_authority_flags_strictly_false") is True,
+        "zero_execution_authority_leaked": criteria.get("zero_execution_authority_leaked") is True,
+        "raw_private_bodies_excluded": criteria.get("raw_private_bodies_excluded") is True,
+        "credentials_and_account_access_blocked": criteria.get("credentials_and_account_access_blocked") is True,
+        "hidden_automation_absent": criteria.get("hidden_automation_absent") is True,
+        "next_safe_move": next_safe_move,
+        "readiness_blockers": criteria.get("readiness_blockers")
+        if isinstance(criteria.get("readiness_blockers"), list)
+        else [],
+        "stable_map_generation_id": machine.get("map_generation_id"),
+        "source_read_model_ref": SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
+        "map_to_terrain_provenance_summary": {
+            "stable_map_is_source_truth": False,
+            "stable_map_is_app_facing_reflection": True,
+            "claims_require_source_or_candidate_status": True,
+            "packages_use_map_slices_with_proof_refs": True,
+            "candidate_claims_not_proof": True,
+            "missing_proof_blocks_action": True,
+            "provenance_claims_count": len(map_to_terrain),
+        },
+        "operator_answer_capture_summary": {
+            "answer_capture_schema_present": bool(answer_capture),
+            "operator_answers_are_memory_candidates": True,
+            "operator_answers_are_not_proof": True,
+            "question_quieting_states_count": len(quieting.get("question_states", []))
+            if isinstance(quieting.get("question_states"), list)
+            else 0,
+            "supported_answer_modalities": supported_modalities,
+            "capture_is_preview_only": True,
+            "answer_popup_implemented": False,
+        },
+        "shared_execution_path_summary": {
+            "shared_execution_paths_count": len(shared_paths),
+            "protected_finance_proof_metadata_intake_present": "protected_finance_proof_metadata_intake" in shared_path_ids,
+            "operator_memory_question_capture_present": "operator_memory_question_capture" in shared_path_ids,
+            "stable_map_receipt_readback_present": "stable_map_receipt_readback" in shared_path_ids,
+            "shared_paths_are_non_executing": True,
+            "solving_once_can_update_multiple_lanes": True,
+        },
+        "helm_issue_focus_mode_summary": {
+            "focus_mode_defined": bool(focus_modes),
+            "issue_focus_cards_count": len(focus_modes),
+            "unrelated_cards_collapse_when_selected": True,
+            "proof_stays_behind_disclosure": True,
+            "no_live_controls": True,
+            "capital_hilton_focus_available": "focus_capital_hilton_missing_proof" in focus_ids,
+            "protected_finance_shared_focus_available": "focus_capital_hilton_missing_proof" in focus_ids,
+        },
+        "coverage_gap_summary": {
+            "coverage_gap_registry_present": bool(coverage_records),
+            "coverage_gap_records_count": len(coverage_records),
+            "markdown_document_terrain_present": "markdown_document_terrain" in coverage_ids,
+            "tagging_system_capability_present": "tagging_system_capability" in coverage_ids,
+            "mission_control_visibility_gap_present": "mission_control_visibility_gap" in coverage_ids,
+            "operator_memory_gap_present": "operator_memory_gap" in coverage_ids,
+            "repo_terrain_gap_present": "repo_terrain_gap" in coverage_ids,
+            "broad_markdown_scan_allowed": False,
+            "file_moves_allowed": False,
+            "repo_b_body_inspection_allowed": False,
+        },
+        "parked_breadcrumb_summary": {
+            "parked_breadcrumb_review_present": bool(breadcrumb_records),
+            "parked_breadcrumb_count": len(breadcrumb_records),
+            "auto_promotion_allowed": False,
+            "queue_creation_allowed": False,
+            "trigger_engine_allowed": False,
+            "known_highlighted_breadcrumbs": known_breadcrumbs,
+        },
+        "capital_hilton_security_readiness_summary": {
+            "current_phase": capital_posture.get("current_phase", "HELM_THRESHOLD_LANE"),
+            "target_world": capital_posture.get("target_world", "Finance"),
+            "lane_destiny": capital_posture.get("lane_destiny", "MOVE_TO_WORLD_ACTION"),
+            "security_readiness_status": capital.get("readiness_status"),
+            "missing_proof_count": capital.get("missing_proof_count"),
+            "protected_proof_required": capital.get("protected_proof_required") is True,
+            "candidate_facts_proven": capital.get("candidate_facts_proven") is True,
+            "security_pass_complete": capital.get("security_pass_complete") is True,
+            "action_authority_granted": False,
+            "shared_execution_path_id": capital.get("shared_execution_path_id"),
+            "finance_world_preview_exists": capital.get("finance_world_preview_exists") is True
+            or capital_posture.get("target_world") == "Finance",
+        },
+        "no_authority_flags": {
+            "security_approval_granted": False,
+            "action_authority_granted": False,
+            "answer_popup_implemented": False,
+            "queue_creation_allowed": False,
+            "trigger_engine_allowed": False,
+            "tool_execution_allowed": False,
+            "model_execution_allowed": False,
+            "agent_activation_allowed": False,
+            "browser_oauth_account_access_allowed": False,
+            "send_submit_approval_allowed": False,
+        },
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -1127,6 +1365,10 @@ def build_openclaw_map_snapshot(
         CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    security_audit_readiness = _read_json_if_present(
+        SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -1153,6 +1395,7 @@ def build_openclaw_map_snapshot(
         "capital_hilton_proof_metadata": _summarize_capital_hilton_proof_metadata(
             capital_hilton_proof_metadata
         ),
+        "security_audit_readiness": _summarize_security_audit_readiness(security_audit_readiness),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -1403,6 +1646,12 @@ def build_operator_map_bundle_contract(
             "capital_hilton_proof_metadata_present": snapshot["capital_hilton_proof_metadata"]["present"],
             "capital_hilton_missing_proof_count": snapshot["capital_hilton_proof_metadata"]["missing_proof_count"],
             "capital_hilton_protected_proof_required": snapshot["capital_hilton_proof_metadata"]["protected_proof_required"],
+            "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
+            "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
+            "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
+            "security_action_authority_granted": snapshot["security_audit_readiness"]["action_authority_granted"],
+            "security_coverage_gap_records": snapshot["security_audit_readiness"]["coverage_gap_summary"]["coverage_gap_records_count"],
+            "security_parked_breadcrumb_count": snapshot["security_audit_readiness"]["parked_breadcrumb_summary"]["parked_breadcrumb_count"],
             "future_gated_cue_autonomy": snapshot["authority_boundary"]["future_gated_cue_autonomy"],
         },
         "atomic_sync_lifecycle": {
@@ -1512,6 +1761,17 @@ def build_operator_map_bundle_contract(
             "live_execution_authority": snapshot["capital_hilton_proof_metadata"]["live_execution_authority"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "security_audit_readiness_integration": {
+            "summary_included_in_snapshot": snapshot["security_audit_readiness"]["present"],
+            "schema_version": snapshot["security_audit_readiness"]["schema_version"],
+            "ready_for_security_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
+            "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
+            "action_authority_granted": snapshot["security_audit_readiness"]["action_authority_granted"],
+            "coverage_gap_records_count": snapshot["security_audit_readiness"]["coverage_gap_summary"]["coverage_gap_records_count"],
+            "parked_breadcrumb_count": snapshot["security_audit_readiness"]["parked_breadcrumb_summary"]["parked_breadcrumb_count"],
+            "capital_hilton_security_readiness_present": snapshot["security_audit_readiness"]["capital_hilton_security_readiness_present"],
+            "individual_packet_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -1560,6 +1820,42 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     package_receipts = snapshot.get("package_preview_receipts", {})
     tool_receipts = snapshot.get("tool_adapter_receipts", {})
     capital_hilton = snapshot.get("capital_hilton_proof_metadata", {})
+    security = snapshot.get("security_audit_readiness", {})
+    provenance = (
+        security.get("map_to_terrain_provenance_summary", {})
+        if isinstance(security.get("map_to_terrain_provenance_summary"), dict)
+        else {}
+    )
+    answer_capture = (
+        security.get("operator_answer_capture_summary", {})
+        if isinstance(security.get("operator_answer_capture_summary"), dict)
+        else {}
+    )
+    shared_paths = (
+        security.get("shared_execution_path_summary", {})
+        if isinstance(security.get("shared_execution_path_summary"), dict)
+        else {}
+    )
+    focus_mode = (
+        security.get("helm_issue_focus_mode_summary", {})
+        if isinstance(security.get("helm_issue_focus_mode_summary"), dict)
+        else {}
+    )
+    coverage_gap = (
+        security.get("coverage_gap_summary", {})
+        if isinstance(security.get("coverage_gap_summary"), dict)
+        else {}
+    )
+    parked = (
+        security.get("parked_breadcrumb_summary", {})
+        if isinstance(security.get("parked_breadcrumb_summary"), dict)
+        else {}
+    )
+    capital_security = (
+        security.get("capital_hilton_security_readiness_summary", {})
+        if isinstance(security.get("capital_hilton_security_readiness_summary"), dict)
+        else {}
+    )
     capital_facts = (
         capital_hilton.get("candidate_facts")
         if isinstance(capital_hilton.get("candidate_facts"), list)
@@ -1662,6 +1958,81 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         lines.append(f"- `{question.get('classification')}`: {question.get('question')}")
     lines.extend(
         [
+            "",
+            "## Security Audit Readiness Summary",
+            "",
+            "- ELI5: OpenClaw is ready for a security pass review because the audit packet can show provenance, answer capture, quieting, shared paths, focus mode, coverage gaps, parked breadcrumbs, and Capital Hilton readiness without granting authority.",
+            f"- Summary present: `{str(security.get('present')).lower()}`",
+            f"- Schema: `{security.get('schema_version')}`",
+            f"- Ready for security pass: `{str(security.get('ready_for_security_pass')).lower()}`",
+            f"- Security approval granted: `{str(security.get('security_approval_granted')).lower()}`",
+            f"- Action authority granted: `{str(security.get('action_authority_granted')).lower()}`",
+            f"- All authority flags false: `{str(security.get('all_authority_flags_false')).lower()}`",
+            f"- Zero execution authority leaked: `{str(security.get('zero_execution_authority_leaked')).lower()}`",
+            "",
+            "### Map-To-Terrain Provenance",
+            "",
+            f"- Stable map is source truth: `{str(provenance.get('stable_map_is_source_truth')).lower()}`",
+            f"- Stable map is app-facing reflection: `{str(provenance.get('stable_map_is_app_facing_reflection')).lower()}`",
+            f"- Claims require source/candidate status: `{str(provenance.get('claims_require_source_or_candidate_status')).lower()}`",
+            f"- Candidate claims are not proof: `{str(provenance.get('candidate_claims_not_proof')).lower()}`",
+            "",
+            "### Operator Answer Capture",
+            "",
+            f"- Schema present: `{str(answer_capture.get('answer_capture_schema_present')).lower()}`",
+            f"- Operator answers are memory candidates: `{str(answer_capture.get('operator_answers_are_memory_candidates')).lower()}`",
+            f"- Operator answers are not proof: `{str(answer_capture.get('operator_answers_are_not_proof')).lower()}`",
+            f"- Question quieting states: `{answer_capture.get('question_quieting_states_count')}`",
+            f"- Answer popup implemented: `{str(answer_capture.get('answer_popup_implemented')).lower()}`",
+            "",
+            "### Shared Execution Paths",
+            "",
+            f"- Shared paths: `{shared_paths.get('shared_execution_paths_count')}`",
+            f"- Protected finance proof metadata intake: `{str(shared_paths.get('protected_finance_proof_metadata_intake_present')).lower()}`",
+            f"- Operator memory question capture: `{str(shared_paths.get('operator_memory_question_capture_present')).lower()}`",
+            f"- Stable map receipt readback: `{str(shared_paths.get('stable_map_receipt_readback_present')).lower()}`",
+            f"- Non-executing: `{str(shared_paths.get('shared_paths_are_non_executing')).lower()}`",
+            "",
+            "### Helm Issue Focus",
+            "",
+            f"- Focus mode defined: `{str(focus_mode.get('focus_mode_defined')).lower()}`",
+            f"- Issue focus cards: `{focus_mode.get('issue_focus_cards_count')}`",
+            f"- No live controls: `{str(focus_mode.get('no_live_controls')).lower()}`",
+            f"- Capital Hilton focus available: `{str(focus_mode.get('capital_hilton_focus_available')).lower()}`",
+            "",
+            "### Coverage Gap / Unmapped Terrain",
+            "",
+            f"- Coverage gap records: `{coverage_gap.get('coverage_gap_records_count')}`",
+            f"- Markdown terrain present: `{str(coverage_gap.get('markdown_document_terrain_present')).lower()}`",
+            f"- Tagging system capability present: `{str(coverage_gap.get('tagging_system_capability_present')).lower()}`",
+            f"- Mission Control visibility gap present: `{str(coverage_gap.get('mission_control_visibility_gap_present')).lower()}`",
+            f"- Operator memory gap present: `{str(coverage_gap.get('operator_memory_gap_present')).lower()}`",
+            f"- Repo terrain gap present: `{str(coverage_gap.get('repo_terrain_gap_present')).lower()}`",
+            f"- Broad markdown scan allowed: `{str(coverage_gap.get('broad_markdown_scan_allowed')).lower()}`",
+            f"- File moves allowed: `{str(coverage_gap.get('file_moves_allowed')).lower()}`",
+            f"- Repo B body inspection allowed: `{str(coverage_gap.get('repo_b_body_inspection_allowed')).lower()}`",
+            "",
+            "### Parked Breadcrumbs",
+            "",
+            f"- Breadcrumbs reviewed: `{parked.get('parked_breadcrumb_count')}`",
+            f"- Auto-promotion allowed: `{str(parked.get('auto_promotion_allowed')).lower()}`",
+            f"- Queue creation allowed: `{str(parked.get('queue_creation_allowed')).lower()}`",
+            f"- Trigger engine allowed: `{str(parked.get('trigger_engine_allowed')).lower()}`",
+            "- Highlighted breadcrumbs: " + ", ".join(f"`{item}`" for item in parked.get("known_highlighted_breadcrumbs", [])),
+            "",
+            "### Capital Hilton Security Readiness",
+            "",
+            f"- Phase: `{capital_security.get('current_phase')}`",
+            f"- Target world: `{capital_security.get('target_world')}`",
+            f"- Lane destiny: `{capital_security.get('lane_destiny')}`",
+            f"- Missing proof count: `{capital_security.get('missing_proof_count')}`",
+            f"- Protected proof required: `{str(capital_security.get('protected_proof_required')).lower()}`",
+            f"- Candidate facts proven: `{str(capital_security.get('candidate_facts_proven')).lower()}`",
+            f"- Security pass complete: `{str(capital_security.get('security_pass_complete')).lower()}`",
+            f"- Action authority granted: `{str(capital_security.get('action_authority_granted')).lower()}`",
+            f"- Shared execution path: `{capital_security.get('shared_execution_path_id')}`",
+            "",
+            f"- Next safe move: {security.get('next_safe_move')}",
             "",
             "## What Mission Control Can Render Next",
             "",
@@ -1842,6 +2213,7 @@ __all__ = [
     "MAP_SNAPSHOT_EXPORT_NAME",
     "MAP_OPERATOR_EXPORT_NAME",
     "STABLE_APP_FACING_FILES",
+    "SECURITY_AUDIT_READINESS_READ_MODEL_PATH",
     "build_openclaw_map_manifest",
     "build_openclaw_map_snapshot",
     "build_operator_map_bundle_contract",

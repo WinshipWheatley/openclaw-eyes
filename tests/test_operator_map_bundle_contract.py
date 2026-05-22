@@ -5,6 +5,7 @@ from pathlib import Path
 import operator_map_bundle_contract as bundle
 import capital_hilton_proof_metadata_packet
 import package_preview_receipt_contract
+import security_audit_readiness_packet
 import tool_adapter_receipt_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from scripts.export_operator_map_bundle import main as export_main
@@ -275,6 +276,13 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "capital_hilton_proof_metadata_packet.json",
         capital_hilton_proof_metadata_packet.build_capital_hilton_proof_metadata_packet(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "security_audit_readiness_packet.json",
+        security_audit_readiness_packet.build_security_audit_readiness_packet(
             repo_root=root,
             generated_at=FIXED_NOW,
         ),
@@ -551,6 +559,111 @@ def test_capital_hilton_authority_flags_are_false_in_stable_map(tmp_path):
     assert snapshot["capital_hilton_proof_metadata"]["live_execution_authority"] is False
 
 
+def test_map_snapshot_contains_security_audit_readiness_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    summary = snapshot["security_audit_readiness"]
+
+    assert summary["present"] is True
+    assert summary["primary_app_contract"] is True
+    assert summary["individual_packet_read_model_remains_proof_detail"] is True
+    assert summary["packet_id"] == "security_audit_readiness_packet"
+    assert summary["schema_version"] == security_audit_readiness_packet.SCHEMA_VERSION
+    assert summary["ready_for_security_pass"] is True
+    assert summary["security_approval_granted"] is False
+    assert summary["action_authority_granted"] is False
+    assert summary["map_to_terrain_provenance_present"] is True
+    assert summary["package_map_slice_rule_present"] is True
+    assert summary["operator_answer_capture_present"] is True
+    assert summary["question_quieting_model_present"] is True
+    assert summary["shared_execution_paths_present"] is True
+    assert summary["helm_issue_focus_mode_present"] is True
+    assert summary["coverage_gap_registry_present"] is True
+    assert summary["parked_breadcrumb_review_present"] is True
+    assert summary["capital_hilton_security_readiness_present"] is True
+    assert summary["all_authority_flags_false"] is True
+    assert summary["zero_execution_authority_leaked"] is True
+    assert summary["raw_private_bodies_excluded"] is True
+    assert summary["credentials_and_account_access_blocked"] is True
+    assert summary["hidden_automation_absent"] is True
+    assert summary["source_read_model_ref"] == bundle.SECURITY_AUDIT_READINESS_READ_MODEL_PATH
+    assert summary["source_operator_ref"] == "generated/read_models/security_audit_readiness_packet_OPERATOR.md"
+
+
+def test_security_audit_readiness_nested_summaries_are_app_facing(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    summary = snapshot["security_audit_readiness"]
+    provenance = summary["map_to_terrain_provenance_summary"]
+    answer = summary["operator_answer_capture_summary"]
+    shared = summary["shared_execution_path_summary"]
+    focus = summary["helm_issue_focus_mode_summary"]
+    coverage = summary["coverage_gap_summary"]
+    parked = summary["parked_breadcrumb_summary"]
+    capital = summary["capital_hilton_security_readiness_summary"]
+
+    assert provenance["stable_map_is_source_truth"] is False
+    assert provenance["stable_map_is_app_facing_reflection"] is True
+    assert provenance["claims_require_source_or_candidate_status"] is True
+    assert provenance["packages_use_map_slices_with_proof_refs"] is True
+    assert provenance["candidate_claims_not_proof"] is True
+    assert provenance["missing_proof_blocks_action"] is True
+
+    assert answer["answer_capture_schema_present"] is True
+    assert answer["operator_answers_are_memory_candidates"] is True
+    assert answer["operator_answers_are_not_proof"] is True
+    assert answer["question_quieting_states_count"] == len(security_audit_readiness_packet.QUESTION_STATES)
+    assert "text" in answer["supported_answer_modalities"]
+    assert answer["capture_is_preview_only"] is True
+    assert answer["answer_popup_implemented"] is False
+
+    assert shared["shared_execution_paths_count"] == 3
+    assert shared["protected_finance_proof_metadata_intake_present"] is True
+    assert shared["operator_memory_question_capture_present"] is True
+    assert shared["stable_map_receipt_readback_present"] is True
+    assert shared["shared_paths_are_non_executing"] is True
+    assert shared["solving_once_can_update_multiple_lanes"] is True
+
+    assert focus["focus_mode_defined"] is True
+    assert focus["issue_focus_cards_count"] == 3
+    assert focus["unrelated_cards_collapse_when_selected"] is True
+    assert focus["proof_stays_behind_disclosure"] is True
+    assert focus["no_live_controls"] is True
+    assert focus["capital_hilton_focus_available"] is True
+    assert focus["protected_finance_shared_focus_available"] is True
+
+    assert coverage["coverage_gap_registry_present"] is True
+    assert coverage["coverage_gap_records_count"] == 5
+    assert coverage["markdown_document_terrain_present"] is True
+    assert coverage["tagging_system_capability_present"] is True
+    assert coverage["mission_control_visibility_gap_present"] is True
+    assert coverage["operator_memory_gap_present"] is True
+    assert coverage["repo_terrain_gap_present"] is True
+    assert coverage["broad_markdown_scan_allowed"] is False
+    assert coverage["file_moves_allowed"] is False
+    assert coverage["repo_b_body_inspection_allowed"] is False
+
+    assert parked["parked_breadcrumb_review_present"] is True
+    assert parked["parked_breadcrumb_count"] == 15
+    assert parked["auto_promotion_allowed"] is False
+    assert parked["queue_creation_allowed"] is False
+    assert parked["trigger_engine_allowed"] is False
+    assert "Operator Attention Promotion Contract v0" in parked["known_highlighted_breadcrumbs"]
+    assert "Operator Sleep Mode / Queue Priority Posture" in parked["known_highlighted_breadcrumbs"]
+    assert "Compromise / Suspicion / Kill-Switch Posture" in parked["known_highlighted_breadcrumbs"]
+
+    assert capital["current_phase"] == "HELM_THRESHOLD_LANE"
+    assert capital["target_world"] == "Finance"
+    assert capital["lane_destiny"] == "MOVE_TO_WORLD_ACTION"
+    assert capital["missing_proof_count"] == 10
+    assert capital["protected_proof_required"] is True
+    assert capital["candidate_facts_proven"] is False
+    assert capital["security_pass_complete"] is False
+    assert capital["action_authority_granted"] is False
+    assert capital["shared_execution_path_id"] == "protected_finance_proof_metadata_intake"
+    assert capital["finance_world_preview_exists"] is True
+
+
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
     repo_a = tmp_path / "a"
     repo_b = tmp_path / "b"
@@ -664,6 +777,11 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Adapter receipt cards: `12`" in operator_text
     assert "Capital Hilton Proof Metadata Summary" in operator_text
     assert "Missing proof count: `10`" in operator_text
+    assert "Security Audit Readiness Summary" in operator_text
+    assert "Ready for security pass: `true`" in operator_text
+    assert "Security approval granted: `false`" in operator_text
+    assert "Coverage gap records: `5`" in operator_text
+    assert "Breadcrumbs reviewed: `15`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):
