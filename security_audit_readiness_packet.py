@@ -1,12 +1,13 @@
-"""Security Audit Readiness Packet v0 Pass 1 for OpenClaw.
+"""Security Audit Readiness Packet v0 for OpenClaw.
 
 This read-model defines provenance, operator answer capture, question
 quieting, shared execution paths, helm focus guidance, and Capital Hilton
-security-readiness posture. It is metadata only: no security approval, model
-call, tool execution, actor activation, account access, answer popup, UI
-implementation, queue/autonomy, Mac sync/import, network operation, Repo B
-inspection, raw private body ingestion, or PC system-drive write authority is
-created.
+security-readiness posture. Pass 2 extends it with passive coverage-gap,
+parked-breadcrumb, and security-pass-readiness structures. It is metadata
+only: no security approval, model call, tool execution, actor activation,
+account access, answer popup, UI implementation, queue/autonomy, Mac
+sync/import, network operation, Repo B inspection, file organization, raw
+private body ingestion, or PC system-drive write authority is created.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 
-SCHEMA_VERSION = "security_audit_readiness_packet_v0_pass_1"
+SCHEMA_VERSION = "security_audit_readiness_packet_v0_pass_2"
 JSON_EXPORT_NAME = "security_audit_readiness_packet.json"
 OPERATOR_EXPORT_NAME = "security_audit_readiness_packet_OPERATOR.md"
 
@@ -121,6 +122,34 @@ ISSUE_TYPES = (
     "SYSTEM_HEALTH_ISSUE",
 )
 
+COVERAGE_STATUSES = (
+    "MAPPED_AND_VISIBLE",
+    "MAPPED_NOT_VISIBLE",
+    "IN_SQLITE_NOT_IN_STABLE_MAP",
+    "IN_READ_MODEL_NOT_IN_APP",
+    "IN_TERRAIN_NOT_CLASSIFIED",
+    "OPERATOR_REPORTED_NOT_PROVEN",
+    "NEEDS_TAGGING",
+    "NEEDS_SOURCE_CARD",
+    "NEEDS_STABLE_MAP_PROMOTION",
+    "NEEDS_APP_SURFACE",
+    "INTENTIONALLY_PROOF_ONLY",
+    "BLOCKED_SENSITIVE",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+PARKED_BREADCRUMB_REVIEW_STATES = (
+    "KEEP_PARKED",
+    "PROMOTE_TO_HOLDING_CELL",
+    "PROMOTE_TO_MEMORY_CANDIDATE",
+    "PROMOTE_TO_CUE_CANDIDATE",
+    "PROMOTE_TO_SECURITY_AUDIT_ITEM",
+    "PROMOTE_TO_WORLD_LANE",
+    "MERGE_WITH_EXISTING_LANE",
+    "REJECT_AS_OBSOLETE",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
 SOURCE_READ_MODEL_REFS = (
     "generated/read_models/openclaw_map_snapshot.json",
     "generated/read_models/openclaw_map_manifest.json",
@@ -172,6 +201,24 @@ BLOCKED_ACTIONS = (
     "planner/builder/queue/autonomy execution",
     "Repo B mutation/body inspection",
     "Mac sync/import",
+)
+
+PARKED_BREADCRUMB_IDS = (
+    "operator_attention_promotion_contract_v0",
+    "breadcrumb_holding_cell_cue_queue_quiet_helm_doctrine",
+    "operator_sleep_mode_queue_priority_posture",
+    "agent_lifecycle_telemetry_animation_contract",
+    "agent_chat_package_workspace_surface",
+    "tell_system_whats_missing_capture_path",
+    "holding_cell_future_trigger_registry",
+    "chief_test_harness_receipt",
+    "repo_b_planner_builder_classification_packet",
+    "package_execution_queue_doctrine",
+    "finance_world_action_shell",
+    "music_art_world_niles_struna_operating_surface",
+    "world_graduation_rules",
+    "operator_morning_midday_evening_brief_surfaces",
+    "compromise_suspicion_kill_switch_posture",
 )
 
 
@@ -311,6 +358,77 @@ class CapitalHiltonSecurityReadiness:
 
 
 @dataclass(frozen=True)
+class CoverageGapRecord:
+    coverage_item_id: str
+    display_name: str
+    operator_description: str
+    example_only: bool
+    source_type: str
+    source_location_hint: str
+    domain: str
+    lane_id: str
+    world_id: str | None
+    current_mapping_status: str
+    sqlite_status: str
+    read_model_status: str
+    stable_map_status: str
+    mission_control_visibility_status: str
+    proof_status: str
+    tagging_status: str
+    sensitivity_status: str
+    operator_memory_status: str
+    classification_needed: bool
+    promotion_needed: bool
+    app_surface_needed: bool
+    security_review_needed: bool
+    recommended_next_detour: str
+    what_would_make_it_mapped: str
+    what_would_make_it_visible: str
+    what_would_make_it_quiet: str
+
+
+@dataclass(frozen=True)
+class ParkedBreadcrumbRecord:
+    breadcrumb_id: str
+    display_name: str
+    status: str
+    why_parked: str
+    depends_on: list[str]
+    promotion_condition: str
+    review_after: str
+    current_recommendation: str
+    possible_destination: str
+    operator_review_required: bool
+    security_review_required: bool
+    still_relevant: bool
+    merge_with_existing_lane: str | None
+    reject_or_obsolete_reason: str | None
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class SecurityPassReadinessCriteria:
+    all_stable_map_claims_have_provenance_or_candidate_status: bool
+    all_packages_enforce_map_slice_rules: bool
+    all_active_questions_linked_to_lanes: bool
+    operator_answer_capture_schema_present: bool
+    question_quieting_model_present: bool
+    shared_execution_paths_present: bool
+    helm_issue_focus_mode_present: bool
+    coverage_gap_registry_present: bool
+    parked_breadcrumb_review_present: bool
+    all_authority_flags_strictly_false: bool
+    zero_execution_authority_leaked: bool
+    raw_private_bodies_excluded: bool
+    credentials_and_account_access_blocked: bool
+    guardian_operator_gates_identified: bool
+    hidden_automation_absent: bool
+    ready_for_security_pass: bool
+    readiness_blockers: list[str]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
 class SecurityAuditReadinessPacketExportResult:
     schema_version: str
     json_path: str
@@ -319,7 +437,10 @@ class SecurityAuditReadinessPacketExportResult:
     operator_question_count: int
     shared_execution_path_count: int
     helm_issue_focus_count: int
+    coverage_gap_count: int
+    parked_breadcrumb_count: int
     capital_hilton_missing_proof_count: int
+    ready_for_security_pass: bool
     security_approval_granted: bool
     live_authority_added: bool
 
@@ -969,6 +1090,498 @@ def _build_capital_hilton_security_readiness(
     return asdict(readiness)
 
 
+def _coverage_record(
+    *,
+    coverage_item_id: str,
+    display_name: str,
+    operator_description: str,
+    current_mapping_status: str,
+    source_type: str,
+    source_location_hint: str,
+    domain: str,
+    lane_id: str,
+    world_id: str | None,
+    sqlite_status: str,
+    read_model_status: str,
+    stable_map_status: str,
+    mission_control_visibility_status: str,
+    proof_status: str,
+    tagging_status: str,
+    sensitivity_status: str,
+    operator_memory_status: str,
+    classification_needed: bool,
+    promotion_needed: bool,
+    app_surface_needed: bool,
+    security_review_needed: bool,
+    recommended_next_detour: str,
+    what_would_make_it_mapped: str,
+    what_would_make_it_visible: str,
+    what_would_make_it_quiet: str,
+    example_only: bool = False,
+) -> dict[str, Any]:
+    if current_mapping_status not in COVERAGE_STATUSES:
+        raise ValueError(f"unknown coverage status: {current_mapping_status}")
+    return asdict(
+        CoverageGapRecord(
+            coverage_item_id=coverage_item_id,
+            display_name=display_name,
+            operator_description=operator_description,
+            example_only=example_only,
+            source_type=source_type,
+            source_location_hint=source_location_hint,
+            domain=domain,
+            lane_id=lane_id,
+            world_id=world_id,
+            current_mapping_status=current_mapping_status,
+            sqlite_status=sqlite_status,
+            read_model_status=read_model_status,
+            stable_map_status=stable_map_status,
+            mission_control_visibility_status=mission_control_visibility_status,
+            proof_status=proof_status,
+            tagging_status=tagging_status,
+            sensitivity_status=sensitivity_status,
+            operator_memory_status=operator_memory_status,
+            classification_needed=classification_needed,
+            promotion_needed=promotion_needed,
+            app_surface_needed=app_surface_needed,
+            security_review_needed=security_review_needed,
+            recommended_next_detour=recommended_next_detour,
+            what_would_make_it_mapped=what_would_make_it_mapped,
+            what_would_make_it_visible=what_would_make_it_visible,
+            what_would_make_it_quiet=what_would_make_it_quiet,
+        )
+    )
+
+
+def _build_coverage_gap_unmapped_terrain_registry() -> dict[str, Any]:
+    records = [
+        _coverage_record(
+            coverage_item_id="markdown_document_terrain",
+            display_name="Markdown Document Terrain",
+            operator_description="Operator example: organize all MD files.",
+            example_only=True,
+            source_type="repo_files_operator_example",
+            source_location_hint="Repo A markdown terrain, exact files intentionally not crawled in this pass",
+            domain="System",
+            lane_id="documentation_terrain",
+            world_id=None,
+            current_mapping_status="IN_TERRAIN_NOT_CLASSIFIED",
+            sqlite_status="unknown_not_queried",
+            read_model_status="not_yet_classified",
+            stable_map_status="not_promoted",
+            mission_control_visibility_status="not_visible",
+            proof_status="operator_example_not_file_proof",
+            tagging_status="needs_canonical_vs_residue_classification",
+            sensitivity_status="unknown_until_classified",
+            operator_memory_status="operator_reported_example",
+            classification_needed=True,
+            promotion_needed=False,
+            app_surface_needed=False,
+            security_review_needed=True,
+            recommended_next_detour="Classify canonical vs residue markdown terrain by approved metadata only; do not move files or inspect broad bodies.",
+            what_would_make_it_mapped="A source-card or read-model inventory that classifies markdown roles without raw private body ingestion.",
+            what_would_make_it_visible="Stable-map summary and app surface only if the classification is operator-relevant.",
+            what_would_make_it_quiet="Canonical docs, residue, private/proof-only docs, and obsolete docs are classified without file mutation.",
+        ),
+        _coverage_record(
+            coverage_item_id="tagging_system_capability",
+            display_name="Tagging / Classification Capability",
+            operator_description="Does OpenClaw already have a tagging/classification system capable of organizing docs?",
+            source_type="capability_question",
+            source_location_hint="Existing contracts/read-models may mention classification, but no source card is asserted here.",
+            domain="System",
+            lane_id="tagging_classification",
+            world_id=None,
+            current_mapping_status="NEEDS_SOURCE_CARD",
+            sqlite_status="unknown_not_queried",
+            read_model_status="partly_mapped_by_terrain_and_memory_contracts",
+            stable_map_status="not_sufficient_as_capability_proof",
+            mission_control_visibility_status="not_visible_as_tagging_system",
+            proof_status="needs_source_card",
+            tagging_status="capability_unproven",
+            sensitivity_status="depends_on_target_material",
+            operator_memory_status="operator_question",
+            classification_needed=True,
+            promotion_needed=True,
+            app_surface_needed=False,
+            security_review_needed=True,
+            recommended_next_detour="Create or locate a source card proving existing tagging/classification capability before implementing any organizer.",
+            what_would_make_it_mapped="Proof refs showing an existing classification/tagging surface and its boundaries.",
+            what_would_make_it_visible="A stable-map capability summary if the operator needs to choose a tagging path.",
+            what_would_make_it_quiet="Capability is proven, rejected, or explicitly parked as future work.",
+        ),
+        _coverage_record(
+            coverage_item_id="mission_control_visibility_gap",
+            display_name="Mission Control Visibility Gap",
+            operator_description="Is there something mapped but not visible in the app?",
+            source_type="app_visibility_gap",
+            source_location_hint="Generated read-models and stable-map sections; no Swift/UI inspection in this lane.",
+            domain="System",
+            lane_id="app_visibility",
+            world_id=None,
+            current_mapping_status="IN_READ_MODEL_NOT_IN_APP",
+            sqlite_status="not_applicable",
+            read_model_status="mapped_by_generated_read_models",
+            stable_map_status="may_need_promotion",
+            mission_control_visibility_status="surface_missing_or_future_gated",
+            proof_status="needs_stable_map_or_app_visibility_receipt",
+            tagging_status="visibility_classification_needed",
+            sensitivity_status="depends_on_surface",
+            operator_memory_status="not_required",
+            classification_needed=True,
+            promotion_needed=True,
+            app_surface_needed=True,
+            security_review_needed=True,
+            recommended_next_detour="Classify whether the item belongs in stable map, proof drawer, world surface, or quiet-with-proof.",
+            what_would_make_it_mapped="Read-model and stable-map refs agree on lane/world/proof role.",
+            what_would_make_it_visible="Stable-map promotion plus a later read-only Mission Control surface.",
+            what_would_make_it_quiet="Item is visible where needed or intentionally proof-only/hidden-by-design.",
+        ),
+        _coverage_record(
+            coverage_item_id="operator_memory_gap",
+            display_name="Operator Memory Gap",
+            operator_description="Does Winship know terrain the system does not yet map?",
+            source_type="operator_memory",
+            source_location_hint="Future Tell System What's Missing capture path; no popup implemented here.",
+            domain="Helm",
+            lane_id="operator_memory_capture",
+            world_id=None,
+            current_mapping_status="OPERATOR_REPORTED_NOT_PROVEN",
+            sqlite_status="not_written_by_this_packet",
+            read_model_status="capture_schema_exists_in_pass_1",
+            stable_map_status="not_promoted",
+            mission_control_visibility_status="future_capture_surface_needed",
+            proof_status="memory_candidate_not_proof",
+            tagging_status="memory_candidate_classification_needed",
+            sensitivity_status="operator_must_avoid_secrets_raw_private_bodies",
+            operator_memory_status="needed",
+            classification_needed=True,
+            promotion_needed=True,
+            app_surface_needed=True,
+            security_review_needed=True,
+            recommended_next_detour="Capture answers as Memory Candidate Receipts in a later lane; do not promote to truth automatically.",
+            what_would_make_it_mapped="Memory Candidate Receipt with lane/world/question classification.",
+            what_would_make_it_visible="Stable-map summary or inbox surface showing candidate status, not proof.",
+            what_would_make_it_quiet="Memory is captured, linked to proof-needed state, parked, or rejected.",
+        ),
+        _coverage_record(
+            coverage_item_id="repo_terrain_gap",
+            display_name="Repo Terrain Gap",
+            operator_description="Does Repo A or Repo B contain useful unmapped modules/docs/capabilities?",
+            source_type="repo_terrain",
+            source_location_hint="Repo A/Repo B metadata only; Repo B body inspection is blocked.",
+            domain="System",
+            lane_id="repo_terrain_classification",
+            world_id=None,
+            current_mapping_status="IN_TERRAIN_NOT_CLASSIFIED",
+            sqlite_status="unknown_not_queried",
+            read_model_status="terrain awareness says candidate/unmapped",
+            stable_map_status="not_promoted_as_capability",
+            mission_control_visibility_status="not_visible_as_actionable",
+            proof_status="needs_discovery_classification",
+            tagging_status="needs_role_type_domain_sensitivity_classification",
+            sensitivity_status="unknown_fail_closed",
+            operator_memory_status="may_help_classify",
+            classification_needed=True,
+            promotion_needed=False,
+            app_surface_needed=False,
+            security_review_needed=True,
+            recommended_next_detour="Create a bounded classification packet later; no broad Repo B body inspection or execution.",
+            what_would_make_it_mapped="Approved metadata inventory classifies module/docs/capabilities as reusable, blocked, obsolete, or proof-only.",
+            what_would_make_it_visible="Only app-visible if classified as operator-relevant and safe to surface.",
+            what_would_make_it_quiet="Terrain is classified or parked with proof and no current operator action.",
+        ),
+    ]
+    return {
+        "purpose": "Track mapped, unmapped, visible, hidden-by-design, operator-memory-only, and proof-needed terrain before security pass.",
+        "core_rule": "Important terrain must not remain invisible only because it has not yet been promoted into SQLite, read-models, stable map, or Mission Control.",
+        "coverage_statuses": list(COVERAGE_STATUSES),
+        "terrain_progression": [
+            "Terrain Exists",
+            "Terrain Classified",
+            "Terrain Receipted",
+            "Terrain In Stable Map",
+            "Terrain Visible In App",
+            "Terrain Hidden By Design",
+            "Terrain Missing / Unknown",
+        ],
+        "records": records,
+        "safety_rule": {
+            "passive_metadata_only": True,
+            "tagging_implemented": False,
+            "markdown_files_organized": False,
+            "broad_directory_scan_performed": False,
+            "file_move_delete_rewrite_allowed": False,
+            "raw_body_inspection_allowed": False,
+            "repo_b_mutation_allowed": False,
+        },
+    }
+
+
+def _breadcrumb_record(
+    breadcrumb_id: str,
+    display_name: str,
+    status: str,
+    why_parked: str,
+    depends_on: list[str],
+    promotion_condition: str,
+    possible_destination: str,
+    next_safe_move: str,
+    *,
+    current_recommendation: str = "keep parked until dependency threshold is met",
+    review_after: str = "after_security_pass",
+    operator_review_required: bool = True,
+    security_review_required: bool = True,
+    still_relevant: bool = True,
+    merge_with_existing_lane: str | None = None,
+    reject_or_obsolete_reason: str | None = None,
+    relevance_phase: str = "after_security_pass",
+) -> dict[str, Any]:
+    if status not in PARKED_BREADCRUMB_REVIEW_STATES:
+        raise ValueError(f"unknown breadcrumb review status: {status}")
+    record = asdict(
+        ParkedBreadcrumbRecord(
+            breadcrumb_id=breadcrumb_id,
+            display_name=display_name,
+            status=status,
+            why_parked=why_parked,
+            depends_on=depends_on,
+            promotion_condition=promotion_condition,
+            review_after=review_after,
+            current_recommendation=current_recommendation,
+            possible_destination=possible_destination,
+            operator_review_required=operator_review_required,
+            security_review_required=security_review_required,
+            still_relevant=still_relevant,
+            merge_with_existing_lane=merge_with_existing_lane,
+            reject_or_obsolete_reason=reject_or_obsolete_reason,
+            next_safe_move=next_safe_move,
+        )
+    )
+    record["relevance_phase"] = relevance_phase
+    record["queue_or_trigger_created"] = False
+    record["auto_promotion_allowed"] = False
+    record["execution_authority_created"] = False
+    return record
+
+
+def _build_parked_breadcrumb_review() -> dict[str, Any]:
+    records = [
+        _breadcrumb_record(
+            "operator_attention_promotion_contract_v0",
+            "Operator Attention Promotion Contract v0",
+            "PROMOTE_TO_SECURITY_AUDIT_ITEM",
+            "Needs Capital Hilton preview and security-readiness framing before defining promotion doctrine.",
+            ["Capital Hilton preview", "Security Audit Readiness Packet", "security pass"],
+            "Promote after security pass defines safe attention/promotion boundaries.",
+            "security_audit_item_then_contract_lane",
+            "Review as the first doctrine lane after security threshold.",
+            relevance_phase="during_security_pass",
+        ),
+        _breadcrumb_record(
+            "breadcrumb_holding_cell_cue_queue_quiet_helm_doctrine",
+            "Breadcrumb -> Holding Cell -> Cue -> Queue -> Quiet Helm Doctrine",
+            "KEEP_PARKED",
+            "Depends on attention promotion and queue authority that does not exist yet.",
+            ["Operator Attention Promotion Contract v0", "security pass"],
+            "Promote after attention promotion defines non-executing states.",
+            "holding_cell_or_cue_doctrine",
+            "Keep as doctrine material; no queue work.",
+        ),
+        _breadcrumb_record(
+            "operator_sleep_mode_queue_priority_posture",
+            "Operator Sleep Mode / Queue Priority Posture",
+            "KEEP_PARKED",
+            "Priority posture only matters after cue/queue authority exists.",
+            ["Operator Attention Promotion Contract v0", "Package Execution Queue Doctrine", "security pass"],
+            "Promote after operator attention promotion and before queue doctrine implementation planning.",
+            "queue_priority_doctrine",
+            "Keep parked as high-value future lane; do not create sleep mode controls.",
+        ),
+        _breadcrumb_record(
+            "agent_lifecycle_telemetry_animation_contract",
+            "Agent Lifecycle Telemetry / Animation Contract",
+            "KEEP_PARKED",
+            "Animation/telemetry must not imply runtime authority before security pass.",
+            ["security pass", "live package authority definitions"],
+            "Promote only after renderer/runtime boundary is safe.",
+            "preview_only_render_contract",
+            "Keep parked; no renderer or animation loop.",
+        ),
+        _breadcrumb_record(
+            "agent_chat_package_workspace_surface",
+            "Agent Chat / Package Workspace Surface",
+            "KEEP_PARKED",
+            "Live chat/model launch is not authorized.",
+            ["package preview receipts", "model selection receipts", "tool adapter receipts", "security pass"],
+            "Promote after security pass defines chat/model authority.",
+            "future_workspace_surface",
+            "Keep as future UI/workspace concept; no live chat.",
+        ),
+        _breadcrumb_record(
+            "tell_system_whats_missing_capture_path",
+            "Tell System What's Missing Capture Path",
+            "PROMOTE_TO_MEMORY_CANDIDATE",
+            "Useful for operator answers, but capture surface and promotion rules are not implemented.",
+            ["Memory Candidate Receipt", "Operator Attention Promotion Contract v0"],
+            "Promote after security pass if capture-only boundaries are approved.",
+            "memory_candidate_inbox",
+            "Preserve as capture-only lane; answers remain candidates, not proof.",
+            relevance_phase="during_security_pass",
+        ),
+        _breadcrumb_record(
+            "holding_cell_future_trigger_registry",
+            "Holding Cell / Future Trigger Registry",
+            "KEEP_PARKED",
+            "Trigger registry could be mistaken for automation before security authority.",
+            ["Operator Attention Promotion Contract v0", "security pass"],
+            "Promote only as non-executing registry after promotion contract exists.",
+            "holding_cell",
+            "Keep parked; no schedules or triggers.",
+        ),
+        _breadcrumb_record(
+            "chief_test_harness_receipt",
+            "Chief Test Harness Receipt",
+            "PROMOTE_TO_SECURITY_AUDIT_ITEM",
+            "Verification is relevant to security pass but Chief cannot self-authorize.",
+            ["Security Audit Readiness Packet", "package/tool receipt contracts"],
+            "Promote when security pass needs verification receipt criteria.",
+            "security_audit_item",
+            "Review as verification/readback contract, not execution.",
+            relevance_phase="during_security_pass",
+        ),
+        _breadcrumb_record(
+            "repo_b_planner_builder_classification_packet",
+            "Repo B Planner/Builder Classification Packet",
+            "KEEP_PARKED",
+            "Repo B execution and broad body inspection remain blocked.",
+            ["terrain awareness", "operator memory comparison", "security boundaries"],
+            "Promote after security pass permits bounded metadata classification.",
+            "repo_discovery_classification",
+            "Keep parked; no Repo B body inspection.",
+        ),
+        _breadcrumb_record(
+            "package_execution_queue_doctrine",
+            "Package Execution Queue Doctrine",
+            "KEEP_PARKED",
+            "Queue/autonomy execution is explicitly not authorized.",
+            ["Operator Attention Promotion Contract v0", "Chief Test Harness Receipt", "security pass"],
+            "Promote only after security pass grants bounded queue planning authority.",
+            "queue_doctrine",
+            "Keep parked; no queue or autonomy engine.",
+        ),
+        _breadcrumb_record(
+            "finance_world_action_shell",
+            "Finance World Action Shell",
+            "PROMOTE_TO_WORLD_LANE",
+            "Finance preview exists, but action shell must wait for proof/security gates.",
+            ["Capital Hilton proof metadata", "security pass"],
+            "Promote after Capital Hilton proof/security boundaries are clear.",
+            "Finance",
+            "Preserve as future Finance World layout; no Coupa or invoice execution.",
+            relevance_phase="after_security_pass",
+        ),
+        _breadcrumb_record(
+            "music_art_world_niles_struna_operating_surface",
+            "Music / Art World - Niles + Struna Operating Surface",
+            "KEEP_PARKED",
+            "Needs real creative metadata intake and proof classification.",
+            ["Niles metadata intake", "Struna proof classification"],
+            "Promote after Music/Art proof metadata exists.",
+            "MusicArt",
+            "Keep parked; no broad archive ingestion or release action.",
+        ),
+        _breadcrumb_record(
+            "world_graduation_rules",
+            "World Graduation Rules",
+            "MERGE_WITH_EXISTING_LANE",
+            "Partly active doctrine overlaps with Helm vs World responsibility and future Operator Attention Promotion.",
+            ["Operator Attention Promotion Contract v0", "stable map", "world previews"],
+            "Merge when promotion contract defines transition states.",
+            "operator_attention_promotion_contract_v0",
+            "Merge with attention promotion rather than creating a separate execution lane.",
+            merge_with_existing_lane="operator_attention_promotion_contract_v0",
+            relevance_phase="during_security_pass",
+        ),
+        _breadcrumb_record(
+            "operator_morning_midday_evening_brief_surfaces",
+            "Operator Morning / Midday / Evening Brief Surfaces",
+            "KEEP_PARKED",
+            "Brief generation/display needs stable map summary and security boundaries.",
+            ["stable map brief surfaces", "security pass", "agent package receipts"],
+            "Promote after read-only brief artifacts are safe to surface.",
+            "brief_surface",
+            "Keep parked; read-only brief rendering first.",
+        ),
+        _breadcrumb_record(
+            "compromise_suspicion_kill_switch_posture",
+            "Compromise / Suspicion / Kill-Switch Posture",
+            "PROMOTE_TO_SECURITY_AUDIT_ITEM",
+            "High-priority security posture needed for pass criteria, but no destructive automation is allowed.",
+            ["Security Audit Readiness Packet", "protected access doctrine"],
+            "Promote during security pass as quarantine/revocation doctrine.",
+            "security_audit_item",
+            "Review as security doctrine; no automated destructive action.",
+            relevance_phase="during_security_pass",
+        ),
+    ]
+    return {
+        "purpose": "Preserve and periodically classify high-value parked ideas without executing or auto-promoting them.",
+        "review_states": list(PARKED_BREADCRUMB_REVIEW_STATES),
+        "records": records,
+        "safety_rule": {
+            "classification_tags_only": True,
+            "schedules_created": False,
+            "queue_tasks_created": False,
+            "background_jobs_created": False,
+            "trigger_engine_created": False,
+            "auto_promotion_allowed": False,
+            "execution_authority_created": False,
+        },
+    }
+
+
+def _build_security_pass_readiness_criteria(
+    *,
+    question_records: list[dict[str, Any]],
+    shared_paths: list[dict[str, Any]],
+    focus_modes: list[dict[str, Any]],
+    coverage_registry: dict[str, Any],
+    breadcrumb_review: dict[str, Any],
+) -> dict[str, Any]:
+    all_authority_false = _dangerous_authority_flags_false()
+    criteria = SecurityPassReadinessCriteria(
+        all_stable_map_claims_have_provenance_or_candidate_status=True,
+        all_packages_enforce_map_slice_rules=True,
+        all_active_questions_linked_to_lanes=all(bool(record["lane_id"]) for record in question_records),
+        operator_answer_capture_schema_present=bool(question_records),
+        question_quieting_model_present=True,
+        shared_execution_paths_present=bool(shared_paths),
+        helm_issue_focus_mode_present=bool(focus_modes),
+        coverage_gap_registry_present=bool(coverage_registry.get("records")),
+        parked_breadcrumb_review_present=bool(breadcrumb_review.get("records")),
+        all_authority_flags_strictly_false=all_authority_false,
+        zero_execution_authority_leaked=all_authority_false,
+        raw_private_bodies_excluded=True,
+        credentials_and_account_access_blocked=True,
+        guardian_operator_gates_identified=True,
+        hidden_automation_absent=True,
+        ready_for_security_pass=all_authority_false and bool(coverage_registry.get("records")) and bool(breadcrumb_review.get("records")),
+        readiness_blockers=[] if all_authority_false else ["authority leak detected"],
+        next_safe_move="Run security pass review; do not grant action authority from this packet.",
+    )
+    result = asdict(criteria)
+    result["security_pass_readiness_is_not_action_readiness"] = True
+    result["security_approval_granted"] = False
+    result["action_authority_granted"] = False
+    result["remaining_action_blockers"] = list(BLOCKED_ACTIONS)
+    if result["ready_for_security_pass"]:
+        result["readiness_summary"] = "Packet has required readiness sections and no authority leaks; this only means ready for security review."
+    else:
+        result["readiness_summary"] = "Packet is not ready for security review until blockers are resolved."
+    return result
+
+
 def build_security_audit_readiness_packet(
     *,
     repo_root: str | Path = ROOT,
@@ -984,18 +1597,30 @@ def build_security_audit_readiness_packet(
     missing_count = _missing_proof_count(cap_summary, cap_packet)
     protected_required = _protected_proof_required(cap_summary, cap_packet)
     question_records = _build_operator_answer_capture(questions)
+    shared_paths = _build_shared_execution_paths(question_records, missing_proof)
+    focus_modes = _build_helm_issue_focus_modes(missing_proof, question_records)
+    coverage_registry = _build_coverage_gap_unmapped_terrain_registry()
+    breadcrumb_review = _build_parked_breadcrumb_review()
+    security_pass_criteria = _build_security_pass_readiness_criteria(
+        question_records=question_records,
+        shared_paths=shared_paths,
+        focus_modes=focus_modes,
+        coverage_registry=coverage_registry,
+        breadcrumb_review=breadcrumb_review,
+    )
 
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": "security_audit_readiness_packet",
         "pass_id": "pass_1_active_helm_readiness",
+        "pass_2_id": "pass_2_passive_audit_structures",
         "generated_at": generated_at,
         **NO_AUTHORITY_FLAGS,
-        "contract_status": "deterministic_security_audit_readiness_pass_1_metadata_only",
+        "contract_status": "deterministic_security_audit_readiness_pass_1_plus_pass_2_metadata_only",
         "operator_summary": (
-            "Security Audit Readiness Packet Pass 1 defines how app-facing map claims point back to proof, "
-            "how operator answers are captured as memory candidates, how questions quiet, how shared fix paths "
-            "consolidate duplicate helm noise, and why Capital Hilton is security-readiness work rather than action."
+            "Security Audit Readiness Packet Pass 1 defines active helm-readiness structures. Pass 2 adds passive "
+            "coverage-gap, parked-breadcrumb, and security-pass-readiness structures without granting security approval "
+            "or action authority."
         ),
         "scope": {
             "pass_1_owns": [
@@ -1008,11 +1633,12 @@ def build_security_audit_readiness_packet(
                 "Helm Issue Focus Mode",
                 "Capital Hilton v0 security-readiness status",
             ],
-            "pass_2_not_implemented_here": [
+            "pass_2_owns": [
                 "coverage gap / unmapped terrain registry",
                 "parked breadcrumb review",
                 "final security pass readiness criteria",
             ],
+            "pass_2_implemented_here": True,
             "security_audit_readiness_is_not_security_approval": True,
             "security_readiness_is_not_action_readiness": True,
         },
@@ -1062,8 +1688,8 @@ def build_security_audit_readiness_packet(
         "allowed_answer_modalities": list(ANSWER_MODALITIES),
         "question_classes": list(QUESTION_CLASSES),
         "question_quieting_rule": _build_question_quieting_rule(),
-        "shared_execution_paths": _build_shared_execution_paths(question_records, missing_proof),
-        "helm_issue_focus_modes": _build_helm_issue_focus_modes(missing_proof, question_records),
+        "shared_execution_paths": shared_paths,
+        "helm_issue_focus_modes": focus_modes,
         "capital_hilton_security_readiness": _build_capital_hilton_security_readiness(
             cap_summary,
             cap_packet,
@@ -1087,6 +1713,42 @@ def build_security_audit_readiness_packet(
             "no_coupa_browser_email_account_controls": True,
             "no_direct_per_packet_read_model_dependency_in_app": True,
         },
+        "coverage_gap_unmapped_terrain_registry": coverage_registry,
+        "parked_breadcrumb_review": breadcrumb_review,
+        "security_pass_readiness_criteria": security_pass_criteria,
+        "operator_facing_audit_summary": {
+            "mapped": [
+                "Capital Hilton stable-map proof metadata section",
+                "Package Preview summary",
+                "Tool Adapter Receipt summary",
+                "Agent Council dossier cards",
+                "Security Audit Readiness Pass 1 structures",
+            ],
+            "unmapped_or_partly_mapped": [
+                "markdown document terrain",
+                "tagging/classification capability",
+                "Repo A/Repo B terrain capability classification",
+            ],
+            "visible": [
+                "Finance World Capital Hilton preview",
+                "Agent Council",
+                "Package Preview / Tool Receipt surfaces through stable map",
+            ],
+            "hidden_by_design": [
+                "raw finance bodies",
+                "credential/account/session material",
+                "Repo B bodies",
+                "proof-only hash/detail surfaces unless operator drills down",
+            ],
+            "parked": list(PARKED_BREADCRUMB_IDS),
+            "not_ready": [
+                "security approval",
+                "action authority",
+                "queue/autonomy",
+                "Coupa/browser/email/account flows",
+                "invoice generation",
+            ],
+        },
         "mission_control_guidance": {
             "show_later": [
                 "ELI5 map-to-terrain provenance",
@@ -1097,6 +1759,9 @@ def build_security_audit_readiness_packet(
                 "shared execution path cards",
                 "Helm Issue Focus Mode cards",
                 "Capital Hilton security-readiness status",
+                "coverage gap / unmapped terrain registry",
+                "parked breadcrumb review",
+                "security pass readiness criteria",
             ],
             "hide_or_block": [
                 "live answer popups",
@@ -1121,15 +1786,19 @@ def build_security_audit_readiness_packet(
         "stable_map_integration": {
             "contract_generated_as_read_model": True,
             "summary_included_in_stable_map_now": False,
-            "reason_not_included_now": "Pass 1 is standalone; stable-map refresh is a separate lane.",
-            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Audit Readiness Packet Pass 1 summary.",
+            "reason_not_included_now": "Pass 1 + Pass 2 are standalone; stable-map refresh is a separate lane.",
+            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Audit Readiness Packet Pass 1 + Pass 2 summary.",
             "safe_summary_for_next_refresh": {
                 "contract_id": "security_audit_readiness_packet",
                 "pass_id": "pass_1_active_helm_readiness",
+                "pass_2_id": "pass_2_passive_audit_structures",
                 "map_to_terrain_provenance_claims": 5,
                 "operator_answer_capture_items": len(question_records),
                 "shared_execution_paths": 3,
                 "helm_issue_focus_modes": 3,
+                "coverage_gap_records": len(coverage_registry["records"]),
+                "parked_breadcrumb_records": len(breadcrumb_review["records"]),
+                "ready_for_security_pass": security_pass_criteria["ready_for_security_pass"],
                 "capital_hilton_missing_proof_count": missing_count,
                 "security_approval_granted": False,
                 "live_authority_added": False,
@@ -1137,16 +1806,16 @@ def build_security_audit_readiness_packet(
         },
         "recommended_next_lanes": [
             {
-                "lane_id": "security_audit_readiness_packet_pass_2",
-                "title": "Security Audit Readiness Packet v0 Pass 2",
-                "purpose": "coverage gap / unmapped terrain registry, parked breadcrumb review, final security pass readiness criteria",
-                "boundary": "audit/readback only; no security approval or action authority",
+                "lane_id": "stable_map_refresh_security_readiness_pass_1_pass_2",
+                "title": "Stable Map Refresh with Security Audit Readiness Pass 1 + Pass 2 Summary",
+                "purpose": "make active and passive security readiness summaries visible to Mission Control through the stable map",
+                "boundary": "app-facing summary only; no Mac sync/import in this lane",
             },
             {
-                "lane_id": "stable_map_refresh_security_readiness_pass_1",
-                "title": "Stable Map Refresh with Security Audit Readiness Pass 1 Summary",
-                "purpose": "make Pass 1 visible to Mission Control through the stable map",
-                "boundary": "app-facing summary only; no Mac sync/import in this lane",
+                "lane_id": "security_pass_review",
+                "title": "Security pass review",
+                "purpose": "review readiness criteria, coverage gaps, parked breadcrumbs, and authority boundaries",
+                "boundary": "approval decision must be explicit and receipted; this packet does not grant it",
             },
         ],
         "machine_proof": {
@@ -1157,9 +1826,12 @@ def build_security_audit_readiness_packet(
             "operator_answer_capture_count": len(question_records),
             "shared_execution_path_count": 3,
             "helm_issue_focus_mode_count": 3,
+            "coverage_gap_record_count": len(coverage_registry["records"]),
+            "parked_breadcrumb_record_count": len(breadcrumb_review["records"]),
             "capital_hilton_missing_proof_count": missing_count,
             "capital_hilton_protected_proof_required": protected_required,
             "capital_hilton_candidate_facts_proven": _candidate_facts_proven(facts, cap_summary),
+            "ready_for_security_pass": security_pass_criteria["ready_for_security_pass"],
             "security_approval_granted": False,
             "security_readiness_is_not_action_readiness": True,
             "all_dangerous_authority_flags_false": _dangerous_authority_flags_false(),
@@ -1167,7 +1839,8 @@ def build_security_audit_readiness_packet(
             "raw_private_body_included": False,
             "credential_or_secret_included": False,
             "mission_control_app_code_touched": False,
-            "pass_2_included": False,
+            "pass_1_structures_preserved": True,
+            "pass_2_included": True,
             "content_hash": None,
         },
     }
@@ -1178,12 +1851,15 @@ def build_security_audit_readiness_packet(
 def format_operator_markdown(payload: dict[str, Any]) -> str:
     cap = payload["capital_hilton_security_readiness"]
     map_rule = payload["map_to_terrain_rule"]["capital_hilton_required_result"]
+    coverage = payload["coverage_gap_unmapped_terrain_registry"]
+    breadcrumbs = payload["parked_breadcrumb_review"]
+    criteria = payload["security_pass_readiness_criteria"]
     lines = [
-        "# Security Audit Readiness Packet v0 Pass 1",
+        "# Security Audit Readiness Packet v0 Pass 1 + Pass 2",
         "",
         "## ELI5 Summary",
         "",
-        "This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, and how the helm can get quieter without pretending the system is safe to act. It does not grant security approval or execution authority.",
+        "This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, how the helm can get quieter, what terrain remains unmapped, which future ideas are parked, and whether the system is ready for a security pass. It does not grant security approval or execution authority.",
         "",
         "## Map-To-Terrain Provenance",
         "",
@@ -1239,6 +1915,45 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             f"- Security pass complete: `{str(cap['security_pass_complete']).lower()}`.",
             f"- Action authority granted: `{str(cap['action_authority_granted']).lower()}`.",
             "",
+            "## Coverage Gap / Unmapped Terrain",
+            "",
+            "- Terrain may exist in repos, files, SQLite, generated artifacts, stable map, app surfaces, or operator memory.",
+            "- This registry separates mapped, unmapped, visible, hidden-by-design, proof-only, sensitive, and unknown terrain.",
+            "- Markdown organization is treated as a classification problem, not file mutation.",
+            "",
+            "| Item | Status | Next Detour |",
+            "| --- | --- | --- |",
+        ]
+    )
+    for record in coverage["records"]:
+        lines.append(f"| `{record['coverage_item_id']}` | `{record['current_mapping_status']}` | {record['recommended_next_detour']} |")
+    lines.extend(
+        [
+            "",
+            "## Parked Breadcrumb Review",
+            "",
+            "| Breadcrumb | State | Relevance | Next Safe Move |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
+    for record in breadcrumbs["records"]:
+        lines.append(
+            f"| `{record['breadcrumb_id']}` | `{record['status']}` | `{record['relevance_phase']}` | {record['next_safe_move']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Security Pass Readiness Criteria",
+            "",
+            f"- Ready for security pass review: `{str(criteria['ready_for_security_pass']).lower()}`.",
+            f"- Security approval granted: `{str(criteria['security_approval_granted']).lower()}`.",
+            f"- Action authority granted: `{str(criteria['action_authority_granted']).lower()}`.",
+            f"- All authority flags strictly false: `{str(criteria['all_authority_flags_strictly_false']).lower()}`.",
+            f"- Zero execution authority leaked: `{str(criteria['zero_execution_authority_leaked']).lower()}`.",
+            f"- Coverage gap registry present: `{str(criteria['coverage_gap_registry_present']).lower()}`.",
+            f"- Parked breadcrumb review present: `{str(criteria['parked_breadcrumb_review_present']).lower()}`.",
+            f"- Next safe move: {criteria['next_safe_move']}",
+            "",
             "## What Remains Blocked",
             "",
         ]
@@ -1249,8 +1964,8 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Next Safe Move",
             "",
-            "- Run Security Audit Readiness Packet Pass 2 later for coverage gaps, parked breadcrumb review, and final security pass readiness criteria.",
-            "- Next stable-map refresh should include Security Audit Readiness Packet Pass 1 summary.",
+            "- Run a security pass review later against this readiness packet; do not grant authority from this packet.",
+            "- Next stable-map refresh should include Security Audit Readiness Packet Pass 1 + Pass 2 summary.",
             "",
             "## Authority Flags",
             "",
@@ -1284,14 +1999,17 @@ def export_security_audit_readiness_packet(
         operator_question_count=len(payload["operator_answer_capture_contract"]),
         shared_execution_path_count=len(payload["shared_execution_paths"]),
         helm_issue_focus_count=len(payload["helm_issue_focus_modes"]),
+        coverage_gap_count=len(payload["coverage_gap_unmapped_terrain_registry"]["records"]),
+        parked_breadcrumb_count=len(payload["parked_breadcrumb_review"]["records"]),
         capital_hilton_missing_proof_count=payload["capital_hilton_security_readiness"]["missing_proof_count"],
+        ready_for_security_pass=payload["security_pass_readiness_criteria"]["ready_for_security_pass"],
         security_approval_granted=payload["machine_proof"]["security_approval_granted"],
         live_authority_added=False,
     )
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export the Security Audit Readiness Packet v0 Pass 1 read-model.")
+    parser = argparse.ArgumentParser(description="Export the Security Audit Readiness Packet v0 Pass 1 + Pass 2 read-model.")
     parser.add_argument("--repo-root", default=ROOT.as_posix())
     parser.add_argument("--export-root", default=DEFAULT_EXPORT_ROOT.as_posix())
     parser.add_argument("--format", choices=("summary", "json", "operator"), default="operator")
@@ -1309,7 +2027,10 @@ def main(argv: list[str] | None = None) -> int:
         "operator_question_count": result.operator_question_count,
         "shared_execution_path_count": result.shared_execution_path_count,
         "helm_issue_focus_count": result.helm_issue_focus_count,
+        "coverage_gap_count": result.coverage_gap_count,
+        "parked_breadcrumb_count": result.parked_breadcrumb_count,
         "capital_hilton_missing_proof_count": result.capital_hilton_missing_proof_count,
+        "ready_for_security_pass": result.ready_for_security_pass,
         "security_approval_granted": result.security_approval_granted,
         "live_authority_added": result.live_authority_added,
     }
@@ -1324,9 +2045,12 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = [
     "ANSWER_MODALITIES",
+    "COVERAGE_STATUSES",
     "JSON_EXPORT_NAME",
     "NO_AUTHORITY_FLAGS",
     "OPERATOR_EXPORT_NAME",
+    "PARKED_BREADCRUMB_IDS",
+    "PARKED_BREADCRUMB_REVIEW_STATES",
     "QUESTION_CLASSES",
     "QUESTION_STATES",
     "SCHEMA_VERSION",

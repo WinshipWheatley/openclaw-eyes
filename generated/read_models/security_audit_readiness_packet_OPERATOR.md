@@ -1,8 +1,8 @@
-# Security Audit Readiness Packet v0 Pass 1
+# Security Audit Readiness Packet v0 Pass 1 + Pass 2
 
 ## ELI5 Summary
 
-This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, and how the helm can get quieter without pretending the system is safe to act. It does not grant security approval or execution authority.
+This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, how the helm can get quieter, what terrain remains unmapped, which future ideas are parked, and whether the system is ready for a security pass. It does not grant security approval or execution authority.
 
 ## Map-To-Terrain Provenance
 
@@ -56,6 +56,51 @@ This packet proves OpenClaw can explain where app-facing claims came from, what 
 - Security pass complete: `false`.
 - Action authority granted: `false`.
 
+## Coverage Gap / Unmapped Terrain
+
+- Terrain may exist in repos, files, SQLite, generated artifacts, stable map, app surfaces, or operator memory.
+- This registry separates mapped, unmapped, visible, hidden-by-design, proof-only, sensitive, and unknown terrain.
+- Markdown organization is treated as a classification problem, not file mutation.
+
+| Item | Status | Next Detour |
+| --- | --- | --- |
+| `markdown_document_terrain` | `IN_TERRAIN_NOT_CLASSIFIED` | Classify canonical vs residue markdown terrain by approved metadata only; do not move files or inspect broad bodies. |
+| `tagging_system_capability` | `NEEDS_SOURCE_CARD` | Create or locate a source card proving existing tagging/classification capability before implementing any organizer. |
+| `mission_control_visibility_gap` | `IN_READ_MODEL_NOT_IN_APP` | Classify whether the item belongs in stable map, proof drawer, world surface, or quiet-with-proof. |
+| `operator_memory_gap` | `OPERATOR_REPORTED_NOT_PROVEN` | Capture answers as Memory Candidate Receipts in a later lane; do not promote to truth automatically. |
+| `repo_terrain_gap` | `IN_TERRAIN_NOT_CLASSIFIED` | Create a bounded classification packet later; no broad Repo B body inspection or execution. |
+
+## Parked Breadcrumb Review
+
+| Breadcrumb | State | Relevance | Next Safe Move |
+| --- | --- | --- | --- |
+| `operator_attention_promotion_contract_v0` | `PROMOTE_TO_SECURITY_AUDIT_ITEM` | `during_security_pass` | Review as the first doctrine lane after security threshold. |
+| `breadcrumb_holding_cell_cue_queue_quiet_helm_doctrine` | `KEEP_PARKED` | `after_security_pass` | Keep as doctrine material; no queue work. |
+| `operator_sleep_mode_queue_priority_posture` | `KEEP_PARKED` | `after_security_pass` | Keep parked as high-value future lane; do not create sleep mode controls. |
+| `agent_lifecycle_telemetry_animation_contract` | `KEEP_PARKED` | `after_security_pass` | Keep parked; no renderer or animation loop. |
+| `agent_chat_package_workspace_surface` | `KEEP_PARKED` | `after_security_pass` | Keep as future UI/workspace concept; no live chat. |
+| `tell_system_whats_missing_capture_path` | `PROMOTE_TO_MEMORY_CANDIDATE` | `during_security_pass` | Preserve as capture-only lane; answers remain candidates, not proof. |
+| `holding_cell_future_trigger_registry` | `KEEP_PARKED` | `after_security_pass` | Keep parked; no schedules or triggers. |
+| `chief_test_harness_receipt` | `PROMOTE_TO_SECURITY_AUDIT_ITEM` | `during_security_pass` | Review as verification/readback contract, not execution. |
+| `repo_b_planner_builder_classification_packet` | `KEEP_PARKED` | `after_security_pass` | Keep parked; no Repo B body inspection. |
+| `package_execution_queue_doctrine` | `KEEP_PARKED` | `after_security_pass` | Keep parked; no queue or autonomy engine. |
+| `finance_world_action_shell` | `PROMOTE_TO_WORLD_LANE` | `after_security_pass` | Preserve as future Finance World layout; no Coupa or invoice execution. |
+| `music_art_world_niles_struna_operating_surface` | `KEEP_PARKED` | `after_security_pass` | Keep parked; no broad archive ingestion or release action. |
+| `world_graduation_rules` | `MERGE_WITH_EXISTING_LANE` | `during_security_pass` | Merge with attention promotion rather than creating a separate execution lane. |
+| `operator_morning_midday_evening_brief_surfaces` | `KEEP_PARKED` | `after_security_pass` | Keep parked; read-only brief rendering first. |
+| `compromise_suspicion_kill_switch_posture` | `PROMOTE_TO_SECURITY_AUDIT_ITEM` | `during_security_pass` | Review as security doctrine; no automated destructive action. |
+
+## Security Pass Readiness Criteria
+
+- Ready for security pass review: `true`.
+- Security approval granted: `false`.
+- Action authority granted: `false`.
+- All authority flags strictly false: `true`.
+- Zero execution authority leaked: `true`.
+- Coverage gap registry present: `true`.
+- Parked breadcrumb review present: `true`.
+- Next safe move: Run security pass review; do not grant action authority from this packet.
+
 ## What Remains Blocked
 
 - Coupa access
@@ -76,8 +121,8 @@ This packet proves OpenClaw can explain where app-facing claims came from, what 
 
 ## Next Safe Move
 
-- Run Security Audit Readiness Packet Pass 2 later for coverage gaps, parked breadcrumb review, and final security pass readiness criteria.
-- Next stable-map refresh should include Security Audit Readiness Packet Pass 1 summary.
+- Run a security pass review later against this readiness packet; do not grant authority from this packet.
+- Next stable-map refresh should include Security Audit Readiness Packet Pass 1 + Pass 2 summary.
 
 ## Authority Flags
 

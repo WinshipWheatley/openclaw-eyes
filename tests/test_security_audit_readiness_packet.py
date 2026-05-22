@@ -195,8 +195,10 @@ def test_packet_generation_is_deterministic_and_metadata_only(tmp_path):
     assert first["schema_version"] == packet.SCHEMA_VERSION
     assert first["read_model_id"] == "security_audit_readiness_packet"
     assert first["pass_id"] == "pass_1_active_helm_readiness"
-    assert first["contract_status"] == "deterministic_security_audit_readiness_pass_1_metadata_only"
-    assert first["machine_proof"]["pass_2_included"] is False
+    assert first["pass_2_id"] == "pass_2_passive_audit_structures"
+    assert first["contract_status"] == "deterministic_security_audit_readiness_pass_1_plus_pass_2_metadata_only"
+    assert first["machine_proof"]["pass_1_structures_preserved"] is True
+    assert first["machine_proof"]["pass_2_included"] is True
     assert first["machine_proof"]["mission_control_app_code_touched"] is False
 
 
@@ -337,9 +339,105 @@ def test_stable_map_integration_is_standalone_until_refresh(tmp_path):
 
     assert stable["contract_generated_as_read_model"] is True
     assert stable["summary_included_in_stable_map_now"] is False
-    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Audit Readiness Packet Pass 1 summary."
+    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Audit Readiness Packet Pass 1 + Pass 2 summary."
     assert stable["safe_summary_for_next_refresh"]["security_approval_granted"] is False
     assert stable["safe_summary_for_next_refresh"]["live_authority_added"] is False
+    assert stable["safe_summary_for_next_refresh"]["coverage_gap_records"] == 5
+    assert stable["safe_summary_for_next_refresh"]["parked_breadcrumb_records"] == 15
+    assert stable["safe_summary_for_next_refresh"]["ready_for_security_pass"] is True
+
+
+def test_coverage_gap_registry_records_passive_unmapped_terrain(tmp_path):
+    registry = _build(tmp_path)["coverage_gap_unmapped_terrain_registry"]
+    records = {item["coverage_item_id"]: item for item in registry["records"]}
+
+    assert set(records) == {
+        "markdown_document_terrain",
+        "tagging_system_capability",
+        "mission_control_visibility_gap",
+        "operator_memory_gap",
+        "repo_terrain_gap",
+    }
+    assert registry["coverage_statuses"] == list(packet.COVERAGE_STATUSES)
+    assert registry["safety_rule"]["tagging_implemented"] is False
+    assert registry["safety_rule"]["markdown_files_organized"] is False
+    assert registry["safety_rule"]["broad_directory_scan_performed"] is False
+    assert registry["safety_rule"]["file_move_delete_rewrite_allowed"] is False
+    assert registry["safety_rule"]["raw_body_inspection_allowed"] is False
+    assert registry["safety_rule"]["repo_b_mutation_allowed"] is False
+
+    markdown = records["markdown_document_terrain"]
+    assert markdown["current_mapping_status"] == "IN_TERRAIN_NOT_CLASSIFIED"
+    assert markdown["example_only"] is True
+    assert markdown["classification_needed"] is True
+    assert markdown["promotion_needed"] is False
+    assert "do not move files or inspect broad bodies" in markdown["recommended_next_detour"]
+    assert markdown["what_would_make_it_mapped"].startswith("A source-card")
+
+    tagging = records["tagging_system_capability"]
+    assert tagging["current_mapping_status"] == "NEEDS_SOURCE_CARD"
+    assert tagging["proof_status"] == "needs_source_card"
+    visibility = records["mission_control_visibility_gap"]
+    assert visibility["current_mapping_status"] == "IN_READ_MODEL_NOT_IN_APP"
+    assert visibility["app_surface_needed"] is True
+    operator_memory = records["operator_memory_gap"]
+    assert operator_memory["current_mapping_status"] == "OPERATOR_REPORTED_NOT_PROVEN"
+    assert operator_memory["proof_status"] == "memory_candidate_not_proof"
+    repo_gap = records["repo_terrain_gap"]
+    assert repo_gap["current_mapping_status"] == "IN_TERRAIN_NOT_CLASSIFIED"
+    assert "no broad Repo B body inspection" in repo_gap["recommended_next_detour"]
+
+
+def test_parked_breadcrumb_review_preserves_all_known_breadcrumbs_without_execution(tmp_path):
+    review = _build(tmp_path)["parked_breadcrumb_review"]
+    records = {item["breadcrumb_id"]: item for item in review["records"]}
+
+    assert set(records) == set(packet.PARKED_BREADCRUMB_IDS)
+    assert len(records) == 15
+    assert review["review_states"] == list(packet.PARKED_BREADCRUMB_REVIEW_STATES)
+    assert review["safety_rule"]["schedules_created"] is False
+    assert review["safety_rule"]["queue_tasks_created"] is False
+    assert review["safety_rule"]["background_jobs_created"] is False
+    assert review["safety_rule"]["trigger_engine_created"] is False
+    assert review["safety_rule"]["auto_promotion_allowed"] is False
+    assert review["safety_rule"]["execution_authority_created"] is False
+    for record in records.values():
+        assert record["status"] in packet.PARKED_BREADCRUMB_REVIEW_STATES
+        assert record["queue_or_trigger_created"] is False
+        assert record["auto_promotion_allowed"] is False
+        assert record["execution_authority_created"] is False
+        assert record["still_relevant"] is True
+
+    assert records["operator_attention_promotion_contract_v0"]["status"] == "PROMOTE_TO_SECURITY_AUDIT_ITEM"
+    assert records["operator_sleep_mode_queue_priority_posture"]["status"] == "KEEP_PARKED"
+    assert records["chief_test_harness_receipt"]["relevance_phase"] == "during_security_pass"
+    assert records["world_graduation_rules"]["status"] == "MERGE_WITH_EXISTING_LANE"
+    assert records["compromise_suspicion_kill_switch_posture"]["status"] == "PROMOTE_TO_SECURITY_AUDIT_ITEM"
+
+
+def test_security_pass_readiness_criteria_are_present_without_action_readiness(tmp_path):
+    criteria = _build(tmp_path)["security_pass_readiness_criteria"]
+
+    assert criteria["all_stable_map_claims_have_provenance_or_candidate_status"] is True
+    assert criteria["all_packages_enforce_map_slice_rules"] is True
+    assert criteria["all_active_questions_linked_to_lanes"] is True
+    assert criteria["operator_answer_capture_schema_present"] is True
+    assert criteria["question_quieting_model_present"] is True
+    assert criteria["shared_execution_paths_present"] is True
+    assert criteria["helm_issue_focus_mode_present"] is True
+    assert criteria["coverage_gap_registry_present"] is True
+    assert criteria["parked_breadcrumb_review_present"] is True
+    assert criteria["all_authority_flags_strictly_false"] is True
+    assert criteria["zero_execution_authority_leaked"] is True
+    assert criteria["raw_private_bodies_excluded"] is True
+    assert criteria["credentials_and_account_access_blocked"] is True
+    assert criteria["guardian_operator_gates_identified"] is True
+    assert criteria["hidden_automation_absent"] is True
+    assert criteria["ready_for_security_pass"] is True
+    assert criteria["security_pass_readiness_is_not_action_readiness"] is True
+    assert criteria["security_approval_granted"] is False
+    assert criteria["action_authority_granted"] is False
+    assert "Coupa access" in criteria["remaining_action_blockers"]
 
 
 def test_exporter_writes_json_and_operator_markdown(tmp_path):
@@ -354,8 +452,14 @@ def test_exporter_writes_json_and_operator_markdown(tmp_path):
     operator = exported_md.read_text(encoding="utf-8")
     assert payload["schema_version"] == packet.SCHEMA_VERSION
     assert payload["capital_hilton_security_readiness"]["missing_proof_count"] == 10
+    assert payload["coverage_gap_unmapped_terrain_registry"]["records"]
+    assert len(payload["parked_breadcrumb_review"]["records"]) == 15
+    assert payload["security_pass_readiness_criteria"]["ready_for_security_pass"] is True
     assert "ELI5 Summary" in operator
     assert "Map-To-Terrain Provenance" in operator
     assert "Operator Answer Capture" in operator
     assert "Helm Issue Focus Mode" in operator
+    assert "Coverage Gap / Unmapped Terrain" in operator
+    assert "Parked Breadcrumb Review" in operator
+    assert "Security Pass Readiness Criteria" in operator
     assert "security_approval_granted" in operator
