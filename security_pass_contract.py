@@ -1,15 +1,18 @@
-"""Security Pass Contract v0 Pass 1 + Pass 2 for OpenClaw.
+"""Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3 for OpenClaw.
 
 This read-model records scoped security pass decisions for read-only,
 preview-only, metadata-only, capture-only, proof/detail, stable-map, and world
 preview surfaces. Pass 2 adds worker-output intake and orphaned capability
-detection metadata. It does not create live execution, model calls, model
-router runtime, actor/agent activation, tool execution, browser/OAuth/account
-access, Gmail/calendar/Coupa/Telegram access, credentials, send/submit/approval,
-invoice generation, ledger writes, email dispatch, queue/autonomy,
-planner/builder execution, Mac sync/import, network operation, Repo B
-inspection, file organization, raw private body ingestion, automatic activation
-of detected capabilities, or PC system-drive write authority.
+detection metadata. Pass 3 adds Chief/Hermes trust-building,
+FULL_TRUST_CLEARANCE modeling, and cross-off rules. It does not create live
+execution, model calls, model router runtime, actor/agent activation, tool
+execution, browser/OAuth/account access, Gmail/calendar/Coupa/Telegram access,
+credentials, send/submit/approval, invoice generation, ledger writes, email
+dispatch, queue/autonomy, planner/builder execution, Mac sync/import, network
+operation, Repo B inspection, file organization, raw private body ingestion,
+automatic activation of detected capabilities, automatic crossing off,
+Chief/Hermes self-authorization, external dependency adoption, or PC
+system-drive write authority.
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 
-SCHEMA_VERSION = "security_pass_contract_v0_pass_2"
+SCHEMA_VERSION = "security_pass_contract_v0_pass_3"
 JSON_EXPORT_NAME = "security_pass_contract.json"
 OPERATOR_EXPORT_NAME = "security_pass_contract_OPERATOR.md"
 
@@ -103,7 +106,11 @@ NO_ACTION_AUTHORITY_FLAGS = {
     "automatic_promotion_allowed": False,
     "automatic_queueing_allowed": False,
     "automatic_activation_of_detected_capabilities_allowed": False,
+    "automatic_cross_off_allowed": False,
     "automatic_world_transition_allowed": False,
+    "chief_self_authorization_allowed": False,
+    "hermes_self_authorization_allowed": False,
+    "external_dependency_adoption_allowed": False,
     "pc_c_drive_artifact_write_allowed": False,
     "action_authority_granted": False,
     "runtime_execution_authority_granted": False,
@@ -163,7 +170,10 @@ STILL_BLOCKED = (
     "automatic promotion",
     "automatic queueing",
     "automatic activation of detected capabilities",
+    "automatic crossing off",
     "automatic world transition",
+    "Chief/Hermes self-authorization",
+    "external dependency adoption without review",
     "C-drive artifact writes",
 )
 
@@ -267,6 +277,52 @@ ORPHANED_CAPABILITY_PROMOTION_FIELDS = (
     "guardian_gate_required",
     "action_authority_granted",
     "next_safe_move",
+)
+
+TRUST_CLEARANCE_STATES = (
+    "NO_TRUST",
+    "LOW_TRUST",
+    "PARTIAL_TRUST",
+    "HIGH_TRUST_NEEDS_OPERATOR",
+    "HIGH_TRUST_NEEDS_GUARDIAN",
+    "HIGH_TRUST_NEEDS_HERMES",
+    "FULL_TRUST_CLEARANCE",
+    "QUARANTINED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+RECONCILIATION_STATES = (
+    "NOT_RECONCILED",
+    "MATCHED_TO_TASK",
+    "MATCHED_TO_MARKDOWN_ITEM",
+    "MATCHED_TO_CUE_CANDIDATE",
+    "MATCHED_TO_STABLE_MAP_LANE",
+    "COMPLETED_WITH_PROOF",
+    "COMPLETED_NEEDS_VERIFICATION",
+    "PARTIAL_REQUEUE_REQUIRED",
+    "FAILED_REPAIR_REQUIRED",
+    "BUILT_NOT_SURFACED",
+    "DUPLICATE_OR_OVERLAP",
+    "ARCHITECTURE_REVIEW_REQUIRED",
+    "PARKED_WITH_PROOF",
+    "QUARANTINED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+TRUST_CLEARANCE_REQUIRED_FIELDS = (
+    "trust_clearance_status",
+    "full_trust_clearance_eligible",
+    "trust_clearance_blockers",
+    "trust_building_detour",
+    "required_proof_refs",
+    "required_tests",
+    "required_receipts",
+    "required_gates",
+    "conflict_locks",
+    "rollback_recovery_required",
+    "operator_babysitting_required",
+    "future_unattended_execution_eligible",
+    "action_authority_granted",
 )
 
 SOURCE_READ_MODEL_REFS = (
@@ -420,6 +476,56 @@ class OrphanedCapabilityPromotionDecision:
 
 
 @dataclass(frozen=True)
+class ChiefReconciliationRole:
+    role_id: str
+    display_name: str
+    role_summary: str
+    current_authority: str
+    future_authority_condition: str
+    can_self_authorize: bool
+    allowed_current_actions: list[str]
+    blocked_current_actions: list[str]
+    future_gated_actions: list[str]
+    reconciliation_responsibilities: list[str]
+    test_harness_responsibilities: list[str]
+    trust_gap_responsibilities: list[str]
+    operator_babysitting_reduction_goal: str
+
+
+@dataclass(frozen=True)
+class HermesArchitectureReviewRole:
+    role_id: str
+    display_name: str
+    role_summary: str
+    current_authority: str
+    recommendation_authority: str
+    can_self_authorize: bool
+    allowed_current_actions: list[str]
+    blocked_current_actions: list[str]
+    future_gated_actions: list[str]
+    architecture_review_responsibilities: list[str]
+    external_dependency_review_requirements: list[str]
+    trust_gap_support_responsibilities: list[str]
+
+
+@dataclass(frozen=True)
+class TrustClearanceModel:
+    trust_clearance_status: str
+    full_trust_clearance_eligible: bool
+    trust_clearance_blockers: list[str]
+    trust_building_detour: str
+    required_proof_refs: list[str]
+    required_tests: list[str]
+    required_receipts: list[str]
+    required_gates: list[str]
+    conflict_locks: list[str]
+    rollback_recovery_required: bool
+    operator_babysitting_required: bool
+    future_unattended_execution_eligible: bool
+    action_authority_granted: bool
+
+
+@dataclass(frozen=True)
 class SecurityPassContractExportResult:
     schema_version: str
     json_path: str
@@ -430,6 +536,9 @@ class SecurityPassContractExportResult:
     preview_surfaces_approved: bool
     worker_output_intake_approved: bool
     orphaned_capability_detection_approved: bool
+    chief_reconciliation_approved: bool
+    hermes_architecture_review_approved: bool
+    trust_clearance_modeling_approved: bool
     worker_output_count: int
     orphaned_capability_count: int
     action_authority_granted: bool
@@ -878,6 +987,151 @@ def _agent_model_tool_security_decision() -> dict[str, Any]:
     }
 
 
+def _record_reconciliation_extension(record_id: str) -> dict[str, Any]:
+    defaults = {
+        "original_task_ref": None,
+        "source_markdown_ref": None,
+        "source_cue_ref": None,
+        "worker_report_ref": None,
+        "commit_refs": [],
+        "test_receipt_refs": [],
+        "artifact_refs": [],
+        "stable_map_refs": [],
+        "chief_reconciliation_status": "NOT_RECONCILED",
+        "chief_test_harness_required": True,
+        "chief_recommendation": "classify_and_reconcile_before_any_cross_off",
+        "hermes_architecture_review_required": False,
+        "hermes_coherence_status": "not_reviewed",
+        "hermes_recommendation": "advisory_review_only_if_architecture_relevant",
+        "guardian_gate_required": False,
+        "operator_final_decision_required": False,
+        "trust_clearance_status": "PARTIAL_TRUST",
+        "trust_clearance_blockers": ["not fully reconciled"],
+        "trust_building_detour": "add proof refs, test receipts, and Chief reconciliation",
+        "full_trust_clearance_eligible": False,
+        "completion_status": "not_crossed_off",
+        "cross_off_allowed": False,
+        "requeue_required": False,
+        "park_required": False,
+        "quarantine_required": False,
+        "next_safe_move": "reconcile metadata only; do not execute",
+    }
+    overrides: dict[str, Any] = {
+        "markdown_knowledge_atlas": {
+            "source_markdown_ref": "coverage_gap_unmapped_terrain_registry.markdown_document_terrain",
+            "commit_refs": [],
+            "test_receipt_refs": [],
+            "artifact_refs": ["SQLite metadata counts", "Markdown atlas metadata"],
+            "chief_reconciliation_status": "BUILT_NOT_SURFACED",
+            "chief_test_harness_required": False,
+            "chief_recommendation": "preserve existing metadata capability; do not build duplicate mapper",
+            "hermes_architecture_review_required": True,
+            "hermes_coherence_status": "integration_visibility_gap",
+            "hermes_recommendation": "consider stable-map/app visibility later without broad body ingestion",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_HERMES",
+            "trust_clearance_blockers": ["no app visibility surface", "broad body/file mutation blocked"],
+            "trust_building_detour": "add stable-map metadata summary or proof drawer surface later",
+            "completion_status": "known_metadata_capability",
+            "park_required": False,
+            "next_safe_move": "keep as metadata substrate and evaluate visibility through Hermes/stable-map lane",
+        },
+        "security_audit_readiness_packet": {
+            "commit_refs": ["ff1239f", "02ec429", "371c56d", "d31c91b"],
+            "test_receipt_refs": ["tests/test_security_audit_readiness_packet.py"],
+            "artifact_refs": ["generated/read_models/security_audit_readiness_packet.json"],
+            "stable_map_refs": ["openclaw_map_snapshot.security_audit_readiness"],
+            "chief_reconciliation_status": "COMPLETED_WITH_PROOF",
+            "chief_test_harness_required": False,
+            "chief_recommendation": "eligible for quiet-with-proof as read-only surface",
+            "hermes_architecture_review_required": False,
+            "hermes_coherence_status": "aligned",
+            "hermes_recommendation": "keep read-only readiness posture",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_OPERATOR",
+            "trust_clearance_blockers": ["task class execution authority not granted"],
+            "trust_building_detour": "no execution detour; retain read-only proof",
+            "completion_status": "complete_read_only_surface",
+            "cross_off_allowed": True,
+            "next_safe_move": "create completion receipt if tied to an original source task",
+        },
+        "future_invoicing_state_machine_audit": {
+            "worker_report_ref": "future_invoicing_state_machine_audit",
+            "artifact_refs": ["worker-output audit summary"],
+            "stable_map_refs": ["openclaw_map_snapshot.capital_hilton_proof_metadata"],
+            "chief_reconciliation_status": "PARKED_WITH_PROOF",
+            "chief_test_harness_required": True,
+            "chief_recommendation": "park as stress-test artifact; do not implement active invoicing",
+            "hermes_architecture_review_required": True,
+            "hermes_coherence_status": "useful_future_architecture_stress_test",
+            "hermes_recommendation": "extract missing contracts only when Finance/security lane promotes them",
+            "guardian_gate_required": True,
+            "operator_final_decision_required": True,
+            "trust_clearance_status": "NO_TRUST",
+            "trust_clearance_blockers": [
+                "ledger write authority blocked",
+                "email dispatch blocked",
+                "invoice generation blocked",
+                "missing deterministic invoicing contracts",
+            ],
+            "trust_building_detour": "park until invoice math, idempotency, ledger read/write, manual lock, and draft receipt contracts exist",
+            "completion_status": "parked_not_implementation",
+            "cross_off_allowed": False,
+            "park_required": True,
+            "next_safe_move": "Preserve as future Finance/invoicing stress-test reference; do not implement active invoicing.",
+        },
+        "capital_hilton_proof_metadata_packet": {
+            "commit_refs": ["2a9bede", "b0c80f4"],
+            "test_receipt_refs": ["tests/test_capital_hilton_proof_metadata_packet.py"],
+            "artifact_refs": ["generated/read_models/capital_hilton_proof_metadata_packet.json"],
+            "stable_map_refs": ["openclaw_map_snapshot.capital_hilton_proof_metadata"],
+            "chief_reconciliation_status": "COMPLETED_NEEDS_VERIFICATION",
+            "chief_test_harness_required": True,
+            "chief_recommendation": "keep preview; require proof metadata before action",
+            "hermes_architecture_review_required": True,
+            "hermes_coherence_status": "aligned_with_finance_world_helm_boundary",
+            "hermes_recommendation": "maintain preview-only Finance World lane",
+            "guardian_gate_required": True,
+            "operator_final_decision_required": True,
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_GUARDIAN",
+            "trust_clearance_blockers": ["10 missing proof items", "protected proof required", "action authority false"],
+            "trust_building_detour": "link proof metadata and Guardian/Operator gates",
+            "completion_status": "preview_complete_action_blocked",
+            "cross_off_allowed": False,
+            "next_safe_move": "continue as preview/proof lane only",
+        },
+        "agent_council_dossier_surface": {
+            "stable_map_refs": ["openclaw_map_snapshot.agent_council.agent_dossier_cards"],
+            "chief_reconciliation_status": "COMPLETED_WITH_PROOF",
+            "chief_test_harness_required": False,
+            "chief_recommendation": "quiet with proof for preview-only dossier surface",
+            "hermes_architecture_review_required": False,
+            "hermes_coherence_status": "aligned",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_OPERATOR",
+            "trust_clearance_blockers": ["display-only surface; no activation authority"],
+            "trust_building_detour": "none for read-only display",
+            "completion_status": "complete_preview_surface",
+            "cross_off_allowed": True,
+            "next_safe_move": "retain preview boundary",
+        },
+        "package_preview_tool_receipt_surface": {
+            "stable_map_refs": ["openclaw_map_snapshot.package_preview_receipts", "openclaw_map_snapshot.tool_adapter_receipts"],
+            "chief_reconciliation_status": "COMPLETED_WITH_PROOF",
+            "chief_test_harness_required": False,
+            "chief_recommendation": "quiet with proof for preview/proof-detail surface",
+            "hermes_architecture_review_required": False,
+            "hermes_coherence_status": "aligned",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_OPERATOR",
+            "trust_clearance_blockers": ["dispatch/tool/model authority false"],
+            "trust_building_detour": "future action pass if ever needed",
+            "completion_status": "complete_preview_surface",
+            "cross_off_allowed": True,
+            "next_safe_move": "retain preview-only boundary",
+        },
+    }
+    merged = dict(defaults)
+    merged.update(overrides.get(record_id, {}))
+    return merged
+
+
 def _build_worker_output_intake() -> dict[str, Any]:
     future_invoicing = WorkerOutputReceiptIntake(
         worker_output_id="future_invoicing_state_machine_audit",
@@ -927,6 +1181,8 @@ def _build_worker_output_intake() -> dict[str, Any]:
         security_review_required=True,
         next_safe_move="Preserve as future Finance/invoicing stress-test reference; do not implement active invoicing.",
     )
+    future_record = asdict(future_invoicing)
+    future_record.update(_record_reconciliation_extension("future_invoicing_state_machine_audit"))
     return {
         "model_id": "worker_output_intake_v0",
         "description": "Read-only metadata intake for worker outputs; output is not truth by itself.",
@@ -947,7 +1203,7 @@ def _build_worker_output_intake() -> dict[str, Any]:
             "worker_output_must_not_mutate_source_files": True,
             "worker_output_intake_is_metadata_only": True,
         },
-        "records": [asdict(future_invoicing)],
+        "records": [future_record],
         "authority_flags": _authority_flags(),
     }
 
@@ -975,7 +1231,7 @@ def _capability(
     what_keeps_it_inactive: str,
     blocked_actions: list[str],
 ) -> dict[str, Any]:
-    return asdict(
+    record = asdict(
         OrphanedCapabilityCandidate(
             capability_id=capability_id,
             display_name=display_name,
@@ -999,6 +1255,8 @@ def _capability(
             blocked_actions=blocked_actions,
         )
     )
+    record.update(_record_reconciliation_extension(capability_id))
+    return record
 
 
 def _build_orphaned_capability_detection() -> dict[str, Any]:
@@ -1259,6 +1517,340 @@ def _build_orphaned_capability_promotion_decisions(candidates: list[dict[str, An
     }
 
 
+def _build_chief_role() -> dict[str, Any]:
+    return asdict(
+        ChiefReconciliationRole(
+            role_id="chief_reconciliation_role",
+            display_name="Chief Reconciliation Foreman",
+            role_summary=(
+                "Chief is the future lead foreman for cued agentic-loop tasks and outside-the-system built work. "
+                "Chief reconciles work status and trust gaps but cannot self-authorize execution."
+            ),
+            current_authority="metadata_review_reconciliation_recommendation_only",
+            future_authority_condition=(
+                "FULL_TRUST_CLEARANCE plus explicit security-pass approval for the task class and required "
+                "Guardian/Operator gates where applicable"
+            ),
+            can_self_authorize=False,
+            allowed_current_actions=[
+                "track requested/built/tested/verified/parked/rejected/blocked status",
+                "reconcile worker reports against cue items, Markdown/task notes, lanes, receipts, tests, commits, screenshots, and artifacts",
+                "identify orphaned capabilities or completed tasks built but not surfaced",
+                "recommend cross-off, requeue, repair, park, quarantine, or promotion",
+                "explain what prevents FULL_TRUST_CLEARANCE",
+                "define trust-building requirements for future automation",
+            ],
+            blocked_current_actions=[
+                "live execution",
+                "queue execution",
+                "repair execution",
+                "tool execution",
+                "model calls",
+                "agent activation",
+                "self-authorization",
+                "automatic cross-off",
+            ],
+            future_gated_actions=[
+                "test-harness receipt logic",
+                "bounded non-babysat execution after security pass",
+                "requeue/repair execution under queue doctrine",
+            ],
+            reconciliation_responsibilities=[
+                "requested vs built",
+                "tested vs untested",
+                "verified vs reported",
+                "completed vs partial vs failed vs duplicate",
+                "built-not-surfaced capability detection",
+            ],
+            test_harness_responsibilities=[
+                "future Chief Test Harness Receipt requirements",
+                "validation receipt review",
+                "failure triage recommendation",
+            ],
+            trust_gap_responsibilities=[
+                "missing proof",
+                "missing tests",
+                "missing receipts",
+                "unclear source task",
+                "operator ambiguity",
+                "Guardian/Hermes review need",
+            ],
+            operator_babysitting_reduction_goal=(
+                "show the smallest trust-building detour so Winship is not forced to babysit every lane"
+            ),
+        )
+    )
+
+
+def _build_hermes_role() -> dict[str, Any]:
+    return asdict(
+        HermesArchitectureReviewRole(
+            role_id="hermes_architecture_review_role",
+            display_name="Hermes Architecture Review Consultant",
+            role_summary=(
+                "Hermes is the systems-engineer consultant for architecture, quality, coherence, and high-signal "
+                "improvement options. Hermes recommends; Hermes does not execute."
+            ),
+            current_authority="advisory_architecture_review_metadata_only",
+            recommendation_authority="architecture_quality_coherence_candidate_future_gated_or_blocked_recommendations",
+            can_self_authorize=False,
+            allowed_current_actions=[
+                "identify what could be better in built work",
+                "identify what should be built next or later",
+                "detect architecture drift, duplicate systems, hidden coupling, and doctrine conflicts",
+                "recommend high-signal open-source options as advisory candidates",
+                "help define trust gaps that move tasks toward FULL_TRUST_CLEARANCE",
+            ],
+            blocked_current_actions=[
+                "execution authority",
+                "external dependency adoption",
+                "network/API/credential use",
+                "model/tool/agent activation",
+                "self-authorization",
+                "file mutation",
+            ],
+            future_gated_actions=[
+                "architecture approval workflow",
+                "external dependency adoption after review",
+                "implementation handoff after Operator approval",
+            ],
+            architecture_review_responsibilities=[
+                "coherence with North Star",
+                "duplicate system detection",
+                "hidden coupling detection",
+                "slop and drift review",
+                "safe improvement option classification",
+            ],
+            external_dependency_review_requirements=[
+                "source trust review",
+                "license review",
+                "maintenance/activity review",
+                "security risk review",
+                "local compatibility review",
+                "privacy/data-flow review",
+                "Guardian review if sensitive/security-relevant",
+                "Operator approval before adoption",
+                "no network/API/credential use unless later authorized",
+            ],
+            trust_gap_support_responsibilities=[
+                "recommend missing tests/proof",
+                "recommend architecture simplification",
+                "recommend merge/reject/park when a lane overlaps existing capability",
+            ],
+        )
+    )
+
+
+def _build_synergy() -> dict[str, Any]:
+    return {
+        "chief_question": "Was the work done, tested, reconciled, and ready to cross off or requeue?",
+        "hermes_question": "Does this work fit the architecture, improve the system, avoid slop, and point toward the North Star?",
+        "guardian_question": "Is this safe, gated, redacted, quarantined, or blocked?",
+        "operator_question": "Do I approve this direction, authority, and risk?",
+        "decision_order": [
+            "Chief reconciliation",
+            "Hermes architecture review when architecture relevance is high",
+            "Guardian safety gate when sensitive/protected/security-relevant",
+            "Operator final decision where required",
+        ],
+        "conflict_resolution": (
+            "Safety blocks beat architecture preference; Operator final authority beats all non-emergency "
+            "recommendations; unresolved conflict fails closed."
+        ),
+        "operator_final_authority": True,
+    }
+
+
+def _build_trust_clearance_model() -> dict[str, Any]:
+    requirements = [
+        "known task source",
+        "known lane/world/package",
+        "complete proof refs",
+        "authority explicitly granted",
+        "risk class allowed",
+        "required tests passed",
+        "receipts present",
+        "conflict locks clear",
+        "rollback/recovery path defined where relevant",
+        "Chief verification path defined",
+        "Guardian gate satisfied where sensitive/protected/security-relevant",
+        "Operator gate satisfied where required",
+        "no hidden memory/tool/model/account authority",
+        "no unreviewed broad filesystem/private access",
+        "no unresolved ambiguity that changes outcome or risk",
+    ]
+    example = TrustClearanceModel(
+        trust_clearance_status="HIGH_TRUST_NEEDS_OPERATOR",
+        full_trust_clearance_eligible=False,
+        trust_clearance_blockers=[
+            "action authority not granted",
+            "task class security approval not defined",
+            "Operator gate still required for future unattended execution",
+        ],
+        trust_building_detour="Define proof/test/receipt/gate requirements and capture Operator decision.",
+        required_proof_refs=["source task ref", "changed artifact refs", "validation proof refs"],
+        required_tests=["bounded focused tests for task class"],
+        required_receipts=["completion receipt", "Chief verification receipt", "package/tool/model receipts when relevant"],
+        required_gates=["Chief reconciliation", "Hermes if architecture-relevant", "Guardian if sensitive", "Operator where required"],
+        conflict_locks=["no overlapping lane writes", "no unresolved duplicate capability"],
+        rollback_recovery_required=True,
+        operator_babysitting_required=True,
+        future_unattended_execution_eligible=False,
+        action_authority_granted=False,
+    )
+    return {
+        "model_id": "trust_clearance_model_v0",
+        "trust_clearance_states": list(TRUST_CLEARANCE_STATES),
+        "required_fields": list(TRUST_CLEARANCE_REQUIRED_FIELDS),
+        "full_trust_clearance_requirements": requirements,
+        "example_record": asdict(example),
+        "rules": {
+            "full_trust_clearance_is_not_lm_confidence_score": True,
+            "full_trust_clearance_does_not_itself_grant_execution_authority": True,
+            "unattended_execution_requires_full_trust_and_task_class_approval": True,
+            "below_full_trust_tasks_must_not_run_unattended": True,
+            "future_autonomy_eligibility_requires_explicit_security_pass_approval_for_task_class": True,
+        },
+        "authority_flags": _authority_flags(),
+    }
+
+
+def _build_completion_cross_off_rule() -> dict[str, Any]:
+    return {
+        "rule_id": "completion_cross_off_rule_v0",
+        "cross_off_allowed_only_when": [
+            "original task/source ref is known",
+            "changed artifacts are identified",
+            "tests or validation receipts exist",
+            "Chief reconciliation passes or marks sufficient proof",
+            "Hermes review passes if architecture relevance is high",
+            "Guardian gate passes if sensitive/protected/security-relevant",
+            "Operator final decision is captured where required",
+            "trust_clearance_status is sufficient for that task class",
+        ],
+        "cross_off_must_not": [
+            "delete original note",
+            "mutate source Markdown",
+            "remove cue source",
+            "hide evidence",
+            "imply execution authority",
+            "happen automatically in this lane",
+        ],
+        "cross_off_should_create": [
+            "completion receipt",
+            "completion candidate",
+            "quiet-with-proof candidate",
+        ],
+        "automatic_cross_off_allowed": False,
+        "source_markdown_mutation_allowed": False,
+        "authority_flags": _authority_flags(),
+    }
+
+
+def _build_trust_building_detours() -> dict[str, Any]:
+    return {
+        "model_id": "trust_building_detours_v0",
+        "trust_gap_types": [
+            "missing proof",
+            "missing tests",
+            "missing receipt",
+            "unclear source task",
+            "ambiguous operator intent",
+            "architecture review needed",
+            "Guardian/security gate needed",
+            "protected/sensitive material involved",
+            "external dependency risk",
+            "conflict with another lane",
+            "stale terrain/map mismatch",
+            "insufficient rollback/recovery path",
+        ],
+        "smallest_safe_detours": [
+            "add proof ref",
+            "run bounded test",
+            "create receipt",
+            "classify source task",
+            "ask operator one question",
+            "request Hermes architecture review",
+            "request Guardian safety review",
+            "park until dependency exists",
+            "merge with existing lane",
+            "reject as obsolete",
+        ],
+        "below_full_trust_action": "detour_or_operator_assist_or_park_or_block_fail_closed",
+        "operator_babysitting_reduction_goal": (
+            "show the smallest trust-building detour instead of repeatedly asking Winship to supervise undifferentiated work"
+        ),
+        "authority_flags": _authority_flags(),
+    }
+
+
+def _build_example_trust_reconciliation_records() -> list[dict[str, Any]]:
+    return [
+        {
+            "record_id": "markdown_knowledge_atlas",
+            "chief_reconciliation_status": "BUILT_NOT_SURFACED",
+            "chief_summary": "known metadata capability with evidence and SQLite counts",
+            "hermes_summary": "app visibility and integration could be improved later",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_HERMES",
+            "trust_clearance_scope": "high for metadata readback, not execution",
+            "cross_off_allowed": False,
+            "execution_authority_granted": False,
+            "next_safe_move": "consider stable-map/app visibility later without duplicate mapper",
+        },
+        {
+            "record_id": "security_readiness_surface",
+            "chief_reconciliation_status": "COMPLETED_WITH_PROOF",
+            "chief_summary": "app surface built with build/screenshot proof reported",
+            "hermes_summary": "ELIWINSHIP polish passed",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_OPERATOR",
+            "trust_clearance_scope": "high for read-only display",
+            "cross_off_allowed": True,
+            "execution_authority_granted": False,
+            "next_safe_move": "quiet with proof if tied to original task source",
+        },
+        {
+            "record_id": "future_invoicing_state_machine_audit",
+            "chief_reconciliation_status": "PARKED_WITH_PROOF",
+            "chief_summary": "audit captured as blocked stress-test artifact",
+            "hermes_summary": "useful future architecture stress test",
+            "trust_clearance_status": "NO_TRUST",
+            "trust_clearance_scope": "parked, not implementation",
+            "cross_off_allowed": False,
+            "execution_authority_granted": False,
+            "next_safe_move": "preserve future contracts list; do not implement active invoicing",
+        },
+        {
+            "record_id": "capital_hilton_finance_preview",
+            "chief_reconciliation_status": "COMPLETED_NEEDS_VERIFICATION",
+            "chief_summary": "Finance preview exists",
+            "hermes_summary": "architecture aligns with Finance World / Helm boundary",
+            "trust_clearance_status": "HIGH_TRUST_NEEDS_GUARDIAN",
+            "trust_clearance_scope": "preview-only",
+            "cross_off_allowed": False,
+            "execution_authority_granted": False,
+            "next_safe_move": "link protected proof metadata and preserve no-action boundary",
+        },
+    ]
+
+
+def _build_chief_hermes_trust_building_reconciliation() -> dict[str, Any]:
+    return {
+        "model_id": "chief_hermes_trust_building_reconciliation_v0",
+        "core_doctrine": {
+            "chief_hermes_not_permanently_forbidden_future_authority": True,
+            "currently_non_executing_until_deterministic_trust_is_earned": True,
+            "full_trust_clearance_is_deterministic_not_lm_confidence": True,
+            "operator_does_not_want_to_babysit_work": True,
+            "system_should_show_smallest_trust_building_detour": True,
+        },
+        "chief_role": _build_chief_role(),
+        "hermes_role": _build_hermes_role(),
+        "trust_clearance_model": _build_trust_clearance_model(),
+        "example_trust_reconciliation_records": _build_example_trust_reconciliation_records(),
+        "authority_flags": _authority_flags(),
+    }
+
+
 def build_security_pass_contract(
     *,
     repo_root: str | Path = ROOT,
@@ -1280,6 +1872,10 @@ def build_security_pass_contract(
     orphaned_capability_promotion_decisions = _build_orphaned_capability_promotion_decisions(
         orphaned_capability_detection["candidates"]
     )
+    chief_hermes = _build_chief_hermes_trust_building_reconciliation()
+    synergy = _build_synergy()
+    completion_cross_off_rule = _build_completion_cross_off_rule()
+    trust_building_detours = _build_trust_building_detours()
     output_summary = {
         "security_pass_completed": True,
         "security_approval_granted_for_read_only_surfaces": True,
@@ -1287,6 +1883,9 @@ def build_security_pass_contract(
         "security_approval_granted_for_metadata_only_surfaces": True,
         "security_approval_granted_for_worker_output_intake_metadata": True,
         "security_approval_granted_for_orphaned_capability_detection": True,
+        "security_approval_granted_for_chief_reconciliation_metadata": True,
+        "security_approval_granted_for_hermes_architecture_review_metadata": True,
+        "security_approval_granted_for_trust_clearance_modeling": True,
         "security_approval_granted_for_execution": False,
         "action_authority_granted": False,
         "runtime_execution_authority_granted": False,
@@ -1296,20 +1895,25 @@ def build_security_pass_contract(
         "account_authority_granted": False,
         "send_submit_approval_authority_granted": False,
         "automatic_activation_of_detected_capabilities_allowed": False,
+        "automatic_cross_off_allowed": False,
+        "chief_self_authorization_allowed": False,
+        "hermes_self_authorization_allowed": False,
     }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": "security_pass_contract",
         "pass_id": "pass_1_core_security_decisions_authority_boundaries",
         "pass_2_id": "pass_2_worker_output_intake_orphaned_capability_detection",
+        "pass_3_id": "pass_3_chief_hermes_full_trust_clearance",
         "generated_at": generated_at,
         **NO_ACTION_AUTHORITY_FLAGS,
         **output_summary,
-        "contract_status": "deterministic_security_pass_pass_1_plus_pass_2_metadata_only",
+        "contract_status": "deterministic_security_pass_pass_1_plus_pass_2_plus_pass_3_metadata_only",
         "operator_summary": (
             "Security Pass Contract v0 Pass 1 approves the current read-only, preview-only, metadata-only, "
             "proof/detail, stable-map, and world-preview surfaces. Pass 2 approves worker-output intake and "
-            "orphaned capability detection as metadata while keeping every live action authority false."
+            "orphaned capability detection as metadata. Pass 3 approves Chief/Hermes trust-building and "
+            "FULL_TRUST_CLEARANCE modeling while keeping every live action authority false."
         ),
         "core_rule": {
             "security_pass_approval_is_not_action_authority": True,
@@ -1317,6 +1921,10 @@ def build_security_pass_contract(
             "built_thing_is_not_active_because_it_exists": True,
             "built_thing_becomes_active_only_after_receipted_classified_gated_trusted_surfaced": True,
             "worker_output_is_not_truth_by_itself": True,
+            "full_trust_clearance_is_not_lm_confidence": True,
+            "full_trust_clearance_does_not_itself_grant_execution_authority": True,
+            "unattended_execution_requires_full_trust_and_task_class_approval": True,
+            "chief_and_hermes_cannot_self_authorize": True,
             "future_limited_execution_requires_separate_explicit_receipted_authority": True,
         },
         "security_decision_categories": list(SECURITY_DECISION_CATEGORIES),
@@ -1345,12 +1953,16 @@ def build_security_pass_contract(
         "worker_output_intake": worker_output_intake,
         "orphaned_capability_detection": orphaned_capability_detection,
         "orphaned_capability_promotion_decisions": orphaned_capability_promotion_decisions,
+        "chief_hermes_trust_building_reconciliation": chief_hermes,
+        "chief_hermes_guardian_operator_synergy": synergy,
+        "completion_cross_off_rule": completion_cross_off_rule,
+        "trust_building_detours": trust_building_detours,
         "security_pass_output_summary": output_summary,
         "stable_map_integration": {
             "contract_generated_as_read_model": True,
             "summary_included_in_stable_map_now": False,
-            "reason_not_included_now": "Pass 1 + Pass 2 are standalone; stable-map refresh is a separate lane.",
-            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 summary.",
+            "reason_not_included_now": "Pass 1 + Pass 2 + Pass 3 are standalone; stable-map refresh is a separate lane.",
+            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3 summary.",
             "safe_summary_for_next_refresh": {
                 "security_pass_contract_id": "security_pass_contract",
                 "security_pass_completed": True,
@@ -1358,22 +1970,20 @@ def build_security_pass_contract(
                 "preview_surfaces_approved": True,
                 "worker_output_intake_metadata_approved": True,
                 "orphaned_capability_detection_approved": True,
+                "chief_reconciliation_metadata_approved": True,
+                "hermes_architecture_review_metadata_approved": True,
+                "trust_clearance_modeling_approved": True,
                 "action_authority": False,
+                "automatic_cross_off_allowed": False,
                 "capital_hilton_preview_approved": True,
                 "capital_hilton_execution_blocked": True,
                 "markdown_terrain_metadata_approved": True,
                 "broad_markdown_body_blocked": True,
                 "future_invoicing_audit_parked": True,
-                "next_recommended_lane": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
+                "next_recommended_lane": "stable_map_refresh_security_pass_summary",
             },
         },
         "recommended_next_lanes": [
-            {
-                "lane_id": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
-                "title": "Security Pass Contract v0 Pass 3 - Chief/Hermes FULL_TRUST_CLEARANCE",
-                "purpose": "define trust-building and clearance boundaries without granting hidden automation",
-                "boundary": "do not implement in Pass 2; no runtime, queue, or authority grant",
-            },
             {
                 "lane_id": "stable_map_refresh_security_pass_summary",
                 "title": "Stable Map Refresh with Security Pass Summary",
@@ -1392,9 +2002,18 @@ def build_security_pass_contract(
             "preview_surfaces_approved": True,
             "worker_output_intake_metadata_approved": True,
             "orphaned_capability_detection_approved": True,
+            "chief_reconciliation_metadata_approved": True,
+            "hermes_architecture_review_metadata_approved": True,
+            "trust_clearance_modeling_approved": True,
             "worker_output_intake_record_count": len(worker_output_intake["records"]),
             "orphaned_capability_candidate_count": len(orphaned_capability_detection["candidates"]),
             "orphaned_capability_promotion_decision_count": len(orphaned_capability_promotion_decisions["decisions"]),
+            "chief_can_self_authorize": False,
+            "hermes_can_self_authorize": False,
+            "full_trust_clearance_grants_authority_by_itself": False,
+            "unattended_execution_requires_full_trust_and_task_class_approval": True,
+            "below_full_trust_tasks_can_run_unattended": False,
+            "automatic_cross_off_allowed": False,
             "future_invoicing_audit_status": "PARKED",
             "automatic_activation_of_detected_capabilities_allowed": False,
             "surface_decision_count": len(surface_decisions),
@@ -1435,15 +2054,19 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     markdown = payload["markdown_terrain_security_decision"]
     worker = payload["worker_output_intake"]
     orphaned = payload["orphaned_capability_detection"]
+    trust = payload["chief_hermes_trust_building_reconciliation"]
+    chief = trust["chief_role"]
+    hermes = trust["hermes_role"]
+    clearance = trust["trust_clearance_model"]
     future_audit = {record["worker_output_id"]: record for record in worker["records"]}[
         "future_invoicing_state_machine_audit"
     ]
     lines = [
-        "# Security Pass Contract v0 Pass 1 + Pass 2",
+        "# Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3",
         "",
         "## ELIWINSHIP Summary",
         "",
-        "Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. It does not approve live action.",
+        "Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. Pass 3 defines how Chief and Hermes can help build trust without self-authorizing or running anything. It does not approve live action.",
         "",
         "## Approved",
         "",
@@ -1453,7 +2076,11 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
         f"- Metadata-only surfaces approved: `{str(summary['security_approval_granted_for_metadata_only_surfaces']).lower()}`.",
         f"- Worker-output intake metadata approved: `{str(summary['security_approval_granted_for_worker_output_intake_metadata']).lower()}`.",
         f"- Orphaned capability detection approved: `{str(summary['security_approval_granted_for_orphaned_capability_detection']).lower()}`.",
+        f"- Chief reconciliation metadata approved: `{str(summary['security_approval_granted_for_chief_reconciliation_metadata']).lower()}`.",
+        f"- Hermes architecture review metadata approved: `{str(summary['security_approval_granted_for_hermes_architecture_review_metadata']).lower()}`.",
+        f"- Trust-clearance modeling approved: `{str(summary['security_approval_granted_for_trust_clearance_modeling']).lower()}`.",
         f"- Automatic activation of detected capabilities allowed: `{str(summary['automatic_activation_of_detected_capabilities_allowed']).lower()}`.",
+        f"- Automatic cross-off allowed: `{str(summary['automatic_cross_off_allowed']).lower()}`.",
         "",
         "## Still Blocked",
         "",
@@ -1508,6 +2135,38 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             "- Active invoicing remains parked/blocked: no ledger writes, no email dispatch, no Coupa/browser/account/credential authority, no invoice generation, and no send/submit/approval.",
             "- Missing future contracts include deterministic invoice math, idempotency, ledger write/readback receipts, manual lock state, and communication draft receipts.",
             "",
+            "## Chief",
+            "",
+            f"- Current authority: `{chief['current_authority']}`.",
+            f"- Can self-authorize: `{str(chief['can_self_authorize']).lower()}`.",
+            "- Chief can reconcile whether work was requested, built, tested, verified, parked, rejected, duplicated, or still blocked.",
+            "- Chief cannot execute repairs, run queues, run tools, activate agents, or cross items off automatically.",
+            "- Chief should show what prevents FULL_TRUST_CLEARANCE and the smallest trust-building detour.",
+            "",
+            "## Hermes",
+            "",
+            f"- Current authority: `{hermes['current_authority']}`.",
+            f"- Can self-authorize: `{str(hermes['can_self_authorize']).lower()}`.",
+            "- Hermes can advise on architecture quality, coherence, duplicate systems, hidden coupling, and high-signal improvement options.",
+            "- Hermes cannot adopt dependencies, use network/API/credentials, mutate files, or execute implementation.",
+            "- Open-source recommendations are advisory candidates until source, license, maintenance, security, compatibility, privacy, Guardian, and Operator review pass.",
+            "",
+            "## FULL_TRUST_CLEARANCE",
+            "",
+            "- FULL_TRUST_CLEARANCE is deterministic clearance, not an LM confidence score.",
+            "- It does not grant execution authority by itself.",
+            "- Future unattended execution would require FULL_TRUST_CLEARANCE plus explicit security-pass approval for that task class.",
+            f"- Example clearance status: `{clearance['example_record']['trust_clearance_status']}`.",
+            f"- Future unattended execution eligible: `{str(clearance['example_record']['future_unattended_execution_eligible']).lower()}`.",
+            "- Below-threshold tasks detour to proof, tests, receipts, Hermes, Guardian, Operator, park, merge, reject, or fail-closed.",
+            "",
+            "## Cross-Off",
+            "",
+            "- Cross-off is a completion candidate, not source deletion.",
+            "- It must not delete original notes, mutate Markdown, remove cue sources, hide evidence, imply execution authority, or happen automatically.",
+            "- Cross-off should create a completion receipt, completion candidate, or quiet-with-proof candidate.",
+            "- This is how the system can eventually reduce babysitting without hiding what happened.",
+            "",
             "## Agents / Models / Tools",
             "",
             "- Agent/persona display and package preview are approved.",
@@ -1516,7 +2175,6 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Next",
             "",
-            "- Pass 3 should handle Chief/Hermes FULL_TRUST_CLEARANCE.",
             "- A later stable-map refresh should surface this Security Pass summary in Mission Control.",
             "",
             "## Authority Flags",
@@ -1553,6 +2211,9 @@ def export_security_pass_contract(
         preview_surfaces_approved=payload["security_approval_granted_for_preview_surfaces"],
         worker_output_intake_approved=payload["security_approval_granted_for_worker_output_intake_metadata"],
         orphaned_capability_detection_approved=payload["security_approval_granted_for_orphaned_capability_detection"],
+        chief_reconciliation_approved=payload["security_approval_granted_for_chief_reconciliation_metadata"],
+        hermes_architecture_review_approved=payload["security_approval_granted_for_hermes_architecture_review_metadata"],
+        trust_clearance_modeling_approved=payload["security_approval_granted_for_trust_clearance_modeling"],
         worker_output_count=len(payload["worker_output_intake"]["records"]),
         orphaned_capability_count=len(payload["orphaned_capability_detection"]["candidates"]),
         action_authority_granted=payload["action_authority_granted"],
@@ -1561,7 +2222,7 @@ def export_security_pass_contract(
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export the Security Pass Contract v0 Pass 1 + Pass 2 read-model.")
+    parser = argparse.ArgumentParser(description="Export the Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3 read-model.")
     parser.add_argument("--repo-root", default=ROOT.as_posix())
     parser.add_argument("--export-root", default=DEFAULT_EXPORT_ROOT.as_posix())
     parser.add_argument("--format", choices=("summary", "json", "operator"), default="operator")
@@ -1581,6 +2242,9 @@ def main(argv: list[str] | None = None) -> int:
         "preview_surfaces_approved": result.preview_surfaces_approved,
         "worker_output_intake_approved": result.worker_output_intake_approved,
         "orphaned_capability_detection_approved": result.orphaned_capability_detection_approved,
+        "chief_reconciliation_approved": result.chief_reconciliation_approved,
+        "hermes_architecture_review_approved": result.hermes_architecture_review_approved,
+        "trust_clearance_modeling_approved": result.trust_clearance_modeling_approved,
         "worker_output_count": result.worker_output_count,
         "orphaned_capability_count": result.orphaned_capability_count,
         "action_authority_granted": result.action_authority_granted,
@@ -1604,6 +2268,8 @@ __all__ = [
     "SCHEMA_VERSION",
     "SECURITY_DECISION_CATEGORIES",
     "STILL_BLOCKED",
+    "RECONCILIATION_STATES",
+    "TRUST_CLEARANCE_STATES",
     "WORKER_OUTPUT_INTAKE_STATUSES",
     "build_security_pass_contract",
     "export_security_pass_contract",

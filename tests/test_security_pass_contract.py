@@ -115,7 +115,7 @@ def _promotion_decisions(payload: dict) -> dict:
     return {item["capability_id"]: item for item in payload["orphaned_capability_promotion_decisions"]["decisions"]}
 
 
-def test_contract_is_deterministic_and_pass_1_plus_pass_2_metadata_only(tmp_path):
+def test_contract_is_deterministic_and_pass_1_plus_pass_2_plus_pass_3_metadata_only(tmp_path):
     first = _build(tmp_path)
     second = _build(tmp_path)
 
@@ -124,12 +124,15 @@ def test_contract_is_deterministic_and_pass_1_plus_pass_2_metadata_only(tmp_path
     assert first["read_model_id"] == "security_pass_contract"
     assert first["pass_id"] == "pass_1_core_security_decisions_authority_boundaries"
     assert first["pass_2_id"] == "pass_2_worker_output_intake_orphaned_capability_detection"
-    assert first["contract_status"] == "deterministic_security_pass_pass_1_plus_pass_2_metadata_only"
+    assert first["pass_3_id"] == "pass_3_chief_hermes_full_trust_clearance"
+    assert first["contract_status"] == "deterministic_security_pass_pass_1_plus_pass_2_plus_pass_3_metadata_only"
     assert first["machine_proof"]["map_generation_id"] == "map_3cf7a1d5f26147ae993a"
     assert first["machine_proof"]["app_visible_map_current"] is True
     assert first["machine_proof"]["check_transmission_quiet"] is True
     assert first["core_rule"]["built_thing_is_not_active_because_it_exists"] is True
     assert first["core_rule"]["worker_output_is_not_truth_by_itself"] is True
+    assert first["core_rule"]["full_trust_clearance_is_not_lm_confidence"] is True
+    assert first["core_rule"]["chief_and_hermes_cannot_self_authorize"] is True
 
 
 def test_security_pass_output_approves_read_only_and_preview_without_action_authority(tmp_path):
@@ -143,8 +146,14 @@ def test_security_pass_output_approves_read_only_and_preview_without_action_auth
     assert summary["security_approval_granted_for_metadata_only_surfaces"] is True
     assert summary["security_approval_granted_for_worker_output_intake_metadata"] is True
     assert summary["security_approval_granted_for_orphaned_capability_detection"] is True
+    assert summary["security_approval_granted_for_chief_reconciliation_metadata"] is True
+    assert summary["security_approval_granted_for_hermes_architecture_review_metadata"] is True
+    assert summary["security_approval_granted_for_trust_clearance_modeling"] is True
     assert summary["security_approval_granted_for_execution"] is False
     assert summary["automatic_activation_of_detected_capabilities_allowed"] is False
+    assert summary["automatic_cross_off_allowed"] is False
+    assert summary["chief_self_authorization_allowed"] is False
+    assert summary["hermes_self_authorization_allowed"] is False
     assert payload["action_authority_granted"] is False
     assert payload["runtime_execution_authority_granted"] is False
     assert payload["tool_execution_authority_granted"] is False
@@ -204,6 +213,9 @@ def test_decision_categories_schema_and_global_authority_matrix_are_explicit(tmp
         "automatic promotion",
         "automatic queueing",
         "automatic activation of detected capabilities",
+        "automatic crossing off",
+        "Chief/Hermes self-authorization",
+        "external dependency adoption without review",
         "C-drive artifact writes",
     ]:
         assert blocked in matrix["still_blocked"]
@@ -424,6 +436,183 @@ def test_future_invoicing_audit_does_not_authorize_finance_execution(tmp_path):
     assert payload["machine_proof"]["future_invoicing_audit_does_not_authorize_email_dispatch"] is True
 
 
+def test_chief_and_hermes_roles_are_metadata_only_and_cannot_self_authorize(tmp_path):
+    payload = _build(tmp_path)
+    trust = payload["chief_hermes_trust_building_reconciliation"]
+    chief = trust["chief_role"]
+    hermes = trust["hermes_role"]
+
+    assert trust["core_doctrine"]["currently_non_executing_until_deterministic_trust_is_earned"] is True
+    assert trust["core_doctrine"]["full_trust_clearance_is_deterministic_not_lm_confidence"] is True
+    assert chief["role_id"] == "chief_reconciliation_role"
+    assert chief["can_self_authorize"] is False
+    assert chief["current_authority"] == "metadata_review_reconciliation_recommendation_only"
+    for blocked in ["live execution", "queue execution", "repair execution", "tool execution", "self-authorization", "automatic cross-off"]:
+        assert blocked in chief["blocked_current_actions"]
+    assert "explain what prevents FULL_TRUST_CLEARANCE" in chief["allowed_current_actions"]
+    assert hermes["role_id"] == "hermes_architecture_review_role"
+    assert hermes["can_self_authorize"] is False
+    assert hermes["current_authority"] == "advisory_architecture_review_metadata_only"
+    for blocked in ["execution authority", "external dependency adoption", "network/API/credential use", "self-authorization", "file mutation"]:
+        assert blocked in hermes["blocked_current_actions"]
+    for requirement in [
+        "source trust review",
+        "license review",
+        "maintenance/activity review",
+        "security risk review",
+        "Operator approval before adoption",
+        "no network/API/credential use unless later authorized",
+    ]:
+        assert requirement in hermes["external_dependency_review_requirements"]
+    assert payload["machine_proof"]["chief_reconciliation_metadata_approved"] is True
+    assert payload["machine_proof"]["hermes_architecture_review_metadata_approved"] is True
+    assert payload["machine_proof"]["chief_can_self_authorize"] is False
+    assert payload["machine_proof"]["hermes_can_self_authorize"] is False
+
+
+def test_chief_hermes_guardian_operator_synergy_order_and_operator_final_authority(tmp_path):
+    synergy = _build(tmp_path)["chief_hermes_guardian_operator_synergy"]
+
+    assert synergy["chief_question"] == "Was the work done, tested, reconciled, and ready to cross off or requeue?"
+    assert synergy["hermes_question"] == "Does this work fit the architecture, improve the system, avoid slop, and point toward the North Star?"
+    assert synergy["guardian_question"] == "Is this safe, gated, redacted, quarantined, or blocked?"
+    assert synergy["operator_question"] == "Do I approve this direction, authority, and risk?"
+    assert synergy["decision_order"] == [
+        "Chief reconciliation",
+        "Hermes architecture review when architecture relevance is high",
+        "Guardian safety gate when sensitive/protected/security-relevant",
+        "Operator final decision where required",
+    ]
+    assert synergy["operator_final_authority"] is True
+
+
+def test_full_trust_clearance_model_does_not_grant_authority_by_itself(tmp_path):
+    payload = _build(tmp_path)
+    model = payload["chief_hermes_trust_building_reconciliation"]["trust_clearance_model"]
+    example = model["example_record"]
+
+    assert model["trust_clearance_states"] == list(contract.TRUST_CLEARANCE_STATES)
+    for field in contract.TRUST_CLEARANCE_REQUIRED_FIELDS:
+        assert field in model["required_fields"]
+    assert "FULL_TRUST_CLEARANCE" in model["trust_clearance_states"]
+    assert model["rules"]["full_trust_clearance_is_not_lm_confidence_score"] is True
+    assert model["rules"]["full_trust_clearance_does_not_itself_grant_execution_authority"] is True
+    assert model["rules"]["unattended_execution_requires_full_trust_and_task_class_approval"] is True
+    assert model["rules"]["below_full_trust_tasks_must_not_run_unattended"] is True
+    assert example["trust_clearance_status"] == "HIGH_TRUST_NEEDS_OPERATOR"
+    assert example["full_trust_clearance_eligible"] is False
+    assert example["future_unattended_execution_eligible"] is False
+    assert example["action_authority_granted"] is False
+    assert payload["machine_proof"]["full_trust_clearance_grants_authority_by_itself"] is False
+    assert payload["machine_proof"]["unattended_execution_requires_full_trust_and_task_class_approval"] is True
+    assert payload["machine_proof"]["below_full_trust_tasks_can_run_unattended"] is False
+    assert payload["machine_proof"]["trust_clearance_modeling_approved"] is True
+
+
+def test_worker_and_orphan_records_include_reconciliation_trust_extensions(tmp_path):
+    payload = _build(tmp_path)
+    audit = _worker_outputs(payload)["future_invoicing_state_machine_audit"]
+    capabilities = _capabilities(payload)
+
+    for record in [audit, capabilities["markdown_knowledge_atlas"], capabilities["capital_hilton_proof_metadata_packet"]]:
+        for field in [
+            "chief_reconciliation_status",
+            "chief_test_harness_required",
+            "chief_recommendation",
+            "hermes_architecture_review_required",
+            "hermes_coherence_status",
+            "hermes_recommendation",
+            "guardian_gate_required",
+            "operator_final_decision_required",
+            "trust_clearance_status",
+            "trust_clearance_blockers",
+            "trust_building_detour",
+            "full_trust_clearance_eligible",
+            "completion_status",
+            "cross_off_allowed",
+            "requeue_required",
+            "park_required",
+            "quarantine_required",
+        ]:
+            assert field in record
+    assert audit["chief_reconciliation_status"] == "PARKED_WITH_PROOF"
+    assert audit["trust_clearance_status"] == "NO_TRUST"
+    assert audit["cross_off_allowed"] is False
+    assert audit["park_required"] is True
+    assert capabilities["markdown_knowledge_atlas"]["chief_reconciliation_status"] == "BUILT_NOT_SURFACED"
+    assert capabilities["markdown_knowledge_atlas"]["trust_clearance_status"] == "HIGH_TRUST_NEEDS_HERMES"
+    assert capabilities["capital_hilton_proof_metadata_packet"]["guardian_gate_required"] is True
+
+
+def test_completion_cross_off_rule_never_deletes_or_mutates_source_items(tmp_path):
+    rule = _build(tmp_path)["completion_cross_off_rule"]
+
+    assert "original task/source ref is known" in rule["cross_off_allowed_only_when"]
+    assert "Chief reconciliation passes or marks sufficient proof" in rule["cross_off_allowed_only_when"]
+    assert "delete original note" in rule["cross_off_must_not"]
+    assert "mutate source Markdown" in rule["cross_off_must_not"]
+    assert "remove cue source" in rule["cross_off_must_not"]
+    assert "hide evidence" in rule["cross_off_must_not"]
+    assert "happen automatically in this lane" in rule["cross_off_must_not"]
+    assert "completion receipt" in rule["cross_off_should_create"]
+    assert rule["automatic_cross_off_allowed"] is False
+    assert rule["source_markdown_mutation_allowed"] is False
+
+
+def test_trust_building_detours_cover_required_trust_gaps(tmp_path):
+    detours = _build(tmp_path)["trust_building_detours"]
+
+    for gap in [
+        "missing proof",
+        "missing tests",
+        "missing receipt",
+        "unclear source task",
+        "ambiguous operator intent",
+        "architecture review needed",
+        "Guardian/security gate needed",
+        "protected/sensitive material involved",
+        "external dependency risk",
+        "conflict with another lane",
+        "stale terrain/map mismatch",
+        "insufficient rollback/recovery path",
+    ]:
+        assert gap in detours["trust_gap_types"]
+    for detour in [
+        "add proof ref",
+        "run bounded test",
+        "create receipt",
+        "classify source task",
+        "ask operator one question",
+        "request Hermes architecture review",
+        "request Guardian safety review",
+        "park until dependency exists",
+        "merge with existing lane",
+        "reject as obsolete",
+    ]:
+        assert detour in detours["smallest_safe_detours"]
+    assert detours["below_full_trust_action"] == "detour_or_operator_assist_or_park_or_block_fail_closed"
+
+
+def test_example_trust_reconciliation_records_cover_required_examples(tmp_path):
+    records = {
+        item["record_id"]: item
+        for item in _build(tmp_path)["chief_hermes_trust_building_reconciliation"]["example_trust_reconciliation_records"]
+    }
+
+    assert set(records) == {
+        "markdown_knowledge_atlas",
+        "security_readiness_surface",
+        "future_invoicing_state_machine_audit",
+        "capital_hilton_finance_preview",
+    }
+    assert records["markdown_knowledge_atlas"]["trust_clearance_scope"] == "high for metadata readback, not execution"
+    assert records["security_readiness_surface"]["trust_clearance_scope"] == "high for read-only display"
+    assert records["future_invoicing_state_machine_audit"]["trust_clearance_status"] == "NO_TRUST"
+    assert records["future_invoicing_state_machine_audit"]["execution_authority_granted"] is False
+    assert records["capital_hilton_finance_preview"]["trust_clearance_scope"] == "preview-only"
+    assert records["capital_hilton_finance_preview"]["execution_authority_granted"] is False
+
+
 def test_agent_model_tool_decision_allows_display_but_blocks_activation_and_adapters(tmp_path):
     payload = _build(tmp_path)
     actors = _actors(payload)
@@ -462,20 +651,24 @@ def test_stable_map_integration_is_next_refresh_not_this_contract_lane(tmp_path)
 
     assert stable["contract_generated_as_read_model"] is True
     assert stable["summary_included_in_stable_map_now"] is False
-    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 summary."
+    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3 summary."
     assert safe["security_pass_contract_id"] == "security_pass_contract"
     assert safe["security_pass_completed"] is True
     assert safe["read_only_surfaces_approved"] is True
     assert safe["preview_surfaces_approved"] is True
     assert safe["worker_output_intake_metadata_approved"] is True
     assert safe["orphaned_capability_detection_approved"] is True
+    assert safe["chief_reconciliation_metadata_approved"] is True
+    assert safe["hermes_architecture_review_metadata_approved"] is True
+    assert safe["trust_clearance_modeling_approved"] is True
     assert safe["action_authority"] is False
+    assert safe["automatic_cross_off_allowed"] is False
     assert safe["capital_hilton_preview_approved"] is True
     assert safe["capital_hilton_execution_blocked"] is True
     assert safe["markdown_terrain_metadata_approved"] is True
     assert safe["broad_markdown_body_blocked"] is True
     assert safe["future_invoicing_audit_parked"] is True
-    assert safe["next_recommended_lane"] == "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance"
+    assert safe["next_recommended_lane"] == "stable_map_refresh_security_pass_summary"
 
 
 def test_export_script_writes_json_and_operator_outputs(tmp_path, capsys):
@@ -492,6 +685,9 @@ def test_export_script_writes_json_and_operator_outputs(tmp_path, capsys):
     assert summary["preview_surfaces_approved"] is True
     assert summary["worker_output_intake_approved"] is True
     assert summary["orphaned_capability_detection_approved"] is True
+    assert summary["chief_reconciliation_approved"] is True
+    assert summary["hermes_architecture_review_approved"] is True
+    assert summary["trust_clearance_modeling_approved"] is True
     assert summary["worker_output_count"] == 1
     assert summary["orphaned_capability_count"] == 7
     assert summary["action_authority_granted"] is False
@@ -500,10 +696,13 @@ def test_export_script_writes_json_and_operator_outputs(tmp_path, capsys):
     operator = (export_root / contract.OPERATOR_EXPORT_NAME).read_text(encoding="utf-8")
     assert payload["read_model_id"] == "security_pass_contract"
     assert payload["machine_proof"]["content_hash"].startswith("sha256:")
-    assert "Security Pass Contract v0 Pass 1 + Pass 2" in operator
+    assert "Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3" in operator
     assert "ELIWINSHIP" in operator
     assert "Worker Output Intake" in operator
     assert "Future Invoicing Audit" in operator
+    assert "FULL_TRUST_CLEARANCE" in operator
+    assert "Chief" in operator
+    assert "Hermes" in operator
 
 
 def test_generated_outputs_are_safe_canonical_read_model_files(tmp_path, capsys):

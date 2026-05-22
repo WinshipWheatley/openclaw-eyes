@@ -1,8 +1,8 @@
-# Security Pass Contract v0 Pass 1 + Pass 2
+# Security Pass Contract v0 Pass 1 + Pass 2 + Pass 3
 
 ## ELIWINSHIP Summary
 
-Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. It does not approve live action.
+Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. Pass 3 defines how Chief and Hermes can help build trust without self-authorizing or running anything. It does not approve live action.
 
 ## Approved
 
@@ -12,7 +12,11 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - Metadata-only surfaces approved: `true`.
 - Worker-output intake metadata approved: `true`.
 - Orphaned capability detection approved: `true`.
+- Chief reconciliation metadata approved: `true`.
+- Hermes architecture review metadata approved: `true`.
+- Trust-clearance modeling approved: `true`.
 - Automatic activation of detected capabilities allowed: `false`.
+- Automatic cross-off allowed: `false`.
 
 ## Still Blocked
 
@@ -45,7 +49,10 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - automatic promotion
 - automatic queueing
 - automatic activation of detected capabilities
+- automatic crossing off
 - automatic world transition
+- Chief/Hermes self-authorization
+- external dependency adoption without review
 - C-drive artifact writes
 
 ## Helm Meaning
@@ -94,6 +101,38 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - Active invoicing remains parked/blocked: no ledger writes, no email dispatch, no Coupa/browser/account/credential authority, no invoice generation, and no send/submit/approval.
 - Missing future contracts include deterministic invoice math, idempotency, ledger write/readback receipts, manual lock state, and communication draft receipts.
 
+## Chief
+
+- Current authority: `metadata_review_reconciliation_recommendation_only`.
+- Can self-authorize: `false`.
+- Chief can reconcile whether work was requested, built, tested, verified, parked, rejected, duplicated, or still blocked.
+- Chief cannot execute repairs, run queues, run tools, activate agents, or cross items off automatically.
+- Chief should show what prevents FULL_TRUST_CLEARANCE and the smallest trust-building detour.
+
+## Hermes
+
+- Current authority: `advisory_architecture_review_metadata_only`.
+- Can self-authorize: `false`.
+- Hermes can advise on architecture quality, coherence, duplicate systems, hidden coupling, and high-signal improvement options.
+- Hermes cannot adopt dependencies, use network/API/credentials, mutate files, or execute implementation.
+- Open-source recommendations are advisory candidates until source, license, maintenance, security, compatibility, privacy, Guardian, and Operator review pass.
+
+## FULL_TRUST_CLEARANCE
+
+- FULL_TRUST_CLEARANCE is deterministic clearance, not an LM confidence score.
+- It does not grant execution authority by itself.
+- Future unattended execution would require FULL_TRUST_CLEARANCE plus explicit security-pass approval for that task class.
+- Example clearance status: `HIGH_TRUST_NEEDS_OPERATOR`.
+- Future unattended execution eligible: `false`.
+- Below-threshold tasks detour to proof, tests, receipts, Hermes, Guardian, Operator, park, merge, reject, or fail-closed.
+
+## Cross-Off
+
+- Cross-off is a completion candidate, not source deletion.
+- It must not delete original notes, mutate Markdown, remove cue sources, hide evidence, imply execution authority, or happen automatically.
+- Cross-off should create a completion receipt, completion candidate, or quiet-with-proof candidate.
+- This is how the system can eventually reduce babysitting without hiding what happened.
+
 ## Agents / Models / Tools
 
 - Agent/persona display and package preview are approved.
@@ -102,7 +141,6 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 
 ## Next
 
-- Pass 3 should handle Chief/Hermes FULL_TRUST_CLEARANCE.
 - A later stable-map refresh should surface this Security Pass summary in Mission Control.
 
 ## Authority Flags
@@ -137,7 +175,11 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - `automatic_promotion_allowed` = `False`
 - `automatic_queueing_allowed` = `False`
 - `automatic_activation_of_detected_capabilities_allowed` = `False`
+- `automatic_cross_off_allowed` = `False`
 - `automatic_world_transition_allowed` = `False`
+- `chief_self_authorization_allowed` = `False`
+- `hermes_self_authorization_allowed` = `False`
+- `external_dependency_adoption_allowed` = `False`
 - `pc_c_drive_artifact_write_allowed` = `False`
 - `action_authority_granted` = `False`
 - `runtime_execution_authority_granted` = `False`
