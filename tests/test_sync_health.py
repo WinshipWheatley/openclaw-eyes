@@ -132,6 +132,29 @@ def _write_security_ready_map_bundle(
                     "coverage_gap_summary": {"coverage_gap_records_count": 5},
                     "parked_breadcrumb_summary": {"parked_breadcrumb_count": 15},
                 },
+                "security_pass": {
+                    "present": True,
+                    "security_pass_completed": True,
+                    "read_only_surfaces_approved": True,
+                    "preview_surfaces_approved": True,
+                    "action_authority_granted": False,
+                    "runtime_execution_authority_granted": False,
+                    "model_execution_authority_granted": False,
+                    "tool_execution_authority_granted": False,
+                    "queue_execution_authority_granted": False,
+                    "account_authority_granted": False,
+                    "send_submit_approval_authority_granted": False,
+                    "all_live_authority_false": True,
+                    "worker_output_orphaned_capability_summary": {
+                        "worker_output_intake_metadata_approved": True,
+                        "orphaned_capability_detection_approved": True,
+                    },
+                    "chief_hermes_trust_summary": {
+                        "chief_reconciliation_metadata_approved": True,
+                        "hermes_architecture_review_metadata_approved": True,
+                        "trust_clearance_modeling_approved": True,
+                    },
+                },
                 "capital_hilton_proof_metadata": {
                     "present": True,
                     "current_phase": "HELM_THRESHOLD_LANE",
@@ -1159,6 +1182,98 @@ def test_security_audit_readiness_map_receipt_is_accepted_as_current(tmp_path):
     assert app_status["operator_action_required"] is False
     assert app_status["recommended_fix"] == "none"
     assert receipt_status["security_audit_receipt_validation_passed"] is True
+    assert receipt_status["receipt_matches_pc_bundle"] is True
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
+def test_security_pass_map_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_security_ready_map_bundle(
+        read_models,
+        generation_id="map_6f1dc51e52ab0c5778d8",
+        bundle_hash="sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22",
+    )
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "schema_version": "openclaw_map_receipt_v0",
+                "receipt_status": "SUCCESS",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_6f1dc51e52ab0c5778d8",
+                "bundle_hash": "sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "security_pass_present": True,
+                "security_pass_completed": True,
+                "read_only_surfaces_approved": True,
+                "preview_surfaces_approved": True,
+                "action_authority_granted": False,
+                "runtime_execution_authority_granted": False,
+                "model_execution_authority_granted": False,
+                "tool_execution_authority_granted": False,
+                "queue_execution_authority_granted": False,
+                "account_authority_granted": False,
+                "send_submit_approval_authority_granted": False,
+                "worker_output_intake_summary_present": True,
+                "orphaned_capability_summary_present": True,
+                "chief_hermes_trust_summary_present": True,
+                "capital_hilton_summary_present": True,
+                "markdown_terrain_summary_present": True,
+                "security_audit_readiness_present": True,
+                "package_preview_summary_present": True,
+                "tool_adapter_receipt_summary_present": True,
+                "agent_council_present": True,
+                "agent_council_card_count": 12,
+                "all_live_authority_flags_false": True,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["security_pass_present"] is True
+    assert app_status["security_pass_completed"] is True
+    assert app_status["read_only_surfaces_approved"] is True
+    assert app_status["preview_surfaces_approved"] is True
+    assert app_status["security_pass_action_authority_granted"] is False
+    assert app_status["worker_output_intake_summary_present"] is True
+    assert app_status["orphaned_capability_summary_present"] is True
+    assert app_status["chief_hermes_trust_summary_present"] is True
+    assert app_status["capital_hilton_summary_present"] is True
+    assert app_status["security_audit_readiness_present"] is True
+    assert app_status["package_preview_summary_present"] is True
+    assert app_status["tool_adapter_receipt_summary_present"] is True
+    assert app_status["agent_council_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["all_live_authority_flags_false"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["security_pass_receipt_validation_passed"] is True
     assert receipt_status["receipt_matches_pc_bundle"] is True
     assert receipt_status["pc_readback_imported"] is True
     assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False

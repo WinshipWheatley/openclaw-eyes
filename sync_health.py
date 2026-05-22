@@ -363,6 +363,21 @@ def _map_snapshot_surface_status(
         if isinstance(snapshot.get("security_audit_readiness"), dict)
         else {}
     )
+    security_pass = (
+        snapshot.get("security_pass")
+        if isinstance(snapshot.get("security_pass"), dict)
+        else {}
+    )
+    worker_orphan_summary = (
+        security_pass.get("worker_output_orphaned_capability_summary")
+        if isinstance(security_pass.get("worker_output_orphaned_capability_summary"), dict)
+        else {}
+    )
+    chief_hermes_summary = (
+        security_pass.get("chief_hermes_trust_summary")
+        if isinstance(security_pass.get("chief_hermes_trust_summary"), dict)
+        else {}
+    )
     coverage_gap_summary = (
         security_audit.get("coverage_gap_summary")
         if isinstance(security_audit.get("coverage_gap_summary"), dict)
@@ -521,6 +536,34 @@ def _map_snapshot_surface_status(
             and security_audit.get("zero_execution_authority_leaked") is True
             and security_audit.get("security_approval_granted") is False
             and security_audit.get("action_authority_granted") is False
+        ),
+        "security_pass_present": bool(security_pass.get("present") is True or security_pass),
+        "security_pass_completed": bool(security_pass.get("security_pass_completed") is True),
+        "read_only_surfaces_approved": bool(security_pass.get("read_only_surfaces_approved") is True),
+        "preview_surfaces_approved": bool(security_pass.get("preview_surfaces_approved") is True),
+        "security_pass_action_authority_granted": bool(
+            security_pass.get("action_authority_granted") is True
+        ),
+        "worker_output_intake_summary_present": bool(
+            worker_orphan_summary.get("worker_output_intake_metadata_approved") is True
+        ),
+        "orphaned_capability_summary_present": bool(
+            worker_orphan_summary.get("orphaned_capability_detection_approved") is True
+        ),
+        "chief_hermes_trust_summary_present": bool(
+            chief_hermes_summary.get("chief_reconciliation_metadata_approved") is True
+            and chief_hermes_summary.get("hermes_architecture_review_metadata_approved") is True
+            and chief_hermes_summary.get("trust_clearance_modeling_approved") is True
+        ),
+        "security_pass_all_live_authority_flags_false": bool(
+            security_pass.get("all_live_authority_false") is True
+            and security_pass.get("action_authority_granted") is False
+            and security_pass.get("runtime_execution_authority_granted") is False
+            and security_pass.get("model_execution_authority_granted") is False
+            and security_pass.get("tool_execution_authority_granted") is False
+            and security_pass.get("queue_execution_authority_granted") is False
+            and security_pass.get("account_authority_granted") is False
+            and security_pass.get("send_submit_approval_authority_granted") is False
         ),
     }
 
@@ -891,10 +934,7 @@ def _capital_hilton_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     operator_questions_count = _int_field("capital_hilton_operator_questions_count")
     authority_flags_false = _bool_field("capital_hilton_authority_flags_false")
     summary_present = _bool_field("capital_hilton_summary_present")
-    has_capital_hilton_fields = any(
-        key in receipt
-        for key in {
-            "capital_hilton_summary_present",
+    detailed_capital_hilton_fields = {
             "capital_hilton_current_phase",
             "capital_hilton_target_world",
             "capital_hilton_lane_destiny",
@@ -904,9 +944,20 @@ def _capital_hilton_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             "capital_hilton_operator_questions_count",
             "capital_hilton_authority_flags_false",
         }
+    receipt_sources = (receipt, validation_details)
+    has_capital_hilton_fields = any(
+        key in source
+        for source in receipt_sources
+        for key in {"capital_hilton_summary_present", *detailed_capital_hilton_fields}
+    )
+    has_detailed_capital_hilton_fields = any(
+        key in source
+        for source in receipt_sources
+        for key in detailed_capital_hilton_fields
     )
     validation_passed = bool(
         not has_capital_hilton_fields
+        or (summary_present and not has_detailed_capital_hilton_fields)
         or (
             summary_present
             and current_phase == "HELM_THRESHOLD_LANE"
@@ -958,6 +1009,12 @@ def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     def _bool_false(name: str) -> bool:
         return any(source.get(name) is False for source in (receipt, validation_details, observed))
 
+    detailed_security_fields = {
+        "ready_for_security_pass",
+        "coverage_gap_records_count",
+        "parked_breadcrumb_count",
+        "capital_hilton_security_readiness_present",
+    }
     has_security_fields = any(
         key in source
         for source in (receipt, validation_details, observed)
@@ -971,6 +1028,11 @@ def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             "capital_hilton_security_readiness_present",
             "all_live_authority_flags_false",
         }
+    )
+    has_detailed_security_fields = any(
+        key in source
+        for source in (receipt, validation_details, observed)
+        for key in detailed_security_fields
     )
     security_present = _bool_true("security_audit_readiness_present")
     ready_for_security_pass = _bool_true("ready_for_security_pass")
@@ -988,6 +1050,13 @@ def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     )
     validation_passed = bool(
         not has_security_fields
+        or (
+            security_present
+            and not has_detailed_security_fields
+            and _bool_false("action_authority_granted")
+            and not action_authority_granted
+            and all_live_authority_flags_false
+        )
         or (
             security_present
             and ready_for_security_pass
@@ -1012,6 +1081,89 @@ def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
         "all_live_authority_flags_false": all_live_authority_flags_false,
         "security_audit_receipt_fields_present": has_security_fields,
         "security_audit_receipt_validation_passed": validation_passed,
+    }
+
+
+def _security_pass_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
+    sources = (receipt, validation_details, observed)
+
+    def _bool_true(*names: str) -> bool:
+        return any(source.get(name) is True for name in names for source in sources)
+
+    def _bool_false(name: str) -> bool:
+        return any(source.get(name) is False for source in sources)
+
+    has_security_pass_fields = any(
+        key in source
+        for source in sources
+        for key in {
+            "security_pass_present",
+            "security_pass_completed",
+            "read_only_surfaces_approved",
+            "preview_surfaces_approved",
+            "worker_output_intake_summary_present",
+            "orphaned_capability_summary_present",
+            "chief_hermes_trust_summary_present",
+        }
+    )
+    security_pass_present = _bool_true("security_pass_present")
+    security_pass_completed = _bool_true("security_pass_completed")
+    read_only_surfaces_approved = _bool_true("read_only_surfaces_approved")
+    preview_surfaces_approved = _bool_true("preview_surfaces_approved")
+    action_authority_granted = _bool_true("action_authority_granted")
+    worker_output_intake_summary_present = _bool_true("worker_output_intake_summary_present")
+    orphaned_capability_summary_present = _bool_true("orphaned_capability_summary_present")
+    chief_hermes_trust_summary_present = _bool_true("chief_hermes_trust_summary_present")
+    all_live_authority_flags_false = _bool_true(
+        "all_live_authority_flags_false",
+        "live_authority_flags_false",
+        "no_live_execution_authority",
+    )
+    runtime_execution_authority_granted = _bool_true("runtime_execution_authority_granted")
+    model_execution_authority_granted = _bool_true("model_execution_authority_granted")
+    tool_execution_authority_granted = _bool_true("tool_execution_authority_granted")
+    queue_execution_authority_granted = _bool_true("queue_execution_authority_granted")
+    account_authority_granted = _bool_true("account_authority_granted")
+    send_submit_approval_authority_granted = _bool_true("send_submit_approval_authority_granted")
+    validation_passed = bool(
+        not has_security_pass_fields
+        or (
+            security_pass_present
+            and security_pass_completed
+            and read_only_surfaces_approved
+            and preview_surfaces_approved
+            and _bool_false("action_authority_granted")
+            and not action_authority_granted
+            and worker_output_intake_summary_present
+            and orphaned_capability_summary_present
+            and chief_hermes_trust_summary_present
+            and all_live_authority_flags_false
+            and not runtime_execution_authority_granted
+            and not model_execution_authority_granted
+            and not tool_execution_authority_granted
+            and not queue_execution_authority_granted
+            and not account_authority_granted
+            and not send_submit_approval_authority_granted
+        )
+    )
+    return {
+        "security_pass_present": security_pass_present,
+        "security_pass_completed": security_pass_completed,
+        "read_only_surfaces_approved": read_only_surfaces_approved,
+        "preview_surfaces_approved": preview_surfaces_approved,
+        "security_pass_action_authority_granted": action_authority_granted,
+        "worker_output_intake_summary_present": worker_output_intake_summary_present,
+        "orphaned_capability_summary_present": orphaned_capability_summary_present,
+        "chief_hermes_trust_summary_present": chief_hermes_trust_summary_present,
+        "security_pass_all_live_authority_flags_false": all_live_authority_flags_false,
+        "security_pass_receipt_fields_present": has_security_pass_fields,
+        "security_pass_receipt_validation_passed": validation_passed,
     }
 
 
@@ -1049,6 +1201,7 @@ def build_receipt_status(
     receipt_surfaces = _receipt_surface_status(receipt)
     capital_hilton = _capital_hilton_receipt_status(receipt)
     security_audit = _security_audit_receipt_status(receipt)
+    security_pass = _security_pass_receipt_status(receipt)
     status_imported = receipt_status_value in (
         None,
         "imported",
@@ -1069,6 +1222,7 @@ def build_receipt_status(
         and receipt_surfaces["package_tool_receipt_validation_passed"]
         and capital_hilton["capital_hilton_receipt_validation_passed"]
         and security_audit["security_audit_receipt_validation_passed"]
+        and security_pass["security_pass_receipt_validation_passed"]
     )
     return {
         "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
@@ -1101,6 +1255,7 @@ def build_receipt_status(
         **receipt_surfaces,
         **capital_hilton,
         **security_audit,
+        **security_pass,
     }
 
 
@@ -1301,8 +1456,38 @@ def build_app_visible_map_status(
             receipt["capital_hilton_security_readiness_present"]
             or pc_surface["capital_hilton_security_readiness_present"]
         ),
+        "security_pass_present": bool(
+            receipt["security_pass_present"] or pc_surface["security_pass_present"]
+        ),
+        "security_pass_completed": bool(
+            receipt["security_pass_completed"] or pc_surface["security_pass_completed"]
+        ),
+        "read_only_surfaces_approved": bool(
+            receipt["read_only_surfaces_approved"] or pc_surface["read_only_surfaces_approved"]
+        ),
+        "preview_surfaces_approved": bool(
+            receipt["preview_surfaces_approved"] or pc_surface["preview_surfaces_approved"]
+        ),
+        "security_pass_action_authority_granted": bool(
+            receipt["security_pass_action_authority_granted"]
+            or pc_surface["security_pass_action_authority_granted"]
+        ),
+        "worker_output_intake_summary_present": bool(
+            receipt["worker_output_intake_summary_present"]
+            or pc_surface["worker_output_intake_summary_present"]
+        ),
+        "orphaned_capability_summary_present": bool(
+            receipt["orphaned_capability_summary_present"]
+            or pc_surface["orphaned_capability_summary_present"]
+        ),
+        "chief_hermes_trust_summary_present": bool(
+            receipt["chief_hermes_trust_summary_present"]
+            or pc_surface["chief_hermes_trust_summary_present"]
+        ),
         "all_live_authority_flags_false": bool(
             receipt["all_live_authority_flags_false"]
+            or receipt["security_pass_all_live_authority_flags_false"]
+            or pc_surface["security_pass_all_live_authority_flags_false"]
             or pc_surface["security_all_authority_flags_false"]
             or pc_surface["no_live_execution_authority"]
         ),
@@ -2376,6 +2561,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- capital_hilton_authority_flags_false: `{str(map_status.get('capital_hilton_authority_flags_false')).lower()}`",
         f"- security_audit_readiness: `{str(map_status.get('security_audit_readiness_present')).lower()}` ready_for_pass=`{str(map_status.get('ready_for_security_pass')).lower()}` approval=`{str(map_status.get('security_approval_granted')).lower()}` action_authority=`{str(map_status.get('action_authority_granted')).lower()}`",
         f"- security_coverage_gaps: `{map_status.get('coverage_gap_records_count')}` parked_breadcrumbs=`{map_status.get('parked_breadcrumb_count')}`",
+        f"- security_pass: `{str(map_status.get('security_pass_present')).lower()}` completed=`{str(map_status.get('security_pass_completed')).lower()}` read_only=`{str(map_status.get('read_only_surfaces_approved')).lower()}` preview=`{str(map_status.get('preview_surfaces_approved')).lower()}` action_authority=`{str(map_status.get('security_pass_action_authority_granted')).lower()}`",
+        f"- security_pass_worker_orphan_chief_hermes: worker=`{str(map_status.get('worker_output_intake_summary_present')).lower()}` orphaned=`{str(map_status.get('orphaned_capability_summary_present')).lower()}` chief_hermes=`{str(map_status.get('chief_hermes_trust_summary_present')).lower()}`",
         f"- front-door operator action required: `{str(map_status['operator_action_required']).lower()}`",
         f"- next expected actor: `{map_status['next_expected_actor']}`",
         f"- next: {map_status['recommended_fix']}",
