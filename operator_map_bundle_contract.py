@@ -61,6 +61,7 @@ MAP_BUNDLE_HASH_EXCLUDED_FILES = frozenset(MAP_BUNDLE_SELF_FILES) | frozenset(
 AGENT_TERRAIN_READ_MODEL_PATH = "generated/read_models/agent_terrain_awareness_readback_contract.json"
 PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH = "generated/read_models/package_preview_receipt_contract.json"
 TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH = "generated/read_models/tool_adapter_receipt_contract.json"
+CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_metadata_packet.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -102,6 +103,11 @@ ESSENTIAL_SURFACES = (
         "surface_id": "tool_adapter_receipt_contract",
         "path": TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH,
         "role": "tool/protocol adapter receipt grammar and example adapter cards",
+    },
+    {
+        "surface_id": "capital_hilton_proof_metadata_packet",
+        "path": CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH,
+        "role": "Capital Hilton Finance steel-thread proof metadata posture",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -714,6 +720,172 @@ def _summarize_tool_adapter_receipts(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+CAPITAL_HILTON_AUTHORITY_FLAG_FIELDS = (
+    "coupa_access_allowed",
+    "browser_oauth_allowed",
+    "credential_handling_allowed",
+    "gmail_calendar_access_allowed",
+    "email_account_access_allowed",
+    "excel_raw_body_ingestion_allowed",
+    "raw_finance_body_ingestion_allowed",
+    "invoice_generation_allowed",
+    "send_submit_approval_allowed",
+    "account_access_allowed",
+    "model_call_allowed",
+    "agent_activation_allowed",
+    "tool_execution_allowed",
+    "queue_execution_allowed",
+    "runtime_dispatch_allowed",
+)
+
+
+def _safe_capital_hilton_candidate_fact(fact: dict[str, Any]) -> dict[str, Any]:
+    proof_status = fact.get("proof_status")
+    machine_proven = fact.get("machine_proven") is True
+    source_reference = fact.get("source_reference")
+    return {
+        "fact_id": fact.get("fact_id"),
+        "display_name": fact.get("display_name"),
+        "current_value": fact.get("current_value"),
+        "current_status": fact.get("current_status"),
+        "proof_category": fact.get("proof_category"),
+        "proof_status": proof_status,
+        "candidate_not_machine_proven": not machine_proven,
+        "machine_proven": machine_proven,
+        "source_type": fact.get("source_authority_status"),
+        "source_reference": source_reference,
+        "proof_ref": source_reference if machine_proven else None,
+        "proof_missing": not machine_proven,
+        "protected_proof_required": fact.get("protected_proof_required") is True,
+        "guardian_review_required": fact.get("guardian_review_required") is True,
+        "operator_confirmation_required": fact.get("operator_confirmation_required") is True,
+        "raw_body_included": False,
+        "what_would_prove_it": fact.get("what_would_prove_it"),
+    }
+
+
+def _safe_capital_hilton_proof_metadata(record: dict[str, Any]) -> dict[str, Any]:
+    protected = record.get("protected_proof_required") is True
+    return {
+        "proof_id": record.get("proof_metadata_id"),
+        "display_name": str(record.get("proof_metadata_id") or "").replace("_", " ").title(),
+        "current_status": record.get("current_status"),
+        "proof_category": record.get("proof_category"),
+        "required_for_security_audit": record.get("required_for_security_audit") is True,
+        "required_for_finance_world_action": record.get("required_for_finance_world_action") is True,
+        "raw_body_blocked": True,
+        "protected_material": protected,
+        "missing": record.get("current_proof_present") is not True,
+        "safe_next_step": record.get("source_expectation"),
+    }
+
+
+def _summarize_capital_hilton_proof_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    lane = (
+        payload.get("capital_hilton_lane_fact_posture")
+        if isinstance(payload.get("capital_hilton_lane_fact_posture"), dict)
+        else {}
+    )
+    candidate_facts = [
+        _safe_capital_hilton_candidate_fact(fact)
+        for fact in (
+            payload.get("capital_hilton_candidate_facts")
+            if isinstance(payload.get("capital_hilton_candidate_facts"), list)
+            else []
+        )
+        if isinstance(fact, dict)
+    ]
+    proof_metadata = [
+        _safe_capital_hilton_proof_metadata(record)
+        for record in (
+            payload.get("required_proof_metadata")
+            if isinstance(payload.get("required_proof_metadata"), list)
+            else []
+        )
+        if isinstance(record, dict)
+    ]
+    authority_source = (
+        payload.get("authority_boundary")
+        if isinstance(payload.get("authority_boundary"), dict)
+        else payload
+    )
+    authority_boundary = {
+        field: False if field == "email_account_access_allowed" else authority_source.get(field, False)
+        for field in CAPITAL_HILTON_AUTHORITY_FLAG_FIELDS
+    }
+    known = lane.get("known") if isinstance(lane.get("known"), list) else []
+    partly_known = lane.get("partly_known") if isinstance(lane.get("partly_known"), list) else []
+    known_unknown = lane.get("known_unknown") if isinstance(lane.get("known_unknown"), list) else []
+    not_discovered = lane.get("not_discovered") if isinstance(lane.get("not_discovered"), list) else []
+    operator_questions = (
+        payload.get("operator_memory_questions")
+        if isinstance(payload.get("operator_memory_questions"), list)
+        else []
+    )
+    missing_proof = (
+        payload.get("missing_proof_checklist")
+        if isinstance(payload.get("missing_proof_checklist"), list)
+        else lane.get("machine_proof_needed", [])
+    )
+    return {
+        "source_path": CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH,
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("read_model_id", "capital_hilton_proof_metadata_packet"),
+        "contract_version": payload.get("schema_version"),
+        "lane_id": lane.get("lane_id", "capital_hilton"),
+        "current_phase": lane.get("current_phase"),
+        "target_world": lane.get("target_world"),
+        "lane_destiny": lane.get("lane_destiny"),
+        "workflow_type": lane.get("workflow_type"),
+        "current_status": lane.get("current_status"),
+        "known": known,
+        "partly_known": partly_known,
+        "known_unknown": known_unknown,
+        "not_discovered": not_discovered,
+        "candidate_facts": candidate_facts,
+        "proven_facts": [fact for fact in candidate_facts if fact["machine_proven"] is True],
+        "missing_proof": missing_proof,
+        "missing_proof_count": len(missing_proof),
+        "protected_proof_required": (
+            payload.get("machine_proof", {}).get("protected_proof_required") is True
+            if isinstance(payload.get("machine_proof"), dict)
+            else True
+        ),
+        "operator_memory_needed": lane.get("operator_memory_needed", []),
+        "machine_proof_needed": lane.get("machine_proof_needed", missing_proof),
+        "safe_next_detour": lane.get("safe_next_detour"),
+        "quiet_condition": lane.get("quiet_condition"),
+        "security_audit_readiness": lane.get("security_audit_readiness"),
+        "finance_world_action_readiness": lane.get("finance_world_action_readiness"),
+        "authority_boundary": authority_boundary,
+        "next_safe_move": lane.get("safe_next_detour"),
+        "proof_metadata_checklist": proof_metadata,
+        "actor_package_adapter_summary": payload.get("actor_package_adapter_binding", {}),
+        "operator_memory_questions": operator_questions,
+        "operator_answers_become_memory_candidate_receipts_not_proof": True,
+        "finance_world_preview": {
+            "preview_only": True,
+            "pre_security": True,
+            "proof_metadata_needed": True,
+            "target_world": "Finance",
+            "not_executable": True,
+            "no_coupa": True,
+            "no_credentials": True,
+            "no_send_submit_approval": True,
+            "no_account_flow": True,
+            "no_invoice_generation": True,
+        },
+        "all_candidate_facts_marked_not_proven": all(
+            fact["machine_proven"] is False for fact in candidate_facts
+        ),
+        "raw_finance_body_included": False,
+        "credential_or_secret_included": False,
+        "live_execution_authority": False,
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -951,6 +1123,10 @@ def build_openclaw_map_snapshot(
         TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    capital_hilton_proof_metadata = _read_json_if_present(
+        CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -974,6 +1150,9 @@ def build_openclaw_map_snapshot(
         "package_previews": _summarize_package_compiler(package_compiler),
         "package_preview_receipts": _summarize_package_preview_receipts(package_preview_receipt),
         "tool_adapter_receipts": _summarize_tool_adapter_receipts(tool_adapter_receipt),
+        "capital_hilton_proof_metadata": _summarize_capital_hilton_proof_metadata(
+            capital_hilton_proof_metadata
+        ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -1221,6 +1400,9 @@ def build_operator_map_bundle_contract(
             "agent_council_preview_only": snapshot["agent_council"]["preview_only"],
             "package_preview_receipt_examples_count": snapshot["package_preview_receipts"]["example_package_previews_count"],
             "tool_adapter_receipt_examples_count": snapshot["tool_adapter_receipts"]["adapter_examples_count"],
+            "capital_hilton_proof_metadata_present": snapshot["capital_hilton_proof_metadata"]["present"],
+            "capital_hilton_missing_proof_count": snapshot["capital_hilton_proof_metadata"]["missing_proof_count"],
+            "capital_hilton_protected_proof_required": snapshot["capital_hilton_proof_metadata"]["protected_proof_required"],
             "future_gated_cue_autonomy": snapshot["authority_boundary"]["future_gated_cue_autonomy"],
         },
         "atomic_sync_lifecycle": {
@@ -1318,6 +1500,18 @@ def build_operator_map_bundle_contract(
             "command_execution_allowed": snapshot["tool_adapter_receipts"]["command_execution_allowed"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "capital_hilton_proof_metadata_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_proof_metadata"]["present"],
+            "current_phase": snapshot["capital_hilton_proof_metadata"]["current_phase"],
+            "target_world": snapshot["capital_hilton_proof_metadata"]["target_world"],
+            "lane_destiny": snapshot["capital_hilton_proof_metadata"]["lane_destiny"],
+            "missing_proof_count": snapshot["capital_hilton_proof_metadata"]["missing_proof_count"],
+            "protected_proof_required": snapshot["capital_hilton_proof_metadata"]["protected_proof_required"],
+            "candidate_facts_count": len(snapshot["capital_hilton_proof_metadata"]["candidate_facts"]),
+            "all_candidate_facts_marked_not_proven": snapshot["capital_hilton_proof_metadata"]["all_candidate_facts_marked_not_proven"],
+            "live_execution_authority": snapshot["capital_hilton_proof_metadata"]["live_execution_authority"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -1365,6 +1559,17 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     agent_council = snapshot.get("agent_council", {})
     package_receipts = snapshot.get("package_preview_receipts", {})
     tool_receipts = snapshot.get("tool_adapter_receipts", {})
+    capital_hilton = snapshot.get("capital_hilton_proof_metadata", {})
+    capital_facts = (
+        capital_hilton.get("candidate_facts")
+        if isinstance(capital_hilton.get("candidate_facts"), list)
+        else []
+    )
+    capital_questions = (
+        capital_hilton.get("operator_memory_questions")
+        if isinstance(capital_hilton.get("operator_memory_questions"), list)
+        else []
+    )
     lines = [
         "# OpenClaw Stable Map Bundle",
         "",
@@ -1425,27 +1630,61 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         "- Mission Control can render adapter receipt cards for the stable map reader, package preview exporter, Codex verifier, Cassandra/Capital Hilton proof adapter, Guardian gate, Chief harness, browser/OAuth, Gmail/calendar, Coupa, Telegram, Repo B planner/builder, and memory candidate writer.",
         "- Live tool execution, network/account/browser access, send/submit/approval, command execution, model calls, agent activation, and queue execution remain false.",
         "",
-        "## What Mission Control Can Render Next",
+        "## Capital Hilton Proof Metadata Summary",
         "",
-        "- Package Preview surface: preview cards, included/excluded context summaries, missing proof, gates, receipts, stop conditions, and future dispatch blockers.",
-        "- Tool Adapter Receipt surface: requested adapter, package, actor, capability requested/granted/blocked, gates, blocked reasons, and output receipt shape.",
-        "- Agent Council can link dossier cards to package/tool summaries through this stable map snapshot without new per-file app dependencies.",
+        f"- Summary present: `{str(capital_hilton.get('present')).lower()}`",
+        f"- Phase: `{capital_hilton.get('current_phase')}`",
+        f"- Target world: `{capital_hilton.get('target_world')}`",
+        f"- Lane destiny: `{capital_hilton.get('lane_destiny')}`",
+        f"- Missing proof count: `{capital_hilton.get('missing_proof_count')}`",
+        f"- Protected proof required: `{str(capital_hilton.get('protected_proof_required')).lower()}`",
+        "- Candidate facts are displayed as candidate/not machine-proven. Operator memory can clarify them, but it does not become proof by itself.",
+        "- Missing proof includes performance date, rate, subtotal, Coupa/PO/payment, Excel/workbook, invoice source card, AP route, Guardian gate, operator confirmation, and future invoice generation receipt metadata.",
+        "- Cassandra may review metadata and proof gaps; Guardian must gate protected proof; Finance World remains a preview-only target until proof and security are complete.",
+        "- Coupa, browser/OAuth/account access, credentials, Gmail/calendar/email account access, Excel raw body ingestion, raw finance bodies, invoice generation, send/submit/approval, model calls, agent activation, tool execution, queue execution, and runtime dispatch remain blocked.",
+        f"- Next safe move: {capital_hilton.get('next_safe_move')}",
         "",
-        "## What Remains Blocked / Future-Gated",
+        "### Capital Hilton Candidate Facts",
         "",
-        "- No live dispatch, model launch, tool execution, browser/OAuth/account access, Gmail/calendar/Coupa/Telegram controls, credentials, send/submit/approval, planner/builder/queue/autonomy, arbitrary commands, or raw private context.",
-        "- Package and adapter records are proof/display surfaces only; they do not create authority.",
-        "",
-        "## What This Fixes",
-        "",
-        "- Adding a new backend read-model may update the map content or raw proof count, but it should not require a new Mission Control entitlement or app-facing file path.",
-        "- Mission Control can fail closed on the stable map if the map receipt is stale without treating the whole raw terrain as absent.",
-        "",
-        "## Boundary",
-        "",
-        "- Metadata/read-model contract only.",
-        "- No model calls, agent activation, browser/OAuth/account access, send/submit/approval, remount, repair, delete, file move, network operation, or C-drive artifact write.",
     ]
+    for fact in capital_facts:
+        lines.append(
+            f"- `{fact.get('fact_id')}`: `{fact.get('current_value')}` -> `{fact.get('proof_status')}`"
+        )
+    lines.extend(
+        [
+            "",
+            "### Capital Hilton Operator Memory Questions",
+            "",
+        ]
+    )
+    for question in capital_questions:
+        lines.append(f"- `{question.get('classification')}`: {question.get('question')}")
+    lines.extend(
+        [
+            "",
+            "## What Mission Control Can Render Next",
+            "",
+            "- Package Preview surface: preview cards, included/excluded context summaries, missing proof, gates, receipts, stop conditions, and future dispatch blockers.",
+            "- Tool Adapter Receipt surface: requested adapter, package, actor, capability requested/granted/blocked, gates, blocked reasons, and output receipt shape.",
+            "- Agent Council can link dossier cards to package/tool summaries through this stable map snapshot without new per-file app dependencies.",
+            "",
+            "## What Remains Blocked / Future-Gated",
+            "",
+            "- No live dispatch, model launch, tool execution, browser/OAuth/account access, Gmail/calendar/Coupa/Telegram controls, credentials, send/submit/approval, planner/builder/queue/autonomy, arbitrary commands, or raw private context.",
+            "- Package and adapter records are proof/display surfaces only; they do not create authority.",
+            "",
+            "## What This Fixes",
+            "",
+            "- Adding a new backend read-model may update the map content or raw proof count, but it should not require a new Mission Control entitlement or app-facing file path.",
+            "- Mission Control can fail closed on the stable map if the map receipt is stale without treating the whole raw terrain as absent.",
+            "",
+            "## Boundary",
+            "",
+            "- Metadata/read-model contract only.",
+            "- No model calls, agent activation, browser/OAuth/account access, send/submit/approval, remount, repair, delete, file move, network operation, or C-drive artifact write.",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 

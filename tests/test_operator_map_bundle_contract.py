@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import operator_map_bundle_contract as bundle
+import capital_hilton_proof_metadata_packet
 import package_preview_receipt_contract
 import tool_adapter_receipt_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
@@ -228,6 +229,37 @@ def _fixture_repo(root: Path) -> Path:
             "schema_version": "steel_thread_lane_template_registry_v0",
             "read_model_id": "steel_thread_lane_template_registry",
         },
+        "capital_hilton_actionable_review_packet.json": {
+            "schema_version": "capital_hilton_actionable_review_packet_v1",
+            "read_model_id": "capital_hilton_actionable_review_packet",
+            "invoice_facts": [
+                {
+                    "field_name": "invoice_attachment_output_path",
+                    "value_text": "workbook metadata/reference mentioned; raw cells not read",
+                    "evidence_status": "parsed_evidence_not_truth",
+                }
+            ],
+        },
+        "cassandra_governed_review_packet_request_proof.json": {
+            "schema_version": "cassandra_governed_review_packet_request_proof_v1",
+            "read_model_id": "cassandra_governed_review_packet_request_proof",
+            "domain_fact_summary": {
+                "completed_service_dates": ["2026-05-08", "2026-05-15"],
+                "rate_or_amount_per_gig": "$400 per gig",
+                "candidate_subtotal": "$800",
+                "invoice_count_posture": "one invoice",
+                "po_or_portal_gate_status": "must_confirm_po_and_credit_in_coupa_before_final_submission",
+                "recipient_posture_review_only": True,
+            },
+        },
+        "capital_hilton_coupa_execution_path.json": {
+            "schema_version": "capital_hilton_coupa_execution_path_v0",
+            "read_model_id": "capital_hilton_coupa_execution_path",
+        },
+        "capital_hilton_external_artifact_proof_capture.json": {
+            "schema_version": "capital_hilton_external_artifact_proof_capture_v0",
+            "read_model_id": "capital_hilton_external_artifact_proof_capture",
+        },
         "agent_terrain_awareness_readback_contract.json": _terrain_awareness_payload(),
         "package_preview_receipt_contract.json": package_preview_receipt_contract.build_package_preview_receipt_contract(
             repo_root=root,
@@ -240,6 +272,13 @@ def _fixture_repo(root: Path) -> Path:
     }
     for name, payload in fixtures.items():
         _write_json(read_models / name, payload)
+    _write_json(
+        read_models / "capital_hilton_proof_metadata_packet.json",
+        capital_hilton_proof_metadata_packet.build_capital_hilton_proof_metadata_packet(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
     return read_models
 
 
@@ -441,6 +480,77 @@ def test_map_snapshot_contains_tool_adapter_receipt_surface(tmp_path):
         assert card["queue_execution_performed"] is False
 
 
+def test_map_snapshot_contains_capital_hilton_proof_metadata_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    summary = snapshot["capital_hilton_proof_metadata"]
+    facts = {fact["fact_id"]: fact for fact in summary["candidate_facts"]}
+    proof = {item["proof_id"]: item for item in summary["proof_metadata_checklist"]}
+
+    assert summary["present"] is True
+    assert summary["primary_app_contract"] is True
+    assert summary["individual_contract_read_model_remains_proof_detail"] is True
+    assert summary["contract_id"] == "capital_hilton_proof_metadata_packet"
+    assert summary["contract_version"] == capital_hilton_proof_metadata_packet.SCHEMA_VERSION
+    assert summary["lane_id"] == "capital_hilton"
+    assert summary["current_phase"] == "HELM_THRESHOLD_LANE"
+    assert summary["target_world"] == "Finance"
+    assert summary["lane_destiny"] == "MOVE_TO_WORLD_ACTION"
+    assert summary["workflow_type"] == "invoice_review_and_proof_metadata"
+    assert summary["missing_proof_count"] == 10
+    assert summary["protected_proof_required"] is True
+    assert summary["all_candidate_facts_marked_not_proven"] is True
+    assert summary["operator_answers_become_memory_candidate_receipts_not_proof"] is True
+    assert summary["finance_world_preview"]["preview_only"] is True
+    assert summary["finance_world_preview"]["not_executable"] is True
+    assert summary["finance_world_preview"]["no_coupa"] is True
+    assert summary["finance_world_preview"]["no_invoice_generation"] is True
+    assert facts["completed_performance_dates"]["current_value"] == ["2026-05-08", "2026-05-15"]
+    assert facts["rate"]["current_value"] == "$400 per gig"
+    assert facts["subtotal"]["current_value"] == "$800"
+    assert facts["invoice_shape_one_invoice_posture"]["current_value"] == "one invoice"
+    for fact in facts.values():
+        assert fact["machine_proven"] is False
+        assert fact["candidate_not_machine_proven"] is True
+        assert fact["proof_missing"] is True
+        assert fact["raw_body_included"] is False
+    assert set(proof) == {
+        "performance_date_proof_metadata",
+        "rate_proof_metadata",
+        "subtotal_proof_metadata",
+        "coupa_po_or_payment_reference_metadata",
+        "excel_workbook_reference_metadata",
+        "invoice_source_card_metadata",
+        "ap_recipient_route_metadata",
+        "guardian_protected_access_gate_metadata",
+        "operator_confirmation_metadata",
+        "future_invoice_generation_receipt_requirement",
+    }
+    for item in proof.values():
+        assert item["missing"] is True
+        assert item["raw_body_blocked"] is True
+    assert len(summary["operator_memory_questions"]) == 7
+    assert {item["classification"] for item in summary["operator_memory_questions"]} <= {
+        "memory_only_clarification",
+        "proof_needed",
+        "protected_proof_needed",
+        "security_gate_needed",
+        "world_transition_needed",
+    }
+
+
+def test_capital_hilton_authority_flags_are_false_in_stable_map(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    authority = snapshot["capital_hilton_proof_metadata"]["authority_boundary"]
+
+    assert set(authority) == set(bundle.CAPITAL_HILTON_AUTHORITY_FLAG_FIELDS)
+    assert all(value is False for value in authority.values())
+    assert snapshot["capital_hilton_proof_metadata"]["raw_finance_body_included"] is False
+    assert snapshot["capital_hilton_proof_metadata"]["credential_or_secret_included"] is False
+    assert snapshot["capital_hilton_proof_metadata"]["live_execution_authority"] is False
+
+
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
     repo_a = tmp_path / "a"
     repo_b = tmp_path / "b"
@@ -552,6 +662,8 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Example preview cards: `8`" in operator_text
     assert "Tool Adapter Receipt Summary" in operator_text
     assert "Adapter receipt cards: `12`" in operator_text
+    assert "Capital Hilton Proof Metadata Summary" in operator_text
+    assert "Missing proof count: `10`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

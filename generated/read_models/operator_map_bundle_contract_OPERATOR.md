@@ -22,8 +22,8 @@ Mission Control should consume a stable map snapshot instead of treating the ful
 - Snapshot: `openclaw_map_snapshot.json`
 - Manifest: `openclaw_map_manifest.json`
 - Operator digest: `openclaw_map_OPERATOR.md`
-- Map generation: `map_d49f3a6dd4a0eedc1777`
-- Bundle hash: `sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211`
+- Map generation: `map_408762d887e47ef21503`
+- Bundle hash: `sha256:2cad66c25aaa53ea8e068274422ac3e97abae7e4314be0f8d9ed7a3bd40fc2c7`
 - Stable app-facing file count: `3`
 
 ## Sync Health Split

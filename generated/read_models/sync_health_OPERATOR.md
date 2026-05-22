@@ -8,37 +8,37 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=245
+- canonical_expected=247
 - observed=218
-- missing_expected=27
+- missing_expected=29
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
 
 App-visible stable map:
-- map_status: `map_current`
-- map_generation_id: `map_d49f3a6dd4a0eedc1777`
-- bundle_hash: `sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211`
-- app_visible: `true`
-- receipt_matches_pc_bundle: `true`
+- map_status: `map_generation_pending_mac_import`
+- map_generation_id: `map_fbda77b8af4e9c796c03`
+- bundle_hash: `sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39`
+- app_visible: `false`
+- receipt_matches_pc_bundle: `false`
 - agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
 - agent_dossier_cards_path_status: `accepted_canonical_nested_path`
 - package_preview_summary: `true` count=`8`
 - tool_adapter_receipt_summary: `true` count=`12`
 - front-door operator action required: `false`
-- next expected actor: `none`
-- next: none
+- next expected actor: `mac_map_import_agent`
+- next: Map generated on PC; waiting for Mac import receipt
 
 Raw read-model mirror detail:
 - raw_mirror_status: `raw_mirror_stale_or_mismatched`
-- raw_mirror_blocks_app_visible_map: `false`
+- raw_mirror_blocks_app_visible_map: `true`
 
 Check Transmission display:
-- lamp_state: `QUIET`
-- headline: Stable map bundle current
-- summary: Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail.
+- lamp_state: `WARNING`
+- headline: Stable map bundle pending
+- summary: Map generated on PC; waiting for Mac import receipt.
 
-Raw read-model mirror proof/detail recommendation:
+Recommended fix:
 - kind: `request_mac_sync`
 - display status: `needs_mac_sync`
 - next expected actor: `mac_sync_agent`
@@ -48,7 +48,7 @@ Raw read-model mirror proof/detail recommendation:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-22T02:31:23+00:00`
+- Mac heartbeat: `idle` at `2026-05-22T04:06:32+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -64,6 +64,8 @@ Stale files:
 - `agent_platform_alignment_OPERATOR.md`
 - `agent_terrain_awareness_readback_contract.json`
 - `agent_terrain_awareness_readback_contract_OPERATOR.md`
+- `capital_hilton_proof_metadata_packet.json`
+- `capital_hilton_proof_metadata_packet_OPERATOR.md`
 - `memory_candidate_receipt_contract.json`
 - `memory_candidate_receipt_contract_OPERATOR.md`
 - `model_selection_policy_contract.json`
