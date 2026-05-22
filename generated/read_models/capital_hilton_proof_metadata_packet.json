@@ -1,0 +1,1120 @@
+{
+  "account_access_allowed": false,
+  "actor_package_adapter_binding": {
+    "actors_personas": [
+      {
+        "actor_id": "cassandra",
+        "current_allowed": [
+          "metadata readback",
+          "package preview review",
+          "missing proof labeling"
+        ],
+        "current_blocked": [
+          "Coupa access",
+          "raw Gmail/calendar bodies",
+          "browser/OAuth",
+          "credentials",
+          "send",
+          "submit",
+          "approval",
+          "account actions"
+        ],
+        "role": "finance/comms/AP preview and packet review"
+      },
+      {
+        "actor_id": "guardian",
+        "current_allowed": [
+          "recommend block/redact/quarantine/revoke",
+          "identify gate requirements"
+        ],
+        "current_blocked": [
+          "self-authorization",
+          "raw protected body access",
+          "bypassing Operator"
+        ],
+        "role": "protected proof / redaction / access gate"
+      },
+      {
+        "actor_id": "operator_winship",
+        "current_allowed": [
+          "answer memory questions",
+          "approve or reject future gates"
+        ],
+        "current_blocked": [
+          "turning memory statement into machine proof without receipt"
+        ],
+        "role": "final action authority and memory clarification"
+      },
+      {
+        "actor_id": "finance_world",
+        "current_allowed": [
+          "preview future action candidate"
+        ],
+        "current_blocked": [
+          "invoice execution before proof and security audit"
+        ],
+        "role": "eventual world action target"
+      }
+    ],
+    "package_references": [
+      "agent_package_preview_contract",
+      "package_preview_receipt_contract",
+      "model_selection_receipt_contract",
+      "tool_adapter_receipt_contract",
+      "memory_candidate_receipt_contract",
+      "agent_memory_scope_contract",
+      "tool_protocol_adapter_registry_contract",
+      "agent_terrain_awareness_readback_contract",
+      "stable_map_bundle",
+      "threshold_map_contract"
+    ],
+    "tool_adapter_posture": [
+      {
+        "adapter_id": "cassandra_capital_hilton_invoice_proof_adapter",
+        "current_authority": false,
+        "posture": "future_gated"
+      },
+      {
+        "adapter_id": "coupa_adapter",
+        "current_authority": false,
+        "posture": "blocked_future_gated"
+      },
+      {
+        "adapter_id": "excel_workbook_proof_adapter",
+        "current_authority": false,
+        "posture": "metadata_candidate_only"
+      },
+      {
+        "adapter_id": "gmail_calendar_email_adapter",
+        "current_authority": false,
+        "posture": "blocked_future_gated"
+      },
+      {
+        "adapter_id": "browser_oauth_account_adapter",
+        "current_authority": false,
+        "posture": "blocked"
+      },
+      {
+        "adapter_id": "package_preview_exporter",
+        "current_authority": "metadata_export_only",
+        "posture": "preview_only"
+      },
+      {
+        "adapter_id": "stable_map_reader",
+        "current_authority": "metadata_readback_only",
+        "posture": "read_only"
+      }
+    ]
+  },
+  "agent_activation_allowed": false,
+  "authority_boundary": {
+    "account_access_allowed": false,
+    "agent_activation_allowed": false,
+    "blocked_current_actions": [
+      "Coupa access",
+      "browser/OAuth/account access",
+      "credential/token/cookie/API key handling",
+      "Gmail/calendar/email account access",
+      "Excel raw body ingestion",
+      "raw finance/private body ingestion",
+      "invoice generation",
+      "send/submit/approval",
+      "live model calls",
+      "tool execution",
+      "queue/autonomy"
+    ],
+    "broad_filesystem_indexing_allowed": false,
+    "broad_private_file_inspection_allowed": false,
+    "browser_oauth_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "excel_raw_body_ingestion_allowed": false,
+    "external_retained_memory_allowed": false,
+    "gmail_calendar_access_allowed": false,
+    "hidden_memory_allowed": false,
+    "invoice_generation_allowed": false,
+    "mac_sync_or_import_triggered": false,
+    "mission_control_app_changes_included": false,
+    "model_api_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_router_runtime_allowed": false,
+    "network_operation_allowed": false,
+    "operator_final_authority": true,
+    "pc_c_drive_artifact_write_allowed": false,
+    "planner_builder_execution_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_finance_body_ingestion_allowed": false,
+    "repo_b_body_inspection_allowed": false,
+    "repo_b_mutation_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "send_submit_approval_allowed": false,
+    "tool_execution_allowed": false,
+    "valid_current_actions": [
+      "read-model export",
+      "operator markdown digest",
+      "focused tests",
+      "metadata proof checklist"
+    ]
+  },
+  "broad_filesystem_indexing_allowed": false,
+  "broad_private_file_inspection_allowed": false,
+  "browser_oauth_allowed": false,
+  "capital_hilton_candidate_facts": [
+    {
+      "current_status": "candidate_fact",
+      "current_value": [
+        "2026-05-08",
+        "2026-05-15 (operator said this was yesterday relative to May 16, 2026)"
+      ],
+      "display_name": "Completed performance date(s)",
+      "fact_id": "completed_performance_dates",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "performance_date_proof_metadata with approved metadata refs"
+    },
+    {
+      "current_status": "missing_proof",
+      "current_value": null,
+      "display_name": "Service/performance description",
+      "fact_id": "service_performance_description",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": false,
+      "proof_category": "MISSING_PROOF",
+      "proof_status": "MISSING_PROOF",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "not_discovered",
+      "source_reference": null,
+      "what_would_prove_it": "service/performance source card or invoice packet metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "$400 per gig",
+      "display_name": "Rate",
+      "fact_id": "rate",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "rate_proof_metadata from approved source card or protected metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "$800 for the two completed governed service-date facts, before any older/upcoming gig review",
+      "display_name": "Subtotal",
+      "fact_id": "subtotal",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "subtotal_proof_metadata after date and rate proof exist"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "Capital Hilton",
+      "display_name": "Customer/client identity",
+      "fact_id": "customer_client_identity",
+      "guardian_review_required": false,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "METADATA_CONTEXT_NOT_FINAL_INVOICE_PROOF",
+      "protected_proof_required": false,
+      "raw_body_included": false,
+      "source_authority_status": "lane_identity_not_invoice_proof",
+      "source_reference": "stable_map/threshold terrain lane identity",
+      "what_would_prove_it": "invoice source card or client metadata ref"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": true,
+      "display_name": "Invoice recipient or AP route",
+      "fact_id": "invoice_recipient_or_ap_route",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "ap_recipient_route_metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "must_confirm_po_and_credit_in_coupa_before_final_submission",
+      "display_name": "PO/Coupa reference",
+      "fact_id": "po_coupa_reference",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "coupa_po_or_payment_reference_metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "workbook metadata/reference mentioned; raw cells not read",
+      "display_name": "Excel/workbook reference",
+      "fact_id": "excel_workbook_reference",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": false,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "metadata_reference_not_workbook_proof",
+      "source_reference": "generated/read_models/capital_hilton_actionable_review_packet.json#invoice_facts",
+      "what_would_prove_it": "excel_workbook_reference_metadata"
+    },
+    {
+      "current_status": "missing_proof",
+      "current_value": null,
+      "display_name": "Payment/status reference",
+      "fact_id": "payment_status_reference",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": false,
+      "proof_category": "MISSING_PROOF",
+      "proof_status": "MISSING_PROOF",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "missing_proof",
+      "source_reference": null,
+      "what_would_prove_it": "payment/status proof metadata or ledger receipt"
+    },
+    {
+      "current_status": "missing_proof",
+      "current_value": null,
+      "display_name": "Tax/vendor/payment handling assumptions",
+      "fact_id": "tax_vendor_payment_handling_assumptions",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": false,
+      "proof_category": "MISSING_PROOF",
+      "proof_status": "MISSING_PROOF",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "missing_proof",
+      "source_reference": null,
+      "what_would_prove_it": "operator-reviewed vendor/payment handling metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "one invoice for 2026-05-15 and 2026-05-08; operator also wants 2026-05-22 upcoming gig and older gigs reviewed for inclusion if applicable",
+      "display_name": "Invoice shape / one-invoice posture",
+      "fact_id": "invoice_shape_one_invoice_posture",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": true,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "CANDIDATE_FACT_NOT_PROVEN",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "parsed_evidence_not_truth",
+      "source_reference": "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary",
+      "what_would_prove_it": "operator confirmation plus invoice source metadata"
+    },
+    {
+      "current_status": "candidate_fact",
+      "current_value": "future final invoice packet required after security audit",
+      "display_name": "Final invoice packet requirement",
+      "fact_id": "final_invoice_packet_requirement",
+      "guardian_review_required": true,
+      "machine_proven": false,
+      "operator_confirmation_required": true,
+      "operator_memory_only": false,
+      "proof_category": "CANDIDATE_FACT",
+      "proof_status": "METADATA_CONTEXT_NOT_FINAL_INVOICE_PROOF",
+      "protected_proof_required": true,
+      "raw_body_included": false,
+      "source_authority_status": "future_action_proof_required",
+      "source_reference": "package_preview_receipt_contract",
+      "what_would_prove_it": "future invoice generation receipt requirement after security audit"
+    }
+  ],
+  "capital_hilton_lane_fact_posture": {
+    "current_phase": "HELM_THRESHOLD_LANE",
+    "current_status": "proof_needed_preview_only",
+    "finance_world_action_readiness": "not_actionable_until_security_audit_and_proof_metadata_pass",
+    "known": [
+      "Capital Hilton is the finance steel-thread candidate.",
+      "The lane is a Helm threshold lane aimed at Finance World.",
+      "Cassandra is the review persona; Guardian gates protected proof; Operator remains final authority.",
+      "Current authority is metadata/readback only."
+    ],
+    "known_unknown": [
+      "PO/Coupa/payment reference",
+      "approved AP recipient route",
+      "whether workbook metadata is sufficient",
+      "payment/status proof",
+      "tax/vendor/payment handling",
+      "final invoice packet shape"
+    ],
+    "lane_destiny": "MOVE_TO_WORLD_ACTION",
+    "lane_id": "capital_hilton",
+    "machine_proof_needed": [
+      "performance_date_proof_metadata",
+      "rate_proof_metadata",
+      "subtotal_proof_metadata",
+      "coupa_po_or_payment_reference_metadata",
+      "excel_workbook_reference_metadata",
+      "invoice_source_card_metadata",
+      "ap_recipient_route_metadata",
+      "guardian_protected_access_gate_metadata",
+      "operator_confirmation_metadata",
+      "future_invoice_generation_receipt_requirement"
+    ],
+    "not_discovered": [
+      "Guardian-approved protected proof metadata",
+      "Coupa/PO proof metadata",
+      "Excel/workbook row metadata",
+      "future invoice generation receipt"
+    ],
+    "operator_memory_needed": [
+      "dates/rate/one-invoice confirmation",
+      "where proof likely lives",
+      "whether Coupa, Excel, email, PDF, or existing packet should be the source of truth",
+      "what would convince the operator the lane can move to Finance World action"
+    ],
+    "partly_known": [
+      "Completed dates, rate, subtotal, and one-invoice posture appear as candidate facts when supported by existing review read-models.",
+      "Coupa/PO and workbook references are known only as protected metadata needs, not accessible sources.",
+      "Cassandra packet posture is review-only and not financial truth."
+    ],
+    "protected_proof_needed": [
+      "performance/date/rate/source proof refs",
+      "Coupa/PO/payment route metadata",
+      "Excel/workbook metadata",
+      "AP recipient route metadata",
+      "Guardian protected access gate receipt"
+    ],
+    "quiet_condition": "All candidate facts are either backed by protected metadata refs, rejected, or parked; security audit readiness is explicit; no live invoice action is implied.",
+    "safe_next_detour": "Capture operator answers as Memory Candidate Receipts and then build protected proof metadata references; do not access Coupa, Excel, Gmail, browser, or accounts.",
+    "security_audit_readiness": "not_ready_until_missing_proof_metadata_and_gates_are_defined",
+    "target_world": "Finance",
+    "workflow_type": "invoice_review_and_proof_metadata"
+  },
+  "contract_status": "deterministic_capital_hilton_proof_metadata_only",
+  "core_doctrine": {
+    "candidate_facts_are_not_machine_proof": true,
+    "operator_answers_become_memory_candidates_not_proof": true,
+    "this_is_not_coupa_access": true,
+    "this_is_not_excel_file_opening": true,
+    "this_is_not_gmail_calendar_browser_account_work": true,
+    "this_is_not_invoice_execution": true,
+    "this_is_not_raw_private_finance_body_ingestion": true,
+    "this_is_not_send_submit_approval": true
+  },
+  "coupa_access_allowed": false,
+  "credential_handling_allowed": false,
+  "evidence_sources": [
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/capital_hilton_actionable_review_packet.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "review-only Capital Hilton fact posture",
+      "schema_version": "capital_hilton_actionable_review_packet_v1",
+      "source_id": "capital_hilton_actionable_review_packet"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/cassandra_governed_review_packet_request_proof.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "Cassandra governed review proof request",
+      "schema_version": "cassandra_governed_review_packet_request_proof_v1",
+      "source_id": "cassandra_governed_review_packet_request_proof"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/capital_hilton_coupa_execution_path.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "future-gated Hilton/Coupa overlay posture",
+      "schema_version": "capital_hilton_coupa_execution_path_v0",
+      "source_id": "capital_hilton_coupa_execution_path"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/capital_hilton_external_artifact_proof_capture.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "external artifact proof capture posture",
+      "schema_version": "capital_hilton_external_artifact_proof_capture_v0",
+      "source_id": "capital_hilton_external_artifact_proof_capture"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/agent_identity_actor_router_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "actor identity and routing",
+      "schema_version": "agent_identity_actor_router_contract_v0",
+      "source_id": "agent_identity_actor_router_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/agent_package_preview_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "package preview contract",
+      "schema_version": "agent_package_preview_contract_v0",
+      "source_id": "agent_package_preview_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/package_preview_receipt_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "package preview receipt grammar",
+      "schema_version": "package_preview_receipt_contract_v0",
+      "source_id": "package_preview_receipt_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/model_selection_receipt_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "model selection receipt grammar",
+      "schema_version": "model_selection_receipt_contract_v0",
+      "source_id": "model_selection_receipt_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/tool_adapter_receipt_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "tool adapter receipt grammar",
+      "schema_version": "tool_adapter_receipt_contract_v0",
+      "source_id": "tool_adapter_receipt_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/memory_candidate_receipt_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "memory candidate receipt grammar",
+      "schema_version": "memory_candidate_receipt_contract_v0",
+      "source_id": "memory_candidate_receipt_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/agent_memory_scope_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "memory scope boundary",
+      "schema_version": "agent_memory_scope_contract_v0",
+      "source_id": "agent_memory_scope_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/tool_protocol_adapter_registry_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "tool adapter registry",
+      "schema_version": "tool_protocol_adapter_registry_contract_v0",
+      "source_id": "tool_protocol_adapter_registry_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/agent_terrain_awareness_readback_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "terrain/dossier awareness",
+      "schema_version": "agent_terrain_awareness_readback_contract_v0",
+      "source_id": "agent_terrain_awareness_readback_contract"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/openclaw_map_manifest.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "app-facing stable map generation",
+      "schema_version": "openclaw_map_manifest_v0",
+      "source_id": "stable_map_bundle"
+    },
+    {
+      "authority_granted_by_source_presence": false,
+      "credential_or_secret_imported": false,
+      "path": "generated/read_models/operator_threshold_map_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "role": "threshold/world lane destiny",
+      "schema_version": "operator_threshold_map_contract_v0",
+      "source_id": "threshold_map_contract"
+    }
+  ],
+  "excel_raw_body_ingestion_allowed": false,
+  "external_retained_memory_allowed": false,
+  "finance_world_transition_policy": {
+    "current_lane_state": "HELM_THRESHOLD_LANE",
+    "target_lane_state": "FINANCE_WORLD_ACTIONABLE_LANE",
+    "transition_allowed_now": false,
+    "transition_requires": [
+      "proof metadata exists for date/rate/subtotal/customer/payment route as required",
+      "protected proof has Guardian metadata posture",
+      "package preview receipt is complete",
+      "model/tool/memory/adapter receipt requirements are clear",
+      "security audit grants or blocks future action authority",
+      "operator confirms final action path if required"
+    ],
+    "until_then": [
+      "Mission Control may show the lane in Helm as proof-needed",
+      "Finance World may show preview-only future actionable candidate",
+      "No invoice execution"
+    ]
+  },
+  "generated_at": "2026-05-22T04:00:43+00:00",
+  "gmail_calendar_access_allowed": false,
+  "hidden_memory_allowed": false,
+  "invoice_generation_allowed": false,
+  "mac_sync_or_import_triggered": false,
+  "machine_proof": {
+    "all_authority_flags_false_except_operator_final": true,
+    "all_candidate_facts_machine_proven": false,
+    "all_candidate_facts_not_machine_proven": true,
+    "candidate_fact_count": 12,
+    "candidate_fact_ids_missing": [
+      "service_performance_description",
+      "payment_status_reference",
+      "tax_vendor_payment_handling_assumptions"
+    ],
+    "candidate_fact_ids_present": [
+      "completed_performance_dates",
+      "rate",
+      "subtotal",
+      "customer_client_identity",
+      "invoice_recipient_or_ap_route",
+      "po_coupa_reference",
+      "excel_workbook_reference",
+      "invoice_shape_one_invoice_posture",
+      "final_invoice_packet_requirement"
+    ],
+    "content_hash": "sha256:e330f44935c5a2e8580ee23c3a430a926c7a561619e821f65b2222c406d8c163",
+    "credential_or_secret_included": false,
+    "missing_proof_count": 10,
+    "proof_metadata_record_count": 10,
+    "protected_proof_required": true,
+    "raw_body_included": false
+  },
+  "missing_proof_checklist": [
+    "performance_date_proof_metadata",
+    "rate_proof_metadata",
+    "subtotal_proof_metadata",
+    "coupa_po_or_payment_reference_metadata",
+    "excel_workbook_reference_metadata",
+    "invoice_source_card_metadata",
+    "ap_recipient_route_metadata",
+    "guardian_protected_access_gate_metadata",
+    "operator_confirmation_metadata",
+    "future_invoice_generation_receipt_requirement"
+  ],
+  "mission_control_app_changes_included": false,
+  "mission_control_surface_guidance": {
+    "hide_or_block": [
+      "raw Coupa/Excel/Gmail/calendar/PDF bodies",
+      "credentials/tokens/cookies/API keys",
+      "browser/OAuth/account controls",
+      "invoice generation controls",
+      "send/submit/approval controls",
+      "fake proof claims from operator memory alone"
+    ],
+    "show": [
+      "ELI5 lane summary",
+      "known / partly known / unknown fact posture",
+      "candidate facts separated from proof",
+      "missing proof checklist",
+      "protected material boundary",
+      "what Cassandra can review",
+      "what Guardian must gate",
+      "Finance World transition conditions",
+      "operator memory questions"
+    ]
+  },
+  "model_api_execution_allowed": false,
+  "model_call_allowed": false,
+  "model_router_runtime_allowed": false,
+  "network_operation_allowed": false,
+  "operator_final_authority": true,
+  "operator_memory_questions": [
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "memory_only_clarification",
+      "question": "Do you remember whether the Capital Hilton invoice should cover both 2026-05-08 and 2026-05-15 on one invoice?",
+      "question_id": "one_invoice_posture"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "proof_needed",
+      "question": "Do you remember whether $400/gig is the correct rate for both dates?",
+      "question_id": "rate_confirmation"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "protected_proof_needed",
+      "question": "Is there a Coupa PO number or payment reference that should exist?",
+      "question_id": "coupa_po_reference"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "proof_needed",
+      "question": "Is the proof source likely Coupa, Excel, email, a PDF, a calendar entry, or a packet already in OpenClaw?",
+      "question_id": "proof_source_location"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "world_transition_needed",
+      "question": "Should the invoice go through Coupa only, email/AP contact, or another payment route?",
+      "question_id": "ap_route"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "security_gate_needed",
+      "question": "Is there any protected client material that must be represented only as metadata?",
+      "question_id": "protected_material"
+    },
+    {
+      "answer_becomes": "memory_candidate_receipt",
+      "answer_is_machine_proof": false,
+      "classification": "world_transition_needed",
+      "question": "What would convince you the invoice is ready to move from helm threshold lane into Finance World action?",
+      "question_id": "finance_world_ready"
+    }
+  ],
+  "operator_summary": "Capital Hilton is represented as a Finance steel-thread proof metadata packet. The packet shows candidate invoice facts, missing protected proof, actor/package/tool posture, and the gates needed before any future Finance World action.",
+  "pc_c_drive_artifact_write_allowed": false,
+  "planner_builder_execution_allowed": false,
+  "proof_category_taxonomy": [
+    {
+      "current_execution_authority": false,
+      "meaning": "operator- or read-model-reported fact not fully backed by protected proof metadata",
+      "proof_category": "CANDIDATE_FACT",
+      "raw_body_allowed": false
+    },
+    {
+      "current_execution_authority": false,
+      "meaning": "approved source card, receipt, packet, spreadsheet metadata, Coupa metadata, invoice packet metadata, or protected proof reference",
+      "proof_category": "METADATA_PROOF",
+      "raw_body_allowed": false
+    },
+    {
+      "current_execution_authority": false,
+      "meaning": "finance/client/account-sensitive proof represented as guarded metadata, not raw body",
+      "proof_category": "PROTECTED_PROOF",
+      "raw_body_allowed": false
+    },
+    {
+      "current_execution_authority": false,
+      "meaning": "raw Coupa, Excel, Gmail/calendar, PDF, portal, account, or private financial document body that must not be ingested or displayed",
+      "proof_category": "BLOCKED_RAW_BODY",
+      "raw_body_allowed": false
+    },
+    {
+      "current_execution_authority": false,
+      "meaning": "required proof not yet present",
+      "proof_category": "MISSING_PROOF",
+      "raw_body_allowed": false
+    },
+    {
+      "current_execution_authority": false,
+      "meaning": "future receipt required only after security audit, such as invoice generation, Coupa submission, or approval receipt",
+      "proof_category": "FUTURE_ACTION_PROOF",
+      "raw_body_allowed": false
+    }
+  ],
+  "queue_execution_allowed": false,
+  "raw_finance_body_ingestion_allowed": false,
+  "read_model_id": "capital_hilton_proof_metadata_packet",
+  "recommended_next_lanes": [
+    {
+      "hard_boundary": "app-facing summary only; no Mac sync/import in this lane",
+      "lane_id": "stable_map_refresh_capital_hilton_proof_summary",
+      "priority": "P1",
+      "title": "Stable Map Refresh with Capital Hilton Proof Summary"
+    },
+    {
+      "hard_boundary": "read-only UI; no invoice execution",
+      "lane_id": "finance_world_capital_hilton_preview_surface",
+      "priority": "P2",
+      "title": "Finance World / Capital Hilton Preview Surfacing"
+    }
+  ],
+  "repo_b_body_inspection_allowed": false,
+  "repo_b_mutation_allowed": false,
+  "required_proof_metadata": [
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "2026-05-08",
+        "2026-05-15"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "performance_date_proof_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves the performance date(s) worked before invoice action.",
+      "raw_body_included": false,
+      "raw_body_policy": "raw calendar/email bodies blocked",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "approved calendar/source-card/receipt/metadata ref; raw calendar/email bodies blocked"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "$400 per gig"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "rate_proof_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves the rate, including the candidate $400/gig posture if supported.",
+      "raw_body_included": false,
+      "raw_body_policy": "raw contract/email body blocked unless protected metadata exists",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "approved source card, contract metadata, packet metadata, or operator-confirmed proof ref"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "$800 candidate subtotal when two $400 performances are proven"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "subtotal_proof_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves invoice arithmetic after date and rate proof exist.",
+      "raw_body_included": false,
+      "raw_body_policy": "no raw finance body required",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "machine-derived arithmetic receipt only after date/rate proof metadata exists"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "PO/Coupa unknown"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "coupa_po_or_payment_reference_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves Coupa, PO, or payment route metadata if present.",
+      "raw_body_included": false,
+      "raw_body_policy": "Coupa access, credentials, browser/OAuth, and account session blocked",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "metadata-only Coupa/PO/payment reference after Guardian and Operator gates"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "workbook reference metadata only"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "excel_workbook_reference_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves the workbook/source row exists if relevant.",
+      "raw_body_included": false,
+      "raw_body_policy": "raw Excel body and workbook parsing blocked",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "workbook filename/source-card/row metadata; no cell body or formulas"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "invoice source card metadata"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "invoice_source_card_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves what a future invoice packet should include.",
+      "raw_body_included": false,
+      "raw_body_policy": "raw private finance bodies blocked",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "approved invoice packet metadata and proof refs"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "AP route unknown or review-only"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "ap_recipient_route_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves the AP recipient/payment route before any future send or submit lane.",
+      "raw_body_included": false,
+      "raw_body_policy": "email/account bodies blocked",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "metadata-only AP route/source-card; account access blocked"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "Guardian gate required"
+      ],
+      "guardian_gate_required": true,
+      "operator_approval_required": true,
+      "proof_category": "PROTECTED_PROOF",
+      "proof_metadata_id": "guardian_protected_access_gate_metadata",
+      "protected_proof_required": true,
+      "purpose": "Proves whether protected material is eligible for metadata-only review.",
+      "raw_body_included": false,
+      "raw_body_policy": "protected material remains metadata-only unless future gate permits scoped reference",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": true,
+      "source_expectation": "Guardian gate receipt; no self-authorization"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "operator confirmation receipt candidate"
+      ],
+      "guardian_gate_required": false,
+      "operator_approval_required": true,
+      "proof_category": "METADATA_PROOF",
+      "proof_metadata_id": "operator_confirmation_metadata",
+      "protected_proof_required": false,
+      "purpose": "Captures operator memory/confirmation as candidate context only.",
+      "raw_body_included": false,
+      "raw_body_policy": "operator statement can clarify but cannot include secrets or raw private bodies",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": false,
+      "required_for_security_audit": true,
+      "source_expectation": "Memory Candidate Receipt, not machine proof by itself"
+    },
+    {
+      "allowed_now": "metadata requirement display only",
+      "blocked_now": [
+        "raw body ingestion",
+        "account/browser/Coupa/Gmail/calendar access",
+        "send/submit/approval",
+        "invoice generation"
+      ],
+      "current_proof_present": false,
+      "current_status": "missing_proof_metadata",
+      "expected_candidate_values": [
+        "future action receipt shape only"
+      ],
+      "guardian_gate_required": false,
+      "operator_approval_required": true,
+      "proof_category": "FUTURE_ACTION_PROOF",
+      "proof_metadata_id": "future_invoice_generation_receipt_requirement",
+      "protected_proof_required": false,
+      "purpose": "Defines the future receipt required after security audit for any invoice generation.",
+      "raw_body_included": false,
+      "raw_body_policy": "not executable now; no invoice generation authority",
+      "receipt_requirement": "future receipt required before action; current packet only defines shape",
+      "required_for_finance_world_action": true,
+      "required_for_security_audit": false,
+      "source_expectation": "future invoice generation receipt, Coupa submission receipt, or approval receipt if gates ever allow"
+    }
+  ],
+  "runtime_dispatch_allowed": false,
+  "schema_version": "capital_hilton_proof_metadata_packet_v0",
+  "security_audit_readiness": {
+    "current_blockers": [
+      "performance_date_proof_metadata",
+      "rate_proof_metadata",
+      "subtotal_proof_metadata",
+      "coupa_po_or_payment_reference_metadata",
+      "excel_workbook_reference_metadata",
+      "invoice_source_card_metadata",
+      "ap_recipient_route_metadata",
+      "guardian_protected_access_gate_metadata",
+      "operator_confirmation_metadata",
+      "future_invoice_generation_receipt_requirement"
+    ],
+    "readiness_requires": [
+      "protected proof metadata identified",
+      "raw bodies excluded",
+      "Coupa/browser/account routes blocked",
+      "Guardian gates identified",
+      "Operator approvals identified",
+      "package preview receipt exists or is defined",
+      "tool adapter receipt requirements exist or are defined",
+      "model selection receipt blocked/preview-only",
+      "missing proof list complete",
+      "future action boundaries explicit",
+      "no live execution authority"
+    ],
+    "ready_for_finance_world_action": false,
+    "ready_for_security_audit": false,
+    "security_audit_readiness_is_not_action_readiness": true
+  },
+  "send_submit_approval_allowed": false,
+  "source_surface_posture": {
+    "canonical_proof_claimed": false,
+    "capital_hilton_actionable_review_packet_present": true,
+    "capital_hilton_coupa_execution_path_present": true,
+    "cassandra_governed_review_packet_present": true,
+    "raw_source_bodies_imported": false,
+    "source_values_are_candidate_or_review_metadata": true
+  },
+  "stable_map_integration": {
+    "contract_generated_as_read_model": true,
+    "reason_not_included_now": "stable-map refresh is a separate lane; current worktree has unrelated sync/health residue",
+    "safe_summary_for_next_refresh": {
+      "capital_hilton_status": "proof_needed_preview_only",
+      "contract_id": "capital_hilton_proof_metadata_packet",
+      "future_gated_action": true,
+      "missing_proof_count": 10,
+      "next_safe_detour": "protected proof metadata packet review",
+      "protected_proof_required": true,
+      "target_world": "Finance"
+    },
+    "summary_included_in_stable_map_now": false
+  },
+  "tool_execution_allowed": false
+}
