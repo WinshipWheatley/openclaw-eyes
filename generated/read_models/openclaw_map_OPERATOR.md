@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_6f1dc51e52ab0c5778d8`
-- Bundle hash: `sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22`
+- Map generation: `map_963121fcbd8973c86a49`
+- Bundle hash: `sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `251`
+- Raw canonical expected: `259`
 - Raw observed: `218`
-- Raw missing expected: `33`
+- Raw missing expected: `41`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -254,6 +254,57 @@
 - Automatic cross-off allowed: `false`
 - Cross-off deletes source notes: `false`
 - Trust detours present: `true`
+
+## Post-Security Governance Batch Summary
+
+- ELIWINSHIP: the batch adds the governance rails for what comes after the Security Pass without making anything live. It parks a high-risk capital R&D idea, defines how future changes get delta-reviewed, decides what should reach operator attention, and defines how Chief can later verify/cross off work with proof.
+- Summary present: `true`
+- Batch id: `post_security_governance_batch_v0`
+- Batch status: `COMPLETE_PENDING_STABLE_MAP_IMPORT`
+- Lane count: `5`
+- Completed lanes: `parked_autonomous_capital_pipeline_experiment, security_delta_review_contract, operator_attention_promotion_contract, chief_test_harness_cross_off_receipt_contract, integrated_checkpoint_and_stable_map_refresh`
+- Next expected actor: `mac_map_import_agent`
+- Batch live authority false: `true`
+
+### Parked Capital R&D Experiment
+
+- Status: `PARKED_HIGH_RISK_R_AND_D_EXPERIMENT`
+- Phases captured: `5`
+- All authority false: `true`
+- Future gates required: `true`
+- Token concept is future-only: `true`
+- Stress-test artifact: `true`
+- It is parked R&D only: no spend, account creation, deployment, acquisition, payout, model/tool/agent/runtime, network, ledger, invoice, or queue authority.
+
+### Security Delta Review
+
+- Summary present: `true`
+- Delta classes: `19`
+- Default examples: `14`
+- Repass-required categories: `ACCOUNT_ACCESS_DELTA, FINANCIAL_AUTHORITY_DELTA, QUEUE_AUTONOMY_DELTA, RUNTIME_EXECUTION_DELTA`
+- Action authority granted: `false`
+- Future additions inherit the Security Pass law when they match an approved class; authority-changing lanes route to delta review or security repass.
+
+### Operator Attention Promotion
+
+- Promotion lifecycle present: `true`
+- Quiet helm policy present: `true`
+- Shared fix path handling present: `true`
+- Cue candidates executable: `false`
+- Holding-cell items queued: `false`
+- Action authority granted: `false`
+- SQLite rows, receipts, breadcrumbs, worker reports, and stable-map facts do not automatically bother Winship; they need a promotion decision.
+
+### Chief Test Harness / Cross-Off
+
+- Test harness receipt model present: `true`
+- Cross-off rules present: `true`
+- Source mutation allowed: `false`
+- Source deletion allowed: `false`
+- Repair/requeue recommendations metadata-only: `true`
+- Quiet-with-proof model present: `true`
+- Action authority granted: `false`
+- Cross-off means a completion receipt/candidate, not deleting or mutating the original note.
 
 ## What Mission Control Can Render Next
 

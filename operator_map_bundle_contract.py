@@ -40,6 +40,8 @@ CONTRACT_OPERATOR_EXPORT_NAME = "operator_map_bundle_contract_OPERATOR.md"
 MAP_MANIFEST_EXPORT_NAME = "openclaw_map_manifest.json"
 MAP_SNAPSHOT_EXPORT_NAME = "openclaw_map_snapshot.json"
 MAP_OPERATOR_EXPORT_NAME = "openclaw_map_OPERATOR.md"
+MAP_SYNC_REQUIRED_SCHEMA_VERSION = "openclaw_map_sync_required_v0"
+MAP_SYNC_REQUIRED_EXPORT_NAME = "openclaw_map_sync_required.json"
 
 STABLE_APP_FACING_FILES = (
     MAP_SNAPSHOT_EXPORT_NAME,
@@ -64,6 +66,11 @@ TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH = "generated/read_models/tool_adapter_recei
 CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_metadata_packet.json"
 SECURITY_AUDIT_READINESS_READ_MODEL_PATH = "generated/read_models/security_audit_readiness_packet.json"
 SECURITY_PASS_CONTRACT_READ_MODEL_PATH = "generated/read_models/security_pass_contract.json"
+POST_SECURITY_GOVERNANCE_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/post_security_governance_batch_manifest.json"
+PARKED_AUTONOMOUS_CAPITAL_PIPELINE_EXPERIMENT_READ_MODEL_PATH = "generated/read_models/parked_autonomous_capital_pipeline_experiment.json"
+SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH = "generated/read_models/security_delta_review_contract.json"
+OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_attention_promotion_contract.json"
+CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH = "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -120,6 +127,31 @@ ESSENTIAL_SURFACES = (
         "surface_id": "security_pass_contract",
         "path": SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
         "role": "security pass read-only, preview, metadata, worker intake, and trust-clearance decisions",
+    },
+    {
+        "surface_id": "post_security_governance_batch_manifest",
+        "path": POST_SECURITY_GOVERNANCE_BATCH_MANIFEST_READ_MODEL_PATH,
+        "role": "post-security governance batch closure state and Mac import handoff",
+    },
+    {
+        "surface_id": "parked_autonomous_capital_pipeline_experiment",
+        "path": PARKED_AUTONOMOUS_CAPITAL_PIPELINE_EXPERIMENT_READ_MODEL_PATH,
+        "role": "parked high-risk autonomous capital R&D thought experiment boundary",
+    },
+    {
+        "surface_id": "security_delta_review_contract",
+        "path": SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH,
+        "role": "future addition delta review against the Security Pass baseline",
+    },
+    {
+        "surface_id": "operator_attention_promotion_contract",
+        "path": OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH,
+        "role": "operator attention promotion, quiet helm, holding-cell, and cue classification rules",
+    },
+    {
+        "surface_id": "chief_test_harness_cross_off_receipt_contract",
+        "path": CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH,
+        "role": "Chief completion proof, cross-off receipt, requeue, and quiet-with-proof rules",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -233,6 +265,8 @@ class OperatorMapBundleExportResult:
     map_manifest_path: str
     map_snapshot_path: str
     map_operator_path: str
+    staged_bundle_path: str
+    sync_request_marker_path: str
     map_generation_id: str
     bundle_hash: str
     stable_app_facing_file_count: int
@@ -1502,6 +1536,238 @@ def _summarize_security_pass(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _summarize_post_security_governance_batch(payload: dict[str, Any]) -> dict[str, Any]:
+    lanes_planned = payload.get("lanes_planned") if isinstance(payload.get("lanes_planned"), list) else []
+    lanes_completed = payload.get("lanes_completed") if isinstance(payload.get("lanes_completed"), list) else []
+    authority = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    completed_lane_ids = [
+        lane.get("lane_id")
+        for lane in lanes_completed
+        if isinstance(lane, dict) and lane.get("lane_id")
+    ]
+    return {
+        "source_path": POST_SECURITY_GOVERNANCE_BATCH_MANIFEST_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/post_security_governance_batch_manifest_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_manifest_read_model_remains_proof_detail": True,
+        "batch_id": payload.get("batch_id"),
+        "batch_status": payload.get("batch_status"),
+        "lane_count": len(lanes_planned),
+        "completed_lanes": completed_lane_ids,
+        "completed_lane_count": len(completed_lane_ids),
+        "stable_map_refresh_deferred": payload.get("stable_map_refresh_deferred") is True,
+        "commit_deferred_until_prompt_5": payload.get("commit_deferred_until_prompt_5") is True,
+        "next_expected_actor": payload.get("next_expected_actor"),
+        "authority_boundary": {
+            "live_execution_allowed": authority.get("live_execution_allowed") is True,
+            "model_api_execution_allowed": authority.get("model_api_execution_allowed") is True,
+            "actor_agent_activation_allowed": authority.get("actor_agent_activation_allowed") is True,
+            "tool_execution_allowed": authority.get("tool_execution_allowed") is True,
+            "queue_autonomy_allowed": authority.get(
+                "runtime_planner_builder_queue_autonomy_execution_allowed"
+            )
+            is True,
+            "account_payment_financial_allowed": authority.get(
+                "financial_payment_account_access_allowed"
+            )
+            is True,
+            "send_submit_approval_allowed": authority.get("send_submit_approval_allowed") is True,
+            "mac_sync_import_allowed": authority.get("mac_sync_import_allowed") is True,
+            "network_operation_allowed": authority.get("network_operation_allowed") is True,
+            "all_live_authority_false": all(value is False for value in authority.values()),
+        },
+        "action_authority_granted": False,
+        "runtime_execution_authority_granted": False,
+        "model_execution_authority_granted": False,
+        "tool_execution_authority_granted": False,
+        "queue_execution_authority_granted": False,
+        "account_authority_granted": False,
+        "send_submit_approval_authority_granted": False,
+        "next_safe_move": "Mac import should consume the staged stable-map bundle; this PC pass performs no Mac import.",
+    }
+
+
+def _summarize_parked_autonomous_capital_pipeline_experiment(payload: dict[str, Any]) -> dict[str, Any]:
+    phases = payload.get("five_phase_roadmap") if isinstance(payload.get("five_phase_roadmap"), list) else []
+    future_gates = payload.get("required_future_gates") if isinstance(payload.get("required_future_gates"), dict) else {}
+    authority = (
+        payload.get("no_action_authority_matrix")
+        if isinstance(payload.get("no_action_authority_matrix"), dict)
+        else {}
+    )
+    tokens = payload.get("allowed_tokens") if isinstance(payload.get("allowed_tokens"), dict) else {}
+    stress = (
+        payload.get("security_stress_test_classification")
+        if isinstance(payload.get("security_stress_test_classification"), dict)
+        else {}
+    )
+    return {
+        "source_path": PARKED_AUTONOMOUS_CAPITAL_PIPELINE_EXPERIMENT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/parked_autonomous_capital_pipeline_experiment_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_experiment_read_model_remains_proof_detail": True,
+        "experiment_name": payload.get("experiment_name"),
+        "status": payload.get("experiment_status"),
+        "parked_high_risk_r_and_d": payload.get("experiment_status")
+        == "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+        "phase_count": len(phases),
+        "phases_captured": [phase.get("phase_id") for phase in phases if isinstance(phase, dict)],
+        "all_authority_false": all(value is False for value in authority.values()),
+        "future_gates_required": bool(future_gates) and all(value is True for value in future_gates.values()),
+        "future_gate_count": len(future_gates),
+        "token_concept_future_only": (
+            tokens.get("status") == "FUTURE_CONCEPT_ONLY"
+            and tokens.get("tokens_exist_now") is False
+            and tokens.get("tokens_grant_external_spend") is False
+            and tokens.get("tokens_grant_account_access") is False
+        ),
+        "token_types": tokens.get("token_types") if isinstance(tokens.get("token_types"), list) else [],
+        "stress_test_classification": stress.get("is_security_stress_test_artifact") is True,
+        "stress_test_areas": stress.get("stress_test_areas")
+        if isinstance(stress.get("stress_test_areas"), list)
+        else [],
+        "action_authority_granted": False,
+        "capital_spend_allowed": authority.get("capital_spend_allowed") is True,
+        "account_creation_allowed": authority.get("account_creation_allowed") is True,
+        "financial_account_access_allowed": authority.get("financial_account_access_allowed") is True,
+        "network_operation_allowed": authority.get("network_operation_allowed") is True,
+        "model_call_allowed": authority.get("model_call_allowed") is True,
+        "agent_activation_allowed": authority.get("agent_activation_allowed") is True,
+        "tool_execution_allowed": authority.get("tool_execution_allowed") is True,
+        "queue_execution_allowed": authority.get("queue_execution_allowed") is True,
+        "runtime_dispatch_allowed": authority.get("runtime_dispatch_allowed") is True,
+        "next_safe_move": payload.get("next_safe_move"),
+    }
+
+
+def _summarize_security_delta_review(payload: dict[str, Any]) -> dict[str, Any]:
+    examples = payload.get("default_examples") if isinstance(payload.get("default_examples"), list) else []
+    repass_categories = sorted(
+        {
+            str(example.get("change_type"))
+            for example in examples
+            if isinstance(example, dict) and example.get("decision") == "REQUIRES_SECURITY_REPASS"
+        }
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return {
+        "source_path": SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/security_delta_review_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("contract_id", "security_delta_review_contract"),
+        "schema_version": payload.get("schema_version"),
+        "delta_classes_count": len(payload.get("security_delta_classes", []))
+        if isinstance(payload.get("security_delta_classes"), list)
+        else 0,
+        "decision_outcomes_count": len(payload.get("decision_outcomes", []))
+        if isinstance(payload.get("decision_outcomes"), list)
+        else 0,
+        "default_examples_count": len(examples),
+        "repass_required_categories": repass_categories,
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "execution_authority_granted": machine.get("execution_authority_granted") is True,
+        "auto_promotion_allowed": machine.get("auto_promotion_allowed") is True,
+        "auto_queueing_allowed": machine.get("auto_queueing_allowed") is True,
+        "operator_answers_are_not_proof": machine.get("operator_answers_are_not_proof") is True,
+        "stable_map_summary_does_not_make_source_truth": True,
+        "next_safe_move": "Use this contract when a new item asks for authority beyond an existing approved class.",
+    }
+
+
+def _summarize_operator_attention_promotion(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    shared_paths = payload.get("shared_fix_paths") if isinstance(payload.get("shared_fix_paths"), list) else []
+    shared_ids = {
+        path.get("shared_fix_path_id")
+        for path in shared_paths
+        if isinstance(path, dict)
+    }
+    return {
+        "source_path": OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/operator_attention_promotion_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("contract_id", "operator_attention_promotion_contract"),
+        "schema_version": payload.get("schema_version"),
+        "promotion_lifecycle_present": bool(payload.get("promotion_lifecycle_states")),
+        "promotion_lifecycle_count": len(payload.get("promotion_lifecycle_states", []))
+        if isinstance(payload.get("promotion_lifecycle_states"), list)
+        else 0,
+        "promotion_destinations_count": len(payload.get("promotion_destinations", []))
+        if isinstance(payload.get("promotion_destinations"), list)
+        else 0,
+        "attention_classes_count": len(payload.get("attention_classes", []))
+        if isinstance(payload.get("attention_classes"), list)
+        else 0,
+        "default_records_count": len(payload.get("default_records", []))
+        if isinstance(payload.get("default_records"), list)
+        else 0,
+        "quiet_helm_policy_present": bool(payload.get("quiet_helm_policy")),
+        "shared_fix_path_handling_present": "protected_finance_proof_metadata_intake" in shared_ids,
+        "cue_candidates_executable": machine.get("cue_candidates_not_executable") is not True,
+        "holding_cell_queued": machine.get("holding_cell_items_not_queued") is not True,
+        "operator_answers_are_memory_candidates_not_proof": True,
+        "new_authority_routes_to_security_delta_or_fail_closed": (
+            machine.get("new_authority_routes_to_security_delta_or_fail_closed") is True
+        ),
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "auto_promotion_allowed": machine.get("auto_promotion_allowed") is True,
+        "next_safe_move": "Use promotion as classification only; route authority requests to Security Delta Review.",
+    }
+
+
+def _summarize_chief_test_harness_cross_off(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    repair_requeue = (
+        payload.get("default_repair_requeue_recommendations")
+        if isinstance(payload.get("default_repair_requeue_recommendations"), list)
+        else []
+    )
+    quiet_receipts = (
+        payload.get("default_quiet_with_proof_receipts")
+        if isinstance(payload.get("default_quiet_with_proof_receipts"), list)
+        else []
+    )
+    return {
+        "source_path": CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("contract_id", "chief_test_harness_cross_off_receipt_contract"),
+        "schema_version": payload.get("schema_version"),
+        "test_harness_receipt_model_present": bool(payload.get("schemas", {}).get("ChiefTestHarnessReceipt"))
+        if isinstance(payload.get("schemas"), dict)
+        else False,
+        "completion_status_count": len(payload.get("completion_statuses", []))
+        if isinstance(payload.get("completion_statuses"), list)
+        else 0,
+        "reconciliation_state_count": len(payload.get("reconciliation_states", []))
+        if isinstance(payload.get("reconciliation_states"), list)
+        else 0,
+        "default_harness_receipts_count": len(payload.get("default_harness_receipts", []))
+        if isinstance(payload.get("default_harness_receipts"), list)
+        else 0,
+        "cross_off_rules_present": bool(payload.get("cross_off_decisions")),
+        "source_mutation_allowed": False,
+        "delete_source_allowed": False,
+        "automatic_cross_off_allowed": machine.get("automatic_cross_off_allowed") is True,
+        "repair_requeue_recommendations_metadata_only": bool(repair_requeue)
+        and all(item.get("can_run_unattended") is False for item in repair_requeue if isinstance(item, dict)),
+        "quiet_with_proof_model_present": bool(quiet_receipts),
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "chief_self_authorization_allowed": machine.get("chief_self_authorization_allowed") is True,
+        "chief_repair_execution_allowed": machine.get("chief_repair_execution_allowed") is True,
+        "new_authority_routes_to_security_delta": machine.get("new_authority_routes_to_security_delta") is True,
+        "next_safe_move": "Use Chief receipts to quiet, requeue, park, or quarantine with proof; do not mutate source notes.",
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -1751,6 +2017,26 @@ def build_openclaw_map_snapshot(
         SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    post_security_governance_batch = _read_json_if_present(
+        POST_SECURITY_GOVERNANCE_BATCH_MANIFEST_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    parked_capital_experiment = _read_json_if_present(
+        PARKED_AUTONOMOUS_CAPITAL_PIPELINE_EXPERIMENT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    security_delta_review = _read_json_if_present(
+        SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    operator_attention_promotion = _read_json_if_present(
+        OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    chief_test_harness_cross_off = _read_json_if_present(
+        CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -1779,6 +2065,19 @@ def build_openclaw_map_snapshot(
         ),
         "security_audit_readiness": _summarize_security_audit_readiness(security_audit_readiness),
         "security_pass": _summarize_security_pass(security_pass),
+        "post_security_governance_batch": _summarize_post_security_governance_batch(
+            post_security_governance_batch
+        ),
+        "parked_autonomous_capital_pipeline_experiment": _summarize_parked_autonomous_capital_pipeline_experiment(
+            parked_capital_experiment
+        ),
+        "security_delta_review": _summarize_security_delta_review(security_delta_review),
+        "operator_attention_promotion": _summarize_operator_attention_promotion(
+            operator_attention_promotion
+        ),
+        "chief_test_harness_cross_off": _summarize_chief_test_harness_cross_off(
+            chief_test_harness_cross_off
+        ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -2043,6 +2342,16 @@ def build_operator_map_bundle_contract(
             "security_pass_chief_reconciliation_metadata_approved": snapshot["security_pass"]["chief_reconciliation_metadata_approved"],
             "security_pass_hermes_architecture_review_metadata_approved": snapshot["security_pass"]["hermes_architecture_review_metadata_approved"],
             "security_pass_trust_clearance_modeling_approved": snapshot["security_pass"]["trust_clearance_modeling_approved"],
+            "post_security_governance_batch_present": snapshot["post_security_governance_batch"]["present"],
+            "post_security_governance_batch_status": snapshot["post_security_governance_batch"]["batch_status"],
+            "parked_capital_experiment_present": snapshot["parked_autonomous_capital_pipeline_experiment"]["present"],
+            "parked_capital_experiment_status": snapshot["parked_autonomous_capital_pipeline_experiment"]["status"],
+            "security_delta_review_present": snapshot["security_delta_review"]["present"],
+            "security_delta_review_default_examples_count": snapshot["security_delta_review"]["default_examples_count"],
+            "operator_attention_promotion_present": snapshot["operator_attention_promotion"]["present"],
+            "operator_attention_promotion_quiet_helm_policy_present": snapshot["operator_attention_promotion"]["quiet_helm_policy_present"],
+            "chief_test_harness_cross_off_present": snapshot["chief_test_harness_cross_off"]["present"],
+            "chief_test_harness_cross_off_source_mutation_allowed": snapshot["chief_test_harness_cross_off"]["source_mutation_allowed"],
             "future_gated_cue_autonomy": snapshot["authority_boundary"]["future_gated_cue_autonomy"],
         },
         "atomic_sync_lifecycle": {
@@ -2179,6 +2488,60 @@ def build_operator_map_bundle_contract(
             "all_live_authority_false": snapshot["security_pass"]["all_live_authority_false"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "post_security_governance_batch_integration": {
+            "summary_included_in_snapshot": snapshot["post_security_governance_batch"]["present"],
+            "batch_id": snapshot["post_security_governance_batch"]["batch_id"],
+            "batch_status": snapshot["post_security_governance_batch"]["batch_status"],
+            "lane_count": snapshot["post_security_governance_batch"]["lane_count"],
+            "completed_lanes": snapshot["post_security_governance_batch"]["completed_lanes"],
+            "next_expected_actor": snapshot["post_security_governance_batch"]["next_expected_actor"],
+            "all_live_authority_false": snapshot["post_security_governance_batch"]["authority_boundary"]["all_live_authority_false"],
+            "individual_manifest_read_model_remains_proof_detail": True,
+        },
+        "parked_autonomous_capital_pipeline_experiment_integration": {
+            "summary_included_in_snapshot": snapshot["parked_autonomous_capital_pipeline_experiment"]["present"],
+            "status": snapshot["parked_autonomous_capital_pipeline_experiment"]["status"],
+            "phase_count": snapshot["parked_autonomous_capital_pipeline_experiment"]["phase_count"],
+            "all_authority_false": snapshot["parked_autonomous_capital_pipeline_experiment"]["all_authority_false"],
+            "future_gates_required": snapshot["parked_autonomous_capital_pipeline_experiment"]["future_gates_required"],
+            "token_concept_future_only": snapshot["parked_autonomous_capital_pipeline_experiment"]["token_concept_future_only"],
+            "stress_test_classification": snapshot["parked_autonomous_capital_pipeline_experiment"]["stress_test_classification"],
+            "action_authority_granted": snapshot["parked_autonomous_capital_pipeline_experiment"]["action_authority_granted"],
+            "individual_experiment_read_model_remains_proof_detail": True,
+        },
+        "security_delta_review_integration": {
+            "summary_included_in_snapshot": snapshot["security_delta_review"]["present"],
+            "delta_classes_count": snapshot["security_delta_review"]["delta_classes_count"],
+            "default_examples_count": snapshot["security_delta_review"]["default_examples_count"],
+            "repass_required_categories": snapshot["security_delta_review"]["repass_required_categories"],
+            "action_authority_granted": snapshot["security_delta_review"]["action_authority_granted"],
+            "execution_authority_granted": snapshot["security_delta_review"]["execution_authority_granted"],
+            "auto_promotion_allowed": snapshot["security_delta_review"]["auto_promotion_allowed"],
+            "auto_queueing_allowed": snapshot["security_delta_review"]["auto_queueing_allowed"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "operator_attention_promotion_integration": {
+            "summary_included_in_snapshot": snapshot["operator_attention_promotion"]["present"],
+            "promotion_lifecycle_present": snapshot["operator_attention_promotion"]["promotion_lifecycle_present"],
+            "quiet_helm_policy_present": snapshot["operator_attention_promotion"]["quiet_helm_policy_present"],
+            "shared_fix_path_handling_present": snapshot["operator_attention_promotion"]["shared_fix_path_handling_present"],
+            "cue_candidates_executable": snapshot["operator_attention_promotion"]["cue_candidates_executable"],
+            "holding_cell_queued": snapshot["operator_attention_promotion"]["holding_cell_queued"],
+            "action_authority_granted": snapshot["operator_attention_promotion"]["action_authority_granted"],
+            "auto_promotion_allowed": snapshot["operator_attention_promotion"]["auto_promotion_allowed"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "chief_test_harness_cross_off_integration": {
+            "summary_included_in_snapshot": snapshot["chief_test_harness_cross_off"]["present"],
+            "test_harness_receipt_model_present": snapshot["chief_test_harness_cross_off"]["test_harness_receipt_model_present"],
+            "cross_off_rules_present": snapshot["chief_test_harness_cross_off"]["cross_off_rules_present"],
+            "source_mutation_allowed": snapshot["chief_test_harness_cross_off"]["source_mutation_allowed"],
+            "delete_source_allowed": snapshot["chief_test_harness_cross_off"]["delete_source_allowed"],
+            "repair_requeue_recommendations_metadata_only": snapshot["chief_test_harness_cross_off"]["repair_requeue_recommendations_metadata_only"],
+            "quiet_with_proof_model_present": snapshot["chief_test_harness_cross_off"]["quiet_with_proof_model_present"],
+            "action_authority_granted": snapshot["chief_test_harness_cross_off"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -2286,6 +2649,31 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     security_pass_trust = (
         security_pass.get("chief_hermes_trust_summary", {})
         if isinstance(security_pass.get("chief_hermes_trust_summary"), dict)
+        else {}
+    )
+    governance_batch = (
+        snapshot.get("post_security_governance_batch", {})
+        if isinstance(snapshot.get("post_security_governance_batch"), dict)
+        else {}
+    )
+    parked_experiment = (
+        snapshot.get("parked_autonomous_capital_pipeline_experiment", {})
+        if isinstance(snapshot.get("parked_autonomous_capital_pipeline_experiment"), dict)
+        else {}
+    )
+    security_delta = (
+        snapshot.get("security_delta_review", {})
+        if isinstance(snapshot.get("security_delta_review"), dict)
+        else {}
+    )
+    attention_promotion = (
+        snapshot.get("operator_attention_promotion", {})
+        if isinstance(snapshot.get("operator_attention_promotion"), dict)
+        else {}
+    )
+    chief_cross_off = (
+        snapshot.get("chief_test_harness_cross_off", {})
+        if isinstance(snapshot.get("chief_test_harness_cross_off"), dict)
         else {}
     )
     capital_facts = (
@@ -2555,6 +2943,57 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
             f"- Cross-off deletes source notes: `{str(security_pass_trust.get('cross_off_deletes_source_notes')).lower()}`",
             f"- Trust detours present: `{str(security_pass_trust.get('trust_detours_present')).lower()}`",
             "",
+            "## Post-Security Governance Batch Summary",
+            "",
+            "- ELIWINSHIP: the batch adds the governance rails for what comes after the Security Pass without making anything live. It parks a high-risk capital R&D idea, defines how future changes get delta-reviewed, decides what should reach operator attention, and defines how Chief can later verify/cross off work with proof.",
+            f"- Summary present: `{str(governance_batch.get('present')).lower()}`",
+            f"- Batch id: `{governance_batch.get('batch_id')}`",
+            f"- Batch status: `{governance_batch.get('batch_status')}`",
+            f"- Lane count: `{governance_batch.get('lane_count')}`",
+            f"- Completed lanes: `{', '.join(governance_batch.get('completed_lanes', []))}`",
+            f"- Next expected actor: `{governance_batch.get('next_expected_actor')}`",
+            f"- Batch live authority false: `{str(governance_batch.get('authority_boundary', {}).get('all_live_authority_false')).lower()}`",
+            "",
+            "### Parked Capital R&D Experiment",
+            "",
+            f"- Status: `{parked_experiment.get('status')}`",
+            f"- Phases captured: `{parked_experiment.get('phase_count')}`",
+            f"- All authority false: `{str(parked_experiment.get('all_authority_false')).lower()}`",
+            f"- Future gates required: `{str(parked_experiment.get('future_gates_required')).lower()}`",
+            f"- Token concept is future-only: `{str(parked_experiment.get('token_concept_future_only')).lower()}`",
+            f"- Stress-test artifact: `{str(parked_experiment.get('stress_test_classification')).lower()}`",
+            "- It is parked R&D only: no spend, account creation, deployment, acquisition, payout, model/tool/agent/runtime, network, ledger, invoice, or queue authority.",
+            "",
+            "### Security Delta Review",
+            "",
+            f"- Summary present: `{str(security_delta.get('present')).lower()}`",
+            f"- Delta classes: `{security_delta.get('delta_classes_count')}`",
+            f"- Default examples: `{security_delta.get('default_examples_count')}`",
+            f"- Repass-required categories: `{', '.join(security_delta.get('repass_required_categories', []))}`",
+            f"- Action authority granted: `{str(security_delta.get('action_authority_granted')).lower()}`",
+            "- Future additions inherit the Security Pass law when they match an approved class; authority-changing lanes route to delta review or security repass.",
+            "",
+            "### Operator Attention Promotion",
+            "",
+            f"- Promotion lifecycle present: `{str(attention_promotion.get('promotion_lifecycle_present')).lower()}`",
+            f"- Quiet helm policy present: `{str(attention_promotion.get('quiet_helm_policy_present')).lower()}`",
+            f"- Shared fix path handling present: `{str(attention_promotion.get('shared_fix_path_handling_present')).lower()}`",
+            f"- Cue candidates executable: `{str(attention_promotion.get('cue_candidates_executable')).lower()}`",
+            f"- Holding-cell items queued: `{str(attention_promotion.get('holding_cell_queued')).lower()}`",
+            f"- Action authority granted: `{str(attention_promotion.get('action_authority_granted')).lower()}`",
+            "- SQLite rows, receipts, breadcrumbs, worker reports, and stable-map facts do not automatically bother Winship; they need a promotion decision.",
+            "",
+            "### Chief Test Harness / Cross-Off",
+            "",
+            f"- Test harness receipt model present: `{str(chief_cross_off.get('test_harness_receipt_model_present')).lower()}`",
+            f"- Cross-off rules present: `{str(chief_cross_off.get('cross_off_rules_present')).lower()}`",
+            f"- Source mutation allowed: `{str(chief_cross_off.get('source_mutation_allowed')).lower()}`",
+            f"- Source deletion allowed: `{str(chief_cross_off.get('delete_source_allowed')).lower()}`",
+            f"- Repair/requeue recommendations metadata-only: `{str(chief_cross_off.get('repair_requeue_recommendations_metadata_only')).lower()}`",
+            f"- Quiet-with-proof model present: `{str(chief_cross_off.get('quiet_with_proof_model_present')).lower()}`",
+            f"- Action authority granted: `{str(chief_cross_off.get('action_authority_granted')).lower()}`",
+            "- Cross-off means a completion receipt/candidate, not deleting or mutating the original note.",
+            "",
             "## What Mission Control Can Render Next",
             "",
             "- Package Preview surface: preview cards, included/excluded context summaries, missing proof, gates, receipts, stop conditions, and future dispatch blockers.",
@@ -2634,6 +3073,127 @@ def format_operator_map_bundle_contract(payload: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _stage_openclaw_map_bundle(
+    *,
+    manifest: dict[str, Any],
+    snapshot_path: Path,
+    manifest_path: Path,
+    operator_path: Path,
+    pc_transfer_root: str | Path,
+    generated_at: str,
+) -> tuple[Path, Path]:
+    transfer = Path(pc_transfer_root)
+    to_mac = transfer / "shuttle" / "to_mac"
+    map_generation_id = str(manifest["map_generation_id"])
+    bundle_root = to_mac / "map_bundle" / map_generation_id
+    bundle_root.mkdir(parents=True, exist_ok=True)
+
+    staged_files = (
+        (snapshot_path, bundle_root / MAP_SNAPSHOT_EXPORT_NAME),
+        (manifest_path, bundle_root / MAP_MANIFEST_EXPORT_NAME),
+        (operator_path, bundle_root / MAP_OPERATOR_EXPORT_NAME),
+    )
+    for source, target in staged_files:
+        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    marker_path = to_mac / MAP_SYNC_REQUIRED_EXPORT_NAME
+    bundle_file_records = [
+        {
+            "relative_path": target.name,
+            "source_path": f"generated/read_models/{target.name}",
+            "bundle_source_path": target.as_posix(),
+            "hash_algorithm": "sha256",
+            "sha256": _sha256_file(target),
+        }
+        for _, target in staged_files
+    ]
+    required_file_records = [
+        {
+            "relative_path": record["relative_path"],
+            "source_path": record["bundle_source_path"],
+            "canonical_source_path": record["source_path"],
+            "target_path": f"{DEFAULT_MAC_LOCAL_MAP_ROOT}/{record['relative_path']}",
+            "hash_algorithm": "sha256",
+            "sha256": record["sha256"],
+        }
+        for record in bundle_file_records
+    ]
+    marker = {
+        "schema_version": MAP_SYNC_REQUIRED_SCHEMA_VERSION,
+        "created_at": generated_at,
+        "generated_at": generated_at,
+        "status": "map_generation_pending_mac_import",
+        "map_generation_id": map_generation_id,
+        "bundle_hash": manifest["bundle_hash"],
+        "source_path": bundle_root.as_posix(),
+        "staged_bundle_path": bundle_root.as_posix(),
+        "bundle_generation_path": bundle_root.as_posix(),
+        "canonical_source_path": "generated/read_models",
+        "bundle_files_written": bundle_file_records,
+        "required_files": required_file_records,
+        "target_mac_local_mirror_path": DEFAULT_MAC_LOCAL_MAP_ROOT,
+        "target_mac_files": {
+            "snapshot": f"{DEFAULT_MAC_LOCAL_MAP_ROOT}/{MAP_SNAPSHOT_EXPORT_NAME}",
+            "manifest": f"{DEFAULT_MAC_LOCAL_MAP_ROOT}/{MAP_MANIFEST_EXPORT_NAME}",
+            "operator_digest": f"{DEFAULT_MAC_LOCAL_MAP_ROOT}/{MAP_OPERATOR_EXPORT_NAME}",
+        },
+        "next_expected_actor": "mac_map_import_agent",
+        "expected_next_actor": "mac_map_import_agent",
+        "fallback_actor": "mac_read_model_sync_agent",
+        "app_visible_current_claimed_by_pc": False,
+        "do_not_fake_completion": True,
+        "optional_future_receipt": {
+            "relative_path": "openclaw_map_receipt.json",
+            "schema_version": MAP_RECEIPT_SCHEMA_VERSION,
+            "target_path": f"{DEFAULT_MAC_LOCAL_MAP_ROOT}/openclaw_map_receipt.json",
+        },
+        "boundary": {
+            "no_execution": True,
+            "no_credential": True,
+            "no_network": True,
+            "no_mac_import_performed_by_pc": True,
+            "no_live_model_agent_tool_runtime": True,
+            "no_account_payment_financial_authority": True,
+            "no_send_submit_approval": True,
+        },
+        "no_execution_no_credential_no_network_boundary": {
+            "execution_authority": False,
+            "credential_handling_allowed": False,
+            "network_authority": False,
+        },
+        "no_authority_flags": {
+            "agent_activation_allowed": False,
+            "browser_oauth_account_access_allowed": False,
+            "cleanup_remount_repair_allowed": False,
+            "credential_handling_allowed": False,
+            "file_delete_allowed": False,
+            "file_move_allowed": False,
+            "gmail_calendar_coupa_telegram_allowed": False,
+            "model_execution_allowed": False,
+            "network_authority": False,
+            "pc_c_drive_artifact_write_allowed": False,
+            "runtime_authority": False,
+            "send_submit_approval_allowed": False,
+            "tool_plugin_execution_allowed": False,
+        },
+        "agent_activation_allowed": False,
+        "browser_oauth_account_access_allowed": False,
+        "cleanup_remount_repair_allowed": False,
+        "credential_handling_allowed": False,
+        "file_delete_allowed": False,
+        "file_move_allowed": False,
+        "gmail_calendar_coupa_telegram_allowed": False,
+        "model_execution_allowed": False,
+        "network_authority": False,
+        "pc_c_drive_artifact_write_allowed": False,
+        "runtime_authority": False,
+        "send_submit_approval_allowed": False,
+        "tool_plugin_execution_allowed": False,
+    }
+    marker_path.write_text(stable_json(marker), encoding="utf-8")
+    return bundle_root, marker_path
+
+
 def export_operator_map_bundle(
     *,
     repo_root: str | Path = ROOT,
@@ -2669,6 +3229,14 @@ def export_operator_map_bundle(
     map_manifest.write_text(stable_json(manifest), encoding="utf-8")
     map_snapshot.write_text(stable_json(snapshot), encoding="utf-8")
     map_operator.write_text(format_openclaw_map_operator(snapshot, manifest), encoding="utf-8")
+    staged_bundle_path, sync_request_marker_path = _stage_openclaw_map_bundle(
+        manifest=manifest,
+        snapshot_path=map_snapshot,
+        manifest_path=map_manifest,
+        operator_path=map_operator,
+        pc_transfer_root=pc_transfer_root,
+        generated_at=generated_at,
+    )
 
     return OperatorMapBundleExportResult(
         schema_version=CONTRACT_SCHEMA_VERSION,
@@ -2677,6 +3245,8 @@ def export_operator_map_bundle(
         map_manifest_path=map_manifest.as_posix(),
         map_snapshot_path=map_snapshot.as_posix(),
         map_operator_path=map_operator.as_posix(),
+        staged_bundle_path=staged_bundle_path.as_posix(),
+        sync_request_marker_path=sync_request_marker_path.as_posix(),
         map_generation_id=str(manifest["map_generation_id"]),
         bundle_hash=str(manifest["bundle_hash"]),
         stable_app_facing_file_count=len(STABLE_APP_FACING_FILES),
@@ -2709,6 +3279,8 @@ def main(argv: list[str] | None = None) -> int:
         "map_manifest_path": result.map_manifest_path,
         "map_snapshot_path": result.map_snapshot_path,
         "map_operator_path": result.map_operator_path,
+        "staged_bundle_path": result.staged_bundle_path,
+        "sync_request_marker_path": result.sync_request_marker_path,
         "map_generation_id": result.map_generation_id,
         "bundle_hash": result.bundle_hash,
         "stable_app_facing_file_count": result.stable_app_facing_file_count,
@@ -2724,6 +3296,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"- Snapshot: `{result.map_snapshot_path}`")
         print(f"- Manifest: `{result.map_manifest_path}`")
         print(f"- Operator digest: `{result.map_operator_path}`")
+        print(f"- Staged bundle: `{result.staged_bundle_path}`")
+        print(f"- Sync request marker: `{result.sync_request_marker_path}`")
     return 0
 
 
@@ -2733,6 +3307,8 @@ __all__ = [
     "MAP_RECEIPT_SCHEMA_VERSION",
     "MAP_SNAPSHOT_EXPORT_NAME",
     "MAP_OPERATOR_EXPORT_NAME",
+    "MAP_SYNC_REQUIRED_EXPORT_NAME",
+    "MAP_SYNC_REQUIRED_SCHEMA_VERSION",
     "STABLE_APP_FACING_FILES",
     "SECURITY_AUDIT_READINESS_READ_MODEL_PATH",
     "SECURITY_PASS_CONTRACT_READ_MODEL_PATH",

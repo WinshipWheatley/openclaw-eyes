@@ -2305,7 +2305,31 @@
     "target_world": "Finance",
     "workflow_type": "invoice_review_and_proof_metadata"
   },
-  "created_at": "2026-05-22T18:04:54+00:00",
+  "chief_test_harness_cross_off": {
+    "action_authority_granted": false,
+    "automatic_cross_off_allowed": false,
+    "chief_repair_execution_allowed": false,
+    "chief_self_authorization_allowed": false,
+    "completion_status_count": 16,
+    "contract_id": "chief_test_harness_cross_off_receipt_contract_v0",
+    "cross_off_rules_present": true,
+    "default_harness_receipts_count": 6,
+    "delete_source_allowed": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "new_authority_routes_to_security_delta": true,
+    "next_safe_move": "Use Chief receipts to quiet, requeue, park, or quarantine with proof; do not mutate source notes.",
+    "present": true,
+    "primary_app_contract": true,
+    "quiet_with_proof_model_present": true,
+    "reconciliation_state_count": 13,
+    "repair_requeue_recommendations_metadata_only": true,
+    "schema_version": "chief_test_harness_cross_off_receipt_contract_v0",
+    "source_mutation_allowed": false,
+    "source_operator_ref": "generated/read_models/chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
+    "source_path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
+    "test_harness_receipt_model_present": true
+  },
+  "created_at": "2026-05-22T20:26:45+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -2455,7 +2479,7 @@
     "source_path": "generated/read_models/system_health_lights_taxonomy.json",
     "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
   },
-  "map_generation_id": "map_6f1dc51e52ab0c5778d8",
+  "map_generation_id": "map_963121fcbd8973c86a49",
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -2581,6 +2605,29 @@
       "openclaw_map_manifest.json",
       "openclaw_map_OPERATOR.md"
     ]
+  },
+  "operator_attention_promotion": {
+    "action_authority_granted": false,
+    "attention_classes_count": 16,
+    "auto_promotion_allowed": false,
+    "contract_id": "operator_attention_promotion_contract_v0",
+    "cue_candidates_executable": false,
+    "default_records_count": 8,
+    "holding_cell_queued": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "new_authority_routes_to_security_delta_or_fail_closed": true,
+    "next_safe_move": "Use promotion as classification only; route authority requests to Security Delta Review.",
+    "operator_answers_are_memory_candidates_not_proof": true,
+    "present": true,
+    "primary_app_contract": true,
+    "promotion_destinations_count": 13,
+    "promotion_lifecycle_count": 16,
+    "promotion_lifecycle_present": true,
+    "quiet_helm_policy_present": true,
+    "schema_version": "operator_attention_promotion_contract_v0",
+    "shared_fix_path_handling_present": true,
+    "source_operator_ref": "generated/read_models/operator_attention_promotion_contract_OPERATOR.md",
+    "source_path": "generated/read_models/operator_attention_promotion_contract.json"
   },
   "package_preview_receipts": {
     "account_access_allowed": false,
@@ -3554,6 +3601,186 @@
     "present": true,
     "source_path": "generated/read_models/package_compiler_contract.json"
   },
+  "parked_autonomous_capital_pipeline_experiment": {
+    "account_creation_allowed": false,
+    "action_authority_granted": false,
+    "agent_activation_allowed": false,
+    "all_authority_false": true,
+    "capital_spend_allowed": false,
+    "experiment_name": "autonomous_capital_pipeline_r_and_d_experiment",
+    "financial_account_access_allowed": false,
+    "future_gate_count": 15,
+    "future_gates_required": true,
+    "individual_experiment_read_model_remains_proof_detail": true,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "next_safe_move": "Preserve as a parked high-risk R&D stress-test reference; do not implement until future security, legal/compliance, account, payment, tax, budget-token, Guardian, Chief, Hermes, Operator, and FULL_TRUST_CLEARANCE gates exist.",
+    "parked_high_risk_r_and_d": true,
+    "phase_count": 5,
+    "phases_captured": [
+      "zero_infrastructure_bootstrapping",
+      "micro_saas_self_hosted_compute",
+      "portfolio_diversification_automated_acquisition",
+      "autonomous_treasury_dividend_routing",
+      "business_3_sovereign_shell"
+    ],
+    "present": true,
+    "primary_app_contract": true,
+    "queue_execution_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "source_operator_ref": "generated/read_models/parked_autonomous_capital_pipeline_experiment_OPERATOR.md",
+    "source_path": "generated/read_models/parked_autonomous_capital_pipeline_experiment.json",
+    "status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+    "stress_test_areas": [
+      "budget authority",
+      "external account boundaries",
+      "marketplace/API terms",
+      "autonomous deployment limits",
+      "payment/payout systems",
+      "invoice/ledger controls",
+      "tool/model/agent execution gates",
+      "worker-output intake",
+      "Chief/Hermes/Guardian/Operator roles",
+      "FULL_TRUST_CLEARANCE",
+      "kill-switch posture"
+    ],
+    "stress_test_classification": true,
+    "token_concept_future_only": true,
+    "token_types": [
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "compute_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "llm_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "operator_attention_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "sandbox_budget_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "security_review_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "experiment_timebox_token"
+      }
+    ],
+    "tool_execution_allowed": false
+  },
+  "post_security_governance_batch": {
+    "account_authority_granted": false,
+    "action_authority_granted": false,
+    "authority_boundary": {
+      "account_payment_financial_allowed": false,
+      "actor_agent_activation_allowed": false,
+      "all_live_authority_false": true,
+      "live_execution_allowed": false,
+      "mac_sync_import_allowed": false,
+      "model_api_execution_allowed": false,
+      "network_operation_allowed": false,
+      "queue_autonomy_allowed": false,
+      "send_submit_approval_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "batch_id": "post_security_governance_batch_v0",
+    "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "commit_deferred_until_prompt_5": false,
+    "completed_lane_count": 5,
+    "completed_lanes": [
+      "parked_autonomous_capital_pipeline_experiment",
+      "security_delta_review_contract",
+      "operator_attention_promotion_contract",
+      "chief_test_harness_cross_off_receipt_contract",
+      "integrated_checkpoint_and_stable_map_refresh"
+    ],
+    "individual_manifest_read_model_remains_proof_detail": true,
+    "lane_count": 5,
+    "model_execution_authority_granted": false,
+    "next_expected_actor": "mac_map_import_agent",
+    "next_safe_move": "Mac import should consume the staged stable-map bundle; this PC pass performs no Mac import.",
+    "present": true,
+    "primary_app_contract": true,
+    "queue_execution_authority_granted": false,
+    "runtime_execution_authority_granted": false,
+    "send_submit_approval_authority_granted": false,
+    "source_operator_ref": "generated/read_models/post_security_governance_batch_manifest_OPERATOR.md",
+    "source_path": "generated/read_models/post_security_governance_batch_manifest.json",
+    "stable_map_refresh_deferred": false,
+    "tool_execution_authority_granted": false
+  },
   "proof_references": {
     "essential_surfaces": [
       {
@@ -3698,6 +3925,71 @@
         "role": "security pass read-only, preview, metadata, worker intake, and trust-clearance decisions",
         "schema_version": "security_pass_contract_v0_pass_3",
         "surface_id": "security_pass_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:31053ef5f43e7b97d69b6aa8fbcb0fee4cf0ff7bec7171d9fd63fea3b6f8d787",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/post_security_governance_batch_manifest.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "post_security_governance_batch_manifest",
+        "role": "post-security governance batch closure state and Mac import handoff",
+        "schema_version": "post_security_governance_batch_manifest_v0",
+        "surface_id": "post_security_governance_batch_manifest"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:287a29ab4f79f2af3c2814a1f41a86b68e5cc4ca7e1a1ad87f4b1e486eee8680",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/parked_autonomous_capital_pipeline_experiment.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "parked_autonomous_capital_pipeline_experiment",
+        "role": "parked high-risk autonomous capital R&D thought experiment boundary",
+        "schema_version": "parked_autonomous_capital_pipeline_experiment_v0",
+        "surface_id": "parked_autonomous_capital_pipeline_experiment"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:1b7e7e368e5dac9c482af2156ea59bf1aa2944f29591b4ef2bdb22f72622cc8d",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/security_delta_review_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "security_delta_review_contract",
+        "role": "future addition delta review against the Security Pass baseline",
+        "schema_version": "security_delta_review_contract_v0",
+        "surface_id": "security_delta_review_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:77936864915d63fa51369d164ac0c377f37b73a160f72082c65d7eb7a2076062",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_attention_promotion_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_attention_promotion_contract",
+        "role": "operator attention promotion, quiet helm, holding-cell, and cue classification rules",
+        "schema_version": "operator_attention_promotion_contract_v0",
+        "surface_id": "operator_attention_promotion_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:f5158c9ba8bb282e800ee707d960d932d8c3496dc32aff83b1fbd66256f80b54",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "chief_test_harness_cross_off_receipt_contract",
+        "role": "Chief completion proof, cross-off receipt, requeue, and quiet-with-proof rules",
+        "schema_version": "chief_test_harness_cross_off_receipt_contract_v0",
+        "surface_id": "chief_test_harness_cross_off_receipt_contract"
       },
       {
         "front_door_file_dependency": false,
@@ -3878,6 +4170,31 @@
     "source_read_model_ref": "generated/read_models/security_audit_readiness_packet.json",
     "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
     "zero_execution_authority_leaked": true
+  },
+  "security_delta_review": {
+    "action_authority_granted": false,
+    "auto_promotion_allowed": false,
+    "auto_queueing_allowed": false,
+    "contract_id": "security_delta_review_contract_v0",
+    "decision_outcomes_count": 19,
+    "default_examples_count": 14,
+    "delta_classes_count": 19,
+    "execution_authority_granted": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "next_safe_move": "Use this contract when a new item asks for authority beyond an existing approved class.",
+    "operator_answers_are_not_proof": true,
+    "present": true,
+    "primary_app_contract": true,
+    "repass_required_categories": [
+      "ACCOUNT_ACCESS_DELTA",
+      "FINANCIAL_AUTHORITY_DELTA",
+      "QUEUE_AUTONOMY_DELTA",
+      "RUNTIME_EXECUTION_DELTA"
+    ],
+    "schema_version": "security_delta_review_contract_v0",
+    "source_operator_ref": "generated/read_models/security_delta_review_contract_OPERATOR.md",
+    "source_path": "generated/read_models/security_delta_review_contract.json",
+    "stable_map_summary_does_not_make_source_truth": true
   },
   "security_pass": {
     "account_authority_granted": false,
@@ -4172,8 +4489,8 @@
       "worker_output_intake_metadata_approved": true
     }
   },
-  "snapshot_hash": "sha256:6f1dc51e52ab0c5778d85541b64ae131c67e97b25173e50303a56dea191baf64",
-  "source_commit_if_available_local_only": "1f94bf84122362eda73939c3d781318258d8467b",
+  "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
+  "source_commit_if_available_local_only": "bdb55051ab88676f038aabed74c14040cae94b26",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
@@ -4195,11 +4512,11 @@
   },
   "source_repo": "Repo A /home/openclaw",
   "sync_state": {
-    "canonical_expected": 251,
+    "canonical_expected": 259,
     "display_status": "needs_mac_sync",
     "hash_mismatch": 4,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 33,
+    "missing_expected": 41,
     "observed": 218,
     "operator_action_required": true,
     "present": true,

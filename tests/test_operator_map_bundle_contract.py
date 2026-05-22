@@ -3,9 +3,14 @@ import json
 from pathlib import Path
 
 import operator_map_bundle_contract as bundle
+import chief_test_harness_cross_off_receipt_contract
 import capital_hilton_proof_metadata_packet
+import operator_attention_promotion_contract
 import package_preview_receipt_contract
+import parked_autonomous_capital_pipeline_experiment
+import post_security_governance_batch_manifest
 import security_audit_readiness_packet
+import security_delta_review_contract
 import security_pass_contract
 import tool_adapter_receipt_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
@@ -301,6 +306,41 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "security_pass_contract.json",
         security_pass_contract.build_security_pass_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "post_security_governance_batch_manifest.json",
+        post_security_governance_batch_manifest.build_post_security_governance_batch_manifest(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "parked_autonomous_capital_pipeline_experiment.json",
+        parked_autonomous_capital_pipeline_experiment.build_parked_autonomous_capital_pipeline_experiment(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "security_delta_review_contract.json",
+        security_delta_review_contract.build_security_delta_review_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "operator_attention_promotion_contract.json",
+        operator_attention_promotion_contract.build_operator_attention_promotion_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "chief_test_harness_cross_off_receipt_contract.json",
+        chief_test_harness_cross_off_receipt_contract.build_chief_test_harness_cross_off_receipt_contract(
             repo_root=root,
             generated_at=FIXED_NOW,
         ),
@@ -805,6 +845,101 @@ def test_security_pass_nested_summaries_are_app_facing(tmp_path):
     assert trust["operator_babysitting_reduction_goal_present"] is True
 
 
+def test_map_snapshot_contains_post_security_governance_batch_summaries(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    batch = snapshot["post_security_governance_batch"]
+    experiment = snapshot["parked_autonomous_capital_pipeline_experiment"]
+    delta = snapshot["security_delta_review"]
+    attention = snapshot["operator_attention_promotion"]
+    chief = snapshot["chief_test_harness_cross_off"]
+
+    assert batch["present"] is True
+    assert batch["batch_id"] == "post_security_governance_batch_v0"
+    assert batch["batch_status"] == "COMPLETE_PENDING_STABLE_MAP_IMPORT"
+    assert batch["lane_count"] == 5
+    assert set(batch["completed_lanes"]) >= {
+        "parked_autonomous_capital_pipeline_experiment",
+        "security_delta_review_contract",
+        "operator_attention_promotion_contract",
+        "chief_test_harness_cross_off_receipt_contract",
+        "integrated_checkpoint_and_stable_map_refresh",
+    }
+    assert batch["next_expected_actor"] == "mac_map_import_agent"
+    assert batch["authority_boundary"]["all_live_authority_false"] is True
+    assert batch["action_authority_granted"] is False
+
+    assert experiment["present"] is True
+    assert experiment["status"] == "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT"
+    assert experiment["phase_count"] == 5
+    assert experiment["all_authority_false"] is True
+    assert experiment["future_gates_required"] is True
+    assert experiment["token_concept_future_only"] is True
+    assert experiment["stress_test_classification"] is True
+    assert experiment["capital_spend_allowed"] is False
+    assert experiment["account_creation_allowed"] is False
+    assert experiment["financial_account_access_allowed"] is False
+    assert experiment["network_operation_allowed"] is False
+    assert experiment["model_call_allowed"] is False
+    assert experiment["agent_activation_allowed"] is False
+    assert experiment["tool_execution_allowed"] is False
+    assert experiment["queue_execution_allowed"] is False
+
+    assert delta["present"] is True
+    assert delta["delta_classes_count"] == len(security_delta_review_contract.SECURITY_DELTA_CLASSES)
+    assert delta["default_examples_count"] == 14
+    assert "ACCOUNT_ACCESS_DELTA" in delta["repass_required_categories"]
+    assert "FINANCIAL_AUTHORITY_DELTA" in delta["repass_required_categories"]
+    assert "QUEUE_AUTONOMY_DELTA" in delta["repass_required_categories"]
+    assert "RUNTIME_EXECUTION_DELTA" in delta["repass_required_categories"]
+    assert delta["action_authority_granted"] is False
+    assert delta["execution_authority_granted"] is False
+    assert delta["auto_promotion_allowed"] is False
+    assert delta["auto_queueing_allowed"] is False
+
+    assert attention["present"] is True
+    assert attention["promotion_lifecycle_present"] is True
+    assert attention["quiet_helm_policy_present"] is True
+    assert attention["shared_fix_path_handling_present"] is True
+    assert attention["cue_candidates_executable"] is False
+    assert attention["holding_cell_queued"] is False
+    assert attention["operator_answers_are_memory_candidates_not_proof"] is True
+    assert attention["new_authority_routes_to_security_delta_or_fail_closed"] is True
+    assert attention["action_authority_granted"] is False
+    assert attention["auto_promotion_allowed"] is False
+
+    assert chief["present"] is True
+    assert chief["test_harness_receipt_model_present"] is True
+    assert chief["cross_off_rules_present"] is True
+    assert chief["source_mutation_allowed"] is False
+    assert chief["delete_source_allowed"] is False
+    assert chief["automatic_cross_off_allowed"] is False
+    assert chief["repair_requeue_recommendations_metadata_only"] is True
+    assert chief["quiet_with_proof_model_present"] is True
+    assert chief["action_authority_granted"] is False
+    assert chief["chief_self_authorization_allowed"] is False
+    assert chief["chief_repair_execution_allowed"] is False
+
+
+def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
+    payload = _build(tmp_path)
+
+    assert payload["post_security_governance_batch_integration"]["summary_included_in_snapshot"] is True
+    assert payload["post_security_governance_batch_integration"]["batch_status"] == "COMPLETE_PENDING_STABLE_MAP_IMPORT"
+    assert payload["post_security_governance_batch_integration"]["all_live_authority_false"] is True
+    assert payload["parked_autonomous_capital_pipeline_experiment_integration"]["summary_included_in_snapshot"] is True
+    assert payload["parked_autonomous_capital_pipeline_experiment_integration"]["all_authority_false"] is True
+    assert payload["security_delta_review_integration"]["summary_included_in_snapshot"] is True
+    assert payload["security_delta_review_integration"]["action_authority_granted"] is False
+    assert payload["operator_attention_promotion_integration"]["summary_included_in_snapshot"] is True
+    assert payload["operator_attention_promotion_integration"]["cue_candidates_executable"] is False
+    assert payload["operator_attention_promotion_integration"]["holding_cell_queued"] is False
+    assert payload["chief_test_harness_cross_off_integration"]["summary_included_in_snapshot"] is True
+    assert payload["chief_test_harness_cross_off_integration"]["source_mutation_allowed"] is False
+    assert payload["chief_test_harness_cross_off_integration"]["delete_source_allowed"] is False
+
+
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
     repo_a = tmp_path / "a"
     repo_b = tmp_path / "b"
@@ -904,6 +1039,19 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert (export_root / "openclaw_map_manifest.json").is_file()
     assert (export_root / "openclaw_map_snapshot.json").is_file()
     assert (export_root / "openclaw_map_OPERATOR.md").is_file()
+    assert Path(summary["staged_bundle_path"]).is_dir()
+    assert Path(summary["sync_request_marker_path"]).is_file()
+    marker = json.loads(Path(summary["sync_request_marker_path"]).read_text(encoding="utf-8"))
+    assert marker["schema_version"] == bundle.MAP_SYNC_REQUIRED_SCHEMA_VERSION
+    assert marker["map_generation_id"] == summary["map_generation_id"]
+    assert marker["bundle_hash"] == summary["bundle_hash"]
+    assert marker["next_expected_actor"] == "mac_map_import_agent"
+    assert marker["app_visible_current_claimed_by_pc"] is False
+    assert marker["boundary"]["no_execution"] is True
+    assert marker["boundary"]["no_credential"] is True
+    assert marker["boundary"]["no_network"] is True
+    for file_name in bundle.STABLE_APP_FACING_FILES:
+        assert (Path(summary["staged_bundle_path"]) / file_name).is_file()
     expected = canonical_generated_read_model_expected_files(source_root=export_root, repo_root=tmp_path)
     assert "operator_map_bundle_contract.json" in expected
     assert "openclaw_map_manifest.json" in expected
@@ -928,6 +1076,14 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Worker output intake metadata approved: `true`" in operator_text
     assert "Chief reconciliation metadata approved: `true`" in operator_text
     assert "FULL_TRUST grants authority by itself: `false`" in operator_text
+    assert "Post-Security Governance Batch Summary" in operator_text
+    assert "Batch status: `COMPLETE_PENDING_STABLE_MAP_IMPORT`" in operator_text
+    assert "Parked Capital R&D Experiment" in operator_text
+    assert "Security Delta Review" in operator_text
+    assert "Operator Attention Promotion" in operator_text
+    assert "Chief Test Harness / Cross-Off" in operator_text
+    assert "Cue candidates executable: `false`" in operator_text
+    assert "Source deletion allowed: `false`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

@@ -67,8 +67,19 @@
     "summary_included_in_snapshot": true,
     "target_world": "Finance"
   },
+  "chief_test_harness_cross_off_integration": {
+    "action_authority_granted": false,
+    "cross_off_rules_present": true,
+    "delete_source_allowed": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "quiet_with_proof_model_present": true,
+    "repair_requeue_recommendations_metadata_only": true,
+    "source_mutation_allowed": false,
+    "summary_included_in_snapshot": true,
+    "test_harness_receipt_model_present": true
+  },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:48e0b5deb631dce80919aa82ebe54e11dc65618681b484c730a152a357513979",
+  "contract_hash": "sha256:f7d18c379785e58faa680bd8140e256834f516cf66a10c6dc04de63770bfb24f",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -85,7 +96,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-22T18:04:54+00:00",
+  "generated_at": "2026-05-22T20:26:45+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "mac_side_change_required": {
     "entitlement_exception_needed_once": [
@@ -138,10 +149,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22",
-    "canonical_read_model_count": 244,
-    "created_at": "2026-05-22T18:04:54+00:00",
-    "essential_surface_count": 13,
+    "bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
+    "canonical_read_model_count": 252,
+    "created_at": "2026-05-22T20:26:45+00:00",
+    "essential_surface_count": 18,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -302,6 +313,71 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:31053ef5f43e7b97d69b6aa8fbcb0fee4cf0ff7bec7171d9fd63fea3b6f8d787",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/post_security_governance_batch_manifest.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "post_security_governance_batch_manifest",
+        "role": "post-security governance batch closure state and Mac import handoff",
+        "schema_version": "post_security_governance_batch_manifest_v0",
+        "surface_id": "post_security_governance_batch_manifest"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:287a29ab4f79f2af3c2814a1f41a86b68e5cc4ca7e1a1ad87f4b1e486eee8680",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/parked_autonomous_capital_pipeline_experiment.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "parked_autonomous_capital_pipeline_experiment",
+        "role": "parked high-risk autonomous capital R&D thought experiment boundary",
+        "schema_version": "parked_autonomous_capital_pipeline_experiment_v0",
+        "surface_id": "parked_autonomous_capital_pipeline_experiment"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:1b7e7e368e5dac9c482af2156ea59bf1aa2944f29591b4ef2bdb22f72622cc8d",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/security_delta_review_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "security_delta_review_contract",
+        "role": "future addition delta review against the Security Pass baseline",
+        "schema_version": "security_delta_review_contract_v0",
+        "surface_id": "security_delta_review_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:77936864915d63fa51369d164ac0c377f37b73a160f72082c65d7eb7a2076062",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_attention_promotion_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_attention_promotion_contract",
+        "role": "operator attention promotion, quiet helm, holding-cell, and cue classification rules",
+        "schema_version": "operator_attention_promotion_contract_v0",
+        "surface_id": "operator_attention_promotion_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:f5158c9ba8bb282e800ee707d960d932d8c3496dc32aff83b1fbd66256f80b54",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "chief_test_harness_cross_off_receipt_contract",
+        "role": "Chief completion proof, cross-off receipt, requeue, and quiet-with-proof rules",
+        "schema_version": "chief_test_harness_cross_off_receipt_contract_v0",
+        "surface_id": "chief_test_harness_cross_off_receipt_contract"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -336,17 +412,17 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_6f1dc51e52ab0c5778d8",
+    "map_generation_id": "map_963121fcbd8973c86a49",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 251,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 259,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:3e97a6a80d3c92a0f028cf3bfba5c8da5ec9a3cb1fbb6910d7a468e9dd13a80f",
+    "read_model_manifest_hash": "sha256:c605c609581cf2bd6a79e053846045e1da803e313dbfbcf594274ff79af54f23",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:6f1dc51e52ab0c5778d85541b64ae131c67e97b25173e50303a56dea191baf64",
-    "source_commit_if_available_local_only": "1f94bf84122362eda73939c3d781318258d8467b",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 244,
+    "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
+    "source_commit_if_available_local_only": "bdb55051ab88676f038aabed74c14040cae94b26",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 252,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -364,6 +440,8 @@
     "capital_hilton_missing_proof_count": 10,
     "capital_hilton_proof_metadata_present": true,
     "capital_hilton_protected_proof_required": true,
+    "chief_test_harness_cross_off_present": true,
+    "chief_test_harness_cross_off_source_mutation_allowed": false,
     "featured_agents": [
       "cassandra",
       "chief",
@@ -394,12 +472,20 @@
       "source_path": "generated/read_models/system_health_lights_taxonomy.json",
       "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
     },
-    "map_generation_id": "map_6f1dc51e52ab0c5778d8",
+    "map_generation_id": "map_963121fcbd8973c86a49",
+    "operator_attention_promotion_present": true,
+    "operator_attention_promotion_quiet_helm_policy_present": true,
     "package_preview_receipt_examples_count": 8,
+    "parked_capital_experiment_present": true,
+    "parked_capital_experiment_status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+    "post_security_governance_batch_present": true,
+    "post_security_governance_batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
     "security_action_authority_granted": false,
     "security_approval_granted": false,
     "security_audit_readiness_present": true,
     "security_coverage_gap_records": 5,
+    "security_delta_review_default_examples_count": 14,
+    "security_delta_review_present": true,
     "security_parked_breadcrumb_count": 15,
     "security_pass_action_authority_granted": false,
     "security_pass_chief_reconciliation_metadata_approved": true,
@@ -410,7 +496,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:6f1dc51e52ab0c5778d85541b64ae131c67e97b25173e50303a56dea191baf64",
+    "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -460,6 +546,17 @@
     "send_submit_approval_allowed": false,
     "tool_plugin_execution_allowed": false
   },
+  "operator_attention_promotion_integration": {
+    "action_authority_granted": false,
+    "auto_promotion_allowed": false,
+    "cue_candidates_executable": false,
+    "holding_cell_queued": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "promotion_lifecycle_present": true,
+    "quiet_helm_policy_present": true,
+    "shared_fix_path_handling_present": true,
+    "summary_included_in_snapshot": true
+  },
   "package_preview_receipt_integration": {
     "account_access_allowed": false,
     "agent_activation_allowed": false,
@@ -471,6 +568,17 @@
     "send_submit_approval_allowed": false,
     "summary_included_in_snapshot": true,
     "tool_execution_allowed": false
+  },
+  "parked_autonomous_capital_pipeline_experiment_integration": {
+    "action_authority_granted": false,
+    "all_authority_false": true,
+    "future_gates_required": true,
+    "individual_experiment_read_model_remains_proof_detail": true,
+    "phase_count": 5,
+    "status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+    "stress_test_classification": true,
+    "summary_included_in_snapshot": true,
+    "token_concept_future_only": true
   },
   "path_audit": {
     "canonical_manifest_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
@@ -519,11 +627,11 @@
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 251,
+      "canonical_expected": 259,
       "display_status": "needs_mac_sync",
       "hash_mismatch": 4,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 33,
+      "missing_expected": 41,
       "observed": 218,
       "operator_action_required": true,
       "present": true,
@@ -549,14 +657,30 @@
   },
   "pc_c_drive_artifact_write_allowed": false,
   "planner_builder_queue_allowed": false,
+  "post_security_governance_batch_integration": {
+    "all_live_authority_false": true,
+    "batch_id": "post_security_governance_batch_v0",
+    "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "completed_lanes": [
+      "parked_autonomous_capital_pipeline_experiment",
+      "security_delta_review_contract",
+      "operator_attention_promotion_contract",
+      "chief_test_harness_cross_off_receipt_contract",
+      "integrated_checkpoint_and_stable_map_refresh"
+    ],
+    "individual_manifest_read_model_remains_proof_detail": true,
+    "lane_count": 5,
+    "next_expected_actor": "mac_map_import_agent",
+    "summary_included_in_snapshot": true
+  },
   "problem_statement": "Raw generated read-model file counts are too volatile to be the Mission Control front-door app contract.",
   "raw_private_bodies_included": false,
   "read_model_id": "operator_map_bundle_contract",
   "read_model_only": true,
   "receipt_validation": {
     "fail_closed": true,
-    "reason": "Mac map receipt schema is not recognized.",
-    "status": "unknown_fail_closed",
+    "reason": "Mac map receipt generation_id does not match the requested generation.",
+    "status": "map_generation_pending_mac_import",
     "valid": false
   },
   "runtime_activation_allowed": false,
@@ -571,6 +695,22 @@
     "ready_for_security_pass": true,
     "schema_version": "security_audit_readiness_packet_v0_pass_2",
     "security_approval_granted": false,
+    "summary_included_in_snapshot": true
+  },
+  "security_delta_review_integration": {
+    "action_authority_granted": false,
+    "auto_promotion_allowed": false,
+    "auto_queueing_allowed": false,
+    "default_examples_count": 14,
+    "delta_classes_count": 19,
+    "execution_authority_granted": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "repass_required_categories": [
+      "ACCOUNT_ACCESS_DELTA",
+      "FINANCIAL_AUTHORITY_DELTA",
+      "QUEUE_AUTONOMY_DELTA",
+      "RUNTIME_EXECUTION_DELTA"
+    ],
     "summary_included_in_snapshot": true
   },
   "security_pass_integration": {
@@ -636,7 +776,7 @@
   "sync_health_reframe": {
     "app_visible_map_status": "map_current only when generation_id and bundle_hash receipt validates",
     "check_transmission_future_source_truth": "controlled by map-generation agreement for app readiness, with raw count mismatch kept as proof/detail unless it blocks map generation",
-    "mac_import_receipt_status": "unknown_fail_closed",
+    "mac_import_receipt_status": "map_generation_pending_mac_import",
     "map_bundle_generation_status": "new front-door app contract status",
     "raw_read_model_manifest_status": "continues to compare full generated/read_models proof/detail set",
     "required_states": [
