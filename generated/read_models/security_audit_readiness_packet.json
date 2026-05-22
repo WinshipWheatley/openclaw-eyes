@@ -1,0 +1,1607 @@
+{
+  "account_access_allowed": false,
+  "agent_activation_allowed": false,
+  "allowed_answer_modalities": [
+    "text",
+    "yes_no",
+    "multiple_choice",
+    "structured_form",
+    "screenshot_ref",
+    "file_ref",
+    "source_card_ref",
+    "receipt_ref",
+    "protected_proof_metadata_ref",
+    "i_dont_know",
+    "park_this",
+    "needs_discovery",
+    "ask_me_later",
+    "move_to_world",
+    "reject_obsolete"
+  ],
+  "authority_boundary": {
+    "account_access_allowed": false,
+    "agent_activation_allowed": false,
+    "allowed_current_actions": [
+      "deterministic read-model export",
+      "operator markdown digest",
+      "focused tests",
+      "metadata-only provenance/readiness classification"
+    ],
+    "blocked_current_actions": [
+      "Coupa access",
+      "browser/OAuth/account access",
+      "credential/token/cookie/API key handling",
+      "Gmail/calendar/email account access",
+      "Excel raw body ingestion",
+      "raw finance/private body ingestion",
+      "invoice generation",
+      "send/submit/approval",
+      "live model calls",
+      "model/API execution",
+      "actor/agent activation",
+      "tool execution",
+      "planner/builder/queue/autonomy execution",
+      "Repo B mutation/body inspection",
+      "Mac sync/import"
+    ],
+    "broad_filesystem_indexing_allowed": false,
+    "broad_private_file_inspection_allowed": false,
+    "browser_oauth_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "excel_raw_body_ingestion_allowed": false,
+    "external_retained_memory_allowed": false,
+    "gmail_calendar_access_allowed": false,
+    "hidden_memory_allowed": false,
+    "invoice_generation_allowed": false,
+    "mac_sync_or_import_triggered": false,
+    "mission_control_app_changes_included": false,
+    "model_api_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_router_runtime_allowed": false,
+    "network_operation_allowed": false,
+    "operator_final_authority": true,
+    "pc_c_drive_artifact_write_allowed": false,
+    "planner_builder_execution_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_finance_body_ingestion_allowed": false,
+    "repo_b_body_inspection_allowed": false,
+    "repo_b_mutation_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "security_approval_granted": false,
+    "send_submit_approval_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "broad_filesystem_indexing_allowed": false,
+  "broad_private_file_inspection_allowed": false,
+  "browser_oauth_allowed": false,
+  "capital_hilton_current_stable_map_posture": {
+    "all_live_authority_flags_false": true,
+    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "candidate_facts_are_not_machine_proven": true,
+    "current_phase": "HELM_THRESHOLD_LANE",
+    "lane_destiny": "MOVE_TO_WORLD_ACTION",
+    "missing_proof_count": 10,
+    "no_coupa_browser_email_account_controls": true,
+    "no_direct_per_packet_read_model_dependency_in_app": true,
+    "no_invoice_generation": true,
+    "operator_questions_count": 7,
+    "protected_proof_required": true,
+    "section_key": "capital_hilton_proof_metadata",
+    "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+    "target_world": "Finance"
+  },
+  "capital_hilton_security_readiness": {
+    "action_authority_granted": false,
+    "candidate_facts_proven": false,
+    "finance_world_preview_exists": true,
+    "missing_proof_count": 10,
+    "protected_proof_required": true,
+    "provenance_status": "CANDIDATE_WITH_MISSING_PROOF",
+    "readiness_status": "NOT_READY_FOR_SECURITY_PASS_ACTION",
+    "security_pass_complete": false,
+    "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+    "what_blocks_action_readiness": [
+      "security approval not granted",
+      "action authority not granted",
+      "invoice generation not allowed",
+      "Coupa/browser/email/account access not allowed",
+      "send/submit/approval not allowed",
+      "tool/model/agent/queue execution not allowed"
+    ],
+    "what_blocks_security_readiness": [
+      "10 proof metadata items remain missing",
+      "protected proof requires Guardian gate",
+      "candidate facts are not machine-proven",
+      "operator answers are memory candidates, not proof",
+      "security pass is incomplete"
+    ]
+  },
+  "contract_status": "deterministic_security_audit_readiness_pass_1_metadata_only",
+  "coupa_access_allowed": false,
+  "credential_handling_allowed": false,
+  "excel_raw_body_ingestion_allowed": false,
+  "external_retained_memory_allowed": false,
+  "generated_at": "2026-05-22T14:35:42+00:00",
+  "gmail_calendar_access_allowed": false,
+  "helm_issue_focus_modes": [
+    {
+      "affected_cards": [
+        "Capital Hilton",
+        "Cassandra",
+        "Guardian",
+        "Finance World"
+      ],
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "display_title": "Capital Hilton Needs Protected Proof",
+      "eli5_summary": "The Finance preview is visible, but the invoice lane still needs proof metadata before security or action.",
+      "future_gated_actions": [
+        "protected proof metadata intake",
+        "Finance World action after security pass"
+      ],
+      "hidden_when_selected": [
+        "unrelated helm cards",
+        "live dispatch controls",
+        "tool execution controls",
+        "account/browser/Coupa/Gmail/calendar controls",
+        "send/submit/approval controls"
+      ],
+      "issue_focus_id": "focus_capital_hilton_missing_proof",
+      "issue_type": "PROOF_GAP_ISSUE",
+      "linked_lanes": [
+        "capital_hilton",
+        "cassandra_finance_review"
+      ],
+      "linked_questions": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "linked_worlds": [
+        "Finance"
+      ],
+      "machine_contract_refs": [
+        "capital_hilton_proof_metadata_packet",
+        "package_preview_receipt_contract",
+        "tool_adapter_receipt_contract",
+        "model_selection_receipt_contract",
+        "memory_candidate_receipt_contract"
+      ],
+      "missing_proof": [
+        "performance_date_proof_metadata",
+        "rate_proof_metadata",
+        "subtotal_proof_metadata",
+        "coupa_po_or_payment_reference_metadata",
+        "excel_workbook_reference_metadata",
+        "invoice_source_card_metadata",
+        "ap_recipient_route_metadata",
+        "guardian_protected_access_gate_metadata",
+        "operator_confirmation_metadata",
+        "future_invoice_generation_receipt_requirement"
+      ],
+      "next_safe_move": "Capture operator answers as memory candidates and link protected proof metadata refs.",
+      "operator_questions": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "package_preview_ref": "generated/read_models/package_preview_receipt_contract.json#cassandra_capital_hilton_invoice_review",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json#capital_hilton_proof_metadata"
+      ],
+      "quiet_condition": "All proof gaps are linked, parked, rejected, or moved into Finance World with no live action authority.",
+      "required_gates": [
+        "Guardian protected proof gate",
+        "Security pass",
+        "Operator final path"
+      ],
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "visible_when_selected": [
+        "Capital Hilton candidate facts",
+        "missing proof checklist",
+        "operator questions",
+        "Guardian gate requirements",
+        "next safe move"
+      ],
+      "what_solving_this_updates": [
+        "Capital Hilton security-readiness",
+        "Finance World preview state",
+        "future security audit readiness inputs"
+      ],
+      "why_it_matters": "This prevents the system from treating candidate invoice details as proven finance truth."
+    },
+    {
+      "affected_cards": [
+        "Capital Hilton",
+        "Terrain Awareness",
+        "Memory Candidate Inbox"
+      ],
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "display_title": "Answer Missing Operator Questions",
+      "eli5_summary": "Winship can answer guided questions later; answers become memory candidates, not proof.",
+      "future_gated_actions": [
+        "Tell System What's Missing capture path"
+      ],
+      "hidden_when_selected": [
+        "unrelated helm cards",
+        "live answer popups",
+        "auto-promotion controls",
+        "queue execution controls"
+      ],
+      "issue_focus_id": "focus_operator_answer_capture",
+      "issue_type": "OPERATOR_QUESTION_ISSUE",
+      "linked_lanes": [
+        "capital_hilton",
+        "terrain_awareness"
+      ],
+      "linked_questions": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "linked_worlds": [
+        "Helm",
+        "Finance"
+      ],
+      "machine_contract_refs": [
+        "memory_candidate_receipt_contract",
+        "agent_terrain_awareness_readback_contract"
+      ],
+      "missing_proof": [],
+      "next_safe_move": "Define read-only capture fields in a later lane; do not implement UI here.",
+      "operator_questions": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "package_preview_ref": null,
+      "proof_refs": [
+        "generated/read_models/memory_candidate_receipt_contract.json"
+      ],
+      "quiet_condition": "Question is captured, replaced by proof-needed state if necessary, or parked/rejected.",
+      "required_gates": [
+        "Memory Candidate Receipt review"
+      ],
+      "shared_execution_path_id": "operator_memory_question_capture",
+      "visible_when_selected": [
+        "unanswered questions",
+        "allowed answer modalities",
+        "memory candidate receipt requirement",
+        "proof still required after answer"
+      ],
+      "what_solving_this_updates": [
+        "operator memory candidate posture",
+        "helm noise level",
+        "future proof questions"
+      ],
+      "why_it_matters": "This keeps useful operator memory visible without silently promoting it to trusted finance evidence."
+    },
+    {
+      "affected_cards": [
+        "Check Transmission",
+        "Stable Map"
+      ],
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "display_title": "Stable Map Receipt Is Current",
+      "eli5_summary": "The app-facing stable map can be quiet when generation and receipt match, even if raw mirror detail is stale.",
+      "future_gated_actions": [],
+      "hidden_when_selected": [
+        "unrelated helm cards",
+        "Mac sync controls",
+        "raw-file sync loop prompts"
+      ],
+      "issue_focus_id": "focus_stable_map_receipt_readback",
+      "issue_type": "SYSTEM_HEALTH_ISSUE",
+      "linked_lanes": [
+        "check_transmission",
+        "stable_map_app_visibility"
+      ],
+      "linked_questions": [],
+      "linked_worlds": [
+        "Helm"
+      ],
+      "machine_contract_refs": [
+        "operator_map_bundle_contract",
+        "sync_health"
+      ],
+      "missing_proof": [],
+      "next_safe_move": "Keep stable map current status primary and raw mirror mismatch in proof/detail.",
+      "operator_questions": [],
+      "package_preview_ref": null,
+      "proof_refs": [
+        "generated/read_models/openclaw_map_manifest.json",
+        "generated/read_models/sync_health.json#app_visible_map_status"
+      ],
+      "quiet_condition": "Receipt and PC bundle match; no operator action required for app-facing map.",
+      "required_gates": [],
+      "shared_execution_path_id": "stable_map_receipt_readback",
+      "visible_when_selected": [
+        "map generation id",
+        "bundle hash",
+        "receipt match",
+        "raw mirror proof/detail status"
+      ],
+      "what_solving_this_updates": [
+        "Check Transmission quiet display",
+        "stable map app visibility"
+      ],
+      "why_it_matters": "It keeps Check Transmission from drowning the helm in raw file-count churn."
+    }
+  ],
+  "helm_world_responsibility_boundary": {
+    "authority_boundary": {
+      "account_access_allowed": false,
+      "agent_activation_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "excel_raw_body_ingestion_allowed": false,
+      "external_retained_memory_allowed": false,
+      "gmail_calendar_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "invoice_generation_allowed": false,
+      "mac_sync_or_import_triggered": false,
+      "mission_control_app_changes_included": false,
+      "model_api_execution_allowed": false,
+      "model_call_allowed": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_mutation_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "security_approval_granted": false,
+      "send_submit_approval_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "bifurcation_avoidance_rule": "Helm owns cross-cutting readiness and quieting while worlds show domain context; a lane may appear in both only when the map says why and keeps one shared proof path.",
+    "boundary_id": "helm_world_responsibility_boundary_v0_pass_1",
+    "capital_hilton_helm_owns": [
+      "not ready posture",
+      "10 missing proof items",
+      "protected proof required",
+      "candidate facts not proven",
+      "security audit not passed",
+      "no invoice action",
+      "shared fix path if other lanes need the same proof/capture"
+    ],
+    "finance_world_may_show": [
+      "Capital Hilton preview",
+      "target world Finance",
+      "protected proof-needed posture",
+      "blocked invoice authority"
+    ],
+    "helm_owns": [
+      "system health",
+      "proof gaps",
+      "security readiness",
+      "missing operator answers",
+      "shared execution paths",
+      "cross-lane consolidation",
+      "whether a lane is quiet, blocked, parked, or world-ready"
+    ],
+    "worlds_own": [
+      "domain context",
+      "domain-specific preview",
+      "eventual domain work after security gates",
+      "domain-specific proof/status presentation"
+    ]
+  },
+  "hidden_memory_allowed": false,
+  "invoice_generation_allowed": false,
+  "mac_sync_or_import_triggered": false,
+  "machine_proof": {
+    "all_dangerous_authority_flags_false": true,
+    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "capital_hilton_candidate_facts_proven": false,
+    "capital_hilton_missing_proof_count": 10,
+    "capital_hilton_protected_proof_required": true,
+    "content_hash": "sha256:6ba1d7670b6c84af74a2e3159e3d6e4f5e0e67a671b2956712062c38fa62ebf1",
+    "credential_or_secret_included": false,
+    "helm_issue_focus_mode_count": 3,
+    "map_generation_id": "map_fbda77b8af4e9c796c03",
+    "map_to_terrain_provenance_count": 5,
+    "mission_control_app_code_touched": false,
+    "operator_answer_capture_count": 7,
+    "operator_final_authority": true,
+    "pass_2_included": false,
+    "raw_private_body_included": false,
+    "security_approval_granted": false,
+    "security_readiness_is_not_action_readiness": true,
+    "shared_execution_path_count": 3,
+    "source_read_model_refs": [
+      "generated/read_models/openclaw_map_snapshot.json",
+      "generated/read_models/openclaw_map_manifest.json",
+      "generated/read_models/capital_hilton_proof_metadata_packet.json",
+      "generated/read_models/package_preview_receipt_contract.json",
+      "generated/read_models/tool_adapter_receipt_contract.json",
+      "generated/read_models/model_selection_receipt_contract.json",
+      "generated/read_models/memory_candidate_receipt_contract.json",
+      "generated/read_models/agent_memory_scope_contract.json",
+      "generated/read_models/agent_terrain_awareness_readback_contract.json",
+      "generated/read_models/operator_threshold_map_contract.json"
+    ]
+  },
+  "map_to_terrain_provenance": [
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "candidate_status": "candidate_not_machine_proven",
+      "claim_id": "capital_hilton_completed_performance_dates",
+      "display_name": "Capital Hilton completed performance dates",
+      "ledger_refs": [],
+      "missing_proof": [
+        "performance_date_proof_metadata"
+      ],
+      "proof_metadata_refs": [],
+      "receipt_refs": [
+        "generated/read_models/package_preview_receipt_contract.json",
+        "generated/read_models/tool_adapter_receipt_contract.json",
+        "generated/read_models/model_selection_receipt_contract.json"
+      ],
+      "source_card_refs": [
+        "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary"
+      ],
+      "source_read_model_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json"
+      ],
+      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "verification_status": "CANDIDATE"
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "candidate_status": "candidate_not_machine_proven",
+      "claim_id": "capital_hilton_rate",
+      "display_name": "Capital Hilton candidate rate",
+      "ledger_refs": [],
+      "missing_proof": [
+        "rate_proof_metadata"
+      ],
+      "proof_metadata_refs": [],
+      "receipt_refs": [
+        "generated/read_models/package_preview_receipt_contract.json",
+        "generated/read_models/tool_adapter_receipt_contract.json",
+        "generated/read_models/model_selection_receipt_contract.json"
+      ],
+      "source_card_refs": [
+        "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary"
+      ],
+      "source_read_model_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json"
+      ],
+      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "verification_status": "CANDIDATE"
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "candidate_status": "candidate_not_machine_proven",
+      "claim_id": "capital_hilton_subtotal",
+      "display_name": "Capital Hilton candidate subtotal posture",
+      "ledger_refs": [],
+      "missing_proof": [
+        "subtotal_proof_metadata"
+      ],
+      "proof_metadata_refs": [],
+      "receipt_refs": [
+        "generated/read_models/package_preview_receipt_contract.json",
+        "generated/read_models/tool_adapter_receipt_contract.json",
+        "generated/read_models/model_selection_receipt_contract.json"
+      ],
+      "source_card_refs": [
+        "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary"
+      ],
+      "source_read_model_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json"
+      ],
+      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "verification_status": "CANDIDATE"
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "candidate_status": "candidate_not_machine_proven",
+      "claim_id": "capital_hilton_one_invoice_posture",
+      "display_name": "Capital Hilton one-invoice posture",
+      "ledger_refs": [],
+      "missing_proof": [
+        "invoice_source_card_metadata",
+        "operator_confirmation_metadata"
+      ],
+      "proof_metadata_refs": [],
+      "receipt_refs": [
+        "generated/read_models/package_preview_receipt_contract.json",
+        "generated/read_models/tool_adapter_receipt_contract.json",
+        "generated/read_models/model_selection_receipt_contract.json"
+      ],
+      "source_card_refs": [
+        "generated/read_models/cassandra_governed_review_packet_request_proof.json#domain_fact_summary"
+      ],
+      "source_read_model_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json"
+      ],
+      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "verification_status": "CANDIDATE"
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+      "candidate_status": "read_model_reported_missing_proof_posture",
+      "claim_id": "capital_hilton_missing_proof_count",
+      "display_name": "Capital Hilton missing proof count",
+      "ledger_refs": [],
+      "missing_proof": [
+        "performance_date_proof_metadata",
+        "rate_proof_metadata",
+        "subtotal_proof_metadata",
+        "coupa_po_or_payment_reference_metadata",
+        "excel_workbook_reference_metadata",
+        "invoice_source_card_metadata",
+        "ap_recipient_route_metadata",
+        "guardian_protected_access_gate_metadata",
+        "operator_confirmation_metadata",
+        "future_invoice_generation_receipt_requirement"
+      ],
+      "proof_metadata_refs": [],
+      "receipt_refs": [
+        "generated/read_models/openclaw_map_manifest.json"
+      ],
+      "source_card_refs": [],
+      "source_read_model_refs": [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/openclaw_map_snapshot.json"
+      ],
+      "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+      "verification_status": "MISSING_PROOF"
+    }
+  ],
+  "map_to_terrain_rule": {
+    "capital_hilton_required_result": {
+      "coupa_browser_account_email_authority_exists": false,
+      "dates_rate_subtotal_one_invoice_are_candidate_unless_proof_refs_exist": true,
+      "missing_proof_count": 10,
+      "protected_proof_required": true,
+      "raw_finance_body_included": false
+    },
+    "claims_without_provenance_must_not_render_as_proven": true,
+    "incomplete_provenance_allowed_statuses": [
+      "CANDIDATE",
+      "MISSING_PROOF",
+      "NEEDS_VERIFICATION",
+      "BLOCKED",
+      "STALE",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "stable_map_is_app_facing_reflection_not_source_truth": true
+  },
+  "mission_control_app_changes_included": false,
+  "mission_control_guidance": {
+    "focus_mode_behavior": [
+      "unrelated helm cards collapse when an issue is selected",
+      "related lanes remain visible",
+      "proof/details stay behind disclosure",
+      "affected worlds appear as linked destinations",
+      "next safe move is prominent",
+      "no live execution controls appear"
+    ],
+    "hide_or_block": [
+      "live answer popups",
+      "security approval controls",
+      "invoice generation controls",
+      "model/tool/agent launch controls",
+      "browser/OAuth/account prompts",
+      "Gmail/calendar/Coupa/Telegram controls",
+      "send/submit/approval controls",
+      "raw private context",
+      "fake proven-truth display for operator memory"
+    ],
+    "show_later": [
+      "ELI5 map-to-terrain provenance",
+      "package map slice source/proof refs",
+      "Helm vs Finance World boundary",
+      "operator answer capture items",
+      "question quieting state",
+      "shared execution path cards",
+      "Helm Issue Focus Mode cards",
+      "Capital Hilton security-readiness status"
+    ]
+  },
+  "model_api_execution_allowed": false,
+  "model_call_allowed": false,
+  "model_router_runtime_allowed": false,
+  "network_operation_allowed": false,
+  "operator_answer_capture_contract": [
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "memory_only_clarification",
+      "question_id": "one_invoice_posture",
+      "question_text": "Do you remember whether the Capital Hilton invoice should cover both 2026-05-08 and 2026-05-15 on one invoice?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "operator_memory_question_capture",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "proof_needed",
+      "question_id": "rate_confirmation",
+      "question_text": "Do you remember whether $400/gig is the correct rate for both dates?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "protected_proof_needed",
+      "question_id": "coupa_po_reference",
+      "question_text": "Is there a Coupa PO number or payment reference that should exist?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "proof_needed",
+      "question_id": "proof_source_location",
+      "question_text": "Is the proof source likely Coupa, Excel, email, a PDF, a calendar entry, or a packet already in OpenClaw?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "world_transition_needed",
+      "question_id": "ap_route",
+      "question_text": "Should the invoice go through Coupa only, email/AP contact, or another payment route?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "security_gate_needed",
+      "question_id": "protected_material",
+      "question_text": "Is there any protected client material that must be represented only as metadata?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    },
+    {
+      "allowed_answer_modalities": [
+        "text",
+        "yes_no",
+        "multiple_choice",
+        "structured_form",
+        "screenshot_ref",
+        "file_ref",
+        "source_card_ref",
+        "receipt_ref",
+        "protected_proof_metadata_ref",
+        "i_dont_know",
+        "park_this",
+        "needs_discovery",
+        "ask_me_later",
+        "move_to_world",
+        "reject_obsolete"
+      ],
+      "answer_required_for": [
+        "lane quieting",
+        "protected proof metadata routing",
+        "future Finance World action readiness"
+      ],
+      "answer_type": "memory_candidate_or_proof_reference_capture",
+      "lane_id": "capital_hilton",
+      "memory_candidate_receipt_required": true,
+      "operator_action_required": true,
+      "proof_required_after_answer": true,
+      "question_class": "world_transition_needed",
+      "question_id": "finance_world_ready",
+      "question_text": "What would convince you the invoice is ready to move from helm threshold lane into Finance World action?",
+      "quieting_effect": "The original question may leave active helm only when the replacement proof-needed, parked, rejected, or resolved state is explicit.",
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "status": "UNANSWERED",
+      "what_happens_when_answered": "Answer is captured as a Memory Candidate Receipt or proof reference candidate; it does not become machine proof by itself.",
+      "world_id": "Finance"
+    }
+  ],
+  "operator_final_authority": true,
+  "operator_summary": "Security Audit Readiness Packet Pass 1 defines how app-facing map claims point back to proof, how operator answers are captured as memory candidates, how questions quiet, how shared fix paths consolidate duplicate helm noise, and why Capital Hilton is security-readiness work rather than action.",
+  "package_map_slice_rule": {
+    "authority_boundary": {
+      "account_access_allowed": false,
+      "agent_activation_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "excel_raw_body_ingestion_allowed": false,
+      "external_retained_memory_allowed": false,
+      "gmail_calendar_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "invoice_generation_allowed": false,
+      "mac_sync_or_import_triggered": false,
+      "mission_control_app_changes_included": false,
+      "model_api_execution_allowed": false,
+      "model_call_allowed": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_mutation_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "security_approval_granted": false,
+      "send_submit_approval_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    "candidate_claims": [
+      "dates",
+      "rate",
+      "subtotal",
+      "one-invoice posture",
+      "Capital Hilton target world Finance"
+    ],
+    "excluded_context": [
+      "raw finance bodies",
+      "Coupa/browser/account sessions",
+      "credentials/tokens/cookies/API keys",
+      "raw email/calendar bodies",
+      "raw Excel bodies",
+      "send/submit/approval authority"
+    ],
+    "freshness_status": "stable_map_current_but_not_source_truth",
+    "map_slice_ref": "openclaw_map_snapshot.capital_hilton_proof_metadata",
+    "missing_proof": [
+      "performance_date_proof_metadata",
+      "rate_proof_metadata",
+      "subtotal_proof_metadata",
+      "coupa_po_or_payment_reference_metadata",
+      "excel_workbook_reference_metadata",
+      "invoice_source_card_metadata",
+      "ap_recipient_route_metadata",
+      "guardian_protected_access_gate_metadata",
+      "operator_confirmation_metadata",
+      "future_invoice_generation_receipt_requirement"
+    ],
+    "proof_metadata_refs": [],
+    "proven_claims": [
+      "stable map generation id and bundle hash identify the app-facing snapshot",
+      "authority flags are explicitly false in the map slice"
+    ],
+    "receipt_refs": [
+      "generated/read_models/openclaw_map_manifest.json",
+      "generated/read_models/sync_health.json#app_visible_map_status"
+    ],
+    "source_read_model_refs": [
+      "generated/read_models/capital_hilton_proof_metadata_packet.json",
+      "generated/read_models/package_preview_receipt_contract.json",
+      "generated/read_models/tool_adapter_receipt_contract.json",
+      "generated/read_models/model_selection_receipt_contract.json",
+      "generated/read_models/agent_memory_scope_contract.json"
+    ],
+    "stable_map_generation_id": "map_fbda77b8af4e9c796c03"
+  },
+  "pass_id": "pass_1_active_helm_readiness",
+  "pc_c_drive_artifact_write_allowed": false,
+  "planner_builder_execution_allowed": false,
+  "question_classes": [
+    "memory_only_clarification",
+    "proof_needed",
+    "protected_proof_needed",
+    "security_gate_needed",
+    "world_transition_needed",
+    "repo_discovery_needed",
+    "package_contract_needed"
+  ],
+  "question_quieting_rule": {
+    "active_helm_removal_rule": "A captured answer quiets the question, not the underlying proof gap; proof gaps stay visible until linked proof metadata exists or the lane is parked/rejected.",
+    "authority_boundary": {
+      "account_access_allowed": false,
+      "agent_activation_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "excel_raw_body_ingestion_allowed": false,
+      "external_retained_memory_allowed": false,
+      "gmail_calendar_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "invoice_generation_allowed": false,
+      "mac_sync_or_import_triggered": false,
+      "mission_control_app_changes_included": false,
+      "model_api_execution_allowed": false,
+      "model_call_allowed": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_mutation_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "security_approval_granted": false,
+      "send_submit_approval_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "proof_detail_rule": "Captured answers and receipts remain available in proof/detail and are never silently promoted to proof.",
+    "question_states": [
+      "UNANSWERED",
+      "ANSWER_CAPTURED",
+      "MEMORY_CANDIDATE_CREATED",
+      "PROOF_STILL_REQUIRED",
+      "PROOF_METADATA_LINKED",
+      "RESOLVED_QUIET",
+      "PARKED",
+      "REJECTED",
+      "NEEDS_DISCOVERY",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "rule_id": "question_quieting_rule_v0_pass_1",
+    "shared_execution_path_rule": "One answered shared question updates all linked lanes through its shared_execution_path_id.",
+    "when_answered": [
+      "mark question as ANSWER_CAPTURED",
+      "require MEMORY_CANDIDATE_CREATED when answer carries operator memory",
+      "update lane posture",
+      "remove from active helm only if no longer blocking",
+      "keep receipt/proof available in drill-down",
+      "replace answered question with PROOF_STILL_REQUIRED when proof is still missing",
+      "mark obsolete/rejected/parked if the answer invalidates the lane",
+      "update shared execution path if the answer resolves multiple lanes"
+    ]
+  },
+  "queue_execution_allowed": false,
+  "raw_finance_body_ingestion_allowed": false,
+  "read_model_id": "security_audit_readiness_packet",
+  "recommended_next_lanes": [
+    {
+      "boundary": "audit/readback only; no security approval or action authority",
+      "lane_id": "security_audit_readiness_packet_pass_2",
+      "purpose": "coverage gap / unmapped terrain registry, parked breadcrumb review, final security pass readiness criteria",
+      "title": "Security Audit Readiness Packet v0 Pass 2"
+    },
+    {
+      "boundary": "app-facing summary only; no Mac sync/import in this lane",
+      "lane_id": "stable_map_refresh_security_readiness_pass_1",
+      "purpose": "make Pass 1 visible to Mission Control through the stable map",
+      "title": "Stable Map Refresh with Security Audit Readiness Pass 1 Summary"
+    }
+  ],
+  "repo_b_body_inspection_allowed": false,
+  "repo_b_mutation_allowed": false,
+  "runtime_dispatch_allowed": false,
+  "schema_version": "security_audit_readiness_packet_v0_pass_1",
+  "scope": {
+    "pass_1_owns": [
+      "map-to-terrain provenance",
+      "package map slice rules",
+      "Helm vs World responsibility",
+      "operator answer capture",
+      "question quieting",
+      "shared execution path consolidation",
+      "Helm Issue Focus Mode",
+      "Capital Hilton v0 security-readiness status"
+    ],
+    "pass_2_not_implemented_here": [
+      "coverage gap / unmapped terrain registry",
+      "parked breadcrumb review",
+      "final security pass readiness criteria"
+    ],
+    "security_audit_readiness_is_not_security_approval": true,
+    "security_readiness_is_not_action_readiness": true
+  },
+  "security_approval_granted": false,
+  "send_submit_approval_allowed": false,
+  "shared_execution_paths": [
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "current_status": "proof_needed_preview_only",
+      "display_name": "Protected Finance Proof Metadata Intake",
+      "future_gated_actions": [
+        "protected proof metadata intake",
+        "future invoice generation receipt",
+        "future Coupa/PO route proof"
+      ],
+      "linked_lanes": [
+        "capital_hilton",
+        "cassandra_finance_review"
+      ],
+      "linked_questions": [
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "linked_worlds": [
+        "Finance"
+      ],
+      "next_safe_move": "Capture operator answers as memory candidates and define protected proof metadata refs.",
+      "quieting_effects": [
+        "Capital Hilton proof questions can quiet or convert into proof-needed items",
+        "Finance World can show a cleaner preview",
+        "Helm can collapse duplicate finance-proof asks"
+      ],
+      "required_gates": [
+        "Guardian protected access gate",
+        "Operator final path approval after security pass"
+      ],
+      "required_memory_candidates": [
+        "operator_confirmation_metadata"
+      ],
+      "required_proof": [
+        "performance_date_proof_metadata",
+        "rate_proof_metadata",
+        "subtotal_proof_metadata",
+        "coupa_po_or_payment_reference_metadata",
+        "excel_workbook_reference_metadata",
+        "invoice_source_card_metadata",
+        "ap_recipient_route_metadata",
+        "guardian_protected_access_gate_metadata",
+        "operator_confirmation_metadata",
+        "future_invoice_generation_receipt_requirement"
+      ],
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "what_solving_this_updates": [
+        "Capital Hilton security-readiness posture",
+        "Cassandra Finance preview",
+        "Finance World proof-needed lane",
+        "future security audit packet inputs"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "current_status": "capture_only_not_proof",
+      "display_name": "Operator Memory Question Capture",
+      "future_gated_actions": [
+        "Tell System What's Missing capture path"
+      ],
+      "linked_lanes": [
+        "terrain_awareness",
+        "capital_hilton",
+        "hermes",
+        "repo_b_leftovers"
+      ],
+      "linked_questions": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "linked_worlds": [
+        "Helm",
+        "Finance"
+      ],
+      "next_safe_move": "Capture answers as Memory Candidate Receipts; classify whether proof is still needed.",
+      "quieting_effects": [
+        "answered questions leave active helm when replaced with proof-needed or quiet-with-proof state",
+        "operator memory stops being repeated as a question once captured"
+      ],
+      "required_gates": [
+        "Memory Candidate Receipt review"
+      ],
+      "required_memory_candidates": [
+        "one_invoice_posture",
+        "rate_confirmation",
+        "coupa_po_reference",
+        "proof_source_location",
+        "ap_route",
+        "protected_material",
+        "finance_world_ready"
+      ],
+      "required_proof": [],
+      "shared_execution_path_id": "operator_memory_question_capture",
+      "what_solving_this_updates": [
+        "terrain unknowns",
+        "Capital Hilton operator-memory posture",
+        "future missing-proof and holding-cell inputs"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "account_access_allowed": false,
+        "agent_activation_allowed": false,
+        "broad_filesystem_indexing_allowed": false,
+        "broad_private_file_inspection_allowed": false,
+        "browser_oauth_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "excel_raw_body_ingestion_allowed": false,
+        "external_retained_memory_allowed": false,
+        "gmail_calendar_access_allowed": false,
+        "hidden_memory_allowed": false,
+        "invoice_generation_allowed": false,
+        "mac_sync_or_import_triggered": false,
+        "mission_control_app_changes_included": false,
+        "model_api_execution_allowed": false,
+        "model_call_allowed": false,
+        "model_router_runtime_allowed": false,
+        "network_operation_allowed": false,
+        "operator_final_authority": true,
+        "pc_c_drive_artifact_write_allowed": false,
+        "planner_builder_execution_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_finance_body_ingestion_allowed": false,
+        "repo_b_body_inspection_allowed": false,
+        "repo_b_mutation_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "security_approval_granted": false,
+        "send_submit_approval_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "Excel raw body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "send/submit/approval",
+        "live model calls",
+        "model/API execution",
+        "actor/agent activation",
+        "tool execution",
+        "planner/builder/queue/autonomy execution",
+        "Repo B mutation/body inspection",
+        "Mac sync/import"
+      ],
+      "current_status": "current_when_generation_and_receipt_match",
+      "display_name": "Stable Map Receipt Readback",
+      "future_gated_actions": [
+        "Mac import is separate and explicit; this packet does not trigger it"
+      ],
+      "linked_lanes": [
+        "check_transmission",
+        "stable_map_app_visibility"
+      ],
+      "linked_questions": [],
+      "linked_worlds": [
+        "Helm"
+      ],
+      "next_safe_move": "Keep app-facing stable map state primary; keep raw mirror mismatch in proof/detail.",
+      "quieting_effects": [
+        "Check Transmission can become quiet",
+        "raw mirror mismatch remains secondary proof/detail"
+      ],
+      "required_gates": [],
+      "required_memory_candidates": [],
+      "required_proof": [
+        "map_generation_id",
+        "bundle_hash",
+        "Mac receipt matching PC bundle"
+      ],
+      "shared_execution_path_id": "stable_map_receipt_readback",
+      "what_solving_this_updates": [
+        "Check Transmission quiet/current display",
+        "app-visible stable map proof",
+        "raw mirror detail classification"
+      ]
+    }
+  ],
+  "stable_map_integration": {
+    "contract_generated_as_read_model": true,
+    "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Audit Readiness Packet Pass 1 summary.",
+    "reason_not_included_now": "Pass 1 is standalone; stable-map refresh is a separate lane.",
+    "safe_summary_for_next_refresh": {
+      "capital_hilton_missing_proof_count": 10,
+      "contract_id": "security_audit_readiness_packet",
+      "helm_issue_focus_modes": 3,
+      "live_authority_added": false,
+      "map_to_terrain_provenance_claims": 5,
+      "operator_answer_capture_items": 7,
+      "pass_id": "pass_1_active_helm_readiness",
+      "security_approval_granted": false,
+      "shared_execution_paths": 3
+    },
+    "summary_included_in_stable_map_now": false
+  },
+  "tool_execution_allowed": false,
+  "verification_statuses": [
+    "PROVEN",
+    "CANDIDATE",
+    "MISSING_PROOF",
+    "NEEDS_VERIFICATION",
+    "BLOCKED",
+    "STALE",
+    "UNKNOWN_FAIL_CLOSED"
+  ]
+}
