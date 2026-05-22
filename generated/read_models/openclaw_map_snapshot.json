@@ -1682,7 +1682,7 @@
     "runtime_activation_allowed": false,
     "send_submit_approval_allowed": false
   },
-  "created_at": "2026-05-21T23:30:10+00:00",
+  "created_at": "2026-05-22T02:12:26+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -1832,7 +1832,7 @@
     "source_path": "generated/read_models/system_health_lights_taxonomy.json",
     "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
   },
-  "map_generation_id": "map_911cd302343946ad6369",
+  "map_generation_id": "map_d49f3a6dd4a0eedc1777",
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -1958,6 +1958,597 @@
       "openclaw_map_manifest.json",
       "openclaw_map_OPERATOR.md"
     ]
+  },
+  "package_preview_receipts": {
+    "account_access_allowed": false,
+    "agent_activation_allowed": false,
+    "contract_id": "package_preview_receipt_contract",
+    "contract_version": "package_preview_receipt_contract_v0",
+    "dispatch_authority_allowed": false,
+    "example_package_previews_count": 8,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "model_call_allowed": false,
+    "next_recommended_lane": "tool_adapter_receipt_v0",
+    "package_preview_cards": [
+      {
+        "account_access_allowed": false,
+        "actor_id": "cassandra",
+        "agent_activation_allowed": false,
+        "agent_character": "Cassandra",
+        "blocked_actions": [
+          "coupa_adapter",
+          "gmail_calendar_adapter",
+          "browser_oauth_adapter",
+          "send_submit_approval",
+          "GUARDIAN_GATE_REQUIRED",
+          "OPERATOR_APPROVAL_REQUIRED",
+          "PROTECTED_PROOF_MISSING",
+          "ACCOUNT_ACCESS_BLOCKED"
+        ],
+        "context_excluded_summary": [
+          "raw Coupa body",
+          "raw Excel workbook",
+          "Gmail/calendar bodies",
+          "credentials",
+          "account sessions"
+        ],
+        "context_included_summary": [
+          "stable_map:capital_hilton",
+          "agent_council:cassandra"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "protected proof metadata",
+          "future Finance World package"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "MOVE_TO_WORLD_ACTION_AFTER_PROOF_AND_GATES",
+          "target_world": "Finance"
+        },
+        "missing_proof": [
+          "Coupa protected proof metadata",
+          "Excel/workbook proof metadata",
+          "invoice source card"
+        ],
+        "mission": "Preview a protected Capital Hilton invoice review packet for future Finance World handling.",
+        "model_call_allowed": false,
+        "package_id": "package_cassandra_capital_hilton_invoice_review",
+        "package_title": "Cassandra Capital Hilton Invoice Review",
+        "package_type": "finance_ap_review",
+        "preview_status": "PACKAGE_PREVIEW_NEEDS_PROOF",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "future_operator_approval_required",
+          "guardian_gate_required_before_protected_context"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "FINANCE_PROTECTED",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Only metadata refs and missing-proof labels are included; no raw finance body or account authority.",
+        "what_would_make_dispatchable": "Guardian-approved protected metadata, operator approval, tool receipts, model selection receipt, and security audit.",
+        "why_it_matters": "Capital Hilton is the hard finance steel thread; it must be understandable before account action exists.",
+        "world_affinity": [
+          "Finance"
+        ]
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "chief",
+        "agent_activation_allowed": false,
+        "agent_character": "Chief",
+        "blocked_actions": [
+          "remount",
+          "cleanup_delete",
+          "repair_runner",
+          "RUNTIME_REPAIR_BLOCKED"
+        ],
+        "context_excluded_summary": [
+          "raw logs",
+          "repair commands",
+          "credentials"
+        ],
+        "context_included_summary": [
+          "sync_health",
+          "system_health_lights_taxonomy"
+        ],
+        "future_gated_reasons": [
+          "future Chief test harness receipt"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED",
+          "target_world": null
+        },
+        "missing_proof": [
+          "current resource remeasurement",
+          "test-harness receipt"
+        ],
+        "mission": "Preview Chief diagnostic/readback package for system health posture.",
+        "model_call_allowed": false,
+        "package_id": "package_chief_check_engine_diagnostic",
+        "package_title": "Chief Check Engine Diagnostic",
+        "package_type": "check_light_diagnostic_package",
+        "preview_status": "PACKAGE_PREVIEW_COMPILED",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "INTERNAL_SYSTEM",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Readback refs only; all repair/remount/cleanup actions are blocked.",
+        "what_would_make_dispatchable": "Approved test harness and repair authority after security, if ever granted.",
+        "why_it_matters": "Chief should explain system health proof without repairing or self-authorizing.",
+        "world_affinity": []
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "guardian",
+        "agent_activation_allowed": false,
+        "agent_character": "Guardian",
+        "blocked_actions": [
+          "raw_private_body_reader",
+          "account_access",
+          "self_authorization",
+          "RAW_PRIVATE_CONTEXT_BLOCKED",
+          "GUARDIAN_GATE_REQUIRED"
+        ],
+        "context_excluded_summary": [
+          "raw private bodies",
+          "credentials",
+          "browser sessions"
+        ],
+        "context_included_summary": [
+          "memory_candidate_receipt_refs",
+          "protected_metadata_refs"
+        ],
+        "future_gated_reasons": [
+          "protected reference receipt",
+          "operator approval for future use"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED",
+          "target_world": null
+        },
+        "missing_proof": [
+          "approved protected metadata ref",
+          "Guardian gate receipt"
+        ],
+        "mission": "Preview Guardian gate, redaction, quarantine, and revocation package.",
+        "model_call_allowed": false,
+        "package_id": "package_guardian_protected_evidence_review",
+        "package_title": "Guardian Protected Evidence Review",
+        "package_type": "protected_access_review",
+        "preview_status": "PACKAGE_PREVIEW_NEEDS_GUARDIAN_GATE",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_approval_required_for_future_sensitive_action",
+          "guardian_review_required_but_not_self_authorizing"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "LEGAL_OR_COMPLIANCE",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Shows gate requirements without revealing raw protected content.",
+        "what_would_make_dispatchable": "Protected metadata receipt and non-self-authorizing Guardian decision receipt.",
+        "why_it_matters": "Protected evidence needs a visible safety gate before any package can use it.",
+        "world_affinity": []
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "niles",
+        "agent_activation_allowed": false,
+        "agent_character": "Niles",
+        "blocked_actions": [
+          "broad_archive_ingestion",
+          "release_platform_action",
+          "account_access",
+          "MISSING_PROJECT_PROOF",
+          "BROAD_ARCHIVE_INGESTION_BLOCKED"
+        ],
+        "context_excluded_summary": [
+          "broad private archive",
+          "unrelated private/client material",
+          "release account sessions"
+        ],
+        "context_included_summary": [
+          "agent_council:niles",
+          "agent_council:struna"
+        ],
+        "future_gated_reasons": [
+          "scoped project capsule",
+          "rights/sensitivity review"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "MOVE_TO_WORLD_ACTION_AFTER_METADATA_PROOF",
+          "target_world": "Music / Art"
+        },
+        "missing_proof": [
+          "real album metadata",
+          "approved Struna project proof"
+        ],
+        "mission": "Preview a Music / Art package for Struna/Niles metadata and creative context.",
+        "model_call_allowed": false,
+        "package_id": "package_niles_struna_creative_metadata_review",
+        "package_title": "Niles / Struna Creative Metadata Review",
+        "package_type": "music_creative_review",
+        "preview_status": "PACKAGE_PREVIEW_NEEDS_PROOF",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_approval_required_for_future_external_or_release_action"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "CREATIVE_PRIVATE",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Context is reference-only and no account/release action is available.",
+        "what_would_make_dispatchable": "Scoped project capsule, metadata proof, and future action receipts.",
+        "why_it_matters": "Creative preferences can guide work, but real album/project metadata still needs proof.",
+        "world_affinity": [
+          "Music / Art"
+        ]
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "hermes",
+        "agent_activation_allowed": false,
+        "agent_character": "Hermes",
+        "blocked_actions": [
+          "runtime_activation",
+          "canonical_memory_promotion",
+          "CANONICAL_MEMORY_PROMOTION_BLOCKED"
+        ],
+        "context_excluded_summary": [
+          "raw private bodies",
+          "hidden memory",
+          "credentials"
+        ],
+        "context_included_summary": [
+          "read_model_refs",
+          "stable_map_refs"
+        ],
+        "future_gated_reasons": [
+          "memory candidate receipt",
+          "operator promotion decision"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED",
+          "target_world": null
+        },
+        "missing_proof": [
+          "accepted doctrine promotion receipt"
+        ],
+        "mission": "Preview architecture/doctrine coherence package.",
+        "model_call_allowed": false,
+        "package_id": "package_hermes_architecture_doctrine_review",
+        "package_title": "Hermes Architecture Doctrine Review",
+        "package_type": "architecture_review",
+        "preview_status": "PACKAGE_PREVIEW_COMPILED",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_review_required_for_doctrine_promotion"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "INTERNAL_SYSTEM",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Uses contract refs only and cannot promote memory by itself.",
+        "what_would_make_dispatchable": "Accepted memory candidate/promotion receipt and explicit operator decision.",
+        "why_it_matters": "Hermes can compare doctrine and contracts without runtime authority.",
+        "world_affinity": []
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "codex",
+        "agent_activation_allowed": false,
+        "agent_character": "external_code_worker",
+        "blocked_actions": [
+          "network",
+          "credentials",
+          "broad_repo_scan",
+          "delete_move_cleanup",
+          "OPENCLAW_RUNTIME_DISPATCH_BLOCKED",
+          "NETWORK_CREDENTIAL_SCOPE_BLOCKED"
+        ],
+        "context_excluded_summary": [
+          "secrets",
+          "no-go paths",
+          "broad private files",
+          "network-dependent context"
+        ],
+        "context_included_summary": [
+          "scoped file refs",
+          "test refs",
+          "package compiler refs"
+        ],
+        "future_gated_reasons": [
+          "package preview receipt",
+          "test/build receipt",
+          "security gate for runtime dispatch"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED",
+          "target_world": null
+        },
+        "missing_proof": [
+          "allowed root manifest",
+          "test command receipt"
+        ],
+        "mission": "Preview a scoped backend implementation package for a manual worker lane.",
+        "model_call_allowed": false,
+        "package_id": "package_codex_backend_contract_implementation",
+        "package_title": "Codex Backend Contract Implementation",
+        "package_type": "code_implementation",
+        "preview_status": "PACKAGE_PREVIEW_FUTURE_GATED",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_preview_required",
+          "required_if_sensitive_or_protected_files"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "INTERNAL_SYSTEM",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "This is a manual/package preview; no OpenClaw model/router dispatch occurs.",
+        "what_would_make_dispatchable": "Future runtime gate, tool adapter receipt, scoped write receipt, and test result receipt.",
+        "why_it_matters": "Codex can implement bounded code/test changes, but OpenClaw runtime dispatch remains false.",
+        "world_affinity": []
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "gemini_antigravity",
+        "agent_activation_allowed": false,
+        "agent_character": "Gemini / Antigravity",
+        "blocked_actions": [
+          "raw_private_media",
+          "external_retained_memory",
+          "canonical_write",
+          "EXTERNAL_RETENTION_BLOCKED",
+          "OPERATOR_APPROVAL_REQUIRED"
+        ],
+        "context_excluded_summary": [
+          "raw private media",
+          "credentials",
+          "client/private docs",
+          "retained memory"
+        ],
+        "context_included_summary": [
+          "sanitized UI proof refs"
+        ],
+        "future_gated_reasons": [
+          "no-retention proof",
+          "sanitized context packet",
+          "result receipt"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED",
+          "target_world": null
+        },
+        "missing_proof": [
+          "sanitized visual refs",
+          "no-retention receipt"
+        ],
+        "mission": "Preview a sanitized visual polish/refactor package for an external worker candidate.",
+        "model_call_allowed": false,
+        "package_id": "package_gemini_antigravity_visual_polish",
+        "package_title": "Gemini / Antigravity Visual Polish Package",
+        "package_type": "mission_control_ux",
+        "preview_status": "PACKAGE_PREVIEW_FUTURE_GATED",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_approval_required_for_external_worker",
+          "required_if_any_sensitivity_above_public_low"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "PUBLIC_OR_LOW",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "No live external model call is made and all context is reference-only.",
+        "what_would_make_dispatchable": "Operator approval, sanitized context packet, no-retention receipt, and result receipt.",
+        "why_it_matters": "External workers may help with bounded visual proof, but they cannot retain memory or write canonical state.",
+        "world_affinity": []
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "chief",
+        "agent_activation_allowed": false,
+        "agent_character": "Chief / Hermes",
+        "blocked_actions": [
+          "repo_b_execution",
+          "broad_repo_b_body_inspection",
+          "queue_autonomy_execution",
+          "REPO_B_DISCOVERY_NEEDED",
+          "AUTONOMY_BLOCKED",
+          "NO_EXECUTION_AUTHORITY"
+        ],
+        "context_excluded_summary": [
+          "Repo B bodies",
+          "planner/builder runtime outputs",
+          "unbounded queue data"
+        ],
+        "context_included_summary": [
+          "agentic_loop terrain refs",
+          "operator memory questions"
+        ],
+        "future_gated_reasons": [
+          "approved metadata-only discovery",
+          "security audit",
+          "tool adapter receipts"
+        ],
+        "lane_destiny": {
+          "live_dispatch_allowed_now": false,
+          "resolution_route": "REQUEUE_FOR_SYSTEM_BUILD_AFTER_DISCOVERY",
+          "target_world": null
+        },
+        "missing_proof": [
+          "approved Repo B metadata",
+          "component manifest",
+          "queue lifecycle receipt"
+        ],
+        "mission": "Preview a classification packet for Repo B planner/builder/cue parser terrain.",
+        "model_call_allowed": false,
+        "package_id": "package_agentic_loop_classification",
+        "package_title": "Agentic Loop Classification Package",
+        "package_type": "terrain_discovery_classification",
+        "preview_status": "PACKAGE_PREVIEW_NEEDS_CONTEXT",
+        "queue_execution_allowed": false,
+        "raw_body_included": false,
+        "required_gates": [
+          "operator_clarification_required",
+          "security_gate_required_before_any_autonomy"
+        ],
+        "required_receipts": [
+          "package preview receipt",
+          "model selection receipt",
+          "tool adapter receipt before any future tool use",
+          "memory candidate receipt when candidate context is used",
+          "future action receipt if security ever grants execution"
+        ],
+        "runtime_dispatch_allowed": false,
+        "send_submit_approval_allowed": false,
+        "sensitivity": "INTERNAL_SYSTEM",
+        "stop_conditions": [
+          "required display field missing",
+          "raw private body included",
+          "credential/account material included",
+          "unknown actor/model/tool referenced",
+          "authority requested beyond preview",
+          "receipt requirements missing"
+        ],
+        "tool_execution_allowed": false,
+        "what_makes_safe_to_display": "Only classification questions and proof gaps are included; no Repo B execution or body inspection.",
+        "what_would_make_dispatchable": "Metadata-only discovery receipts, security audit, and future queue/tool receipts.",
+        "why_it_matters": "The agentic loop is operator-reported and important, but it needs classification before autonomy.",
+        "world_affinity": []
+      }
+    ],
+    "present": true,
+    "preview_states_count": 19,
+    "primary_app_contract": true,
+    "queue_execution_allowed": false,
+    "raw_body_included": false,
+    "receipt_types_count": 14,
+    "send_submit_approval_allowed": false,
+    "source_path": "generated/read_models/package_preview_receipt_contract.json",
+    "tool_execution_allowed": false
   },
   "package_previews": {
     "boundary_validation_contract": {
@@ -2357,7 +2948,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:195fbe417124e0a0384389726faf467d77d126991b7344acc9728b5d3f5edee3",
+        "hash": "sha256:b164397d3133d8c8bc58b5876a00b83ec0926836d5dabc2a0fb35bf4d71ff11e",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/system_health_lights_taxonomy.json",
@@ -2422,6 +3013,32 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:d94fa9c8c734d631c050250d74b65f213ff8b131f6d9085940c0e783fc91abab",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/package_preview_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "package_preview_receipt_contract",
+        "role": "package preview receipt grammar and example preview cards",
+        "schema_version": "package_preview_receipt_contract_v0",
+        "surface_id": "package_preview_receipt_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:098c8c9af183c59d44c30ade4ec0fca648874adf3fc1208a3a48f8496ccce9a9",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/tool_adapter_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "tool_adapter_receipt_contract",
+        "role": "tool/protocol adapter receipt grammar and example adapter cards",
+        "schema_version": "tool_adapter_receipt_contract_v0",
+        "surface_id": "tool_adapter_receipt_contract"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -2458,8 +3075,8 @@
   },
   "schema_version": "openclaw_map_snapshot_v0",
   "secrets_included": false,
-  "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
-  "source_commit_if_available_local_only": "9076067fd369602bfb41a93b06486302ae99e69b",
+  "snapshot_hash": "sha256:d49f3a6dd4a0eedc177739f425565c3090be68da20e919fc97351c02829be8a2",
+  "source_commit_if_available_local_only": "39eb210923d1b03dad45e5ef46bfdea954bd55b1",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
@@ -2481,11 +3098,11 @@
   },
   "source_repo": "Repo A /home/openclaw",
   "sync_state": {
-    "canonical_expected": 241,
+    "canonical_expected": 245,
     "display_status": "needs_mac_sync",
     "hash_mismatch": 4,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 23,
+    "missing_expected": 27,
     "observed": 218,
     "operator_action_required": true,
     "present": true,
@@ -2763,6 +3380,777 @@
       "READY_FOR_POST_SECURITY_ACTION",
       "NEEDS_SOURCE_TRUTH_RECONCILIATION"
     ]
+  },
+  "tool_adapter_receipts": {
+    "account_access_allowed": false,
+    "adapter_examples_count": 12,
+    "adapter_receipt_cards": [
+      {
+        "account_access_allowed": false,
+        "actor_id": "chief",
+        "adapter_category": "read_model_stable_map",
+        "adapter_display_name": "Stable Map Bundle Reader",
+        "adapter_id": "stable_map_bundle_reader",
+        "adapter_state": "ACTIVE_READ_ONLY",
+        "agent_activation_performed": false,
+        "agent_character": "Chief",
+        "blocked_reasons": [],
+        "browser_session_allowed": false,
+        "capability_class_blocked": null,
+        "capability_class_granted": "READ_METADATA",
+        "capability_class_requested": "READ_METADATA",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "read stable map metadata",
+          "read stable manifest hash",
+          "display proof refs"
+        ],
+        "current_blocked_actions": [
+          "write map files",
+          "network access",
+          "account access",
+          "tool execution"
+        ],
+        "future_eligible_actions": [],
+        "future_gated_reasons": [],
+        "gates_required": [
+          "package preview receipt if package-bound"
+        ],
+        "input_refs_allowed_summary": [
+          "stable map metadata refs",
+          "manifest hash refs"
+        ],
+        "input_refs_blocked_summary": [
+          "raw private bodies",
+          "credentials",
+          "account sessions"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "receipt_id",
+          "adapter_id",
+          "map_generation_id",
+          "bundle_hash",
+          "parse_passed",
+          "receipt_hash"
+        ],
+        "package_type": "read_model_readback",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_ALLOWED_READ_ONLY",
+        "receipt_type": "ADAPTER_ALLOWED_READ_ONLY_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Any request for write/network/account/tool execution keeps it blocked.",
+        "what_would_make_adapter_available": "Stable map parse/hash receipt and current package preview when package-bound."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "codex",
+        "adapter_category": "package_compiler",
+        "adapter_display_name": "Package Preview Exporter",
+        "adapter_id": "package_preview_exporter",
+        "adapter_state": "ACTIVE_PREVIEW_ONLY",
+        "agent_activation_performed": false,
+        "agent_character": "Codex",
+        "blocked_reasons": [],
+        "browser_session_allowed": false,
+        "capability_class_blocked": null,
+        "capability_class_granted": "RECEIPT_WRITE",
+        "capability_class_requested": "RECEIPT_WRITE",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "export inspectable package metadata",
+          "write deterministic receipt metadata"
+        ],
+        "current_blocked_actions": [
+          "dispatch package",
+          "launch model",
+          "activate agent",
+          "execute tool"
+        ],
+        "future_eligible_actions": [
+          "future receipt ledger row after approved pattern"
+        ],
+        "future_gated_reasons": [
+          "future receipt ledger integration"
+        ],
+        "gates_required": [
+          "package preview contract",
+          "model selection receipt"
+        ],
+        "input_refs_allowed_summary": [
+          "generated package preview metadata"
+        ],
+        "input_refs_blocked_summary": [
+          "raw private body",
+          "credentials",
+          "runtime command"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "package_id",
+          "actor_id",
+          "authority_boundary",
+          "receipt_hash"
+        ],
+        "package_type": "package_preview_export",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_PREVIEW_READY",
+        "receipt_type": "ADAPTER_ALLOWED_PREVIEW_ONLY_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Any dispatch/model/tool launch request keeps it blocked.",
+        "what_would_make_adapter_available": "Existing deterministic export lane and package preview receipt grammar."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "codex",
+        "adapter_category": "local_code_workspace",
+        "adapter_display_name": "Codex Scoped Build Verifier",
+        "adapter_id": "codex_scoped_build_verifier",
+        "adapter_state": "FUTURE_GATED",
+        "agent_activation_performed": false,
+        "agent_character": "Codex",
+        "blocked_reasons": [
+          "COMMAND_EXECUTION_BLOCKED",
+          "RUNTIME_AUTHORITY_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "RUN_TEST",
+        "capability_class_granted": null,
+        "capability_class_requested": "RUN_TEST",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "record test/build proof refs from bounded worker prompt"
+        ],
+        "current_blocked_actions": [
+          "OpenClaw runtime command execution",
+          "network",
+          "credentials",
+          "broad repo expansion"
+        ],
+        "future_eligible_actions": [
+          "future scoped test/build verifier after security"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "tool adapter receipt",
+          "allowed roots"
+        ],
+        "gates_required": [
+          "package preview receipt",
+          "operator preview",
+          "allowed roots"
+        ],
+        "input_refs_allowed_summary": [
+          "test output receipt refs"
+        ],
+        "input_refs_blocked_summary": [
+          "secrets",
+          "network outputs",
+          "broad workspace scan"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "commands_run",
+          "exit_code",
+          "files_changed",
+          "network_used",
+          "receipt_hash"
+        ],
+        "package_type": "code_implementation",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_FUTURE_GATED",
+        "receipt_type": "ADAPTER_FUTURE_GATED_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "No OpenClaw runtime command authority exists.",
+        "what_would_make_adapter_available": "Security-reviewed scoped command class and result receipt."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "cassandra",
+        "adapter_category": "domain_workflow",
+        "adapter_display_name": "Cassandra Capital Hilton Invoice Proof Adapter",
+        "adapter_id": "cassandra_capital_hilton_invoice_proof_adapter",
+        "adapter_state": "FUTURE_GATED",
+        "agent_activation_performed": false,
+        "agent_character": "Cassandra",
+        "blocked_reasons": [
+          "GUARDIAN_GATE_REQUIRED",
+          "ACCOUNT_ACCESS_BLOCKED",
+          "CREDENTIAL_MATERIAL_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "READ_REDACTED_CONTENT",
+        "capability_class_granted": null,
+        "capability_class_requested": "READ_REDACTED_CONTENT",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "show missing protected proof metadata"
+        ],
+        "current_blocked_actions": [
+          "Coupa access",
+          "Excel raw body",
+          "credentials",
+          "submit/approval"
+        ],
+        "future_eligible_actions": [
+          "future protected metadata proof read after Guardian gate"
+        ],
+        "future_gated_reasons": [
+          "protected metadata packet",
+          "security audit",
+          "Guardian gate receipt"
+        ],
+        "gates_required": [
+          "Guardian protected-access gate",
+          "Operator approval",
+          "security audit"
+        ],
+        "input_refs_allowed_summary": [
+          "protected metadata refs after gate"
+        ],
+        "input_refs_blocked_summary": [
+          "raw Coupa body",
+          "raw workbook",
+          "credentials",
+          "account session"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "source_card_id",
+          "redaction_status",
+          "guardian_gate_id",
+          "receipt_hash"
+        ],
+        "package_type": "finance_ap_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_FUTURE_GATED",
+        "receipt_type": "ADAPTER_NEEDS_GUARDIAN_GATE_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Finance protected context and account access remain blocked.",
+        "what_would_make_adapter_available": "Protected proof metadata and Guardian/Operator receipts."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "guardian",
+        "adapter_category": "safety_security",
+        "adapter_display_name": "Guardian Protected Access Gate",
+        "adapter_id": "guardian_protected_access_gate",
+        "adapter_state": "ACTIVE_PREVIEW_ONLY",
+        "agent_activation_performed": false,
+        "agent_character": "Guardian",
+        "blocked_reasons": [],
+        "browser_session_allowed": false,
+        "capability_class_blocked": null,
+        "capability_class_granted": "READ_METADATA",
+        "capability_class_requested": "READ_METADATA",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "recommend allow/block/redact/quarantine/revoke"
+        ],
+        "current_blocked_actions": [
+          "self-authorization",
+          "raw private body access",
+          "execution"
+        ],
+        "future_eligible_actions": [
+          "future gate receipt after security audit"
+        ],
+        "future_gated_reasons": [
+          "security-audited gate integration"
+        ],
+        "gates_required": [
+          "package preview receipt",
+          "memory scope"
+        ],
+        "input_refs_allowed_summary": [
+          "metadata-only protected refs"
+        ],
+        "input_refs_blocked_summary": [
+          "raw private bodies",
+          "credentials",
+          "browser sessions"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "gate_id",
+          "decision",
+          "redaction_status",
+          "operator_required",
+          "receipt_hash"
+        ],
+        "package_type": "protected_access_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_PREVIEW_READY",
+        "receipt_type": "ADAPTER_ALLOWED_PREVIEW_ONLY_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Guardian cannot grant itself execution or bypass Operator.",
+        "what_would_make_adapter_available": "Gate decision receipt and operator approval where required."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "chief",
+        "adapter_category": "runtime_agent",
+        "adapter_display_name": "Chief Test Harness Adapter",
+        "adapter_id": "chief_test_harness_adapter",
+        "adapter_state": "FUTURE_GATED",
+        "agent_activation_performed": false,
+        "agent_character": "Chief",
+        "blocked_reasons": [
+          "COMMAND_EXECUTION_BLOCKED",
+          "RUNTIME_AUTHORITY_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "RUN_TEST",
+        "capability_class_granted": null,
+        "capability_class_requested": "RUN_TEST",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "preview expected verification receipt shape"
+        ],
+        "current_blocked_actions": [
+          "execute repairs",
+          "remount",
+          "cleanup",
+          "self-authorize success"
+        ],
+        "future_eligible_actions": [
+          "future receipt/result verifier after security"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "bounded harness contract"
+        ],
+        "gates_required": [
+          "security audit",
+          "operator approval for future harness"
+        ],
+        "input_refs_allowed_summary": [
+          "verification receipt refs"
+        ],
+        "input_refs_blocked_summary": [
+          "repair commands",
+          "raw logs",
+          "credentials"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "test_id",
+          "inputs",
+          "outputs",
+          "success_state",
+          "receipt_hash"
+        ],
+        "package_type": "check_light_diagnostic_package",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_FUTURE_GATED",
+        "receipt_type": "ADAPTER_FUTURE_GATED_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Chief cannot self-authorize or execute fixes.",
+        "what_would_make_adapter_available": "Bounded test-harness contract and receipts."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "guardian",
+        "adapter_category": "external_account_browser_api",
+        "adapter_display_name": "Browser / OAuth Adapter",
+        "adapter_id": "browser_oauth_adapter",
+        "adapter_state": "BLOCKED_NO_AUTHORITY",
+        "agent_activation_performed": false,
+        "agent_character": "Guardian",
+        "blocked_reasons": [
+          "BROWSER_SESSION_BLOCKED",
+          "ACCOUNT_ACCESS_BLOCKED",
+          "SECURITY_AUDIT_REQUIRED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "BROWSER_SESSION",
+        "capability_class_granted": null,
+        "capability_class_requested": "BROWSER_SESSION",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [],
+        "current_blocked_actions": [
+          "browser launch",
+          "OAuth",
+          "cookies/session",
+          "account mutation"
+        ],
+        "future_eligible_actions": [
+          "future security-audited account adapter if ever approved"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "credential policy",
+          "account-action receipt"
+        ],
+        "gates_required": [
+          "security audit",
+          "Operator approval",
+          "Guardian gate"
+        ],
+        "input_refs_allowed_summary": [],
+        "input_refs_blocked_summary": [
+          "credentials",
+          "cookies",
+          "OAuth state",
+          "account session"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "account_accessed",
+          "network_used",
+          "operator_approval_id",
+          "receipt_hash"
+        ],
+        "package_type": "browser_or_portal_related",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_BLOCKED",
+        "receipt_type": "ADAPTER_NEEDS_SECURITY_AUDIT_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "No browser/OAuth/account authority exists.",
+        "what_would_make_adapter_available": "Explicit security audit and account-access gate."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "cassandra",
+        "adapter_category": "external_account_browser_api",
+        "adapter_display_name": "Gmail / Calendar Adapter",
+        "adapter_id": "gmail_calendar_adapter",
+        "adapter_state": "BLOCKED_NO_AUTHORITY",
+        "agent_activation_performed": false,
+        "agent_character": "Cassandra",
+        "blocked_reasons": [
+          "ACCOUNT_ACCESS_BLOCKED",
+          "SEND_SUBMIT_APPROVAL_BLOCKED",
+          "RAW_PRIVATE_BODY_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "MUTATE_ACCOUNT",
+        "capability_class_granted": null,
+        "capability_class_requested": "MUTATE_ACCOUNT",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [],
+        "current_blocked_actions": [
+          "raw bodies",
+          "send",
+          "calendar mutation",
+          "account access"
+        ],
+        "future_eligible_actions": [
+          "future metadata-only review after gates"
+        ],
+        "future_gated_reasons": [
+          "metadata-only connector gate",
+          "no-send receipt",
+          "operator approval"
+        ],
+        "gates_required": [
+          "security audit",
+          "Operator approval",
+          "Guardian gate"
+        ],
+        "input_refs_allowed_summary": [],
+        "input_refs_blocked_summary": [
+          "raw email bodies",
+          "calendar body",
+          "OAuth tokens",
+          "send/mutate requests"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "message_ids",
+          "redaction_status",
+          "send_performed_false",
+          "receipt_hash"
+        ],
+        "package_type": "communications_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_BLOCKED",
+        "receipt_type": "ADAPTER_NEEDS_SECURITY_AUDIT_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "No Gmail/calendar/account authority exists.",
+        "what_would_make_adapter_available": "Security-audited metadata gate and explicit no-send receipt."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "cassandra",
+        "adapter_category": "domain_workflow",
+        "adapter_display_name": "Coupa Adapter",
+        "adapter_id": "coupa_adapter",
+        "adapter_state": "BLOCKED_NO_AUTHORITY",
+        "agent_activation_performed": false,
+        "agent_character": "Cassandra",
+        "blocked_reasons": [
+          "ACCOUNT_ACCESS_BLOCKED",
+          "CREDENTIAL_MATERIAL_BLOCKED",
+          "SEND_SUBMIT_APPROVAL_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "MUTATE_ACCOUNT",
+        "capability_class_granted": null,
+        "capability_class_requested": "MUTATE_ACCOUNT",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [],
+        "current_blocked_actions": [
+          "Coupa login",
+          "credentials",
+          "browser session",
+          "submit/approve"
+        ],
+        "future_eligible_actions": [
+          "future protected metadata only after security"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "protected proof packet",
+          "operator approval"
+        ],
+        "gates_required": [
+          "security audit",
+          "Guardian gate",
+          "Operator approval"
+        ],
+        "input_refs_allowed_summary": [],
+        "input_refs_blocked_summary": [
+          "credentials",
+          "Coupa session",
+          "submit/approve action",
+          "raw invoice body"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "account_accessed",
+          "submit_performed_false",
+          "approval_performed_false",
+          "receipt_hash"
+        ],
+        "package_type": "finance_ap_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_BLOCKED",
+        "receipt_type": "ADAPTER_NEEDS_SECURITY_AUDIT_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "No Coupa/account/credential/submit authority exists.",
+        "what_would_make_adapter_available": "Protected proof metadata packet and future account-action gate."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "cassandra",
+        "adapter_category": "external_account_browser_api",
+        "adapter_display_name": "Telegram Adapter",
+        "adapter_id": "telegram_adapter",
+        "adapter_state": "BLOCKED_NO_AUTHORITY",
+        "agent_activation_performed": false,
+        "agent_character": "Cassandra",
+        "blocked_reasons": [
+          "SEND_SUBMIT_APPROVAL_BLOCKED",
+          "ACCOUNT_ACCESS_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "SEND_MESSAGE",
+        "capability_class_granted": null,
+        "capability_class_requested": "SEND_MESSAGE",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [],
+        "current_blocked_actions": [
+          "send message",
+          "account access",
+          "runtime send authority"
+        ],
+        "future_eligible_actions": [
+          "future communications metadata review if ever gated"
+        ],
+        "future_gated_reasons": [
+          "security audit",
+          "operator send approval",
+          "message receipt"
+        ],
+        "gates_required": [
+          "security audit",
+          "Operator approval"
+        ],
+        "input_refs_allowed_summary": [],
+        "input_refs_blocked_summary": [
+          "message body",
+          "account session",
+          "send action"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "send_performed",
+          "operator_approval_id",
+          "receipt_hash"
+        ],
+        "package_type": "communications_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_BLOCKED",
+        "receipt_type": "ADAPTER_BLOCKED_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "No Telegram send/runtime authority exists.",
+        "what_would_make_adapter_available": "Explicit send approval and account/security gate."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "chief",
+        "adapter_category": "runtime_agent",
+        "adapter_display_name": "Repo B Planner / Builder Adapter",
+        "adapter_id": "repo_b_planner_builder_adapter",
+        "adapter_state": "CANDIDATE_UNMAPPED",
+        "agent_activation_performed": false,
+        "agent_character": "Chief / Hermes",
+        "blocked_reasons": [
+          "UNKNOWN_ADAPTER",
+          "RUNTIME_AUTHORITY_BLOCKED",
+          "COMMAND_EXECUTION_BLOCKED"
+        ],
+        "browser_session_allowed": false,
+        "capability_class_blocked": "QUEUE_EXECUTION",
+        "capability_class_granted": null,
+        "capability_class_requested": "QUEUE_EXECUTION",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "display operator-reported loop classification gaps"
+        ],
+        "current_blocked_actions": [
+          "Repo B execution",
+          "planner/builder runtime",
+          "queue/autonomy"
+        ],
+        "future_eligible_actions": [
+          "future classified cue/autonomy spine after security"
+        ],
+        "future_gated_reasons": [
+          "approved metadata-only discovery",
+          "security audit",
+          "queue lifecycle receipts"
+        ],
+        "gates_required": [
+          "discovery classification",
+          "security audit",
+          "operator approval"
+        ],
+        "input_refs_allowed_summary": [
+          "approved component manifest refs"
+        ],
+        "input_refs_blocked_summary": [
+          "Repo B bodies",
+          "runtime queue data",
+          "planner/builder outputs"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "component_id",
+          "status",
+          "execution_performed_false",
+          "receipt_hash"
+        ],
+        "package_type": "terrain_discovery_classification",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_FUTURE_GATED",
+        "receipt_type": "ADAPTER_FUTURE_GATED_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Repo B execution and queue/autonomy are blocked.",
+        "what_would_make_adapter_available": "Approved metadata-only discovery and security audit."
+      },
+      {
+        "account_access_allowed": false,
+        "actor_id": "guardian",
+        "adapter_category": "package_compiler",
+        "adapter_display_name": "Memory Candidate Receipt Writer",
+        "adapter_id": "memory_candidate_receipt_writer",
+        "adapter_state": "RECEIPT_ONLY",
+        "agent_activation_performed": false,
+        "agent_character": "Guardian",
+        "blocked_reasons": [],
+        "browser_session_allowed": false,
+        "capability_class_blocked": null,
+        "capability_class_granted": "MEMORY_CANDIDATE_WRITE",
+        "capability_class_requested": "MEMORY_CANDIDATE_WRITE",
+        "command_execution_allowed": false,
+        "current_allowed_actions": [
+          "write candidate metadata receipt",
+          "mark candidate non-canonical"
+        ],
+        "current_blocked_actions": [
+          "canonical memory promotion",
+          "hidden memory",
+          "raw private body capture"
+        ],
+        "future_eligible_actions": [
+          "future memory review surface"
+        ],
+        "future_gated_reasons": [
+          "memory review/promotion surface"
+        ],
+        "gates_required": [
+          "memory scope contract",
+          "operator promotion for canonical memory"
+        ],
+        "input_refs_allowed_summary": [
+          "memory candidate metadata refs"
+        ],
+        "input_refs_blocked_summary": [
+          "credentials",
+          "raw private bodies",
+          "hidden model memory"
+        ],
+        "model_call_performed": false,
+        "network_allowed": false,
+        "output_receipt_shape": [
+          "candidate_id",
+          "source_ref",
+          "sensitivity",
+          "operator_review_required",
+          "receipt_hash"
+        ],
+        "package_type": "memory_candidate_review",
+        "queue_execution_performed": false,
+        "receipt_state": "ADAPTER_PREVIEW_READY",
+        "receipt_type": "ADAPTER_RECEIPT_ONLY_RECEIPT",
+        "send_submit_approval_allowed": false,
+        "tool_execution_performed": false,
+        "what_keeps_adapter_blocked": "Canonical promotion is blocked; candidate metadata only.",
+        "what_would_make_adapter_available": "Candidate receipt and later operator promotion receipt."
+      }
+    ],
+    "allowed_read_only_count": 1,
+    "blocked_or_future_gated_count": 8,
+    "browser_session_allowed": false,
+    "capability_classes_count": 20,
+    "command_execution_allowed": false,
+    "contract_id": "tool_adapter_receipt_contract",
+    "contract_version": "tool_adapter_receipt_contract_v0",
+    "individual_contract_read_model_remains_proof_detail": true,
+    "live_tool_execution_allowed": false,
+    "network_allowed": false,
+    "next_recommended_lane": "package_preview_surface_mission_control_integration_v0",
+    "present": true,
+    "preview_or_receipt_only_count": 3,
+    "primary_app_contract": true,
+    "receipt_states_count": 20,
+    "receipt_types_count": 15,
+    "send_submit_approval_allowed": false,
+    "source_path": "generated/read_models/tool_adapter_receipt_contract.json"
   },
   "worlds": {
     "capital_hilton_target_world": "Finance",

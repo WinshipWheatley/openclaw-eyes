@@ -58,6 +58,10 @@ MAP_BUNDLE_HASH_EXCLUDED_FILES = frozenset(MAP_BUNDLE_SELF_FILES) | frozenset(
     VOLATILE_SELF_REPORT_READ_MODEL_FILES
 )
 
+AGENT_TERRAIN_READ_MODEL_PATH = "generated/read_models/agent_terrain_awareness_readback_contract.json"
+PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH = "generated/read_models/package_preview_receipt_contract.json"
+TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH = "generated/read_models/tool_adapter_receipt_contract.json"
+
 ESSENTIAL_SURFACES = (
     {
         "surface_id": "sync_health",
@@ -90,6 +94,16 @@ ESSENTIAL_SURFACES = (
         "role": "package preview schema and deterministic boundary validation",
     },
     {
+        "surface_id": "package_preview_receipt_contract",
+        "path": PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH,
+        "role": "package preview receipt grammar and example preview cards",
+    },
+    {
+        "surface_id": "tool_adapter_receipt_contract",
+        "path": TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH,
+        "role": "tool/protocol adapter receipt grammar and example adapter cards",
+    },
+    {
         "surface_id": "operator_workbench_actor_host_registry",
         "path": "generated/read_models/operator_workbench_actor_host_registry.json",
         "role": "workbench/actor host routing metadata",
@@ -100,8 +114,6 @@ ESSENTIAL_SURFACES = (
         "role": "reusable lane rendering/workflow template",
     },
 )
-
-AGENT_TERRAIN_READ_MODEL_PATH = "generated/read_models/agent_terrain_awareness_readback_contract.json"
 
 AGENT_DOSSIER_CARD_FIELDS = (
     "agent_id",
@@ -477,6 +489,231 @@ def _summarize_package_compiler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _next_recommended_lane(payload: dict[str, Any]) -> str | None:
+    stable = payload.get("stable_map_integration") if isinstance(payload.get("stable_map_integration"), dict) else {}
+    safe_summary = (
+        stable.get("safe_summary_to_include_next")
+        if isinstance(stable.get("safe_summary_to_include_next"), dict)
+        else {}
+    )
+    if isinstance(safe_summary.get("next_recommended_lane"), str):
+        return safe_summary["next_recommended_lane"]
+    lanes = payload.get("recommended_next_lanes") if isinstance(payload.get("recommended_next_lanes"), list) else []
+    for lane in lanes:
+        if isinstance(lane, dict) and isinstance(lane.get("lane_id"), str):
+            return lane["lane_id"]
+    return None
+
+
+def _required_gates_from_example(example: dict[str, Any]) -> list[str]:
+    gates: list[str] = []
+    for key in ("operator_gate_status", "guardian_gate_status", "security_audit_status"):
+        value = example.get(key)
+        if not isinstance(value, str) or not value or value.startswith("not_required"):
+            continue
+        gates.append(value)
+    return _unique_limited(gates, limit=6)
+
+
+def _package_lane_destiny(example: dict[str, Any]) -> dict[str, Any]:
+    target_world = example.get("target_world")
+    example_id = example.get("example_id")
+    if target_world == "Finance":
+        resolution_route = "MOVE_TO_WORLD_ACTION_AFTER_PROOF_AND_GATES"
+    elif target_world == "Music / Art":
+        resolution_route = "MOVE_TO_WORLD_ACTION_AFTER_METADATA_PROOF"
+    elif example_id == "agentic_loop_classification":
+        resolution_route = "REQUEUE_FOR_SYSTEM_BUILD_AFTER_DISCOVERY"
+    else:
+        resolution_route = "KEEP_AS_PREVIEW_OR_PROOF_DETAIL_UNTIL_GATED"
+    return {
+        "resolution_route": resolution_route,
+        "target_world": target_world,
+        "live_dispatch_allowed_now": False,
+    }
+
+
+def _safe_package_preview_card(example: dict[str, Any]) -> dict[str, Any]:
+    target_world = example.get("target_world")
+    context_included = (
+        example.get("context_included_refs")
+        if isinstance(example.get("context_included_refs"), list)
+        else []
+    )
+    context_excluded = (
+        example.get("context_excluded_refs")
+        if isinstance(example.get("context_excluded_refs"), list)
+        else []
+    )
+    blocked_tool_adapters = (
+        example.get("blocked_tool_adapters")
+        if isinstance(example.get("blocked_tool_adapters"), list)
+        else []
+    )
+    blocked_reasons = (
+        example.get("blocked_reasons")
+        if isinstance(example.get("blocked_reasons"), list)
+        else []
+    )
+    return {
+        "package_id": example.get("package_id"),
+        "package_title": example.get("package_title"),
+        "package_type": example.get("package_type"),
+        "actor_id": example.get("actor_id"),
+        "agent_character": example.get("agent_character"),
+        "mission": example.get("mission"),
+        "why_it_matters": example.get("why_it_matters"),
+        "preview_status": example.get("preview_status"),
+        "sensitivity": example.get("sensitivity"),
+        "context_included_summary": _unique_limited(context_included, limit=8),
+        "context_excluded_summary": _unique_limited(context_excluded, limit=8),
+        "missing_proof": example.get("missing_proof") if isinstance(example.get("missing_proof"), list) else [],
+        "required_gates": _required_gates_from_example(example),
+        "required_receipts": example.get("receipt_requirements")
+        if isinstance(example.get("receipt_requirements"), list)
+        else [],
+        "stop_conditions": example.get("stop_conditions") if isinstance(example.get("stop_conditions"), list) else [],
+        "blocked_actions": _unique_limited([*blocked_tool_adapters, *blocked_reasons], limit=12),
+        "future_gated_reasons": example.get("future_gated_reasons")
+        if isinstance(example.get("future_gated_reasons"), list)
+        else [],
+        "what_would_make_dispatchable": example.get("what_would_make_dispatchable"),
+        "what_makes_safe_to_display": example.get("what_makes_safe_to_display"),
+        "world_affinity": [target_world] if isinstance(target_world, str) and target_world else [],
+        "lane_destiny": _package_lane_destiny(example),
+        "runtime_dispatch_allowed": False,
+        "model_call_allowed": False,
+        "tool_execution_allowed": False,
+        "agent_activation_allowed": False,
+        "send_submit_approval_allowed": False,
+        "queue_execution_allowed": False,
+        "account_access_allowed": False,
+        "raw_body_included": False,
+    }
+
+
+def _summarize_package_preview_receipts(payload: dict[str, Any]) -> dict[str, Any]:
+    examples = (
+        payload.get("example_package_preview_receipts")
+        if isinstance(payload.get("example_package_preview_receipts"), list)
+        else []
+    )
+    cards = [_safe_package_preview_card(example) for example in examples if isinstance(example, dict)]
+    return {
+        "source_path": PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH,
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("read_model_id", "package_preview_receipt_contract"),
+        "contract_version": payload.get("schema_version"),
+        "receipt_types_count": len(payload.get("receipt_types", [])) if isinstance(payload.get("receipt_types"), list) else 0,
+        "preview_states_count": len(payload.get("preview_states", [])) if isinstance(payload.get("preview_states"), list) else 0,
+        "example_package_previews_count": len(cards),
+        "package_preview_cards": cards,
+        "dispatch_authority_allowed": False,
+        "model_call_allowed": False,
+        "tool_execution_allowed": False,
+        "agent_activation_allowed": False,
+        "queue_execution_allowed": False,
+        "account_access_allowed": False,
+        "send_submit_approval_allowed": False,
+        "raw_body_included": False,
+        "next_recommended_lane": _next_recommended_lane(payload),
+    }
+
+
+def _safe_tool_adapter_receipt_card(example: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "adapter_id": example.get("adapter_id"),
+        "adapter_display_name": example.get("adapter_display_name"),
+        "adapter_category": example.get("adapter_category"),
+        "adapter_state": example.get("adapter_state"),
+        "receipt_type": example.get("receipt_type"),
+        "receipt_state": example.get("receipt_state"),
+        "package_type": example.get("package_type"),
+        "actor_id": example.get("actor_id"),
+        "agent_character": example.get("agent_character"),
+        "capability_class_requested": example.get("capability_class_requested"),
+        "capability_class_granted": example.get("capability_class_granted"),
+        "capability_class_blocked": example.get("capability_class_blocked"),
+        "current_allowed_actions": example.get("current_allowed_actions")
+        if isinstance(example.get("current_allowed_actions"), list)
+        else [],
+        "current_blocked_actions": example.get("current_blocked_actions")
+        if isinstance(example.get("current_blocked_actions"), list)
+        else [],
+        "future_eligible_actions": example.get("future_eligible_actions")
+        if isinstance(example.get("future_eligible_actions"), list)
+        else [],
+        "input_refs_allowed_summary": _unique_limited(
+            example.get("input_refs_allowed") if isinstance(example.get("input_refs_allowed"), list) else [],
+            limit=8,
+        ),
+        "input_refs_blocked_summary": _unique_limited(
+            example.get("input_refs_blocked") if isinstance(example.get("input_refs_blocked"), list) else [],
+            limit=8,
+        ),
+        "output_receipt_shape": example.get("output_receipt_shape")
+        if isinstance(example.get("output_receipt_shape"), list)
+        else [],
+        "gates_required": example.get("gates_required") if isinstance(example.get("gates_required"), list) else [],
+        "blocked_reasons": example.get("blocked_reasons") if isinstance(example.get("blocked_reasons"), list) else [],
+        "future_gated_reasons": example.get("future_gated_reasons")
+        if isinstance(example.get("future_gated_reasons"), list)
+        else [],
+        "what_would_make_adapter_available": example.get("what_would_make_adapter_available"),
+        "what_keeps_adapter_blocked": example.get("what_keeps_adapter_blocked"),
+        "tool_execution_performed": False,
+        "network_allowed": False,
+        "account_access_allowed": False,
+        "browser_session_allowed": False,
+        "send_submit_approval_allowed": False,
+        "command_execution_allowed": False,
+        "model_call_performed": False,
+        "agent_activation_performed": False,
+        "queue_execution_performed": False,
+    }
+
+
+def _summarize_tool_adapter_receipts(payload: dict[str, Any]) -> dict[str, Any]:
+    examples = (
+        payload.get("example_tool_adapter_receipts")
+        if isinstance(payload.get("example_tool_adapter_receipts"), list)
+        else []
+    )
+    cards = [_safe_tool_adapter_receipt_card(example) for example in examples if isinstance(example, dict)]
+    allowed_read_only_count = sum(1 for card in cards if card.get("receipt_type") == "ADAPTER_ALLOWED_READ_ONLY_RECEIPT")
+    preview_or_receipt_only_count = sum(
+        1
+        for card in cards
+        if card.get("receipt_type")
+        in {"ADAPTER_ALLOWED_PREVIEW_ONLY_RECEIPT", "ADAPTER_RECEIPT_ONLY_RECEIPT"}
+    )
+    return {
+        "source_path": TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH,
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("read_model_id", "tool_adapter_receipt_contract"),
+        "contract_version": payload.get("schema_version"),
+        "receipt_types_count": len(payload.get("receipt_types", [])) if isinstance(payload.get("receipt_types"), list) else 0,
+        "receipt_states_count": len(payload.get("receipt_states", [])) if isinstance(payload.get("receipt_states"), list) else 0,
+        "capability_classes_count": len(payload.get("capability_classes", [])) if isinstance(payload.get("capability_classes"), list) else 0,
+        "adapter_examples_count": len(cards),
+        "allowed_read_only_count": allowed_read_only_count,
+        "preview_or_receipt_only_count": preview_or_receipt_only_count,
+        "blocked_or_future_gated_count": len(cards) - allowed_read_only_count - preview_or_receipt_only_count,
+        "adapter_receipt_cards": cards,
+        "live_tool_execution_allowed": False,
+        "network_allowed": False,
+        "account_access_allowed": False,
+        "browser_session_allowed": False,
+        "send_submit_approval_allowed": False,
+        "command_execution_allowed": False,
+        "next_recommended_lane": _next_recommended_lane(payload),
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -706,6 +943,14 @@ def build_openclaw_map_snapshot(
         "generated/read_models/package_compiler_contract.json",
         repo_root=repo_root,
     )
+    package_preview_receipt = _read_json_if_present(
+        PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    tool_adapter_receipt = _read_json_if_present(
+        TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -727,6 +972,8 @@ def build_openclaw_map_snapshot(
         "agent_council": _summarize_agent_council(terrain_awareness),
         "worlds": _summarize_worlds(worlds),
         "package_previews": _summarize_package_compiler(package_compiler),
+        "package_preview_receipts": _summarize_package_preview_receipts(package_preview_receipt),
+        "tool_adapter_receipts": _summarize_tool_adapter_receipts(tool_adapter_receipt),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -972,6 +1219,8 @@ def build_operator_map_bundle_contract(
             "agent_dossier_cards_count": snapshot["agent_council"]["agent_dossier_cards_count"],
             "featured_agents": snapshot["agent_council"]["featured_agents"],
             "agent_council_preview_only": snapshot["agent_council"]["preview_only"],
+            "package_preview_receipt_examples_count": snapshot["package_preview_receipts"]["example_package_previews_count"],
+            "tool_adapter_receipt_examples_count": snapshot["tool_adapter_receipts"]["adapter_examples_count"],
             "future_gated_cue_autonomy": snapshot["authority_boundary"]["future_gated_cue_autonomy"],
         },
         "atomic_sync_lifecycle": {
@@ -1043,6 +1292,32 @@ def build_operator_map_bundle_contract(
             "tool_execution_allowed": snapshot["agent_council"]["tool_execution_allowed"],
             "individual_terrain_read_model_remains_proof_detail": True,
         },
+        "package_preview_receipt_integration": {
+            "summary_included_in_snapshot": snapshot["package_preview_receipts"]["present"],
+            "example_package_previews_count": snapshot["package_preview_receipts"]["example_package_previews_count"],
+            "dispatch_authority_allowed": snapshot["package_preview_receipts"]["dispatch_authority_allowed"],
+            "model_call_allowed": snapshot["package_preview_receipts"]["model_call_allowed"],
+            "tool_execution_allowed": snapshot["package_preview_receipts"]["tool_execution_allowed"],
+            "agent_activation_allowed": snapshot["package_preview_receipts"]["agent_activation_allowed"],
+            "queue_execution_allowed": snapshot["package_preview_receipts"]["queue_execution_allowed"],
+            "account_access_allowed": snapshot["package_preview_receipts"]["account_access_allowed"],
+            "send_submit_approval_allowed": snapshot["package_preview_receipts"]["send_submit_approval_allowed"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "tool_adapter_receipt_integration": {
+            "summary_included_in_snapshot": snapshot["tool_adapter_receipts"]["present"],
+            "adapter_examples_count": snapshot["tool_adapter_receipts"]["adapter_examples_count"],
+            "allowed_read_only_count": snapshot["tool_adapter_receipts"]["allowed_read_only_count"],
+            "preview_or_receipt_only_count": snapshot["tool_adapter_receipts"]["preview_or_receipt_only_count"],
+            "blocked_or_future_gated_count": snapshot["tool_adapter_receipts"]["blocked_or_future_gated_count"],
+            "live_tool_execution_allowed": snapshot["tool_adapter_receipts"]["live_tool_execution_allowed"],
+            "network_allowed": snapshot["tool_adapter_receipts"]["network_allowed"],
+            "account_access_allowed": snapshot["tool_adapter_receipts"]["account_access_allowed"],
+            "browser_session_allowed": snapshot["tool_adapter_receipts"]["browser_session_allowed"],
+            "send_submit_approval_allowed": snapshot["tool_adapter_receipts"]["send_submit_approval_allowed"],
+            "command_execution_allowed": snapshot["tool_adapter_receipts"]["command_execution_allowed"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -1088,6 +1363,8 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     sync = snapshot["sync_state"]
     health = snapshot["health_state"]
     agent_council = snapshot.get("agent_council", {})
+    package_receipts = snapshot.get("package_preview_receipts", {})
+    tool_receipts = snapshot.get("tool_adapter_receipts", {})
     lines = [
         "# OpenClaw Stable Map Bundle",
         "",
@@ -1123,6 +1400,41 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         "- Agentic Loop, Cue Parser / Brain Dump Parser, Repo B Planner / Builder / Orchestrator, Package Compiler, Model Router, and Tool / Plugin Registry are available as system-loop cards.",
         "- Cards are preview/readback only; live chat, agent activation, model launch, tool execution, credentials, browser/OAuth, Gmail/calendar/Coupa/Telegram, send/submit/approval, and raw private context remain blocked.",
         "- Mission Control should render a selected dossier card, roster rail, permission chips, strengths, missing proof, operator questions, and package preview route without adding a new per-contract file dependency.",
+        "",
+        "## Package Preview Receipt Summary",
+        "",
+        f"- Summary present: `{str(package_receipts.get('present')).lower()}`",
+        f"- Contract: `{package_receipts.get('contract_id')}` / `{package_receipts.get('contract_version')}`",
+        f"- Receipt types: `{package_receipts.get('receipt_types_count')}`",
+        f"- Preview states: `{package_receipts.get('preview_states_count')}`",
+        f"- Example preview cards: `{package_receipts.get('example_package_previews_count')}`",
+        "- Mission Control can render package preview cards for Cassandra Capital Hilton, Chief Check Engine, Guardian Protected Evidence, Niles / Struna, Hermes, Codex, Gemini / Antigravity, and Agentic Loop Classification.",
+        "- Package preview remains display-only: dispatch, model calls, tool execution, agent activation, queue execution, account access, send/submit/approval, raw body inclusion, and canonical memory writes are blocked.",
+        "",
+        "## Tool Adapter Receipt Summary",
+        "",
+        f"- Summary present: `{str(tool_receipts.get('present')).lower()}`",
+        f"- Contract: `{tool_receipts.get('contract_id')}` / `{tool_receipts.get('contract_version')}`",
+        f"- Receipt types: `{tool_receipts.get('receipt_types_count')}`",
+        f"- Receipt states: `{tool_receipts.get('receipt_states_count')}`",
+        f"- Capability classes: `{tool_receipts.get('capability_classes_count')}`",
+        f"- Adapter receipt cards: `{tool_receipts.get('adapter_examples_count')}`",
+        f"- Allowed read-only: `{tool_receipts.get('allowed_read_only_count')}`",
+        f"- Preview/receipt-only: `{tool_receipts.get('preview_or_receipt_only_count')}`",
+        f"- Blocked or future-gated: `{tool_receipts.get('blocked_or_future_gated_count')}`",
+        "- Mission Control can render adapter receipt cards for the stable map reader, package preview exporter, Codex verifier, Cassandra/Capital Hilton proof adapter, Guardian gate, Chief harness, browser/OAuth, Gmail/calendar, Coupa, Telegram, Repo B planner/builder, and memory candidate writer.",
+        "- Live tool execution, network/account/browser access, send/submit/approval, command execution, model calls, agent activation, and queue execution remain false.",
+        "",
+        "## What Mission Control Can Render Next",
+        "",
+        "- Package Preview surface: preview cards, included/excluded context summaries, missing proof, gates, receipts, stop conditions, and future dispatch blockers.",
+        "- Tool Adapter Receipt surface: requested adapter, package, actor, capability requested/granted/blocked, gates, blocked reasons, and output receipt shape.",
+        "- Agent Council can link dossier cards to package/tool summaries through this stable map snapshot without new per-file app dependencies.",
+        "",
+        "## What Remains Blocked / Future-Gated",
+        "",
+        "- No live dispatch, model launch, tool execution, browser/OAuth/account access, Gmail/calendar/Coupa/Telegram controls, credentials, send/submit/approval, planner/builder/queue/autonomy, arbitrary commands, or raw private context.",
+        "- Package and adapter records are proof/display surfaces only; they do not create authority.",
         "",
         "## What This Fixes",
         "",

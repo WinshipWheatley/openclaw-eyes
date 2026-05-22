@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 
 import operator_map_bundle_contract as bundle
+import package_preview_receipt_contract
+import tool_adapter_receipt_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from scripts.export_operator_map_bundle import main as export_main
 
@@ -227,6 +229,14 @@ def _fixture_repo(root: Path) -> Path:
             "read_model_id": "steel_thread_lane_template_registry",
         },
         "agent_terrain_awareness_readback_contract.json": _terrain_awareness_payload(),
+        "package_preview_receipt_contract.json": package_preview_receipt_contract.build_package_preview_receipt_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+        "tool_adapter_receipt_contract.json": tool_adapter_receipt_contract.build_tool_adapter_receipt_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
     }
     for name, payload in fixtures.items():
         _write_json(read_models / name, payload)
@@ -347,6 +357,90 @@ def test_agent_council_card_fields_are_app_facing_without_raw_contract_dependenc
     ]["stable_app_facing_files"]
 
 
+def test_map_snapshot_contains_package_preview_receipt_surface(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    surface = snapshot["package_preview_receipts"]
+    cards = {card["package_id"]: card for card in surface["package_preview_cards"]}
+
+    assert surface["present"] is True
+    assert surface["primary_app_contract"] is True
+    assert surface["individual_contract_read_model_remains_proof_detail"] is True
+    assert surface["contract_id"] == "package_preview_receipt_contract"
+    assert surface["contract_version"] == package_preview_receipt_contract.SCHEMA_VERSION
+    assert surface["receipt_types_count"] == len(package_preview_receipt_contract.RECEIPT_TYPES)
+    assert surface["preview_states_count"] == len(package_preview_receipt_contract.PREVIEW_STATES)
+    assert surface["example_package_previews_count"] == 8
+    assert "package_cassandra_capital_hilton_invoice_review" in cards
+    assert "package_chief_check_engine_diagnostic" in cards
+    assert "package_agentic_loop_classification" in cards
+    capital = cards["package_cassandra_capital_hilton_invoice_review"]
+    assert capital["package_title"] == "Cassandra Capital Hilton Invoice Review"
+    assert capital["world_affinity"] == ["Finance"]
+    assert capital["lane_destiny"]["target_world"] == "Finance"
+    assert "Coupa protected proof metadata" in capital["missing_proof"]
+    assert "coupa_adapter" in capital["blocked_actions"]
+    assert surface["dispatch_authority_allowed"] is False
+    assert surface["model_call_allowed"] is False
+    assert surface["tool_execution_allowed"] is False
+    assert surface["agent_activation_allowed"] is False
+    assert surface["queue_execution_allowed"] is False
+    assert surface["account_access_allowed"] is False
+    assert surface["send_submit_approval_allowed"] is False
+    assert surface["raw_body_included"] is False
+    for card in cards.values():
+        assert card["runtime_dispatch_allowed"] is False
+        assert card["model_call_allowed"] is False
+        assert card["tool_execution_allowed"] is False
+        assert card["agent_activation_allowed"] is False
+        assert card["send_submit_approval_allowed"] is False
+
+
+def test_map_snapshot_contains_tool_adapter_receipt_surface(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    surface = snapshot["tool_adapter_receipts"]
+    cards = {card["adapter_id"]: card for card in surface["adapter_receipt_cards"]}
+
+    assert surface["present"] is True
+    assert surface["primary_app_contract"] is True
+    assert surface["individual_contract_read_model_remains_proof_detail"] is True
+    assert surface["contract_id"] == "tool_adapter_receipt_contract"
+    assert surface["contract_version"] == tool_adapter_receipt_contract.SCHEMA_VERSION
+    assert surface["receipt_types_count"] == len(tool_adapter_receipt_contract.RECEIPT_TYPES)
+    assert surface["receipt_states_count"] == len(tool_adapter_receipt_contract.RECEIPT_STATES)
+    assert surface["capability_classes_count"] == len(tool_adapter_receipt_contract.CAPABILITY_CLASSES)
+    assert surface["adapter_examples_count"] == 12
+    assert surface["allowed_read_only_count"] == 1
+    assert surface["preview_or_receipt_only_count"] == 3
+    assert surface["blocked_or_future_gated_count"] == 8
+    assert "stable_map_bundle_reader" in cards
+    assert "cassandra_capital_hilton_invoice_proof_adapter" in cards
+    assert "browser_oauth_adapter" in cards
+    assert "gmail_calendar_adapter" in cards
+    assert "coupa_adapter" in cards
+    assert "telegram_adapter" in cards
+    assert cards["stable_map_bundle_reader"]["capability_class_granted"] == "READ_METADATA"
+    assert cards["cassandra_capital_hilton_invoice_proof_adapter"]["capability_class_blocked"] == "READ_REDACTED_CONTENT"
+    assert "ACCOUNT_ACCESS_BLOCKED" in cards["coupa_adapter"]["blocked_reasons"]
+    assert surface["live_tool_execution_allowed"] is False
+    assert surface["network_allowed"] is False
+    assert surface["account_access_allowed"] is False
+    assert surface["browser_session_allowed"] is False
+    assert surface["send_submit_approval_allowed"] is False
+    assert surface["command_execution_allowed"] is False
+    for card in cards.values():
+        assert card["tool_execution_performed"] is False
+        assert card["network_allowed"] is False
+        assert card["account_access_allowed"] is False
+        assert card["browser_session_allowed"] is False
+        assert card["send_submit_approval_allowed"] is False
+        assert card["command_execution_allowed"] is False
+        assert card["model_call_performed"] is False
+        assert card["agent_activation_performed"] is False
+        assert card["queue_execution_performed"] is False
+
+
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
     repo_a = tmp_path / "a"
     repo_b = tmp_path / "b"
@@ -454,6 +548,10 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Raw generated read-models remain proof/detail" in operator_text
     assert "Agent Council / Dossier Summary" in operator_text
     assert "Cards available: `12`" in operator_text
+    assert "Package Preview Receipt Summary" in operator_text
+    assert "Example preview cards: `8`" in operator_text
+    assert "Tool Adapter Receipt Summary" in operator_text
+    assert "Adapter receipt cards: `12`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

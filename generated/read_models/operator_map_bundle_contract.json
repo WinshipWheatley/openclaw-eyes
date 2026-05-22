@@ -56,7 +56,7 @@
   },
   "browser_oauth_account_access_allowed": false,
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:fde9f6ba60828935227ae859435982e1b8977b6588b714e544fe58f8325a464a",
+  "contract_hash": "sha256:97f7b3e92f4422393d37b3a5e0c080246dd70f3d5e834dba5421df0e7539512b",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -73,7 +73,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-21T23:30:10+00:00",
+  "generated_at": "2026-05-22T02:12:26+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "mac_side_change_required": {
     "entitlement_exception_needed_once": [
@@ -126,10 +126,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:16effbab92c8ad71021f2964c27d1c0350996a8cd95fbb172298a1fe39143cb2",
-    "canonical_read_model_count": 234,
-    "created_at": "2026-05-21T23:30:10+00:00",
-    "essential_surface_count": 8,
+    "bundle_hash": "sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211",
+    "canonical_read_model_count": 238,
+    "created_at": "2026-05-22T02:12:26+00:00",
+    "essential_surface_count": 10,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -160,7 +160,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:195fbe417124e0a0384389726faf467d77d126991b7344acc9728b5d3f5edee3",
+        "hash": "sha256:b164397d3133d8c8bc58b5876a00b83ec0926836d5dabc2a0fb35bf4d71ff11e",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/system_health_lights_taxonomy.json",
@@ -225,6 +225,32 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:d94fa9c8c734d631c050250d74b65f213ff8b131f6d9085940c0e783fc91abab",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/package_preview_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "package_preview_receipt_contract",
+        "role": "package preview receipt grammar and example preview cards",
+        "schema_version": "package_preview_receipt_contract_v0",
+        "surface_id": "package_preview_receipt_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:098c8c9af183c59d44c30ade4ec0fca648874adf3fc1208a3a48f8496ccce9a9",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/tool_adapter_receipt_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "tool_adapter_receipt_contract",
+        "role": "tool/protocol adapter receipt grammar and example adapter cards",
+        "schema_version": "tool_adapter_receipt_contract_v0",
+        "surface_id": "tool_adapter_receipt_contract"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -259,17 +285,17 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_911cd302343946ad6369",
+    "map_generation_id": "map_d49f3a6dd4a0eedc1777",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 241,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 245,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:499ac73f122bdf84f0c055791bdbab9317fc34ee89de38e2aaf84fa2902f2e3d",
+    "read_model_manifest_hash": "sha256:5f5ffe0e88070bea0b3b3c1a5fbd689563ff6986ac8248552b78b6edbac7ccd8",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
-    "source_commit_if_available_local_only": "9076067fd369602bfb41a93b06486302ae99e69b",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 234,
+    "snapshot_hash": "sha256:d49f3a6dd4a0eedc177739f425565c3090be68da20e919fc97351c02829be8a2",
+    "source_commit_if_available_local_only": "39eb210923d1b03dad45e5ef46bfdea954bd55b1",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 238,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -314,8 +340,9 @@
       "source_path": "generated/read_models/system_health_lights_taxonomy.json",
       "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
     },
-    "map_generation_id": "map_911cd302343946ad6369",
-    "snapshot_hash": "sha256:911cd302343946ad6369cb10ae432292a54ab7ddc4d918c969d915ccdda98455",
+    "map_generation_id": "map_d49f3a6dd4a0eedc1777",
+    "package_preview_receipt_examples_count": 8,
+    "snapshot_hash": "sha256:d49f3a6dd4a0eedc177739f425565c3090be68da20e919fc97351c02829be8a2",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -335,7 +362,8 @@
       "resolution_route": "REQUEUE_FOR_SYSTEM_BUILD",
       "safe_next_move": "Use the threshold map to review whether each child lane has orientation, proof posture, package preview, and a quiet condition.",
       "target_world": null
-    }
+    },
+    "tool_adapter_receipt_examples_count": 12
   },
   "metadata_only": true,
   "mission_control_app_changed": false,
@@ -363,6 +391,18 @@
     "secrets_included": false,
     "send_submit_approval_allowed": false,
     "tool_plugin_execution_allowed": false
+  },
+  "package_preview_receipt_integration": {
+    "account_access_allowed": false,
+    "agent_activation_allowed": false,
+    "dispatch_authority_allowed": false,
+    "example_package_previews_count": 8,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "model_call_allowed": false,
+    "queue_execution_allowed": false,
+    "send_submit_approval_allowed": false,
+    "summary_included_in_snapshot": true,
+    "tool_execution_allowed": false
   },
   "path_audit": {
     "canonical_manifest_path": "/mnt/e/openclaw/mac_generated_read_models_manifest.json",
@@ -411,11 +451,11 @@
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 241,
+      "canonical_expected": 245,
       "display_status": "needs_mac_sync",
       "hash_mismatch": 4,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 23,
+      "missing_expected": 27,
       "observed": 218,
       "operator_action_required": true,
       "present": true,
@@ -520,6 +560,20 @@
     "individual_threshold_read_models_remain_proof_detail": true,
     "system_awareness_discovery_steel_thread_included": true,
     "threshold_map_included_in_snapshot": true
+  },
+  "tool_adapter_receipt_integration": {
+    "account_access_allowed": false,
+    "adapter_examples_count": 12,
+    "allowed_read_only_count": 1,
+    "blocked_or_future_gated_count": 8,
+    "browser_session_allowed": false,
+    "command_execution_allowed": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "live_tool_execution_allowed": false,
+    "network_allowed": false,
+    "preview_or_receipt_only_count": 3,
+    "send_submit_approval_allowed": false,
+    "summary_included_in_snapshot": true
   },
   "tool_plugin_execution_allowed": false
 }
