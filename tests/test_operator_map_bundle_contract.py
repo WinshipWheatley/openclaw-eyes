@@ -6,6 +6,7 @@ import operator_map_bundle_contract as bundle
 import capital_hilton_proof_metadata_packet
 import package_preview_receipt_contract
 import security_audit_readiness_packet
+import security_pass_contract
 import tool_adapter_receipt_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from scripts.export_operator_map_bundle import main as export_main
@@ -273,6 +274,16 @@ def _fixture_repo(root: Path) -> Path:
     }
     for name, payload in fixtures.items():
         _write_json(read_models / name, payload)
+    for relative_path in (
+        "markdown_knowledge_atlas.py",
+        "scripts/build_markdown_knowledge_atlas.py",
+        "markdown_evidence_ingestion.py",
+        "scripts/ingest_approved_markdown_evidence.py",
+        "corpus_atlas.py",
+    ):
+        path = root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# fixture-only metadata capability marker\n", encoding="utf-8")
     _write_json(
         read_models / "capital_hilton_proof_metadata_packet.json",
         capital_hilton_proof_metadata_packet.build_capital_hilton_proof_metadata_packet(
@@ -283,6 +294,13 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "security_audit_readiness_packet.json",
         security_audit_readiness_packet.build_security_audit_readiness_packet(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "security_pass_contract.json",
+        security_pass_contract.build_security_pass_contract(
             repo_root=root,
             generated_at=FIXED_NOW,
         ),
@@ -664,6 +682,129 @@ def test_security_audit_readiness_nested_summaries_are_app_facing(tmp_path):
     assert capital["finance_world_preview_exists"] is True
 
 
+def test_map_snapshot_contains_security_pass_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    summary = snapshot["security_pass"]
+
+    assert summary["present"] is True
+    assert summary["primary_app_contract"] is True
+    assert summary["individual_contract_read_model_remains_proof_detail"] is True
+    assert summary["contract_id"] == "security_pass_contract"
+    assert summary["schema_version"] == security_pass_contract.SCHEMA_VERSION
+    assert summary["security_pass_completed"] is True
+    assert summary["read_only_surfaces_approved"] is True
+    assert summary["preview_surfaces_approved"] is True
+    assert summary["metadata_only_surfaces_approved"] is True
+    assert summary["worker_output_intake_metadata_approved"] is True
+    assert summary["orphaned_capability_detection_approved"] is True
+    assert summary["chief_reconciliation_metadata_approved"] is True
+    assert summary["hermes_architecture_review_metadata_approved"] is True
+    assert summary["trust_clearance_modeling_approved"] is True
+    assert summary["action_authority_granted"] is False
+    assert summary["runtime_execution_authority_granted"] is False
+    assert summary["tool_execution_authority_granted"] is False
+    assert summary["model_execution_authority_granted"] is False
+    assert summary["queue_execution_authority_granted"] is False
+    assert summary["account_authority_granted"] is False
+    assert summary["send_submit_approval_authority_granted"] is False
+    assert summary["chief_self_authorization_allowed"] is False
+    assert summary["hermes_self_authorization_allowed"] is False
+    assert summary["automatic_activation_allowed"] is False
+    assert summary["automatic_cross_off_allowed"] is False
+    assert summary["source_read_model_ref"] == bundle.SECURITY_PASS_CONTRACT_READ_MODEL_PATH
+    assert summary["source_operator_ref"] == "generated/read_models/security_pass_contract_OPERATOR.md"
+    assert summary["all_live_authority_false"] is True
+
+
+def test_security_pass_nested_summaries_are_app_facing(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+    summary = snapshot["security_pass"]
+    surfaces = {item["surface_id"]: item for item in summary["surface_decision_summary"]}
+    capital = summary["capital_hilton_security_pass_decision_summary"]
+    markdown = summary["markdown_terrain_security_decision_summary"]
+    worker = summary["worker_output_orphaned_capability_summary"]
+    trust = summary["chief_hermes_trust_summary"]
+
+    assert set(surfaces) == {
+        "stable_map_bundle",
+        "mission_control",
+        "agent_council",
+        "package_preview_tool_receipt",
+        "finance_world_capital_hilton",
+        "security_readiness_eliwinship",
+        "evidence_drawer",
+    }
+    assert surfaces["stable_map_bundle"]["authority_summary"]["approval_status"] == "APPROVED_STABLE_MAP_SURFACE"
+    for surface in surfaces.values():
+        assert surface["authority_summary"]["action_authority_granted"] is False
+        assert surface["authority_summary"]["runtime_execution_authority_granted"] is False
+        assert surface["authority_summary"]["tool_execution_authority_granted"] is False
+        assert surface["authority_summary"]["model_execution_authority_granted"] is False
+        assert surface["authority_summary"]["account_authority_granted"] is False
+        assert surface["authority_summary"]["send_submit_approval_authority_granted"] is False
+
+    assert capital["current_phase"] == "HELM_THRESHOLD_LANE"
+    assert capital["target_world"] == "Finance"
+    assert capital["lane_destiny"] == "MOVE_TO_WORLD_ACTION"
+    assert capital["missing_proof_count"] == 10
+    assert capital["protected_proof_required"] is True
+    assert capital["candidate_facts_proven"] is False
+    assert capital["finance_world_preview_approved"] is True
+    assert capital["proof_metadata_display_approved"] is True
+    assert capital["operator_questions_display_approved"] is True
+    assert capital["invoice_generation_allowed"] is False
+    assert capital["coupa_access_allowed"] is False
+    assert capital["browser_oauth_account_access_allowed"] is False
+    assert capital["credential_handling_allowed"] is False
+    assert capital["gmail_calendar_email_access_allowed"] is False
+    assert capital["raw_excel_body_ingestion_allowed"] is False
+    assert capital["raw_finance_body_ingestion_allowed"] is False
+    assert capital["send_submit_approval_allowed"] is False
+    assert capital["guardian_gate_required"] is True
+    assert capital["operator_final_authority_required"] is True
+
+    assert markdown["markdown_backend_ready"] is True
+    assert markdown["markdown_knowledge_atlas_present"] is True
+    assert markdown["approved_markdown_evidence_ingestion_present"] is True
+    assert markdown["corpus_atlas_present"] is True
+    assert markdown["metadata_readback_approved"] is True
+    assert markdown["bounded_allowlisted_excerpt_metadata_approved"] is True
+    assert markdown["broad_markdown_body_ingestion_allowed"] is False
+    assert markdown["broad_doc_reorganization_allowed"] is False
+    assert markdown["file_moves_deletes_renames_allowed"] is False
+    assert markdown["vector_index_creation_allowed"] is False
+    assert markdown["stale_doctrine_promotion_without_proof_allowed"] is False
+    assert markdown["app_visibility_future_gap"] is True
+
+    assert worker["worker_output_intake_metadata_approved"] is True
+    assert worker["orphaned_capability_detection_approved"] is True
+    assert worker["detected_capabilities_auto_activate"] is False
+    assert worker["promotion_decisions_are_recommendations_only"] is True
+    assert worker["markdown_knowledge_atlas_candidate_present"] is True
+    assert worker["approved_markdown_evidence_ingestion_candidate_present"] is True
+    assert worker["corpus_atlas_candidate_present"] is True
+    assert worker["future_invoicing_audit_captured"] is True
+    assert worker["future_invoicing_audit_status"] in {"PARKED", "BLOCKED"}
+    assert worker["ledger_write_allowed"] is False
+    assert worker["invoice_generation_allowed"] is False
+    assert worker["email_dispatch_allowed"] is False
+
+    assert trust["chief_reconciliation_metadata_approved"] is True
+    assert trust["hermes_architecture_review_metadata_approved"] is True
+    assert trust["trust_clearance_modeling_approved"] is True
+    assert trust["full_trust_clearance_is_lm_confidence"] is False
+    assert trust["full_trust_clearance_grants_authority_by_itself"] is False
+    assert trust["below_full_trust_runs_unattended"] is False
+    assert trust["chief_self_authorization_allowed"] is False
+    assert trust["hermes_self_authorization_allowed"] is False
+    assert trust["automatic_cross_off_allowed"] is False
+    assert trust["cross_off_deletes_source_notes"] is False
+    assert trust["trust_detours_present"] is True
+    assert trust["operator_babysitting_reduction_goal_present"] is True
+
+
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
     repo_a = tmp_path / "a"
     repo_b = tmp_path / "b"
@@ -782,6 +923,11 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Security approval granted: `false`" in operator_text
     assert "Coverage gap records: `5`" in operator_text
     assert "Breadcrumbs reviewed: `15`" in operator_text
+    assert "Security Pass Summary" in operator_text
+    assert "Security pass completed: `true`" in operator_text
+    assert "Worker output intake metadata approved: `true`" in operator_text
+    assert "Chief reconciliation metadata approved: `true`" in operator_text
+    assert "FULL_TRUST grants authority by itself: `false`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

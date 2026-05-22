@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_3cf7a1d5f26147ae993a`
-- Bundle hash: `sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af`
+- Map generation: `map_6f1dc51e52ab0c5778d8`
+- Bundle hash: `sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `249`
+- Raw canonical expected: `251`
 - Raw observed: `218`
-- Raw missing expected: `31`
+- Raw missing expected: `33`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -170,6 +170,90 @@
 - Shared execution path: `protected_finance_proof_metadata_intake`
 
 - Next safe move: Run security pass review; do not grant action authority from this packet.
+
+## Security Pass Summary
+
+- ELIWINSHIP: the security pass approves the current read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview posture. It also approves worker-output intake, orphaned-capability detection, Chief/Hermes review metadata, and FULL_TRUST modeling as non-executing map truth.
+- Summary present: `true`
+- Schema: `security_pass_contract_v0_pass_3`
+- Security pass completed: `true`
+- Read-only surfaces approved: `true`
+- Preview surfaces approved: `true`
+- Metadata-only surfaces approved: `true`
+- Worker output intake metadata approved: `true`
+- Orphaned capability detection approved: `true`
+- Chief reconciliation metadata approved: `true`
+- Hermes architecture review metadata approved: `true`
+- Trust-clearance modeling approved: `true`
+- Action authority granted: `false`
+- Runtime/model/tool/queue/account/send authority granted: `false`
+- Chief self-authorization allowed: `false`
+- Hermes self-authorization allowed: `false`
+- Automatic activation allowed: `false`
+- Automatic cross-off allowed: `false`
+
+### Security Pass Surface Decisions
+
+- `stable_map_bundle`: Stable Map Bundle -> `APPROVED_STABLE_MAP_SURFACE`; next: Keep stable map as app-facing reflection and raw mirror mismatch in proof/detail.
+- `mission_control`: Mission Control Mac App -> `APPROVED_READ_ONLY`; next: Render read-only app-facing summaries only.
+- `agent_council`: Agent Council / Dossier Cards -> `APPROVED_PREVIEW_ONLY`; next: Keep Agent Council as preview and dossier orientation.
+- `package_preview_tool_receipt`: Package Preview / Tool Receipt Surface -> `APPROVED_PREVIEW_ONLY`; next: Show what is allowed, blocked, future-gated, and what proof is missing.
+- `finance_world_capital_hilton`: Finance World / Capital Hilton Preview -> `APPROVED_WORLD_PREVIEW`; next: Use preview/proof display only; no invoice action.
+- `security_readiness_eliwinship`: Security Readiness / ELIWINSHIP Surface -> `APPROVED_READ_ONLY`; next: Show security decisions and keep action authority false.
+- `evidence_drawer`: Evidence Drawer / Proof Rows -> `APPROVED_PROOF_DETAIL_ONLY`; next: Keep proof detail secondary and raw bodies blocked.
+
+### Capital Hilton / Finance Security Pass
+
+- Preview approved: `true`
+- Proof metadata display approved: `true`
+- Operator questions display approved: `true`
+- Missing proof count: `10`
+- Protected proof required: `true`
+- Candidate facts proven: `false`
+- Invoice generation allowed: `false`
+- Coupa access allowed: `false`
+- Credentials allowed: `false`
+- Send/submit/approval allowed: `false`
+- Guardian gate required: `true`
+- Operator final authority required: `true`
+
+### Markdown / Terrain Security Pass
+
+- Markdown backend ready: `true`
+- Markdown Knowledge Atlas present: `true`
+- Approved Markdown Evidence ingestion present: `true`
+- Corpus Atlas present: `true`
+- Metadata readback approved: `true`
+- Bounded allowlisted excerpt metadata approved: `true`
+- Broad Markdown body ingestion allowed: `false`
+- File moves/deletes/renames allowed: `false`
+- App visibility future gap: `true`
+
+### Worker Outputs / Orphaned Capabilities
+
+- Worker output intake metadata approved: `true`
+- Orphaned capability detection approved: `true`
+- Detected capabilities auto-activate: `false`
+- Promotion decisions are recommendations only: `true`
+- Markdown Atlas candidate present: `true`
+- Future invoicing audit captured: `true`
+- Future invoicing audit status: `PARKED`
+- Ledger write allowed: `false`
+- Email dispatch allowed: `false`
+
+### Chief / Hermes / FULL_TRUST
+
+- Chief reconciliation metadata approved: `true`
+- Hermes architecture review metadata approved: `true`
+- Trust-clearance modeling approved: `true`
+- FULL_TRUST is LM confidence: `false`
+- FULL_TRUST grants authority by itself: `false`
+- Below-FULL_TRUST runs unattended: `false`
+- Chief self-authorization allowed: `false`
+- Hermes self-authorization allowed: `false`
+- Automatic cross-off allowed: `false`
+- Cross-off deletes source notes: `false`
+- Trust detours present: `true`
 
 ## What Mission Control Can Render Next
 

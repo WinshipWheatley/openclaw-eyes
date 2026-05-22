@@ -2305,7 +2305,7 @@
     "target_world": "Finance",
     "workflow_type": "invoice_review_and_proof_metadata"
   },
-  "created_at": "2026-05-22T15:01:15+00:00",
+  "created_at": "2026-05-22T18:04:54+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -2455,7 +2455,7 @@
     "source_path": "generated/read_models/system_health_lights_taxonomy.json",
     "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
   },
-  "map_generation_id": "map_3cf7a1d5f26147ae993a",
+  "map_generation_id": "map_6f1dc51e52ab0c5778d8",
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -3675,7 +3675,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:d3221ba80d95863c0ff933841fb78dc92388b28f5b7c511bb8d570c9e1be3d15",
+        "hash": "sha256:3e21f14df5db05607776f065fb94abebbb63f508a0af4f99cb7a394d1366a473",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/security_audit_readiness_packet.json",
@@ -3685,6 +3685,19 @@
         "role": "security audit readiness provenance, coverage gaps, parked breadcrumbs, and pass criteria",
         "schema_version": "security_audit_readiness_packet_v0_pass_2",
         "surface_id": "security_audit_readiness_packet"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:7e3ac0f141ee0b82fb50c0553fd1149c66947d8ebc133c2e0113751a433d5bb6",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/security_pass_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "security_pass_contract",
+        "role": "security pass read-only, preview, metadata, worker intake, and trust-clearance decisions",
+        "schema_version": "security_pass_contract_v0_pass_3",
+        "surface_id": "security_pass_contract"
       },
       {
         "front_door_file_dependency": false,
@@ -3863,11 +3876,304 @@
     "source_operator_ref": "generated/read_models/security_audit_readiness_packet_OPERATOR.md",
     "source_path": "generated/read_models/security_audit_readiness_packet.json",
     "source_read_model_ref": "generated/read_models/security_audit_readiness_packet.json",
-    "stable_map_generation_id": "map_fbda77b8af4e9c796c03",
+    "stable_map_generation_id": "map_3cf7a1d5f26147ae993a",
     "zero_execution_authority_leaked": true
   },
-  "snapshot_hash": "sha256:3cf7a1d5f26147ae993a8581574020c2724a9662e503de119bfe78223e7b2278",
-  "source_commit_if_available_local_only": "02ec429efd689bfef3393a1767c55f1994e28017",
+  "security_pass": {
+    "account_authority_granted": false,
+    "action_authority_granted": false,
+    "all_live_authority_false": true,
+    "automatic_activation_allowed": false,
+    "automatic_cross_off_allowed": false,
+    "capital_hilton_security_pass_decision_summary": {
+      "browser_oauth_account_access_allowed": false,
+      "candidate_facts_proven": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "current_phase": "HELM_THRESHOLD_LANE",
+      "finance_world_preview_approved": true,
+      "gmail_calendar_email_access_allowed": false,
+      "guardian_gate_required": true,
+      "invoice_generation_allowed": false,
+      "lane_destiny": "MOVE_TO_WORLD_ACTION",
+      "missing_proof_count": 10,
+      "operator_final_authority_required": true,
+      "operator_questions_display_approved": true,
+      "proof_metadata_display_approved": true,
+      "protected_proof_required": true,
+      "raw_excel_body_ingestion_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "send_submit_approval_allowed": false,
+      "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+      "target_world": "Finance"
+    },
+    "chief_hermes_trust_summary": {
+      "automatic_cross_off_allowed": false,
+      "below_full_trust_runs_unattended": false,
+      "chief_reconciliation_metadata_approved": true,
+      "chief_self_authorization_allowed": false,
+      "cross_off_deletes_source_notes": false,
+      "full_trust_clearance_grants_authority_by_itself": false,
+      "full_trust_clearance_is_lm_confidence": false,
+      "full_trust_rules": {
+        "below_full_trust_tasks_must_not_run_unattended": true,
+        "full_trust_clearance_does_not_itself_grant_execution_authority": true,
+        "full_trust_clearance_is_not_lm_confidence_score": true,
+        "future_autonomy_eligibility_requires_explicit_security_pass_approval_for_task_class": true,
+        "unattended_execution_requires_full_trust_and_task_class_approval": true
+      },
+      "hermes_architecture_review_metadata_approved": true,
+      "hermes_self_authorization_allowed": false,
+      "operator_babysitting_reduction_goal_present": true,
+      "trust_clearance_modeling_approved": true,
+      "trust_detours_present": true
+    },
+    "chief_reconciliation_metadata_approved": true,
+    "chief_self_authorization_allowed": false,
+    "contract_id": "security_pass_contract",
+    "hermes_architecture_review_metadata_approved": true,
+    "hermes_self_authorization_allowed": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "markdown_terrain_security_decision_summary": {
+      "app_visibility_future_gap": true,
+      "approved_markdown_evidence_ingestion_present": true,
+      "bounded_allowlisted_excerpt_metadata_approved": true,
+      "broad_doc_reorganization_allowed": false,
+      "broad_markdown_body_ingestion_allowed": false,
+      "corpus_atlas_present": true,
+      "file_moves_deletes_renames_allowed": false,
+      "markdown_backend_ready": true,
+      "markdown_knowledge_atlas_present": true,
+      "metadata_readback_approved": true,
+      "stale_doctrine_promotion_without_proof_allowed": false,
+      "vector_index_creation_allowed": false
+    },
+    "metadata_only_surfaces_approved": true,
+    "model_execution_authority_granted": false,
+    "next_safe_move": "Refresh stable map, import on Mac, then use read-only Security Pass surface for operator review.",
+    "no_authority_flags": {
+      "account_authority_granted": false,
+      "action_authority_granted": false,
+      "automatic_activation_allowed": false,
+      "automatic_cross_off_allowed": false,
+      "chief_self_authorization_allowed": false,
+      "hermes_self_authorization_allowed": false,
+      "model_execution_authority_granted": false,
+      "queue_execution_authority_granted": false,
+      "runtime_execution_authority_granted": false,
+      "send_submit_approval_authority_granted": false,
+      "tool_execution_authority_granted": false
+    },
+    "orphaned_capability_detection_approved": true,
+    "present": true,
+    "preview_surfaces_approved": true,
+    "primary_app_contract": true,
+    "queue_execution_authority_granted": false,
+    "read_only_surfaces_approved": true,
+    "runtime_execution_authority_granted": false,
+    "schema_version": "security_pass_contract_v0_pass_3",
+    "security_pass_completed": true,
+    "send_submit_approval_authority_granted": false,
+    "source_operator_ref": "generated/read_models/security_pass_contract_OPERATOR.md",
+    "source_path": "generated/read_models/security_pass_contract.json",
+    "source_read_model_ref": "generated/read_models/security_pass_contract.json",
+    "surface_decision_summary": [
+      {
+        "approved_posture": [
+          "read-only app-facing reflection",
+          "generation id/hash/receipt display",
+          "app-visible current status"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_STABLE_MAP_SURFACE",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "source truth claim",
+          "raw mirror as helm crisis when app map is current",
+          "execution authority"
+        ],
+        "display_name": "Stable Map Bundle",
+        "next_safe_move": "Keep stable map as app-facing reflection and raw mirror mismatch in proof/detail.",
+        "surface_id": "stable_map_bundle"
+      },
+      {
+        "approved_posture": [
+          "read-only cockpit",
+          "sandboxed stable-map consumption",
+          "operator orientation display"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_READ_ONLY",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "direct backend execution",
+          "network access",
+          "live tools",
+          "account flows"
+        ],
+        "display_name": "Mission Control Mac App",
+        "next_safe_move": "Render read-only app-facing summaries only.",
+        "surface_id": "mission_control"
+      },
+      {
+        "approved_posture": [
+          "agent/persona display",
+          "package support hints",
+          "gate/receipt visibility"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_PREVIEW_ONLY",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "live chat",
+          "model launch",
+          "agent activation",
+          "self-authority",
+          "hidden memory"
+        ],
+        "display_name": "Agent Council / Dossier Cards",
+        "next_safe_move": "Keep Agent Council as preview and dossier orientation.",
+        "surface_id": "agent_council"
+      },
+      {
+        "approved_posture": [
+          "package preview display",
+          "tool receipt proof/detail",
+          "blocked adapter reasons"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_PREVIEW_ONLY",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "dispatch",
+          "tool execution",
+          "model launch",
+          "account/browser/send controls"
+        ],
+        "display_name": "Package Preview / Tool Receipt Surface",
+        "next_safe_move": "Show what is allowed, blocked, future-gated, and what proof is missing.",
+        "surface_id": "package_preview_tool_receipt"
+      },
+      {
+        "approved_posture": [
+          "Finance World preview",
+          "candidate facts with not-proven label",
+          "proof metadata checklist"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_WORLD_PREVIEW",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "Coupa access",
+          "credentials",
+          "invoice generation",
+          "send/submit/approval",
+          "raw finance body ingestion"
+        ],
+        "display_name": "Finance World / Capital Hilton Preview",
+        "next_safe_move": "Use preview/proof display only; no invoice action.",
+        "surface_id": "finance_world_capital_hilton"
+      },
+      {
+        "approved_posture": [
+          "read-only audit posture display",
+          "ready-for-security-pass status",
+          "operator-native explanation"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_READ_ONLY",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "security approval as execution",
+          "action authority",
+          "live controls"
+        ],
+        "display_name": "Security Readiness / ELIWINSHIP Surface",
+        "next_safe_move": "Show security decisions and keep action authority false.",
+        "surface_id": "security_readiness_eliwinship"
+      },
+      {
+        "approved_posture": [
+          "collapsed proof/detail",
+          "source refs",
+          "receipt hashes",
+          "operator drill-down"
+        ],
+        "authority_summary": {
+          "account_authority_granted": false,
+          "action_authority_granted": false,
+          "approval_status": "APPROVED_PROOF_DETAIL_ONLY",
+          "model_execution_authority_granted": false,
+          "runtime_execution_authority_granted": false,
+          "send_submit_approval_authority_granted": false,
+          "tool_execution_authority_granted": false
+        },
+        "blocked_posture": [
+          "raw private bodies",
+          "credential material",
+          "proof rows as execution authority"
+        ],
+        "display_name": "Evidence Drawer / Proof Rows",
+        "next_safe_move": "Keep proof detail secondary and raw bodies blocked.",
+        "surface_id": "evidence_drawer"
+      }
+    ],
+    "tool_execution_authority_granted": false,
+    "trust_clearance_modeling_approved": true,
+    "worker_output_intake_metadata_approved": true,
+    "worker_output_orphaned_capability_summary": {
+      "approved_markdown_evidence_ingestion_candidate_present": true,
+      "corpus_atlas_candidate_present": true,
+      "detected_capabilities_auto_activate": false,
+      "email_dispatch_allowed": false,
+      "future_invoicing_audit_captured": true,
+      "future_invoicing_audit_status": "PARKED",
+      "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
+      "markdown_knowledge_atlas_candidate_present": true,
+      "orphaned_capability_detection_approved": true,
+      "promotion_decisions_are_recommendations_only": true,
+      "worker_output_intake_metadata_approved": true
+    }
+  },
+  "snapshot_hash": "sha256:6f1dc51e52ab0c5778d85541b64ae131c67e97b25173e50303a56dea191baf64",
+  "source_commit_if_available_local_only": "1f94bf84122362eda73939c3d781318258d8467b",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
@@ -3889,11 +4195,11 @@
   },
   "source_repo": "Repo A /home/openclaw",
   "sync_state": {
-    "canonical_expected": 249,
+    "canonical_expected": 251,
     "display_status": "needs_mac_sync",
     "hash_mismatch": 4,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 31,
+    "missing_expected": 33,
     "observed": 218,
     "operator_action_required": true,
     "present": true,

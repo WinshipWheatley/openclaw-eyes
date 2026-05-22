@@ -22,10 +22,10 @@
     "send_submit_approval_allowed": false,
     "tool_plugin_execution_allowed": false
   },
-  "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
-  "canonical_read_model_count": 242,
-  "created_at": "2026-05-22T15:01:15+00:00",
-  "essential_surface_count": 12,
+  "bundle_hash": "sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22",
+  "canonical_read_model_count": 244,
+  "created_at": "2026-05-22T18:04:54+00:00",
+  "essential_surface_count": 13,
   "excluded_surfaces": [
     {
       "category": "raw_private_bodies",
@@ -160,7 +160,7 @@
     },
     {
       "front_door_file_dependency": false,
-      "hash": "sha256:d3949b8824529bb10510446e0841b31f118f9d813209b162cf22a1e7e47ccfb3",
+      "hash": "sha256:3e21f14df5db05607776f065fb94abebbb63f508a0af4f99cb7a394d1366a473",
       "hash_included_in_bundle": true,
       "hash_omitted_reason": null,
       "path": "generated/read_models/security_audit_readiness_packet.json",
@@ -170,6 +170,19 @@
       "role": "security audit readiness provenance, coverage gaps, parked breadcrumbs, and pass criteria",
       "schema_version": "security_audit_readiness_packet_v0_pass_2",
       "surface_id": "security_audit_readiness_packet"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:7e3ac0f141ee0b82fb50c0553fd1149c66947d8ebc133c2e0113751a433d5bb6",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/security_pass_contract.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "security_pass_contract",
+      "role": "security pass read-only, preview, metadata, worker intake, and trust-clearance decisions",
+      "schema_version": "security_pass_contract_v0_pass_3",
+      "surface_id": "security_pass_contract"
     },
     {
       "front_door_file_dependency": false,
@@ -207,17 +220,17 @@
     "sync_health.json",
     "sync_health_OPERATOR.md"
   ],
-  "map_generation_id": "map_3cf7a1d5f26147ae993a",
+  "map_generation_id": "map_6f1dc51e52ab0c5778d8",
   "missing_or_stale_surfaces": [],
   "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-  "raw_generated_read_model_file_count_including_map_bundle_self": 249,
+  "raw_generated_read_model_file_count_including_map_bundle_self": 251,
   "raw_private_body_policy": "blocked_excluded_from_bundle",
   "read_model_id": "openclaw_map_manifest",
-  "read_model_manifest_hash": "sha256:88fc48bb6e55f2a42492ef8cb474a83111ce4d9f65f4784d91e99b4b0d6dbd34",
+  "read_model_manifest_hash": "sha256:3e97a6a80d3c92a0f028cf3bfba5c8da5ec9a3cb1fbb6910d7a468e9dd13a80f",
   "schema_version": "openclaw_map_manifest_v0",
-  "snapshot_hash": "sha256:3cf7a1d5f26147ae993a8581574020c2724a9662e503de119bfe78223e7b2278",
-  "source_commit_if_available_local_only": "02ec429efd689bfef3393a1767c55f1994e28017",
-  "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 242,
+  "snapshot_hash": "sha256:6f1dc51e52ab0c5778d85541b64ae131c67e97b25173e50303a56dea191baf64",
+  "source_commit_if_available_local_only": "1f94bf84122362eda73939c3d781318258d8467b",
+  "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 244,
   "source_repo": "Repo A /home/openclaw",
   "source_sqlite_receipt_hash_if_available": null,
   "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",

@@ -63,6 +63,7 @@ PACKAGE_PREVIEW_RECEIPT_READ_MODEL_PATH = "generated/read_models/package_preview
 TOOL_ADAPTER_RECEIPT_READ_MODEL_PATH = "generated/read_models/tool_adapter_receipt_contract.json"
 CAPITAL_HILTON_PROOF_METADATA_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_metadata_packet.json"
 SECURITY_AUDIT_READINESS_READ_MODEL_PATH = "generated/read_models/security_audit_readiness_packet.json"
+SECURITY_PASS_CONTRACT_READ_MODEL_PATH = "generated/read_models/security_pass_contract.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -114,6 +115,11 @@ ESSENTIAL_SURFACES = (
         "surface_id": "security_audit_readiness_packet",
         "path": SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
         "role": "security audit readiness provenance, coverage gaps, parked breadcrumbs, and pass criteria",
+    },
+    {
+        "surface_id": "security_pass_contract",
+        "path": SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
+        "role": "security pass read-only, preview, metadata, worker intake, and trust-clearance decisions",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -1124,6 +1130,378 @@ def _summarize_security_audit_readiness(payload: dict[str, Any]) -> dict[str, An
     }
 
 
+def _security_pass_bool(payload: dict[str, Any], *keys: str) -> bool:
+    output = (
+        payload.get("security_pass_output_summary")
+        if isinstance(payload.get("security_pass_output_summary"), dict)
+        else {}
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return any(source.get(key) is True for key in keys for source in (payload, output, machine))
+
+
+def _security_pass_false(payload: dict[str, Any], *keys: str) -> bool:
+    output = (
+        payload.get("security_pass_output_summary")
+        if isinstance(payload.get("security_pass_output_summary"), dict)
+        else {}
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return any(source.get(key) is False for key in keys for source in (payload, output, machine))
+
+
+def _surface_id_from_security_pass_decision(decision: dict[str, Any]) -> str:
+    known = {
+        "stable_map_bundle_read_only": "stable_map_bundle",
+        "mission_control_mac_app_read_only": "mission_control",
+        "agent_council_dossier_cards_preview": "agent_council",
+        "package_preview_tool_receipt_surface": "package_preview_tool_receipt",
+        "finance_world_capital_hilton_preview": "finance_world_capital_hilton",
+        "security_readiness_eliwinship_surface": "security_readiness_eliwinship",
+        "evidence_drawer_proof_rows": "evidence_drawer",
+    }
+    decision_id = str(decision.get("decision_id") or "")
+    if decision_id in known:
+        return known[decision_id]
+    return decision_id or str(decision.get("target_surface") or "unknown_surface").lower().replace(" ", "_")
+
+
+def _summarize_security_pass_surface_decisions(decisions: list[Any]) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for decision in decisions:
+        if not isinstance(decision, dict):
+            continue
+        authority = (
+            decision.get("authority_flags")
+            if isinstance(decision.get("authority_flags"), dict)
+            else {}
+        )
+        summaries.append(
+            {
+                "surface_id": _surface_id_from_security_pass_decision(decision),
+                "display_name": decision.get("target_surface"),
+                "approved_posture": decision.get("allowed_posture")
+                if isinstance(decision.get("allowed_posture"), list)
+                else [],
+                "blocked_posture": decision.get("blocked_posture")
+                if isinstance(decision.get("blocked_posture"), list)
+                else [],
+                "authority_summary": {
+                    "approval_status": decision.get("approval_status"),
+                    "action_authority_granted": authority.get("action_authority_granted") is True,
+                    "runtime_execution_authority_granted": authority.get("runtime_execution_authority_granted") is True,
+                    "tool_execution_authority_granted": authority.get("tool_execution_authority_granted") is True,
+                    "model_execution_authority_granted": authority.get("model_execution_authority_granted") is True,
+                    "account_authority_granted": authority.get("account_authority_granted") is True,
+                    "send_submit_approval_authority_granted": authority.get("send_submit_approval_authority_granted") is True,
+                },
+                "next_safe_move": decision.get("next_safe_move"),
+            }
+        )
+    return summaries
+
+
+def _summarize_security_pass(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    surface_decisions = (
+        payload.get("surface_security_decisions")
+        if isinstance(payload.get("surface_security_decisions"), list)
+        else []
+    )
+    capital = (
+        payload.get("capital_hilton_security_pass_decision")
+        if isinstance(payload.get("capital_hilton_security_pass_decision"), dict)
+        else {}
+    )
+    capital_blocked = capital.get("blocked") if isinstance(capital.get("blocked"), dict) else {}
+    capital_decision = capital.get("decision") if isinstance(capital.get("decision"), dict) else {}
+    capital_gates = capital.get("required_gates") if isinstance(capital.get("required_gates"), dict) else {}
+    markdown = (
+        payload.get("markdown_terrain_security_decision")
+        if isinstance(payload.get("markdown_terrain_security_decision"), dict)
+        else {}
+    )
+    markdown_decision = markdown.get("decision") if isinstance(markdown.get("decision"), dict) else {}
+    markdown_blocked = markdown.get("blocked") if isinstance(markdown.get("blocked"), dict) else {}
+    markdown_systems = (
+        markdown.get("existing_systems")
+        if isinstance(markdown.get("existing_systems"), list)
+        else []
+    )
+    markdown_system_paths = {
+        system.get("path")
+        for system in markdown_systems
+        if isinstance(system, dict)
+    }
+    worker_intake = (
+        payload.get("worker_output_intake")
+        if isinstance(payload.get("worker_output_intake"), dict)
+        else {}
+    )
+    worker_records = (
+        worker_intake.get("records")
+        if isinstance(worker_intake.get("records"), list)
+        else []
+    )
+    future_invoicing = next(
+        (
+            record
+            for record in worker_records
+            if isinstance(record, dict)
+            and record.get("worker_output_id") == "future_invoicing_state_machine_audit"
+        ),
+        {},
+    )
+    orphaned = (
+        payload.get("orphaned_capability_detection")
+        if isinstance(payload.get("orphaned_capability_detection"), dict)
+        else {}
+    )
+    orphaned_candidates = (
+        orphaned.get("candidates")
+        if isinstance(orphaned.get("candidates"), list)
+        else []
+    )
+    orphaned_ids = {
+        candidate.get("capability_id")
+        for candidate in orphaned_candidates
+        if isinstance(candidate, dict)
+    }
+    promotion = (
+        payload.get("orphaned_capability_promotion_decisions")
+        if isinstance(payload.get("orphaned_capability_promotion_decisions"), dict)
+        else {}
+    )
+    promotion_rules = promotion.get("rules") if isinstance(promotion.get("rules"), list) else []
+    trust = (
+        payload.get("chief_hermes_trust_building_reconciliation")
+        if isinstance(payload.get("chief_hermes_trust_building_reconciliation"), dict)
+        else {}
+    )
+    chief = trust.get("chief_role") if isinstance(trust.get("chief_role"), dict) else {}
+    hermes = trust.get("hermes_role") if isinstance(trust.get("hermes_role"), dict) else {}
+    trust_model = (
+        trust.get("trust_clearance_model")
+        if isinstance(trust.get("trust_clearance_model"), dict)
+        else {}
+    )
+    trust_rules = trust_model.get("rules") if isinstance(trust_model.get("rules"), dict) else {}
+    cross_off = (
+        payload.get("completion_cross_off_rule")
+        if isinstance(payload.get("completion_cross_off_rule"), dict)
+        else {}
+    )
+    detours = (
+        payload.get("trust_building_detours")
+        if isinstance(payload.get("trust_building_detours"), dict)
+        else {}
+    )
+    automatic_activation_allowed = _security_pass_bool(
+        payload,
+        "automatic_activation_allowed",
+        "automatic_activation_of_detected_capabilities_allowed",
+    )
+    automatic_cross_off_allowed = _security_pass_bool(payload, "automatic_cross_off_allowed")
+    return {
+        "source_path": SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/security_pass_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_id": payload.get("read_model_id", "security_pass_contract"),
+        "schema_version": payload.get("schema_version"),
+        "security_pass_completed": _security_pass_bool(payload, "security_pass_completed"),
+        "read_only_surfaces_approved": _security_pass_bool(
+            payload, "security_approval_granted_for_read_only_surfaces", "read_only_surfaces_approved"
+        ),
+        "preview_surfaces_approved": _security_pass_bool(
+            payload, "security_approval_granted_for_preview_surfaces", "preview_surfaces_approved"
+        ),
+        "metadata_only_surfaces_approved": _security_pass_bool(
+            payload, "security_approval_granted_for_metadata_only_surfaces", "metadata_only_surfaces_approved"
+        ),
+        "worker_output_intake_metadata_approved": _security_pass_bool(
+            payload,
+            "security_approval_granted_for_worker_output_intake_metadata",
+            "worker_output_intake_metadata_approved",
+        ),
+        "orphaned_capability_detection_approved": _security_pass_bool(
+            payload,
+            "security_approval_granted_for_orphaned_capability_detection",
+            "orphaned_capability_detection_approved",
+        ),
+        "chief_reconciliation_metadata_approved": _security_pass_bool(
+            payload,
+            "security_approval_granted_for_chief_reconciliation_metadata",
+            "chief_reconciliation_metadata_approved",
+        ),
+        "hermes_architecture_review_metadata_approved": _security_pass_bool(
+            payload,
+            "security_approval_granted_for_hermes_architecture_review_metadata",
+            "hermes_architecture_review_metadata_approved",
+        ),
+        "trust_clearance_modeling_approved": _security_pass_bool(
+            payload,
+            "security_approval_granted_for_trust_clearance_modeling",
+            "trust_clearance_modeling_approved",
+        ),
+        "action_authority_granted": _security_pass_bool(payload, "action_authority_granted"),
+        "runtime_execution_authority_granted": _security_pass_bool(payload, "runtime_execution_authority_granted"),
+        "tool_execution_authority_granted": _security_pass_bool(payload, "tool_execution_authority_granted"),
+        "model_execution_authority_granted": _security_pass_bool(payload, "model_execution_authority_granted"),
+        "queue_execution_authority_granted": _security_pass_bool(payload, "queue_execution_authority_granted"),
+        "account_authority_granted": _security_pass_bool(payload, "account_authority_granted"),
+        "send_submit_approval_authority_granted": _security_pass_bool(
+            payload, "send_submit_approval_authority_granted"
+        ),
+        "chief_self_authorization_allowed": _security_pass_bool(payload, "chief_self_authorization_allowed"),
+        "hermes_self_authorization_allowed": _security_pass_bool(payload, "hermes_self_authorization_allowed"),
+        "automatic_activation_allowed": automatic_activation_allowed,
+        "automatic_cross_off_allowed": automatic_cross_off_allowed,
+        "next_safe_move": "Refresh stable map, import on Mac, then use read-only Security Pass surface for operator review.",
+        "source_read_model_ref": SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/security_pass_contract_OPERATOR.md",
+        "surface_decision_summary": _summarize_security_pass_surface_decisions(surface_decisions),
+        "capital_hilton_security_pass_decision_summary": {
+            "current_phase": capital.get("current_phase", "HELM_THRESHOLD_LANE"),
+            "target_world": capital.get("target_world", "Finance"),
+            "lane_destiny": capital.get("lane_destiny", "MOVE_TO_WORLD_ACTION"),
+            "missing_proof_count": capital.get("missing_proof_count"),
+            "protected_proof_required": capital.get("protected_proof_required") is True,
+            "candidate_facts_proven": capital.get("candidate_facts_proven") is True,
+            "finance_world_preview_approved": capital_decision.get("finance_world_preview") == "approved",
+            "proof_metadata_display_approved": capital_decision.get("proof_metadata_display") == "approved",
+            "operator_questions_display_approved": capital_decision.get("operator_questions_display") == "approved",
+            "invoice_generation_allowed": False,
+            "coupa_access_allowed": False,
+            "browser_oauth_account_access_allowed": not bool(
+                capital_blocked.get("browser_oauth_account_access", True)
+            ),
+            "credential_handling_allowed": not bool(capital_blocked.get("credentials", True)),
+            "gmail_calendar_email_access_allowed": not bool(
+                capital_blocked.get("gmail_calendar_email_account_access", True)
+            ),
+            "raw_excel_body_ingestion_allowed": not bool(
+                capital_blocked.get("excel_raw_body_ingestion", True)
+            ),
+            "raw_finance_body_ingestion_allowed": not bool(
+                capital_blocked.get("raw_finance_body_ingestion", True)
+            ),
+            "send_submit_approval_allowed": not bool(capital_blocked.get("send_submit_approval", True)),
+            "guardian_gate_required": bool(capital_gates.get("guardian_gate")),
+            "operator_final_authority_required": bool(capital_gates.get("operator_final_authority")),
+            "shared_execution_path_id": capital.get("shared_execution_path_id"),
+        },
+        "markdown_terrain_security_decision_summary": {
+            "markdown_backend_ready": markdown.get("markdown_backend_capability_status") == "YES_READY",
+            "markdown_knowledge_atlas_present": "markdown_knowledge_atlas.py" in markdown_system_paths,
+            "approved_markdown_evidence_ingestion_present": "markdown_evidence_ingestion.py" in markdown_system_paths,
+            "corpus_atlas_present": "corpus_atlas.py" in markdown_system_paths,
+            "metadata_readback_approved": markdown_decision.get("metadata_only_markdown_atlas_readback") == "approved",
+            "bounded_allowlisted_excerpt_metadata_approved": (
+                markdown_decision.get("allowlisted_bounded_markdown_evidence_excerpts") == "approved"
+            ),
+            "broad_markdown_body_ingestion_allowed": not bool(
+                markdown_blocked.get("broad_markdown_body_ingestion", True)
+            ),
+            "broad_doc_reorganization_allowed": not bool(
+                markdown_blocked.get("broad_doc_reorganization", True)
+            ),
+            "file_moves_deletes_renames_allowed": not bool(
+                markdown_blocked.get("file_moves_deletes_renames", True)
+            ),
+            "vector_index_creation_allowed": not bool(markdown_blocked.get("vector_index_creation", True)),
+            "stale_doctrine_promotion_without_proof_allowed": not bool(
+                markdown_blocked.get("stale_doctrine_promotion_without_proof", True)
+            ),
+            "app_visibility_future_gap": (
+                markdown_decision.get("app_visibility_for_markdown_terrain")
+                == "future_gated_visibility_gap_not_security_blocker"
+            ),
+        },
+        "worker_output_orphaned_capability_summary": {
+            "worker_output_intake_metadata_approved": _security_pass_bool(
+                payload,
+                "security_approval_granted_for_worker_output_intake_metadata",
+                "worker_output_intake_metadata_approved",
+            ),
+            "orphaned_capability_detection_approved": _security_pass_bool(
+                payload,
+                "security_approval_granted_for_orphaned_capability_detection",
+                "orphaned_capability_detection_approved",
+            ),
+            "detected_capabilities_auto_activate": automatic_activation_allowed,
+            "promotion_decisions_are_recommendations_only": (
+                machine.get("promotion_decisions_are_recommendations_only") is True
+                or "recommendations_only" in " ".join(str(rule) for rule in promotion_rules)
+            ),
+            "markdown_knowledge_atlas_candidate_present": "markdown_knowledge_atlas" in orphaned_ids,
+            "approved_markdown_evidence_ingestion_candidate_present": "approved_markdown_evidence_ingestion" in orphaned_ids,
+            "corpus_atlas_candidate_present": "corpus_atlas_engine" in orphaned_ids,
+            "future_invoicing_audit_captured": bool(future_invoicing),
+            "future_invoicing_audit_status": future_invoicing.get("intake_status") or machine.get("future_invoicing_audit_status"),
+            "ledger_write_allowed": False,
+            "invoice_generation_allowed": False,
+            "email_dispatch_allowed": False,
+        },
+        "chief_hermes_trust_summary": {
+            "chief_reconciliation_metadata_approved": _security_pass_bool(
+                payload,
+                "security_approval_granted_for_chief_reconciliation_metadata",
+                "chief_reconciliation_metadata_approved",
+            ),
+            "hermes_architecture_review_metadata_approved": _security_pass_bool(
+                payload,
+                "security_approval_granted_for_hermes_architecture_review_metadata",
+                "hermes_architecture_review_metadata_approved",
+            ),
+            "trust_clearance_modeling_approved": _security_pass_bool(
+                payload,
+                "security_approval_granted_for_trust_clearance_modeling",
+                "trust_clearance_modeling_approved",
+            ),
+            "full_trust_clearance_is_lm_confidence": False,
+            "full_trust_clearance_grants_authority_by_itself": False,
+            "below_full_trust_runs_unattended": False,
+            "chief_self_authorization_allowed": chief.get("can_self_authorize") is True,
+            "hermes_self_authorization_allowed": hermes.get("can_self_authorize") is True,
+            "automatic_cross_off_allowed": automatic_cross_off_allowed,
+            "cross_off_deletes_source_notes": "delete original note"
+            not in (cross_off.get("cross_off_must_not") or []),
+            "trust_detours_present": bool(detours.get("smallest_safe_detours")),
+            "operator_babysitting_reduction_goal_present": bool(
+                chief.get("operator_babysitting_reduction_goal")
+                or detours.get("operator_babysitting_reduction_goal")
+            ),
+            "full_trust_rules": trust_rules,
+        },
+        "all_live_authority_false": bool(
+            _security_pass_false(payload, "action_authority_granted")
+            and _security_pass_false(payload, "runtime_execution_authority_granted")
+            and _security_pass_false(payload, "tool_execution_authority_granted")
+            and _security_pass_false(payload, "model_execution_authority_granted")
+            and _security_pass_false(payload, "queue_execution_authority_granted")
+            and _security_pass_false(payload, "account_authority_granted")
+            and _security_pass_false(payload, "send_submit_approval_authority_granted")
+            and not automatic_activation_allowed
+            and not automatic_cross_off_allowed
+        ),
+        "no_authority_flags": {
+            "action_authority_granted": False,
+            "runtime_execution_authority_granted": False,
+            "tool_execution_authority_granted": False,
+            "model_execution_authority_granted": False,
+            "queue_execution_authority_granted": False,
+            "account_authority_granted": False,
+            "send_submit_approval_authority_granted": False,
+            "chief_self_authorization_allowed": False,
+            "hermes_self_authorization_allowed": False,
+            "automatic_activation_allowed": False,
+            "automatic_cross_off_allowed": False,
+        },
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -1369,6 +1747,10 @@ def build_openclaw_map_snapshot(
         SECURITY_AUDIT_READINESS_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    security_pass = _read_json_if_present(
+        SECURITY_PASS_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -1396,6 +1778,7 @@ def build_openclaw_map_snapshot(
             capital_hilton_proof_metadata
         ),
         "security_audit_readiness": _summarize_security_audit_readiness(security_audit_readiness),
+        "security_pass": _summarize_security_pass(security_pass),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -1652,6 +2035,14 @@ def build_operator_map_bundle_contract(
             "security_action_authority_granted": snapshot["security_audit_readiness"]["action_authority_granted"],
             "security_coverage_gap_records": snapshot["security_audit_readiness"]["coverage_gap_summary"]["coverage_gap_records_count"],
             "security_parked_breadcrumb_count": snapshot["security_audit_readiness"]["parked_breadcrumb_summary"]["parked_breadcrumb_count"],
+            "security_pass_present": snapshot["security_pass"]["present"],
+            "security_pass_completed": snapshot["security_pass"]["security_pass_completed"],
+            "security_pass_action_authority_granted": snapshot["security_pass"]["action_authority_granted"],
+            "security_pass_worker_output_intake_metadata_approved": snapshot["security_pass"]["worker_output_intake_metadata_approved"],
+            "security_pass_orphaned_capability_detection_approved": snapshot["security_pass"]["orphaned_capability_detection_approved"],
+            "security_pass_chief_reconciliation_metadata_approved": snapshot["security_pass"]["chief_reconciliation_metadata_approved"],
+            "security_pass_hermes_architecture_review_metadata_approved": snapshot["security_pass"]["hermes_architecture_review_metadata_approved"],
+            "security_pass_trust_clearance_modeling_approved": snapshot["security_pass"]["trust_clearance_modeling_approved"],
             "future_gated_cue_autonomy": snapshot["authority_boundary"]["future_gated_cue_autonomy"],
         },
         "atomic_sync_lifecycle": {
@@ -1772,6 +2163,22 @@ def build_operator_map_bundle_contract(
             "capital_hilton_security_readiness_present": snapshot["security_audit_readiness"]["capital_hilton_security_readiness_present"],
             "individual_packet_read_model_remains_proof_detail": True,
         },
+        "security_pass_integration": {
+            "summary_included_in_snapshot": snapshot["security_pass"]["present"],
+            "schema_version": snapshot["security_pass"]["schema_version"],
+            "security_pass_completed": snapshot["security_pass"]["security_pass_completed"],
+            "read_only_surfaces_approved": snapshot["security_pass"]["read_only_surfaces_approved"],
+            "preview_surfaces_approved": snapshot["security_pass"]["preview_surfaces_approved"],
+            "metadata_only_surfaces_approved": snapshot["security_pass"]["metadata_only_surfaces_approved"],
+            "worker_output_intake_metadata_approved": snapshot["security_pass"]["worker_output_intake_metadata_approved"],
+            "orphaned_capability_detection_approved": snapshot["security_pass"]["orphaned_capability_detection_approved"],
+            "chief_reconciliation_metadata_approved": snapshot["security_pass"]["chief_reconciliation_metadata_approved"],
+            "hermes_architecture_review_metadata_approved": snapshot["security_pass"]["hermes_architecture_review_metadata_approved"],
+            "trust_clearance_modeling_approved": snapshot["security_pass"]["trust_clearance_modeling_approved"],
+            "action_authority_granted": snapshot["security_pass"]["action_authority_granted"],
+            "all_live_authority_false": snapshot["security_pass"]["all_live_authority_false"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -1854,6 +2261,31 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     capital_security = (
         security.get("capital_hilton_security_readiness_summary", {})
         if isinstance(security.get("capital_hilton_security_readiness_summary"), dict)
+        else {}
+    )
+    security_pass = (
+        snapshot.get("security_pass", {})
+        if isinstance(snapshot.get("security_pass"), dict)
+        else {}
+    )
+    security_pass_capital = (
+        security_pass.get("capital_hilton_security_pass_decision_summary", {})
+        if isinstance(security_pass.get("capital_hilton_security_pass_decision_summary"), dict)
+        else {}
+    )
+    security_pass_markdown = (
+        security_pass.get("markdown_terrain_security_decision_summary", {})
+        if isinstance(security_pass.get("markdown_terrain_security_decision_summary"), dict)
+        else {}
+    )
+    security_pass_worker = (
+        security_pass.get("worker_output_orphaned_capability_summary", {})
+        if isinstance(security_pass.get("worker_output_orphaned_capability_summary"), dict)
+        else {}
+    )
+    security_pass_trust = (
+        security_pass.get("chief_hermes_trust_summary", {})
+        if isinstance(security_pass.get("chief_hermes_trust_summary"), dict)
         else {}
     )
     capital_facts = (
@@ -2033,6 +2465,95 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
             f"- Shared execution path: `{capital_security.get('shared_execution_path_id')}`",
             "",
             f"- Next safe move: {security.get('next_safe_move')}",
+            "",
+            "## Security Pass Summary",
+            "",
+            "- ELIWINSHIP: the security pass approves the current read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview posture. It also approves worker-output intake, orphaned-capability detection, Chief/Hermes review metadata, and FULL_TRUST modeling as non-executing map truth.",
+            f"- Summary present: `{str(security_pass.get('present')).lower()}`",
+            f"- Schema: `{security_pass.get('schema_version')}`",
+            f"- Security pass completed: `{str(security_pass.get('security_pass_completed')).lower()}`",
+            f"- Read-only surfaces approved: `{str(security_pass.get('read_only_surfaces_approved')).lower()}`",
+            f"- Preview surfaces approved: `{str(security_pass.get('preview_surfaces_approved')).lower()}`",
+            f"- Metadata-only surfaces approved: `{str(security_pass.get('metadata_only_surfaces_approved')).lower()}`",
+            f"- Worker output intake metadata approved: `{str(security_pass.get('worker_output_intake_metadata_approved')).lower()}`",
+            f"- Orphaned capability detection approved: `{str(security_pass.get('orphaned_capability_detection_approved')).lower()}`",
+            f"- Chief reconciliation metadata approved: `{str(security_pass.get('chief_reconciliation_metadata_approved')).lower()}`",
+            f"- Hermes architecture review metadata approved: `{str(security_pass.get('hermes_architecture_review_metadata_approved')).lower()}`",
+            f"- Trust-clearance modeling approved: `{str(security_pass.get('trust_clearance_modeling_approved')).lower()}`",
+            f"- Action authority granted: `{str(security_pass.get('action_authority_granted')).lower()}`",
+            f"- Runtime/model/tool/queue/account/send authority granted: `{str(any(security_pass.get(key) is True for key in ('runtime_execution_authority_granted', 'model_execution_authority_granted', 'tool_execution_authority_granted', 'queue_execution_authority_granted', 'account_authority_granted', 'send_submit_approval_authority_granted'))).lower()}`",
+            f"- Chief self-authorization allowed: `{str(security_pass.get('chief_self_authorization_allowed')).lower()}`",
+            f"- Hermes self-authorization allowed: `{str(security_pass.get('hermes_self_authorization_allowed')).lower()}`",
+            f"- Automatic activation allowed: `{str(security_pass.get('automatic_activation_allowed')).lower()}`",
+            f"- Automatic cross-off allowed: `{str(security_pass.get('automatic_cross_off_allowed')).lower()}`",
+            "",
+            "### Security Pass Surface Decisions",
+            "",
+        ]
+    )
+    for surface in (
+        security_pass.get("surface_decision_summary")
+        if isinstance(security_pass.get("surface_decision_summary"), list)
+        else []
+    ):
+        lines.append(
+            f"- `{surface.get('surface_id')}`: {surface.get('display_name')} -> `{surface.get('authority_summary', {}).get('approval_status')}`; next: {surface.get('next_safe_move')}"
+        )
+    lines.extend(
+        [
+            "",
+            "### Capital Hilton / Finance Security Pass",
+            "",
+            f"- Preview approved: `{str(security_pass_capital.get('finance_world_preview_approved')).lower()}`",
+            f"- Proof metadata display approved: `{str(security_pass_capital.get('proof_metadata_display_approved')).lower()}`",
+            f"- Operator questions display approved: `{str(security_pass_capital.get('operator_questions_display_approved')).lower()}`",
+            f"- Missing proof count: `{security_pass_capital.get('missing_proof_count')}`",
+            f"- Protected proof required: `{str(security_pass_capital.get('protected_proof_required')).lower()}`",
+            f"- Candidate facts proven: `{str(security_pass_capital.get('candidate_facts_proven')).lower()}`",
+            f"- Invoice generation allowed: `{str(security_pass_capital.get('invoice_generation_allowed')).lower()}`",
+            f"- Coupa access allowed: `{str(security_pass_capital.get('coupa_access_allowed')).lower()}`",
+            f"- Credentials allowed: `{str(security_pass_capital.get('credential_handling_allowed')).lower()}`",
+            f"- Send/submit/approval allowed: `{str(security_pass_capital.get('send_submit_approval_allowed')).lower()}`",
+            f"- Guardian gate required: `{str(security_pass_capital.get('guardian_gate_required')).lower()}`",
+            f"- Operator final authority required: `{str(security_pass_capital.get('operator_final_authority_required')).lower()}`",
+            "",
+            "### Markdown / Terrain Security Pass",
+            "",
+            f"- Markdown backend ready: `{str(security_pass_markdown.get('markdown_backend_ready')).lower()}`",
+            f"- Markdown Knowledge Atlas present: `{str(security_pass_markdown.get('markdown_knowledge_atlas_present')).lower()}`",
+            f"- Approved Markdown Evidence ingestion present: `{str(security_pass_markdown.get('approved_markdown_evidence_ingestion_present')).lower()}`",
+            f"- Corpus Atlas present: `{str(security_pass_markdown.get('corpus_atlas_present')).lower()}`",
+            f"- Metadata readback approved: `{str(security_pass_markdown.get('metadata_readback_approved')).lower()}`",
+            f"- Bounded allowlisted excerpt metadata approved: `{str(security_pass_markdown.get('bounded_allowlisted_excerpt_metadata_approved')).lower()}`",
+            f"- Broad Markdown body ingestion allowed: `{str(security_pass_markdown.get('broad_markdown_body_ingestion_allowed')).lower()}`",
+            f"- File moves/deletes/renames allowed: `{str(security_pass_markdown.get('file_moves_deletes_renames_allowed')).lower()}`",
+            f"- App visibility future gap: `{str(security_pass_markdown.get('app_visibility_future_gap')).lower()}`",
+            "",
+            "### Worker Outputs / Orphaned Capabilities",
+            "",
+            f"- Worker output intake metadata approved: `{str(security_pass_worker.get('worker_output_intake_metadata_approved')).lower()}`",
+            f"- Orphaned capability detection approved: `{str(security_pass_worker.get('orphaned_capability_detection_approved')).lower()}`",
+            f"- Detected capabilities auto-activate: `{str(security_pass_worker.get('detected_capabilities_auto_activate')).lower()}`",
+            f"- Promotion decisions are recommendations only: `{str(security_pass_worker.get('promotion_decisions_are_recommendations_only')).lower()}`",
+            f"- Markdown Atlas candidate present: `{str(security_pass_worker.get('markdown_knowledge_atlas_candidate_present')).lower()}`",
+            f"- Future invoicing audit captured: `{str(security_pass_worker.get('future_invoicing_audit_captured')).lower()}`",
+            f"- Future invoicing audit status: `{security_pass_worker.get('future_invoicing_audit_status')}`",
+            f"- Ledger write allowed: `{str(security_pass_worker.get('ledger_write_allowed')).lower()}`",
+            f"- Email dispatch allowed: `{str(security_pass_worker.get('email_dispatch_allowed')).lower()}`",
+            "",
+            "### Chief / Hermes / FULL_TRUST",
+            "",
+            f"- Chief reconciliation metadata approved: `{str(security_pass_trust.get('chief_reconciliation_metadata_approved')).lower()}`",
+            f"- Hermes architecture review metadata approved: `{str(security_pass_trust.get('hermes_architecture_review_metadata_approved')).lower()}`",
+            f"- Trust-clearance modeling approved: `{str(security_pass_trust.get('trust_clearance_modeling_approved')).lower()}`",
+            f"- FULL_TRUST is LM confidence: `{str(security_pass_trust.get('full_trust_clearance_is_lm_confidence')).lower()}`",
+            f"- FULL_TRUST grants authority by itself: `{str(security_pass_trust.get('full_trust_clearance_grants_authority_by_itself')).lower()}`",
+            f"- Below-FULL_TRUST runs unattended: `{str(security_pass_trust.get('below_full_trust_runs_unattended')).lower()}`",
+            f"- Chief self-authorization allowed: `{str(security_pass_trust.get('chief_self_authorization_allowed')).lower()}`",
+            f"- Hermes self-authorization allowed: `{str(security_pass_trust.get('hermes_self_authorization_allowed')).lower()}`",
+            f"- Automatic cross-off allowed: `{str(security_pass_trust.get('automatic_cross_off_allowed')).lower()}`",
+            f"- Cross-off deletes source notes: `{str(security_pass_trust.get('cross_off_deletes_source_notes')).lower()}`",
+            f"- Trust detours present: `{str(security_pass_trust.get('trust_detours_present')).lower()}`",
             "",
             "## What Mission Control Can Render Next",
             "",
@@ -2214,6 +2735,7 @@ __all__ = [
     "MAP_OPERATOR_EXPORT_NAME",
     "STABLE_APP_FACING_FILES",
     "SECURITY_AUDIT_READINESS_READ_MODEL_PATH",
+    "SECURITY_PASS_CONTRACT_READ_MODEL_PATH",
     "build_openclaw_map_manifest",
     "build_openclaw_map_snapshot",
     "build_operator_map_bundle_contract",
