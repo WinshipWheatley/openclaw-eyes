@@ -105,6 +105,7 @@
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -113,11 +114,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -249,6 +252,7 @@
       }
     ]
   },
+  "automatic_activation_of_detected_capabilities_allowed": false,
   "automatic_promotion_allowed": false,
   "automatic_queueing_allowed": false,
   "automatic_world_transition_allowed": false,
@@ -261,6 +265,7 @@
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -269,11 +274,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -328,15 +335,19 @@
     "shared_execution_path_id": "protected_finance_proof_metadata_intake",
     "target_world": "Finance"
   },
-  "contract_status": "deterministic_security_pass_pass_1_read_only_preview_approval_only",
+  "contract_status": "deterministic_security_pass_pass_1_plus_pass_2_metadata_only",
   "core_rule": {
+    "built_thing_becomes_active_only_after_receipted_classified_gated_trusted_surfaced": true,
+    "built_thing_is_not_active_because_it_exists": true,
     "future_limited_execution_requires_separate_explicit_receipted_authority": true,
     "read_only_and_preview_surfaces_can_be_approved_without_execution": true,
-    "security_pass_approval_is_not_action_authority": true
+    "security_pass_approval_is_not_action_authority": true,
+    "worker_output_is_not_truth_by_itself": true
   },
   "credential_handling_allowed": false,
+  "email_dispatch_allowed": false,
   "file_move_delete_cleanup_remount_allowed": false,
-  "generated_at": "2026-05-22T17:28:43+00:00",
+  "generated_at": "2026-05-22T17:38:28+00:00",
   "global_authority_matrix": {
     "allowed_after_this_security_pass": [
       "stable map display",
@@ -359,6 +370,7 @@
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -367,11 +379,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -416,6 +430,8 @@
       "credentials/tokens/cookies/API keys",
       "send/submit/approval",
       "invoice generation",
+      "ledger writes",
+      "email dispatch",
       "raw finance/private body ingestion",
       "raw Excel body ingestion",
       "raw email/calendar body ingestion",
@@ -430,6 +446,7 @@
       "hidden surveillance",
       "automatic promotion",
       "automatic queueing",
+      "automatic activation of detected capabilities",
       "automatic world transition",
       "C-drive artifact writes"
     ]
@@ -440,6 +457,7 @@
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -448,11 +466,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -489,6 +509,7 @@
   "hidden_memory_allowed": false,
   "hidden_surveillance_allowed": false,
   "invoice_generation_allowed": false,
+  "ledger_write_allowed": false,
   "live_model_calls_allowed": false,
   "machine_proof": {
     "account_authority_granted": false,
@@ -496,18 +517,28 @@
     "agent_model_tool_activation_blocked": true,
     "all_dangerous_authority_flags_false": true,
     "app_visible_map_current": true,
+    "automatic_activation_of_detected_capabilities_allowed": false,
     "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
     "capital_hilton_execution_blocked": true,
     "check_transmission_quiet": true,
-    "content_hash": "sha256:ea68204ee0678aae5d64c2aac7224f90f6a7f436212df83df8fd08cf2ed787b2",
+    "content_hash": "sha256:70aa6e80099e9a818ef25d066ca2d57f4c84638cdbe59ee1c586d4f3570715b5",
     "credential_or_secret_included": false,
+    "future_invoicing_audit_does_not_authorize_email_dispatch": true,
+    "future_invoicing_audit_does_not_authorize_invoice_generation": true,
+    "future_invoicing_audit_does_not_authorize_ledger_writes": true,
+    "future_invoicing_audit_status": "PARKED",
     "map_generation_id": "map_3cf7a1d5f26147ae993a",
     "markdown_metadata_approved_broad_body_blocked": true,
     "model_execution_authority_granted": false,
     "network_git_sync_mac_app_mutation_authority_added": false,
     "operator_answers_are_not_proof": true,
+    "orphaned_capability_candidate_count": 7,
+    "orphaned_capability_detection_approved": true,
+    "orphaned_capability_detection_does_not_execute_capabilities": true,
+    "orphaned_capability_promotion_decision_count": 7,
     "parked_breadcrumbs_do_not_auto_promote": true,
     "preview_surfaces_approved": true,
+    "promotion_decisions_are_recommendations_only": true,
     "queue_execution_authority_granted": false,
     "raw_private_body_included": false,
     "read_only_surfaces_approved": true,
@@ -527,13 +558,17 @@
     ],
     "stable_map_is_not_source_truth": true,
     "surface_decision_count": 7,
-    "tool_execution_authority_granted": false
+    "tool_execution_authority_granted": false,
+    "worker_output_intake_does_not_activate_capabilities": true,
+    "worker_output_intake_metadata_approved": true,
+    "worker_output_intake_record_count": 1
   },
   "markdown_terrain_security_decision": {
     "authority_flags": {
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -542,11 +577,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -635,6 +672,7 @@
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -643,11 +681,13 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -689,12 +729,25 @@
     "operator_answers_as_proof": "blocked"
   },
   "operator_final_authority": true,
-  "operator_summary": "Security Pass Contract v0 Pass 1 approves the current read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview surfaces while keeping every live action authority false.",
-  "parked_breadcrumb_security_decision": {
+  "operator_summary": "Security Pass Contract v0 Pass 1 approves the current read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview surfaces. Pass 2 approves worker-output intake and orphaned capability detection as metadata while keeping every live action authority false.",
+  "orphaned_capability_detection": {
+    "allowed_capability_statuses": [
+      "KNOWN_AND_SURFACED",
+      "KNOWN_NOT_SURFACED",
+      "BUILT_NOT_REGISTERED",
+      "REGISTERED_NOT_VISIBLE",
+      "DUPLICATE",
+      "STALE",
+      "UNSAFE",
+      "PARKED",
+      "QUARANTINED",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
     "authority_flags": {
       "account_authority_granted": false,
       "action_authority_granted": false,
       "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
       "automatic_promotion_allowed": false,
       "automatic_queueing_allowed": false,
       "automatic_world_transition_allowed": false,
@@ -703,11 +756,636 @@
       "broad_private_file_inspection_allowed": false,
       "browser_oauth_account_access_allowed": false,
       "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
       "file_move_delete_cleanup_remount_allowed": false,
       "gmail_calendar_coupa_telegram_access_allowed": false,
       "hidden_memory_allowed": false,
       "hidden_surveillance_allowed": false,
       "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
+      "live_model_calls_allowed": false,
+      "model_api_execution_allowed": false,
+      "model_execution_authority_granted": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_autonomy_execution_allowed": false,
+      "queue_execution_authority_granted": false,
+      "raw_email_calendar_body_ingestion_allowed": false,
+      "raw_excel_body_ingestion_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "raw_private_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_execution_allowed": false,
+      "runtime_execution_authority_granted": false,
+      "send_submit_approval_allowed": false,
+      "send_submit_approval_authority_granted": false,
+      "tool_execution_allowed": false,
+      "tool_execution_authority_granted": false
+    },
+    "candidates": [
+      {
+        "blocked_actions": [
+          "broad Markdown body ingestion",
+          "file organization",
+          "file moves/deletes/renames",
+          "old docs as current truth without classification/proof"
+        ],
+        "capability_id": "markdown_knowledge_atlas",
+        "capability_status": "KNOWN_NOT_SURFACED",
+        "detected_from": [
+          "markdown_knowledge_atlas.py",
+          "scripts/build_markdown_knowledge_atlas.py"
+        ],
+        "display_name": "Markdown Knowledge Atlas",
+        "evidence_refs": [
+          "SQLite metadata counts",
+          "Markdown terrain capability readback"
+        ],
+        "mission_control_visibility_status": "future_visibility_gap",
+        "operator_review_required": false,
+        "package_visibility_status": "metadata_reference_possible",
+        "read_model_refs": [],
+        "recommended_action": "preserve existing capability, avoid duplicate mapper, consider stable-map/app visibility later",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "scripts/build_markdown_knowledge_atlas.py"
+        ],
+        "security_review_required": false,
+        "sqlite_table_refs": [
+          "markdown_documents",
+          "markdown_document_classifications",
+          "markdown_document_links",
+          "markdown_document_reorg_candidates",
+          "markdown_document_supersession"
+        ],
+        "stable_map_status": "partly_summarized_as_security_decision",
+        "test_refs": [],
+        "what_keeps_it_inactive": "No current app surface and broad body/file mutation remains blocked.",
+        "what_would_make_it_active": "Stable-map/app visibility surface with metadata-only boundaries and proof refs.",
+        "world_visibility_status": "not_world_specific"
+      },
+      {
+        "blocked_actions": [
+          "broad body ingestion",
+          "unrestricted summarization",
+          "stale doctrine promotion"
+        ],
+        "capability_id": "approved_markdown_evidence_ingestion",
+        "capability_status": "KNOWN_NOT_SURFACED",
+        "detected_from": [
+          "markdown_evidence_ingestion.py",
+          "scripts/ingest_approved_markdown_evidence.py"
+        ],
+        "display_name": "Approved Markdown Evidence Ingestion",
+        "evidence_refs": [
+          "12 approved markdown evidence sources",
+          "206 bounded evidence items"
+        ],
+        "mission_control_visibility_status": "not_primary_surface",
+        "operator_review_required": false,
+        "package_visibility_status": "proof_detail_reference_possible",
+        "read_model_refs": [],
+        "recommended_action": "keep as proof/detail capability and expose only bounded metadata later",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "scripts/ingest_approved_markdown_evidence.py"
+        ],
+        "security_review_required": false,
+        "sqlite_table_refs": [
+          "markdown_evidence_sources",
+          "markdown_evidence_items"
+        ],
+        "stable_map_status": "proof_detail_candidate",
+        "test_refs": [],
+        "what_keeps_it_inactive": "No app-facing proof drawer integration for this capability yet.",
+        "what_would_make_it_active": "Allowlisted proof/detail surface with source-card refs and redaction rules.",
+        "world_visibility_status": "not_world_specific"
+      },
+      {
+        "blocked_actions": [
+          "broad private body inspection",
+          "uncontrolled repo scans",
+          "runtime crawler activation"
+        ],
+        "capability_id": "corpus_atlas_engine",
+        "capability_status": "KNOWN_NOT_SURFACED",
+        "detected_from": [
+          "corpus_atlas.py",
+          "SQLite corpus metadata"
+        ],
+        "display_name": "Corpus Atlas Engine",
+        "evidence_refs": [
+          "43,762 corpus_paths rows",
+          "434,362 corpus_path_labels rows"
+        ],
+        "mission_control_visibility_status": "hidden_by_design_until_classified",
+        "operator_review_required": false,
+        "package_visibility_status": "metadata_substrate_only",
+        "read_model_refs": [],
+        "recommended_action": "treat as metadata substrate; avoid uncontrolled scans",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "corpus_atlas.py"
+        ],
+        "security_review_required": true,
+        "sqlite_table_refs": [
+          "corpus_paths",
+          "corpus_path_labels"
+        ],
+        "stable_map_status": "not_directly_surfaced",
+        "test_refs": [],
+        "what_keeps_it_inactive": "Broad private body inspection and uncontrolled repo scans remain blocked.",
+        "what_would_make_it_active": "Deterministic source-card/readback contract with scope and privacy boundaries.",
+        "world_visibility_status": "not_world_specific"
+      },
+      {
+        "blocked_actions": [
+          "live model calls",
+          "model/API execution",
+          "model router runtime",
+          "actor/agent activation",
+          "tool execution",
+          "queue/autonomy execution",
+          "planner/builder execution",
+          "browser/OAuth/account access",
+          "Gmail/calendar/Coupa/Telegram access",
+          "credentials/tokens/cookies/API keys",
+          "send/submit/approval",
+          "invoice generation",
+          "ledger writes",
+          "email dispatch",
+          "raw finance/private body ingestion",
+          "raw Excel body ingestion",
+          "raw email/calendar body ingestion",
+          "broad Markdown body ingestion",
+          "broad filesystem indexing",
+          "broad private file inspection",
+          "Repo B execution",
+          "Repo B body inspection",
+          "file delete/move/cleanup/remount",
+          "network operation",
+          "hidden memory",
+          "hidden surveillance",
+          "automatic promotion",
+          "automatic queueing",
+          "automatic activation of detected capabilities",
+          "automatic world transition",
+          "C-drive artifact writes"
+        ],
+        "capability_id": "security_audit_readiness_packet",
+        "capability_status": "KNOWN_AND_SURFACED",
+        "detected_from": [
+          "security_audit_readiness_packet.py",
+          "generated/read_models/security_audit_readiness_packet.json"
+        ],
+        "display_name": "Security Audit Readiness Packet",
+        "evidence_refs": [
+          "ff1239f",
+          "02ec429",
+          "371c56d",
+          "d31c91b"
+        ],
+        "mission_control_visibility_status": "surfaced",
+        "operator_review_required": false,
+        "package_visibility_status": "readiness/provenance/focus/coverage/breadcrumb doctrine",
+        "read_model_refs": [
+          "generated/read_models/security_audit_readiness_packet.json"
+        ],
+        "recommended_action": "keep as readiness/provenance/focus/coverage/breadcrumb doctrine",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "scripts/export_security_audit_readiness_packet.py"
+        ],
+        "security_review_required": false,
+        "sqlite_table_refs": [],
+        "stable_map_status": "surfaced",
+        "test_refs": [
+          "tests/test_security_audit_readiness_packet.py"
+        ],
+        "what_keeps_it_inactive": "It is doctrine/readback, not execution authority.",
+        "what_would_make_it_active": "Already surfaced as read-only readiness; no runtime activation needed.",
+        "world_visibility_status": "Helm"
+      },
+      {
+        "blocked_actions": [
+          "invoice generation",
+          "Coupa/browser/account access",
+          "credentials",
+          "send/submit/approval"
+        ],
+        "capability_id": "capital_hilton_proof_metadata_packet",
+        "capability_status": "KNOWN_AND_SURFACED",
+        "detected_from": [
+          "capital_hilton_proof_metadata_packet.py",
+          "generated/read_models/capital_hilton_proof_metadata_packet.json"
+        ],
+        "display_name": "Capital Hilton Proof Metadata Packet",
+        "evidence_refs": [
+          "2a9bede",
+          "b0c80f4",
+          "map_fbda77b8af4e9c796c03"
+        ],
+        "mission_control_visibility_status": "surfaced_in_finance_preview",
+        "operator_review_required": false,
+        "package_visibility_status": "Finance steel-thread proof metadata",
+        "read_model_refs": [
+          "generated/read_models/capital_hilton_proof_metadata_packet.json"
+        ],
+        "recommended_action": "keep as Finance preview/proof metadata; do not convert to invoicing action",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "scripts/export_capital_hilton_proof_metadata_packet.py"
+        ],
+        "security_review_required": true,
+        "sqlite_table_refs": [],
+        "stable_map_status": "surfaced",
+        "test_refs": [
+          "tests/test_capital_hilton_proof_metadata_packet.py"
+        ],
+        "what_keeps_it_inactive": "Missing proof count remains 10 and action authority is false.",
+        "what_would_make_it_active": "Proof metadata, Guardian gate, Operator path, and future action-authority pass.",
+        "world_visibility_status": "Finance"
+      },
+      {
+        "blocked_actions": [
+          "live chat",
+          "model launch",
+          "agent activation",
+          "tool use",
+          "hidden memory"
+        ],
+        "capability_id": "agent_council_dossier_surface",
+        "capability_status": "KNOWN_AND_SURFACED",
+        "detected_from": [
+          "stable map Agent Council summary",
+          "Mac app checkpoint"
+        ],
+        "display_name": "Agent Council Dossier Surface",
+        "evidence_refs": [
+          "agent_council.agent_dossier_cards",
+          "5d7f3c3b1d516f5c0eba9daf38b548c789640320"
+        ],
+        "mission_control_visibility_status": "surfaced",
+        "operator_review_required": false,
+        "package_visibility_status": "actor/persona preview",
+        "read_model_refs": [
+          "generated/read_models/openclaw_map_snapshot.json#agent_council"
+        ],
+        "recommended_action": "keep preview-only; no agent activation",
+        "safe_to_use_pre_security": true,
+        "script_refs": [],
+        "security_review_required": false,
+        "sqlite_table_refs": [],
+        "stable_map_status": "surfaced",
+        "test_refs": [
+          "tests/test_operator_map_bundle_contract.py"
+        ],
+        "what_keeps_it_inactive": "Agent activation, model calls, tool use, and self-authority remain false.",
+        "what_would_make_it_active": "Future explicit agent/model/tool authority pass, if ever granted.",
+        "world_visibility_status": "Helm"
+      },
+      {
+        "blocked_actions": [
+          "dispatch",
+          "tool execution",
+          "model launch",
+          "account/browser/send controls"
+        ],
+        "capability_id": "package_preview_tool_receipt_surface",
+        "capability_status": "KNOWN_AND_SURFACED",
+        "detected_from": [
+          "package_preview_receipt_contract.py",
+          "tool_adapter_receipt_contract.py",
+          "Mac app surface"
+        ],
+        "display_name": "Package Preview / Tool Receipt Surface",
+        "evidence_refs": [
+          "1a54dfd",
+          "39eb210",
+          "5d7f3c3b1d516f5c0eba9daf38b548c789640320"
+        ],
+        "mission_control_visibility_status": "surfaced",
+        "operator_review_required": false,
+        "package_visibility_status": "package/tool preview",
+        "read_model_refs": [
+          "generated/read_models/package_preview_receipt_contract.json",
+          "generated/read_models/tool_adapter_receipt_contract.json"
+        ],
+        "recommended_action": "keep preview/proof-detail only; no dispatch",
+        "safe_to_use_pre_security": true,
+        "script_refs": [
+          "scripts/export_package_preview_receipt_contract.py",
+          "scripts/export_tool_adapter_receipt_contract.py"
+        ],
+        "security_review_required": false,
+        "sqlite_table_refs": [],
+        "stable_map_status": "surfaced",
+        "test_refs": [
+          "tests/test_package_preview_receipt_contract.py",
+          "tests/test_tool_adapter_receipt_contract.py"
+        ],
+        "what_keeps_it_inactive": "Dispatch, model launch, tool execution, and account controls remain blocked.",
+        "what_would_make_it_active": "Future receipted action-authority pass and per-adapter gate receipts.",
+        "world_visibility_status": "Helm"
+      }
+    ],
+    "core_doctrine": {
+      "activation_requires_receipted_classified_gated_trusted_surfaced": true,
+      "built_thing_is_not_active_because_it_exists": true,
+      "detection_does_not_create_queue_tasks": true,
+      "detection_does_not_execute_capability": true,
+      "detection_does_not_mutate_source_notes": true
+    },
+    "description": "Read-only metadata model for finding useful built capability that is not yet surfaced or active.",
+    "model_id": "orphaned_capability_detection_v0",
+    "required_fields": [
+      "capability_id",
+      "display_name",
+      "detected_from",
+      "evidence_refs",
+      "script_refs",
+      "test_refs",
+      "read_model_refs",
+      "sqlite_table_refs",
+      "stable_map_status",
+      "mission_control_visibility_status",
+      "package_visibility_status",
+      "world_visibility_status",
+      "capability_status",
+      "safe_to_use_pre_security",
+      "security_review_required",
+      "operator_review_required",
+      "recommended_action",
+      "what_would_make_it_active",
+      "what_keeps_it_inactive",
+      "blocked_actions"
+    ]
+  },
+  "orphaned_capability_promotion_decisions": {
+    "allowed_decisions": [
+      "PROMOTE_TO_STABLE_MAP",
+      "CREATE_APP_VISIBILITY_SURFACE",
+      "ADD_TO_PACKAGE_REGISTRY",
+      "ADD_TO_HOLDING_CELL",
+      "MERGE_WITH_EXISTING_CAPABILITY",
+      "KEEP_AS_PROOF_DETAIL",
+      "PARK",
+      "QUARANTINE",
+      "REJECT_OBSOLETE",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "authority_flags": {
+      "account_authority_granted": false,
+      "action_authority_granted": false,
+      "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
+      "automatic_promotion_allowed": false,
+      "automatic_queueing_allowed": false,
+      "automatic_world_transition_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_markdown_body_ingestion_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_account_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
+      "file_move_delete_cleanup_remount_allowed": false,
+      "gmail_calendar_coupa_telegram_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "hidden_surveillance_allowed": false,
+      "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
+      "live_model_calls_allowed": false,
+      "model_api_execution_allowed": false,
+      "model_execution_authority_granted": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_autonomy_execution_allowed": false,
+      "queue_execution_authority_granted": false,
+      "raw_email_calendar_body_ingestion_allowed": false,
+      "raw_excel_body_ingestion_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "raw_private_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_execution_allowed": false,
+      "runtime_execution_authority_granted": false,
+      "send_submit_approval_allowed": false,
+      "send_submit_approval_authority_granted": false,
+      "tool_execution_allowed": false,
+      "tool_execution_authority_granted": false
+    },
+    "decisions": [
+      {
+        "action_authority_granted": false,
+        "capability_id": "markdown_knowledge_atlas",
+        "decision": "PROMOTE_TO_STABLE_MAP",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "preserve existing capability, avoid duplicate mapper, consider stable-map/app visibility later",
+        "required_app_surface": "future metadata/proof drawer visibility",
+        "required_proof": [
+          "SQLite metadata counts",
+          "Markdown terrain capability readback"
+        ],
+        "required_security_gates": [
+          "metadata-only boundary",
+          "no broad body ingestion"
+        ],
+        "required_stable_map_refs": [
+          "future stable-map summary if promoted"
+        ],
+        "required_tests": []
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "approved_markdown_evidence_ingestion",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "keep as proof/detail capability and expose only bounded metadata later",
+        "required_app_surface": "future metadata/proof drawer visibility",
+        "required_proof": [
+          "12 approved markdown evidence sources",
+          "206 bounded evidence items"
+        ],
+        "required_security_gates": [
+          "metadata-only boundary",
+          "no broad body ingestion"
+        ],
+        "required_stable_map_refs": [
+          "future stable-map summary if promoted"
+        ],
+        "required_tests": []
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "corpus_atlas_engine",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "treat as metadata substrate; avoid uncontrolled scans",
+        "required_app_surface": "future metadata/proof drawer visibility",
+        "required_proof": [
+          "43,762 corpus_paths rows",
+          "434,362 corpus_path_labels rows"
+        ],
+        "required_security_gates": [
+          "metadata-only boundary",
+          "no broad body ingestion"
+        ],
+        "required_stable_map_refs": [
+          "future stable-map summary if promoted"
+        ],
+        "required_tests": []
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "security_audit_readiness_packet",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "keep as readiness/provenance/focus/coverage/breadcrumb doctrine",
+        "required_app_surface": "already surfaced or proof/detail only",
+        "required_proof": [
+          "ff1239f",
+          "02ec429",
+          "371c56d",
+          "d31c91b",
+          "generated/read_models/security_audit_readiness_packet.json"
+        ],
+        "required_security_gates": [
+          "preserve read-only/preview boundary"
+        ],
+        "required_stable_map_refs": [],
+        "required_tests": [
+          "tests/test_security_audit_readiness_packet.py"
+        ]
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "capital_hilton_proof_metadata_packet",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": true,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "keep as Finance preview/proof metadata; do not convert to invoicing action",
+        "required_app_surface": "already surfaced or proof/detail only",
+        "required_proof": [
+          "2a9bede",
+          "b0c80f4",
+          "map_fbda77b8af4e9c796c03",
+          "generated/read_models/capital_hilton_proof_metadata_packet.json"
+        ],
+        "required_security_gates": [
+          "preserve read-only/preview boundary"
+        ],
+        "required_stable_map_refs": [],
+        "required_tests": [
+          "tests/test_capital_hilton_proof_metadata_packet.py"
+        ]
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "agent_council_dossier_surface",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "keep preview-only; no agent activation",
+        "required_app_surface": "already surfaced or proof/detail only",
+        "required_proof": [
+          "agent_council.agent_dossier_cards",
+          "5d7f3c3b1d516f5c0eba9daf38b548c789640320",
+          "generated/read_models/openclaw_map_snapshot.json#agent_council"
+        ],
+        "required_security_gates": [
+          "preserve read-only/preview boundary"
+        ],
+        "required_stable_map_refs": [],
+        "required_tests": [
+          "tests/test_operator_map_bundle_contract.py"
+        ]
+      },
+      {
+        "action_authority_granted": false,
+        "capability_id": "package_preview_tool_receipt_surface",
+        "decision": "KEEP_AS_PROOF_DETAIL",
+        "guardian_gate_required": false,
+        "next_safe_move": "Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        "operator_approval_required": false,
+        "reason": "keep preview/proof-detail only; no dispatch",
+        "required_app_surface": "already surfaced or proof/detail only",
+        "required_proof": [
+          "1a54dfd",
+          "39eb210",
+          "5d7f3c3b1d516f5c0eba9daf38b548c789640320",
+          "generated/read_models/package_preview_receipt_contract.json",
+          "generated/read_models/tool_adapter_receipt_contract.json"
+        ],
+        "required_security_gates": [
+          "preserve read-only/preview boundary"
+        ],
+        "required_stable_map_refs": [],
+        "required_tests": [
+          "tests/test_package_preview_receipt_contract.py",
+          "tests/test_tool_adapter_receipt_contract.py"
+        ]
+      }
+    ],
+    "model_id": "orphaned_capability_promotion_decision_v0",
+    "required_fields": [
+      "capability_id",
+      "decision",
+      "reason",
+      "required_proof",
+      "required_tests",
+      "required_security_gates",
+      "required_stable_map_refs",
+      "required_app_surface",
+      "operator_approval_required",
+      "guardian_gate_required",
+      "action_authority_granted",
+      "next_safe_move"
+    ],
+    "rules": {
+      "must_not_activate_runtime": true,
+      "must_not_change_mission_control": true,
+      "must_not_queue_tasks": true,
+      "must_not_run_detected_capability": true,
+      "must_not_trigger_file_edits": true,
+      "promotion_decisions_are_recommendations_only": true
+    }
+  },
+  "parked_breadcrumb_security_decision": {
+    "authority_flags": {
+      "account_authority_granted": false,
+      "action_authority_granted": false,
+      "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
+      "automatic_promotion_allowed": false,
+      "automatic_queueing_allowed": false,
+      "automatic_world_transition_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_markdown_body_ingestion_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_account_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
+      "file_move_delete_cleanup_remount_allowed": false,
+      "gmail_calendar_coupa_telegram_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "hidden_surveillance_allowed": false,
+      "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
       "live_model_calls_allowed": false,
       "model_api_execution_allowed": false,
       "model_execution_authority_granted": false,
@@ -742,6 +1420,7 @@
     "review_classification_tags": "approved",
     "sleep_mode_queue_priority": "parked_future_gated"
   },
+  "pass_2_id": "pass_2_worker_output_intake_orphaned_capability_detection",
   "pass_id": "pass_1_core_security_decisions_authority_boundaries",
   "pc_c_drive_artifact_write_allowed": false,
   "planner_builder_execution_allowed": false,
@@ -754,10 +1433,10 @@
   "read_model_id": "security_pass_contract",
   "recommended_next_lanes": [
     {
-      "boundary": "read-model only; no intake daemon, queue, or automation",
-      "lane_id": "security_pass_contract_v0_pass_2_worker_output_intake",
-      "purpose": "classify worker outputs and orphaned capabilities without granting execution authority",
-      "title": "Security Pass Contract v0 Pass 2 - Worker Output Intake / Orphaned Capability Detection"
+      "boundary": "do not implement in Pass 2; no runtime, queue, or authority grant",
+      "lane_id": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
+      "purpose": "define trust-building and clearance boundaries without granting hidden automation",
+      "title": "Security Pass Contract v0 Pass 3 - Chief/Hermes FULL_TRUST_CLEARANCE"
     },
     {
       "boundary": "stable-map summary only; no Mac sync/import in the contract lane",
@@ -769,11 +1448,13 @@
   "repo_b_body_inspection_allowed": false,
   "repo_b_execution_allowed": false,
   "runtime_execution_authority_granted": false,
-  "schema_version": "security_pass_contract_v0_pass_1",
+  "schema_version": "security_pass_contract_v0_pass_2",
   "security_approval_granted_for_execution": false,
   "security_approval_granted_for_metadata_only_surfaces": true,
+  "security_approval_granted_for_orphaned_capability_detection": true,
   "security_approval_granted_for_preview_surfaces": true,
   "security_approval_granted_for_read_only_surfaces": true,
+  "security_approval_granted_for_worker_output_intake_metadata": true,
   "security_decision_categories": [
     "APPROVED_READ_ONLY",
     "APPROVED_PREVIEW_ONLY",
@@ -821,13 +1502,16 @@
   "security_pass_output_summary": {
     "account_authority_granted": false,
     "action_authority_granted": false,
+    "automatic_activation_of_detected_capabilities_allowed": false,
     "model_execution_authority_granted": false,
     "queue_execution_authority_granted": false,
     "runtime_execution_authority_granted": false,
     "security_approval_granted_for_execution": false,
     "security_approval_granted_for_metadata_only_surfaces": true,
+    "security_approval_granted_for_orphaned_capability_detection": true,
     "security_approval_granted_for_preview_surfaces": true,
     "security_approval_granted_for_read_only_surfaces": true,
+    "security_approval_granted_for_worker_output_intake_metadata": true,
     "security_pass_completed": true,
     "send_submit_approval_authority_granted": false,
     "tool_execution_authority_granted": false
@@ -836,19 +1520,22 @@
   "send_submit_approval_authority_granted": false,
   "stable_map_integration": {
     "contract_generated_as_read_model": true,
-    "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 summary.",
-    "reason_not_included_now": "Pass 1 is standalone; stable-map refresh is a separate lane.",
+    "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 summary.",
+    "reason_not_included_now": "Pass 1 + Pass 2 are standalone; stable-map refresh is a separate lane.",
     "safe_summary_for_next_refresh": {
       "action_authority": false,
       "broad_markdown_body_blocked": true,
       "capital_hilton_execution_blocked": true,
       "capital_hilton_preview_approved": true,
+      "future_invoicing_audit_parked": true,
       "markdown_terrain_metadata_approved": true,
-      "next_recommended_lane": "security_pass_contract_v0_pass_2_worker_output_intake_or_orphaned_capability_detection",
+      "next_recommended_lane": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
+      "orphaned_capability_detection_approved": true,
       "preview_surfaces_approved": true,
       "read_only_surfaces_approved": true,
       "security_pass_completed": true,
-      "security_pass_contract_id": "security_pass_contract"
+      "security_pass_contract_id": "security_pass_contract",
+      "worker_output_intake_metadata_approved": true
     },
     "summary_included_in_stable_map_now": false
   },
@@ -864,6 +1551,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -872,11 +1560,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -937,6 +1627,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -945,11 +1636,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1009,6 +1702,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -1017,11 +1711,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1084,6 +1780,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -1092,11 +1789,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1161,6 +1860,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -1169,11 +1869,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1237,6 +1939,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -1245,11 +1948,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1309,6 +2014,7 @@
         "account_authority_granted": false,
         "action_authority_granted": false,
         "actor_agent_activation_allowed": false,
+        "automatic_activation_of_detected_capabilities_allowed": false,
         "automatic_promotion_allowed": false,
         "automatic_queueing_allowed": false,
         "automatic_world_transition_allowed": false,
@@ -1317,11 +2023,13 @@
         "broad_private_file_inspection_allowed": false,
         "browser_oauth_account_access_allowed": false,
         "credential_handling_allowed": false,
+        "email_dispatch_allowed": false,
         "file_move_delete_cleanup_remount_allowed": false,
         "gmail_calendar_coupa_telegram_access_allowed": false,
         "hidden_memory_allowed": false,
         "hidden_surveillance_allowed": false,
         "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
         "live_model_calls_allowed": false,
         "model_api_execution_allowed": false,
         "model_execution_authority_granted": false,
@@ -1372,5 +2080,152 @@
     }
   ],
   "tool_execution_allowed": false,
-  "tool_execution_authority_granted": false
+  "tool_execution_authority_granted": false,
+  "worker_output_intake": {
+    "allowed_intake_statuses": [
+      "RECEIVED_UNVERIFIED",
+      "RECEIPT_MATCHED",
+      "PROOF_REFERENCED",
+      "NEEDS_CLASSIFICATION",
+      "NEEDS_SECURITY_REVIEW",
+      "NEEDS_STABLE_MAP_PROMOTION",
+      "NEEDS_APP_SURFACE",
+      "DUPLICATE_EXISTING_CAPABILITY",
+      "PARKED",
+      "QUARANTINED",
+      "REJECTED",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "authority_flags": {
+      "account_authority_granted": false,
+      "action_authority_granted": false,
+      "actor_agent_activation_allowed": false,
+      "automatic_activation_of_detected_capabilities_allowed": false,
+      "automatic_promotion_allowed": false,
+      "automatic_queueing_allowed": false,
+      "automatic_world_transition_allowed": false,
+      "broad_filesystem_indexing_allowed": false,
+      "broad_markdown_body_ingestion_allowed": false,
+      "broad_private_file_inspection_allowed": false,
+      "browser_oauth_account_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_dispatch_allowed": false,
+      "file_move_delete_cleanup_remount_allowed": false,
+      "gmail_calendar_coupa_telegram_access_allowed": false,
+      "hidden_memory_allowed": false,
+      "hidden_surveillance_allowed": false,
+      "invoice_generation_allowed": false,
+      "ledger_write_allowed": false,
+      "live_model_calls_allowed": false,
+      "model_api_execution_allowed": false,
+      "model_execution_authority_granted": false,
+      "model_router_runtime_allowed": false,
+      "network_operation_allowed": false,
+      "operator_final_authority": true,
+      "pc_c_drive_artifact_write_allowed": false,
+      "planner_builder_execution_allowed": false,
+      "queue_autonomy_execution_allowed": false,
+      "queue_execution_authority_granted": false,
+      "raw_email_calendar_body_ingestion_allowed": false,
+      "raw_excel_body_ingestion_allowed": false,
+      "raw_finance_body_ingestion_allowed": false,
+      "raw_private_body_ingestion_allowed": false,
+      "repo_b_body_inspection_allowed": false,
+      "repo_b_execution_allowed": false,
+      "runtime_execution_authority_granted": false,
+      "send_submit_approval_allowed": false,
+      "send_submit_approval_authority_granted": false,
+      "tool_execution_allowed": false,
+      "tool_execution_authority_granted": false
+    },
+    "description": "Read-only metadata intake for worker outputs; output is not truth by itself.",
+    "model_id": "worker_output_intake_v0",
+    "records": [
+      {
+        "authority_claims": [
+          "no ledger writes",
+          "no email dispatch",
+          "no Coupa/browser/account/credential authority",
+          "no invoice generation",
+          "no send/submit/approval"
+        ],
+        "boundary_claims": [
+          "park as Security Pass stress-test artifact",
+          "do not implement active invoicing now",
+          "missing contracts must precede future automation",
+          "future implementation requires security review"
+        ],
+        "changed_files": [],
+        "commit_hashes": [],
+        "generated_artifacts": [],
+        "intake_status": "PARKED",
+        "next_safe_move": "Preserve as future Finance/invoicing stress-test reference; do not implement active invoicing.",
+        "operator_review_required": false,
+        "receipt_refs": [
+          "generated/read_models/capital_hilton_proof_metadata_packet.json",
+          "generated/read_models/security_audit_readiness_packet.json",
+          "generated/read_models/package_preview_receipt_contract.json",
+          "generated/read_models/tool_adapter_receipt_contract.json"
+        ],
+        "reported_status": "BLOCKED",
+        "reported_task": "Future automated invoicing pipeline state-machine stress test",
+        "screenshots": [],
+        "security_relevance": "high",
+        "security_review_required": true,
+        "stable_map_refs": [
+          "openclaw_map_snapshot.capital_hilton_proof_metadata",
+          "openclaw_map_snapshot.security_audit_readiness",
+          "openclaw_map_snapshot.package_preview_receipts",
+          "openclaw_map_snapshot.tool_adapter_receipts"
+        ],
+        "test_commands": [],
+        "test_results": [
+          "Stage 1 ingestion/data validation is partially supported by existing contracts",
+          "Stage 2 ledger write/idempotency is blocked until future authority",
+          "Stage 3 pre-flight reconciliation is missing deterministic contract",
+          "Stage 4 contextual delivery/dispatch is blocked until future authority"
+        ],
+        "worker_name": "agy_gemini_future_invoicing_audit",
+        "worker_output_id": "future_invoicing_state_machine_audit",
+        "worker_surface": "external_worker_audit_readback"
+      }
+    ],
+    "required_fields": [
+      "worker_output_id",
+      "worker_name",
+      "worker_surface",
+      "reported_task",
+      "reported_status",
+      "commit_hashes",
+      "changed_files",
+      "generated_artifacts",
+      "test_commands",
+      "test_results",
+      "screenshots",
+      "receipt_refs",
+      "stable_map_refs",
+      "security_relevance",
+      "authority_claims",
+      "boundary_claims",
+      "intake_status",
+      "operator_review_required",
+      "security_review_required",
+      "next_safe_move"
+    ],
+    "rules": {
+      "candidate_proof_requires_links": [
+        "commits",
+        "tests",
+        "receipts",
+        "generated artifacts",
+        "screenshots",
+        "stable-map refs"
+      ],
+      "worker_output_intake_is_metadata_only": true,
+      "worker_output_is_not_truth_by_itself": true,
+      "worker_output_must_not_activate_anything": true,
+      "worker_output_must_not_create_queue_tasks": true,
+      "worker_output_must_not_mutate_source_files": true
+    }
+  }
 }

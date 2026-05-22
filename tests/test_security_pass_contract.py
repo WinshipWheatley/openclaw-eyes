@@ -103,7 +103,19 @@ def _adapters(payload: dict) -> dict:
     return {item["adapter_id"]: item for item in payload["agent_model_tool_security_decision"]["tool_adapters"]}
 
 
-def test_contract_is_deterministic_and_pass_1_only(tmp_path):
+def _worker_outputs(payload: dict) -> dict:
+    return {item["worker_output_id"]: item for item in payload["worker_output_intake"]["records"]}
+
+
+def _capabilities(payload: dict) -> dict:
+    return {item["capability_id"]: item for item in payload["orphaned_capability_detection"]["candidates"]}
+
+
+def _promotion_decisions(payload: dict) -> dict:
+    return {item["capability_id"]: item for item in payload["orphaned_capability_promotion_decisions"]["decisions"]}
+
+
+def test_contract_is_deterministic_and_pass_1_plus_pass_2_metadata_only(tmp_path):
     first = _build(tmp_path)
     second = _build(tmp_path)
 
@@ -111,10 +123,13 @@ def test_contract_is_deterministic_and_pass_1_only(tmp_path):
     assert first["schema_version"] == contract.SCHEMA_VERSION
     assert first["read_model_id"] == "security_pass_contract"
     assert first["pass_id"] == "pass_1_core_security_decisions_authority_boundaries"
-    assert first["contract_status"] == "deterministic_security_pass_pass_1_read_only_preview_approval_only"
+    assert first["pass_2_id"] == "pass_2_worker_output_intake_orphaned_capability_detection"
+    assert first["contract_status"] == "deterministic_security_pass_pass_1_plus_pass_2_metadata_only"
     assert first["machine_proof"]["map_generation_id"] == "map_3cf7a1d5f26147ae993a"
     assert first["machine_proof"]["app_visible_map_current"] is True
     assert first["machine_proof"]["check_transmission_quiet"] is True
+    assert first["core_rule"]["built_thing_is_not_active_because_it_exists"] is True
+    assert first["core_rule"]["worker_output_is_not_truth_by_itself"] is True
 
 
 def test_security_pass_output_approves_read_only_and_preview_without_action_authority(tmp_path):
@@ -126,7 +141,10 @@ def test_security_pass_output_approves_read_only_and_preview_without_action_auth
     assert summary["security_approval_granted_for_read_only_surfaces"] is True
     assert summary["security_approval_granted_for_preview_surfaces"] is True
     assert summary["security_approval_granted_for_metadata_only_surfaces"] is True
+    assert summary["security_approval_granted_for_worker_output_intake_metadata"] is True
+    assert summary["security_approval_granted_for_orphaned_capability_detection"] is True
     assert summary["security_approval_granted_for_execution"] is False
+    assert summary["automatic_activation_of_detected_capabilities_allowed"] is False
     assert payload["action_authority_granted"] is False
     assert payload["runtime_execution_authority_granted"] is False
     assert payload["tool_execution_authority_granted"] is False
@@ -176,6 +194,8 @@ def test_decision_categories_schema_and_global_authority_matrix_are_explicit(tmp
         "credentials/tokens/cookies/API keys",
         "send/submit/approval",
         "invoice generation",
+        "ledger writes",
+        "email dispatch",
         "raw finance/private body ingestion",
         "broad Markdown body ingestion",
         "Repo B execution",
@@ -183,6 +203,7 @@ def test_decision_categories_schema_and_global_authority_matrix_are_explicit(tmp
         "network operation",
         "automatic promotion",
         "automatic queueing",
+        "automatic activation of detected capabilities",
         "C-drive artifact writes",
     ]:
         assert blocked in matrix["still_blocked"]
@@ -283,6 +304,126 @@ def test_operator_answers_shared_paths_and_parked_breadcrumbs_remain_non_executi
     assert parked["holding_cell_creation"] == "future_gated_until_operator_attention_promotion_contract"
 
 
+def test_worker_output_intake_is_metadata_only_and_does_not_activate_capabilities(tmp_path):
+    payload = _build(tmp_path)
+    intake = payload["worker_output_intake"]
+    outputs = _worker_outputs(payload)
+
+    assert intake["allowed_intake_statuses"] == list(contract.WORKER_OUTPUT_INTAKE_STATUSES)
+    for field in contract.WORKER_OUTPUT_INTAKE_FIELDS:
+        assert field in intake["required_fields"]
+    assert intake["rules"]["worker_output_is_not_truth_by_itself"] is True
+    assert intake["rules"]["worker_output_must_not_activate_anything"] is True
+    assert intake["rules"]["worker_output_must_not_create_queue_tasks"] is True
+    assert intake["rules"]["worker_output_must_not_mutate_source_files"] is True
+    assert intake["rules"]["worker_output_intake_is_metadata_only"] is True
+    assert set(outputs) == {"future_invoicing_state_machine_audit"}
+    assert payload["machine_proof"]["worker_output_intake_metadata_approved"] is True
+    assert payload["machine_proof"]["worker_output_intake_does_not_activate_capabilities"] is True
+
+
+def test_orphaned_capability_detection_represents_defaults_without_execution(tmp_path):
+    payload = _build(tmp_path)
+    detection = payload["orphaned_capability_detection"]
+    capabilities = _capabilities(payload)
+
+    assert detection["allowed_capability_statuses"] == list(contract.ORPHANED_CAPABILITY_STATUSES)
+    for field in contract.ORPHANED_CAPABILITY_FIELDS:
+        assert field in detection["required_fields"]
+    assert detection["core_doctrine"]["built_thing_is_not_active_because_it_exists"] is True
+    assert detection["core_doctrine"]["activation_requires_receipted_classified_gated_trusted_surfaced"] is True
+    assert detection["core_doctrine"]["detection_does_not_execute_capability"] is True
+    assert detection["core_doctrine"]["detection_does_not_create_queue_tasks"] is True
+    assert set(capabilities) == {
+        "markdown_knowledge_atlas",
+        "approved_markdown_evidence_ingestion",
+        "corpus_atlas_engine",
+        "security_audit_readiness_packet",
+        "capital_hilton_proof_metadata_packet",
+        "agent_council_dossier_surface",
+        "package_preview_tool_receipt_surface",
+    }
+    markdown = capabilities["markdown_knowledge_atlas"]
+    assert markdown["capability_status"] == "KNOWN_NOT_SURFACED"
+    assert markdown["safe_to_use_pre_security"] is True
+    assert "markdown_documents" in markdown["sqlite_table_refs"]
+    assert "markdown_document_classifications" in markdown["sqlite_table_refs"]
+    assert "broad Markdown body ingestion" in markdown["blocked_actions"]
+    assert "file moves/deletes/renames" in markdown["blocked_actions"]
+    assert "old docs as current truth without classification/proof" in markdown["blocked_actions"]
+    readiness = capabilities["security_audit_readiness_packet"]
+    assert readiness["capability_status"] == "KNOWN_AND_SURFACED"
+    assert readiness["mission_control_visibility_status"] == "surfaced"
+    assert payload["machine_proof"]["orphaned_capability_detection_approved"] is True
+    assert payload["machine_proof"]["orphaned_capability_detection_does_not_execute_capabilities"] is True
+
+
+def test_promotion_decisions_are_recommendations_only(tmp_path):
+    payload = _build(tmp_path)
+    promotion = payload["orphaned_capability_promotion_decisions"]
+    decisions = _promotion_decisions(payload)
+
+    assert promotion["allowed_decisions"] == list(contract.ORPHANED_CAPABILITY_PROMOTION_DECISIONS)
+    for field in contract.ORPHANED_CAPABILITY_PROMOTION_FIELDS:
+        assert field in promotion["required_fields"]
+    assert promotion["rules"]["promotion_decisions_are_recommendations_only"] is True
+    assert promotion["rules"]["must_not_trigger_file_edits"] is True
+    assert promotion["rules"]["must_not_queue_tasks"] is True
+    assert promotion["rules"]["must_not_activate_runtime"] is True
+    assert promotion["rules"]["must_not_run_detected_capability"] is True
+    assert promotion["rules"]["must_not_change_mission_control"] is True
+    assert decisions["markdown_knowledge_atlas"]["decision"] == "PROMOTE_TO_STABLE_MAP"
+    assert decisions["markdown_knowledge_atlas"]["action_authority_granted"] is False
+    assert decisions["capital_hilton_proof_metadata_packet"]["guardian_gate_required"] is True
+    assert payload["machine_proof"]["promotion_decisions_are_recommendations_only"] is True
+
+
+def test_future_invoicing_audit_is_parked_blocked_stress_test_artifact(tmp_path):
+    audit = _worker_outputs(_build(tmp_path))["future_invoicing_state_machine_audit"]
+
+    assert audit["reported_status"] == "BLOCKED"
+    assert audit["intake_status"] == "PARKED"
+    assert audit["security_relevance"] == "high"
+    assert audit["operator_review_required"] is False
+    assert audit["security_review_required"] is True
+    assert "Stage 1 ingestion/data validation is partially supported by existing contracts" in audit["test_results"]
+    assert "Stage 2 ledger write/idempotency is blocked until future authority" in audit["test_results"]
+    assert "Stage 3 pre-flight reconciliation is missing deterministic contract" in audit["test_results"]
+    assert "Stage 4 contextual delivery/dispatch is blocked until future authority" in audit["test_results"]
+    for ref in [
+        "generated/read_models/capital_hilton_proof_metadata_packet.json",
+        "generated/read_models/security_audit_readiness_packet.json",
+        "generated/read_models/package_preview_receipt_contract.json",
+        "generated/read_models/tool_adapter_receipt_contract.json",
+    ]:
+        assert ref in audit["receipt_refs"]
+    for blocked in [
+        "no ledger writes",
+        "no email dispatch",
+        "no Coupa/browser/account/credential authority",
+        "no invoice generation",
+        "no send/submit/approval",
+    ]:
+        assert blocked in audit["authority_claims"]
+    assert audit["next_safe_move"] == "Preserve as future Finance/invoicing stress-test reference; do not implement active invoicing."
+
+
+def test_future_invoicing_audit_does_not_authorize_finance_execution(tmp_path):
+    payload = _build(tmp_path)
+
+    assert payload["invoice_generation_allowed"] is False
+    assert payload["ledger_write_allowed"] is False
+    assert payload["email_dispatch_allowed"] is False
+    assert payload["browser_oauth_account_access_allowed"] is False
+    assert payload["credential_handling_allowed"] is False
+    assert payload["gmail_calendar_coupa_telegram_access_allowed"] is False
+    assert payload["send_submit_approval_allowed"] is False
+    assert payload["machine_proof"]["future_invoicing_audit_status"] == "PARKED"
+    assert payload["machine_proof"]["future_invoicing_audit_does_not_authorize_invoice_generation"] is True
+    assert payload["machine_proof"]["future_invoicing_audit_does_not_authorize_ledger_writes"] is True
+    assert payload["machine_proof"]["future_invoicing_audit_does_not_authorize_email_dispatch"] is True
+
+
 def test_agent_model_tool_decision_allows_display_but_blocks_activation_and_adapters(tmp_path):
     payload = _build(tmp_path)
     actors = _actors(payload)
@@ -321,16 +462,20 @@ def test_stable_map_integration_is_next_refresh_not_this_contract_lane(tmp_path)
 
     assert stable["contract_generated_as_read_model"] is True
     assert stable["summary_included_in_stable_map_now"] is False
-    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Pass Contract v0 Pass 1 summary."
+    assert stable["next_map_bundle_refresh_requirement"] == "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 summary."
     assert safe["security_pass_contract_id"] == "security_pass_contract"
     assert safe["security_pass_completed"] is True
     assert safe["read_only_surfaces_approved"] is True
     assert safe["preview_surfaces_approved"] is True
+    assert safe["worker_output_intake_metadata_approved"] is True
+    assert safe["orphaned_capability_detection_approved"] is True
     assert safe["action_authority"] is False
     assert safe["capital_hilton_preview_approved"] is True
     assert safe["capital_hilton_execution_blocked"] is True
     assert safe["markdown_terrain_metadata_approved"] is True
     assert safe["broad_markdown_body_blocked"] is True
+    assert safe["future_invoicing_audit_parked"] is True
+    assert safe["next_recommended_lane"] == "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance"
 
 
 def test_export_script_writes_json_and_operator_outputs(tmp_path, capsys):
@@ -345,14 +490,20 @@ def test_export_script_writes_json_and_operator_outputs(tmp_path, capsys):
     assert summary["security_pass_completed"] is True
     assert summary["read_only_surfaces_approved"] is True
     assert summary["preview_surfaces_approved"] is True
+    assert summary["worker_output_intake_approved"] is True
+    assert summary["orphaned_capability_detection_approved"] is True
+    assert summary["worker_output_count"] == 1
+    assert summary["orphaned_capability_count"] == 7
     assert summary["action_authority_granted"] is False
     assert summary["live_authority_added"] is False
     payload = json.loads((export_root / contract.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
     operator = (export_root / contract.OPERATOR_EXPORT_NAME).read_text(encoding="utf-8")
     assert payload["read_model_id"] == "security_pass_contract"
     assert payload["machine_proof"]["content_hash"].startswith("sha256:")
-    assert "Security Pass Contract v0 Pass 1" in operator
+    assert "Security Pass Contract v0 Pass 1 + Pass 2" in operator
     assert "ELIWINSHIP" in operator
+    assert "Worker Output Intake" in operator
+    assert "Future Invoicing Audit" in operator
 
 
 def test_generated_outputs_are_safe_canonical_read_model_files(tmp_path, capsys):

@@ -1,8 +1,8 @@
-# Security Pass Contract v0 Pass 1
+# Security Pass Contract v0 Pass 1 + Pass 2
 
 ## ELIWINSHIP Summary
 
-Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. It does not approve live action.
+Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. It does not approve live action.
 
 ## Approved
 
@@ -10,6 +10,9 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - Read-only surfaces approved: `true`.
 - Preview surfaces approved: `true`.
 - Metadata-only surfaces approved: `true`.
+- Worker-output intake metadata approved: `true`.
+- Orphaned capability detection approved: `true`.
+- Automatic activation of detected capabilities allowed: `false`.
 
 ## Still Blocked
 
@@ -25,6 +28,8 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - credentials/tokens/cookies/API keys
 - send/submit/approval
 - invoice generation
+- ledger writes
+- email dispatch
 - raw finance/private body ingestion
 - raw Excel body ingestion
 - raw email/calendar body ingestion
@@ -39,6 +44,7 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - hidden surveillance
 - automatic promotion
 - automatic queueing
+- automatic activation of detected capabilities
 - automatic world transition
 - C-drive artifact writes
 
@@ -64,6 +70,30 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - Broad Markdown body ingestion, broad doc reorganization, file moves/deletes/renames, vector indexing, and stale doctrine promotion remain blocked.
 - App visibility is a future visibility gap, not a security blocker.
 
+## Worker Output Intake
+
+- Worker output can be received as metadata.
+- External worker output is not truth by itself.
+- Output becomes candidate proof only when linked to commits, tests, receipts, generated artifacts, screenshots, or stable-map refs.
+- Intake does not activate anything, create queue tasks, mutate source files, or run detected capabilities.
+- Intake records: `1`.
+
+## Orphaned Capabilities
+
+- An orphaned capability is something useful that exists but is not fully registered, surfaced, trusted, or active.
+- A built thing is not active because it exists.
+- Markdown Atlas is the reference example: it already exists and is safe for metadata readback, so OpenClaw should preserve it and avoid building a duplicate mapper.
+- Capability candidates recorded: `7`.
+- Promotion decisions are recommendations only; they do not trigger file edits, queues, runtime activation, or Mission Control changes.
+
+## Future Invoicing Audit
+
+- Intake status: `PARKED`.
+- Reported status: `BLOCKED`.
+- The audit is preserved as a future Finance/invoicing stress-test reference.
+- Active invoicing remains parked/blocked: no ledger writes, no email dispatch, no Coupa/browser/account/credential authority, no invoice generation, and no send/submit/approval.
+- Missing future contracts include deterministic invoice math, idempotency, ledger write/readback receipts, manual lock state, and communication draft receipts.
+
 ## Agents / Models / Tools
 
 - Agent/persona display and package preview are approved.
@@ -72,7 +102,7 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 
 ## Next
 
-- Pass 2 should handle Worker Output Intake / Orphaned Capability Detection.
+- Pass 3 should handle Chief/Hermes FULL_TRUST_CLEARANCE.
 - A later stable-map refresh should surface this Security Pass summary in Mission Control.
 
 ## Authority Flags
@@ -89,6 +119,8 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - `credential_handling_allowed` = `False`
 - `send_submit_approval_allowed` = `False`
 - `invoice_generation_allowed` = `False`
+- `ledger_write_allowed` = `False`
+- `email_dispatch_allowed` = `False`
 - `raw_private_body_ingestion_allowed` = `False`
 - `raw_finance_body_ingestion_allowed` = `False`
 - `raw_excel_body_ingestion_allowed` = `False`
@@ -104,6 +136,7 @@ Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, p
 - `hidden_surveillance_allowed` = `False`
 - `automatic_promotion_allowed` = `False`
 - `automatic_queueing_allowed` = `False`
+- `automatic_activation_of_detected_capabilities_allowed` = `False`
 - `automatic_world_transition_allowed` = `False`
 - `pc_c_drive_artifact_write_allowed` = `False`
 - `action_authority_granted` = `False`

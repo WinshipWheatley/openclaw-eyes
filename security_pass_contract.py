@@ -1,13 +1,15 @@
-"""Security Pass Contract v0 Pass 1 for OpenClaw.
+"""Security Pass Contract v0 Pass 1 + Pass 2 for OpenClaw.
 
 This read-model records scoped security pass decisions for read-only,
 preview-only, metadata-only, capture-only, proof/detail, stable-map, and world
-preview surfaces. It does not create live execution, model calls, model router
-runtime, actor/agent activation, tool execution, browser/OAuth/account access,
-Gmail/calendar/Coupa/Telegram access, credentials, send/submit/approval,
-invoice generation, queue/autonomy, planner/builder execution, Mac sync/import,
-network operation, Repo B inspection, file organization, raw private body
-ingestion, or PC system-drive write authority.
+preview surfaces. Pass 2 adds worker-output intake and orphaned capability
+detection metadata. It does not create live execution, model calls, model
+router runtime, actor/agent activation, tool execution, browser/OAuth/account
+access, Gmail/calendar/Coupa/Telegram access, credentials, send/submit/approval,
+invoice generation, ledger writes, email dispatch, queue/autonomy,
+planner/builder execution, Mac sync/import, network operation, Repo B
+inspection, file organization, raw private body ingestion, automatic activation
+of detected capabilities, or PC system-drive write authority.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 
-SCHEMA_VERSION = "security_pass_contract_v0_pass_1"
+SCHEMA_VERSION = "security_pass_contract_v0_pass_2"
 JSON_EXPORT_NAME = "security_pass_contract.json"
 OPERATOR_EXPORT_NAME = "security_pass_contract_OPERATOR.md"
 
@@ -83,6 +85,8 @@ NO_ACTION_AUTHORITY_FLAGS = {
     "credential_handling_allowed": False,
     "send_submit_approval_allowed": False,
     "invoice_generation_allowed": False,
+    "ledger_write_allowed": False,
+    "email_dispatch_allowed": False,
     "raw_private_body_ingestion_allowed": False,
     "raw_finance_body_ingestion_allowed": False,
     "raw_excel_body_ingestion_allowed": False,
@@ -98,6 +102,7 @@ NO_ACTION_AUTHORITY_FLAGS = {
     "hidden_surveillance_allowed": False,
     "automatic_promotion_allowed": False,
     "automatic_queueing_allowed": False,
+    "automatic_activation_of_detected_capabilities_allowed": False,
     "automatic_world_transition_allowed": False,
     "pc_c_drive_artifact_write_allowed": False,
     "action_authority_granted": False,
@@ -141,6 +146,8 @@ STILL_BLOCKED = (
     "credentials/tokens/cookies/API keys",
     "send/submit/approval",
     "invoice generation",
+    "ledger writes",
+    "email dispatch",
     "raw finance/private body ingestion",
     "raw Excel body ingestion",
     "raw email/calendar body ingestion",
@@ -155,8 +162,111 @@ STILL_BLOCKED = (
     "hidden surveillance",
     "automatic promotion",
     "automatic queueing",
+    "automatic activation of detected capabilities",
     "automatic world transition",
     "C-drive artifact writes",
+)
+
+WORKER_OUTPUT_INTAKE_STATUSES = (
+    "RECEIVED_UNVERIFIED",
+    "RECEIPT_MATCHED",
+    "PROOF_REFERENCED",
+    "NEEDS_CLASSIFICATION",
+    "NEEDS_SECURITY_REVIEW",
+    "NEEDS_STABLE_MAP_PROMOTION",
+    "NEEDS_APP_SURFACE",
+    "DUPLICATE_EXISTING_CAPABILITY",
+    "PARKED",
+    "QUARANTINED",
+    "REJECTED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+ORPHANED_CAPABILITY_STATUSES = (
+    "KNOWN_AND_SURFACED",
+    "KNOWN_NOT_SURFACED",
+    "BUILT_NOT_REGISTERED",
+    "REGISTERED_NOT_VISIBLE",
+    "DUPLICATE",
+    "STALE",
+    "UNSAFE",
+    "PARKED",
+    "QUARANTINED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+ORPHANED_CAPABILITY_PROMOTION_DECISIONS = (
+    "PROMOTE_TO_STABLE_MAP",
+    "CREATE_APP_VISIBILITY_SURFACE",
+    "ADD_TO_PACKAGE_REGISTRY",
+    "ADD_TO_HOLDING_CELL",
+    "MERGE_WITH_EXISTING_CAPABILITY",
+    "KEEP_AS_PROOF_DETAIL",
+    "PARK",
+    "QUARANTINE",
+    "REJECT_OBSOLETE",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+WORKER_OUTPUT_INTAKE_FIELDS = (
+    "worker_output_id",
+    "worker_name",
+    "worker_surface",
+    "reported_task",
+    "reported_status",
+    "commit_hashes",
+    "changed_files",
+    "generated_artifacts",
+    "test_commands",
+    "test_results",
+    "screenshots",
+    "receipt_refs",
+    "stable_map_refs",
+    "security_relevance",
+    "authority_claims",
+    "boundary_claims",
+    "intake_status",
+    "operator_review_required",
+    "security_review_required",
+    "next_safe_move",
+)
+
+ORPHANED_CAPABILITY_FIELDS = (
+    "capability_id",
+    "display_name",
+    "detected_from",
+    "evidence_refs",
+    "script_refs",
+    "test_refs",
+    "read_model_refs",
+    "sqlite_table_refs",
+    "stable_map_status",
+    "mission_control_visibility_status",
+    "package_visibility_status",
+    "world_visibility_status",
+    "capability_status",
+    "safe_to_use_pre_security",
+    "security_review_required",
+    "operator_review_required",
+    "recommended_action",
+    "what_would_make_it_active",
+    "what_keeps_it_inactive",
+    "blocked_actions",
+)
+
+ORPHANED_CAPABILITY_PROMOTION_FIELDS = (
+    "capability_id",
+    "decision",
+    "reason",
+    "required_proof",
+    "required_tests",
+    "required_security_gates",
+    "required_stable_map_refs",
+    "required_app_surface",
+    "operator_approval_required",
+    "guardian_gate_required",
+    "action_authority_granted",
+    "next_safe_move",
 )
 
 SOURCE_READ_MODEL_REFS = (
@@ -246,6 +356,70 @@ class SecurityDecision:
 
 
 @dataclass(frozen=True)
+class WorkerOutputReceiptIntake:
+    worker_output_id: str
+    worker_name: str
+    worker_surface: str
+    reported_task: str
+    reported_status: str
+    commit_hashes: list[str]
+    changed_files: list[str]
+    generated_artifacts: list[str]
+    test_commands: list[str]
+    test_results: list[str]
+    screenshots: list[str]
+    receipt_refs: list[str]
+    stable_map_refs: list[str]
+    security_relevance: str
+    authority_claims: list[str]
+    boundary_claims: list[str]
+    intake_status: str
+    operator_review_required: bool
+    security_review_required: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class OrphanedCapabilityCandidate:
+    capability_id: str
+    display_name: str
+    detected_from: list[str]
+    evidence_refs: list[str]
+    script_refs: list[str]
+    test_refs: list[str]
+    read_model_refs: list[str]
+    sqlite_table_refs: list[str]
+    stable_map_status: str
+    mission_control_visibility_status: str
+    package_visibility_status: str
+    world_visibility_status: str
+    capability_status: str
+    safe_to_use_pre_security: bool
+    security_review_required: bool
+    operator_review_required: bool
+    recommended_action: str
+    what_would_make_it_active: str
+    what_keeps_it_inactive: str
+    blocked_actions: list[str]
+
+
+@dataclass(frozen=True)
+class OrphanedCapabilityPromotionDecision:
+    capability_id: str
+    decision: str
+    reason: str
+    required_proof: list[str]
+    required_tests: list[str]
+    required_security_gates: list[str]
+    required_stable_map_refs: list[str]
+    required_app_surface: str
+    operator_approval_required: bool
+    guardian_gate_required: bool
+    action_authority_granted: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
 class SecurityPassContractExportResult:
     schema_version: str
     json_path: str
@@ -254,6 +428,10 @@ class SecurityPassContractExportResult:
     security_pass_completed: bool
     read_only_surfaces_approved: bool
     preview_surfaces_approved: bool
+    worker_output_intake_approved: bool
+    orphaned_capability_detection_approved: bool
+    worker_output_count: int
+    orphaned_capability_count: int
     action_authority_granted: bool
     live_authority_added: bool
 
@@ -700,6 +878,387 @@ def _agent_model_tool_security_decision() -> dict[str, Any]:
     }
 
 
+def _build_worker_output_intake() -> dict[str, Any]:
+    future_invoicing = WorkerOutputReceiptIntake(
+        worker_output_id="future_invoicing_state_machine_audit",
+        worker_name="agy_gemini_future_invoicing_audit",
+        worker_surface="external_worker_audit_readback",
+        reported_task="Future automated invoicing pipeline state-machine stress test",
+        reported_status="BLOCKED",
+        commit_hashes=[],
+        changed_files=[],
+        generated_artifacts=[],
+        test_commands=[],
+        test_results=[
+            "Stage 1 ingestion/data validation is partially supported by existing contracts",
+            "Stage 2 ledger write/idempotency is blocked until future authority",
+            "Stage 3 pre-flight reconciliation is missing deterministic contract",
+            "Stage 4 contextual delivery/dispatch is blocked until future authority",
+        ],
+        screenshots=[],
+        receipt_refs=[
+            "generated/read_models/capital_hilton_proof_metadata_packet.json",
+            "generated/read_models/security_audit_readiness_packet.json",
+            "generated/read_models/package_preview_receipt_contract.json",
+            "generated/read_models/tool_adapter_receipt_contract.json",
+        ],
+        stable_map_refs=[
+            "openclaw_map_snapshot.capital_hilton_proof_metadata",
+            "openclaw_map_snapshot.security_audit_readiness",
+            "openclaw_map_snapshot.package_preview_receipts",
+            "openclaw_map_snapshot.tool_adapter_receipts",
+        ],
+        security_relevance="high",
+        authority_claims=[
+            "no ledger writes",
+            "no email dispatch",
+            "no Coupa/browser/account/credential authority",
+            "no invoice generation",
+            "no send/submit/approval",
+        ],
+        boundary_claims=[
+            "park as Security Pass stress-test artifact",
+            "do not implement active invoicing now",
+            "missing contracts must precede future automation",
+            "future implementation requires security review",
+        ],
+        intake_status="PARKED",
+        operator_review_required=False,
+        security_review_required=True,
+        next_safe_move="Preserve as future Finance/invoicing stress-test reference; do not implement active invoicing.",
+    )
+    return {
+        "model_id": "worker_output_intake_v0",
+        "description": "Read-only metadata intake for worker outputs; output is not truth by itself.",
+        "allowed_intake_statuses": list(WORKER_OUTPUT_INTAKE_STATUSES),
+        "required_fields": list(WORKER_OUTPUT_INTAKE_FIELDS),
+        "rules": {
+            "worker_output_is_not_truth_by_itself": True,
+            "candidate_proof_requires_links": [
+                "commits",
+                "tests",
+                "receipts",
+                "generated artifacts",
+                "screenshots",
+                "stable-map refs",
+            ],
+            "worker_output_must_not_activate_anything": True,
+            "worker_output_must_not_create_queue_tasks": True,
+            "worker_output_must_not_mutate_source_files": True,
+            "worker_output_intake_is_metadata_only": True,
+        },
+        "records": [asdict(future_invoicing)],
+        "authority_flags": _authority_flags(),
+    }
+
+
+def _capability(
+    *,
+    capability_id: str,
+    display_name: str,
+    detected_from: list[str],
+    evidence_refs: list[str],
+    script_refs: list[str],
+    test_refs: list[str],
+    read_model_refs: list[str],
+    sqlite_table_refs: list[str],
+    stable_map_status: str,
+    mission_control_visibility_status: str,
+    package_visibility_status: str,
+    world_visibility_status: str,
+    capability_status: str,
+    safe_to_use_pre_security: bool,
+    security_review_required: bool,
+    operator_review_required: bool,
+    recommended_action: str,
+    what_would_make_it_active: str,
+    what_keeps_it_inactive: str,
+    blocked_actions: list[str],
+) -> dict[str, Any]:
+    return asdict(
+        OrphanedCapabilityCandidate(
+            capability_id=capability_id,
+            display_name=display_name,
+            detected_from=detected_from,
+            evidence_refs=evidence_refs,
+            script_refs=script_refs,
+            test_refs=test_refs,
+            read_model_refs=read_model_refs,
+            sqlite_table_refs=sqlite_table_refs,
+            stable_map_status=stable_map_status,
+            mission_control_visibility_status=mission_control_visibility_status,
+            package_visibility_status=package_visibility_status,
+            world_visibility_status=world_visibility_status,
+            capability_status=capability_status,
+            safe_to_use_pre_security=safe_to_use_pre_security,
+            security_review_required=security_review_required,
+            operator_review_required=operator_review_required,
+            recommended_action=recommended_action,
+            what_would_make_it_active=what_would_make_it_active,
+            what_keeps_it_inactive=what_keeps_it_inactive,
+            blocked_actions=blocked_actions,
+        )
+    )
+
+
+def _build_orphaned_capability_detection() -> dict[str, Any]:
+    blocked_markdown = [
+        "broad Markdown body ingestion",
+        "file organization",
+        "file moves/deletes/renames",
+        "old docs as current truth without classification/proof",
+    ]
+    candidates = [
+        _capability(
+            capability_id="markdown_knowledge_atlas",
+            display_name="Markdown Knowledge Atlas",
+            detected_from=["markdown_knowledge_atlas.py", "scripts/build_markdown_knowledge_atlas.py"],
+            evidence_refs=["SQLite metadata counts", "Markdown terrain capability readback"],
+            script_refs=["scripts/build_markdown_knowledge_atlas.py"],
+            test_refs=[],
+            read_model_refs=[],
+            sqlite_table_refs=[
+                "markdown_documents",
+                "markdown_document_classifications",
+                "markdown_document_links",
+                "markdown_document_reorg_candidates",
+                "markdown_document_supersession",
+            ],
+            stable_map_status="partly_summarized_as_security_decision",
+            mission_control_visibility_status="future_visibility_gap",
+            package_visibility_status="metadata_reference_possible",
+            world_visibility_status="not_world_specific",
+            capability_status="KNOWN_NOT_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=False,
+            operator_review_required=False,
+            recommended_action="preserve existing capability, avoid duplicate mapper, consider stable-map/app visibility later",
+            what_would_make_it_active="Stable-map/app visibility surface with metadata-only boundaries and proof refs.",
+            what_keeps_it_inactive="No current app surface and broad body/file mutation remains blocked.",
+            blocked_actions=blocked_markdown,
+        ),
+        _capability(
+            capability_id="approved_markdown_evidence_ingestion",
+            display_name="Approved Markdown Evidence Ingestion",
+            detected_from=["markdown_evidence_ingestion.py", "scripts/ingest_approved_markdown_evidence.py"],
+            evidence_refs=["12 approved markdown evidence sources", "206 bounded evidence items"],
+            script_refs=["scripts/ingest_approved_markdown_evidence.py"],
+            test_refs=[],
+            read_model_refs=[],
+            sqlite_table_refs=["markdown_evidence_sources", "markdown_evidence_items"],
+            stable_map_status="proof_detail_candidate",
+            mission_control_visibility_status="not_primary_surface",
+            package_visibility_status="proof_detail_reference_possible",
+            world_visibility_status="not_world_specific",
+            capability_status="KNOWN_NOT_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=False,
+            operator_review_required=False,
+            recommended_action="keep as proof/detail capability and expose only bounded metadata later",
+            what_would_make_it_active="Allowlisted proof/detail surface with source-card refs and redaction rules.",
+            what_keeps_it_inactive="No app-facing proof drawer integration for this capability yet.",
+            blocked_actions=[
+                "broad body ingestion",
+                "unrestricted summarization",
+                "stale doctrine promotion",
+            ],
+        ),
+        _capability(
+            capability_id="corpus_atlas_engine",
+            display_name="Corpus Atlas Engine",
+            detected_from=["corpus_atlas.py", "SQLite corpus metadata"],
+            evidence_refs=["43,762 corpus_paths rows", "434,362 corpus_path_labels rows"],
+            script_refs=["corpus_atlas.py"],
+            test_refs=[],
+            read_model_refs=[],
+            sqlite_table_refs=["corpus_paths", "corpus_path_labels"],
+            stable_map_status="not_directly_surfaced",
+            mission_control_visibility_status="hidden_by_design_until_classified",
+            package_visibility_status="metadata_substrate_only",
+            world_visibility_status="not_world_specific",
+            capability_status="KNOWN_NOT_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=True,
+            operator_review_required=False,
+            recommended_action="treat as metadata substrate; avoid uncontrolled scans",
+            what_would_make_it_active="Deterministic source-card/readback contract with scope and privacy boundaries.",
+            what_keeps_it_inactive="Broad private body inspection and uncontrolled repo scans remain blocked.",
+            blocked_actions=[
+                "broad private body inspection",
+                "uncontrolled repo scans",
+                "runtime crawler activation",
+            ],
+        ),
+        _capability(
+            capability_id="security_audit_readiness_packet",
+            display_name="Security Audit Readiness Packet",
+            detected_from=["security_audit_readiness_packet.py", "generated/read_models/security_audit_readiness_packet.json"],
+            evidence_refs=["ff1239f", "02ec429", "371c56d", "d31c91b"],
+            script_refs=["scripts/export_security_audit_readiness_packet.py"],
+            test_refs=["tests/test_security_audit_readiness_packet.py"],
+            read_model_refs=["generated/read_models/security_audit_readiness_packet.json"],
+            sqlite_table_refs=[],
+            stable_map_status="surfaced",
+            mission_control_visibility_status="surfaced",
+            package_visibility_status="readiness/provenance/focus/coverage/breadcrumb doctrine",
+            world_visibility_status="Helm",
+            capability_status="KNOWN_AND_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=False,
+            operator_review_required=False,
+            recommended_action="keep as readiness/provenance/focus/coverage/breadcrumb doctrine",
+            what_would_make_it_active="Already surfaced as read-only readiness; no runtime activation needed.",
+            what_keeps_it_inactive="It is doctrine/readback, not execution authority.",
+            blocked_actions=list(STILL_BLOCKED),
+        ),
+        _capability(
+            capability_id="capital_hilton_proof_metadata_packet",
+            display_name="Capital Hilton Proof Metadata Packet",
+            detected_from=["capital_hilton_proof_metadata_packet.py", "generated/read_models/capital_hilton_proof_metadata_packet.json"],
+            evidence_refs=["2a9bede", "b0c80f4", "map_fbda77b8af4e9c796c03"],
+            script_refs=["scripts/export_capital_hilton_proof_metadata_packet.py"],
+            test_refs=["tests/test_capital_hilton_proof_metadata_packet.py"],
+            read_model_refs=["generated/read_models/capital_hilton_proof_metadata_packet.json"],
+            sqlite_table_refs=[],
+            stable_map_status="surfaced",
+            mission_control_visibility_status="surfaced_in_finance_preview",
+            package_visibility_status="Finance steel-thread proof metadata",
+            world_visibility_status="Finance",
+            capability_status="KNOWN_AND_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=True,
+            operator_review_required=False,
+            recommended_action="keep as Finance preview/proof metadata; do not convert to invoicing action",
+            what_would_make_it_active="Proof metadata, Guardian gate, Operator path, and future action-authority pass.",
+            what_keeps_it_inactive="Missing proof count remains 10 and action authority is false.",
+            blocked_actions=[
+                "invoice generation",
+                "Coupa/browser/account access",
+                "credentials",
+                "send/submit/approval",
+            ],
+        ),
+        _capability(
+            capability_id="agent_council_dossier_surface",
+            display_name="Agent Council Dossier Surface",
+            detected_from=["stable map Agent Council summary", "Mac app checkpoint"],
+            evidence_refs=["agent_council.agent_dossier_cards", "5d7f3c3b1d516f5c0eba9daf38b548c789640320"],
+            script_refs=[],
+            test_refs=["tests/test_operator_map_bundle_contract.py"],
+            read_model_refs=["generated/read_models/openclaw_map_snapshot.json#agent_council"],
+            sqlite_table_refs=[],
+            stable_map_status="surfaced",
+            mission_control_visibility_status="surfaced",
+            package_visibility_status="actor/persona preview",
+            world_visibility_status="Helm",
+            capability_status="KNOWN_AND_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=False,
+            operator_review_required=False,
+            recommended_action="keep preview-only; no agent activation",
+            what_would_make_it_active="Future explicit agent/model/tool authority pass, if ever granted.",
+            what_keeps_it_inactive="Agent activation, model calls, tool use, and self-authority remain false.",
+            blocked_actions=["live chat", "model launch", "agent activation", "tool use", "hidden memory"],
+        ),
+        _capability(
+            capability_id="package_preview_tool_receipt_surface",
+            display_name="Package Preview / Tool Receipt Surface",
+            detected_from=["package_preview_receipt_contract.py", "tool_adapter_receipt_contract.py", "Mac app surface"],
+            evidence_refs=["1a54dfd", "39eb210", "5d7f3c3b1d516f5c0eba9daf38b548c789640320"],
+            script_refs=[
+                "scripts/export_package_preview_receipt_contract.py",
+                "scripts/export_tool_adapter_receipt_contract.py",
+            ],
+            test_refs=[
+                "tests/test_package_preview_receipt_contract.py",
+                "tests/test_tool_adapter_receipt_contract.py",
+            ],
+            read_model_refs=[
+                "generated/read_models/package_preview_receipt_contract.json",
+                "generated/read_models/tool_adapter_receipt_contract.json",
+            ],
+            sqlite_table_refs=[],
+            stable_map_status="surfaced",
+            mission_control_visibility_status="surfaced",
+            package_visibility_status="package/tool preview",
+            world_visibility_status="Helm",
+            capability_status="KNOWN_AND_SURFACED",
+            safe_to_use_pre_security=True,
+            security_review_required=False,
+            operator_review_required=False,
+            recommended_action="keep preview/proof-detail only; no dispatch",
+            what_would_make_it_active="Future receipted action-authority pass and per-adapter gate receipts.",
+            what_keeps_it_inactive="Dispatch, model launch, tool execution, and account controls remain blocked.",
+            blocked_actions=["dispatch", "tool execution", "model launch", "account/browser/send controls"],
+        ),
+    ]
+    return {
+        "model_id": "orphaned_capability_detection_v0",
+        "description": "Read-only metadata model for finding useful built capability that is not yet surfaced or active.",
+        "allowed_capability_statuses": list(ORPHANED_CAPABILITY_STATUSES),
+        "required_fields": list(ORPHANED_CAPABILITY_FIELDS),
+        "core_doctrine": {
+            "built_thing_is_not_active_because_it_exists": True,
+            "activation_requires_receipted_classified_gated_trusted_surfaced": True,
+            "detection_does_not_execute_capability": True,
+            "detection_does_not_create_queue_tasks": True,
+            "detection_does_not_mutate_source_notes": True,
+        },
+        "candidates": candidates,
+        "authority_flags": _authority_flags(),
+    }
+
+
+def _promotion_decision_for(candidate: dict[str, Any]) -> dict[str, Any]:
+    capability_id = candidate["capability_id"]
+    if capability_id in {"markdown_knowledge_atlas", "approved_markdown_evidence_ingestion", "corpus_atlas_engine"}:
+        decision = "PROMOTE_TO_STABLE_MAP" if capability_id == "markdown_knowledge_atlas" else "KEEP_AS_PROOF_DETAIL"
+        app_surface = "future metadata/proof drawer visibility"
+        required_gates = ["metadata-only boundary", "no broad body ingestion"]
+    elif candidate["capability_status"] == "KNOWN_AND_SURFACED":
+        decision = "KEEP_AS_PROOF_DETAIL"
+        app_surface = "already surfaced or proof/detail only"
+        required_gates = ["preserve read-only/preview boundary"]
+    else:
+        decision = "PARK"
+        app_surface = "future app surface only after security review"
+        required_gates = ["security review"]
+    return asdict(
+        OrphanedCapabilityPromotionDecision(
+            capability_id=capability_id,
+            decision=decision,
+            reason=candidate["recommended_action"],
+            required_proof=candidate["evidence_refs"] + candidate["read_model_refs"],
+            required_tests=candidate["test_refs"],
+            required_security_gates=required_gates,
+            required_stable_map_refs=[] if candidate["stable_map_status"] == "surfaced" else ["future stable-map summary if promoted"],
+            required_app_surface=app_surface,
+            operator_approval_required=False,
+            guardian_gate_required=capability_id == "capital_hilton_proof_metadata_packet",
+            action_authority_granted=False,
+            next_safe_move="Record recommendation only; do not edit files, queue tasks, activate runtime, or run detected capability.",
+        )
+    )
+
+
+def _build_orphaned_capability_promotion_decisions(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "model_id": "orphaned_capability_promotion_decision_v0",
+        "allowed_decisions": list(ORPHANED_CAPABILITY_PROMOTION_DECISIONS),
+        "required_fields": list(ORPHANED_CAPABILITY_PROMOTION_FIELDS),
+        "rules": {
+            "promotion_decisions_are_recommendations_only": True,
+            "must_not_trigger_file_edits": True,
+            "must_not_queue_tasks": True,
+            "must_not_activate_runtime": True,
+            "must_not_run_detected_capability": True,
+            "must_not_change_mission_control": True,
+        },
+        "decisions": [_promotion_decision_for(candidate) for candidate in candidates],
+        "authority_flags": _authority_flags(),
+    }
+
+
 def build_security_pass_contract(
     *,
     repo_root: str | Path = ROOT,
@@ -716,11 +1275,18 @@ def build_security_pass_contract(
     shared_path_decision = _helm_focus_shared_path_security_decision()
     parked_decision = _parked_breadcrumb_security_decision()
     agent_tool_decision = _agent_model_tool_security_decision()
+    worker_output_intake = _build_worker_output_intake()
+    orphaned_capability_detection = _build_orphaned_capability_detection()
+    orphaned_capability_promotion_decisions = _build_orphaned_capability_promotion_decisions(
+        orphaned_capability_detection["candidates"]
+    )
     output_summary = {
         "security_pass_completed": True,
         "security_approval_granted_for_read_only_surfaces": True,
         "security_approval_granted_for_preview_surfaces": True,
         "security_approval_granted_for_metadata_only_surfaces": True,
+        "security_approval_granted_for_worker_output_intake_metadata": True,
+        "security_approval_granted_for_orphaned_capability_detection": True,
         "security_approval_granted_for_execution": False,
         "action_authority_granted": False,
         "runtime_execution_authority_granted": False,
@@ -729,22 +1295,28 @@ def build_security_pass_contract(
         "queue_execution_authority_granted": False,
         "account_authority_granted": False,
         "send_submit_approval_authority_granted": False,
+        "automatic_activation_of_detected_capabilities_allowed": False,
     }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": "security_pass_contract",
         "pass_id": "pass_1_core_security_decisions_authority_boundaries",
+        "pass_2_id": "pass_2_worker_output_intake_orphaned_capability_detection",
         "generated_at": generated_at,
         **NO_ACTION_AUTHORITY_FLAGS,
         **output_summary,
-        "contract_status": "deterministic_security_pass_pass_1_read_only_preview_approval_only",
+        "contract_status": "deterministic_security_pass_pass_1_plus_pass_2_metadata_only",
         "operator_summary": (
             "Security Pass Contract v0 Pass 1 approves the current read-only, preview-only, metadata-only, "
-            "proof/detail, stable-map, and world-preview surfaces while keeping every live action authority false."
+            "proof/detail, stable-map, and world-preview surfaces. Pass 2 approves worker-output intake and "
+            "orphaned capability detection as metadata while keeping every live action authority false."
         ),
         "core_rule": {
             "security_pass_approval_is_not_action_authority": True,
             "read_only_and_preview_surfaces_can_be_approved_without_execution": True,
+            "built_thing_is_not_active_because_it_exists": True,
+            "built_thing_becomes_active_only_after_receipted_classified_gated_trusted_surfaced": True,
+            "worker_output_is_not_truth_by_itself": True,
             "future_limited_execution_requires_separate_explicit_receipted_authority": True,
         },
         "security_decision_categories": list(SECURITY_DECISION_CATEGORIES),
@@ -770,31 +1342,37 @@ def build_security_pass_contract(
         "helm_focus_shared_path_security_decision": shared_path_decision,
         "parked_breadcrumb_security_decision": parked_decision,
         "agent_model_tool_security_decision": agent_tool_decision,
+        "worker_output_intake": worker_output_intake,
+        "orphaned_capability_detection": orphaned_capability_detection,
+        "orphaned_capability_promotion_decisions": orphaned_capability_promotion_decisions,
         "security_pass_output_summary": output_summary,
         "stable_map_integration": {
             "contract_generated_as_read_model": True,
             "summary_included_in_stable_map_now": False,
-            "reason_not_included_now": "Pass 1 is standalone; stable-map refresh is a separate lane.",
-            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 summary.",
+            "reason_not_included_now": "Pass 1 + Pass 2 are standalone; stable-map refresh is a separate lane.",
+            "next_map_bundle_refresh_requirement": "Next stable-map refresh should include Security Pass Contract v0 Pass 1 + Pass 2 summary.",
             "safe_summary_for_next_refresh": {
                 "security_pass_contract_id": "security_pass_contract",
                 "security_pass_completed": True,
                 "read_only_surfaces_approved": True,
                 "preview_surfaces_approved": True,
+                "worker_output_intake_metadata_approved": True,
+                "orphaned_capability_detection_approved": True,
                 "action_authority": False,
                 "capital_hilton_preview_approved": True,
                 "capital_hilton_execution_blocked": True,
                 "markdown_terrain_metadata_approved": True,
                 "broad_markdown_body_blocked": True,
-                "next_recommended_lane": "security_pass_contract_v0_pass_2_worker_output_intake_or_orphaned_capability_detection",
+                "future_invoicing_audit_parked": True,
+                "next_recommended_lane": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
             },
         },
         "recommended_next_lanes": [
             {
-                "lane_id": "security_pass_contract_v0_pass_2_worker_output_intake",
-                "title": "Security Pass Contract v0 Pass 2 - Worker Output Intake / Orphaned Capability Detection",
-                "purpose": "classify worker outputs and orphaned capabilities without granting execution authority",
-                "boundary": "read-model only; no intake daemon, queue, or automation",
+                "lane_id": "security_pass_contract_v0_pass_3_chief_hermes_full_trust_clearance",
+                "title": "Security Pass Contract v0 Pass 3 - Chief/Hermes FULL_TRUST_CLEARANCE",
+                "purpose": "define trust-building and clearance boundaries without granting hidden automation",
+                "boundary": "do not implement in Pass 2; no runtime, queue, or authority grant",
             },
             {
                 "lane_id": "stable_map_refresh_security_pass_summary",
@@ -812,6 +1390,13 @@ def build_security_pass_contract(
             "security_pass_completed": True,
             "read_only_surfaces_approved": True,
             "preview_surfaces_approved": True,
+            "worker_output_intake_metadata_approved": True,
+            "orphaned_capability_detection_approved": True,
+            "worker_output_intake_record_count": len(worker_output_intake["records"]),
+            "orphaned_capability_candidate_count": len(orphaned_capability_detection["candidates"]),
+            "orphaned_capability_promotion_decision_count": len(orphaned_capability_promotion_decisions["decisions"]),
+            "future_invoicing_audit_status": "PARKED",
+            "automatic_activation_of_detected_capabilities_allowed": False,
             "surface_decision_count": len(surface_decisions),
             "action_authority_granted": False,
             "runtime_execution_authority_granted": False,
@@ -827,6 +1412,12 @@ def build_security_pass_contract(
             "operator_answers_are_not_proof": True,
             "shared_paths_are_non_executing": True,
             "parked_breadcrumbs_do_not_auto_promote": True,
+            "worker_output_intake_does_not_activate_capabilities": True,
+            "orphaned_capability_detection_does_not_execute_capabilities": True,
+            "promotion_decisions_are_recommendations_only": True,
+            "future_invoicing_audit_does_not_authorize_invoice_generation": True,
+            "future_invoicing_audit_does_not_authorize_ledger_writes": True,
+            "future_invoicing_audit_does_not_authorize_email_dispatch": True,
             "agent_model_tool_activation_blocked": True,
             "raw_private_body_included": False,
             "credential_or_secret_included": False,
@@ -842,12 +1433,17 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     summary = payload["security_pass_output_summary"]
     cap = payload["capital_hilton_security_pass_decision"]
     markdown = payload["markdown_terrain_security_decision"]
+    worker = payload["worker_output_intake"]
+    orphaned = payload["orphaned_capability_detection"]
+    future_audit = {record["worker_output_id"]: record for record in worker["records"]}[
+        "future_invoicing_state_machine_audit"
+    ]
     lines = [
-        "# Security Pass Contract v0 Pass 1",
+        "# Security Pass Contract v0 Pass 1 + Pass 2",
         "",
         "## ELIWINSHIP Summary",
         "",
-        "Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. It does not approve live action.",
+        "Pass 1 approves the current cockpit as read-only, preview-only, metadata-only, proof/detail, stable-map, and world-preview safe. Pass 2 adds a way to remember worker outputs and already-built capabilities without activating them. It does not approve live action.",
         "",
         "## Approved",
         "",
@@ -855,6 +1451,9 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
         f"- Read-only surfaces approved: `{str(summary['security_approval_granted_for_read_only_surfaces']).lower()}`.",
         f"- Preview surfaces approved: `{str(summary['security_approval_granted_for_preview_surfaces']).lower()}`.",
         f"- Metadata-only surfaces approved: `{str(summary['security_approval_granted_for_metadata_only_surfaces']).lower()}`.",
+        f"- Worker-output intake metadata approved: `{str(summary['security_approval_granted_for_worker_output_intake_metadata']).lower()}`.",
+        f"- Orphaned capability detection approved: `{str(summary['security_approval_granted_for_orphaned_capability_detection']).lower()}`.",
+        f"- Automatic activation of detected capabilities allowed: `{str(summary['automatic_activation_of_detected_capabilities_allowed']).lower()}`.",
         "",
         "## Still Blocked",
         "",
@@ -885,6 +1484,30 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             "- Broad Markdown body ingestion, broad doc reorganization, file moves/deletes/renames, vector indexing, and stale doctrine promotion remain blocked.",
             "- App visibility is a future visibility gap, not a security blocker.",
             "",
+            "## Worker Output Intake",
+            "",
+            "- Worker output can be received as metadata.",
+            "- External worker output is not truth by itself.",
+            "- Output becomes candidate proof only when linked to commits, tests, receipts, generated artifacts, screenshots, or stable-map refs.",
+            "- Intake does not activate anything, create queue tasks, mutate source files, or run detected capabilities.",
+            f"- Intake records: `{len(worker['records'])}`.",
+            "",
+            "## Orphaned Capabilities",
+            "",
+            "- An orphaned capability is something useful that exists but is not fully registered, surfaced, trusted, or active.",
+            "- A built thing is not active because it exists.",
+            "- Markdown Atlas is the reference example: it already exists and is safe for metadata readback, so OpenClaw should preserve it and avoid building a duplicate mapper.",
+            f"- Capability candidates recorded: `{len(orphaned['candidates'])}`.",
+            "- Promotion decisions are recommendations only; they do not trigger file edits, queues, runtime activation, or Mission Control changes.",
+            "",
+            "## Future Invoicing Audit",
+            "",
+            f"- Intake status: `{future_audit['intake_status']}`.",
+            f"- Reported status: `{future_audit['reported_status']}`.",
+            "- The audit is preserved as a future Finance/invoicing stress-test reference.",
+            "- Active invoicing remains parked/blocked: no ledger writes, no email dispatch, no Coupa/browser/account/credential authority, no invoice generation, and no send/submit/approval.",
+            "- Missing future contracts include deterministic invoice math, idempotency, ledger write/readback receipts, manual lock state, and communication draft receipts.",
+            "",
             "## Agents / Models / Tools",
             "",
             "- Agent/persona display and package preview are approved.",
@@ -893,7 +1516,7 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Next",
             "",
-            "- Pass 2 should handle Worker Output Intake / Orphaned Capability Detection.",
+            "- Pass 3 should handle Chief/Hermes FULL_TRUST_CLEARANCE.",
             "- A later stable-map refresh should surface this Security Pass summary in Mission Control.",
             "",
             "## Authority Flags",
@@ -928,13 +1551,17 @@ def export_security_pass_contract(
         security_pass_completed=payload["security_pass_completed"],
         read_only_surfaces_approved=payload["security_approval_granted_for_read_only_surfaces"],
         preview_surfaces_approved=payload["security_approval_granted_for_preview_surfaces"],
+        worker_output_intake_approved=payload["security_approval_granted_for_worker_output_intake_metadata"],
+        orphaned_capability_detection_approved=payload["security_approval_granted_for_orphaned_capability_detection"],
+        worker_output_count=len(payload["worker_output_intake"]["records"]),
+        orphaned_capability_count=len(payload["orphaned_capability_detection"]["candidates"]),
         action_authority_granted=payload["action_authority_granted"],
         live_authority_added=False,
     )
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export the Security Pass Contract v0 Pass 1 read-model.")
+    parser = argparse.ArgumentParser(description="Export the Security Pass Contract v0 Pass 1 + Pass 2 read-model.")
     parser.add_argument("--repo-root", default=ROOT.as_posix())
     parser.add_argument("--export-root", default=DEFAULT_EXPORT_ROOT.as_posix())
     parser.add_argument("--format", choices=("summary", "json", "operator"), default="operator")
@@ -952,6 +1579,10 @@ def main(argv: list[str] | None = None) -> int:
         "security_pass_completed": result.security_pass_completed,
         "read_only_surfaces_approved": result.read_only_surfaces_approved,
         "preview_surfaces_approved": result.preview_surfaces_approved,
+        "worker_output_intake_approved": result.worker_output_intake_approved,
+        "orphaned_capability_detection_approved": result.orphaned_capability_detection_approved,
+        "worker_output_count": result.worker_output_count,
+        "orphaned_capability_count": result.orphaned_capability_count,
         "action_authority_granted": result.action_authority_granted,
         "live_authority_added": result.live_authority_added,
     }
@@ -968,9 +1599,12 @@ __all__ = [
     "JSON_EXPORT_NAME",
     "NO_ACTION_AUTHORITY_FLAGS",
     "OPERATOR_EXPORT_NAME",
+    "ORPHANED_CAPABILITY_PROMOTION_DECISIONS",
+    "ORPHANED_CAPABILITY_STATUSES",
     "SCHEMA_VERSION",
     "SECURITY_DECISION_CATEGORIES",
     "STILL_BLOCKED",
+    "WORKER_OUTPUT_INTAKE_STATUSES",
     "build_security_pass_contract",
     "export_security_pass_contract",
     "format_operator_markdown",
