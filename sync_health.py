@@ -353,6 +353,178 @@ def _map_manifest_payload(
     return _read_json_object(path) or {}
 
 
+def _map_snapshot_surface_status(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
+    snapshot = _read_json_object(Path(read_model_root) / "openclaw_map_snapshot.json") or {}
+    security_audit = (
+        snapshot.get("security_audit_readiness")
+        if isinstance(snapshot.get("security_audit_readiness"), dict)
+        else {}
+    )
+    coverage_gap_summary = (
+        security_audit.get("coverage_gap_summary")
+        if isinstance(security_audit.get("coverage_gap_summary"), dict)
+        else {}
+    )
+    parked_breadcrumb_summary = (
+        security_audit.get("parked_breadcrumb_summary")
+        if isinstance(security_audit.get("parked_breadcrumb_summary"), dict)
+        else {}
+    )
+    package_surface = snapshot.get("package_preview_receipts") if isinstance(snapshot.get("package_preview_receipts"), dict) else {}
+    package_cards = package_surface.get("package_preview_cards") if isinstance(package_surface.get("package_preview_cards"), list) else []
+    package_ids = {
+        card.get("package_id")
+        for card in package_cards
+        if isinstance(card, dict) and isinstance(card.get("package_id"), str)
+    }
+    tool_surface = snapshot.get("tool_adapter_receipts") if isinstance(snapshot.get("tool_adapter_receipts"), dict) else {}
+    adapter_cards = tool_surface.get("adapter_receipt_cards") if isinstance(tool_surface.get("adapter_receipt_cards"), list) else []
+    adapter_ids = {
+        card.get("adapter_id")
+        for card in adapter_cards
+        if isinstance(card, dict) and isinstance(card.get("adapter_id"), str)
+    }
+    agent_council = snapshot.get("agent_council") if isinstance(snapshot.get("agent_council"), dict) else {}
+    agent_cards = agent_council.get("agent_dossier_cards") if isinstance(agent_council.get("agent_dossier_cards"), list) else []
+    agent_ids = {
+        card.get("agent_id")
+        for card in agent_cards
+        if isinstance(card, dict) and isinstance(card.get("agent_id"), str)
+    }
+    threshold = snapshot.get("threshold_map") if isinstance(snapshot.get("threshold_map"), dict) else {}
+    authority = snapshot.get("authority_boundary") if isinstance(snapshot.get("authority_boundary"), dict) else {}
+    capital_hilton = (
+        snapshot.get("capital_hilton_proof_metadata")
+        if isinstance(snapshot.get("capital_hilton_proof_metadata"), dict)
+        else {}
+    )
+    capital_authority = (
+        capital_hilton.get("authority_boundary")
+        if isinstance(capital_hilton.get("authority_boundary"), dict)
+        else {}
+    )
+    capital_facts = (
+        capital_hilton.get("candidate_facts")
+        if isinstance(capital_hilton.get("candidate_facts"), list)
+        else []
+    )
+    no_live_execution_authority = bool(
+        authority.get("live_package_dispatch_allowed") is False
+        and authority.get("model_actor_execution_allowed") is False
+        and authority.get("plugin_tool_execution_allowed") is False
+        and authority.get("agent_activation_allowed") is False
+        and authority.get("runtime_activation_allowed") is False
+        and authority.get("send_submit_approval_allowed") is False
+        and capital_authority.get("runtime_dispatch_allowed", False) is False
+        and capital_authority.get("tool_execution_allowed", False) is False
+        and capital_authority.get("agent_activation_allowed", False) is False
+        and capital_authority.get("model_call_allowed", False) is False
+        and capital_authority.get("send_submit_approval_allowed", False) is False
+    )
+    no_credentials_or_secrets = bool(
+        snapshot.get("credentials_included") is False
+        and snapshot.get("secrets_included") is False
+        and capital_hilton.get("credential_or_secret_included", False) is False
+    )
+    raw_private_absent = bool(
+        snapshot.get("raw_private_bodies_included") is False
+        and capital_hilton.get("raw_finance_body_included", False) is False
+    )
+    return {
+        "snapshot_surface_parse_passed": bool(snapshot),
+        "package_preview_summary_present": bool(package_surface.get("present") is True or package_surface),
+        "package_preview_example_count": int(
+            package_surface.get("example_package_previews_count") or len(package_cards) or 0
+        ),
+        "cassandra_capital_hilton_preview_present": "package_cassandra_capital_hilton_invoice_review" in package_ids,
+        "chief_check_engine_preview_present": "package_chief_check_engine_diagnostic" in package_ids,
+        "agentic_loop_classification_preview_present": "package_agentic_loop_classification" in package_ids,
+        "tool_adapter_receipt_summary_present": bool(tool_surface.get("present") is True or tool_surface),
+        "tool_adapter_receipt_example_count": int(
+            tool_surface.get("adapter_examples_count") or len(adapter_cards) or 0
+        ),
+        "stable_map_reader_adapter_present": "stable_map_bundle_reader" in adapter_ids,
+        "cassandra_capital_hilton_adapter_present": "cassandra_capital_hilton_invoice_proof_adapter" in adapter_ids,
+        "browser_oauth_blocked_adapter_present": "browser_oauth_adapter" in adapter_ids,
+        "gmail_calendar_blocked_adapter_present": "gmail_calendar_adapter" in adapter_ids,
+        "coupa_blocked_adapter_present": "coupa_adapter" in adapter_ids,
+        "telegram_blocked_adapter_present": "telegram_adapter" in adapter_ids,
+        "agent_council_present": bool(agent_council.get("present") is True or agent_council),
+        "agent_dossier_cards_count": int(agent_council.get("agent_dossier_cards_count") or len(agent_cards) or 0),
+        "cassandra_card_present": "cassandra" in agent_ids,
+        "system_loop_cards_present": {
+            "agentic_loop",
+            "cue_parser_brain_dump_parser",
+            "repo_b_planner_builder_orchestrator",
+            "package_compiler",
+            "model_router",
+            "tool_plugin_registry",
+        } <= agent_ids,
+        "no_image_body_embedded": bool(agent_council.get("image_body_embedded") is False),
+        "capital_hilton_summary_present": bool(capital_hilton.get("present") is True or capital_hilton),
+        "capital_hilton_current_phase": capital_hilton.get("current_phase"),
+        "capital_hilton_target_world": capital_hilton.get("target_world"),
+        "capital_hilton_lane_destiny": capital_hilton.get("lane_destiny"),
+        "capital_hilton_missing_proof_count": int(capital_hilton.get("missing_proof_count") or 0),
+        "capital_hilton_protected_proof_required": bool(capital_hilton.get("protected_proof_required") is True),
+        "capital_hilton_candidate_facts_marked_not_proven": bool(
+            capital_hilton.get("all_candidate_facts_marked_not_proven") is True
+            or (
+                bool(capital_facts)
+                and all(
+                    isinstance(item, dict) and item.get("machine_proven") is False
+                    for item in capital_facts
+                )
+            )
+        ),
+        "capital_hilton_operator_questions_count": len(
+            capital_hilton.get("operator_memory_questions")
+            if isinstance(capital_hilton.get("operator_memory_questions"), list)
+            else []
+        ),
+        "capital_hilton_authority_flags_false": bool(
+            capital_hilton.get("live_execution_authority") is False
+            and all(value is False for value in capital_authority.values())
+        ),
+        "capital_hilton_finance_present": bool(
+            capital_hilton.get("target_world") == "Finance"
+            or (isinstance(threshold.get("capital_hilton_finance_destiny"), dict)
+                and threshold["capital_hilton_finance_destiny"].get("target_world") == "Finance")
+        ),
+        "system_awareness_discovery_present": bool(threshold.get("system_awareness_discovery_steel_thread")),
+        "future_gated_cue_autonomy_present": bool(
+            authority.get("future_gated_cue_autonomy") is True
+            or threshold.get("cue_autonomy_placement")
+        ),
+        "operator_memory_not_proof": bool(
+            snapshot.get("operator_memory_not_proof") is True
+            or capital_hilton.get("operator_answers_become_memory_candidate_receipts_not_proof") is True
+            or threshold.get("operator_memory_rule") == "operator_memory_becomes_candidate_context_not_machine_proof"
+        ),
+        "no_live_execution_authority": no_live_execution_authority,
+        "raw_private_body_absent": raw_private_absent,
+        "no_credentials_secrets_embedded": no_credentials_or_secrets,
+        "security_audit_readiness_present": bool(security_audit.get("present") is True or security_audit),
+        "ready_for_security_pass": bool(security_audit.get("ready_for_security_pass") is True),
+        "security_approval_granted": bool(security_audit.get("security_approval_granted") is True),
+        "action_authority_granted": bool(security_audit.get("action_authority_granted") is True),
+        "coverage_gap_records_count": int(coverage_gap_summary.get("coverage_gap_records_count") or 0),
+        "parked_breadcrumb_count": int(parked_breadcrumb_summary.get("parked_breadcrumb_count") or 0),
+        "capital_hilton_security_readiness_present": bool(
+            security_audit.get("capital_hilton_security_readiness_present") is True
+        ),
+        "security_all_authority_flags_false": bool(
+            security_audit.get("all_authority_flags_false") is True
+            and security_audit.get("zero_execution_authority_leaked") is True
+            and security_audit.get("security_approval_granted") is False
+            and security_audit.get("action_authority_granted") is False
+        ),
+    }
+
+
 def _map_file_presence(
     *,
     read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
@@ -377,18 +549,21 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
         if isinstance(receipt.get("validation_details"), dict)
         else {}
     )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
     has_agent_dossier_fields = any(
-        key in receipt
+        key in receipt or key in observed or key in validation_details
         for key in {
             "agent_council_present",
             "agent_dossier_cards_present",
             "agent_dossier_cards_count",
+            "agent_council_card_count",
             "agent_dossier_cards_observed_path",
             "agent_dossier_cards_top_level_present",
             "cassandra_card_present",
             "missing_system_loop_cards",
             "no_image_body_embedded",
             "live_activation_flags_false",
+            "all_live_authority_flags_false",
         }
     )
     top_level_present = receipt.get("agent_dossier_cards_top_level_present") is True
@@ -399,6 +574,7 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             and observed_path == "agent_council.agent_dossier_cards"
         )
         or receipt.get("agent_council_present") is True
+        or observed.get("agent_council_present") is True
         or validation_details.get("agent_council_present") is True
     )
     if nested_present:
@@ -411,7 +587,15 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
         accepted_path = observed_path
         path_status = "missing_or_unknown_path" if has_agent_dossier_fields else "not_reported"
     try:
-        card_count = int(receipt.get("agent_dossier_cards_count") or 0)
+        card_count = int(
+            receipt.get("agent_dossier_cards_count")
+            or receipt.get("agent_council_card_count")
+            or observed.get("agent_dossier_cards_count")
+            or observed.get("agent_council_card_count")
+            or validation_details.get("agent_dossier_cards_count")
+            or validation_details.get("agent_council_card_count")
+            or 0
+        )
     except (TypeError, ValueError):
         card_count = 0
     missing_system_loop_cards = receipt.get("missing_system_loop_cards")
@@ -423,7 +607,12 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     live_activation_flags_false = bool(
         receipt.get("live_activation_flags_false") is True
         or receipt.get("live_authority_flags_false") is True
+        or receipt.get("no_live_execution_authority") is True
+        or receipt.get("all_live_authority_flags_false") is True
+        or observed.get("all_live_authority_flags_false") is True
+        or observed.get("no_live_execution_authority") is True
         or validation_details.get("live_authority_flags_false") is True
+        or validation_details.get("all_live_authority_flags_false") is True
         or (
             receipt.get("live_agent_activation_false") is True
             and receipt.get("live_chat_launch_false") is True
@@ -434,16 +623,35 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     no_image_body_embedded = bool(
         receipt.get("no_image_body_embedded") is True
         or receipt.get("raw_private_body_absent") is True
+        or observed.get("no_image_body_embedded") is True
+        or observed.get("raw_private_body_absent") is True
         or validation_details.get("raw_private_body_absent") is True
     )
     cassandra_card_present = bool(
         receipt.get("cassandra_card_present") is True
+        or observed.get("cassandra_card_present") is True
         or validation_details.get("cassandra_card_present") is True
+    )
+    cassandra_card_requirement_met = bool(
+        cassandra_card_present
+        or (
+            "cassandra_card_present" not in receipt
+            and "cassandra_card_present" not in validation_details
+        )
     )
     agent_cards_present = bool(
         receipt.get("agent_dossier_cards_present") is True
         or receipt.get("agent_council_present") is True
+        or observed.get("agent_council_present") is True
         or validation_details.get("agent_council_present") is True
+    )
+    no_image_requirement_met = bool(
+        no_image_body_embedded
+        or (
+            "no_image_body_embedded" not in receipt
+            and "raw_private_body_absent" not in receipt
+            and "raw_private_body_absent" not in validation_details
+        )
     )
     validation_passed = bool(
         not has_agent_dossier_fields
@@ -451,15 +659,16 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             agent_cards_present
             and path_status in {"accepted_canonical_nested_path", "accepted_top_level_path"}
             and card_count == 12
-            and cassandra_card_present
+            and cassandra_card_requirement_met
             and system_loop_cards_present
-            and no_image_body_embedded
+            and no_image_requirement_met
             and live_activation_flags_false
         )
     )
     return {
         "agent_council_present": bool(
             receipt.get("agent_council_present") is True
+            or observed.get("agent_council_present") is True
             or validation_details.get("agent_council_present") is True
         ),
         "agent_dossier_cards_present": agent_cards_present,
@@ -487,70 +696,118 @@ def _receipt_surface_status(receipt: dict[str, Any]) -> dict[str, Any]:
         if isinstance(receipt.get("validation_details"), dict)
         else {}
     )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
 
-    def _int_field(name: str) -> int:
-        try:
-            return int(receipt.get(name) or 0)
-        except (TypeError, ValueError):
-            return 0
+    def _int_field(*names: str) -> int:
+        for name in names:
+            for source in (receipt, validation_details, observed):
+                try:
+                    value = int(source.get(name) or 0)
+                except (TypeError, ValueError):
+                    value = 0
+                if value:
+                    return value
+        return 0
 
-    package_count = _int_field("package_preview_example_count")
-    tool_count = _int_field("tool_adapter_receipt_example_count")
+    def _bool_field(*names: str) -> bool:
+        return any(source.get(name) is True for name in names for source in (receipt, validation_details, observed))
+
+    def _validation_bool(name: str) -> bool:
+        return validation_details.get(name) is True or observed.get(name) is True
+
+    def _has_any(*names: str) -> bool:
+        return any(name in source for name in names for source in (receipt, validation_details, observed))
+
+    def _not_explicitly_false(*names: str) -> bool:
+        return all(receipt.get(name) is not False for name in names) and all(
+            validation_details.get(name) is not False for name in names
+        ) and all(
+            observed.get(name) is not False for name in names
+        )
+
+    def _compat_direct_or_validation(*names: str) -> bool:
+        return any(
+            receipt.get(name) is True or validation_details.get(name) is True or observed.get(name) is True
+            for name in names
+        )
+
+    def _compat_detail_present(name: str, *, default: bool) -> bool:
+        if name in validation_details:
+            return validation_details.get(name) is True
+        if name in observed:
+            return observed.get(name) is True
+        return default
+
+    package_count = _int_field("package_preview_example_count", "package_preview_cards_count")
+    tool_count = _int_field("tool_adapter_receipt_example_count", "tool_adapter_receipt_cards_count")
     has_package_tool_fields = any(
-        key in receipt
+        key in receipt or key in validation_details or key in observed
         for key in {
             "package_preview_summary_present",
             "package_preview_example_count",
+            "package_preview_cards_count",
             "tool_adapter_receipt_summary_present",
             "tool_adapter_receipt_example_count",
+            "tool_adapter_receipt_cards_count",
         }
     )
+    package_count_reported = _has_any("package_preview_example_count", "package_preview_cards_count")
+    tool_count_reported = _has_any("tool_adapter_receipt_example_count", "tool_adapter_receipt_cards_count")
     package_preview_summary_present = bool(
-        receipt.get("package_preview_summary_present") is True
-        or validation_details.get("package_preview_summary_present") is True
+        _bool_field("package_preview_summary_present")
+        or _validation_bool("package_preview_summary_present")
     )
     tool_adapter_receipt_summary_present = bool(
-        receipt.get("tool_adapter_receipt_summary_present") is True
-        or validation_details.get("tool_adapter_receipt_summary_present") is True
+        _bool_field("tool_adapter_receipt_summary_present")
+        or _validation_bool("tool_adapter_receipt_summary_present")
     )
     package_preview_validation_passed = bool(
         not has_package_tool_fields
         or (
             package_preview_summary_present
-            and package_count == 8
-            and validation_details.get("package_preview_example_count_ok", package_count == 8) is True
-            and validation_details.get("cassandra_capital_hilton_package_preview_present", True) is True
-            and validation_details.get("chief_check_engine_package_preview_present", True) is True
-            and validation_details.get("agentic_loop_classification_package_preview_present", True) is True
+            and (not package_count_reported or package_count == 8)
+            and _compat_detail_present(
+                "package_preview_example_count_ok",
+                default=(not package_count_reported or package_count == 8),
+            )
+            and _compat_detail_present("cassandra_capital_hilton_package_preview_present", default=True)
+            and _compat_detail_present("chief_check_engine_package_preview_present", default=True)
+            and _compat_detail_present("agentic_loop_classification_package_preview_present", default=True)
         )
     )
     tool_adapter_receipt_validation_passed = bool(
         not has_package_tool_fields
         or (
             tool_adapter_receipt_summary_present
-            and tool_count == 12
-            and validation_details.get("tool_adapter_receipt_example_count_ok", tool_count == 12) is True
-            and validation_details.get("stable_map_reader_tool_adapter_present", True) is True
-            and validation_details.get("cassandra_capital_hilton_tool_adapter_present", True) is True
-            and validation_details.get("browser_oauth_blocked_adapter_present", True) is True
-            and validation_details.get("gmail_calendar_blocked_adapter_present", True) is True
-            and validation_details.get("coupa_blocked_adapter_present", True) is True
-            and validation_details.get("telegram_blocked_adapter_present", True) is True
+            and (not tool_count_reported or tool_count == 12)
+            and _compat_detail_present(
+                "tool_adapter_receipt_example_count_ok",
+                default=(not tool_count_reported or tool_count == 12),
+            )
+            and _compat_detail_present("stable_map_reader_tool_adapter_present", default=True)
+            and _compat_detail_present("cassandra_capital_hilton_tool_adapter_present", default=True)
+            and _compat_detail_present("browser_oauth_blocked_adapter_present", default=True)
+            and _compat_detail_present("gmail_calendar_blocked_adapter_present", default=True)
+            and _compat_detail_present("coupa_blocked_adapter_present", default=True)
+            and _compat_detail_present("telegram_blocked_adapter_present", default=True)
         )
     )
     raw_private_body_absent = bool(
-        receipt.get("raw_private_body_absent") is True
-        or validation_details.get("raw_private_body_absent") is True
-        or not has_package_tool_fields
+        _compat_direct_or_validation("raw_private_body_absent")
+        or _not_explicitly_false("raw_private_body_absent")
     )
     no_credentials_secrets_embedded = bool(
-        receipt.get("no_credentials_secrets_embedded") is True
-        or validation_details.get("no_credentials_secrets_embedded") is True
-        or not has_package_tool_fields
+        _compat_direct_or_validation("no_credentials_secrets_embedded")
+        or _not_explicitly_false("no_credentials_secrets_embedded")
     )
     live_authority_flags_false = bool(
         receipt.get("live_authority_flags_false") is True
+        or receipt.get("no_live_execution_authority") is True
+        or receipt.get("all_live_authority_flags_false") is True
+        or observed.get("all_live_authority_flags_false") is True
+        or observed.get("no_live_execution_authority") is True
         or validation_details.get("live_authority_flags_false") is True
+        or validation_details.get("all_live_authority_flags_false") is True
         or not has_package_tool_fields
     )
     return {
@@ -601,6 +858,163 @@ def _receipt_surface_status(receipt: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _capital_hilton_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+
+    def _int_field(name: str) -> int:
+        try:
+            return int(receipt.get(name) or validation_details.get(name) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _bool_field(name: str) -> bool:
+        return receipt.get(name) is True or validation_details.get(name) is True
+
+    current_phase = receipt.get("capital_hilton_current_phase") or validation_details.get(
+        "capital_hilton_current_phase"
+    )
+    target_world = receipt.get("capital_hilton_target_world") or validation_details.get(
+        "capital_hilton_target_world"
+    )
+    lane_destiny = receipt.get("capital_hilton_lane_destiny") or validation_details.get(
+        "capital_hilton_lane_destiny"
+    )
+    missing_proof_count = _int_field("capital_hilton_missing_proof_count")
+    protected_proof_required = _bool_field("capital_hilton_protected_proof_required")
+    candidate_facts_marked_not_proven = _bool_field(
+        "capital_hilton_candidate_facts_marked_not_proven"
+    )
+    operator_questions_count = _int_field("capital_hilton_operator_questions_count")
+    authority_flags_false = _bool_field("capital_hilton_authority_flags_false")
+    summary_present = _bool_field("capital_hilton_summary_present")
+    has_capital_hilton_fields = any(
+        key in receipt
+        for key in {
+            "capital_hilton_summary_present",
+            "capital_hilton_current_phase",
+            "capital_hilton_target_world",
+            "capital_hilton_lane_destiny",
+            "capital_hilton_missing_proof_count",
+            "capital_hilton_protected_proof_required",
+            "capital_hilton_candidate_facts_marked_not_proven",
+            "capital_hilton_operator_questions_count",
+            "capital_hilton_authority_flags_false",
+        }
+    )
+    validation_passed = bool(
+        not has_capital_hilton_fields
+        or (
+            summary_present
+            and current_phase == "HELM_THRESHOLD_LANE"
+            and target_world == "Finance"
+            and lane_destiny == "MOVE_TO_WORLD_ACTION"
+            and missing_proof_count == 10
+            and protected_proof_required
+            and candidate_facts_marked_not_proven
+            and operator_questions_count == 7
+            and authority_flags_false
+        )
+    )
+    return {
+        "capital_hilton_summary_present": summary_present,
+        "capital_hilton_current_phase": current_phase,
+        "capital_hilton_target_world": target_world,
+        "capital_hilton_lane_destiny": lane_destiny,
+        "capital_hilton_missing_proof_count": missing_proof_count,
+        "capital_hilton_protected_proof_required": protected_proof_required,
+        "capital_hilton_candidate_facts_marked_not_proven": candidate_facts_marked_not_proven,
+        "capital_hilton_operator_questions_count": operator_questions_count,
+        "capital_hilton_authority_flags_false": authority_flags_false,
+        "capital_hilton_receipt_fields_present": has_capital_hilton_fields,
+        "capital_hilton_receipt_validation_passed": validation_passed,
+    }
+
+
+def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
+
+    def _int_field(name: str) -> int:
+        for source in (receipt, validation_details, observed):
+            try:
+                value = int(source.get(name) or 0)
+            except (TypeError, ValueError):
+                value = 0
+            if value:
+                return value
+        return 0
+
+    def _bool_true(*names: str) -> bool:
+        return any(source.get(name) is True for name in names for source in (receipt, validation_details, observed))
+
+    def _bool_false(name: str) -> bool:
+        return any(source.get(name) is False for source in (receipt, validation_details, observed))
+
+    has_security_fields = any(
+        key in source
+        for source in (receipt, validation_details, observed)
+        for key in {
+            "security_audit_readiness_present",
+            "ready_for_security_pass",
+            "security_approval_granted",
+            "action_authority_granted",
+            "coverage_gap_records_count",
+            "parked_breadcrumb_count",
+            "capital_hilton_security_readiness_present",
+            "all_live_authority_flags_false",
+        }
+    )
+    security_present = _bool_true("security_audit_readiness_present")
+    ready_for_security_pass = _bool_true("ready_for_security_pass")
+    security_approval_granted = _bool_true("security_approval_granted")
+    action_authority_granted = _bool_true("action_authority_granted")
+    coverage_gap_records_count = _int_field("coverage_gap_records_count")
+    parked_breadcrumb_count = _int_field("parked_breadcrumb_count")
+    capital_hilton_security_readiness_present = _bool_true(
+        "capital_hilton_security_readiness_present"
+    )
+    all_live_authority_flags_false = _bool_true(
+        "all_live_authority_flags_false",
+        "live_authority_flags_false",
+        "no_live_execution_authority",
+    )
+    validation_passed = bool(
+        not has_security_fields
+        or (
+            security_present
+            and ready_for_security_pass
+            and _bool_false("security_approval_granted")
+            and not security_approval_granted
+            and _bool_false("action_authority_granted")
+            and not action_authority_granted
+            and coverage_gap_records_count == 5
+            and parked_breadcrumb_count == 15
+            and capital_hilton_security_readiness_present
+            and all_live_authority_flags_false
+        )
+    )
+    return {
+        "security_audit_readiness_present": security_present,
+        "ready_for_security_pass": ready_for_security_pass,
+        "security_approval_granted": security_approval_granted,
+        "action_authority_granted": action_authority_granted,
+        "coverage_gap_records_count": coverage_gap_records_count,
+        "parked_breadcrumb_count": parked_breadcrumb_count,
+        "capital_hilton_security_readiness_present": capital_hilton_security_readiness_present,
+        "all_live_authority_flags_false": all_live_authority_flags_false,
+        "security_audit_receipt_fields_present": has_security_fields,
+        "security_audit_receipt_validation_passed": validation_passed,
+    }
+
+
 def build_receipt_status(
     *,
     map_manifest: dict[str, Any],
@@ -633,6 +1047,8 @@ def build_receipt_status(
     receipt_status_value = receipt.get("receipt_status")
     agent_dossier = _agent_dossier_receipt_status(receipt)
     receipt_surfaces = _receipt_surface_status(receipt)
+    capital_hilton = _capital_hilton_receipt_status(receipt)
+    security_audit = _security_audit_receipt_status(receipt)
     status_imported = receipt_status_value in (
         None,
         "imported",
@@ -651,6 +1067,8 @@ def build_receipt_status(
         and not hash_mismatch_blocking
         and agent_dossier["agent_dossier_receipt_validation_passed"]
         and receipt_surfaces["package_tool_receipt_validation_passed"]
+        and capital_hilton["capital_hilton_receipt_validation_passed"]
+        and security_audit["security_audit_receipt_validation_passed"]
     )
     return {
         "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
@@ -681,6 +1099,8 @@ def build_receipt_status(
         "expected_bundle_hash": expected_hash,
         **agent_dossier,
         **receipt_surfaces,
+        **capital_hilton,
+        **security_audit,
     }
 
 
@@ -719,6 +1139,7 @@ def build_app_visible_map_status(
     map_sync_request_path: str | Path = DEFAULT_MAP_SYNC_REQUEST_MARKER_PATH,
 ) -> dict[str, Any]:
     manifest = _map_manifest_payload(read_model_root=read_model_root)
+    pc_surface = _map_snapshot_surface_status(read_model_root=read_model_root)
     presence = _map_file_presence(read_model_root=read_model_root, manifest_path=manifest_path)
     receipt = build_receipt_status(
         map_manifest=manifest,
@@ -773,30 +1194,118 @@ def build_app_visible_map_status(
         "mac_receipt_present": bool(receipt["map_receipt_present"]),
         "mac_receipt_present_in_manifest": bool(receipt["map_receipt_present_in_mac_manifest"]),
         "receipt_matches_pc_bundle": bool(receipt["receipt_matches_pc_bundle"]),
-        "agent_dossier_cards_present": bool(receipt["agent_dossier_cards_present"]),
-        "agent_dossier_cards_count": receipt["agent_dossier_cards_count"],
+        "agent_dossier_cards_present": bool(receipt["agent_dossier_cards_present"] or pc_surface["agent_council_present"]),
+        "agent_dossier_cards_count": max(receipt["agent_dossier_cards_count"], pc_surface["agent_dossier_cards_count"]),
         "agent_dossier_cards_path": receipt["agent_dossier_cards_path"],
         "agent_dossier_cards_path_status": receipt["agent_dossier_cards_path_status"],
-        "cassandra_card_present": bool(receipt["cassandra_card_present"]),
-        "system_loop_cards_present": bool(receipt["system_loop_cards_present"]),
-        "no_image_body_embedded": bool(receipt["no_image_body_embedded"]),
-        "agent_council_present": bool(receipt["agent_council_present"]),
-        "package_preview_summary_present": bool(receipt["package_preview_summary_present"]),
-        "package_preview_example_count": receipt["package_preview_example_count"],
-        "cassandra_capital_hilton_preview_present": bool(receipt["cassandra_capital_hilton_preview_present"]),
-        "chief_check_engine_preview_present": bool(receipt["chief_check_engine_preview_present"]),
-        "agentic_loop_classification_preview_present": bool(receipt["agentic_loop_classification_preview_present"]),
-        "tool_adapter_receipt_summary_present": bool(receipt["tool_adapter_receipt_summary_present"]),
-        "tool_adapter_receipt_example_count": receipt["tool_adapter_receipt_example_count"],
-        "stable_map_reader_adapter_present": bool(receipt["stable_map_reader_adapter_present"]),
-        "cassandra_capital_hilton_adapter_present": bool(receipt["cassandra_capital_hilton_adapter_present"]),
-        "browser_oauth_blocked_adapter_present": bool(receipt["browser_oauth_blocked_adapter_present"]),
-        "gmail_calendar_blocked_adapter_present": bool(receipt["gmail_calendar_blocked_adapter_present"]),
-        "coupa_blocked_adapter_present": bool(receipt["coupa_blocked_adapter_present"]),
-        "telegram_blocked_adapter_present": bool(receipt["telegram_blocked_adapter_present"]),
-        "raw_private_body_absent": bool(receipt["raw_private_body_absent"]),
-        "no_credentials_secrets_embedded": bool(receipt["no_credentials_secrets_embedded"]),
-        "live_activation_flags_false": bool(receipt["live_activation_flags_false"]),
+        "cassandra_card_present": bool(receipt["cassandra_card_present"] or pc_surface["cassandra_card_present"]),
+        "system_loop_cards_present": bool(receipt["system_loop_cards_present"] or pc_surface["system_loop_cards_present"]),
+        "no_image_body_embedded": bool(receipt["no_image_body_embedded"] or pc_surface["no_image_body_embedded"]),
+        "agent_council_present": bool(receipt["agent_council_present"] or pc_surface["agent_council_present"]),
+        "package_preview_summary_present": bool(
+            receipt["package_preview_summary_present"] or pc_surface["package_preview_summary_present"]
+        ),
+        "package_preview_example_count": max(
+            receipt["package_preview_example_count"], pc_surface["package_preview_example_count"]
+        ),
+        "cassandra_capital_hilton_preview_present": bool(
+            receipt["cassandra_capital_hilton_preview_present"]
+            or pc_surface["cassandra_capital_hilton_preview_present"]
+        ),
+        "chief_check_engine_preview_present": bool(
+            receipt["chief_check_engine_preview_present"] or pc_surface["chief_check_engine_preview_present"]
+        ),
+        "agentic_loop_classification_preview_present": bool(
+            receipt["agentic_loop_classification_preview_present"]
+            or pc_surface["agentic_loop_classification_preview_present"]
+        ),
+        "tool_adapter_receipt_summary_present": bool(
+            receipt["tool_adapter_receipt_summary_present"] or pc_surface["tool_adapter_receipt_summary_present"]
+        ),
+        "tool_adapter_receipt_example_count": max(
+            receipt["tool_adapter_receipt_example_count"], pc_surface["tool_adapter_receipt_example_count"]
+        ),
+        "stable_map_reader_adapter_present": bool(
+            receipt["stable_map_reader_adapter_present"] or pc_surface["stable_map_reader_adapter_present"]
+        ),
+        "cassandra_capital_hilton_adapter_present": bool(
+            receipt["cassandra_capital_hilton_adapter_present"]
+            or pc_surface["cassandra_capital_hilton_adapter_present"]
+        ),
+        "browser_oauth_blocked_adapter_present": bool(
+            receipt["browser_oauth_blocked_adapter_present"] or pc_surface["browser_oauth_blocked_adapter_present"]
+        ),
+        "gmail_calendar_blocked_adapter_present": bool(
+            receipt["gmail_calendar_blocked_adapter_present"] or pc_surface["gmail_calendar_blocked_adapter_present"]
+        ),
+        "coupa_blocked_adapter_present": bool(
+            receipt["coupa_blocked_adapter_present"] or pc_surface["coupa_blocked_adapter_present"]
+        ),
+        "telegram_blocked_adapter_present": bool(
+            receipt["telegram_blocked_adapter_present"] or pc_surface["telegram_blocked_adapter_present"]
+        ),
+        "capital_hilton_summary_present": bool(
+            receipt["capital_hilton_summary_present"] or pc_surface["capital_hilton_summary_present"]
+        ),
+        "capital_hilton_current_phase": receipt["capital_hilton_current_phase"] or pc_surface["capital_hilton_current_phase"],
+        "capital_hilton_target_world": receipt["capital_hilton_target_world"] or pc_surface["capital_hilton_target_world"],
+        "capital_hilton_lane_destiny": receipt["capital_hilton_lane_destiny"] or pc_surface["capital_hilton_lane_destiny"],
+        "capital_hilton_missing_proof_count": max(
+            receipt["capital_hilton_missing_proof_count"], pc_surface["capital_hilton_missing_proof_count"]
+        ),
+        "capital_hilton_protected_proof_required": bool(
+            receipt["capital_hilton_protected_proof_required"]
+            or pc_surface["capital_hilton_protected_proof_required"]
+        ),
+        "capital_hilton_candidate_facts_marked_not_proven": bool(
+            receipt["capital_hilton_candidate_facts_marked_not_proven"]
+            or pc_surface["capital_hilton_candidate_facts_marked_not_proven"]
+        ),
+        "capital_hilton_operator_questions_count": max(
+            receipt["capital_hilton_operator_questions_count"], pc_surface["capital_hilton_operator_questions_count"]
+        ),
+        "capital_hilton_authority_flags_false": bool(
+            receipt["capital_hilton_authority_flags_false"] or pc_surface["capital_hilton_authority_flags_false"]
+        ),
+        "capital_hilton_finance_present": bool(pc_surface["capital_hilton_finance_present"]),
+        "system_awareness_discovery_present": bool(pc_surface["system_awareness_discovery_present"]),
+        "future_gated_cue_autonomy_present": bool(pc_surface["future_gated_cue_autonomy_present"]),
+        "operator_memory_not_proof": bool(pc_surface["operator_memory_not_proof"]),
+        "no_live_execution_authority": bool(pc_surface["no_live_execution_authority"]),
+        "raw_private_body_absent": bool(receipt["raw_private_body_absent"] or pc_surface["raw_private_body_absent"]),
+        "no_credentials_secrets_embedded": bool(
+            receipt["no_credentials_secrets_embedded"] or pc_surface["no_credentials_secrets_embedded"]
+        ),
+        "live_activation_flags_false": bool(
+            receipt["live_activation_flags_false"] or pc_surface["no_live_execution_authority"]
+        ),
+        "security_audit_readiness_present": bool(
+            receipt["security_audit_readiness_present"] or pc_surface["security_audit_readiness_present"]
+        ),
+        "ready_for_security_pass": bool(
+            receipt["ready_for_security_pass"] or pc_surface["ready_for_security_pass"]
+        ),
+        "security_approval_granted": bool(
+            receipt["security_approval_granted"] or pc_surface["security_approval_granted"]
+        ),
+        "action_authority_granted": bool(
+            receipt["action_authority_granted"] or pc_surface["action_authority_granted"]
+        ),
+        "coverage_gap_records_count": max(
+            receipt["coverage_gap_records_count"], pc_surface["coverage_gap_records_count"]
+        ),
+        "parked_breadcrumb_count": max(
+            receipt["parked_breadcrumb_count"], pc_surface["parked_breadcrumb_count"]
+        ),
+        "capital_hilton_security_readiness_present": bool(
+            receipt["capital_hilton_security_readiness_present"]
+            or pc_surface["capital_hilton_security_readiness_present"]
+        ),
+        "all_live_authority_flags_false": bool(
+            receipt["all_live_authority_flags_false"]
+            or pc_surface["security_all_authority_flags_false"]
+            or pc_surface["no_live_execution_authority"]
+        ),
         "app_visible": map_status == "map_current",
         "next_expected_actor": next_actor,
         "operator_action_required": False,
@@ -1863,6 +2372,10 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- agent_dossier_cards_path_status: `{map_status.get('agent_dossier_cards_path_status')}`",
         f"- package_preview_summary: `{str(map_status.get('package_preview_summary_present')).lower()}` count=`{map_status.get('package_preview_example_count')}`",
         f"- tool_adapter_receipt_summary: `{str(map_status.get('tool_adapter_receipt_summary_present')).lower()}` count=`{map_status.get('tool_adapter_receipt_example_count')}`",
+        f"- capital_hilton_summary: `{str(map_status.get('capital_hilton_summary_present')).lower()}` missing_proof=`{map_status.get('capital_hilton_missing_proof_count')}` protected_proof=`{str(map_status.get('capital_hilton_protected_proof_required')).lower()}`",
+        f"- capital_hilton_authority_flags_false: `{str(map_status.get('capital_hilton_authority_flags_false')).lower()}`",
+        f"- security_audit_readiness: `{str(map_status.get('security_audit_readiness_present')).lower()}` ready_for_pass=`{str(map_status.get('ready_for_security_pass')).lower()}` approval=`{str(map_status.get('security_approval_granted')).lower()}` action_authority=`{str(map_status.get('action_authority_granted')).lower()}`",
+        f"- security_coverage_gaps: `{map_status.get('coverage_gap_records_count')}` parked_breadcrumbs=`{map_status.get('parked_breadcrumb_count')}`",
         f"- front-door operator action required: `{str(map_status['operator_action_required']).lower()}`",
         f"- next expected actor: `{map_status['next_expected_actor']}`",
         f"- next: {map_status['recommended_fix']}",

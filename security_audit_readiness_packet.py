@@ -1541,6 +1541,55 @@ def _build_parked_breadcrumb_review() -> dict[str, Any]:
     }
 
 
+def _build_worker_policy_breadcrumbs() -> dict[str, Any]:
+    return {
+        "purpose": "Preserve standing worker prompting policies without implementing automation.",
+        "records": [
+            {
+                "policy_id": "bounded_subagent_use_policy",
+                "display_name": "Bounded Subagent Use Policy",
+                "status": "ACTIVE_PROMPTING_POLICY_NOT_IMPLEMENTATION",
+                "policy_text": "Use subagents only when they reduce risk, not to create parallel chaos.",
+                "allowed_subagent_uses": [
+                    "read-only codebase/schema inspection",
+                    "screenshot/visual review",
+                    "test/build failure triage",
+                    "boundary violation review",
+                    "summarizing large files before the main patch",
+                    "comparing implementation options",
+                ],
+                "disallowed_subagent_uses": [
+                    "overlapping writes",
+                    "independent schema changes",
+                    "editing the same files in parallel",
+                    "touching backend and frontend in the same task",
+                    "scope expansion",
+                    "live model/tool/agent/runtime activation",
+                    "network/credentials/accounts",
+                    "authority decisions",
+                ],
+                "owner_rule": "One main worker owns the final patch, staging, commit, and report. Subagents may inspect, review, or recommend only.",
+                "openclaw_defaults": {
+                    "backend_contracts": "avoid subagents unless they are read-only scouts",
+                    "mac_ui": "subagents are acceptable for screenshot review, layout audit, and build triage",
+                    "agy_opus": "useful for visual/taste review",
+                    "codex": "canonical implementation worker",
+                    "claude_code": "manual-only; never routed by OpenClaw automation",
+                },
+                "current_task_rule": "No subagents are authorized or used for this receipt/readback lane.",
+                "not_authorized": {
+                    "subagents_launched": False,
+                    "subagent_implementation_created": False,
+                    "automation_created": False,
+                    "queue_behavior_created": False,
+                    "tool_model_agent_authority_granted": False,
+                    "current_task_execution_changed": False,
+                },
+            }
+        ],
+    }
+
+
 def _build_security_pass_readiness_criteria(
     *,
     question_records: list[dict[str, Any]],
@@ -1601,6 +1650,7 @@ def build_security_audit_readiness_packet(
     focus_modes = _build_helm_issue_focus_modes(missing_proof, question_records)
     coverage_registry = _build_coverage_gap_unmapped_terrain_registry()
     breadcrumb_review = _build_parked_breadcrumb_review()
+    worker_policy_breadcrumbs = _build_worker_policy_breadcrumbs()
     security_pass_criteria = _build_security_pass_readiness_criteria(
         question_records=question_records,
         shared_paths=shared_paths,
@@ -1715,6 +1765,7 @@ def build_security_audit_readiness_packet(
         },
         "coverage_gap_unmapped_terrain_registry": coverage_registry,
         "parked_breadcrumb_review": breadcrumb_review,
+        "worker_policy_breadcrumbs": worker_policy_breadcrumbs,
         "security_pass_readiness_criteria": security_pass_criteria,
         "operator_facing_audit_summary": {
             "mapped": [
@@ -1741,6 +1792,9 @@ def build_security_audit_readiness_packet(
                 "proof-only hash/detail surfaces unless operator drills down",
             ],
             "parked": list(PARKED_BREADCRUMB_IDS),
+            "worker_policy_breadcrumbs": [
+                "Bounded Subagent Use Policy",
+            ],
             "not_ready": [
                 "security approval",
                 "action authority",
@@ -1798,6 +1852,7 @@ def build_security_audit_readiness_packet(
                 "helm_issue_focus_modes": 3,
                 "coverage_gap_records": len(coverage_registry["records"]),
                 "parked_breadcrumb_records": len(breadcrumb_review["records"]),
+                "worker_policy_breadcrumbs": len(worker_policy_breadcrumbs["records"]),
                 "ready_for_security_pass": security_pass_criteria["ready_for_security_pass"],
                 "capital_hilton_missing_proof_count": missing_count,
                 "security_approval_granted": False,
@@ -1828,6 +1883,7 @@ def build_security_audit_readiness_packet(
             "helm_issue_focus_mode_count": 3,
             "coverage_gap_record_count": len(coverage_registry["records"]),
             "parked_breadcrumb_record_count": len(breadcrumb_review["records"]),
+            "worker_policy_breadcrumb_record_count": len(worker_policy_breadcrumbs["records"]),
             "capital_hilton_missing_proof_count": missing_count,
             "capital_hilton_protected_proof_required": protected_required,
             "capital_hilton_candidate_facts_proven": _candidate_facts_proven(facts, cap_summary),
@@ -1853,11 +1909,14 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     map_rule = payload["map_to_terrain_rule"]["capital_hilton_required_result"]
     coverage = payload["coverage_gap_unmapped_terrain_registry"]
     breadcrumbs = payload["parked_breadcrumb_review"]
+    worker_policies = payload["worker_policy_breadcrumbs"]
     criteria = payload["security_pass_readiness_criteria"]
     lines = [
         "# Security Audit Readiness Packet v0 Pass 1 + Pass 2",
         "",
         "## ELI5 Summary",
+        "",
+        "Human default layer: ELIWINSHIP / operator-native orientation.",
         "",
         "This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, how the helm can get quieter, what terrain remains unmapped, which future ideas are parked, and whether the system is ready for a security pass. It does not grant security approval or execution authority.",
         "",
@@ -1939,6 +1998,30 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     for record in breadcrumbs["records"]:
         lines.append(
             f"| `{record['breadcrumb_id']}` | `{record['status']}` | `{record['relevance_phase']}` | {record['next_safe_move']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Worker Policy Breadcrumbs",
+            "",
+            "These are prompting policies for future large tasks, not implementation lanes or automation.",
+            "",
+        ]
+    )
+    for record in worker_policies["records"]:
+        lines.extend(
+            [
+                f"### {record['display_name']}",
+                "",
+                f"- Status: `{record['status']}`.",
+                f"- Rule: {record['policy_text']}",
+                f"- Main-worker ownership: {record['owner_rule']}",
+                f"- Current task: {record['current_task_rule']}",
+                f"- Subagents launched: `{str(record['not_authorized']['subagents_launched']).lower()}`.",
+                f"- Automation created: `{str(record['not_authorized']['automation_created']).lower()}`.",
+                f"- Authority granted: `{str(record['not_authorized']['tool_model_agent_authority_granted']).lower()}`.",
+                "",
+            ]
         )
     lines.extend(
         [

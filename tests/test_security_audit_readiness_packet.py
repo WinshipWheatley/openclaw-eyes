@@ -440,6 +440,27 @@ def test_security_pass_readiness_criteria_are_present_without_action_readiness(t
     assert "Coupa access" in criteria["remaining_action_blockers"]
 
 
+def test_worker_policy_breadcrumb_preserves_bounded_subagent_policy_without_automation(tmp_path):
+    payload = _build(tmp_path)
+    policies = payload["worker_policy_breadcrumbs"]
+    records = {item["policy_id"]: item for item in policies["records"]}
+    policy = records["bounded_subagent_use_policy"]
+
+    assert policy["display_name"] == "Bounded Subagent Use Policy"
+    assert policy["status"] == "ACTIVE_PROMPTING_POLICY_NOT_IMPLEMENTATION"
+    assert "read-only codebase/schema inspection" in policy["allowed_subagent_uses"]
+    assert "overlapping writes" in policy["disallowed_subagent_uses"]
+    assert "authority decisions" in policy["disallowed_subagent_uses"]
+    assert "One main worker owns the final patch" in policy["owner_rule"]
+    assert policy["current_task_rule"] == "No subagents are authorized or used for this receipt/readback lane."
+    assert policy["not_authorized"]["subagents_launched"] is False
+    assert policy["not_authorized"]["subagent_implementation_created"] is False
+    assert policy["not_authorized"]["automation_created"] is False
+    assert policy["not_authorized"]["queue_behavior_created"] is False
+    assert policy["not_authorized"]["tool_model_agent_authority_granted"] is False
+    assert policy["not_authorized"]["current_task_execution_changed"] is False
+
+
 def test_exporter_writes_json_and_operator_markdown(tmp_path):
     _fixture_repo(tmp_path)
 
@@ -456,10 +477,13 @@ def test_exporter_writes_json_and_operator_markdown(tmp_path):
     assert len(payload["parked_breadcrumb_review"]["records"]) == 15
     assert payload["security_pass_readiness_criteria"]["ready_for_security_pass"] is True
     assert "ELI5 Summary" in operator
+    assert "ELIWINSHIP / operator-native orientation" in operator
     assert "Map-To-Terrain Provenance" in operator
     assert "Operator Answer Capture" in operator
     assert "Helm Issue Focus Mode" in operator
     assert "Coverage Gap / Unmapped Terrain" in operator
     assert "Parked Breadcrumb Review" in operator
+    assert "Worker Policy Breadcrumbs" in operator
+    assert "Bounded Subagent Use Policy" in operator
     assert "Security Pass Readiness Criteria" in operator
     assert "security_approval_granted" in operator

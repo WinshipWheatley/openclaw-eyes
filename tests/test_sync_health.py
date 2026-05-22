@@ -80,6 +80,110 @@ def _write_map_bundle(read_models: Path, *, generation_id: str = "map_fixture", 
     _write(read_models / "openclaw_map_OPERATOR.md", "# Stable Map\n")
 
 
+def _write_security_ready_map_bundle(
+    read_models: Path,
+    *,
+    generation_id: str = "map_3cf7a1d5f26147ae993a",
+    bundle_hash: str = "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
+) -> None:
+    _write_map_bundle(read_models, generation_id=generation_id, bundle_hash=bundle_hash)
+    _write(
+        read_models / "openclaw_map_snapshot.json",
+        json.dumps(
+            {
+                "schema_version": "openclaw_map_snapshot_v0",
+                "read_model_id": "openclaw_map_snapshot",
+                "map_generation_id": generation_id,
+                "operator_memory_not_proof": True,
+                "raw_private_bodies_included": False,
+                "credentials_included": False,
+                "secrets_included": False,
+                "threshold_map": {
+                    "capital_hilton_finance_destiny": {
+                        "current_phase": "HELM_THRESHOLD_LANE",
+                        "resolution_route": "MOVE_TO_WORLD_ACTION",
+                        "target_world": "Finance",
+                    },
+                    "system_awareness_discovery_steel_thread": {
+                        "lane_id": "system_awareness_discovery",
+                    },
+                    "cue_autonomy_placement": {
+                        "status": "post_threshold_post_security_candidate",
+                    },
+                    "operator_memory_rule": "operator_memory_becomes_candidate_context_not_machine_proof",
+                },
+                "authority_boundary": {
+                    "future_gated_cue_autonomy": True,
+                    "live_package_dispatch_allowed": False,
+                    "model_actor_execution_allowed": False,
+                    "plugin_tool_execution_allowed": False,
+                    "agent_activation_allowed": False,
+                    "runtime_activation_allowed": False,
+                    "send_submit_approval_allowed": False,
+                },
+                "security_audit_readiness": {
+                    "present": True,
+                    "ready_for_security_pass": True,
+                    "security_approval_granted": False,
+                    "action_authority_granted": False,
+                    "all_authority_flags_false": True,
+                    "zero_execution_authority_leaked": True,
+                    "capital_hilton_security_readiness_present": True,
+                    "coverage_gap_summary": {"coverage_gap_records_count": 5},
+                    "parked_breadcrumb_summary": {"parked_breadcrumb_count": 15},
+                },
+                "capital_hilton_proof_metadata": {
+                    "present": True,
+                    "current_phase": "HELM_THRESHOLD_LANE",
+                    "target_world": "Finance",
+                    "lane_destiny": "MOVE_TO_WORLD_ACTION",
+                    "missing_proof_count": 10,
+                    "protected_proof_required": True,
+                    "live_execution_authority": False,
+                    "operator_answers_become_memory_candidate_receipts_not_proof": True,
+                    "candidate_facts": [{"machine_proven": False}],
+                    "operator_memory_questions": [{} for _ in range(7)],
+                    "authority_boundary": {
+                        "runtime_dispatch_allowed": False,
+                        "tool_execution_allowed": False,
+                        "agent_activation_allowed": False,
+                        "model_call_allowed": False,
+                        "send_submit_approval_allowed": False,
+                    },
+                },
+                "package_preview_receipts": {
+                    "present": True,
+                    "example_package_previews_count": 8,
+                },
+                "tool_adapter_receipts": {
+                    "present": True,
+                    "adapter_examples_count": 12,
+                },
+                "agent_council": {
+                    "present": True,
+                    "image_body_embedded": False,
+                    "agent_dossier_cards_count": 12,
+                    "agent_dossier_cards": [
+                        {"agent_id": "cassandra"},
+                        {"agent_id": "chief"},
+                        {"agent_id": "guardian"},
+                        {"agent_id": "hermes"},
+                        {"agent_id": "niles"},
+                        {"agent_id": "struna"},
+                        {"agent_id": "agentic_loop"},
+                        {"agent_id": "cue_parser_brain_dump_parser"},
+                        {"agent_id": "repo_b_planner_builder_orchestrator"},
+                        {"agent_id": "package_compiler"},
+                        {"agent_id": "model_router"},
+                        {"agent_id": "tool_plugin_registry"},
+                    ],
+                },
+            }
+        )
+        + "\n",
+    )
+
+
 def _manifest_for(read_models: Path, *, omit: set[str] | None = None, mismatch: set[str] | None = None, extra: bool = False) -> dict:
     omit = omit or set()
     mismatch = mismatch or set()
@@ -883,6 +987,178 @@ def test_package_preview_and_tool_receipt_map_receipt_is_accepted_as_current(tmp
     assert app_status["operator_action_required"] is False
     assert app_status["recommended_fix"] == "none"
     assert receipt_status["receipt_status_accepted"] is True
+    assert receipt_status["receipt_matches_pc_bundle"] is True
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
+def test_capital_hilton_map_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(
+        read_models,
+        generation_id="map_fbda77b8af4e9c796c03",
+        bundle_hash="sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+    )
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "SUCCESS",
+                "schema_version": "openclaw_map_receipt_v0",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_fbda77b8af4e9c796c03",
+                "bundle_hash": "sha256:d54194ee82f05e41724f26bb3def93f048f4552e6ff40914cfdf6227445bdb39",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "capital_hilton_summary_present": True,
+                "capital_hilton_current_phase": "HELM_THRESHOLD_LANE",
+                "capital_hilton_target_world": "Finance",
+                "capital_hilton_lane_destiny": "MOVE_TO_WORLD_ACTION",
+                "capital_hilton_missing_proof_count": 10,
+                "capital_hilton_protected_proof_required": True,
+                "capital_hilton_candidate_facts_marked_not_proven": True,
+                "capital_hilton_operator_questions_count": 7,
+                "capital_hilton_authority_flags_false": True,
+                "package_preview_summary_present": True,
+                "package_preview_cards_count": 8,
+                "tool_adapter_receipt_summary_present": True,
+                "tool_adapter_receipt_cards_count": 12,
+                "agent_council_present": True,
+                "agent_council_card_count": 12,
+                "system_awareness_discovery_present": True,
+                "no_live_execution_authority": True,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["capital_hilton_summary_present"] is True
+    assert app_status["capital_hilton_current_phase"] == "HELM_THRESHOLD_LANE"
+    assert app_status["capital_hilton_target_world"] == "Finance"
+    assert app_status["capital_hilton_lane_destiny"] == "MOVE_TO_WORLD_ACTION"
+    assert app_status["capital_hilton_missing_proof_count"] == 10
+    assert app_status["capital_hilton_protected_proof_required"] is True
+    assert app_status["capital_hilton_candidate_facts_marked_not_proven"] is True
+    assert app_status["capital_hilton_operator_questions_count"] == 7
+    assert app_status["capital_hilton_authority_flags_false"] is True
+    assert app_status["package_preview_summary_present"] is True
+    assert app_status["package_preview_example_count"] == 8
+    assert app_status["tool_adapter_receipt_summary_present"] is True
+    assert app_status["tool_adapter_receipt_example_count"] == 12
+    assert app_status["agent_council_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["live_activation_flags_false"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["receipt_matches_pc_bundle"] is True
+    assert receipt_status["capital_hilton_receipt_validation_passed"] is True
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
+def test_security_audit_readiness_map_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_security_ready_map_bundle(read_models)
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "SUCCESS",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_3cf7a1d5f26147ae993a",
+                "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "security_audit_readiness_present": True,
+                "ready_for_security_pass": True,
+                "security_approval_granted": False,
+                "action_authority_granted": False,
+                "coverage_gap_records_count": 5,
+                "parked_breadcrumb_count": 15,
+                "capital_hilton_security_readiness_present": True,
+                "package_preview_summary_present": True,
+                "tool_adapter_receipt_summary_present": True,
+                "agent_council_present": True,
+                "observed": {
+                    "agent_council_card_count": 12,
+                    "all_live_authority_flags_false": True,
+                    "capital_hilton_proof_metadata_present": True,
+                    "coverage_gap_summary_present": True,
+                    "parked_breadcrumb_summary_present": True,
+                    "system_awareness_discovery_present": True,
+                },
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["security_audit_readiness_present"] is True
+    assert app_status["ready_for_security_pass"] is True
+    assert app_status["security_approval_granted"] is False
+    assert app_status["action_authority_granted"] is False
+    assert app_status["coverage_gap_records_count"] == 5
+    assert app_status["parked_breadcrumb_count"] == 15
+    assert app_status["capital_hilton_security_readiness_present"] is True
+    assert app_status["capital_hilton_summary_present"] is True
+    assert app_status["package_preview_summary_present"] is True
+    assert app_status["package_preview_example_count"] == 8
+    assert app_status["tool_adapter_receipt_summary_present"] is True
+    assert app_status["tool_adapter_receipt_example_count"] == 12
+    assert app_status["agent_council_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["all_live_authority_flags_false"] is True
+    assert app_status["no_live_execution_authority"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["security_audit_receipt_validation_passed"] is True
     assert receipt_status["receipt_matches_pc_bundle"] is True
     assert receipt_status["pc_readback_imported"] is True
     assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False

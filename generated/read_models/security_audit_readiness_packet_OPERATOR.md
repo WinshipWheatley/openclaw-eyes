@@ -2,6 +2,8 @@
 
 ## ELI5 Summary
 
+Human default layer: ELIWINSHIP / operator-native orientation.
+
 This packet proves OpenClaw can explain where app-facing claims came from, what still needs proof, how Winship answers should be captured, how the helm can get quieter, what terrain remains unmapped, which future ideas are parked, and whether the system is ready for a security pass. It does not grant security approval or execution authority.
 
 ## Map-To-Terrain Provenance
@@ -89,6 +91,21 @@ This packet proves OpenClaw can explain where app-facing claims came from, what 
 | `world_graduation_rules` | `MERGE_WITH_EXISTING_LANE` | `during_security_pass` | Merge with attention promotion rather than creating a separate execution lane. |
 | `operator_morning_midday_evening_brief_surfaces` | `KEEP_PARKED` | `after_security_pass` | Keep parked; read-only brief rendering first. |
 | `compromise_suspicion_kill_switch_posture` | `PROMOTE_TO_SECURITY_AUDIT_ITEM` | `during_security_pass` | Review as security doctrine; no automated destructive action. |
+
+## Worker Policy Breadcrumbs
+
+These are prompting policies for future large tasks, not implementation lanes or automation.
+
+### Bounded Subagent Use Policy
+
+- Status: `ACTIVE_PROMPTING_POLICY_NOT_IMPLEMENTATION`.
+- Rule: Use subagents only when they reduce risk, not to create parallel chaos.
+- Main-worker ownership: One main worker owns the final patch, staging, commit, and report. Subagents may inspect, review, or recommend only.
+- Current task: No subagents are authorized or used for this receipt/readback lane.
+- Subagents launched: `false`.
+- Automation created: `false`.
+- Authority granted: `false`.
+
 
 ## Security Pass Readiness Criteria
 

@@ -77,7 +77,7 @@
   "browser_oauth_allowed": false,
   "capital_hilton_current_stable_map_posture": {
     "all_live_authority_flags_false": true,
-    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+    "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
     "candidate_facts_are_not_machine_proven": true,
     "current_phase": "HELM_THRESHOLD_LANE",
     "lane_destiny": "MOVE_TO_WORLD_ACTION",
@@ -301,7 +301,7 @@
   "credential_handling_allowed": false,
   "excel_raw_body_ingestion_allowed": false,
   "external_retained_memory_allowed": false,
-  "generated_at": "2026-05-22T15:01:15+00:00",
+  "generated_at": "2026-05-22T15:31:53+00:00",
   "gmail_calendar_access_allowed": false,
   "helm_issue_focus_modes": [
     {
@@ -642,11 +642,11 @@
   "mac_sync_or_import_triggered": false,
   "machine_proof": {
     "all_dangerous_authority_flags_false": true,
-    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+    "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
     "capital_hilton_candidate_facts_proven": false,
     "capital_hilton_missing_proof_count": 10,
     "capital_hilton_protected_proof_required": true,
-    "content_hash": "sha256:2979dbaceeafd78433f35bf2a6798c458589f4939729039b38ca683ecadc99b6",
+    "content_hash": "sha256:735782c87cdda2757d770612e3d4978df7102f8d713011d166e58d74ed582622",
     "coverage_gap_record_count": 5,
     "credential_or_secret_included": false,
     "helm_issue_focus_mode_count": 3,
@@ -674,7 +674,8 @@
       "generated/read_models/agent_memory_scope_contract.json",
       "generated/read_models/agent_terrain_awareness_readback_contract.json",
       "generated/read_models/operator_threshold_map_contract.json"
-    ]
+    ],
+    "worker_policy_breadcrumb_record_count": 1
   },
   "map_to_terrain_provenance": [
     {
@@ -709,7 +710,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+      "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_completed_performance_dates",
       "display_name": "Capital Hilton completed performance dates",
@@ -765,7 +766,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+      "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_rate",
       "display_name": "Capital Hilton candidate rate",
@@ -821,7 +822,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+      "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_subtotal",
       "display_name": "Capital Hilton candidate subtotal posture",
@@ -877,7 +878,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+      "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
       "candidate_status": "candidate_not_machine_proven",
       "claim_id": "capital_hilton_one_invoice_posture",
       "display_name": "Capital Hilton one-invoice posture",
@@ -934,7 +935,7 @@
         "send_submit_approval_allowed": false,
         "tool_execution_allowed": false
       },
-      "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+      "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
       "candidate_status": "read_model_reported_missing_proof_posture",
       "claim_id": "capital_hilton_missing_proof_count",
       "display_name": "Capital Hilton missing proof count",
@@ -1330,6 +1331,9 @@
       "Finance World Capital Hilton preview",
       "Agent Council",
       "Package Preview / Tool Receipt surfaces through stable map"
+    ],
+    "worker_policy_breadcrumbs": [
+      "Bounded Subagent Use Policy"
     ]
   },
   "operator_final_authority": true,
@@ -1366,7 +1370,7 @@
       "send_submit_approval_allowed": false,
       "tool_execution_allowed": false
     },
-    "bundle_hash": "sha256:7c1191e7e86560f8446709f3e634a5bad52d7c23e59b3529a9c846d4923374ae",
+    "bundle_hash": "sha256:3d59cfda37602e22a7cb02dab1afb899acb65fe043efadf032820d8f5bb7c1af",
     "candidate_claims": [
       "dates",
       "rate",
@@ -2265,7 +2269,8 @@
       "pass_id": "pass_1_active_helm_readiness",
       "ready_for_security_pass": true,
       "security_approval_granted": false,
-      "shared_execution_paths": 3
+      "shared_execution_paths": 3,
+      "worker_policy_breadcrumbs": 1
     },
     "summary_included_in_stable_map_now": false
   },
@@ -2278,5 +2283,51 @@
     "BLOCKED",
     "STALE",
     "UNKNOWN_FAIL_CLOSED"
-  ]
+  ],
+  "worker_policy_breadcrumbs": {
+    "purpose": "Preserve standing worker prompting policies without implementing automation.",
+    "records": [
+      {
+        "allowed_subagent_uses": [
+          "read-only codebase/schema inspection",
+          "screenshot/visual review",
+          "test/build failure triage",
+          "boundary violation review",
+          "summarizing large files before the main patch",
+          "comparing implementation options"
+        ],
+        "current_task_rule": "No subagents are authorized or used for this receipt/readback lane.",
+        "disallowed_subagent_uses": [
+          "overlapping writes",
+          "independent schema changes",
+          "editing the same files in parallel",
+          "touching backend and frontend in the same task",
+          "scope expansion",
+          "live model/tool/agent/runtime activation",
+          "network/credentials/accounts",
+          "authority decisions"
+        ],
+        "display_name": "Bounded Subagent Use Policy",
+        "not_authorized": {
+          "automation_created": false,
+          "current_task_execution_changed": false,
+          "queue_behavior_created": false,
+          "subagent_implementation_created": false,
+          "subagents_launched": false,
+          "tool_model_agent_authority_granted": false
+        },
+        "openclaw_defaults": {
+          "agy_opus": "useful for visual/taste review",
+          "backend_contracts": "avoid subagents unless they are read-only scouts",
+          "claude_code": "manual-only; never routed by OpenClaw automation",
+          "codex": "canonical implementation worker",
+          "mac_ui": "subagents are acceptable for screenshot review, layout audit, and build triage"
+        },
+        "owner_rule": "One main worker owns the final patch, staging, commit, and report. Subagents may inspect, review, or recommend only.",
+        "policy_id": "bounded_subagent_use_policy",
+        "policy_text": "Use subagents only when they reduce risk, not to create parallel chaos.",
+        "status": "ACTIVE_PROMPTING_POLICY_NOT_IMPLEMENTATION"
+      }
+    ]
+  }
 }
