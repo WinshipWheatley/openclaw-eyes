@@ -98,6 +98,7 @@
 !memory_candidate_receipt_contract.py
 !model_selection_receipt_contract.py
 !package_preview_receipt_contract.py
+!tool_adapter_receipt_contract.py
 !agent_terrain_awareness_readback_contract.py
 !operator_intent_core.py
 !operator_action_covenant.py
@@ -734,6 +735,7 @@
 !scripts/export_memory_candidate_receipt_contract.py
 !scripts/export_model_selection_receipt_contract.py
 !scripts/export_package_preview_receipt_contract.py
+!scripts/export_tool_adapter_receipt_contract.py
 !scripts/export_agent_terrain_awareness_readback_contract.py
 !scripts/build_active_machinery_classification_orchestrator.py
 !scripts/verify_active_machinery_gemini_output.py
@@ -806,6 +808,7 @@
 !tests/test_memory_candidate_receipt_contract.py
 !tests/test_model_selection_receipt_contract.py
 !tests/test_package_preview_receipt_contract.py
+!tests/test_tool_adapter_receipt_contract.py
 !tests/test_agent_terrain_awareness_readback_contract.py
 !tests/test_active_machinery_classification_orchestrator.py
 !tests/test_active_machinery_gemini_verification.py
