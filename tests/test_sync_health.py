@@ -708,6 +708,187 @@ def test_mac_imported_receipt_shape_marks_app_visible_map_current(tmp_path):
     assert split["check_transmission_display"]["lamp_state"] == "QUIET"
 
 
+def test_agent_dossier_nested_path_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(
+        read_models,
+        generation_id="map_911cd302343946ad6369",
+        bundle_hash="sha256:dfa1e6c95bc6b74cb64a5c4652a19005bbfb63033352b43e5fd109f6f344d061",
+    )
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "PARTIAL_TOP_LEVEL_AGENT_DOSSIER_CARDS_PATH_MISMATCH",
+                "app_visible_candidate": False,
+                "map_generation_id": "map_911cd302343946ad6369",
+                "bundle_hash": "sha256:dfa1e6c95bc6b74cb64a5c4652a19005bbfb63033352b43e5fd109f6f344d061",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "agent_dossier_cards_present": True,
+                "agent_dossier_cards_top_level_present": False,
+                "agent_dossier_cards_observed_path": "agent_council.agent_dossier_cards",
+                "agent_dossier_cards_count": 12,
+                "cassandra_card_present": True,
+                "missing_system_loop_cards": [],
+                "no_image_body_embedded": True,
+                "cassandra_visual_archetype_metadata_only": True,
+                "live_activation_flags_false": True,
+                "live_agent_activation_false": True,
+                "live_chat_launch_false": True,
+                "model_launch_false": True,
+                "tool_execution_false": True,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["agent_dossier_cards_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["agent_dossier_cards_path"] == "agent_council.agent_dossier_cards"
+    assert app_status["agent_dossier_cards_path_status"] == "accepted_canonical_nested_path"
+    assert app_status["cassandra_card_present"] is True
+    assert app_status["system_loop_cards_present"] is True
+    assert app_status["no_image_body_embedded"] is True
+    assert app_status["live_activation_flags_false"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["receipt_status_accepted"] is True
+    assert receipt_status["receipt_status_accepted_reason"] == "agent_dossier_cards_nested_path_is_canonical"
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
+def test_package_preview_and_tool_receipt_map_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(
+        read_models,
+        generation_id="map_d49f3a6dd4a0eedc1777",
+        bundle_hash="sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211",
+    )
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "SUCCESS",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_d49f3a6dd4a0eedc1777",
+                "bundle_hash": "sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "package_preview_summary_present": True,
+                "package_preview_example_count": 8,
+                "tool_adapter_receipt_summary_present": True,
+                "tool_adapter_receipt_example_count": 12,
+                "agent_council_present": True,
+                "agent_dossier_cards_count": 12,
+                "capital_hilton_finance_present": True,
+                "system_awareness_present": True,
+                "future_gated_cue_autonomy_present": True,
+                "raw_private_body_absent": True,
+                "no_credentials_secrets_embedded": True,
+                "live_authority_flags_false": True,
+                "validation_details": {
+                    "package_preview_summary_present": True,
+                    "package_preview_example_count_ok": True,
+                    "cassandra_capital_hilton_package_preview_present": True,
+                    "chief_check_engine_package_preview_present": True,
+                    "agentic_loop_classification_package_preview_present": True,
+                    "tool_adapter_receipt_summary_present": True,
+                    "tool_adapter_receipt_example_count_ok": True,
+                    "stable_map_reader_tool_adapter_present": True,
+                    "cassandra_capital_hilton_tool_adapter_present": True,
+                    "browser_oauth_blocked_adapter_present": True,
+                    "gmail_calendar_blocked_adapter_present": True,
+                    "coupa_blocked_adapter_present": True,
+                    "telegram_blocked_adapter_present": True,
+                    "agent_council_present": True,
+                    "cassandra_card_present": True,
+                    "capital_hilton_finance_present": True,
+                    "system_awareness_present": True,
+                    "future_gated_cue_autonomy_present": True,
+                    "raw_private_body_absent": True,
+                    "no_credentials_secrets_embedded": True,
+                    "live_authority_flags_false": True,
+                },
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["package_preview_summary_present"] is True
+    assert app_status["package_preview_example_count"] == 8
+    assert app_status["cassandra_capital_hilton_preview_present"] is True
+    assert app_status["chief_check_engine_preview_present"] is True
+    assert app_status["agentic_loop_classification_preview_present"] is True
+    assert app_status["tool_adapter_receipt_summary_present"] is True
+    assert app_status["tool_adapter_receipt_example_count"] == 12
+    assert app_status["stable_map_reader_adapter_present"] is True
+    assert app_status["cassandra_capital_hilton_adapter_present"] is True
+    assert app_status["browser_oauth_blocked_adapter_present"] is True
+    assert app_status["gmail_calendar_blocked_adapter_present"] is True
+    assert app_status["coupa_blocked_adapter_present"] is True
+    assert app_status["telegram_blocked_adapter_present"] is True
+    assert app_status["agent_council_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["raw_private_body_absent"] is True
+    assert app_status["no_credentials_secrets_embedded"] is True
+    assert app_status["live_activation_flags_false"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["receipt_status_accepted"] is True
+    assert receipt_status["receipt_matches_pc_bundle"] is True
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
 def test_stable_map_receipt_clears_app_block_even_if_raw_manifest_lacks_map_files(tmp_path):
     root, read_models = _fixture_root(tmp_path)
     _write_map_bundle(read_models, generation_id="map_imported", bundle_hash="sha256:imported")

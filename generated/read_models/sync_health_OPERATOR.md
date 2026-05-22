@@ -8,32 +8,37 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=241
+- canonical_expected=245
 - observed=218
-- missing_expected=23
+- missing_expected=27
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
 
 App-visible stable map:
-- map_status: `map_generation_pending_mac_import`
-- map_generation_id: `map_911cd302343946ad6369`
-- bundle_hash: `sha256:dfa1e6c95bc6b74cb64a5c4652a19005bbfb63033352b43e5fd109f6f344d061`
-- app_visible: `false`
+- map_status: `map_current`
+- map_generation_id: `map_d49f3a6dd4a0eedc1777`
+- bundle_hash: `sha256:127b49cd02832950dceb9c9ff8943a1a790507a6c360806bbbf944cce3108211`
+- app_visible: `true`
+- receipt_matches_pc_bundle: `true`
+- agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
+- agent_dossier_cards_path_status: `accepted_canonical_nested_path`
+- package_preview_summary: `true` count=`8`
+- tool_adapter_receipt_summary: `true` count=`12`
 - front-door operator action required: `false`
-- next expected actor: `mac_map_import_agent`
-- next: Map generated on PC; waiting for Mac import receipt
+- next expected actor: `none`
+- next: none
 
 Raw read-model mirror detail:
 - raw_mirror_status: `raw_mirror_stale_or_mismatched`
-- raw_mirror_blocks_app_visible_map: `true`
+- raw_mirror_blocks_app_visible_map: `false`
 
 Check Transmission display:
-- lamp_state: `WARNING`
-- headline: Stable map bundle pending
-- summary: Map generated on PC; waiting for Mac import receipt.
+- lamp_state: `QUIET`
+- headline: Stable map bundle current
+- summary: Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail.
 
-Recommended fix:
+Raw read-model mirror proof/detail recommendation:
 - kind: `request_mac_sync`
 - display status: `needs_mac_sync`
 - next expected actor: `mac_sync_agent`
@@ -43,7 +48,7 @@ Recommended fix:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-21T23:26:05+00:00`
+- Mac heartbeat: `idle` at `2026-05-22T02:31:23+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -72,8 +77,12 @@ Stale files:
 - `operator_map_bundle_contract_OPERATOR.md`
 - `operator_threshold_map_contract.json`
 - `operator_threshold_map_contract_OPERATOR.md`
+- `package_preview_receipt_contract.json`
+- `package_preview_receipt_contract_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
 - `system_health_lights_taxonomy_OPERATOR.md`
+- `tool_adapter_receipt_contract.json`
+- `tool_adapter_receipt_contract_OPERATOR.md`
 - `tool_protocol_adapter_registry_contract.json`
 - `tool_protocol_adapter_registry_contract_OPERATOR.md`
 

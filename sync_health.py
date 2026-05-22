@@ -77,6 +77,11 @@ STABLE_MAP_STATUS_VALUES = (
 )
 STABLE_MAP_SCHEMA_VERSION = "openclaw_map_manifest_v0"
 STABLE_MAP_RECEIPT_SCHEMA_VERSION = "openclaw_map_receipt_v0"
+ACCEPTED_PARTIAL_MAP_RECEIPT_STATUSES = frozenset(
+    {
+        "PARTIAL_TOP_LEVEL_AGENT_DOSSIER_CARDS_PATH_MISMATCH",
+    }
+)
 
 NO_AUTHORITY_FLAGS = {
     "app_direct_execution_allowed": False,
@@ -366,6 +371,236 @@ def _map_file_presence(
     }
 
 
+def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+    has_agent_dossier_fields = any(
+        key in receipt
+        for key in {
+            "agent_council_present",
+            "agent_dossier_cards_present",
+            "agent_dossier_cards_count",
+            "agent_dossier_cards_observed_path",
+            "agent_dossier_cards_top_level_present",
+            "cassandra_card_present",
+            "missing_system_loop_cards",
+            "no_image_body_embedded",
+            "live_activation_flags_false",
+        }
+    )
+    top_level_present = receipt.get("agent_dossier_cards_top_level_present") is True
+    observed_path = receipt.get("agent_dossier_cards_observed_path")
+    nested_present = bool(
+        (
+            receipt.get("agent_dossier_cards_present") is True
+            and observed_path == "agent_council.agent_dossier_cards"
+        )
+        or receipt.get("agent_council_present") is True
+        or validation_details.get("agent_council_present") is True
+    )
+    if nested_present:
+        accepted_path = "agent_council.agent_dossier_cards"
+        path_status = "accepted_canonical_nested_path"
+    elif top_level_present:
+        accepted_path = "agent_dossier_cards"
+        path_status = "accepted_top_level_path"
+    else:
+        accepted_path = observed_path
+        path_status = "missing_or_unknown_path" if has_agent_dossier_fields else "not_reported"
+    try:
+        card_count = int(receipt.get("agent_dossier_cards_count") or 0)
+    except (TypeError, ValueError):
+        card_count = 0
+    missing_system_loop_cards = receipt.get("missing_system_loop_cards")
+    system_loop_cards_present = (
+        isinstance(missing_system_loop_cards, list) and not missing_system_loop_cards
+    )
+    if receipt.get("agent_council_present") is True and card_count == 12 and not isinstance(missing_system_loop_cards, list):
+        system_loop_cards_present = True
+    live_activation_flags_false = bool(
+        receipt.get("live_activation_flags_false") is True
+        or receipt.get("live_authority_flags_false") is True
+        or validation_details.get("live_authority_flags_false") is True
+        or (
+            receipt.get("live_agent_activation_false") is True
+            and receipt.get("live_chat_launch_false") is True
+            and receipt.get("model_launch_false") is True
+            and receipt.get("tool_execution_false") is True
+        )
+    )
+    no_image_body_embedded = bool(
+        receipt.get("no_image_body_embedded") is True
+        or receipt.get("raw_private_body_absent") is True
+        or validation_details.get("raw_private_body_absent") is True
+    )
+    cassandra_card_present = bool(
+        receipt.get("cassandra_card_present") is True
+        or validation_details.get("cassandra_card_present") is True
+    )
+    agent_cards_present = bool(
+        receipt.get("agent_dossier_cards_present") is True
+        or receipt.get("agent_council_present") is True
+        or validation_details.get("agent_council_present") is True
+    )
+    validation_passed = bool(
+        not has_agent_dossier_fields
+        or (
+            agent_cards_present
+            and path_status in {"accepted_canonical_nested_path", "accepted_top_level_path"}
+            and card_count == 12
+            and cassandra_card_present
+            and system_loop_cards_present
+            and no_image_body_embedded
+            and live_activation_flags_false
+        )
+    )
+    return {
+        "agent_council_present": bool(
+            receipt.get("agent_council_present") is True
+            or validation_details.get("agent_council_present") is True
+        ),
+        "agent_dossier_cards_present": agent_cards_present,
+        "agent_dossier_cards_top_level_present": top_level_present,
+        "agent_dossier_cards_nested_present": nested_present,
+        "agent_dossier_cards_count": card_count,
+        "agent_dossier_cards_path": accepted_path,
+        "agent_dossier_cards_path_status": path_status,
+        "cassandra_card_present": cassandra_card_present,
+        "system_loop_cards_present": system_loop_cards_present,
+        "missing_system_loop_cards": missing_system_loop_cards if isinstance(missing_system_loop_cards, list) else [],
+        "no_image_body_embedded": no_image_body_embedded,
+        "cassandra_visual_archetype_metadata_only": bool(
+            receipt.get("cassandra_visual_archetype_metadata_only") is True
+        ),
+        "live_activation_flags_false": live_activation_flags_false,
+        "agent_dossier_receipt_fields_present": has_agent_dossier_fields,
+        "agent_dossier_receipt_validation_passed": validation_passed,
+    }
+
+
+def _receipt_surface_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+
+    def _int_field(name: str) -> int:
+        try:
+            return int(receipt.get(name) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    package_count = _int_field("package_preview_example_count")
+    tool_count = _int_field("tool_adapter_receipt_example_count")
+    has_package_tool_fields = any(
+        key in receipt
+        for key in {
+            "package_preview_summary_present",
+            "package_preview_example_count",
+            "tool_adapter_receipt_summary_present",
+            "tool_adapter_receipt_example_count",
+        }
+    )
+    package_preview_summary_present = bool(
+        receipt.get("package_preview_summary_present") is True
+        or validation_details.get("package_preview_summary_present") is True
+    )
+    tool_adapter_receipt_summary_present = bool(
+        receipt.get("tool_adapter_receipt_summary_present") is True
+        or validation_details.get("tool_adapter_receipt_summary_present") is True
+    )
+    package_preview_validation_passed = bool(
+        not has_package_tool_fields
+        or (
+            package_preview_summary_present
+            and package_count == 8
+            and validation_details.get("package_preview_example_count_ok", package_count == 8) is True
+            and validation_details.get("cassandra_capital_hilton_package_preview_present", True) is True
+            and validation_details.get("chief_check_engine_package_preview_present", True) is True
+            and validation_details.get("agentic_loop_classification_package_preview_present", True) is True
+        )
+    )
+    tool_adapter_receipt_validation_passed = bool(
+        not has_package_tool_fields
+        or (
+            tool_adapter_receipt_summary_present
+            and tool_count == 12
+            and validation_details.get("tool_adapter_receipt_example_count_ok", tool_count == 12) is True
+            and validation_details.get("stable_map_reader_tool_adapter_present", True) is True
+            and validation_details.get("cassandra_capital_hilton_tool_adapter_present", True) is True
+            and validation_details.get("browser_oauth_blocked_adapter_present", True) is True
+            and validation_details.get("gmail_calendar_blocked_adapter_present", True) is True
+            and validation_details.get("coupa_blocked_adapter_present", True) is True
+            and validation_details.get("telegram_blocked_adapter_present", True) is True
+        )
+    )
+    raw_private_body_absent = bool(
+        receipt.get("raw_private_body_absent") is True
+        or validation_details.get("raw_private_body_absent") is True
+        or not has_package_tool_fields
+    )
+    no_credentials_secrets_embedded = bool(
+        receipt.get("no_credentials_secrets_embedded") is True
+        or validation_details.get("no_credentials_secrets_embedded") is True
+        or not has_package_tool_fields
+    )
+    live_authority_flags_false = bool(
+        receipt.get("live_authority_flags_false") is True
+        or validation_details.get("live_authority_flags_false") is True
+        or not has_package_tool_fields
+    )
+    return {
+        "package_preview_summary_present": package_preview_summary_present,
+        "package_preview_example_count": package_count,
+        "cassandra_capital_hilton_preview_present": bool(
+            validation_details.get("cassandra_capital_hilton_package_preview_present") is True
+        ),
+        "chief_check_engine_preview_present": bool(
+            validation_details.get("chief_check_engine_package_preview_present") is True
+        ),
+        "agentic_loop_classification_preview_present": bool(
+            validation_details.get("agentic_loop_classification_package_preview_present") is True
+        ),
+        "tool_adapter_receipt_summary_present": tool_adapter_receipt_summary_present,
+        "tool_adapter_receipt_example_count": tool_count,
+        "stable_map_reader_adapter_present": bool(
+            validation_details.get("stable_map_reader_tool_adapter_present") is True
+        ),
+        "cassandra_capital_hilton_adapter_present": bool(
+            validation_details.get("cassandra_capital_hilton_tool_adapter_present") is True
+        ),
+        "browser_oauth_blocked_adapter_present": bool(
+            validation_details.get("browser_oauth_blocked_adapter_present") is True
+        ),
+        "gmail_calendar_blocked_adapter_present": bool(
+            validation_details.get("gmail_calendar_blocked_adapter_present") is True
+        ),
+        "coupa_blocked_adapter_present": bool(
+            validation_details.get("coupa_blocked_adapter_present") is True
+        ),
+        "telegram_blocked_adapter_present": bool(
+            validation_details.get("telegram_blocked_adapter_present") is True
+        ),
+        "raw_private_body_absent": raw_private_body_absent,
+        "no_credentials_secrets_embedded": no_credentials_secrets_embedded,
+        "live_authority_flags_false": live_authority_flags_false,
+        "package_tool_receipt_fields_present": has_package_tool_fields,
+        "package_preview_receipt_validation_passed": package_preview_validation_passed,
+        "tool_adapter_receipt_validation_passed": tool_adapter_receipt_validation_passed,
+        "package_tool_receipt_validation_passed": bool(
+            package_preview_validation_passed
+            and tool_adapter_receipt_validation_passed
+            and raw_private_body_absent
+            and no_credentials_secrets_embedded
+            and live_authority_flags_false
+        ),
+    }
+
+
 def build_receipt_status(
     *,
     map_manifest: dict[str, Any],
@@ -395,7 +630,16 @@ def build_receipt_status(
     hash_mismatch_blocking = bool(hash_mismatch) if isinstance(hash_mismatch, list) else hash_mismatch not in (None, False)
     schema_version = receipt.get("schema_version")
     schema_compatible = schema_version in (None, STABLE_MAP_RECEIPT_SCHEMA_VERSION)
-    status_imported = receipt.get("receipt_status") in (None, "imported", "synced")
+    receipt_status_value = receipt.get("receipt_status")
+    agent_dossier = _agent_dossier_receipt_status(receipt)
+    receipt_surfaces = _receipt_surface_status(receipt)
+    status_imported = receipt_status_value in (
+        None,
+        "imported",
+        "synced",
+        "SUCCESS",
+        *ACCEPTED_PARTIAL_MAP_RECEIPT_STATUSES,
+    )
     receipt_matches = bool(
         receipt
         and schema_compatible
@@ -405,6 +649,8 @@ def build_receipt_status(
         and receipt_parse_passed
         and not missing_files_blocking
         and not hash_mismatch_blocking
+        and agent_dossier["agent_dossier_receipt_validation_passed"]
+        and receipt_surfaces["package_tool_receipt_validation_passed"]
     )
     return {
         "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
@@ -412,8 +658,15 @@ def build_receipt_status(
         "map_receipt_present_in_mac_manifest": STABLE_MAP_OPTIONAL_RECEIPT_FILE in manifest_names,
         "receipt_schema_version": schema_version,
         "receipt_schema_compatible": schema_compatible,
-        "receipt_status": receipt.get("receipt_status"),
+        "receipt_status": receipt_status_value,
+        "receipt_status_accepted": status_imported,
+        "receipt_status_accepted_reason": (
+            "agent_dossier_cards_nested_path_is_canonical"
+            if receipt_status_value in ACCEPTED_PARTIAL_MAP_RECEIPT_STATUSES
+            else None
+        ),
         "receipt_app_visible_candidate": bool(receipt.get("app_visible_candidate")),
+        "receipt_app_visible_normalized": receipt_matches,
         "receipt_generation_id": receipt_generation,
         "receipt_bundle_hash": receipt_hash,
         "receipt_observed_generation_id": receipt.get("observed_map_generation_id"),
@@ -426,6 +679,8 @@ def build_receipt_status(
         "receipt_path": receipt_path.as_posix(),
         "expected_generation_id": expected_generation,
         "expected_bundle_hash": expected_hash,
+        **agent_dossier,
+        **receipt_surfaces,
     }
 
 
@@ -517,6 +772,31 @@ def build_app_visible_map_status(
         **presence,
         "mac_receipt_present": bool(receipt["map_receipt_present"]),
         "mac_receipt_present_in_manifest": bool(receipt["map_receipt_present_in_mac_manifest"]),
+        "receipt_matches_pc_bundle": bool(receipt["receipt_matches_pc_bundle"]),
+        "agent_dossier_cards_present": bool(receipt["agent_dossier_cards_present"]),
+        "agent_dossier_cards_count": receipt["agent_dossier_cards_count"],
+        "agent_dossier_cards_path": receipt["agent_dossier_cards_path"],
+        "agent_dossier_cards_path_status": receipt["agent_dossier_cards_path_status"],
+        "cassandra_card_present": bool(receipt["cassandra_card_present"]),
+        "system_loop_cards_present": bool(receipt["system_loop_cards_present"]),
+        "no_image_body_embedded": bool(receipt["no_image_body_embedded"]),
+        "agent_council_present": bool(receipt["agent_council_present"]),
+        "package_preview_summary_present": bool(receipt["package_preview_summary_present"]),
+        "package_preview_example_count": receipt["package_preview_example_count"],
+        "cassandra_capital_hilton_preview_present": bool(receipt["cassandra_capital_hilton_preview_present"]),
+        "chief_check_engine_preview_present": bool(receipt["chief_check_engine_preview_present"]),
+        "agentic_loop_classification_preview_present": bool(receipt["agentic_loop_classification_preview_present"]),
+        "tool_adapter_receipt_summary_present": bool(receipt["tool_adapter_receipt_summary_present"]),
+        "tool_adapter_receipt_example_count": receipt["tool_adapter_receipt_example_count"],
+        "stable_map_reader_adapter_present": bool(receipt["stable_map_reader_adapter_present"]),
+        "cassandra_capital_hilton_adapter_present": bool(receipt["cassandra_capital_hilton_adapter_present"]),
+        "browser_oauth_blocked_adapter_present": bool(receipt["browser_oauth_blocked_adapter_present"]),
+        "gmail_calendar_blocked_adapter_present": bool(receipt["gmail_calendar_blocked_adapter_present"]),
+        "coupa_blocked_adapter_present": bool(receipt["coupa_blocked_adapter_present"]),
+        "telegram_blocked_adapter_present": bool(receipt["telegram_blocked_adapter_present"]),
+        "raw_private_body_absent": bool(receipt["raw_private_body_absent"]),
+        "no_credentials_secrets_embedded": bool(receipt["no_credentials_secrets_embedded"]),
+        "live_activation_flags_false": bool(receipt["live_activation_flags_false"]),
         "app_visible": map_status == "map_current",
         "next_expected_actor": next_actor,
         "operator_action_required": False,
@@ -1578,6 +1858,11 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- map_generation_id: `{map_status['map_generation_id']}`",
         f"- bundle_hash: `{map_status['bundle_hash']}`",
         f"- app_visible: `{str(map_status['app_visible']).lower()}`",
+        f"- receipt_matches_pc_bundle: `{str(map_status.get('receipt_matches_pc_bundle')).lower()}`",
+        f"- agent_dossier_cards: `{map_status.get('agent_dossier_cards_count')}` at `{map_status.get('agent_dossier_cards_path')}`",
+        f"- agent_dossier_cards_path_status: `{map_status.get('agent_dossier_cards_path_status')}`",
+        f"- package_preview_summary: `{str(map_status.get('package_preview_summary_present')).lower()}` count=`{map_status.get('package_preview_example_count')}`",
+        f"- tool_adapter_receipt_summary: `{str(map_status.get('tool_adapter_receipt_summary_present')).lower()}` count=`{map_status.get('tool_adapter_receipt_example_count')}`",
         f"- front-door operator action required: `{str(map_status['operator_action_required']).lower()}`",
         f"- next expected actor: `{map_status['next_expected_actor']}`",
         f"- next: {map_status['recommended_fix']}",
