@@ -1,0 +1,505 @@
+{
+  "allowed_tokens": {
+    "status": "FUTURE_CONCEPT_ONLY",
+    "token_types": [
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "compute_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "llm_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "operator_attention_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "sandbox_budget_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "security_review_token"
+      },
+      {
+        "current_authority": "NONE",
+        "rules": [
+          "tokens_do_not_exist_yet",
+          "tokens_do_not_grant_external_spend",
+          "tokens_do_not_grant_account_access",
+          "tokens_do_not_bypass_guardian_or_operator_gates",
+          "tokens_must_be_scoped",
+          "tokens_must_be_receipted",
+          "tokens_must_be_revocable",
+          "tokens_must_be_capped"
+        ],
+        "status": "FUTURE_CONCEPT_ONLY",
+        "token_type": "experiment_timebox_token"
+      }
+    ],
+    "tokens_bypass_guardian_operator_gates": false,
+    "tokens_exist_now": false,
+    "tokens_grant_account_access": false,
+    "tokens_grant_external_spend": false,
+    "tokens_must_be_scoped_receipted_revocable_capped": true
+  },
+  "conceptual_architecture": [
+    {
+      "authority_summary": "No deployment, marketplace, account, spend, or revenue action exists.",
+      "blocked_actions": [
+        "deployment",
+        "marketplace activity",
+        "account creation",
+        "spend",
+        "revenue action",
+        "runtime execution"
+      ],
+      "current_status": "BLOCKED_CONCEPT_ONLY",
+      "display_name": "Zero Human Control Experiment",
+      "purpose": "Pure machine execution with a dual-agent verification concept.",
+      "track_id": "zero_human_control_experiment"
+    },
+    {
+      "authority_summary": "No external action exists; human guidance is only a future study variable.",
+      "blocked_actions": [
+        "external action",
+        "account access",
+        "spend",
+        "deployment",
+        "runtime execution"
+      ],
+      "current_status": "BLOCKED_CONCEPT_ONLY",
+      "display_name": "Hybrid Human Variable Experiment",
+      "purpose": "Machine execution plus a human exception gate for macro-risk, ethical, and capital-direction guidance.",
+      "track_id": "hybrid_human_variable_experiment"
+    },
+    {
+      "authority_summary": "No authority delegation exists.",
+      "blocked_actions": [
+        "authority delegation",
+        "queue decisions",
+        "capital routing",
+        "runtime execution"
+      ],
+      "current_status": "CONCEPTUAL_ONLY",
+      "display_name": "Meta CEO Differential Layer",
+      "purpose": "Compare machine-only and hybrid outcomes across adaptability, efficiency, and human-utility delta.",
+      "track_id": "meta_ceo_differential_layer"
+    },
+    {
+      "authority_summary": "Speculative capstone only; no implementation authority exists.",
+      "blocked_actions": [
+        "implementation",
+        "capital allocation",
+        "external operations",
+        "runtime execution"
+      ],
+      "current_status": "SPECULATIVE_PARKED",
+      "display_name": "Business 3 Sovereign Shell Capstone",
+      "purpose": "Long-horizon synthesis concept for macro-scale problem solving.",
+      "track_id": "business_3_sovereign_shell_capstone"
+    }
+  ],
+  "contract_type": "parked_r_and_d_thought_experiment",
+  "core_human_summary": "Future experiment comparing machine-only execution against hybrid human-guided execution to study where human intuition creates value over pure automation. It begins conceptually with a tiny sandboxed budget, but no budget authority exists now.",
+  "experiment_name": "autonomous_capital_pipeline_r_and_d_experiment",
+  "experiment_safety_questions": {
+    "operator_answers_are_proof": false,
+    "operator_answers_become_memory_candidates": true,
+    "questions": [
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "legal_compliance",
+        "question_id": "legal_tax_compliance_boundary",
+        "question_text": "What is the legal/tax/compliance boundary for any revenue experiment?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "budget_authority",
+        "question_id": "maximum_sandbox_budget",
+        "question_text": "What is the maximum sandbox budget and who approves it?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "external_account_policy",
+        "question_id": "allowed_account_payment_surfaces",
+        "question_text": "What account/payment surfaces are allowed, if any?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "asset_policy",
+        "question_id": "allowed_digital_assets",
+        "question_text": "What types of digital assets are allowed or blocked?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "platform_policy",
+        "question_id": "allowed_marketplaces_platforms",
+        "question_text": "What marketplaces/platforms are allowed or blocked?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "terms_and_abuse_boundary",
+        "question_id": "spam_scraping_tos_boundary",
+        "question_text": "What counts as spam, scraping abuse, or ToS violation?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "proof_requirement",
+        "question_id": "proof_before_publish",
+        "question_text": "What proof is required before any product is published?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "safety_control",
+        "question_id": "rollback_kill_switch",
+        "question_text": "What rollback/kill switch is required?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "experiment_metric",
+        "question_id": "success_besides_money",
+        "question_text": "What does success mean besides money?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "stop_condition",
+        "question_id": "failure_stop_condition",
+        "question_text": "What does failure/stop condition look like?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "human_utility",
+        "question_id": "human_utility_metric",
+        "question_text": "What is the human-utility metric being measured?"
+      },
+      {
+        "answer_becomes": "MEMORY_CANDIDATE_RECEIPT",
+        "answer_status": "UNANSWERED",
+        "proof_status": "OPERATOR_ANSWER_IS_NOT_PROOF",
+        "question_class": "human_only_boundary",
+        "question_id": "human_only_boundary",
+        "question_text": "What must always remain human-only?"
+      }
+    ]
+  },
+  "experiment_status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+  "five_phase_roadmap": [
+    {
+      "blocked_actions": [
+        "spending",
+        "domain purchase",
+        "ad purchase",
+        "deployment",
+        "checkout creation",
+        "account creation"
+      ],
+      "conceptual_scope": [
+        "conceptual $20 sandboxed capital pool",
+        "digital micro-assets"
+      ],
+      "current_status": "BLOCKED_FUTURE_GATED",
+      "display_name": "Phase 1: Zero Infrastructure Bootstrapping",
+      "next_safe_move": "Keep as parked stress-test material until budget, legal, account, and security gates exist.",
+      "phase_id": "zero_infrastructure_bootstrapping"
+    },
+    {
+      "blocked_actions": [
+        "cloud accounts",
+        "API keys",
+        "CI/CD",
+        "paid compute",
+        "rollback automation"
+      ],
+      "conceptual_scope": [
+        "small SaaS surfaces",
+        "APIs",
+        "self-hosted or paid compute evaluation"
+      ],
+      "current_status": "BLOCKED_FUTURE_GATED",
+      "display_name": "Phase 2: Micro SaaS / Self-Hosted Compute",
+      "next_safe_move": "Define compute and deployment policy before any implementation.",
+      "phase_id": "micro_saas_self_hosted_compute"
+    },
+    {
+      "blocked_actions": [
+        "brokerage crawling",
+        "acquisitions",
+        "contracts",
+        "payments",
+        "external account access"
+      ],
+      "conceptual_scope": [
+        "micro-business consolidation",
+        "acquisition evaluation"
+      ],
+      "current_status": "BLOCKED_FUTURE_GATED",
+      "display_name": "Phase 3: Portfolio Diversification / Automated Acquisition",
+      "next_safe_move": "Require legal, finance, account, and operator gates before any acquisition-related work.",
+      "phase_id": "portfolio_diversification_automated_acquisition"
+    },
+    {
+      "blocked_actions": [
+        "payouts",
+        "crypto addresses",
+        "banking",
+        "yield loops",
+        "outbound financial transfers"
+      ],
+      "conceptual_scope": [
+        "treasury routing model",
+        "payout-routing thought experiment"
+      ],
+      "current_status": "BLOCKED_FUTURE_GATED",
+      "display_name": "Phase 4: Autonomous Treasury / Dividend Routing",
+      "next_safe_move": "Keep as blocked until payment, tax, legal, security, and kill-switch policy exist.",
+      "phase_id": "autonomous_treasury_dividend_routing"
+    },
+    {
+      "blocked_actions": [
+        "implementation",
+        "capital movement",
+        "external operations",
+        "runtime execution"
+      ],
+      "conceptual_scope": [
+        "long-horizon capstone",
+        "macro-scale synthesis"
+      ],
+      "current_status": "SPECULATIVE_NOT_ACTIONABLE",
+      "display_name": "Phase 5: Business 3 Sovereign Shell",
+      "next_safe_move": "Park as speculative future-lane material.",
+      "phase_id": "business_3_sovereign_shell"
+    }
+  ],
+  "generated_at": "2026-05-22T20:16:02+00:00",
+  "machine_proof": {
+    "all_authority_flags_false": true,
+    "allowed_tokens_are_future_concepts_only": true,
+    "architecture_track_count": 4,
+    "content_hash": "sha256:355c2516c88b031d614357f1492c7d18d05c5a7c638e94b4afaf509bc13442ea",
+    "credentials_or_secrets_included": false,
+    "experiment_status_is_parked_high_risk": true,
+    "external_urls_or_api_calls_required": false,
+    "no_account_creation_authority": true,
+    "no_deployment_acquisition_payout_authority": true,
+    "no_financial_account_authority": true,
+    "no_model_tool_agent_runtime_authority": true,
+    "no_network_authority": true,
+    "no_queue_autonomy_authority": true,
+    "no_spending_authority": true,
+    "operator_answers_are_memory_candidates_not_proof": true,
+    "phase_count": 5,
+    "raw_private_bodies_included": false,
+    "required_future_gates_all_true": true,
+    "security_stress_test_artifact": true
+  },
+  "next_safe_move": "Preserve as a parked high-risk R&D stress-test reference; do not implement until future security, legal/compliance, account, payment, tax, budget-token, Guardian, Chief, Hermes, Operator, and FULL_TRUST_CLEARANCE gates exist.",
+  "no_action_authority_matrix": {
+    "account_creation_allowed": false,
+    "acquisition_allowed": false,
+    "ad_purchase_allowed": false,
+    "agent_activation_allowed": false,
+    "api_key_management_allowed": false,
+    "asset_deployment_allowed": false,
+    "banking_access_allowed": false,
+    "browser_oauth_allowed": false,
+    "capital_spend_allowed": false,
+    "checkout_creation_allowed": false,
+    "cloud_compute_allocation_allowed": false,
+    "contract_execution_allowed": false,
+    "credential_handling_allowed": false,
+    "crypto_wallet_access_allowed": false,
+    "customer_communication_allowed": false,
+    "domain_purchase_allowed": false,
+    "financial_account_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "marketplace_scrape_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "payout_allowed": false,
+    "queue_execution_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "not_currently": {
+    "active_business_plan": false,
+    "automated_money_making_system": false,
+    "execution_lane": false,
+    "investment_strategy": false,
+    "live_finance_workflow": false,
+    "permission_to_create_assets_accounts_ads_acquisitions_payouts": false,
+    "permission_to_spend_money": false,
+    "queue_item": false,
+    "security_approved_action": false
+  },
+  "parking_conditions": {
+    "must_remain_parked_until_budget_capital_token_authority": true,
+    "must_remain_parked_until_chief_hermes_guardian_operator_review_flow": true,
+    "must_remain_parked_until_external_account_payment_gates": true,
+    "must_remain_parked_until_full_trust_clearance_for_task_class": true,
+    "must_remain_parked_until_legal_compliance_tax_review": true,
+    "must_remain_parked_until_model_tool_agent_execution_gates": true,
+    "must_remain_parked_until_sandboxed_r_and_d_boundaries": true,
+    "must_remain_parked_until_security_pass_vnext": true
+  },
+  "post_security_governance_batch_relationship": {
+    "action_authority_granted": false,
+    "batch_id": "post_security_governance_batch_v0",
+    "batch_role": "parked_high_risk_r_and_d_experiment_reference",
+    "commit_deferred_until_prompt_5": true,
+    "next_batch_lane": "security_delta_review_contract",
+    "prompt_index": 1,
+    "stable_map_refresh_deferred": true
+  },
+  "read_model_id": "parked_autonomous_capital_pipeline_experiment",
+  "relationship_to_current_security_pass": {
+    "account_authority_granted": false,
+    "action_authority_granted": false,
+    "current_allowed": [
+      "read-only modeling",
+      "preview-only modeling",
+      "parked breadcrumb",
+      "security stress-test artifact",
+      "future-lane reference"
+    ],
+    "current_blocked": [
+      "all execution",
+      "all spending",
+      "all external accounts",
+      "all financial movement",
+      "all deployment",
+      "all marketplace/ad activity",
+      "all acquisition",
+      "all payout",
+      "all autonomous queueing"
+    ],
+    "deployment_authority_granted": false,
+    "financial_authority_granted": false,
+    "future_lane_reference_allowed": true,
+    "model_execution_authority_granted": false,
+    "parked_breadcrumb_allowed": true,
+    "queue_execution_authority_granted": false,
+    "read_only_preview_modeling_allowed": true,
+    "runtime_execution_authority_granted": false,
+    "security_stress_test_artifact_allowed": true,
+    "spend_authority_granted": false,
+    "tool_execution_authority_granted": false
+  },
+  "required_future_gates": {
+    "ad_platform_terms_review_required": true,
+    "chief_test_harness_required": true,
+    "data_privacy_review_required": true,
+    "external_account_policy_required": true,
+    "full_trust_clearance_required": true,
+    "guardian_gate_required": true,
+    "hermes_architecture_review_required": true,
+    "legal_compliance_review_required": true,
+    "marketplace_terms_review_required": true,
+    "open_source_license_review_required": true,
+    "operator_budget_token_required": true,
+    "operator_final_approval_required": true,
+    "payment_processor_policy_required": true,
+    "security_pass_vnext_required": true,
+    "tax_accounting_review_required": true
+  },
+  "schema_version": "parked_autonomous_capital_pipeline_experiment_v0",
+  "security_stress_test_classification": {
+    "authorizes_action": false,
+    "current_security_relevance": "HIGH",
+    "is_security_stress_test_artifact": true,
+    "stress_test_areas": [
+      "budget authority",
+      "external account boundaries",
+      "marketplace/API terms",
+      "autonomous deployment limits",
+      "payment/payout systems",
+      "invoice/ledger controls",
+      "tool/model/agent execution gates",
+      "worker-output intake",
+      "Chief/Hermes/Guardian/Operator roles",
+      "FULL_TRUST_CLEARANCE",
+      "kill-switch posture"
+    ],
+    "useful_for_future_security_review": true
+  }
+}
