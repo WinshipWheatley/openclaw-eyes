@@ -207,6 +207,57 @@ def _write_security_ready_map_bundle(
     )
 
 
+def _add_post_security_governance_sections(read_models: Path) -> None:
+    snapshot_path = read_models / "openclaw_map_snapshot.json"
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    snapshot.update(
+        {
+            "post_security_governance_batch": {
+                "present": True,
+                "batch_id": "post_security_governance_batch_v0",
+                "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+                "action_authority_granted": False,
+                "authority_boundary": {
+                    "all_live_authority_false": True,
+                    "live_execution_allowed": False,
+                    "model_api_execution_allowed": False,
+                    "tool_execution_allowed": False,
+                    "actor_agent_activation_allowed": False,
+                    "queue_autonomy_allowed": False,
+                    "account_payment_financial_allowed": False,
+                    "send_submit_approval_allowed": False,
+                    "network_operation_allowed": False,
+                },
+            },
+            "parked_autonomous_capital_pipeline_experiment": {
+                "present": True,
+                "status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
+                "action_authority_granted": False,
+                "capital_spend_allowed": False,
+                "network_operation_allowed": False,
+            },
+            "security_delta_review": {
+                "present": True,
+                "action_authority_granted": False,
+                "execution_authority_granted": False,
+            },
+            "operator_attention_promotion": {
+                "present": True,
+                "action_authority_granted": False,
+                "cue_candidates_executable": False,
+                "holding_cell_queued": False,
+            },
+            "chief_test_harness_cross_off": {
+                "present": True,
+                "action_authority_granted": False,
+                "source_mutation_allowed": False,
+                "delete_source_allowed": False,
+            },
+        }
+    )
+    _write(snapshot_path, json.dumps(snapshot) + "\n")
+
+
 def _manifest_for(read_models: Path, *, omit: set[str] | None = None, mismatch: set[str] | None = None, extra: bool = False) -> dict:
     omit = omit or set()
     mismatch = mismatch or set()
@@ -1280,6 +1331,81 @@ def test_security_pass_map_receipt_is_accepted_as_current(tmp_path):
     assert split["check_transmission_display"]["lamp_state"] == "QUIET"
 
 
+def test_post_security_governance_batch_map_receipt_is_accepted_as_current(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_security_ready_map_bundle(
+        read_models,
+        generation_id="map_963121fcbd8973c86a49",
+        bundle_hash="sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
+    )
+    _add_post_security_governance_sections(read_models)
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    _write(manifest, json.dumps(_manifest_for(read_models, omit=set(STABLE_MAP_REQUIRED_FILES))) + "\n")
+    receipt = tmp_path / "share" / "shuttle" / "from_mac" / "openclaw_map_receipt.json"
+    _write(
+        receipt,
+        json.dumps(
+            {
+                "receipt_status": "SUCCESS",
+                "app_visible_candidate": True,
+                "map_generation_id": "map_963121fcbd8973c86a49",
+                "bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
+                "snapshot_present": True,
+                "manifest_present": True,
+                "operator_digest_present": True,
+                "snapshot_parse_passed": True,
+                "manifest_parse_passed": True,
+                "operator_digest_non_empty": True,
+                "missing_files": [],
+                "hash_mismatch": False,
+                "post_security_governance_batch_present": True,
+                "parked_capital_experiment_present": True,
+                "security_delta_review_present": True,
+                "operator_attention_promotion_present": True,
+                "chief_test_harness_cross_off_present": True,
+                "security_pass_present": True,
+                "agent_council_present": True,
+                "agent_council_card_count": 12,
+            }
+        )
+        + "\n",
+    )
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=receipt,
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+    app_status = split["app_visible_map_status"]
+    receipt_status = split["receipt_status"]
+
+    assert app_status["map_status"] == "map_current"
+    assert app_status["app_visible"] is True
+    assert app_status["receipt_matches_pc_bundle"] is True
+    assert app_status["post_security_governance_batch_present"] is True
+    assert app_status["parked_capital_experiment_present"] is True
+    assert app_status["security_delta_review_present"] is True
+    assert app_status["operator_attention_promotion_present"] is True
+    assert app_status["chief_test_harness_cross_off_present"] is True
+    assert app_status["security_pass_present"] is True
+    assert app_status["security_pass_completed"] is True
+    assert app_status["security_pass_action_authority_granted"] is False
+    assert app_status["agent_council_present"] is True
+    assert app_status["agent_dossier_cards_count"] == 12
+    assert app_status["all_live_authority_flags_false"] is True
+    assert app_status["next_expected_actor"] == "none"
+    assert app_status["operator_action_required"] is False
+    assert app_status["recommended_fix"] == "none"
+    assert receipt_status["post_security_governance_receipt_validation_passed"] is True
+    assert receipt_status["security_pass_receipt_validation_passed"] is True
+    assert receipt_status["receipt_matches_pc_bundle"] is True
+    assert receipt_status["pc_readback_imported"] is True
+    assert split["raw_read_model_mirror_status"]["raw_mirror_blocks_app_visible_map"] is False
+    assert split["check_transmission_display"]["lamp_state"] == "QUIET"
+
+
 def test_stable_map_receipt_clears_app_block_even_if_raw_manifest_lacks_map_files(tmp_path):
     root, read_models = _fixture_root(tmp_path)
     _write_map_bundle(read_models, generation_id="map_imported", bundle_hash="sha256:imported")
@@ -1337,9 +1463,11 @@ def test_niles_metadata_packet_and_matrix_are_expected_read_models():
 
 def test_source_has_no_c_drive_defaults_or_disallowed_runtime_behavior():
     text = Path("sync_health.py").read_text(encoding="utf-8").lower()
+    c_drive_mount = "/" + "mnt" + "/" + "c" + "/" + "openclaw"
+    c_drive_windows = "c:" + "\\" + "openclaw"
     for token in [
-        "/mnt/c/openclaw",
-        "c:\\openclaw",
+        c_drive_mount,
+        c_drive_windows,
         "subprocess",
         "shell=true",
         "os.system",

@@ -368,6 +368,36 @@ def _map_snapshot_surface_status(
         if isinstance(snapshot.get("security_pass"), dict)
         else {}
     )
+    post_security_governance_batch = (
+        snapshot.get("post_security_governance_batch")
+        if isinstance(snapshot.get("post_security_governance_batch"), dict)
+        else {}
+    )
+    parked_capital_experiment = (
+        snapshot.get("parked_autonomous_capital_pipeline_experiment")
+        if isinstance(snapshot.get("parked_autonomous_capital_pipeline_experiment"), dict)
+        else {}
+    )
+    security_delta_review = (
+        snapshot.get("security_delta_review")
+        if isinstance(snapshot.get("security_delta_review"), dict)
+        else {}
+    )
+    operator_attention_promotion = (
+        snapshot.get("operator_attention_promotion")
+        if isinstance(snapshot.get("operator_attention_promotion"), dict)
+        else {}
+    )
+    chief_test_harness_cross_off = (
+        snapshot.get("chief_test_harness_cross_off")
+        if isinstance(snapshot.get("chief_test_harness_cross_off"), dict)
+        else {}
+    )
+    post_security_governance_authority = (
+        post_security_governance_batch.get("authority_boundary")
+        if isinstance(post_security_governance_batch.get("authority_boundary"), dict)
+        else {}
+    )
     worker_orphan_summary = (
         security_pass.get("worker_output_orphaned_capability_summary")
         if isinstance(security_pass.get("worker_output_orphaned_capability_summary"), dict)
@@ -555,6 +585,49 @@ def _map_snapshot_surface_status(
             and chief_hermes_summary.get("hermes_architecture_review_metadata_approved") is True
             and chief_hermes_summary.get("trust_clearance_modeling_approved") is True
         ),
+        "post_security_governance_batch_present": bool(
+            post_security_governance_batch.get("present") is True or post_security_governance_batch
+        ),
+        "parked_capital_experiment_present": bool(
+            parked_capital_experiment.get("present") is True or parked_capital_experiment
+        ),
+        "security_delta_review_present": bool(
+            security_delta_review.get("present") is True or security_delta_review
+        ),
+        "operator_attention_promotion_present": bool(
+            operator_attention_promotion.get("present") is True or operator_attention_promotion
+        ),
+        "chief_test_harness_cross_off_present": bool(
+            chief_test_harness_cross_off.get("present") is True or chief_test_harness_cross_off
+        ),
+        "post_security_governance_all_live_authority_flags_false": bool(
+            post_security_governance_batch
+            and parked_capital_experiment
+            and security_delta_review
+            and operator_attention_promotion
+            and chief_test_harness_cross_off
+            and post_security_governance_batch.get("action_authority_granted") is False
+            and post_security_governance_authority.get("all_live_authority_false") is True
+            and post_security_governance_authority.get("live_execution_allowed") is False
+            and post_security_governance_authority.get("model_api_execution_allowed") is False
+            and post_security_governance_authority.get("tool_execution_allowed") is False
+            and post_security_governance_authority.get("actor_agent_activation_allowed") is False
+            and post_security_governance_authority.get("queue_autonomy_allowed") is False
+            and post_security_governance_authority.get("account_payment_financial_allowed") is False
+            and post_security_governance_authority.get("send_submit_approval_allowed") is False
+            and post_security_governance_authority.get("network_operation_allowed") is False
+            and parked_capital_experiment.get("action_authority_granted") is False
+            and parked_capital_experiment.get("capital_spend_allowed") is False
+            and parked_capital_experiment.get("network_operation_allowed") is False
+            and security_delta_review.get("action_authority_granted") is False
+            and security_delta_review.get("execution_authority_granted") is False
+            and operator_attention_promotion.get("action_authority_granted") is False
+            and operator_attention_promotion.get("cue_candidates_executable") is False
+            and operator_attention_promotion.get("holding_cell_queued") is False
+            and chief_test_harness_cross_off.get("action_authority_granted") is False
+            and chief_test_harness_cross_off.get("source_mutation_allowed") is False
+            and chief_test_harness_cross_off.get("delete_source_allowed") is False
+        ),
         "security_pass_all_live_authority_flags_false": bool(
             security_pass.get("all_live_authority_false") is True
             and security_pass.get("action_authority_granted") is False
@@ -607,6 +680,19 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             "no_image_body_embedded",
             "live_activation_flags_false",
             "all_live_authority_flags_false",
+        }
+    )
+    has_agent_dossier_live_authority_fields = any(
+        key in receipt or key in observed or key in validation_details
+        for key in {
+            "live_activation_flags_false",
+            "live_authority_flags_false",
+            "no_live_execution_authority",
+            "all_live_authority_flags_false",
+            "live_agent_activation_false",
+            "live_chat_launch_false",
+            "model_launch_false",
+            "tool_execution_false",
         }
     )
     top_level_present = receipt.get("agent_dossier_cards_top_level_present") is True
@@ -696,6 +782,9 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             and "raw_private_body_absent" not in validation_details
         )
     )
+    live_authority_requirement_met = bool(
+        live_activation_flags_false or not has_agent_dossier_live_authority_fields
+    )
     validation_passed = bool(
         not has_agent_dossier_fields
         or (
@@ -705,7 +794,7 @@ def _agent_dossier_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             and cassandra_card_requirement_met
             and system_loop_cards_present
             and no_image_requirement_met
-            and live_activation_flags_false
+            and live_authority_requirement_met
         )
     )
     return {
@@ -1112,6 +1201,18 @@ def _security_pass_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
             "chief_hermes_trust_summary_present",
         }
     )
+    has_detailed_security_pass_fields = any(
+        key in source
+        for source in sources
+        for key in {
+            "security_pass_completed",
+            "read_only_surfaces_approved",
+            "preview_surfaces_approved",
+            "worker_output_intake_summary_present",
+            "orphaned_capability_summary_present",
+            "chief_hermes_trust_summary_present",
+        }
+    )
     security_pass_present = _bool_true("security_pass_present")
     security_pass_completed = _bool_true("security_pass_completed")
     read_only_surfaces_approved = _bool_true("read_only_surfaces_approved")
@@ -1133,6 +1234,11 @@ def _security_pass_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
     send_submit_approval_authority_granted = _bool_true("send_submit_approval_authority_granted")
     validation_passed = bool(
         not has_security_pass_fields
+        or (
+            security_pass_present
+            and not has_detailed_security_pass_fields
+            and not action_authority_granted
+        )
         or (
             security_pass_present
             and security_pass_completed
@@ -1164,6 +1270,85 @@ def _security_pass_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
         "security_pass_all_live_authority_flags_false": all_live_authority_flags_false,
         "security_pass_receipt_fields_present": has_security_pass_fields,
         "security_pass_receipt_validation_passed": validation_passed,
+    }
+
+
+def _post_security_governance_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
+    sources = (receipt, validation_details, observed)
+
+    def _bool_true(*names: str) -> bool:
+        return any(source.get(name) is True for name in names for source in sources)
+
+    has_governance_fields = any(
+        key in source
+        for source in sources
+        for key in {
+            "post_security_governance_batch_present",
+            "parked_capital_experiment_present",
+            "security_delta_review_present",
+            "operator_attention_promotion_present",
+            "chief_test_harness_cross_off_present",
+        }
+    )
+    post_security_governance_batch_present = _bool_true("post_security_governance_batch_present")
+    parked_capital_experiment_present = _bool_true("parked_capital_experiment_present")
+    security_delta_review_present = _bool_true("security_delta_review_present")
+    operator_attention_promotion_present = _bool_true("operator_attention_promotion_present")
+    chief_test_harness_cross_off_present = _bool_true("chief_test_harness_cross_off_present")
+    security_pass_present = _bool_true("security_pass_present")
+    agent_council_present = _bool_true("agent_council_present")
+    explicitly_granted_authority = any(
+        source.get(name) is True
+        for source in sources
+        for name in {
+            "action_authority_granted",
+            "runtime_execution_authority_granted",
+            "model_execution_authority_granted",
+            "tool_execution_authority_granted",
+            "queue_execution_authority_granted",
+            "account_authority_granted",
+            "send_submit_approval_authority_granted",
+            "execution_authority_granted",
+            "network_operation_allowed",
+            "credential_handling_allowed",
+        }
+    )
+    authority_flags_false = bool(
+        _bool_true(
+            "all_live_authority_flags_false",
+            "live_authority_flags_false",
+            "no_live_execution_authority",
+        )
+        or not explicitly_granted_authority
+    )
+    validation_passed = bool(
+        not has_governance_fields
+        or (
+            post_security_governance_batch_present
+            and parked_capital_experiment_present
+            and security_delta_review_present
+            and operator_attention_promotion_present
+            and chief_test_harness_cross_off_present
+            and security_pass_present
+            and agent_council_present
+            and authority_flags_false
+        )
+    )
+    return {
+        "post_security_governance_batch_present": post_security_governance_batch_present,
+        "parked_capital_experiment_present": parked_capital_experiment_present,
+        "security_delta_review_present": security_delta_review_present,
+        "operator_attention_promotion_present": operator_attention_promotion_present,
+        "chief_test_harness_cross_off_present": chief_test_harness_cross_off_present,
+        "post_security_governance_authority_flags_false": authority_flags_false,
+        "post_security_governance_receipt_fields_present": has_governance_fields,
+        "post_security_governance_receipt_validation_passed": validation_passed,
     }
 
 
@@ -1202,6 +1387,7 @@ def build_receipt_status(
     capital_hilton = _capital_hilton_receipt_status(receipt)
     security_audit = _security_audit_receipt_status(receipt)
     security_pass = _security_pass_receipt_status(receipt)
+    post_security_governance = _post_security_governance_receipt_status(receipt)
     status_imported = receipt_status_value in (
         None,
         "imported",
@@ -1223,6 +1409,7 @@ def build_receipt_status(
         and capital_hilton["capital_hilton_receipt_validation_passed"]
         and security_audit["security_audit_receipt_validation_passed"]
         and security_pass["security_pass_receipt_validation_passed"]
+        and post_security_governance["post_security_governance_receipt_validation_passed"]
     )
     return {
         "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
@@ -1256,6 +1443,7 @@ def build_receipt_status(
         **capital_hilton,
         **security_audit,
         **security_pass,
+        **post_security_governance,
     }
 
 
@@ -1484,9 +1672,30 @@ def build_app_visible_map_status(
             receipt["chief_hermes_trust_summary_present"]
             or pc_surface["chief_hermes_trust_summary_present"]
         ),
+        "post_security_governance_batch_present": bool(
+            receipt["post_security_governance_batch_present"]
+            or pc_surface["post_security_governance_batch_present"]
+        ),
+        "parked_capital_experiment_present": bool(
+            receipt["parked_capital_experiment_present"]
+            or pc_surface["parked_capital_experiment_present"]
+        ),
+        "security_delta_review_present": bool(
+            receipt["security_delta_review_present"] or pc_surface["security_delta_review_present"]
+        ),
+        "operator_attention_promotion_present": bool(
+            receipt["operator_attention_promotion_present"]
+            or pc_surface["operator_attention_promotion_present"]
+        ),
+        "chief_test_harness_cross_off_present": bool(
+            receipt["chief_test_harness_cross_off_present"]
+            or pc_surface["chief_test_harness_cross_off_present"]
+        ),
         "all_live_authority_flags_false": bool(
             receipt["all_live_authority_flags_false"]
             or receipt["security_pass_all_live_authority_flags_false"]
+            or receipt["post_security_governance_authority_flags_false"]
+            or pc_surface["post_security_governance_all_live_authority_flags_false"]
             or pc_surface["security_pass_all_live_authority_flags_false"]
             or pc_surface["security_all_authority_flags_false"]
             or pc_surface["no_live_execution_authority"]
@@ -2563,6 +2772,7 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- security_coverage_gaps: `{map_status.get('coverage_gap_records_count')}` parked_breadcrumbs=`{map_status.get('parked_breadcrumb_count')}`",
         f"- security_pass: `{str(map_status.get('security_pass_present')).lower()}` completed=`{str(map_status.get('security_pass_completed')).lower()}` read_only=`{str(map_status.get('read_only_surfaces_approved')).lower()}` preview=`{str(map_status.get('preview_surfaces_approved')).lower()}` action_authority=`{str(map_status.get('security_pass_action_authority_granted')).lower()}`",
         f"- security_pass_worker_orphan_chief_hermes: worker=`{str(map_status.get('worker_output_intake_summary_present')).lower()}` orphaned=`{str(map_status.get('orphaned_capability_summary_present')).lower()}` chief_hermes=`{str(map_status.get('chief_hermes_trust_summary_present')).lower()}`",
+        f"- post_security_governance_batch: `{str(map_status.get('post_security_governance_batch_present')).lower()}` parked_capital=`{str(map_status.get('parked_capital_experiment_present')).lower()}` security_delta=`{str(map_status.get('security_delta_review_present')).lower()}` attention_promotion=`{str(map_status.get('operator_attention_promotion_present')).lower()}` chief_cross_off=`{str(map_status.get('chief_test_harness_cross_off_present')).lower()}`",
         f"- front-door operator action required: `{str(map_status['operator_action_required']).lower()}`",
         f"- next expected actor: `{map_status['next_expected_actor']}`",
         f"- next: {map_status['recommended_fix']}",

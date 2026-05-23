@@ -8,17 +8,17 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=251
+- canonical_expected=259
 - observed=218
-- missing_expected=33
+- missing_expected=41
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
 
 App-visible stable map:
 - map_status: `map_current`
-- map_generation_id: `map_6f1dc51e52ab0c5778d8`
-- bundle_hash: `sha256:244a9d3634e864e5fa880885717497b4b2818b9a07d2da88467e5d67c6469c22`
+- map_generation_id: `map_963121fcbd8973c86a49`
+- bundle_hash: `sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea`
 - app_visible: `true`
 - receipt_matches_pc_bundle: `true`
 - agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
@@ -31,6 +31,7 @@ App-visible stable map:
 - security_coverage_gaps: `5` parked_breadcrumbs=`15`
 - security_pass: `true` completed=`true` read_only=`true` preview=`true` action_authority=`false`
 - security_pass_worker_orphan_chief_hermes: worker=`true` orphaned=`true` chief_hermes=`true`
+- post_security_governance_batch: `true` parked_capital=`true` security_delta=`true` attention_promotion=`true` chief_cross_off=`true`
 - front-door operator action required: `false`
 - next expected actor: `none`
 - next: none
@@ -54,7 +55,7 @@ Raw read-model mirror proof/detail recommendation:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-22T18:32:59+00:00`
+- Mac heartbeat: `idle` at `2026-05-23T04:44:03+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -72,6 +73,8 @@ Stale files:
 - `agent_terrain_awareness_readback_contract_OPERATOR.md`
 - `capital_hilton_proof_metadata_packet.json`
 - `capital_hilton_proof_metadata_packet_OPERATOR.md`
+- `chief_test_harness_cross_off_receipt_contract.json`
+- `chief_test_harness_cross_off_receipt_contract_OPERATOR.md`
 - `memory_candidate_receipt_contract.json`
 - `memory_candidate_receipt_contract_OPERATOR.md`
 - `model_selection_policy_contract.json`
@@ -81,14 +84,20 @@ Stale files:
 - `openclaw_map_OPERATOR.md`
 - `openclaw_map_manifest.json`
 - `openclaw_map_snapshot.json`
+- `operator_attention_promotion_contract.json`
+- `operator_attention_promotion_contract_OPERATOR.md`
 - `operator_map_bundle_contract.json`
 - `operator_map_bundle_contract_OPERATOR.md`
 - `operator_threshold_map_contract.json`
 - `operator_threshold_map_contract_OPERATOR.md`
 - `package_preview_receipt_contract.json`
 - `package_preview_receipt_contract_OPERATOR.md`
+- `parked_autonomous_capital_pipeline_experiment.json`
+- `parked_autonomous_capital_pipeline_experiment_OPERATOR.md`
 - `security_audit_readiness_packet.json`
 - `security_audit_readiness_packet_OPERATOR.md`
+- `security_delta_review_contract.json`
+- `security_delta_review_contract_OPERATOR.md`
 - `security_pass_contract.json`
 - `security_pass_contract_OPERATOR.md`
 - `system_health_lights_taxonomy.json`
