@@ -79,6 +79,23 @@
     "summary_included_in_snapshot": true,
     "text_clarifies_but_does_not_prove": true
   },
+  "capital_hilton_coupa_po_retrieval_automation_candidate_integration": {
+    "action_authority_granted": false,
+    "automation_status": "BLOCKED_PENDING_PROTECTED_ACCESS_BROKER",
+    "candidate_count": 1,
+    "contract_status": "deterministic_future_automation_candidate_no_current_authority",
+    "default_candidate_id": "capital_hilton_coupa_po_reference_retrieval",
+    "future_candidate_flags_do_not_grant_authority": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "manual_fallback_modeled": true,
+    "no_coupa_browser_network_authority": true,
+    "proof_item_id_supported": "coupa_po_payment_reference_metadata",
+    "proof_satisfied_now": false,
+    "readiness_gate_count": 10,
+    "stop_condition_count": 12,
+    "summary_included_in_snapshot": true,
+    "trial_stage_count": 7
+  },
   "capital_hilton_guardian_review_packet_integration": {
     "action_authority_granted": false,
     "allowed_outputs_metadata_review_only": true,
@@ -164,7 +181,7 @@
     "test_harness_receipt_model_present": true
   },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:99ae4afd22cdcd1c2c39b49c8f352e4c93715e7fb365432f886fa5692f407575",
+  "contract_hash": "sha256:dc341b10513947b8a31858e19df3f59ca0338f5fa7ae993d5d13413942c9e003",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -181,7 +198,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-23T19:34:26+00:00",
+  "generated_at": "2026-05-23T19:51:30+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "guided_capture_protected_evidence_path_contract_integration": {
     "action_authority_granted": false,
@@ -258,10 +275,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:f6c9dbcdc5a014714f2fd24a0cdc8a3a855112995297a024eee3bdb1c46a661e",
+    "bundle_hash": "sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491",
     "canonical_read_model_count": 284,
-    "created_at": "2026-05-23T19:34:26+00:00",
-    "essential_surface_count": 35,
+    "created_at": "2026-05-23T19:51:30+00:00",
+    "essential_surface_count": 37,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -292,7 +309,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:b164397d3133d8c8bc58b5876a00b83ec0926836d5dabc2a0fb35bf4d71ff11e",
+        "hash": "sha256:6cdc788162fd260bc77f0868fa3b629d40380bb21d409676c65d783d87371cec",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/system_health_lights_taxonomy.json",
@@ -305,7 +322,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:22fc14220e62a1825754375431eb23567a0744b31f22558b239fece5a2a7452a",
+        "hash": "sha256:6914ab9fbbbf5ffffab3ab90b54530cbc34c63df28e65085f8ac75c040f765e8",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/operator_threshold_map_contract.json",
@@ -565,6 +582,19 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:a35208a2a9df5895ce15996045e6d77a9b3e5e9b542430a63438094bfce9c66b",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+        "role": "Capital Hilton Coupa/PO retrieval automation candidate with no current external authority",
+        "schema_version": "capital_hilton_coupa_po_retrieval_automation_candidate_v0",
+        "surface_id": "capital_hilton_coupa_po_retrieval_automation_candidate"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:e743c1bc1fd4b737c1a8f7501c5e429f01e13ced1bd5b62803e81a01f4d8cf89",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -627,6 +657,19 @@
         "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
         "schema_version": "openclaw_work_terrain_gap_detector_v0",
         "surface_id": "openclaw_work_terrain_gap_detector"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:9a152441f428f8e9ca44ee74bdc16a35059c410acff5c25f3e1f49c5c14fa15f",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/markdown_atlas_scope_expansion.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "markdown_atlas_scope_expansion",
+        "role": "metadata-only Markdown Atlas scope expansion plan and root-approval guardrails",
+        "schema_version": "markdown_atlas_scope_expansion_v0",
+        "surface_id": "markdown_atlas_scope_expansion"
       },
       {
         "front_door_file_dependency": false,
@@ -742,16 +785,16 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_f47cef0e17a00622c5a2",
+    "map_generation_id": "map_fa2eb18cb51aaf46e523",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
     "raw_generated_read_model_file_count_including_map_bundle_self": 291,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:44b5e95227da43820aa0e7a9b31a65321b99800eb68a336f11259f757d2add00",
+    "read_model_manifest_hash": "sha256:5e3f6fca44ec3538e1dd7dda375d0cc500164dce36fbabeb8f26d24458103efc",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
-    "source_commit_if_available_local_only": "5663e14b2fd7200c893ad62c3055fb2250550e52",
+    "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
+    "source_commit_if_available_local_only": "d39cfb0c8ffb3ac60aaf1f2cb957b278f30349e6",
     "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 284,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
@@ -773,6 +816,10 @@
     "capital_hilton_answer_candidates_count": 10,
     "capital_hilton_automatic_progression_allowed": false,
     "capital_hilton_automatic_quieting_allowed": false,
+    "capital_hilton_coupa_po_automation_candidate_present": true,
+    "capital_hilton_coupa_po_readiness_gate_count": 10,
+    "capital_hilton_coupa_po_stop_condition_count": 12,
+    "capital_hilton_coupa_po_trial_stage_count": 7,
     "capital_hilton_guardian_cannot_approve_invoice_action": true,
     "capital_hilton_guardian_review_packets_count": 5,
     "capital_hilton_missing_proof_count": 10,
@@ -805,16 +852,16 @@
     "guided_capture_privacy_guard_count": 8,
     "health_state": {
       "check_transmission_summary": {
-        "current_status": "QUIET",
+        "current_status": "WARNING",
         "final_mac_mirror_pending": false,
         "final_mac_self_report_mirror_pending": false,
         "pc_import_proof_complete": false,
-        "why": "Stable map bundle current"
+        "why": "Stable map bundle pending"
       },
       "current_light_states": {
         "brake_parking_brake": "ON_NORMAL",
         "check_engine": "WARNING",
-        "check_transmission": "QUIET",
+        "check_transmission": "WARNING",
         "low_fuel_low_battery": "WARNING",
         "oil_pressure_coolant": "WARNING",
         "traction_control": "QUIET"
@@ -827,7 +874,10 @@
     "make_winship_life_easier_batch_present": true,
     "make_winship_life_easier_batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
     "make_winship_life_easier_completed_lanes_count": 5,
-    "map_generation_id": "map_f47cef0e17a00622c5a2",
+    "map_generation_id": "map_fa2eb18cb51aaf46e523",
+    "markdown_atlas_body_ingestion_allowed": false,
+    "markdown_atlas_recommended_next_run": "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS",
+    "markdown_atlas_scope_expansion_present": true,
     "openclaw_work_terrain_built_status_validation_rule_count": 6,
     "openclaw_work_terrain_classification_examples_count": 21,
     "openclaw_work_terrain_completed_lanes_count": 4,
@@ -864,7 +914,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
+    "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -888,6 +938,23 @@
     "tool_adapter_receipt_examples_count": 12,
     "workflow_approval_bus_count": 5,
     "workflow_session_count": 5
+  },
+  "markdown_atlas_scope_expansion_integration": {
+    "action_authority_granted": false,
+    "body_ingestion_allowed": false,
+    "contract_status": "metadata_only_scope_expansion_plan",
+    "corpus_roots_count": 7,
+    "gap_records_count": 10,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "markdown_documents_count": 598,
+    "metadata_only_posture": true,
+    "no_c_drive_scanning": true,
+    "private_or_broad_root_scan_allowed": false,
+    "recommended_next_run": "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS",
+    "root_scope_records_count": 12,
+    "semantic_review_allowed_now": false,
+    "sqlite_present": true,
+    "summary_included_in_snapshot": true
   },
   "metadata_only": true,
   "mission_control_app_changed": false,

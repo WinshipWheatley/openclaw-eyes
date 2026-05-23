@@ -1725,6 +1725,35 @@
     "source_read_model_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json",
     "text_clarifies_but_does_not_prove": true
   },
+  "capital_hilton_coupa_po_retrieval_automation_candidate": {
+    "action_authority_granted": false,
+    "all_current_authority_flags_false": true,
+    "automation_stage": "STAGE_0_MANUAL_INSTRUCTIONS",
+    "automation_status": "BLOCKED_PENDING_PROTECTED_ACCESS_BROKER",
+    "candidate_count": 1,
+    "contract_status": "deterministic_future_automation_candidate_no_current_authority",
+    "current_manual_fallback": "Winship manually logs in and copies only safe metadata, such as a PO/reference number, or confirms that no reference exists.",
+    "default_candidate_id": "capital_hilton_coupa_po_reference_retrieval",
+    "future_candidate_flags_do_not_grant_authority": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "lookup_receipt_created_now": false,
+    "manual_fallback_modeled": true,
+    "next_safe_move": "Keep manual fallback available; no Coupa/browser/network/credential access or invoice/send/submit action.",
+    "no_coupa_browser_network_authority": true,
+    "no_credential_storage": true,
+    "no_invoice_send_submit_ledger_authority": true,
+    "present": true,
+    "primary_app_contract": true,
+    "proof_item_id_supported": "coupa_po_payment_reference_metadata",
+    "proof_satisfied_now": false,
+    "readiness_gate_count": 10,
+    "section_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+    "source_operator_ref": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+    "stop_condition_count": 12,
+    "supervised_and_autonomous_candidates_modeled_future_gated": true,
+    "trial_stage_count": 7
+  },
   "capital_hilton_guardian_review_packet": {
     "action_authority_granted": false,
     "allowed_outputs_metadata_review_only": true,
@@ -2547,7 +2576,7 @@
     "source_path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
     "test_harness_receipt_model_present": true
   },
-  "created_at": "2026-05-23T19:34:26+00:00",
+  "created_at": "2026-05-23T19:51:30+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -2700,16 +2729,16 @@
   },
   "health_state": {
     "check_transmission_summary": {
-      "current_status": "QUIET",
+      "current_status": "WARNING",
       "final_mac_mirror_pending": false,
       "final_mac_self_report_mirror_pending": false,
       "pc_import_proof_complete": false,
-      "why": "Stable map bundle current"
+      "why": "Stable map bundle pending"
     },
     "current_light_states": {
       "brake_parking_brake": "ON_NORMAL",
       "check_engine": "WARNING",
-      "check_transmission": "QUIET",
+      "check_transmission": "WARNING",
       "low_fuel_low_battery": "WARNING",
       "oil_pressure_coolant": "WARNING",
       "traction_control": "QUIET"
@@ -2745,7 +2774,35 @@
     "source_read_model_ref": "generated/read_models/make_winship_life_easier_batch_manifest.json",
     "stable_map_refresh_deferred": false
   },
-  "map_generation_id": "map_f47cef0e17a00622c5a2",
+  "map_generation_id": "map_fa2eb18cb51aaf46e523",
+  "markdown_atlas_scope_expansion": {
+    "action_authority_granted": false,
+    "body_ingestion_allowed": false,
+    "contract_status": "metadata_only_scope_expansion_plan",
+    "corpus_roots_count": 7,
+    "gap_records_count": 10,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "markdown_classifications_count": 2990,
+    "markdown_documents_count": 598,
+    "metadata_only_posture": true,
+    "next_safe_move": "Run metadata-only on existing registered roots; ask one root-allowlist question before adding any new root.",
+    "no_broad_body_ingestion": true,
+    "no_c_drive_scanning": true,
+    "no_file_moves_deletes_renames": true,
+    "no_private_root_approval_by_default": true,
+    "operator_questions_exist": true,
+    "present": true,
+    "primary_app_contract": true,
+    "private_or_broad_root_scan_allowed": false,
+    "recommended_next_run": "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS",
+    "root_scope_records_count": 12,
+    "section_id": "markdown_atlas_scope_expansion",
+    "semantic_review_allowed_now": false,
+    "source_operator_ref": "generated/read_models/markdown_atlas_scope_expansion_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/markdown_atlas_scope_expansion.json",
+    "sqlite_present": true,
+    "vector_index_creation_allowed": false
+  },
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -4230,7 +4287,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:b164397d3133d8c8bc58b5876a00b83ec0926836d5dabc2a0fb35bf4d71ff11e",
+        "hash": "sha256:6cdc788162fd260bc77f0868fa3b629d40380bb21d409676c65d783d87371cec",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/system_health_lights_taxonomy.json",
@@ -4243,7 +4300,7 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:22fc14220e62a1825754375431eb23567a0744b31f22558b239fece5a2a7452a",
+        "hash": "sha256:6914ab9fbbbf5ffffab3ab90b54530cbc34c63df28e65085f8ac75c040f765e8",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
         "path": "generated/read_models/operator_threshold_map_contract.json",
@@ -4503,6 +4560,19 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:a35208a2a9df5895ce15996045e6d77a9b3e5e9b542430a63438094bfce9c66b",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+        "role": "Capital Hilton Coupa/PO retrieval automation candidate with no current external authority",
+        "schema_version": "capital_hilton_coupa_po_retrieval_automation_candidate_v0",
+        "surface_id": "capital_hilton_coupa_po_retrieval_automation_candidate"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:e743c1bc1fd4b737c1a8f7501c5e429f01e13ced1bd5b62803e81a01f4d8cf89",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -4565,6 +4635,19 @@
         "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
         "schema_version": "openclaw_work_terrain_gap_detector_v0",
         "surface_id": "openclaw_work_terrain_gap_detector"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:9a152441f428f8e9ca44ee74bdc16a35059c410acff5c25f3e1f49c5c14fa15f",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/markdown_atlas_scope_expansion.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "markdown_atlas_scope_expansion",
+        "role": "metadata-only Markdown Atlas scope expansion plan and root-approval guardrails",
+        "schema_version": "markdown_atlas_scope_expansion_v0",
+        "surface_id": "markdown_atlas_scope_expansion"
       },
       {
         "front_door_file_dependency": false,
@@ -5142,24 +5225,24 @@
       "worker_output_intake_metadata_approved": true
     }
   },
-  "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
-  "source_commit_if_available_local_only": "5663e14b2fd7200c893ad62c3055fb2250550e52",
+  "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
+  "source_commit_if_available_local_only": "d39cfb0c8ffb3ac60aaf1f2cb957b278f30349e6",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
       "app_visible_interpretation": "If the app shows red now, it reflects the current canonical mirror gap until the normal Mac sync returns the missing files.",
       "canonical_sync_health_status": {
-        "canonical_expected": 218,
-        "hash_mismatch": 0,
-        "missing_expected": 2,
-        "observed": 216,
+        "canonical_expected": 291,
+        "hash_mismatch": 4,
+        "missing_expected": 73,
+        "observed": 218,
         "sync_lifecycle_state": "actionable_sync_failure",
         "trusted_current": false
       },
       "fix_owner_later": "Mac read-model sync agent / PC import proof lifecycle",
       "note_id": "check_transmission_source_truth_note",
       "source_truth_conflict_detected_in_read_models": false,
-      "system_health_taxonomy_check_transmission_status": "ON",
+      "system_health_taxonomy_check_transmission_status": "WARNING",
       "visible_mac_app_state_observed_in_this_lane": false
     }
   },

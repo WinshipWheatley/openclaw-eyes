@@ -2,8 +2,8 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_f47cef0e17a00622c5a2`
-- Bundle hash: `sha256:f6c9dbcdc5a014714f2fd24a0cdc8a3a855112995297a024eee3bdb1c46a661e`
+- Map generation: `map_fa2eb18cb51aaf46e523`
+- Bundle hash: `sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
@@ -134,6 +134,22 @@
 - Action authority granted: `false`
 - The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.
 
+### Coupa / PO Retrieval Automation Candidate
+
+- Summary present: `true`
+- Contract status: `deterministic_future_automation_candidate_no_current_authority`
+- Candidates: `1`
+- Readiness gates: `10`
+- Stop conditions: `12`
+- Trial stages: `7`
+- Automation status: `BLOCKED_PENDING_PROTECTED_ACCESS_BROKER`
+- Proof item supported: `coupa_po_payment_reference_metadata`
+- Proof satisfied now: `false`
+- Future flags grant authority: `false`
+- Coupa/browser/network authority: `false`
+- Action authority granted: `false`
+- This is a future automation candidate only. Manual/guided capture remains the fallback; no portal access, credential handling, lookup, invoice generation, or submit/send action is enabled.
+
 ## OpenClaw Work Terrain Reconciliation Summary
 
 - ELIWINSHIP: Work Terrain lets OpenClaw ask focused questions about its own notes, contracts, tests, generated read-models, receipts, stable-map sections, and surfaces without blindly reading raw bodies or treating old notes as current truth.
@@ -189,6 +205,23 @@
 - Auto archive/consolidation/stable-map promotion/implementation allowed: `false`
 - Action authority granted: `false`
 - Gaps are review candidates, not automatic tasks. Old prompts, generated artifacts, reference-only material, premature concepts, and unsafe execution posture are filtered away from build-now interpretation.
+
+### Markdown Atlas Scope Expansion
+
+- Summary present: `true`
+- Contract status: `metadata_only_scope_expansion_plan`
+- SQLite present: `true`
+- Corpus roots: `7`
+- Markdown documents: `598`
+- Root scope records: `12`
+- Gap records: `10`
+- Recommended next run: `RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS`
+- Body ingestion allowed: `false`
+- Broad/private root scan allowed: `false`
+- Semantic review allowed now: `false`
+- C-drive scanning allowed: `false`
+- Action authority granted: `false`
+- This is an Atlas planning/readback surface. It does not scan private folders, ingest Markdown bodies, move files, create vectors, or promote old notes as truth.
 
 ### Capital Hilton Candidate Facts
 

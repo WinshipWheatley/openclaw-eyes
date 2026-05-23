@@ -8,19 +8,19 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=261
+- canonical_expected=291
 - observed=218
-- missing_expected=43
+- missing_expected=73
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
 
 App-visible stable map:
-- map_status: `map_current`
-- map_generation_id: `map_b324cf6bbb0237e81aa6`
-- bundle_hash: `sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66`
-- app_visible: `true`
-- receipt_matches_pc_bundle: `true`
+- map_status: `map_generation_pending_mac_import`
+- map_generation_id: `map_fa2eb18cb51aaf46e523`
+- bundle_hash: `sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491`
+- app_visible: `false`
+- receipt_matches_pc_bundle: `false`
 - agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
 - agent_dossier_cards_path_status: `accepted_canonical_nested_path`
 - package_preview_summary: `true` count=`8`
@@ -34,19 +34,19 @@ App-visible stable map:
 - security_pass_worker_orphan_chief_hermes: worker=`true` orphaned=`true` chief_hermes=`true`
 - post_security_governance_batch: `true` parked_capital=`true` security_delta=`true` attention_promotion=`true` chief_cross_off=`true`
 - front-door operator action required: `false`
-- next expected actor: `none`
-- next: none
+- next expected actor: `mac_map_import_agent`
+- next: Map generated on PC; waiting for Mac import receipt
 
 Raw read-model mirror detail:
 - raw_mirror_status: `raw_mirror_stale_or_mismatched`
-- raw_mirror_blocks_app_visible_map: `false`
+- raw_mirror_blocks_app_visible_map: `true`
 
 Check Transmission display:
-- lamp_state: `QUIET`
-- headline: Stable map bundle current
-- summary: Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail.
+- lamp_state: `WARNING`
+- headline: Stable map bundle pending
+- summary: Map generated on PC; waiting for Mac import receipt.
 
-Raw read-model mirror proof/detail recommendation:
+Recommended fix:
 - kind: `request_mac_sync`
 - display status: `needs_mac_sync`
 - next expected actor: `mac_sync_agent`
@@ -56,7 +56,7 @@ Raw read-model mirror proof/detail recommendation:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-23T05:39:08+00:00`
+- Mac heartbeat: `idle` at `2026-05-23T19:45:37+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -72,12 +72,28 @@ Stale files:
 - `agent_platform_alignment_OPERATOR.md`
 - `agent_terrain_awareness_readback_contract.json`
 - `agent_terrain_awareness_readback_contract_OPERATOR.md`
+- `automation_readiness_feasibility_evaluator_contract.json`
+- `automation_readiness_feasibility_evaluator_contract_OPERATOR.md`
+- `capital_hilton_answer_candidate_receipt.json`
+- `capital_hilton_answer_candidate_receipt_OPERATOR.md`
+- `capital_hilton_coupa_po_retrieval_automation_candidate.json`
+- `capital_hilton_coupa_po_retrieval_automation_candidate_OPERATOR.md`
+- `capital_hilton_guardian_review_packet.json`
+- `capital_hilton_guardian_review_packet_OPERATOR.md`
 - `capital_hilton_proof_metadata_packet.json`
 - `capital_hilton_proof_metadata_packet_OPERATOR.md`
+- `capital_hilton_proof_quieting_progress_state.json`
+- `capital_hilton_proof_quieting_progress_state_OPERATOR.md`
 - `capital_hilton_protected_proof_intake.json`
 - `capital_hilton_protected_proof_intake_OPERATOR.md`
+- `capital_hilton_protected_reference_placeholder.json`
+- `capital_hilton_protected_reference_placeholder_OPERATOR.md`
 - `chief_test_harness_cross_off_receipt_contract.json`
 - `chief_test_harness_cross_off_receipt_contract_OPERATOR.md`
+- `guided_capture_protected_evidence_path_contract.json`
+- `guided_capture_protected_evidence_path_contract_OPERATOR.md`
+- `markdown_atlas_scope_expansion.json`
+- `markdown_atlas_scope_expansion_OPERATOR.md`
 - `memory_candidate_receipt_contract.json`
 - `memory_candidate_receipt_contract_OPERATOR.md`
 - `model_selection_policy_contract.json`
@@ -87,12 +103,24 @@ Stale files:
 - `openclaw_map_OPERATOR.md`
 - `openclaw_map_manifest.json`
 - `openclaw_map_snapshot.json`
+- `openclaw_work_terrain_classification_candidate.json`
+- `openclaw_work_terrain_classification_candidate_OPERATOR.md`
+- `openclaw_work_terrain_gap_detector.json`
+- `openclaw_work_terrain_gap_detector_OPERATOR.md`
+- `openclaw_work_terrain_query_contract.json`
+- `openclaw_work_terrain_query_contract_OPERATOR.md`
+- `openclaw_work_terrain_relationship_index.json`
+- `openclaw_work_terrain_relationship_index_OPERATOR.md`
 - `operator_attention_promotion_contract.json`
 - `operator_attention_promotion_contract_OPERATOR.md`
 - `operator_map_bundle_contract.json`
 - `operator_map_bundle_contract_OPERATOR.md`
+- `operator_solve_path_decision_node_contract.json`
+- `operator_solve_path_decision_node_contract_OPERATOR.md`
 - `operator_threshold_map_contract.json`
 - `operator_threshold_map_contract_OPERATOR.md`
+- `operator_work_mode_schema_bandwidth_policy.json`
+- `operator_work_mode_schema_bandwidth_policy_OPERATOR.md`
 - `package_preview_receipt_contract.json`
 - `package_preview_receipt_contract_OPERATOR.md`
 - `parked_autonomous_capital_pipeline_experiment.json`
@@ -109,6 +137,8 @@ Stale files:
 - `tool_adapter_receipt_contract_OPERATOR.md`
 - `tool_protocol_adapter_registry_contract.json`
 - `tool_protocol_adapter_registry_contract_OPERATOR.md`
+- `workflow_session_channel_projection_approval_bus_contract.json`
+- `workflow_session_channel_projection_approval_bus_contract_OPERATOR.md`
 
 No-authority posture:
 - `app_direct_execution_allowed`: `false`

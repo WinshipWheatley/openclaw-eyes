@@ -22,10 +22,10 @@
     "send_submit_approval_allowed": false,
     "tool_plugin_execution_allowed": false
   },
-  "bundle_hash": "sha256:f6c9dbcdc5a014714f2fd24a0cdc8a3a855112995297a024eee3bdb1c46a661e",
+  "bundle_hash": "sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491",
   "canonical_read_model_count": 284,
-  "created_at": "2026-05-23T19:34:26+00:00",
-  "essential_surface_count": 35,
+  "created_at": "2026-05-23T19:51:30+00:00",
+  "essential_surface_count": 37,
   "excluded_surfaces": [
     {
       "category": "raw_private_bodies",
@@ -56,7 +56,7 @@
     },
     {
       "front_door_file_dependency": false,
-      "hash": "sha256:b164397d3133d8c8bc58b5876a00b83ec0926836d5dabc2a0fb35bf4d71ff11e",
+      "hash": "sha256:6cdc788162fd260bc77f0868fa3b629d40380bb21d409676c65d783d87371cec",
       "hash_included_in_bundle": true,
       "hash_omitted_reason": null,
       "path": "generated/read_models/system_health_lights_taxonomy.json",
@@ -69,7 +69,7 @@
     },
     {
       "front_door_file_dependency": false,
-      "hash": "sha256:22fc14220e62a1825754375431eb23567a0744b31f22558b239fece5a2a7452a",
+      "hash": "sha256:6914ab9fbbbf5ffffab3ab90b54530cbc34c63df28e65085f8ac75c040f765e8",
       "hash_included_in_bundle": true,
       "hash_omitted_reason": null,
       "path": "generated/read_models/operator_threshold_map_contract.json",
@@ -329,6 +329,19 @@
     },
     {
       "front_door_file_dependency": false,
+      "hash": "sha256:a35208a2a9df5895ce15996045e6d77a9b3e5e9b542430a63438094bfce9c66b",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+      "role": "Capital Hilton Coupa/PO retrieval automation candidate with no current external authority",
+      "schema_version": "capital_hilton_coupa_po_retrieval_automation_candidate_v0",
+      "surface_id": "capital_hilton_coupa_po_retrieval_automation_candidate"
+    },
+    {
+      "front_door_file_dependency": false,
       "hash": "sha256:e743c1bc1fd4b737c1a8f7501c5e429f01e13ced1bd5b62803e81a01f4d8cf89",
       "hash_included_in_bundle": true,
       "hash_omitted_reason": null,
@@ -391,6 +404,19 @@
       "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
       "schema_version": "openclaw_work_terrain_gap_detector_v0",
       "surface_id": "openclaw_work_terrain_gap_detector"
+    },
+    {
+      "front_door_file_dependency": false,
+      "hash": "sha256:9a152441f428f8e9ca44ee74bdc16a35059c410acff5c25f3e1f49c5c14fa15f",
+      "hash_included_in_bundle": true,
+      "hash_omitted_reason": null,
+      "path": "generated/read_models/markdown_atlas_scope_expansion.json",
+      "present": true,
+      "raw_body_imported": false,
+      "read_model_id": "markdown_atlas_scope_expansion",
+      "role": "metadata-only Markdown Atlas scope expansion plan and root-approval guardrails",
+      "schema_version": "markdown_atlas_scope_expansion_v0",
+      "surface_id": "markdown_atlas_scope_expansion"
     },
     {
       "front_door_file_dependency": false,
@@ -506,16 +532,16 @@
     "sync_health.json",
     "sync_health_OPERATOR.md"
   ],
-  "map_generation_id": "map_f47cef0e17a00622c5a2",
+  "map_generation_id": "map_fa2eb18cb51aaf46e523",
   "missing_or_stale_surfaces": [],
   "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
   "raw_generated_read_model_file_count_including_map_bundle_self": 291,
   "raw_private_body_policy": "blocked_excluded_from_bundle",
   "read_model_id": "openclaw_map_manifest",
-  "read_model_manifest_hash": "sha256:44b5e95227da43820aa0e7a9b31a65321b99800eb68a336f11259f757d2add00",
+  "read_model_manifest_hash": "sha256:5e3f6fca44ec3538e1dd7dda375d0cc500164dce36fbabeb8f26d24458103efc",
   "schema_version": "openclaw_map_manifest_v0",
-  "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
-  "source_commit_if_available_local_only": "5663e14b2fd7200c893ad62c3055fb2250550e52",
+  "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
+  "source_commit_if_available_local_only": "d39cfb0c8ffb3ac60aaf1f2cb957b278f30349e6",
   "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 284,
   "source_repo": "Repo A /home/openclaw",
   "source_sqlite_receipt_hash_if_available": null,
