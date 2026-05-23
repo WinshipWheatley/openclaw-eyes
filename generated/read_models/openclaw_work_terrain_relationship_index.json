@@ -1,0 +1,825 @@
+{
+  "authority_boundary": {
+    "action_authority_granted": false,
+    "agent_activation_allowed": false,
+    "all_action_authority_flags_false": true,
+    "authority_escalation_allowed": false,
+    "auto_promotion_allowed": false,
+    "auto_stable_map_update_allowed": false,
+    "body_ingestion_allowed": false,
+    "broad_private_root_scan_allowed": false,
+    "credential_account_browser_email_coupa_access_allowed": false,
+    "file_archive_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "file_rename_allowed": false,
+    "file_rewrite_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_api_execution_allowed": false,
+    "network_operation_allowed": false,
+    "planner_builder_queue_autonomy_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "stable_map_refresh_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "metadata_only_relationship_index_contract",
+  "core_doctrine": {
+    "bodies_selectively": true,
+    "built_artifact_without_source_note_is_reconciliation_gap": true,
+    "generated_artifacts_are_proof_detail_not_doctrine_by_default": true,
+    "relationship_record_does_not_make_truth": true,
+    "relationship_record_grants_authority": false,
+    "source_note_linked_to_artifact_does_not_prove_completion": true,
+    "terrain_records_broadly": true,
+    "truth_only_through_receipts": true
+  },
+  "default_relationship_examples": [
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [
+        "tests/test_chief_test_harness_cross_off_receipt_contract.py"
+      ],
+      "next_safe_move": "Chief can reconcile source lineage against tests, receipts, and stable-map visibility later.",
+      "operator_review_required": false,
+      "read_model_refs": [
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "receipt_refs": [],
+      "relationship_id": "chief_test_harness_source_to_contract",
+      "relationship_status": "TEST_LINKED",
+      "relationship_type": "SOURCE_NOTE_MATCHES_BUILT_ARTIFACT",
+      "requires_chief_reconciliation": true,
+      "requires_guardian_review": false,
+      "requires_hermes_review": false,
+      "source_actor": "Chief",
+      "source_artifact_type": "SOURCE_NOTE",
+      "source_lane": "Chief / cross-off",
+      "source_ref": "source_concept://chief/test_harness_cross_off",
+      "source_world": "Build",
+      "sqlite_refs": [],
+      "stable_map_refs": [
+        "stable_map.chief_test_harness_cross_off"
+      ],
+      "target_actor": "Chief",
+      "target_artifact_type": "PYTHON_CONTRACT",
+      "target_lane": "chief_test_harness_cross_off",
+      "target_ref": "chief_test_harness_cross_off_receipt_contract.py",
+      "target_world": "Build"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [
+        "build proof metadata",
+        "screenshot proof metadata"
+      ],
+      "next_safe_move": "Keep action blocked; use the surface to collect metadata-only proof references later.",
+      "operator_review_required": true,
+      "read_model_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json"
+      ],
+      "receipt_refs": [],
+      "relationship_id": "capital_hilton_proof_intake_contract_to_surface",
+      "relationship_status": "STABLE_MAP_LINKED",
+      "relationship_type": "SURFACES",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": true,
+      "requires_hermes_review": false,
+      "source_actor": "Cassandra",
+      "source_artifact_type": "PYTHON_CONTRACT",
+      "source_lane": "Capital Hilton",
+      "source_ref": "capital_hilton_protected_proof_intake.py",
+      "source_world": "Finance",
+      "sqlite_refs": [],
+      "stable_map_refs": [
+        "stable_map.capital_hilton_protected_proof_intake"
+      ],
+      "target_actor": "Cassandra",
+      "target_artifact_type": "MISSION_CONTROL_SURFACE",
+      "target_lane": "Capital Hilton",
+      "target_ref": "mission_control_surface://capital_hilton/proof_intake",
+      "target_world": "Finance"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [
+        "capital_hilton_answer_candidate_receipt.py",
+        "capital_hilton_protected_reference_placeholder.py",
+        "capital_hilton_guardian_review_packet.py",
+        "capital_hilton_proof_quieting_progress_state.py"
+      ],
+      "next_safe_move": "Use these links as backend rails only; invoice/Coupa/browser/email/send authority remains blocked.",
+      "operator_review_required": true,
+      "read_model_refs": [
+        "generated/read_models/capital_hilton_answer_candidate_receipt.json",
+        "generated/read_models/capital_hilton_protected_reference_placeholder.json",
+        "generated/read_models/capital_hilton_guardian_review_packet.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "receipt_refs": [],
+      "relationship_id": "capital_hilton_proof_resolution_backend_links",
+      "relationship_status": "METADATA_LINKED",
+      "relationship_type": "BELONGS_TO_LANE",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": true,
+      "requires_hermes_review": false,
+      "source_actor": "Codex",
+      "source_artifact_type": "PACKAGE",
+      "source_lane": "Capital Hilton",
+      "source_ref": "capital_hilton_proof_resolution_batch_v0",
+      "source_world": "Finance",
+      "sqlite_refs": [],
+      "stable_map_refs": [
+        "stable_map.capital_hilton_answer_candidate_receipt",
+        "stable_map.capital_hilton_protected_reference_placeholder",
+        "stable_map.capital_hilton_guardian_review_packet",
+        "stable_map.capital_hilton_proof_quieting_progress_state"
+      ],
+      "target_actor": "Cassandra",
+      "target_artifact_type": "LANE",
+      "target_lane": "Capital Hilton",
+      "target_ref": "lane://finance/capital_hilton",
+      "target_world": "Finance"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [
+        "scripts/build_markdown_knowledge_atlas.py",
+        "markdown_evidence_ingestion.py",
+        "corpus_atlas.py"
+      ],
+      "next_safe_move": "Chief/Hermes can later decide whether visibility or consolidation is warranted.",
+      "operator_review_required": false,
+      "read_model_refs": [],
+      "receipt_refs": [],
+      "relationship_id": "markdown_knowledge_atlas_built_not_prominently_surfaced",
+      "relationship_status": "NEEDS_CHIEF_RECONCILIATION",
+      "relationship_type": "BUILT_NOT_SURFACED",
+      "requires_chief_reconciliation": true,
+      "requires_guardian_review": false,
+      "requires_hermes_review": true,
+      "source_actor": "Codex",
+      "source_artifact_type": "PYTHON_CONTRACT",
+      "source_lane": "Markdown Atlas",
+      "source_ref": "markdown_knowledge_atlas.py",
+      "source_world": "Operations",
+      "sqlite_refs": [],
+      "stable_map_refs": [],
+      "target_actor": "Chief",
+      "target_artifact_type": "STABLE_MAP_SECTION",
+      "target_lane": "Work Terrain",
+      "target_ref": "stable_map.section://markdown_knowledge_atlas",
+      "target_world": "Operations"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [
+        "tests/test_security_pass_contract.py"
+      ],
+      "next_safe_move": "Keep the surface read-only; use receipts and tests for completion proof.",
+      "operator_review_required": false,
+      "read_model_refs": [
+        "generated/read_models/security_pass_contract.json"
+      ],
+      "receipt_refs": [],
+      "relationship_id": "security_pass_contract_to_security_pass_surface",
+      "relationship_status": "STABLE_MAP_LINKED",
+      "relationship_type": "SURFACES",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": false,
+      "requires_hermes_review": false,
+      "source_actor": "Guardian",
+      "source_artifact_type": "PYTHON_CONTRACT",
+      "source_lane": "Security Pass",
+      "source_ref": "security_pass_contract.py",
+      "source_world": "Security",
+      "sqlite_refs": [],
+      "stable_map_refs": [
+        "stable_map.security_pass"
+      ],
+      "target_actor": "Guardian",
+      "target_artifact_type": "MISSION_CONTROL_SURFACE",
+      "target_lane": "Security Pass",
+      "target_ref": "mission_control_surface://security_pass_cockpit",
+      "target_world": "Security"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "CANDIDATE_METADATA_ONLY",
+      "evidence_refs": [],
+      "next_safe_move": "Preserve as parked stress-test artifact; do not treat it as implementation authority.",
+      "operator_review_required": false,
+      "read_model_refs": [
+        "generated/read_models/parked_autonomous_capital_pipeline_experiment.json"
+      ],
+      "receipt_refs": [],
+      "relationship_id": "future_invoicing_audit_to_parked_stress_test",
+      "relationship_status": "RECONCILED_WITH_PROOF",
+      "relationship_type": "DERIVED_FROM",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": false,
+      "requires_hermes_review": true,
+      "source_actor": "Gemini / Agy",
+      "source_artifact_type": "WORKER_REPORT",
+      "source_lane": "Capital experiment stress test",
+      "source_ref": "worker_report://agy_gemini/future_invoicing_audit",
+      "source_world": "Research",
+      "sqlite_refs": [],
+      "stable_map_refs": [
+        "stable_map.parked_autonomous_capital_pipeline_experiment"
+      ],
+      "target_actor": "Codex",
+      "target_artifact_type": "PYTHON_CONTRACT",
+      "target_lane": "parked_autonomous_capital_pipeline_experiment",
+      "target_ref": "parked_autonomous_capital_pipeline_experiment.py",
+      "target_world": "Research"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "REFERENCE_ONLY_METADATA",
+      "evidence_refs": [],
+      "next_safe_move": "Keep Repo B reference-only unless an explicit bounded approval opens a future lane.",
+      "operator_review_required": false,
+      "read_model_refs": [],
+      "receipt_refs": [],
+      "relationship_id": "repo_b_planner_builder_reference_only",
+      "relationship_status": "CANDIDATE",
+      "relationship_type": "REFERENCES",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": false,
+      "requires_hermes_review": true,
+      "source_actor": "Operator / Winship",
+      "source_artifact_type": "SOURCE_NOTE",
+      "source_lane": "Repo B Planner / Builder",
+      "source_ref": "concept://repo_b_planner_builder",
+      "source_world": "Build",
+      "sqlite_refs": [],
+      "stable_map_refs": [],
+      "target_actor": "Chief",
+      "target_artifact_type": "PACKAGE",
+      "target_lane": "Repo B Planner / Builder",
+      "target_ref": "repo_b_reference://planner_builder_orchestrator",
+      "target_world": "Build"
+    },
+    {
+      "authority_granted": false,
+      "commit_refs": [],
+      "confidence_posture": "PROOF_DETAIL_NOT_HUMAN_DOCTRINE",
+      "evidence_refs": [],
+      "next_safe_move": "Treat generated operator Markdown as digest/proof detail unless a source-card promotion is later receipted.",
+      "operator_review_required": false,
+      "read_model_refs": [],
+      "receipt_refs": [],
+      "relationship_id": "generated_operator_markdown_is_proof_detail",
+      "relationship_status": "METADATA_LINKED",
+      "relationship_type": "GENERATED_FROM",
+      "requires_chief_reconciliation": false,
+      "requires_guardian_review": false,
+      "requires_hermes_review": false,
+      "source_actor": "Codex",
+      "source_artifact_type": "GENERATED_OPERATOR_DIGEST",
+      "source_lane": "Generated read-models",
+      "source_ref": "generated/read_models/*_OPERATOR.md",
+      "source_world": "Operations",
+      "sqlite_refs": [],
+      "stable_map_refs": [],
+      "target_actor": "Operator / Winship",
+      "target_artifact_type": "GENERATED_READ_MODEL",
+      "target_lane": "Generated read-models",
+      "target_ref": "generated/read_models/*.json",
+      "target_world": "Operations"
+    }
+  ],
+  "entity_artifact_types": [
+    "MARKDOWN_FILE",
+    "SOURCE_NOTE",
+    "OLD_PROMPT",
+    "ACTIVE_HANDOFF",
+    "WORKER_REPORT",
+    "PYTHON_CONTRACT",
+    "EXPORT_SCRIPT",
+    "TEST_FILE",
+    "GENERATED_READ_MODEL",
+    "GENERATED_OPERATOR_DIGEST",
+    "SQLITE_TABLE",
+    "SQLITE_RECEIPT",
+    "STABLE_MAP_SECTION",
+    "MISSION_CONTROL_SURFACE",
+    "MAC_SWIFT_SOURCE",
+    "VALIDATION_SCREENSHOT",
+    "COMMIT",
+    "WORLD",
+    "LANE",
+    "ACTOR",
+    "PACKAGE",
+    "TOOL_ADAPTER",
+    "PROTECTED_REFERENCE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "generated_at": "2026-05-23T17:13:13+00:00",
+  "machine_proof": {
+    "built_not_surfaced_relationship_exists": true,
+    "chief_hermes_guardian_review_fields_exist": true,
+    "content_hash": "sha256:733a18d1684d9a34aa619f1b2f7b0379f8d8c9982327b7f8011c3caf467b7df8",
+    "credential_or_secret_included": false,
+    "default_examples_exist": true,
+    "entity_artifact_types_exist": true,
+    "generated_operator_markdown_is_proof_detail_not_doctrine": true,
+    "no_action_authority": true,
+    "no_auto_stable_map_promotion": true,
+    "no_body_ingestion": true,
+    "no_file_mutation": true,
+    "output_shapes_exist": true,
+    "ownership_map_exists": true,
+    "raw_private_body_included": false,
+    "relationship_record_model_exists": true,
+    "relationship_statuses_exist": true,
+    "relationship_types_exist": true,
+    "repo_b_reference_only": true,
+    "source_note_built_artifact_relationships_exist": true
+  },
+  "ownership_map": {
+    "actors": [
+      {
+        "actor": "Chief",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Guardian",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Cassandra",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Hermes",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Niles",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Codex",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Gemini / Agy",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      },
+      {
+        "actor": "Operator / Winship",
+        "artifact_type": "ACTOR",
+        "authority_granted": false
+      }
+    ],
+    "common_mappings": [
+      {
+        "actors": [
+          "Cassandra",
+          "Guardian",
+          "Operator / Winship"
+        ],
+        "lane": "Capital Hilton",
+        "notes": "Proof metadata and protected reference lane; action remains blocked.",
+        "world": "Finance"
+      },
+      {
+        "actors": [
+          "Guardian",
+          "Hermes",
+          "Chief"
+        ],
+        "lane": "Security Pass",
+        "notes": "Read-only security posture and authority-boundary review.",
+        "world": "Security"
+      },
+      {
+        "actors": [
+          "Chief",
+          "Hermes",
+          "Codex"
+        ],
+        "lane": "Work Terrain",
+        "notes": "Metadata relationship, classification, and gap detection only.",
+        "world": "Operations"
+      },
+      {
+        "actors": [
+          "Niles",
+          "Operator / Winship"
+        ],
+        "lane": "Niles Producer lane",
+        "notes": "Creative terrain; no runtime action implied by relationship metadata.",
+        "world": "Music / Art"
+      }
+    ],
+    "lanes_and_concepts": [
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Capital Hilton"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Security Pass"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Work Terrain"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Markdown Atlas"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Agent Council"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Package Preview"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Tool Adapter Receipt"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Stable Map"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Mission Control"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Repo B Planner / Builder"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Struna"
+      },
+      {
+        "artifact_type": "LANE",
+        "authority_granted": false,
+        "classification_status": "metadata_candidate",
+        "lane_or_concept": "Niles Producer lane"
+      }
+    ],
+    "metadata_only": true,
+    "unknowns_fail_closed": true,
+    "worlds": [
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Finance"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Build"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Security"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Music / Art"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Communications"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Operations"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Research"
+      },
+      {
+        "artifact_type": "WORLD",
+        "runtime_authority_granted": false,
+        "world": "Business Development"
+      }
+    ]
+  },
+  "read_model_id": "openclaw_work_terrain_relationship_index",
+  "relationship_query_output_shapes": {
+    "fields": [
+      "query_name",
+      "input_refs",
+      "candidate_relationships",
+      "missing_relationships",
+      "review_required",
+      "next_safe_move"
+    ],
+    "live_query_engine_implemented": false,
+    "model_name": "WorkTerrainRelationshipOutputShape",
+    "shapes": [
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "SourceNotesDescribingBuiltArtifacts",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "BuiltArtifactsLackingSourceNotes",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "StableMapSectionsLackingSourceOrigin",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "MarkdownIdeasWithoutImplementation",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "GeneratedReadModelsAsProofDetail",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "DuplicateOrOverlappingConcepts",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "WorldLaneActorOwnership",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      },
+      {
+        "candidate_relationships": [
+          "relationship_record_ids"
+        ],
+        "input_refs": [
+          "metadata_query_result_refs"
+        ],
+        "missing_relationships": [
+          "missing_source_note_refs",
+          "missing_receipt_refs"
+        ],
+        "next_safe_move": "Return candidate relationship records only; do not ingest bodies, mutate files, or promote truth.",
+        "query_name": "ReceiptsSupportingCompletion",
+        "review_required": [
+          "Chief",
+          "Hermes",
+          "Guardian where protected",
+          "Operator where final authority is needed"
+        ]
+      }
+    ]
+  },
+  "relationship_record_model": {
+    "fields": [
+      "relationship_id",
+      "relationship_type",
+      "source_ref",
+      "target_ref",
+      "source_artifact_type",
+      "target_artifact_type",
+      "source_lane",
+      "target_lane",
+      "source_actor",
+      "target_actor",
+      "source_world",
+      "target_world",
+      "evidence_refs",
+      "receipt_refs",
+      "stable_map_refs",
+      "sqlite_refs",
+      "read_model_refs",
+      "commit_refs",
+      "confidence_posture",
+      "relationship_status",
+      "requires_chief_reconciliation",
+      "requires_hermes_review",
+      "requires_guardian_review",
+      "operator_review_required",
+      "authority_granted",
+      "next_safe_move"
+    ],
+    "model_name": "WorkTerrainRelationshipRecord"
+  },
+  "relationship_statuses": [
+    "CANDIDATE",
+    "METADATA_LINKED",
+    "RECEIPT_LINKED",
+    "TEST_LINKED",
+    "COMMIT_LINKED",
+    "STABLE_MAP_LINKED",
+    "RECONCILED_WITH_PROOF",
+    "NEEDS_CHIEF_RECONCILIATION",
+    "NEEDS_HERMES_REVIEW",
+    "NEEDS_OPERATOR_REVIEW",
+    "CONFLICTING",
+    "STALE_OR_SUPERSEDED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "relationship_to_prompt_1": {
+    "does_not_duplicate_prompt_1": true,
+    "extends": "openclaw_work_terrain_query_contract",
+    "prompt_1_observed": true,
+    "prompt_1_status": "OBSERVED",
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_query_contract_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_query_contract.json"
+  },
+  "relationship_types": [
+    "DESCRIBES",
+    "IMPLEMENTS",
+    "VALIDATES",
+    "EXPORTS",
+    "SURFACES",
+    "PROVES",
+    "CLAIMS_COMPLETION",
+    "SUPERSEDES",
+    "DUPLICATES",
+    "CONFLICTS_WITH",
+    "DERIVED_FROM",
+    "GENERATED_FROM",
+    "REFERENCES",
+    "OWNS",
+    "BELONGS_TO_WORLD",
+    "BELONGS_TO_LANE",
+    "BELONGS_TO_ACTOR",
+    "BUILT_NOT_SURFACED",
+    "SOURCE_NOTE_MATCHES_BUILT_ARTIFACT",
+    "BUILT_ARTIFACT_LACKS_SOURCE_NOTE",
+    "SOURCE_NOTE_LACKS_BUILT_ARTIFACT",
+    "STABLE_MAP_SECTION_LACKS_SOURCE_NOTE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "openclaw_work_terrain_relationship_index_v0",
+  "work_terrain_relationship_policy": {
+    "auto_archive_allowed": false,
+    "auto_delete_allowed": false,
+    "auto_promotion_allowed": false,
+    "auto_rewrite_allowed": false,
+    "body_ingestion_allowed": false,
+    "chief_reconciliation_role": "Chief may later reconcile completion, source lineage, tests, receipts, and cross-off proof.",
+    "hermes_review_role": "Hermes may later review concept coherence and overlapping doctrine without rewriting files.",
+    "metadata_only": true,
+    "operator_final_authority": "Operator remains final authority for promotion, archive, rewrite, deletion, action, or source-truth decisions.",
+    "relationship_truth_status": "candidate_until_receipted",
+    "stable_map_update_allowed": false
+  }
+}
