@@ -1,0 +1,3484 @@
+{
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "auto_promotion_allowed": false,
+    "automatic_ledger_writes_allowed": false,
+    "automation_execution_allowed": false,
+    "browser_automation_allowed": false,
+    "credential_handling_allowed": false,
+    "direct_credential_store_reads_allowed": false,
+    "email_dispatch_without_operator_signature_allowed": false,
+    "email_send_allowed": false,
+    "file_move_delete_cleanup_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "hidden_memory_creation_allowed": false,
+    "invoice_generation_allowed": false,
+    "live_model_calls_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "operator_input_persistence_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "raw_private_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "stable_map_refresh_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false,
+    "unsupervised_browser_execution_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "bandwidth_mode_ids": [
+    "LOW_BANDWIDTH",
+    "NORMAL_BANDWIDTH",
+    "HIGH_BANDWIDTH",
+    "DEBUG_MODE"
+  ],
+  "bandwidth_modes": [
+    {
+      "bandwidth_id": "LOW_BANDWIDTH",
+      "best_for_operator_state": "tired, overloaded, low context, not in developer mode",
+      "choice_complexity": "one move with short obvious choices",
+      "default_for_helm": true,
+      "display_name": "Low Bandwidth",
+      "hidden_content_policy": [
+        "hide proof and machine detail unless opened",
+        "hide machine-contract terms by default",
+        "collapse repeated proof rows"
+      ],
+      "human_description": "Winship may be tired, overloaded, not in developer mode, or low on get-it-done energy.",
+      "machine_contract_policy": "inspectable but not default app surface",
+      "next_safe_move": "Show the smallest truthful next human move.",
+      "proof_detail_policy": "proof summary only; proof drawer one level down",
+      "visible_content_policy": [
+        "show one next human move",
+        "use plain language",
+        "use short choices",
+        "avoid dense panels"
+      ]
+    },
+    {
+      "bandwidth_id": "NORMAL_BANDWIDTH",
+      "best_for_operator_state": "ordinary work mode with enough attention for context",
+      "choice_complexity": "several named choices with one recommendation",
+      "default_for_helm": false,
+      "display_name": "Normal Bandwidth",
+      "hidden_content_policy": [
+        "raw contracts and logs remain behind inspect",
+        "debug fields stay collapsed"
+      ],
+      "human_description": "Winship can read a short explanation and choose the next step.",
+      "machine_contract_policy": "summarized as human state, inspectable on demand",
+      "next_safe_move": "Show why this matters and the next safe step.",
+      "proof_detail_policy": "proof summary visible; detailed refs one level down",
+      "visible_content_policy": [
+        "short explanation",
+        "why it matters",
+        "next step",
+        "available choices",
+        "proof summary"
+      ]
+    },
+    {
+      "bandwidth_id": "HIGH_BANDWIDTH",
+      "best_for_operator_state": "active review, audit, or planning with enough focus",
+      "choice_complexity": "workflow-level choices with proof and blocker context",
+      "default_for_helm": false,
+      "display_name": "High Bandwidth",
+      "hidden_content_policy": [
+        "raw diagnostics stay debug-only unless needed"
+      ],
+      "human_description": "Winship is ready to inspect blockers, refs, gates, and workflow relationships.",
+      "machine_contract_policy": "contract names may appear as supporting context",
+      "next_safe_move": "Show blockers and proof refs without granting action authority.",
+      "proof_detail_policy": "proof refs and receipt refs may be visible",
+      "visible_content_policy": [
+        "blockers",
+        "proof refs",
+        "receipt refs",
+        "authority gates",
+        "relationship to workflow"
+      ]
+    },
+    {
+      "bandwidth_id": "DEBUG_MODE",
+      "best_for_operator_state": "developer mode, contract audit, or diagnostic investigation",
+      "choice_complexity": "developer diagnostic surface",
+      "default_for_helm": false,
+      "display_name": "Debug Mode",
+      "hidden_content_policy": [
+        "nothing promoted to operator default just because debug can inspect it"
+      ],
+      "human_description": "Developer inspection mode for contracts, generated read-models, and diagnostics.",
+      "machine_contract_policy": "machine contracts visible by explicit debug choice only",
+      "next_safe_move": "Inspect substrate without letting debug mode become the helm default.",
+      "proof_detail_policy": "raw proof shelves and diagnostic refs allowed",
+      "visible_content_policy": [
+        "contracts",
+        "generated read-models",
+        "raw status fields",
+        "proof shelves",
+        "developer diagnostics"
+      ]
+    }
+  ],
+  "bandwidth_modes_by_id": {
+    "DEBUG_MODE": {
+      "bandwidth_id": "DEBUG_MODE",
+      "best_for_operator_state": "developer mode, contract audit, or diagnostic investigation",
+      "choice_complexity": "developer diagnostic surface",
+      "default_for_helm": false,
+      "display_name": "Debug Mode",
+      "hidden_content_policy": [
+        "nothing promoted to operator default just because debug can inspect it"
+      ],
+      "human_description": "Developer inspection mode for contracts, generated read-models, and diagnostics.",
+      "machine_contract_policy": "machine contracts visible by explicit debug choice only",
+      "next_safe_move": "Inspect substrate without letting debug mode become the helm default.",
+      "proof_detail_policy": "raw proof shelves and diagnostic refs allowed",
+      "visible_content_policy": [
+        "contracts",
+        "generated read-models",
+        "raw status fields",
+        "proof shelves",
+        "developer diagnostics"
+      ]
+    },
+    "HIGH_BANDWIDTH": {
+      "bandwidth_id": "HIGH_BANDWIDTH",
+      "best_for_operator_state": "active review, audit, or planning with enough focus",
+      "choice_complexity": "workflow-level choices with proof and blocker context",
+      "default_for_helm": false,
+      "display_name": "High Bandwidth",
+      "hidden_content_policy": [
+        "raw diagnostics stay debug-only unless needed"
+      ],
+      "human_description": "Winship is ready to inspect blockers, refs, gates, and workflow relationships.",
+      "machine_contract_policy": "contract names may appear as supporting context",
+      "next_safe_move": "Show blockers and proof refs without granting action authority.",
+      "proof_detail_policy": "proof refs and receipt refs may be visible",
+      "visible_content_policy": [
+        "blockers",
+        "proof refs",
+        "receipt refs",
+        "authority gates",
+        "relationship to workflow"
+      ]
+    },
+    "LOW_BANDWIDTH": {
+      "bandwidth_id": "LOW_BANDWIDTH",
+      "best_for_operator_state": "tired, overloaded, low context, not in developer mode",
+      "choice_complexity": "one move with short obvious choices",
+      "default_for_helm": true,
+      "display_name": "Low Bandwidth",
+      "hidden_content_policy": [
+        "hide proof and machine detail unless opened",
+        "hide machine-contract terms by default",
+        "collapse repeated proof rows"
+      ],
+      "human_description": "Winship may be tired, overloaded, not in developer mode, or low on get-it-done energy.",
+      "machine_contract_policy": "inspectable but not default app surface",
+      "next_safe_move": "Show the smallest truthful next human move.",
+      "proof_detail_policy": "proof summary only; proof drawer one level down",
+      "visible_content_policy": [
+        "show one next human move",
+        "use plain language",
+        "use short choices",
+        "avoid dense panels"
+      ]
+    },
+    "NORMAL_BANDWIDTH": {
+      "bandwidth_id": "NORMAL_BANDWIDTH",
+      "best_for_operator_state": "ordinary work mode with enough attention for context",
+      "choice_complexity": "several named choices with one recommendation",
+      "default_for_helm": false,
+      "display_name": "Normal Bandwidth",
+      "hidden_content_policy": [
+        "raw contracts and logs remain behind inspect",
+        "debug fields stay collapsed"
+      ],
+      "human_description": "Winship can read a short explanation and choose the next step.",
+      "machine_contract_policy": "summarized as human state, inspectable on demand",
+      "next_safe_move": "Show why this matters and the next safe step.",
+      "proof_detail_policy": "proof summary visible; detailed refs one level down",
+      "visible_content_policy": [
+        "short explanation",
+        "why it matters",
+        "next step",
+        "available choices",
+        "proof summary"
+      ]
+    }
+  },
+  "contract_id": "operator_work_mode_schema_bandwidth_policy_v0",
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_READ_MODEL_CONTRACT",
+  "core_doctrine": {
+    "capital_hilton_is_first_example_not_special_case": true,
+    "lowest_useful_cognitive_load_default": true,
+    "machine_contracts_are_substrate": true,
+    "machine_contracts_remain_inspectable": true,
+    "one_next_human_move_default": true,
+    "proof_details_one_level_down": true,
+    "simple_is_distilled": true,
+    "simple_is_not_dumbed_down": true,
+    "visible_app_renders_human_solve_paths": true
+  },
+  "generated_at": "2026-05-23T18:46:39+00:00",
+  "hard_rule": {
+    "does_not_implement_approval_bus_yet": true,
+    "does_not_implement_automation_feasibility_yet": true,
+    "does_not_implement_decision_nodes_yet": true,
+    "does_not_implement_guided_capture_yet": true,
+    "does_not_implement_mac_ui": true,
+    "does_not_implement_solve_paths_yet": true,
+    "does_not_refresh_stable_map": true,
+    "may_execute": false,
+    "may_grant_authority": false,
+    "may_persist_operator_input": false,
+    "read_model_only": true
+  },
+  "helm_declutter_policy": {
+    "focus_mode_entry_rule": "enter focus when one work mode needs a human move or proof/decision review",
+    "focus_mode_exit_rule": "exit after the move is classified, parked, quieted, or routed; no action executes",
+    "helm_should_hide": [
+      "raw machine contracts",
+      "long proof shelves",
+      "generated read-model details",
+      "completed or quieted steps",
+      "duplicate proof rows"
+    ],
+    "helm_should_show": [
+      "urgent operator decisions",
+      "blocked workflows needing human action",
+      "high-level health/authority state",
+      "next safe move cards"
+    ],
+    "machine_contract_visibility": "hidden by default; inspectable in high bandwidth or debug",
+    "operator_attention_rule": "show the few things that need Winship and the cleanest path through each one",
+    "proof_should_live": "one level down, inspectable, not default visual noise",
+    "quieting_rule": "quiet completed, duplicated, parked, or non-actionable steps with proof refs still traceable",
+    "reopen_rule": "reopen when blocker, proof, authority, staleness, or operator request changes the state"
+  },
+  "helm_default_bandwidth_mode": "LOW_BANDWIDTH",
+  "human_translation_policy": {
+    "deterministic_choice_source": "choices come from work-mode contract, issue classification, or decision-node contract later",
+    "deterministic_inputs_required": [
+      "issue classification",
+      "work mode type",
+      "bandwidth mode",
+      "truth/blocker state",
+      "authority flags",
+      "proof refs",
+      "available deterministic choices"
+    ],
+    "dynamic_hallucinated_buttons_allowed": false,
+    "lm_can_approve_action": false,
+    "lm_can_create_hidden_memory": false,
+    "lm_can_decide_authority": false,
+    "lm_can_mark_proof_complete": false,
+    "lm_render_allowed": true,
+    "lm_render_output_status": "read-model or preview packet before app display when possible",
+    "lm_render_role": "plain-language renderer of deterministic solve-path packet only",
+    "next_safe_move": "Render human wording from deterministic state; never invent action buttons.",
+    "receipt_required_before_display": true,
+    "translation_source": "deterministic_work_mode_packet"
+  },
+  "issue_classifications": [
+    {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "missing proof",
+        "protected proof required",
+        "current action locked"
+      ],
+      "display_name": "Capital Hilton Invoice Proof Issue",
+      "human_summary_required": true,
+      "issue_id": "capital_hilton_invoice_issue",
+      "issue_type": "FINANCE_WORKFLOW",
+      "lane": "capital_hilton",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "next_safe_move": "Pick what is true about the invoice.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "classify invoice truth",
+        "point to proof later",
+        "decide what is unknown"
+      ],
+      "primary_work_mode": "PROOF_WORK_MODE",
+      "proof_refs": [
+        "protected finance proof metadata refs only"
+      ],
+      "recommended_work_modes": [
+        "PROOF_WORK_MODE",
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "source_refs": [
+        "Capital Hilton proof intake/resolution rails"
+      ],
+      "world": "Finance"
+    },
+    {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "repair execution blocked",
+        "runtime/tool execution blocked"
+      ],
+      "display_name": "Developer/System Repair Issue",
+      "human_summary_required": true,
+      "issue_id": "developer_system_repair_issue",
+      "issue_type": "DEVELOPER_SYSTEM_REPAIR",
+      "lane": "check_engine",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "next_safe_move": "Check what is actually broken.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "confirm what is broken",
+        "choose repair lane later"
+      ],
+      "primary_work_mode": "REPAIR_DIAGNOSTIC_WORK_MODE",
+      "proof_refs": [
+        "diagnostic receipt refs"
+      ],
+      "recommended_work_modes": [
+        "REPAIR_DIAGNOSTIC_WORK_MODE",
+        "PROOF_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "PROOF_WORK_MODE"
+      ],
+      "source_refs": [
+        "Chief Test Harness / Cross-Off",
+        "Check Engine diagnostic package"
+      ],
+      "world": "System"
+    },
+    {
+      "actor": "Guardian",
+      "authority_granted": false,
+      "blockers": [
+        "new authority fails closed",
+        "approval submission blocked"
+      ],
+      "display_name": "Security / Guardian Review Issue",
+      "human_summary_required": true,
+      "issue_id": "security_delta_review_issue",
+      "issue_type": "SECURITY_GUARDIAN_REVIEW",
+      "lane": "security_delta",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/security_pass_contract.json",
+        "generated/read_models/security_delta_review_contract.json"
+      ],
+      "next_safe_move": "Decide if this needs security review.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "decide if security review is needed",
+        "keep new authority blocked"
+      ],
+      "primary_work_mode": "DECISION_WORK_MODE",
+      "proof_refs": [
+        "security pass summary refs"
+      ],
+      "recommended_work_modes": [
+        "DECISION_WORK_MODE",
+        "APPROVAL_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "source_refs": [
+        "Security Pass",
+        "Security Delta Review"
+      ],
+      "world": "System"
+    },
+    {
+      "actor": "Guardian",
+      "authority_granted": false,
+      "blockers": [
+        "raw protected content hidden",
+        "proof completion blocked"
+      ],
+      "display_name": "Proof / Reference Collection Issue",
+      "human_summary_required": true,
+      "issue_id": "proof_reference_collection_issue",
+      "issue_type": "PROOF_REFERENCE_COLLECTION",
+      "lane": "reference_collection",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/protected_evidence_reference_receipt.json"
+      ],
+      "next_safe_move": "Point to the safest proof reference label.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "point to source",
+        "classify missing proof"
+      ],
+      "primary_work_mode": "PROOF_WORK_MODE",
+      "proof_refs": [
+        "proof drawer refs"
+      ],
+      "recommended_work_modes": [
+        "PROOF_WORK_MODE"
+      ],
+      "secondary_work_modes": [],
+      "source_refs": [
+        "protected evidence reference receipts"
+      ],
+      "world": "Proof"
+    },
+    {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "source mutation blocked",
+        "stable-map refresh deferred"
+      ],
+      "display_name": "Concept / Terrain Reconciliation Issue",
+      "human_summary_required": true,
+      "issue_id": "terrain_reconciliation_issue",
+      "issue_type": "CONCEPT_TERRAIN_RECONCILIATION",
+      "lane": "work_terrain",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+      ],
+      "next_safe_move": "Review what should stay current.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "decide current/stale/overlap/source gap"
+      ],
+      "primary_work_mode": "TERRAIN_RECONCILIATION_WORK_MODE",
+      "proof_refs": [
+        "terrain source refs"
+      ],
+      "recommended_work_modes": [
+        "TERRAIN_RECONCILIATION_WORK_MODE",
+        "DECISION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DECISION_WORK_MODE"
+      ],
+      "source_refs": [
+        "Work Terrain reconciliation"
+      ],
+      "world": "System"
+    },
+    {
+      "actor": "Niles",
+      "authority_granted": false,
+      "blockers": [
+        "external publish/send blocked",
+        "file rewrite blocked"
+      ],
+      "display_name": "Creative / Music Project Issue",
+      "human_summary_required": true,
+      "issue_id": "creative_music_project_issue",
+      "issue_type": "CREATIVE_MUSIC_PROJECT",
+      "lane": "niles_struna",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/struna_obscura_project_capsule_OPERATOR.md",
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "next_safe_move": "Pick up where you left off.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "resume the right creative thread",
+        "mark context gap"
+      ],
+      "primary_work_mode": "CREATIVE_PROJECT_WORK_MODE",
+      "proof_refs": [
+        "project context refs"
+      ],
+      "recommended_work_modes": [
+        "CREATIVE_PROJECT_WORK_MODE",
+        "ARTIFACT_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "ARTIFACT_WORK_MODE"
+      ],
+      "source_refs": [
+        "Niles / Struna project capsules"
+      ],
+      "world": "Creative"
+    },
+    {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "send/submit blocked",
+        "artifact generation blocked"
+      ],
+      "display_name": "Client / Project Delivery Issue",
+      "human_summary_required": true,
+      "issue_id": "client_project_delivery_issue",
+      "issue_type": "CLIENT_PROJECT_DELIVERY",
+      "lane": "client_project_delivery",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/project_capsules.json"
+      ],
+      "next_safe_move": "Name the deliverable and the next review step.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "choose next deliverable state",
+        "review proof or draft later"
+      ],
+      "primary_work_mode": "ARTIFACT_WORK_MODE",
+      "proof_refs": [
+        "client/project receipt refs"
+      ],
+      "recommended_work_modes": [
+        "ARTIFACT_WORK_MODE",
+        "DRAFT_COMMUNICATION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DRAFT_COMMUNICATION_WORK_MODE"
+      ],
+      "source_refs": [
+        "project delivery refs"
+      ],
+      "world": "Delivery"
+    },
+    {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "email dispatch blocked",
+        "approval submission blocked",
+        "raw private bodies hidden"
+      ],
+      "display_name": "Communication Draft / Send Workflow Issue",
+      "human_summary_required": true,
+      "issue_id": "communication_draft_send_issue",
+      "issue_type": "COMMUNICATION_DRAFT_SEND_WORKFLOW",
+      "lane": "cassandra_clara",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "next_safe_move": "Review the draft before anything sends.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "review draft",
+        "decide if send path should remain blocked"
+      ],
+      "primary_work_mode": "DRAFT_COMMUNICATION_WORK_MODE",
+      "proof_refs": [
+        "draft source refs only"
+      ],
+      "recommended_work_modes": [
+        "DRAFT_COMMUNICATION_WORK_MODE",
+        "APPROVAL_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "source_refs": [
+        "Cassandra / Clara draft review packet"
+      ],
+      "world": "Communications"
+    },
+    {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "automation execution blocked",
+        "security delta required for new authority"
+      ],
+      "display_name": "Automation Candidate Issue",
+      "human_summary_required": true,
+      "issue_id": "automation_candidate_issue",
+      "issue_type": "AUTOMATION_CANDIDATE",
+      "lane": "automation_candidate",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        "generated/read_models/tool_adapter_receipt_contract.json"
+      ],
+      "next_safe_move": "Classify feasibility without running it.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "decide manual/future-gated/reject"
+      ],
+      "primary_work_mode": "AUTOMATION_CANDIDATE_WORK_MODE",
+      "proof_refs": [
+        "automation readiness refs"
+      ],
+      "recommended_work_modes": [
+        "AUTOMATION_CANDIDATE_WORK_MODE",
+        "DECISION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DECISION_WORK_MODE"
+      ],
+      "source_refs": [
+        "Coupa/PO automation candidate",
+        "Tool Adapter Receipt"
+      ],
+      "world": "System"
+    },
+    {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "machine contracts too visible",
+        "stable-map refresh deferred"
+      ],
+      "display_name": "App Helm Overload Issue",
+      "human_summary_required": true,
+      "issue_id": "app_helm_overload_issue",
+      "issue_type": "APP_HELM_OVERLOAD",
+      "lane": "helm_declutter",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/operator_attention_promotion_contract.json",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "next_safe_move": "Show one next human move, not a contract wall.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "choose focus",
+        "ignore proof noise until needed"
+      ],
+      "primary_work_mode": "DECISION_WORK_MODE",
+      "proof_refs": [
+        "helm declutter proof/detail refs"
+      ],
+      "recommended_work_modes": [
+        "DECISION_WORK_MODE",
+        "REPAIR_DIAGNOSTIC_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "REPAIR_DIAGNOSTIC_WORK_MODE"
+      ],
+      "source_refs": [
+        "Operator Attention Promotion",
+        "Operator Mission Priority / Helm Declutter"
+      ],
+      "world": "Mission Control"
+    },
+    {
+      "actor": "none",
+      "authority_granted": false,
+      "blockers": [
+        "issue shape unknown",
+        "authority blocked"
+      ],
+      "display_name": "Unknown Fail Closed Issue",
+      "human_summary_required": true,
+      "issue_id": "unknown_fail_closed_issue",
+      "issue_type": "UNKNOWN_FAIL_CLOSED",
+      "lane": "unknown",
+      "lm_translation_allowed": false,
+      "machine_state_refs": [],
+      "next_safe_move": "Fail closed until classified.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "classify or park"
+      ],
+      "primary_work_mode": "UNKNOWN_FAIL_CLOSED",
+      "proof_refs": [],
+      "recommended_work_modes": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "secondary_work_modes": [],
+      "source_refs": [
+        "unclassified input"
+      ],
+      "world": "Unknown"
+    }
+  ],
+  "issue_classifications_by_id": {
+    "app_helm_overload_issue": {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "machine contracts too visible",
+        "stable-map refresh deferred"
+      ],
+      "display_name": "App Helm Overload Issue",
+      "human_summary_required": true,
+      "issue_id": "app_helm_overload_issue",
+      "issue_type": "APP_HELM_OVERLOAD",
+      "lane": "helm_declutter",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/operator_attention_promotion_contract.json",
+        "generated/read_models/operator_mission_priority_helm_declutter.json"
+      ],
+      "next_safe_move": "Show one next human move, not a contract wall.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "choose focus",
+        "ignore proof noise until needed"
+      ],
+      "primary_work_mode": "DECISION_WORK_MODE",
+      "proof_refs": [
+        "helm declutter proof/detail refs"
+      ],
+      "recommended_work_modes": [
+        "DECISION_WORK_MODE",
+        "REPAIR_DIAGNOSTIC_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "REPAIR_DIAGNOSTIC_WORK_MODE"
+      ],
+      "source_refs": [
+        "Operator Attention Promotion",
+        "Operator Mission Priority / Helm Declutter"
+      ],
+      "world": "Mission Control"
+    },
+    "automation_candidate_issue": {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "automation execution blocked",
+        "security delta required for new authority"
+      ],
+      "display_name": "Automation Candidate Issue",
+      "human_summary_required": true,
+      "issue_id": "automation_candidate_issue",
+      "issue_type": "AUTOMATION_CANDIDATE",
+      "lane": "automation_candidate",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        "generated/read_models/tool_adapter_receipt_contract.json"
+      ],
+      "next_safe_move": "Classify feasibility without running it.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "decide manual/future-gated/reject"
+      ],
+      "primary_work_mode": "AUTOMATION_CANDIDATE_WORK_MODE",
+      "proof_refs": [
+        "automation readiness refs"
+      ],
+      "recommended_work_modes": [
+        "AUTOMATION_CANDIDATE_WORK_MODE",
+        "DECISION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DECISION_WORK_MODE"
+      ],
+      "source_refs": [
+        "Coupa/PO automation candidate",
+        "Tool Adapter Receipt"
+      ],
+      "world": "System"
+    },
+    "capital_hilton_invoice_issue": {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "missing proof",
+        "protected proof required",
+        "current action locked"
+      ],
+      "display_name": "Capital Hilton Invoice Proof Issue",
+      "human_summary_required": true,
+      "issue_id": "capital_hilton_invoice_issue",
+      "issue_type": "FINANCE_WORKFLOW",
+      "lane": "capital_hilton",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "next_safe_move": "Pick what is true about the invoice.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "classify invoice truth",
+        "point to proof later",
+        "decide what is unknown"
+      ],
+      "primary_work_mode": "PROOF_WORK_MODE",
+      "proof_refs": [
+        "protected finance proof metadata refs only"
+      ],
+      "recommended_work_modes": [
+        "PROOF_WORK_MODE",
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "source_refs": [
+        "Capital Hilton proof intake/resolution rails"
+      ],
+      "world": "Finance"
+    },
+    "client_project_delivery_issue": {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "send/submit blocked",
+        "artifact generation blocked"
+      ],
+      "display_name": "Client / Project Delivery Issue",
+      "human_summary_required": true,
+      "issue_id": "client_project_delivery_issue",
+      "issue_type": "CLIENT_PROJECT_DELIVERY",
+      "lane": "client_project_delivery",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/project_capsules.json"
+      ],
+      "next_safe_move": "Name the deliverable and the next review step.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "choose next deliverable state",
+        "review proof or draft later"
+      ],
+      "primary_work_mode": "ARTIFACT_WORK_MODE",
+      "proof_refs": [
+        "client/project receipt refs"
+      ],
+      "recommended_work_modes": [
+        "ARTIFACT_WORK_MODE",
+        "DRAFT_COMMUNICATION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DRAFT_COMMUNICATION_WORK_MODE"
+      ],
+      "source_refs": [
+        "project delivery refs"
+      ],
+      "world": "Delivery"
+    },
+    "communication_draft_send_issue": {
+      "actor": "Cassandra",
+      "authority_granted": false,
+      "blockers": [
+        "email dispatch blocked",
+        "approval submission blocked",
+        "raw private bodies hidden"
+      ],
+      "display_name": "Communication Draft / Send Workflow Issue",
+      "human_summary_required": true,
+      "issue_id": "communication_draft_send_issue",
+      "issue_type": "COMMUNICATION_DRAFT_SEND_WORKFLOW",
+      "lane": "cassandra_clara",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "next_safe_move": "Review the draft before anything sends.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "review draft",
+        "decide if send path should remain blocked"
+      ],
+      "primary_work_mode": "DRAFT_COMMUNICATION_WORK_MODE",
+      "proof_refs": [
+        "draft source refs only"
+      ],
+      "recommended_work_modes": [
+        "DRAFT_COMMUNICATION_WORK_MODE",
+        "APPROVAL_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "source_refs": [
+        "Cassandra / Clara draft review packet"
+      ],
+      "world": "Communications"
+    },
+    "creative_music_project_issue": {
+      "actor": "Niles",
+      "authority_granted": false,
+      "blockers": [
+        "external publish/send blocked",
+        "file rewrite blocked"
+      ],
+      "display_name": "Creative / Music Project Issue",
+      "human_summary_required": true,
+      "issue_id": "creative_music_project_issue",
+      "issue_type": "CREATIVE_MUSIC_PROJECT",
+      "lane": "niles_struna",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/struna_obscura_project_capsule_OPERATOR.md",
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "next_safe_move": "Pick up where you left off.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "resume the right creative thread",
+        "mark context gap"
+      ],
+      "primary_work_mode": "CREATIVE_PROJECT_WORK_MODE",
+      "proof_refs": [
+        "project context refs"
+      ],
+      "recommended_work_modes": [
+        "CREATIVE_PROJECT_WORK_MODE",
+        "ARTIFACT_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "ARTIFACT_WORK_MODE"
+      ],
+      "source_refs": [
+        "Niles / Struna project capsules"
+      ],
+      "world": "Creative"
+    },
+    "developer_system_repair_issue": {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "repair execution blocked",
+        "runtime/tool execution blocked"
+      ],
+      "display_name": "Developer/System Repair Issue",
+      "human_summary_required": true,
+      "issue_id": "developer_system_repair_issue",
+      "issue_type": "DEVELOPER_SYSTEM_REPAIR",
+      "lane": "check_engine",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "next_safe_move": "Check what is actually broken.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "confirm what is broken",
+        "choose repair lane later"
+      ],
+      "primary_work_mode": "REPAIR_DIAGNOSTIC_WORK_MODE",
+      "proof_refs": [
+        "diagnostic receipt refs"
+      ],
+      "recommended_work_modes": [
+        "REPAIR_DIAGNOSTIC_WORK_MODE",
+        "PROOF_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "PROOF_WORK_MODE"
+      ],
+      "source_refs": [
+        "Chief Test Harness / Cross-Off",
+        "Check Engine diagnostic package"
+      ],
+      "world": "System"
+    },
+    "proof_reference_collection_issue": {
+      "actor": "Guardian",
+      "authority_granted": false,
+      "blockers": [
+        "raw protected content hidden",
+        "proof completion blocked"
+      ],
+      "display_name": "Proof / Reference Collection Issue",
+      "human_summary_required": true,
+      "issue_id": "proof_reference_collection_issue",
+      "issue_type": "PROOF_REFERENCE_COLLECTION",
+      "lane": "reference_collection",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/protected_evidence_reference_receipt.json"
+      ],
+      "next_safe_move": "Point to the safest proof reference label.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "point to source",
+        "classify missing proof"
+      ],
+      "primary_work_mode": "PROOF_WORK_MODE",
+      "proof_refs": [
+        "proof drawer refs"
+      ],
+      "recommended_work_modes": [
+        "PROOF_WORK_MODE"
+      ],
+      "secondary_work_modes": [],
+      "source_refs": [
+        "protected evidence reference receipts"
+      ],
+      "world": "Proof"
+    },
+    "security_delta_review_issue": {
+      "actor": "Guardian",
+      "authority_granted": false,
+      "blockers": [
+        "new authority fails closed",
+        "approval submission blocked"
+      ],
+      "display_name": "Security / Guardian Review Issue",
+      "human_summary_required": true,
+      "issue_id": "security_delta_review_issue",
+      "issue_type": "SECURITY_GUARDIAN_REVIEW",
+      "lane": "security_delta",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/security_pass_contract.json",
+        "generated/read_models/security_delta_review_contract.json"
+      ],
+      "next_safe_move": "Decide if this needs security review.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "decide if security review is needed",
+        "keep new authority blocked"
+      ],
+      "primary_work_mode": "DECISION_WORK_MODE",
+      "proof_refs": [
+        "security pass summary refs"
+      ],
+      "recommended_work_modes": [
+        "DECISION_WORK_MODE",
+        "APPROVAL_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "source_refs": [
+        "Security Pass",
+        "Security Delta Review"
+      ],
+      "world": "System"
+    },
+    "terrain_reconciliation_issue": {
+      "actor": "Chief",
+      "authority_granted": false,
+      "blockers": [
+        "source mutation blocked",
+        "stable-map refresh deferred"
+      ],
+      "display_name": "Concept / Terrain Reconciliation Issue",
+      "human_summary_required": true,
+      "issue_id": "terrain_reconciliation_issue",
+      "issue_type": "CONCEPT_TERRAIN_RECONCILIATION",
+      "lane": "work_terrain",
+      "lm_translation_allowed": true,
+      "machine_state_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+      ],
+      "next_safe_move": "Review what should stay current.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_needed_for": [
+        "decide current/stale/overlap/source gap"
+      ],
+      "primary_work_mode": "TERRAIN_RECONCILIATION_WORK_MODE",
+      "proof_refs": [
+        "terrain source refs"
+      ],
+      "recommended_work_modes": [
+        "TERRAIN_RECONCILIATION_WORK_MODE",
+        "DECISION_WORK_MODE"
+      ],
+      "secondary_work_modes": [
+        "DECISION_WORK_MODE"
+      ],
+      "source_refs": [
+        "Work Terrain reconciliation"
+      ],
+      "world": "System"
+    },
+    "unknown_fail_closed_issue": {
+      "actor": "none",
+      "authority_granted": false,
+      "blockers": [
+        "issue shape unknown",
+        "authority blocked"
+      ],
+      "display_name": "Unknown Fail Closed Issue",
+      "human_summary_required": true,
+      "issue_id": "unknown_fail_closed_issue",
+      "issue_type": "UNKNOWN_FAIL_CLOSED",
+      "lane": "unknown",
+      "lm_translation_allowed": false,
+      "machine_state_refs": [],
+      "next_safe_move": "Fail closed until classified.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_needed_for": [
+        "classify or park"
+      ],
+      "primary_work_mode": "UNKNOWN_FAIL_CLOSED",
+      "proof_refs": [],
+      "recommended_work_modes": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "secondary_work_modes": [],
+      "source_refs": [
+        "unclassified input"
+      ],
+      "world": "Unknown"
+    }
+  },
+  "issue_types": [
+    "FINANCE_WORKFLOW",
+    "DEVELOPER_SYSTEM_REPAIR",
+    "SECURITY_GUARDIAN_REVIEW",
+    "PROOF_REFERENCE_COLLECTION",
+    "CONCEPT_TERRAIN_RECONCILIATION",
+    "CREATIVE_MUSIC_PROJECT",
+    "CLIENT_PROJECT_DELIVERY",
+    "COMMUNICATION_DRAFT_SEND_WORKFLOW",
+    "AUTOMATION_CANDIDATE",
+    "APP_HELM_OVERLOAD",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "machine_proof": {
+    "action_authority_granted": false,
+    "all_authority_flags_false": true,
+    "all_bandwidth_modes_present": true,
+    "all_issue_types_present": true,
+    "all_work_mode_types_present": true,
+    "authority_granted_default_false": true,
+    "bandwidth_mode_count": 4,
+    "content_hash": "sha256:b8431b7f8030db73d959dc4ab8091ecb7abe68346baf9a2956ac48e321bdf413",
+    "credentials_or_secrets_included": false,
+    "debug_mode_is_not_default": true,
+    "helm_declutter_policy_present": true,
+    "helm_default_is_low_or_normal": true,
+    "high_bandwidth_is_not_default": true,
+    "human_translation_policy_present": true,
+    "issue_classification_count": 11,
+    "lm_cannot_approve_action": true,
+    "lm_cannot_decide_authority": true,
+    "lm_cannot_mark_proof_complete": true,
+    "machine_contracts_not_default_app_surface": true,
+    "operator_inputs_active_default_false": true,
+    "raw_private_bodies_included": false,
+    "relationship_to_existing_rails_count": 10,
+    "stable_map_exposure_policy_present": true,
+    "work_mode_instance_count": 6,
+    "work_mode_type_count": 10
+  },
+  "north_star": "Here are the few things that need Winship, and here is the cleanest path through each one.",
+  "operator_bandwidth_mode_schema": {
+    "required_fields": [
+      "bandwidth_id",
+      "display_name",
+      "human_description",
+      "default_for_helm",
+      "visible_content_policy",
+      "hidden_content_policy",
+      "choice_complexity",
+      "proof_detail_policy",
+      "machine_contract_policy",
+      "best_for_operator_state",
+      "next_safe_move"
+    ],
+    "structure": "OperatorBandwidthMode",
+    "unknown_or_missing_result": "LOW_BANDWIDTH"
+  },
+  "operator_work_issue_classification_schema": {
+    "required_fields": [
+      "issue_id",
+      "display_name",
+      "issue_type",
+      "world",
+      "lane",
+      "actor",
+      "source_refs",
+      "machine_state_refs",
+      "proof_refs",
+      "blockers",
+      "operator_needed_for",
+      "recommended_work_modes",
+      "primary_work_mode",
+      "secondary_work_modes",
+      "operator_bandwidth_default",
+      "human_summary_required",
+      "lm_translation_allowed",
+      "authority_granted",
+      "next_safe_move"
+    ],
+    "structure": "OperatorWorkIssueClassification",
+    "unknown_or_missing_result": "UNKNOWN_FAIL_CLOSED"
+  },
+  "operator_work_mode_instance_schema": {
+    "defaults": {
+      "authority_granted": false,
+      "live_execution": false,
+      "operator_inputs_active": false
+    },
+    "required_fields": [
+      "work_mode_instance_id",
+      "display_title",
+      "world",
+      "lane",
+      "issue_classification_ref",
+      "primary_work_mode_type",
+      "active_step_id",
+      "operator_bandwidth_default",
+      "low_bandwidth_summary",
+      "normal_bandwidth_summary",
+      "high_bandwidth_details",
+      "debug_detail_refs",
+      "one_next_human_move",
+      "plain_language_choices",
+      "steps",
+      "visible_context",
+      "hidden_context",
+      "proof_drawer_refs",
+      "operator_inputs_available",
+      "operator_inputs_active",
+      "automation_candidates",
+      "approval_refs",
+      "channel_projection_refs",
+      "quieted_step_refs",
+      "blocked_actions",
+      "completion_condition",
+      "reopen_condition",
+      "next_safe_move"
+    ],
+    "structure": "OperatorWorkModeInstance"
+  },
+  "operator_work_mode_type_schema": {
+    "required_fields": [
+      "work_mode_type_id",
+      "display_name",
+      "human_purpose",
+      "machine_purpose",
+      "best_for_issue_types",
+      "default_bandwidth_mode",
+      "default_visible_sections",
+      "default_hidden_sections",
+      "allowed_operator_inputs",
+      "blocked_actions",
+      "completion_condition",
+      "proof_depth_policy",
+      "next_safe_move"
+    ],
+    "structure": "OperatorWorkModeType",
+    "unknown_or_missing_result": "UNKNOWN_FAIL_CLOSED"
+  },
+  "read_model_id": "operator_work_mode_schema_bandwidth_policy",
+  "relationship_to_existing_rails": [
+    {
+      "display_name": "Capital Hilton proof intake/resolution",
+      "rail_id": "capital_hilton_proof_intake_resolution",
+      "read_model_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "relationship": "substrate for Finance proof work mode; not duplicated"
+    },
+    {
+      "display_name": "Coupa/PO automation candidate",
+      "rail_id": "coupa_po_automation_candidate",
+      "read_model_refs": [
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json"
+      ],
+      "relationship": "future-gated automation feasibility substrate; execution remains blocked"
+    },
+    {
+      "display_name": "Work Terrain reconciliation",
+      "rail_id": "work_terrain_reconciliation",
+      "read_model_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+      ],
+      "relationship": "terrain reconciliation substrate; no source rewrite or stable-map refresh"
+    },
+    {
+      "display_name": "Security Pass",
+      "rail_id": "security_pass",
+      "read_model_refs": [
+        "generated/read_models/security_pass_contract.json",
+        "generated/read_models/security_delta_review_contract.json"
+      ],
+      "relationship": "authority and delta-review substrate; work mode cannot grant authority"
+    },
+    {
+      "display_name": "Operator Attention Promotion",
+      "rail_id": "operator_attention_promotion",
+      "read_model_refs": [
+        "generated/read_models/operator_attention_promotion_contract.json"
+      ],
+      "relationship": "attention routing substrate; work mode renders human solve posture"
+    },
+    {
+      "display_name": "Chief Test Harness / Cross-Off",
+      "rail_id": "chief_test_harness_cross_off",
+      "read_model_refs": [
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "relationship": "diagnostic and completion-candidate substrate; no automatic cross-off"
+    },
+    {
+      "display_name": "Governance batch",
+      "rail_id": "governance_batch",
+      "read_model_refs": [
+        "generated/read_models/post_security_governance_batch_manifest.json"
+      ],
+      "relationship": "governance substrate; no new control layer"
+    },
+    {
+      "display_name": "Agent Council",
+      "rail_id": "agent_council",
+      "read_model_refs": [
+        "generated/read_models/agent_package_preview_contract.json",
+        "generated/read_models/agent_presence.json",
+        "generated/read_models/agent_lanes.json"
+      ],
+      "relationship": "actor/package substrate; no agent activation"
+    },
+    {
+      "display_name": "Package Preview",
+      "rail_id": "package_preview",
+      "read_model_refs": [
+        "generated/read_models/package_preview_receipt_contract.json"
+      ],
+      "relationship": "preview substrate; no submit/send/launch action"
+    },
+    {
+      "display_name": "Tool Adapter Receipt",
+      "rail_id": "tool_adapter_receipt",
+      "read_model_refs": [
+        "generated/read_models/tool_adapter_receipt_contract.json"
+      ],
+      "relationship": "adapter receipt substrate; no tool execution"
+    }
+  ],
+  "schema_version": "operator_work_mode_schema_bandwidth_policy_v0",
+  "stable_map_exposure_policy": {
+    "debug_detail_policy": "debug may inspect refs and generated packets, but debug is never helm default",
+    "mac_should_hide": [
+      "raw protected content",
+      "debug-only generated read-model body",
+      "private draft payloads",
+      "machine contract wall"
+    ],
+    "mac_should_render": [
+      "current work mode card",
+      "one next human move",
+      "plain choices from deterministic packet",
+      "proof summary link",
+      "authority/blocker labels"
+    ],
+    "proof_detail_policy": "proof summary visible; detail drawer inspectable; raw protected content hidden",
+    "stable_map_should_expose": [
+      "active workflow sessions",
+      "current work mode",
+      "unresolved attention tickets",
+      "automation readiness status",
+      "one next human move",
+      "low/normal/high bandwidth summaries",
+      "proof summary refs"
+    ],
+    "stable_map_should_not_expose": [
+      "raw screenshots",
+      "diagnostic logs",
+      "transitional machine JSON",
+      "draft email payloads",
+      "raw protected content",
+      "full contract internals"
+    ]
+  },
+  "work_mode_instances": [
+    {
+      "active_step_id": "pick_invoice_truth",
+      "approval_refs": [
+        "capital_hilton_send_approval_gate"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "blocked_actions": [
+        "invoice_generation",
+        "approval_submission",
+        "Coupa/browser access",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Classify invoice truth or proof gap; proof completion and actions remain locked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json",
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json"
+      ],
+      "display_title": "Capital Hilton Invoice Proof Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "capital_hilton_protected_proof_intake",
+          "capital_hilton_proof_quieting_progress_state",
+          "capital_hilton_coupa_po_retrieval_automation_candidate"
+        ],
+        "raw_private_bodies": "hidden"
+      },
+      "high_bandwidth_details": [
+        "Finance workflow issue",
+        "Proof refs remain protected and one level down",
+        "Artifact, approval, and automation candidate modes are secondary only"
+      ],
+      "issue_classification_ref": "capital_hilton_invoice_issue",
+      "lane": "capital_hilton",
+      "low_bandwidth_summary": "Pick what is true about the invoice.",
+      "next_safe_move": "Show the invoice truth choice without executing anything.",
+      "normal_bandwidth_summary": "Capital Hilton needs a human-usable proof path. The current action is locked until proof and approval rails exist.",
+      "one_next_human_move": "Pick what is true about the invoice.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "choose_truth_state",
+        "park",
+        "needs_proof"
+      ],
+      "plain_language_choices": [
+        "It is true and I know why",
+        "I need to find proof",
+        "I do not know yet"
+      ],
+      "primary_work_mode_type": "PROOF_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when proof status changes, approval path appears, or operator asks to inspect.",
+      "secondary_work_mode_types": [
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "pick_invoice_truth",
+          "title": "Pick what is true about the invoice."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "point_to_proof_ref_later",
+          "title": "Point to protected proof later."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_action_locked",
+          "title": "Keep invoice action locked."
+        }
+      ],
+      "visible_context": {
+        "current_action": "locked",
+        "purpose": "make invoice proof path human-usable",
+        "simple_default": true
+      },
+      "work_mode_instance_id": "capital_hilton_invoice_work_mode",
+      "world": "Finance"
+    },
+    {
+      "active_step_id": "review_currentness",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "file_move",
+        "file_delete",
+        "source_rewrite",
+        "stable_map_refresh",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Classify terrain item; mutation and stable-map refresh remain blocked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+      ],
+      "display_title": "Chief Terrain Reconciliation Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "openclaw_work_terrain_gap_detector"
+        ]
+      },
+      "high_bandwidth_details": [
+        "Work Terrain refs",
+        "gap detector refs",
+        "stable-map visibility gaps"
+      ],
+      "issue_classification_ref": "terrain_reconciliation_issue",
+      "lane": "work_terrain",
+      "low_bandwidth_summary": "Review what should stay current.",
+      "next_safe_move": "Show the terrain status choice only.",
+      "normal_bandwidth_summary": "Sort terrain into current, stale, overlap, or source-gap without rewriting files.",
+      "one_next_human_move": "Review what should stay current.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "classify_currentness",
+        "park",
+        "needs_source"
+      ],
+      "plain_language_choices": [
+        "Keep current",
+        "Looks stale",
+        "Overlaps something else",
+        "Needs source"
+      ],
+      "primary_work_mode_type": "TERRAIN_RECONCILIATION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when new source refs, overlap, or stale evidence appears.",
+      "secondary_work_mode_types": [
+        "DECISION_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "review_currentness",
+          "title": "Review current/stale/overlap/source gap."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_source_locked",
+          "title": "Keep source files untouched."
+        }
+      ],
+      "visible_context": {
+        "purpose": "find current/stale/overlap/source gaps"
+      },
+      "work_mode_instance_id": "chief_terrain_reconciliation_work_mode",
+      "world": "System"
+    },
+    {
+      "active_step_id": "check_actual_breakage",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "repair_execution",
+        "runtime_dispatch",
+        "tool_execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Diagnostic status is classified; repair remains a future authorized lane.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "display_title": "Check Engine Diagnostic Work Mode",
+      "hidden_context": {
+        "diagnostic_detail": "debug drawer only"
+      },
+      "high_bandwidth_details": [
+        "diagnostic evidence",
+        "test harness refs",
+        "cross-off remains candidate only"
+      ],
+      "issue_classification_ref": "developer_system_repair_issue",
+      "lane": "check_engine",
+      "low_bandwidth_summary": "Check what is actually broken.",
+      "next_safe_move": "Show the evidence summary, not a repair button.",
+      "normal_bandwidth_summary": "Show diagnostic evidence and the next safe check before any repair path exists.",
+      "one_next_human_move": "Check what is actually broken.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "confirm_broken",
+        "false_alarm",
+        "needs_more_evidence"
+      ],
+      "plain_language_choices": [
+        "This is broken",
+        "This is only noisy",
+        "Needs another check"
+      ],
+      "primary_work_mode_type": "REPAIR_DIAGNOSTIC_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when health state changes or a new diagnostic ref appears.",
+      "secondary_work_mode_types": [
+        "PROOF_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "check_actual_breakage",
+          "title": "Check evidence before repair."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_repair_locked",
+          "title": "Keep repair execution locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "show diagnostic evidence and next safe check"
+      },
+      "work_mode_instance_id": "check_engine_diagnostic_work_mode",
+      "world": "System"
+    },
+    {
+      "active_step_id": "decide_security_review_needed",
+      "approval_refs": [
+        "guardian_draft_approval_request_contract"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "authority_grant",
+        "approval_submission",
+        "runtime_execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Security review need is classified; no authority is granted.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/security_pass_contract.json",
+        "generated/read_models/security_delta_review_contract.json"
+      ],
+      "display_title": "Security Delta Review Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "security_pass_contract",
+          "security_delta_review_contract"
+        ]
+      },
+      "high_bandwidth_details": [
+        "security pass refs",
+        "delta classes",
+        "Guardian gates",
+        "approval remains blocked"
+      ],
+      "issue_classification_ref": "security_delta_review_issue",
+      "lane": "security_delta",
+      "low_bandwidth_summary": "Decide if this needs security review.",
+      "next_safe_move": "Show review classification only.",
+      "normal_bandwidth_summary": "Classify whether new authority needs Security Delta or repass. Authority remains blocked.",
+      "one_next_human_move": "Decide if this needs security review.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "needs_security_review",
+        "no_delta_required",
+        "fail_closed"
+      ],
+      "plain_language_choices": [
+        "Needs security review",
+        "No new authority",
+        "Fail closed"
+      ],
+      "primary_work_mode_type": "DECISION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/security_pass_contract.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when a new authority request appears.",
+      "secondary_work_mode_types": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "decide_security_review_needed",
+          "title": "Classify security review need."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_authority_blocked",
+          "title": "Keep authority blocked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "classify whether new authority needs security delta/repass"
+      },
+      "work_mode_instance_id": "security_delta_review_work_mode",
+      "world": "System"
+    },
+    {
+      "active_step_id": "resume_creative_thread",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "publish",
+        "send",
+        "file_rewrite",
+        "external_account_access",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Next creative thread is selected or parked; external action remains blocked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/struna_obscura_project_capsule_OPERATOR.md",
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "display_title": "Niles / Struna Creative Project Work Mode",
+      "hidden_context": {
+        "raw_project_files": "not loaded by this read-model"
+      },
+      "high_bandwidth_details": [
+        "project capsule refs",
+        "album review refs",
+        "client/software context"
+      ],
+      "issue_classification_ref": "creative_music_project_issue",
+      "lane": "niles_struna",
+      "low_bandwidth_summary": "Pick up where you left off.",
+      "next_safe_move": "Show the last known project thread in plain language.",
+      "normal_bandwidth_summary": "Continue the creative/client/software lane with context, without publishing, sending, or rewriting files.",
+      "one_next_human_move": "Pick up where you left off.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "resume_thread",
+        "needs_context",
+        "park"
+      ],
+      "plain_language_choices": [
+        "Continue this thread",
+        "Need context",
+        "Park it"
+      ],
+      "primary_work_mode_type": "CREATIVE_PROJECT_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when project state, source refs, or operator focus changes.",
+      "secondary_work_mode_types": [],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "resume_creative_thread",
+          "title": "Pick the creative thread to resume."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_external_actions_locked",
+          "title": "Keep publish/send locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "continue creative/client/software lane without losing context"
+      },
+      "work_mode_instance_id": "niles_struna_project_work_mode",
+      "world": "Creative"
+    },
+    {
+      "active_step_id": "review_draft_before_send",
+      "approval_refs": [
+        "guardian_draft_approval_request_contract"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "email_send",
+        "telegram_send",
+        "approval_submission",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [
+        "future_workflow_session_channel_projection"
+      ],
+      "completion_condition": "Draft review state is classified; no message is dispatched.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "display_title": "Cassandra / Clara Draft Work Mode",
+      "hidden_context": {
+        "raw_email_bodies": "hidden",
+        "recipient_payloads": "hidden"
+      },
+      "high_bandwidth_details": [
+        "draft review packet refs",
+        "approval refs",
+        "send gates remain false"
+      ],
+      "issue_classification_ref": "communication_draft_send_issue",
+      "lane": "cassandra_clara",
+      "low_bandwidth_summary": "Review the draft before anything sends.",
+      "next_safe_move": "Show draft review state without a send action.",
+      "normal_bandwidth_summary": "A future draft review/send path can be human-readable, but dispatch remains blocked.",
+      "one_next_human_move": "Review the draft before anything sends.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "review_draft",
+        "needs_revision",
+        "reject"
+      ],
+      "plain_language_choices": [
+        "Looks okay as a draft",
+        "Needs changes",
+        "Do not send"
+      ],
+      "primary_work_mode_type": "DRAFT_COMMUNICATION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when draft text, recipient status, or approval refs change.",
+      "secondary_work_mode_types": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "review_draft_before_send",
+          "title": "Review draft candidate."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_send_locked",
+          "title": "Keep send path locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "draft review/send path later"
+      },
+      "work_mode_instance_id": "cassandra_clara_draft_work_mode",
+      "world": "Communications"
+    }
+  ],
+  "work_mode_instances_by_id": {
+    "capital_hilton_invoice_work_mode": {
+      "active_step_id": "pick_invoice_truth",
+      "approval_refs": [
+        "capital_hilton_send_approval_gate"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "blocked_actions": [
+        "invoice_generation",
+        "approval_submission",
+        "Coupa/browser access",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Classify invoice truth or proof gap; proof completion and actions remain locked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json",
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json"
+      ],
+      "display_title": "Capital Hilton Invoice Proof Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "capital_hilton_protected_proof_intake",
+          "capital_hilton_proof_quieting_progress_state",
+          "capital_hilton_coupa_po_retrieval_automation_candidate"
+        ],
+        "raw_private_bodies": "hidden"
+      },
+      "high_bandwidth_details": [
+        "Finance workflow issue",
+        "Proof refs remain protected and one level down",
+        "Artifact, approval, and automation candidate modes are secondary only"
+      ],
+      "issue_classification_ref": "capital_hilton_invoice_issue",
+      "lane": "capital_hilton",
+      "low_bandwidth_summary": "Pick what is true about the invoice.",
+      "next_safe_move": "Show the invoice truth choice without executing anything.",
+      "normal_bandwidth_summary": "Capital Hilton needs a human-usable proof path. The current action is locked until proof and approval rails exist.",
+      "one_next_human_move": "Pick what is true about the invoice.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "choose_truth_state",
+        "park",
+        "needs_proof"
+      ],
+      "plain_language_choices": [
+        "It is true and I know why",
+        "I need to find proof",
+        "I do not know yet"
+      ],
+      "primary_work_mode_type": "PROOF_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when proof status changes, approval path appears, or operator asks to inspect.",
+      "secondary_work_mode_types": [
+        "ARTIFACT_WORK_MODE",
+        "APPROVAL_WORK_MODE",
+        "AUTOMATION_CANDIDATE_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "pick_invoice_truth",
+          "title": "Pick what is true about the invoice."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "point_to_proof_ref_later",
+          "title": "Point to protected proof later."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_action_locked",
+          "title": "Keep invoice action locked."
+        }
+      ],
+      "visible_context": {
+        "current_action": "locked",
+        "purpose": "make invoice proof path human-usable",
+        "simple_default": true
+      },
+      "work_mode_instance_id": "capital_hilton_invoice_work_mode",
+      "world": "Finance"
+    },
+    "cassandra_clara_draft_work_mode": {
+      "active_step_id": "review_draft_before_send",
+      "approval_refs": [
+        "guardian_draft_approval_request_contract"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "email_send",
+        "telegram_send",
+        "approval_submission",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [
+        "future_workflow_session_channel_projection"
+      ],
+      "completion_condition": "Draft review state is classified; no message is dispatched.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "display_title": "Cassandra / Clara Draft Work Mode",
+      "hidden_context": {
+        "raw_email_bodies": "hidden",
+        "recipient_payloads": "hidden"
+      },
+      "high_bandwidth_details": [
+        "draft review packet refs",
+        "approval refs",
+        "send gates remain false"
+      ],
+      "issue_classification_ref": "communication_draft_send_issue",
+      "lane": "cassandra_clara",
+      "low_bandwidth_summary": "Review the draft before anything sends.",
+      "next_safe_move": "Show draft review state without a send action.",
+      "normal_bandwidth_summary": "A future draft review/send path can be human-readable, but dispatch remains blocked.",
+      "one_next_human_move": "Review the draft before anything sends.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "review_draft",
+        "needs_revision",
+        "reject"
+      ],
+      "plain_language_choices": [
+        "Looks okay as a draft",
+        "Needs changes",
+        "Do not send"
+      ],
+      "primary_work_mode_type": "DRAFT_COMMUNICATION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/cassandra_draft_review_packet.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when draft text, recipient status, or approval refs change.",
+      "secondary_work_mode_types": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "review_draft_before_send",
+          "title": "Review draft candidate."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_send_locked",
+          "title": "Keep send path locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "draft review/send path later"
+      },
+      "work_mode_instance_id": "cassandra_clara_draft_work_mode",
+      "world": "Communications"
+    },
+    "check_engine_diagnostic_work_mode": {
+      "active_step_id": "check_actual_breakage",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "repair_execution",
+        "runtime_dispatch",
+        "tool_execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Diagnostic status is classified; repair remains a future authorized lane.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+      ],
+      "display_title": "Check Engine Diagnostic Work Mode",
+      "hidden_context": {
+        "diagnostic_detail": "debug drawer only"
+      },
+      "high_bandwidth_details": [
+        "diagnostic evidence",
+        "test harness refs",
+        "cross-off remains candidate only"
+      ],
+      "issue_classification_ref": "developer_system_repair_issue",
+      "lane": "check_engine",
+      "low_bandwidth_summary": "Check what is actually broken.",
+      "next_safe_move": "Show the evidence summary, not a repair button.",
+      "normal_bandwidth_summary": "Show diagnostic evidence and the next safe check before any repair path exists.",
+      "one_next_human_move": "Check what is actually broken.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "confirm_broken",
+        "false_alarm",
+        "needs_more_evidence"
+      ],
+      "plain_language_choices": [
+        "This is broken",
+        "This is only noisy",
+        "Needs another check"
+      ],
+      "primary_work_mode_type": "REPAIR_DIAGNOSTIC_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when health state changes or a new diagnostic ref appears.",
+      "secondary_work_mode_types": [
+        "PROOF_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "check_actual_breakage",
+          "title": "Check evidence before repair."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_repair_locked",
+          "title": "Keep repair execution locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "show diagnostic evidence and next safe check"
+      },
+      "work_mode_instance_id": "check_engine_diagnostic_work_mode",
+      "world": "System"
+    },
+    "chief_terrain_reconciliation_work_mode": {
+      "active_step_id": "review_currentness",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "file_move",
+        "file_delete",
+        "source_rewrite",
+        "stable_map_refresh",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Classify terrain item; mutation and stable-map refresh remain blocked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+      ],
+      "display_title": "Chief Terrain Reconciliation Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "openclaw_work_terrain_gap_detector"
+        ]
+      },
+      "high_bandwidth_details": [
+        "Work Terrain refs",
+        "gap detector refs",
+        "stable-map visibility gaps"
+      ],
+      "issue_classification_ref": "terrain_reconciliation_issue",
+      "lane": "work_terrain",
+      "low_bandwidth_summary": "Review what should stay current.",
+      "next_safe_move": "Show the terrain status choice only.",
+      "normal_bandwidth_summary": "Sort terrain into current, stale, overlap, or source-gap without rewriting files.",
+      "one_next_human_move": "Review what should stay current.",
+      "operator_bandwidth_default": "NORMAL_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "classify_currentness",
+        "park",
+        "needs_source"
+      ],
+      "plain_language_choices": [
+        "Keep current",
+        "Looks stale",
+        "Overlaps something else",
+        "Needs source"
+      ],
+      "primary_work_mode_type": "TERRAIN_RECONCILIATION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/openclaw_work_terrain_gap_detector.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when new source refs, overlap, or stale evidence appears.",
+      "secondary_work_mode_types": [
+        "DECISION_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "review_currentness",
+          "title": "Review current/stale/overlap/source gap."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_source_locked",
+          "title": "Keep source files untouched."
+        }
+      ],
+      "visible_context": {
+        "purpose": "find current/stale/overlap/source gaps"
+      },
+      "work_mode_instance_id": "chief_terrain_reconciliation_work_mode",
+      "world": "System"
+    },
+    "niles_struna_project_work_mode": {
+      "active_step_id": "resume_creative_thread",
+      "approval_refs": [],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "publish",
+        "send",
+        "file_rewrite",
+        "external_account_access",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Next creative thread is selected or parked; external action remains blocked.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/struna_obscura_project_capsule_OPERATOR.md",
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "display_title": "Niles / Struna Creative Project Work Mode",
+      "hidden_context": {
+        "raw_project_files": "not loaded by this read-model"
+      },
+      "high_bandwidth_details": [
+        "project capsule refs",
+        "album review refs",
+        "client/software context"
+      ],
+      "issue_classification_ref": "creative_music_project_issue",
+      "lane": "niles_struna",
+      "low_bandwidth_summary": "Pick up where you left off.",
+      "next_safe_move": "Show the last known project thread in plain language.",
+      "normal_bandwidth_summary": "Continue the creative/client/software lane with context, without publishing, sending, or rewriting files.",
+      "one_next_human_move": "Pick up where you left off.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "resume_thread",
+        "needs_context",
+        "park"
+      ],
+      "plain_language_choices": [
+        "Continue this thread",
+        "Need context",
+        "Park it"
+      ],
+      "primary_work_mode_type": "CREATIVE_PROJECT_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/niles_album_review_packet.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when project state, source refs, or operator focus changes.",
+      "secondary_work_mode_types": [],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "resume_creative_thread",
+          "title": "Pick the creative thread to resume."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_external_actions_locked",
+          "title": "Keep publish/send locked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "continue creative/client/software lane without losing context"
+      },
+      "work_mode_instance_id": "niles_struna_project_work_mode",
+      "world": "Creative"
+    },
+    "security_delta_review_work_mode": {
+      "active_step_id": "decide_security_review_needed",
+      "approval_refs": [
+        "guardian_draft_approval_request_contract"
+      ],
+      "authority_granted": false,
+      "automation_candidates": [],
+      "blocked_actions": [
+        "authority_grant",
+        "approval_submission",
+        "runtime_execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "channel_projection_refs": [],
+      "completion_condition": "Security review need is classified; no authority is granted.",
+      "current_action_status": "LOCKED",
+      "debug_detail_refs": [
+        "generated/read_models/security_pass_contract.json",
+        "generated/read_models/security_delta_review_contract.json"
+      ],
+      "display_title": "Security Delta Review Work Mode",
+      "hidden_context": {
+        "machine_contracts": [
+          "security_pass_contract",
+          "security_delta_review_contract"
+        ]
+      },
+      "high_bandwidth_details": [
+        "security pass refs",
+        "delta classes",
+        "Guardian gates",
+        "approval remains blocked"
+      ],
+      "issue_classification_ref": "security_delta_review_issue",
+      "lane": "security_delta",
+      "low_bandwidth_summary": "Decide if this needs security review.",
+      "next_safe_move": "Show review classification only.",
+      "normal_bandwidth_summary": "Classify whether new authority needs Security Delta or repass. Authority remains blocked.",
+      "one_next_human_move": "Decide if this needs security review.",
+      "operator_bandwidth_default": "LOW_BANDWIDTH",
+      "operator_inputs_active": false,
+      "operator_inputs_available": [
+        "needs_security_review",
+        "no_delta_required",
+        "fail_closed"
+      ],
+      "plain_language_choices": [
+        "Needs security review",
+        "No new authority",
+        "Fail closed"
+      ],
+      "primary_work_mode_type": "DECISION_WORK_MODE",
+      "proof_drawer_refs": [
+        "generated/read_models/security_pass_contract.json"
+      ],
+      "quieted_step_refs": [],
+      "reopen_condition": "Reopen when a new authority request appears.",
+      "secondary_work_mode_types": [
+        "APPROVAL_WORK_MODE"
+      ],
+      "steps": [
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "AVAILABLE_LOCKED",
+          "step_id": "decide_security_review_needed",
+          "title": "Classify security review need."
+        },
+        {
+          "executes": false,
+          "operator_input_active": false,
+          "quieted": false,
+          "status": "LOCKED",
+          "step_id": "keep_authority_blocked",
+          "title": "Keep authority blocked."
+        }
+      ],
+      "visible_context": {
+        "purpose": "classify whether new authority needs security delta/repass"
+      },
+      "work_mode_instance_id": "security_delta_review_work_mode",
+      "world": "System"
+    }
+  },
+  "work_mode_type_ids": [
+    "PROOF_WORK_MODE",
+    "DECISION_WORK_MODE",
+    "ARTIFACT_WORK_MODE",
+    "APPROVAL_WORK_MODE",
+    "REPAIR_DIAGNOSTIC_WORK_MODE",
+    "TERRAIN_RECONCILIATION_WORK_MODE",
+    "DRAFT_COMMUNICATION_WORK_MODE",
+    "AUTOMATION_CANDIDATE_WORK_MODE",
+    "CREATIVE_PROJECT_WORK_MODE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "work_mode_types": [
+    {
+      "allowed_operator_inputs": [
+        "pick_known_truth",
+        "say_i_do_not_know",
+        "point_to_proof_ref_later"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "PROOF_REFERENCE_COLLECTION"
+      ],
+      "blocked_actions": [
+        "mark proof complete",
+        "ingest raw private body",
+        "generate invoice",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means proof status is classified; completion requires deterministic proof receipt later.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw protected content",
+        "proof shelves",
+        "machine receipts",
+        "contract internals"
+      ],
+      "default_visible_sections": [
+        "one proof question",
+        "plain choices",
+        "proof summary"
+      ],
+      "display_name": "Proof Work Mode",
+      "human_purpose": "Help Winship decide what is true, missing, or needs a protected proof ref.",
+      "machine_purpose": "Coordinate proof refs, blockers, receipts, and quieting candidates without marking proof complete.",
+      "next_safe_move": "Ask the smallest true proof question.",
+      "progress_condition": "A proof gap becomes known, parked, rejected, or ready for protected evidence path.",
+      "proof_depth_policy": "show only proof summary by default; drawer has refs and receipts",
+      "work_mode_type_id": "PROOF_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "choose_option",
+        "park",
+        "needs_more_context",
+        "fail_closed"
+      ],
+      "best_for_issue_types": [
+        "SECURITY_GUARDIAN_REVIEW",
+        "APP_HELM_OVERLOAD",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "blocked_actions": [
+        "approve action",
+        "submit action",
+        "grant authority",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the decision state is classified; action still requires later approval rails.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw contracts",
+        "long proof chains",
+        "diagnostic fields"
+      ],
+      "default_visible_sections": [
+        "decision prompt",
+        "recommended safe move",
+        "plain choices"
+      ],
+      "display_name": "Decision Work Mode",
+      "human_purpose": "Help Winship choose the safe direction when a workflow needs judgment.",
+      "machine_purpose": "Present deterministic options and blockers without deciding authority.",
+      "next_safe_move": "Show the decision and the safest non-executing choice.",
+      "progress_condition": "A blocked decision becomes decided, parked, or routed to review.",
+      "proof_depth_policy": "show proof summary only when it explains the decision",
+      "work_mode_type_id": "DECISION_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "review_readiness",
+        "label_missing_input",
+        "park_artifact"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "CLIENT_PROJECT_DELIVERY",
+        "CREATIVE_MUSIC_PROJECT"
+      ],
+      "blocked_actions": [
+        "invoice/excel/pdf generation",
+        "file rewrite",
+        "submission",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means artifact readiness is classified; production happens only in later authorized lanes.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw source bodies",
+        "full generated payloads",
+        "machine JSON"
+      ],
+      "default_visible_sections": [
+        "artifact purpose",
+        "missing inputs",
+        "next review step"
+      ],
+      "display_name": "Artifact Work Mode",
+      "human_purpose": "Help Winship review or assemble an artifact path without creating protected output.",
+      "machine_purpose": "Track artifact refs, inputs, and readiness while generation stays blocked.",
+      "next_safe_move": "Name the artifact and what is still missing.",
+      "progress_condition": "Artifact state becomes ready-for-draft, missing-input, parked, or blocked.",
+      "proof_depth_policy": "show refs only when artifact readiness depends on proof",
+      "work_mode_type_id": "ARTIFACT_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "approve_later_candidate",
+        "reject_candidate",
+        "needs_review"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "SECURITY_GUARDIAN_REVIEW",
+        "COMMUNICATION_DRAFT_SEND_WORKFLOW"
+      ],
+      "blocked_actions": [
+        "approval submission",
+        "send/submit",
+        "authority grant",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means approval need is classified; submission is still blocked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw payloads",
+        "credentials",
+        "full contract internals"
+      ],
+      "default_visible_sections": [
+        "approval question",
+        "risk summary",
+        "blocked actions"
+      ],
+      "display_name": "Approval Work Mode",
+      "human_purpose": "Help Winship review an approval packet before any action can happen.",
+      "machine_purpose": "Bind approval refs, blockers, and authority gates without submitting approval.",
+      "next_safe_move": "Show what would need approval and keep submission locked.",
+      "progress_condition": "Approval state becomes blocked, needs-review, rejected, or future-ready.",
+      "proof_depth_policy": "proof visible only as approval summary unless opened",
+      "work_mode_type_id": "APPROVAL_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "confirm_symptom",
+        "park",
+        "request_repair_lane_later"
+      ],
+      "best_for_issue_types": [
+        "DEVELOPER_SYSTEM_REPAIR",
+        "APP_HELM_OVERLOAD"
+      ],
+      "blocked_actions": [
+        "repair execution",
+        "runtime dispatch",
+        "tool execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the broken/not-broken state is classified with evidence.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw logs",
+        "stack traces",
+        "generated diagnostics",
+        "contract internals"
+      ],
+      "default_visible_sections": [
+        "symptom",
+        "actual blocker",
+        "next safe check"
+      ],
+      "display_name": "Repair Diagnostic Work Mode",
+      "human_purpose": "Help Winship see what is actually broken before repair work starts.",
+      "machine_purpose": "Show diagnostic evidence, health state, and next safe check without running repairs.",
+      "next_safe_move": "Check the evidence before attempting repair.",
+      "progress_condition": "Diagnostic state becomes known, false alarm, parked, or ready for a future repair lane.",
+      "proof_depth_policy": "diagnostic proof is visible at high bandwidth or in drawer",
+      "work_mode_type_id": "REPAIR_DIAGNOSTIC_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "mark_current_candidate",
+        "mark_stale_candidate",
+        "needs_source",
+        "park"
+      ],
+      "best_for_issue_types": [
+        "CONCEPT_TERRAIN_RECONCILIATION",
+        "APP_HELM_OVERLOAD"
+      ],
+      "blocked_actions": [
+        "archive",
+        "rewrite",
+        "delete",
+        "auto-stable-map promotion",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means terrain item is classified; source mutation remains blocked.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw notes",
+        "broad body excerpts",
+        "machine classifier detail"
+      ],
+      "default_visible_sections": [
+        "terrain question",
+        "candidate status",
+        "next reconciliation choice"
+      ],
+      "display_name": "Terrain Reconciliation Work Mode",
+      "human_purpose": "Help Winship sort current, stale, duplicate, overlapping, and source-gap terrain.",
+      "machine_purpose": "Coordinate terrain refs and reconciliation candidates without rewriting files or memory.",
+      "next_safe_move": "Review what should stay current.",
+      "progress_condition": "Terrain item becomes current, stale, overlap, source-gap, or parked candidate.",
+      "proof_depth_policy": "show source labels; deeper refs stay inspectable",
+      "work_mode_type_id": "TERRAIN_RECONCILIATION_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "review_draft_candidate",
+        "request_revision_later",
+        "park"
+      ],
+      "best_for_issue_types": [
+        "COMMUNICATION_DRAFT_SEND_WORKFLOW",
+        "CLIENT_PROJECT_DELIVERY"
+      ],
+      "blocked_actions": [
+        "email send",
+        "Telegram send",
+        "email dispatch without operator signature",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the draft is reviewed or routed; dispatch remains blocked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw email bodies",
+        "recipient payloads",
+        "dispatch internals"
+      ],
+      "default_visible_sections": [
+        "draft purpose",
+        "review prompt",
+        "send blocked label"
+      ],
+      "display_name": "Draft Communication Work Mode",
+      "human_purpose": "Help Winship review a communication before any send path exists.",
+      "machine_purpose": "Track draft status, review blockers, and later approval refs without dispatch.",
+      "next_safe_move": "Review the draft before anything sends.",
+      "progress_condition": "Draft becomes reviewed, revision-needed, rejected, parked, or approval-needed.",
+      "proof_depth_policy": "show source/ref summary only; private bodies stay hidden",
+      "work_mode_type_id": "DRAFT_COMMUNICATION_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "keep_manual",
+        "evaluate_later",
+        "needs_security_delta",
+        "reject"
+      ],
+      "best_for_issue_types": [
+        "AUTOMATION_CANDIDATE",
+        "FINANCE_WORKFLOW"
+      ],
+      "blocked_actions": [
+        "automation execution",
+        "browser automation",
+        "credential handling",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means feasibility is classified; execution remains blocked.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "portal details",
+        "credentials",
+        "raw logs",
+        "execution contracts"
+      ],
+      "default_visible_sections": [
+        "automation goal",
+        "current manual fallback",
+        "blocked gates"
+      ],
+      "display_name": "Automation Candidate Work Mode",
+      "human_purpose": "Help Winship see whether a repeated task might later be automated safely.",
+      "machine_purpose": "Classify feasibility, gates, receipts, and blocked authority without running automation.",
+      "next_safe_move": "Classify feasibility without running it.",
+      "progress_condition": "Automation candidate becomes manual-only, future-gated, rejected, or security-review-needed.",
+      "proof_depth_policy": "show feasibility refs; protected details stay in proof drawer",
+      "work_mode_type_id": "AUTOMATION_CANDIDATE_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "pick_up_thread",
+        "park",
+        "mark_context_gap"
+      ],
+      "best_for_issue_types": [
+        "CREATIVE_MUSIC_PROJECT",
+        "CLIENT_PROJECT_DELIVERY"
+      ],
+      "blocked_actions": [
+        "publish",
+        "send",
+        "external account access",
+        "file rewrite",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the next creative thread is selected or parked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw project files",
+        "long proof shelves",
+        "machine routing detail"
+      ],
+      "default_visible_sections": [
+        "where you left off",
+        "one next creative move",
+        "context summary"
+      ],
+      "display_name": "Creative Project Work Mode",
+      "human_purpose": "Help Winship resume creative or client work without losing context.",
+      "machine_purpose": "Summarize project state, next thread, and refs without publishing or sending.",
+      "next_safe_move": "Pick up where you left off.",
+      "progress_condition": "Project lane becomes resumed, parked, source-needed, or ready for a future artifact lane.",
+      "proof_depth_policy": "proof appears only when creative/client state depends on source refs",
+      "work_mode_type_id": "CREATIVE_PROJECT_WORK_MODE"
+    },
+    {
+      "allowed_operator_inputs": [
+        "park",
+        "request_classification",
+        "fail_closed"
+      ],
+      "best_for_issue_types": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "blocked_actions": [
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the issue is classified or remains fail-closed.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "untrusted raw input",
+        "unclassified machine detail"
+      ],
+      "default_visible_sections": [
+        "unknown state",
+        "blocked label",
+        "safe next check"
+      ],
+      "display_name": "Unknown / Fail Closed",
+      "human_purpose": "Keep unclear work from becoming a noisy or unsafe action.",
+      "machine_purpose": "Contain unknown issue shape until deterministic classification exists.",
+      "next_safe_move": "Fail closed and ask for classification.",
+      "progress_condition": "Unknown item becomes classified or remains blocked.",
+      "proof_depth_policy": "no proof claims until deterministic refs exist",
+      "work_mode_type_id": "UNKNOWN_FAIL_CLOSED"
+    }
+  ],
+  "work_mode_types_by_id": {
+    "APPROVAL_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "approve_later_candidate",
+        "reject_candidate",
+        "needs_review"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "SECURITY_GUARDIAN_REVIEW",
+        "COMMUNICATION_DRAFT_SEND_WORKFLOW"
+      ],
+      "blocked_actions": [
+        "approval submission",
+        "send/submit",
+        "authority grant",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means approval need is classified; submission is still blocked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw payloads",
+        "credentials",
+        "full contract internals"
+      ],
+      "default_visible_sections": [
+        "approval question",
+        "risk summary",
+        "blocked actions"
+      ],
+      "display_name": "Approval Work Mode",
+      "human_purpose": "Help Winship review an approval packet before any action can happen.",
+      "machine_purpose": "Bind approval refs, blockers, and authority gates without submitting approval.",
+      "next_safe_move": "Show what would need approval and keep submission locked.",
+      "progress_condition": "Approval state becomes blocked, needs-review, rejected, or future-ready.",
+      "proof_depth_policy": "proof visible only as approval summary unless opened",
+      "work_mode_type_id": "APPROVAL_WORK_MODE"
+    },
+    "ARTIFACT_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "review_readiness",
+        "label_missing_input",
+        "park_artifact"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "CLIENT_PROJECT_DELIVERY",
+        "CREATIVE_MUSIC_PROJECT"
+      ],
+      "blocked_actions": [
+        "invoice/excel/pdf generation",
+        "file rewrite",
+        "submission",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means artifact readiness is classified; production happens only in later authorized lanes.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw source bodies",
+        "full generated payloads",
+        "machine JSON"
+      ],
+      "default_visible_sections": [
+        "artifact purpose",
+        "missing inputs",
+        "next review step"
+      ],
+      "display_name": "Artifact Work Mode",
+      "human_purpose": "Help Winship review or assemble an artifact path without creating protected output.",
+      "machine_purpose": "Track artifact refs, inputs, and readiness while generation stays blocked.",
+      "next_safe_move": "Name the artifact and what is still missing.",
+      "progress_condition": "Artifact state becomes ready-for-draft, missing-input, parked, or blocked.",
+      "proof_depth_policy": "show refs only when artifact readiness depends on proof",
+      "work_mode_type_id": "ARTIFACT_WORK_MODE"
+    },
+    "AUTOMATION_CANDIDATE_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "keep_manual",
+        "evaluate_later",
+        "needs_security_delta",
+        "reject"
+      ],
+      "best_for_issue_types": [
+        "AUTOMATION_CANDIDATE",
+        "FINANCE_WORKFLOW"
+      ],
+      "blocked_actions": [
+        "automation execution",
+        "browser automation",
+        "credential handling",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means feasibility is classified; execution remains blocked.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "portal details",
+        "credentials",
+        "raw logs",
+        "execution contracts"
+      ],
+      "default_visible_sections": [
+        "automation goal",
+        "current manual fallback",
+        "blocked gates"
+      ],
+      "display_name": "Automation Candidate Work Mode",
+      "human_purpose": "Help Winship see whether a repeated task might later be automated safely.",
+      "machine_purpose": "Classify feasibility, gates, receipts, and blocked authority without running automation.",
+      "next_safe_move": "Classify feasibility without running it.",
+      "progress_condition": "Automation candidate becomes manual-only, future-gated, rejected, or security-review-needed.",
+      "proof_depth_policy": "show feasibility refs; protected details stay in proof drawer",
+      "work_mode_type_id": "AUTOMATION_CANDIDATE_WORK_MODE"
+    },
+    "CREATIVE_PROJECT_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "pick_up_thread",
+        "park",
+        "mark_context_gap"
+      ],
+      "best_for_issue_types": [
+        "CREATIVE_MUSIC_PROJECT",
+        "CLIENT_PROJECT_DELIVERY"
+      ],
+      "blocked_actions": [
+        "publish",
+        "send",
+        "external account access",
+        "file rewrite",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the next creative thread is selected or parked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw project files",
+        "long proof shelves",
+        "machine routing detail"
+      ],
+      "default_visible_sections": [
+        "where you left off",
+        "one next creative move",
+        "context summary"
+      ],
+      "display_name": "Creative Project Work Mode",
+      "human_purpose": "Help Winship resume creative or client work without losing context.",
+      "machine_purpose": "Summarize project state, next thread, and refs without publishing or sending.",
+      "next_safe_move": "Pick up where you left off.",
+      "progress_condition": "Project lane becomes resumed, parked, source-needed, or ready for a future artifact lane.",
+      "proof_depth_policy": "proof appears only when creative/client state depends on source refs",
+      "work_mode_type_id": "CREATIVE_PROJECT_WORK_MODE"
+    },
+    "DECISION_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "choose_option",
+        "park",
+        "needs_more_context",
+        "fail_closed"
+      ],
+      "best_for_issue_types": [
+        "SECURITY_GUARDIAN_REVIEW",
+        "APP_HELM_OVERLOAD",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "blocked_actions": [
+        "approve action",
+        "submit action",
+        "grant authority",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the decision state is classified; action still requires later approval rails.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw contracts",
+        "long proof chains",
+        "diagnostic fields"
+      ],
+      "default_visible_sections": [
+        "decision prompt",
+        "recommended safe move",
+        "plain choices"
+      ],
+      "display_name": "Decision Work Mode",
+      "human_purpose": "Help Winship choose the safe direction when a workflow needs judgment.",
+      "machine_purpose": "Present deterministic options and blockers without deciding authority.",
+      "next_safe_move": "Show the decision and the safest non-executing choice.",
+      "progress_condition": "A blocked decision becomes decided, parked, or routed to review.",
+      "proof_depth_policy": "show proof summary only when it explains the decision",
+      "work_mode_type_id": "DECISION_WORK_MODE"
+    },
+    "DRAFT_COMMUNICATION_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "review_draft_candidate",
+        "request_revision_later",
+        "park"
+      ],
+      "best_for_issue_types": [
+        "COMMUNICATION_DRAFT_SEND_WORKFLOW",
+        "CLIENT_PROJECT_DELIVERY"
+      ],
+      "blocked_actions": [
+        "email send",
+        "Telegram send",
+        "email dispatch without operator signature",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the draft is reviewed or routed; dispatch remains blocked.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw email bodies",
+        "recipient payloads",
+        "dispatch internals"
+      ],
+      "default_visible_sections": [
+        "draft purpose",
+        "review prompt",
+        "send blocked label"
+      ],
+      "display_name": "Draft Communication Work Mode",
+      "human_purpose": "Help Winship review a communication before any send path exists.",
+      "machine_purpose": "Track draft status, review blockers, and later approval refs without dispatch.",
+      "next_safe_move": "Review the draft before anything sends.",
+      "progress_condition": "Draft becomes reviewed, revision-needed, rejected, parked, or approval-needed.",
+      "proof_depth_policy": "show source/ref summary only; private bodies stay hidden",
+      "work_mode_type_id": "DRAFT_COMMUNICATION_WORK_MODE"
+    },
+    "PROOF_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "pick_known_truth",
+        "say_i_do_not_know",
+        "point_to_proof_ref_later"
+      ],
+      "best_for_issue_types": [
+        "FINANCE_WORKFLOW",
+        "PROOF_REFERENCE_COLLECTION"
+      ],
+      "blocked_actions": [
+        "mark proof complete",
+        "ingest raw private body",
+        "generate invoice",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means proof status is classified; completion requires deterministic proof receipt later.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw protected content",
+        "proof shelves",
+        "machine receipts",
+        "contract internals"
+      ],
+      "default_visible_sections": [
+        "one proof question",
+        "plain choices",
+        "proof summary"
+      ],
+      "display_name": "Proof Work Mode",
+      "human_purpose": "Help Winship decide what is true, missing, or needs a protected proof ref.",
+      "machine_purpose": "Coordinate proof refs, blockers, receipts, and quieting candidates without marking proof complete.",
+      "next_safe_move": "Ask the smallest true proof question.",
+      "progress_condition": "A proof gap becomes known, parked, rejected, or ready for protected evidence path.",
+      "proof_depth_policy": "show only proof summary by default; drawer has refs and receipts",
+      "work_mode_type_id": "PROOF_WORK_MODE"
+    },
+    "REPAIR_DIAGNOSTIC_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "confirm_symptom",
+        "park",
+        "request_repair_lane_later"
+      ],
+      "best_for_issue_types": [
+        "DEVELOPER_SYSTEM_REPAIR",
+        "APP_HELM_OVERLOAD"
+      ],
+      "blocked_actions": [
+        "repair execution",
+        "runtime dispatch",
+        "tool execution",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the broken/not-broken state is classified with evidence.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw logs",
+        "stack traces",
+        "generated diagnostics",
+        "contract internals"
+      ],
+      "default_visible_sections": [
+        "symptom",
+        "actual blocker",
+        "next safe check"
+      ],
+      "display_name": "Repair Diagnostic Work Mode",
+      "human_purpose": "Help Winship see what is actually broken before repair work starts.",
+      "machine_purpose": "Show diagnostic evidence, health state, and next safe check without running repairs.",
+      "next_safe_move": "Check the evidence before attempting repair.",
+      "progress_condition": "Diagnostic state becomes known, false alarm, parked, or ready for a future repair lane.",
+      "proof_depth_policy": "diagnostic proof is visible at high bandwidth or in drawer",
+      "work_mode_type_id": "REPAIR_DIAGNOSTIC_WORK_MODE"
+    },
+    "TERRAIN_RECONCILIATION_WORK_MODE": {
+      "allowed_operator_inputs": [
+        "mark_current_candidate",
+        "mark_stale_candidate",
+        "needs_source",
+        "park"
+      ],
+      "best_for_issue_types": [
+        "CONCEPT_TERRAIN_RECONCILIATION",
+        "APP_HELM_OVERLOAD"
+      ],
+      "blocked_actions": [
+        "archive",
+        "rewrite",
+        "delete",
+        "auto-stable-map promotion",
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means terrain item is classified; source mutation remains blocked.",
+      "default_bandwidth_mode": "NORMAL_BANDWIDTH",
+      "default_hidden_sections": [
+        "raw notes",
+        "broad body excerpts",
+        "machine classifier detail"
+      ],
+      "default_visible_sections": [
+        "terrain question",
+        "candidate status",
+        "next reconciliation choice"
+      ],
+      "display_name": "Terrain Reconciliation Work Mode",
+      "human_purpose": "Help Winship sort current, stale, duplicate, overlapping, and source-gap terrain.",
+      "machine_purpose": "Coordinate terrain refs and reconciliation candidates without rewriting files or memory.",
+      "next_safe_move": "Review what should stay current.",
+      "progress_condition": "Terrain item becomes current, stale, overlap, source-gap, or parked candidate.",
+      "proof_depth_policy": "show source labels; deeper refs stay inspectable",
+      "work_mode_type_id": "TERRAIN_RECONCILIATION_WORK_MODE"
+    },
+    "UNKNOWN_FAIL_CLOSED": {
+      "allowed_operator_inputs": [
+        "park",
+        "request_classification",
+        "fail_closed"
+      ],
+      "best_for_issue_types": [
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "blocked_actions": [
+        "workflow execution",
+        "operator input persistence",
+        "automation execution",
+        "approval submission",
+        "invoice generation",
+        "email or Telegram send",
+        "browser/account/Coupa/Gmail/calendar access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger writes",
+        "file move/delete/cleanup"
+      ],
+      "completion_condition": "Progress means the issue is classified or remains fail-closed.",
+      "default_bandwidth_mode": "LOW_BANDWIDTH",
+      "default_hidden_sections": [
+        "untrusted raw input",
+        "unclassified machine detail"
+      ],
+      "default_visible_sections": [
+        "unknown state",
+        "blocked label",
+        "safe next check"
+      ],
+      "display_name": "Unknown / Fail Closed",
+      "human_purpose": "Keep unclear work from becoming a noisy or unsafe action.",
+      "machine_purpose": "Contain unknown issue shape until deterministic classification exists.",
+      "next_safe_move": "Fail closed and ask for classification.",
+      "progress_condition": "Unknown item becomes classified or remains blocked.",
+      "proof_depth_policy": "no proof claims until deterministic refs exist",
+      "work_mode_type_id": "UNKNOWN_FAIL_CLOSED"
+    }
+  }
+}
