@@ -67,6 +67,25 @@
     "summary_included_in_snapshot": true,
     "target_world": "Finance"
   },
+  "capital_hilton_protected_proof_intake_integration": {
+    "action_authority_granted": false,
+    "browser_oauth_account_access_allowed": false,
+    "candidate_facts_proven": false,
+    "coupa_access_allowed": false,
+    "gmail_calendar_email_access_allowed": false,
+    "guardian_gates_count": 5,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "invoice_generation_allowed": false,
+    "missing_proof_count": 10,
+    "operator_answer_candidates_count": 10,
+    "proof_items_count": 10,
+    "protected_evidence_requirements_count": 6,
+    "protected_proof_required": true,
+    "quieting_rules_count": 10,
+    "send_submit_approval_allowed": false,
+    "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+    "summary_included_in_snapshot": true
+  },
   "chief_test_harness_cross_off_integration": {
     "action_authority_granted": false,
     "cross_off_rules_present": true,
@@ -79,7 +98,7 @@
     "test_harness_receipt_model_present": true
   },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:f7d18c379785e58faa680bd8140e256834f516cf66a10c6dc04de63770bfb24f",
+  "contract_hash": "sha256:9bad1c92f9bf24b462ee177a7751aae5f6f7d34acc5899868e71a87535d25a59",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -96,7 +115,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-22T20:26:45+00:00",
+  "generated_at": "2026-05-23T05:18:01+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "mac_side_change_required": {
     "entitlement_exception_needed_once": [
@@ -149,10 +168,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
-    "canonical_read_model_count": 252,
-    "created_at": "2026-05-22T20:26:45+00:00",
-    "essential_surface_count": 18,
+    "bundle_hash": "sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66",
+    "canonical_read_model_count": 254,
+    "created_at": "2026-05-23T05:18:01+00:00",
+    "essential_surface_count": 19,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -378,6 +397,19 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:91f6af17f8fd7f83b0f29a00f32e61c9eaec329e9dcdb61f93bafa8be2f9ccbe",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_protected_proof_intake",
+        "role": "Capital Hilton protected proof intake questions, answer candidates, Guardian gates, and quieting rules",
+        "schema_version": "capital_hilton_protected_proof_intake_v0",
+        "surface_id": "capital_hilton_protected_proof_intake"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -412,17 +444,17 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_963121fcbd8973c86a49",
+    "map_generation_id": "map_b324cf6bbb0237e81aa6",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 259,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 261,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:c605c609581cf2bd6a79e053846045e1da803e313dbfbcf594274ff79af54f23",
+    "read_model_manifest_hash": "sha256:04a5799a9146acaab92069fde86c0ad0293342d08ac5fa6b5d7397e95391854d",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
-    "source_commit_if_available_local_only": "bdb55051ab88676f038aabed74c14040cae94b26",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 252,
+    "snapshot_hash": "sha256:b324cf6bbb0237e81aa65ce50ff58218c184f2dc060897e71c4421caa9825585",
+    "source_commit_if_available_local_only": "bf7ff8c5c1dbb655e907aaa9ba1d17e749c2e8a9",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 254,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -439,6 +471,10 @@
     "agent_dossier_cards_count": 12,
     "capital_hilton_missing_proof_count": 10,
     "capital_hilton_proof_metadata_present": true,
+    "capital_hilton_protected_proof_intake_action_authority_granted": false,
+    "capital_hilton_protected_proof_intake_guardian_gates_count": 5,
+    "capital_hilton_protected_proof_intake_items_count": 10,
+    "capital_hilton_protected_proof_intake_present": true,
     "capital_hilton_protected_proof_required": true,
     "chief_test_harness_cross_off_present": true,
     "chief_test_harness_cross_off_source_mutation_allowed": false,
@@ -472,7 +508,7 @@
       "source_path": "generated/read_models/system_health_lights_taxonomy.json",
       "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
     },
-    "map_generation_id": "map_963121fcbd8973c86a49",
+    "map_generation_id": "map_b324cf6bbb0237e81aa6",
     "operator_attention_promotion_present": true,
     "operator_attention_promotion_quiet_helm_policy_present": true,
     "package_preview_receipt_examples_count": 8,
@@ -496,7 +532,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
+    "snapshot_hash": "sha256:b324cf6bbb0237e81aa65ce50ff58218c184f2dc060897e71c4421caa9825585",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -627,11 +663,11 @@
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 259,
+      "canonical_expected": 261,
       "display_status": "needs_mac_sync",
       "hash_mismatch": 4,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 41,
+      "missing_expected": 43,
       "observed": 218,
       "operator_action_required": true,
       "present": true,
@@ -679,8 +715,8 @@
   "read_model_only": true,
   "receipt_validation": {
     "fail_closed": true,
-    "reason": "Mac map receipt generation_id does not match the requested generation.",
-    "status": "map_generation_pending_mac_import",
+    "reason": "Mac map receipt schema is not recognized.",
+    "status": "unknown_fail_closed",
     "valid": false
   },
   "runtime_activation_allowed": false,
@@ -776,7 +812,7 @@
   "sync_health_reframe": {
     "app_visible_map_status": "map_current only when generation_id and bundle_hash receipt validates",
     "check_transmission_future_source_truth": "controlled by map-generation agreement for app readiness, with raw count mismatch kept as proof/detail unless it blocks map generation",
-    "mac_import_receipt_status": "map_generation_pending_mac_import",
+    "mac_import_receipt_status": "unknown_fail_closed",
     "map_bundle_generation_status": "new front-door app contract status",
     "raw_read_model_manifest_status": "continues to compare full generated/read_models proof/detail set",
     "required_states": [

@@ -22,15 +22,15 @@ Mission Control should consume a stable map snapshot instead of treating the ful
 - Snapshot: `openclaw_map_snapshot.json`
 - Manifest: `openclaw_map_manifest.json`
 - Operator digest: `openclaw_map_OPERATOR.md`
-- Map generation: `map_963121fcbd8973c86a49`
-- Bundle hash: `sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea`
+- Map generation: `map_b324cf6bbb0237e81aa6`
+- Bundle hash: `sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66`
 - Stable app-facing file count: `3`
 
 ## Sync Health Split
 
 - Raw read-model count remains proof/detail.
 - Map generation/receipt agreement becomes the app-visible Check Transmission source truth once Mac implements the stable reader.
-- Current map receipt validation: `map_generation_pending_mac_import`
+- Current map receipt validation: `unknown_fail_closed`
 
 ## Mac-Side Change Required
 

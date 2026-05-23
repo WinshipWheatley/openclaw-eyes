@@ -2305,6 +2305,108 @@
     "target_world": "Finance",
     "workflow_type": "invoice_review_and_proof_metadata"
   },
+  "capital_hilton_protected_proof_intake": {
+    "action_authority_granted": false,
+    "browser_oauth_account_access_allowed": false,
+    "candidate_completed_dates": [
+      "2026-05-08",
+      "2026-05-15"
+    ],
+    "candidate_facts_proven": false,
+    "candidate_one_invoice_posture": true,
+    "candidate_rate": "$400 per gig",
+    "candidate_subtotal": "$800",
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "current_phase": "HELM_THRESHOLD_LANE",
+    "gmail_calendar_email_access_allowed": false,
+    "guardian_gates_count": 5,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "invoice_generation_allowed": false,
+    "lane_destiny": "MOVE_TO_WORLD_ACTION",
+    "missing_proof_count": 10,
+    "next_safe_move": "Capture answers as memory candidates, then link source-card/protected evidence/receipt metadata through Guardian-gated proof intake.",
+    "operator_answer_candidates_count": 10,
+    "operator_answers_are_not_proof": true,
+    "present": true,
+    "primary_app_contract": true,
+    "proof_item_summaries": [
+      {
+        "display_name": "May 8 performance proof",
+        "proof_item_id": "performance_date_2026_05_08_proof",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "May 15 performance proof",
+        "proof_item_id": "performance_date_2026_05_15_proof",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Rate proof",
+        "proof_item_id": "rate_400_per_gig_proof",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Subtotal math proof",
+        "proof_item_id": "subtotal_800_proof",
+        "proof_status": "RECEIPT_REQUIRED",
+        "protected_proof_required": false
+      },
+      {
+        "display_name": "One-invoice posture proof",
+        "proof_item_id": "one_invoice_posture_proof",
+        "proof_status": "SOURCE_CARD_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Coupa/PO/payment reference metadata",
+        "proof_item_id": "coupa_po_payment_reference_metadata",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Workbook/source artifact reference",
+        "proof_item_id": "excel_workbook_or_invoice_source_reference",
+        "proof_status": "SOURCE_CARD_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "AP route metadata",
+        "proof_item_id": "ap_recipient_route_metadata",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Tax/vendor/payment handling metadata",
+        "proof_item_id": "tax_vendor_handling_metadata",
+        "proof_status": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_proof_required": true
+      },
+      {
+        "display_name": "Future invoice receipt requirement",
+        "proof_item_id": "future_invoice_generation_receipt_requirement",
+        "proof_status": "RECEIPT_REQUIRED",
+        "protected_proof_required": false
+      }
+    ],
+    "proof_items_count": 10,
+    "protected_evidence_requirements_count": 6,
+    "protected_proof_required": true,
+    "protected_references_metadata_only": true,
+    "quieting_rules_count": 10,
+    "quieting_without_proof_allowed": false,
+    "raw_finance_body_ingestion_allowed": false,
+    "raw_private_body_ingestion_allowed": false,
+    "section_id": "capital_hilton_protected_proof_intake",
+    "send_submit_approval_allowed": false,
+    "shared_execution_path_id": "protected_finance_proof_metadata_intake",
+    "source_operator_ref": "generated/read_models/capital_hilton_protected_proof_intake_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/capital_hilton_protected_proof_intake.json",
+    "target_world": "Finance"
+  },
   "chief_test_harness_cross_off": {
     "action_authority_granted": false,
     "automatic_cross_off_allowed": false,
@@ -2329,7 +2431,7 @@
     "source_path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
     "test_harness_receipt_model_present": true
   },
-  "created_at": "2026-05-22T20:26:45+00:00",
+  "created_at": "2026-05-23T05:18:01+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -2479,7 +2581,7 @@
     "source_path": "generated/read_models/system_health_lights_taxonomy.json",
     "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
   },
-  "map_generation_id": "map_963121fcbd8973c86a49",
+  "map_generation_id": "map_b324cf6bbb0237e81aa6",
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -3993,6 +4095,19 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:91f6af17f8fd7f83b0f29a00f32e61c9eaec329e9dcdb61f93bafa8be2f9ccbe",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_protected_proof_intake.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_protected_proof_intake",
+        "role": "Capital Hilton protected proof intake questions, answer candidates, Guardian gates, and quieting rules",
+        "schema_version": "capital_hilton_protected_proof_intake_v0",
+        "surface_id": "capital_hilton_protected_proof_intake"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -4489,8 +4604,8 @@
       "worker_output_intake_metadata_approved": true
     }
   },
-  "snapshot_hash": "sha256:963121fcbd8973c86a493f8842386f36a7ee5ca6868dff5a1f85b47f8b5e8bed",
-  "source_commit_if_available_local_only": "bdb55051ab88676f038aabed74c14040cae94b26",
+  "snapshot_hash": "sha256:b324cf6bbb0237e81aa65ce50ff58218c184f2dc060897e71c4421caa9825585",
+  "source_commit_if_available_local_only": "bf7ff8c5c1dbb655e907aaa9ba1d17e749c2e8a9",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
@@ -4512,11 +4627,11 @@
   },
   "source_repo": "Repo A /home/openclaw",
   "sync_state": {
-    "canonical_expected": 259,
+    "canonical_expected": 261,
     "display_status": "needs_mac_sync",
     "hash_mismatch": 4,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 41,
+    "missing_expected": 43,
     "observed": 218,
     "operator_action_required": true,
     "present": true,

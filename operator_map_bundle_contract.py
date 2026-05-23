@@ -71,6 +71,7 @@ PARKED_AUTONOMOUS_CAPITAL_PIPELINE_EXPERIMENT_READ_MODEL_PATH = "generated/read_
 SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH = "generated/read_models/security_delta_review_contract.json"
 OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_attention_promotion_contract.json"
 CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH = "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
+CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH = "generated/read_models/capital_hilton_protected_proof_intake.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -152,6 +153,11 @@ ESSENTIAL_SURFACES = (
         "surface_id": "chief_test_harness_cross_off_receipt_contract",
         "path": CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH,
         "role": "Chief completion proof, cross-off receipt, requeue, and quiet-with-proof rules",
+    },
+    {
+        "surface_id": "capital_hilton_protected_proof_intake",
+        "path": CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH,
+        "role": "Capital Hilton protected proof intake questions, answer candidates, Guardian gates, and quieting rules",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -1768,6 +1774,103 @@ def _summarize_chief_test_harness_cross_off(payload: dict[str, Any]) -> dict[str
     }
 
 
+def _summarize_capital_hilton_protected_proof_intake(payload: dict[str, Any]) -> dict[str, Any]:
+    facts = (
+        payload.get("capital_hilton_current_facts")
+        if isinstance(payload.get("capital_hilton_current_facts"), dict)
+        else {}
+    )
+    proof_items = payload.get("proof_intake_items") if isinstance(payload.get("proof_intake_items"), list) else []
+    answers = (
+        payload.get("operator_answer_candidates")
+        if isinstance(payload.get("operator_answer_candidates"), list)
+        else []
+    )
+    protected_requirements = (
+        payload.get("protected_evidence_requirements")
+        if isinstance(payload.get("protected_evidence_requirements"), list)
+        else []
+    )
+    guardian_gates = (
+        payload.get("guardian_gate_requirements")
+        if isinstance(payload.get("guardian_gate_requirements"), list)
+        else []
+    )
+    quieting_rules = (
+        payload.get("proof_quieting_rules")
+        if isinstance(payload.get("proof_quieting_rules"), list)
+        else []
+    )
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    shared_path = payload.get("shared_fix_path") if isinstance(payload.get("shared_fix_path"), dict) else {}
+    return {
+        "section_id": "capital_hilton_protected_proof_intake",
+        "source_read_model_ref": CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_protected_proof_intake_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "target_world": facts.get("target_world"),
+        "current_phase": facts.get("current_phase"),
+        "lane_destiny": facts.get("lane_destiny"),
+        "missing_proof_count": int(facts.get("missing_proof_count") or len(proof_items) or 0),
+        "proof_items_count": len(proof_items),
+        "protected_proof_required": facts.get("protected_proof_required") is True,
+        "candidate_completed_dates": facts.get("candidate_completed_dates")
+        if isinstance(facts.get("candidate_completed_dates"), list)
+        else [],
+        "candidate_rate": facts.get("candidate_rate"),
+        "candidate_subtotal": facts.get("candidate_subtotal"),
+        "candidate_one_invoice_posture": facts.get("candidate_one_invoice_posture") is True,
+        "candidate_facts_proven": facts.get("candidate_facts_proven") is True,
+        "action_authority_granted": facts.get("action_authority_granted") is True,
+        "guardian_gates_count": len(guardian_gates),
+        "operator_answer_candidates_count": len(answers),
+        "protected_evidence_requirements_count": len(protected_requirements),
+        "quieting_rules_count": len(quieting_rules),
+        "shared_execution_path_id": shared_path.get("fix_path_id"),
+        "proof_item_summaries": [
+            {
+                "proof_item_id": item.get("proof_item_id"),
+                "display_name": item.get("display_name"),
+                "proof_status": item.get("proof_status"),
+                "protected_proof_required": item.get("protected_proof_required") is True,
+            }
+            for item in proof_items
+            if isinstance(item, dict)
+        ],
+        "invoice_generation_allowed": boundary.get("invoice_generation_allowed") is True,
+        "coupa_access_allowed": boundary.get("coupa_access_allowed") is True,
+        "browser_oauth_account_access_allowed": (
+            boundary.get("browser_oauth_allowed") is True or boundary.get("account_access_allowed") is True
+        ),
+        "gmail_calendar_email_access_allowed": (
+            boundary.get("gmail_calendar_access_allowed") is True
+            or boundary.get("email_account_access_allowed") is True
+        ),
+        "credential_handling_allowed": boundary.get("credential_handling_allowed") is True,
+        "send_submit_approval_allowed": boundary.get("send_submit_approval_allowed") is True,
+        "raw_finance_body_ingestion_allowed": boundary.get("raw_finance_body_ingestion_allowed") is True,
+        "raw_private_body_ingestion_allowed": boundary.get("raw_private_body_ingestion_allowed") is True,
+        "operator_answers_are_not_proof": (
+            payload.get("core_doctrine", {}).get("operator_answers_are_not_proof") is True
+            if isinstance(payload.get("core_doctrine"), dict)
+            else False
+        ),
+        "protected_references_metadata_only": (
+            payload.get("machine_proof", {}).get("protected_references_metadata_only") is True
+            if isinstance(payload.get("machine_proof"), dict)
+            else False
+        ),
+        "quieting_without_proof_allowed": (
+            payload.get("quieting_policy", {}).get("answered_without_proof_quiets_item") is True
+            if isinstance(payload.get("quieting_policy"), dict)
+            else False
+        ),
+        "next_safe_move": "Capture answers as memory candidates, then link source-card/protected evidence/receipt metadata through Guardian-gated proof intake.",
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -2037,6 +2140,10 @@ def build_openclaw_map_snapshot(
         CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    capital_hilton_protected_proof_intake = _read_json_if_present(
+        CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -2077,6 +2184,9 @@ def build_openclaw_map_snapshot(
         ),
         "chief_test_harness_cross_off": _summarize_chief_test_harness_cross_off(
             chief_test_harness_cross_off
+        ),
+        "capital_hilton_protected_proof_intake": _summarize_capital_hilton_protected_proof_intake(
+            capital_hilton_protected_proof_intake
         ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
@@ -2328,6 +2438,10 @@ def build_operator_map_bundle_contract(
             "capital_hilton_proof_metadata_present": snapshot["capital_hilton_proof_metadata"]["present"],
             "capital_hilton_missing_proof_count": snapshot["capital_hilton_proof_metadata"]["missing_proof_count"],
             "capital_hilton_protected_proof_required": snapshot["capital_hilton_proof_metadata"]["protected_proof_required"],
+            "capital_hilton_protected_proof_intake_present": snapshot["capital_hilton_protected_proof_intake"]["present"],
+            "capital_hilton_protected_proof_intake_items_count": snapshot["capital_hilton_protected_proof_intake"]["proof_items_count"],
+            "capital_hilton_protected_proof_intake_guardian_gates_count": snapshot["capital_hilton_protected_proof_intake"]["guardian_gates_count"],
+            "capital_hilton_protected_proof_intake_action_authority_granted": snapshot["capital_hilton_protected_proof_intake"]["action_authority_granted"],
             "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
             "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
             "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
@@ -2542,6 +2656,25 @@ def build_operator_map_bundle_contract(
             "action_authority_granted": snapshot["chief_test_harness_cross_off"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "capital_hilton_protected_proof_intake_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_protected_proof_intake"]["present"],
+            "proof_items_count": snapshot["capital_hilton_protected_proof_intake"]["proof_items_count"],
+            "missing_proof_count": snapshot["capital_hilton_protected_proof_intake"]["missing_proof_count"],
+            "protected_proof_required": snapshot["capital_hilton_protected_proof_intake"]["protected_proof_required"],
+            "candidate_facts_proven": snapshot["capital_hilton_protected_proof_intake"]["candidate_facts_proven"],
+            "guardian_gates_count": snapshot["capital_hilton_protected_proof_intake"]["guardian_gates_count"],
+            "operator_answer_candidates_count": snapshot["capital_hilton_protected_proof_intake"]["operator_answer_candidates_count"],
+            "protected_evidence_requirements_count": snapshot["capital_hilton_protected_proof_intake"]["protected_evidence_requirements_count"],
+            "quieting_rules_count": snapshot["capital_hilton_protected_proof_intake"]["quieting_rules_count"],
+            "shared_execution_path_id": snapshot["capital_hilton_protected_proof_intake"]["shared_execution_path_id"],
+            "action_authority_granted": snapshot["capital_hilton_protected_proof_intake"]["action_authority_granted"],
+            "invoice_generation_allowed": snapshot["capital_hilton_protected_proof_intake"]["invoice_generation_allowed"],
+            "coupa_access_allowed": snapshot["capital_hilton_protected_proof_intake"]["coupa_access_allowed"],
+            "browser_oauth_account_access_allowed": snapshot["capital_hilton_protected_proof_intake"]["browser_oauth_account_access_allowed"],
+            "gmail_calendar_email_access_allowed": snapshot["capital_hilton_protected_proof_intake"]["gmail_calendar_email_access_allowed"],
+            "send_submit_approval_allowed": snapshot["capital_hilton_protected_proof_intake"]["send_submit_approval_allowed"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -2676,6 +2809,11 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         if isinstance(snapshot.get("chief_test_harness_cross_off"), dict)
         else {}
     )
+    protected_proof_intake = (
+        snapshot.get("capital_hilton_protected_proof_intake", {})
+        if isinstance(snapshot.get("capital_hilton_protected_proof_intake"), dict)
+        else {}
+    )
     capital_facts = (
         capital_hilton.get("candidate_facts")
         if isinstance(capital_hilton.get("candidate_facts"), list)
@@ -2759,6 +2897,25 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         "- Cassandra may review metadata and proof gaps; Guardian must gate protected proof; Finance World remains a preview-only target until proof and security are complete.",
         "- Coupa, browser/OAuth/account access, credentials, Gmail/calendar/email account access, Excel raw body ingestion, raw finance bodies, invoice generation, send/submit/approval, model calls, agent activation, tool execution, queue execution, and runtime dispatch remain blocked.",
         f"- Next safe move: {capital_hilton.get('next_safe_move')}",
+        "",
+        "### Capital Hilton Protected Proof Intake",
+        "",
+        f"- Summary present: `{str(protected_proof_intake.get('present')).lower()}`",
+        f"- Proof items: `{protected_proof_intake.get('proof_items_count')}`",
+        f"- Missing proof count: `{protected_proof_intake.get('missing_proof_count')}`",
+        f"- Protected proof required: `{str(protected_proof_intake.get('protected_proof_required')).lower()}`",
+        f"- Candidate facts proven: `{str(protected_proof_intake.get('candidate_facts_proven')).lower()}`",
+        f"- Guardian gates: `{protected_proof_intake.get('guardian_gates_count')}`",
+        f"- Operator answer candidates: `{protected_proof_intake.get('operator_answer_candidates_count')}`",
+        f"- Protected evidence requirements: `{protected_proof_intake.get('protected_evidence_requirements_count')}`",
+        f"- Quieting rules: `{protected_proof_intake.get('quieting_rules_count')}`",
+        f"- Shared fix path: `{protected_proof_intake.get('shared_execution_path_id')}`",
+        f"- Invoice generation allowed: `{str(protected_proof_intake.get('invoice_generation_allowed')).lower()}`",
+        f"- Coupa access allowed: `{str(protected_proof_intake.get('coupa_access_allowed')).lower()}`",
+        f"- Browser/OAuth/account access allowed: `{str(protected_proof_intake.get('browser_oauth_account_access_allowed')).lower()}`",
+        f"- Gmail/calendar/email access allowed: `{str(protected_proof_intake.get('gmail_calendar_email_access_allowed')).lower()}`",
+        f"- Send/submit/approval allowed: `{str(protected_proof_intake.get('send_submit_approval_allowed')).lower()}`",
+        "- Operator answers clarify and point to proof refs; they do not prove invoice facts by themselves.",
         "",
         "### Capital Hilton Candidate Facts",
         "",

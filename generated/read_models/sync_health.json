@@ -10,9 +10,9 @@
     "agent_dossier_cards_present": true,
     "agentic_loop_classification_preview_present": true,
     "all_live_authority_flags_false": true,
-    "app_visible": true,
+    "app_visible": false,
     "browser_oauth_blocked_adapter_present": true,
-    "bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
+    "bundle_hash": "sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66",
     "capital_hilton_authority_flags_false": true,
     "capital_hilton_candidate_facts_marked_not_proven": true,
     "capital_hilton_current_phase": "HELM_THRESHOLD_LANE",
@@ -41,11 +41,11 @@
     "mac_receipt_present_in_manifest": false,
     "mac_snapshot_present": false,
     "manifest_present_on_pc": true,
-    "map_generation_id": "map_963121fcbd8973c86a49",
-    "map_status": "map_current",
+    "map_generation_id": "map_b324cf6bbb0237e81aa6",
+    "map_status": "map_generation_pending_mac_import",
     "map_sync_request_marker_path": "/mnt/e/openclaw/shuttle/to_mac/openclaw_map_sync_required.json",
     "map_sync_request_marker_present": true,
-    "next_expected_actor": "none",
+    "next_expected_actor": "mac_map_import_agent",
     "no_credentials_secrets_embedded": true,
     "no_image_body_embedded": true,
     "no_live_execution_authority": true,
@@ -64,8 +64,8 @@
     "raw_private_body_absent": true,
     "read_only_surfaces_approved": true,
     "ready_for_security_pass": true,
-    "receipt_matches_pc_bundle": true,
-    "recommended_fix": "none",
+    "receipt_matches_pc_bundle": false,
+    "recommended_fix": "Map generated on PC; waiting for Mac import receipt",
     "required_files": [
       "openclaw_map_snapshot.json",
       "openclaw_map_manifest.json",
@@ -88,20 +88,20 @@
     "worker_output_intake_summary_present": true
   },
   "arbitrary_command_allowed": false,
-  "canonical_expected": 259,
+  "canonical_expected": 261,
   "check_transmission_display": {
-    "headline": "Stable map bundle current",
-    "lamp_state": "QUIET",
-    "next_safe_move": "none",
-    "operator_summary": "Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail.",
-    "primary_cause": "map_generation_and_receipt_match",
+    "headline": "Stable map bundle pending",
+    "lamp_state": "WARNING",
+    "next_safe_move": "Map generated on PC; waiting for Mac import receipt",
+    "operator_summary": "Map generated on PC; waiting for Mac import receipt.",
+    "primary_cause": "pc_map_generated_waiting_for_mac_import",
     "proof_summary": {
-      "bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
-      "map_generation_id": "map_963121fcbd8973c86a49",
-      "map_status": "map_current",
-      "receipt_matches_pc_bundle": true
+      "bundle_hash": "sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66",
+      "map_generation_id": "map_b324cf6bbb0237e81aa6",
+      "map_status": "map_generation_pending_mac_import",
+      "receipt_matches_pc_bundle": false
     },
-    "secondary_raw_mirror_detail": "raw_status=raw_mirror_stale_or_mismatched; missing=41; hash_mismatch=4"
+    "secondary_raw_mirror_detail": "raw_status=raw_mirror_stale_or_mismatched; missing=43; hash_mismatch=4"
   },
   "display_status": "needs_mac_sync",
   "docker_ollama_allowed": false,
@@ -109,7 +109,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-23T04:44:48+00:00",
+  "generated_at": "2026-05-23T05:19:48+00:00",
   "hash_mismatch": 4,
   "last_mac_completion": {
     "status": "synced",
@@ -119,7 +119,7 @@
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-23T04:44:03+00:00"
+    "time": "2026-05-23T05:19:06+00:00"
   },
   "last_pc_import": {
     "manifest_hash": "13a48c3572cfd557784e7f52f6b11b470a13e74719c5a9496350bf90944f51f8",
@@ -130,7 +130,7 @@
   },
   "matched_hash": 214,
   "mirror_status": "needs_mac_sync",
-  "missing_expected": 41,
+  "missing_expected": 43,
   "missing_files": [
     "agent_identity_actor_router_contract.json",
     "agent_identity_actor_router_contract_OPERATOR.md",
@@ -144,6 +144,8 @@
     "agent_terrain_awareness_readback_contract_OPERATOR.md",
     "capital_hilton_proof_metadata_packet.json",
     "capital_hilton_proof_metadata_packet_OPERATOR.md",
+    "capital_hilton_protected_proof_intake.json",
+    "capital_hilton_protected_proof_intake_OPERATOR.md",
     "chief_test_harness_cross_off_receipt_contract.json",
     "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
     "memory_candidate_receipt_contract.json",
@@ -200,11 +202,11 @@
     },
     {
       "present": 1,
-      "source_hash": "1a67573a3cff29e058054decfb128dcce877290fdb9bbafeb967b7d4440bff43",
+      "source_hash": "15dc76d7c9bed4c0a98d84a31c8c5a94006215422afff2f284c315f47b2396d1",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-23T04:44:03+00:00"
+      "source_time": "2026-05-23T05:19:06+00:00"
     },
     {
       "present": 1,
@@ -216,7 +218,7 @@
     },
     {
       "present": 1,
-      "source_hash": "695a90ec7c2a4dff221e5d88da6b6c54f72b008eb4a21373cbdb85456cc74d12",
+      "source_hash": "a3993b053f0c75e7adf9e343dc52f9212ce01911076ed18e15e44deb56a02c96",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -228,7 +230,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-23T04:39:48+00:00"
+      "source_time": "2026-05-23T05:14:48+00:00"
     },
     {
       "present": 1,
@@ -252,11 +254,11 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-23T04:44:47+00:00"
+      "source_time": "2026-05-23T05:19:47+00:00"
     }
   ],
   "raw_read_model_mirror_status": {
-    "canonical_expected": 259,
+    "canonical_expected": 261,
     "extra_files": [],
     "hash_mismatch": 4,
     "mismatched_files": [
@@ -265,7 +267,7 @@
       "system_health_lights_taxonomy.json",
       "system_health_lights_taxonomy_OPERATOR.md"
     ],
-    "missing_expected": 41,
+    "missing_expected": 43,
     "missing_files": [
       "agent_identity_actor_router_contract.json",
       "agent_identity_actor_router_contract_OPERATOR.md",
@@ -279,6 +281,8 @@
       "agent_terrain_awareness_readback_contract_OPERATOR.md",
       "capital_hilton_proof_metadata_packet.json",
       "capital_hilton_proof_metadata_packet_OPERATOR.md",
+      "capital_hilton_protected_proof_intake.json",
+      "capital_hilton_protected_proof_intake_OPERATOR.md",
       "chief_test_harness_cross_off_receipt_contract.json",
       "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
       "memory_candidate_receipt_contract.json",
@@ -310,9 +314,7 @@
       "tool_protocol_adapter_registry_contract_OPERATOR.md"
     ],
     "observed": 218,
-    "raw_mirror_app_visible_block_cleared_by_receipt": true,
-    "raw_mirror_blocks_app_visible_map": false,
-    "raw_mirror_detail_only_reason": "Mac stable-map receipt matches the PC map generation and bundle hash; raw generated read-model mismatches remain proof/detail.",
+    "raw_mirror_blocks_app_visible_map": true,
     "raw_mirror_status": "raw_mirror_stale_or_mismatched"
   },
   "receipt_status": {
@@ -350,8 +352,8 @@
     "chief_test_harness_cross_off_present": true,
     "coupa_blocked_adapter_present": false,
     "coverage_gap_records_count": 0,
-    "expected_bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
-    "expected_generation_id": "map_963121fcbd8973c86a49",
+    "expected_bundle_hash": "sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66",
+    "expected_generation_id": "map_b324cf6bbb0237e81aa6",
     "gmail_calendar_blocked_adapter_present": false,
     "live_activation_flags_false": false,
     "live_authority_flags_false": true,
@@ -370,7 +372,7 @@
     "package_tool_receipt_validation_passed": true,
     "parked_breadcrumb_count": 0,
     "parked_capital_experiment_present": true,
-    "pc_readback_imported": true,
+    "pc_readback_imported": false,
     "post_security_governance_authority_flags_false": true,
     "post_security_governance_batch_present": true,
     "post_security_governance_receipt_fields_present": true,
@@ -380,11 +382,11 @@
     "read_only_surfaces_approved": false,
     "ready_for_security_pass": false,
     "receipt_app_visible_candidate": true,
-    "receipt_app_visible_normalized": true,
+    "receipt_app_visible_normalized": false,
     "receipt_bundle_hash": "sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea",
     "receipt_generation_id": "map_963121fcbd8973c86a49",
     "receipt_hash_mismatch": false,
-    "receipt_matches_pc_bundle": true,
+    "receipt_matches_pc_bundle": false,
     "receipt_missing_files": [],
     "receipt_observed_bundle_hash": null,
     "receipt_observed_generation_id": null,
@@ -443,6 +445,8 @@
     "agent_terrain_awareness_readback_contract_OPERATOR.md",
     "capital_hilton_proof_metadata_packet.json",
     "capital_hilton_proof_metadata_packet_OPERATOR.md",
+    "capital_hilton_protected_proof_intake.json",
+    "capital_hilton_protected_proof_intake_OPERATOR.md",
     "chief_test_harness_cross_off_receipt_contract.json",
     "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
     "memory_candidate_receipt_contract.json",

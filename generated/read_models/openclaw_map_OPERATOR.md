@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_963121fcbd8973c86a49`
-- Bundle hash: `sha256:37b202e51b8b979363aeae48f98fff59847af19a35641d70fe690759e91e3dea`
+- Map generation: `map_b324cf6bbb0237e81aa6`
+- Bundle hash: `sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `259`
+- Raw canonical expected: `261`
 - Raw observed: `218`
-- Raw missing expected: `41`
+- Raw missing expected: `43`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -70,6 +70,25 @@
 - Cassandra may review metadata and proof gaps; Guardian must gate protected proof; Finance World remains a preview-only target until proof and security are complete.
 - Coupa, browser/OAuth/account access, credentials, Gmail/calendar/email account access, Excel raw body ingestion, raw finance bodies, invoice generation, send/submit/approval, model calls, agent activation, tool execution, queue execution, and runtime dispatch remain blocked.
 - Next safe move: Capture operator answers as Memory Candidate Receipts and then build protected proof metadata references; do not access Coupa, Excel, Gmail, browser, or accounts.
+
+### Capital Hilton Protected Proof Intake
+
+- Summary present: `true`
+- Proof items: `10`
+- Missing proof count: `10`
+- Protected proof required: `true`
+- Candidate facts proven: `false`
+- Guardian gates: `5`
+- Operator answer candidates: `10`
+- Protected evidence requirements: `6`
+- Quieting rules: `10`
+- Shared fix path: `protected_finance_proof_metadata_intake`
+- Invoice generation allowed: `false`
+- Coupa access allowed: `false`
+- Browser/OAuth/account access allowed: `false`
+- Gmail/calendar/email access allowed: `false`
+- Send/submit/approval allowed: `false`
+- Operator answers clarify and point to proof refs; they do not prove invoice facts by themselves.
 
 ### Capital Hilton Candidate Facts
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import operator_map_bundle_contract as bundle
 import chief_test_harness_cross_off_receipt_contract
+import capital_hilton_protected_proof_intake
 import capital_hilton_proof_metadata_packet
 import operator_attention_promotion_contract
 import package_preview_receipt_contract
@@ -341,6 +342,13 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "chief_test_harness_cross_off_receipt_contract.json",
         chief_test_harness_cross_off_receipt_contract.build_chief_test_harness_cross_off_receipt_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_protected_proof_intake.json",
+        capital_hilton_protected_proof_intake.build_capital_hilton_protected_proof_intake(
             repo_root=root,
             generated_at=FIXED_NOW,
         ),
@@ -922,6 +930,57 @@ def test_map_snapshot_contains_post_security_governance_batch_summaries(tmp_path
     assert chief["chief_repair_execution_allowed"] is False
 
 
+def test_map_snapshot_contains_capital_hilton_protected_proof_intake_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    proof_intake = snapshot["capital_hilton_protected_proof_intake"]
+
+    assert proof_intake["present"] is True
+    assert proof_intake["section_id"] == "capital_hilton_protected_proof_intake"
+    assert proof_intake["target_world"] == "Finance"
+    assert proof_intake["current_phase"] == "HELM_THRESHOLD_LANE"
+    assert proof_intake["lane_destiny"] == "MOVE_TO_WORLD_ACTION"
+    assert proof_intake["missing_proof_count"] == 10
+    assert proof_intake["proof_items_count"] == 10
+    assert proof_intake["protected_proof_required"] is True
+    assert proof_intake["candidate_completed_dates"] == ["2026-05-08", "2026-05-15"]
+    assert proof_intake["candidate_rate"] == "$400 per gig"
+    assert proof_intake["candidate_subtotal"] == "$800"
+    assert proof_intake["candidate_one_invoice_posture"] is True
+    assert proof_intake["candidate_facts_proven"] is False
+    assert proof_intake["action_authority_granted"] is False
+    assert proof_intake["guardian_gates_count"] == 5
+    assert proof_intake["operator_answer_candidates_count"] == 10
+    assert proof_intake["protected_evidence_requirements_count"] == 6
+    assert proof_intake["quieting_rules_count"] == 10
+    assert proof_intake["shared_execution_path_id"] == "protected_finance_proof_metadata_intake"
+    assert proof_intake["invoice_generation_allowed"] is False
+    assert proof_intake["coupa_access_allowed"] is False
+    assert proof_intake["browser_oauth_account_access_allowed"] is False
+    assert proof_intake["gmail_calendar_email_access_allowed"] is False
+    assert proof_intake["credential_handling_allowed"] is False
+    assert proof_intake["send_submit_approval_allowed"] is False
+    assert proof_intake["raw_finance_body_ingestion_allowed"] is False
+    assert proof_intake["operator_answers_are_not_proof"] is True
+    assert proof_intake["protected_references_metadata_only"] is True
+    assert proof_intake["quieting_without_proof_allowed"] is False
+    assert proof_intake["source_read_model_ref"] == "generated/read_models/capital_hilton_protected_proof_intake.json"
+    assert proof_intake["source_operator_ref"] == "generated/read_models/capital_hilton_protected_proof_intake_OPERATOR.md"
+    assert {item["proof_item_id"] for item in proof_intake["proof_item_summaries"]} == {
+        "performance_date_2026_05_08_proof",
+        "performance_date_2026_05_15_proof",
+        "rate_400_per_gig_proof",
+        "subtotal_800_proof",
+        "one_invoice_posture_proof",
+        "coupa_po_payment_reference_metadata",
+        "excel_workbook_or_invoice_source_reference",
+        "ap_recipient_route_metadata",
+        "tax_vendor_handling_metadata",
+        "future_invoice_generation_receipt_requirement",
+    }
+
+
 def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
     payload = _build(tmp_path)
 
@@ -938,6 +997,15 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["chief_test_harness_cross_off_integration"]["summary_included_in_snapshot"] is True
     assert payload["chief_test_harness_cross_off_integration"]["source_mutation_allowed"] is False
     assert payload["chief_test_harness_cross_off_integration"]["delete_source_allowed"] is False
+    assert payload["capital_hilton_protected_proof_intake_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_protected_proof_intake_integration"]["proof_items_count"] == 10
+    assert payload["capital_hilton_protected_proof_intake_integration"]["missing_proof_count"] == 10
+    assert payload["capital_hilton_protected_proof_intake_integration"]["protected_proof_required"] is True
+    assert payload["capital_hilton_protected_proof_intake_integration"]["candidate_facts_proven"] is False
+    assert payload["capital_hilton_protected_proof_intake_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_protected_proof_intake_integration"]["invoice_generation_allowed"] is False
+    assert payload["capital_hilton_protected_proof_intake_integration"]["coupa_access_allowed"] is False
+    assert payload["capital_hilton_protected_proof_intake_integration"]["send_submit_approval_allowed"] is False
 
 
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
