@@ -51,6 +51,11 @@ def _read_model_source(tmp_path: Path) -> Path:
     ):
         _write(root / name, f"{name}\n")
     _write(root / "mac_generated_read_models_manifest.json", "{}\n")
+    _write(root / "make_winship_life_easier_batch_manifest.json", '{"safe": true}\n')
+    _write(root / "make_winship_life_easier_batch_manifest_OPERATOR.md", "# Safe generated manifest\n")
+    _write(root / "capital_hilton_proof_resolution_batch_manifest.json", '{"safe": true}\n')
+    _write(root / "openclaw_work_terrain_reconciliation_batch_manifest.json", '{"safe": true}\n')
+    _write(root / "private_manifest.json", "{}\n")
     _write(root / "ledger.sqlite", "not a read model\n")
     _write(root / "secret_token.json", "{}\n")
     _write(root / ".hidden.json", "{}\n")
@@ -126,7 +131,12 @@ def test_package_excludes_non_read_model_and_no_go_files(tmp_path):
     assert "source_inventory.json" in names
     assert "context_selection.json" in names
     assert "context_selection_OPERATOR.md" in names
+    assert "make_winship_life_easier_batch_manifest.json" in names
+    assert "make_winship_life_easier_batch_manifest_OPERATOR.md" in names
+    assert "capital_hilton_proof_resolution_batch_manifest.json" in names
+    assert "openclaw_work_terrain_reconciliation_batch_manifest.json" in names
     assert "mac_generated_read_models_manifest.json" not in names
+    assert "private_manifest.json" not in names
     assert "ledger.sqlite" not in names
     assert "secret_token.json" not in names
     assert ".hidden.json" not in names
@@ -183,6 +193,20 @@ def test_capital_hilton_review_packet_files_are_mirror_expected_and_keyed():
         assert name in CRITICAL_GENERATED_READ_MODEL_FILES
         assert name in KEY_READ_MODEL_FILES
         assert name in CRITICAL_READ_MODEL_FILES
+
+
+def test_consolidation_batch_manifests_are_mirror_expected():
+    expected = set(canonical_generated_read_model_expected_files())
+
+    for name in [
+        "make_winship_life_easier_batch_manifest.json",
+        "make_winship_life_easier_batch_manifest_OPERATOR.md",
+        "capital_hilton_proof_resolution_batch_manifest.json",
+        "capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
+        "openclaw_work_terrain_reconciliation_batch_manifest.json",
+        "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
+    ]:
+        assert name in expected
 
 
 def test_capital_hilton_review_packet_manifest_category(tmp_path):

@@ -97,7 +97,7 @@
     "worker_output_intake_summary_present": true
   },
   "arbitrary_command_allowed": false,
-  "canonical_expected": 291,
+  "canonical_expected": 297,
   "check_transmission_display": {
     "headline": "Stable map bundle pending",
     "lamp_state": "WARNING",
@@ -110,7 +110,7 @@
       "map_status": "map_generation_pending_mac_import",
       "receipt_matches_pc_bundle": false
     },
-    "secondary_raw_mirror_detail": "raw_status=raw_mirror_stale_or_mismatched; missing=73; hash_mismatch=4"
+    "secondary_raw_mirror_detail": "raw_status=raw_mirror_stale_or_mismatched; missing=79; hash_mismatch=4"
   },
   "display_status": "needs_mac_sync",
   "docker_ollama_allowed": false,
@@ -118,7 +118,7 @@
   "extra_files": [],
   "file_delete_allowed": false,
   "file_move_allowed": false,
-  "generated_at": "2026-05-23T19:51:35+00:00",
+  "generated_at": "2026-05-23T20:04:48+00:00",
   "hash_mismatch": 4,
   "last_mac_completion": {
     "status": "synced",
@@ -128,7 +128,7 @@
     "manifest_written": true,
     "marker_seen": true,
     "status": "idle",
-    "time": "2026-05-23T19:45:37+00:00"
+    "time": "2026-05-23T20:00:39+00:00"
   },
   "last_pc_import": {
     "manifest_hash": "13a48c3572cfd557784e7f52f6b11b470a13e74719c5a9496350bf90944f51f8",
@@ -139,7 +139,7 @@
   },
   "matched_hash": 214,
   "mirror_status": "needs_mac_sync",
-  "missing_expected": 73,
+  "missing_expected": 79,
   "missing_files": [
     "agent_identity_actor_router_contract.json",
     "agent_identity_actor_router_contract_OPERATOR.md",
@@ -163,6 +163,8 @@
     "capital_hilton_proof_metadata_packet_OPERATOR.md",
     "capital_hilton_proof_quieting_progress_state.json",
     "capital_hilton_proof_quieting_progress_state_OPERATOR.md",
+    "capital_hilton_proof_resolution_batch_manifest.json",
+    "capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
     "capital_hilton_protected_proof_intake.json",
     "capital_hilton_protected_proof_intake_OPERATOR.md",
     "capital_hilton_protected_reference_placeholder.json",
@@ -171,6 +173,8 @@
     "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
     "guided_capture_protected_evidence_path_contract.json",
     "guided_capture_protected_evidence_path_contract_OPERATOR.md",
+    "make_winship_life_easier_batch_manifest.json",
+    "make_winship_life_easier_batch_manifest_OPERATOR.md",
     "markdown_atlas_scope_expansion.json",
     "markdown_atlas_scope_expansion_OPERATOR.md",
     "memory_candidate_receipt_contract.json",
@@ -188,6 +192,8 @@
     "openclaw_work_terrain_gap_detector_OPERATOR.md",
     "openclaw_work_terrain_query_contract.json",
     "openclaw_work_terrain_query_contract_OPERATOR.md",
+    "openclaw_work_terrain_reconciliation_batch_manifest.json",
+    "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
     "openclaw_work_terrain_relationship_index.json",
     "openclaw_work_terrain_relationship_index_OPERATOR.md",
     "operator_attention_promotion_contract.json",
@@ -241,11 +247,11 @@
     },
     {
       "present": 1,
-      "source_hash": "b20617bfe351e506e8639ea3ad9f17b383703f005f3b8497487488287e981276",
+      "source_hash": "6296657c659216e8e0eecc9a49df6d389296a5a9f05c7c392e7a58545152d80c",
       "source_kind": "mac_heartbeat",
       "source_path": "/mnt/e/openclaw/shuttle/from_mac/read_model_sync_agent_status.json",
       "source_status": "idle",
-      "source_time": "2026-05-23T19:45:37+00:00"
+      "source_time": "2026-05-23T20:00:39+00:00"
     },
     {
       "present": 1,
@@ -257,7 +263,7 @@
     },
     {
       "present": 1,
-      "source_hash": "c4291131379ab8bcc0ef4d4155aef2e9eade99170ea48ecb9c311e0fca0abf81",
+      "source_hash": "00ee3e4b79e4bed195c243f4c5afaa82b9ee122e0de9ace229a1271d823263b1",
       "source_kind": "pc_import_state",
       "source_path": "/home/openclaw/.openclaw/state/read_model_import_agent_state.json",
       "source_status": "skipped_unchanged",
@@ -269,7 +275,7 @@
       "source_kind": "pc_task_log",
       "source_path": "/home/openclaw/.openclaw/logs/read_model_import_agent.log",
       "source_status": "present",
-      "source_time": "2026-05-23T19:44:48+00:00"
+      "source_time": "2026-05-23T19:59:48+00:00"
     },
     {
       "present": 1,
@@ -293,11 +299,11 @@
       "source_kind": "windows_task_log",
       "source_path": "/mnt/e/openclaw/windows_tasks/logs/OpenClawReadModelImport.log",
       "source_status": "present",
-      "source_time": "2026-05-23T19:49:47+00:00"
+      "source_time": "2026-05-23T20:04:47+00:00"
     }
   ],
   "raw_read_model_mirror_status": {
-    "canonical_expected": 291,
+    "canonical_expected": 297,
     "extra_files": [],
     "hash_mismatch": 4,
     "mismatched_files": [
@@ -306,7 +312,7 @@
       "system_health_lights_taxonomy.json",
       "system_health_lights_taxonomy_OPERATOR.md"
     ],
-    "missing_expected": 73,
+    "missing_expected": 79,
     "missing_files": [
       "agent_identity_actor_router_contract.json",
       "agent_identity_actor_router_contract_OPERATOR.md",
@@ -330,6 +336,8 @@
       "capital_hilton_proof_metadata_packet_OPERATOR.md",
       "capital_hilton_proof_quieting_progress_state.json",
       "capital_hilton_proof_quieting_progress_state_OPERATOR.md",
+      "capital_hilton_proof_resolution_batch_manifest.json",
+      "capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
       "capital_hilton_protected_proof_intake.json",
       "capital_hilton_protected_proof_intake_OPERATOR.md",
       "capital_hilton_protected_reference_placeholder.json",
@@ -338,6 +346,8 @@
       "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
       "guided_capture_protected_evidence_path_contract.json",
       "guided_capture_protected_evidence_path_contract_OPERATOR.md",
+      "make_winship_life_easier_batch_manifest.json",
+      "make_winship_life_easier_batch_manifest_OPERATOR.md",
       "markdown_atlas_scope_expansion.json",
       "markdown_atlas_scope_expansion_OPERATOR.md",
       "memory_candidate_receipt_contract.json",
@@ -355,6 +365,8 @@
       "openclaw_work_terrain_gap_detector_OPERATOR.md",
       "openclaw_work_terrain_query_contract.json",
       "openclaw_work_terrain_query_contract_OPERATOR.md",
+      "openclaw_work_terrain_reconciliation_batch_manifest.json",
+      "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
       "openclaw_work_terrain_relationship_index.json",
       "openclaw_work_terrain_relationship_index_OPERATOR.md",
       "operator_attention_promotion_contract.json",
@@ -536,6 +548,8 @@
     "capital_hilton_proof_metadata_packet_OPERATOR.md",
     "capital_hilton_proof_quieting_progress_state.json",
     "capital_hilton_proof_quieting_progress_state_OPERATOR.md",
+    "capital_hilton_proof_resolution_batch_manifest.json",
+    "capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
     "capital_hilton_protected_proof_intake.json",
     "capital_hilton_protected_proof_intake_OPERATOR.md",
     "capital_hilton_protected_reference_placeholder.json",
@@ -544,6 +558,8 @@
     "chief_test_harness_cross_off_receipt_contract_OPERATOR.md",
     "guided_capture_protected_evidence_path_contract.json",
     "guided_capture_protected_evidence_path_contract_OPERATOR.md",
+    "make_winship_life_easier_batch_manifest.json",
+    "make_winship_life_easier_batch_manifest_OPERATOR.md",
     "markdown_atlas_scope_expansion.json",
     "markdown_atlas_scope_expansion_OPERATOR.md",
     "memory_candidate_receipt_contract.json",
@@ -561,6 +577,8 @@
     "openclaw_work_terrain_gap_detector_OPERATOR.md",
     "openclaw_work_terrain_query_contract.json",
     "openclaw_work_terrain_query_contract_OPERATOR.md",
+    "openclaw_work_terrain_reconciliation_batch_manifest.json",
+    "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
     "openclaw_work_terrain_relationship_index.json",
     "openclaw_work_terrain_relationship_index_OPERATOR.md",
     "operator_attention_promotion_contract.json",

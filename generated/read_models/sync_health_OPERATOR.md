@@ -8,9 +8,9 @@ Operator action required: `true`
 Next expected actor: `mac_sync_agent`
 
 Mirror counts:
-- canonical_expected=291
+- canonical_expected=297
 - observed=218
-- missing_expected=73
+- missing_expected=79
 - extra=0
 - hash_mismatch=4
 - matched_hash=214
@@ -56,7 +56,7 @@ Recommended fix:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-23T19:45:37+00:00`
+- Mac heartbeat: `idle` at `2026-05-23T20:00:39+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`
@@ -84,6 +84,8 @@ Stale files:
 - `capital_hilton_proof_metadata_packet_OPERATOR.md`
 - `capital_hilton_proof_quieting_progress_state.json`
 - `capital_hilton_proof_quieting_progress_state_OPERATOR.md`
+- `capital_hilton_proof_resolution_batch_manifest.json`
+- `capital_hilton_proof_resolution_batch_manifest_OPERATOR.md`
 - `capital_hilton_protected_proof_intake.json`
 - `capital_hilton_protected_proof_intake_OPERATOR.md`
 - `capital_hilton_protected_reference_placeholder.json`
@@ -92,6 +94,8 @@ Stale files:
 - `chief_test_harness_cross_off_receipt_contract_OPERATOR.md`
 - `guided_capture_protected_evidence_path_contract.json`
 - `guided_capture_protected_evidence_path_contract_OPERATOR.md`
+- `make_winship_life_easier_batch_manifest.json`
+- `make_winship_life_easier_batch_manifest_OPERATOR.md`
 - `markdown_atlas_scope_expansion.json`
 - `markdown_atlas_scope_expansion_OPERATOR.md`
 - `memory_candidate_receipt_contract.json`
@@ -109,6 +113,8 @@ Stale files:
 - `openclaw_work_terrain_gap_detector_OPERATOR.md`
 - `openclaw_work_terrain_query_contract.json`
 - `openclaw_work_terrain_query_contract_OPERATOR.md`
+- `openclaw_work_terrain_reconciliation_batch_manifest.json`
+- `openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md`
 - `openclaw_work_terrain_relationship_index.json`
 - `openclaw_work_terrain_relationship_index_OPERATOR.md`
 - `operator_attention_promotion_contract.json`

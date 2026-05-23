@@ -59,7 +59,13 @@ VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
 
 SAFE_GENERATED_READ_MODEL_MANIFEST_FILES = frozenset(
     {
+        "capital_hilton_proof_resolution_batch_manifest.json",
+        "capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
+        "make_winship_life_easier_batch_manifest.json",
+        "make_winship_life_easier_batch_manifest_OPERATOR.md",
         "openclaw_map_manifest.json",
+        "openclaw_work_terrain_reconciliation_batch_manifest.json",
+        "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
     }
 )
 
