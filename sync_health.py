@@ -1631,11 +1631,18 @@ def build_raw_read_model_mirror_status(manifest_health: dict[str, Any]) -> dict[
     counts = manifest_health.get("counts", {})
     missing_files = list(manifest_health.get("missing_expected_files") or [])
     mismatched_files = list(manifest_health.get("hash_mismatch_files") or [])
+    extra_files = list(manifest_health.get("extra_files") or [])
+    blocking_extra_files = list(
+        manifest_health.get("blocking_extra_files")
+        if "blocking_extra_files" in manifest_health
+        else extra_files
+    )
+    nonblocking_extra_files = list(manifest_health.get("nonblocking_extra_files") or [])
     if not manifest_health.get("manifest_present"):
         status = "raw_manifest_missing"
     elif missing_files or mismatched_files:
         status = "raw_mirror_stale_or_mismatched"
-    elif manifest_health.get("extra_files"):
+    elif blocking_extra_files:
         status = "raw_mirror_extra_files_need_review"
     else:
         status = "raw_mirror_current"
@@ -1648,7 +1655,9 @@ def build_raw_read_model_mirror_status(manifest_health: dict[str, Any]) -> dict[
         "hash_mismatch": int(counts.get("hash_mismatch") or 0),
         "missing_files": missing_files,
         "mismatched_files": mismatched_files,
-        "extra_files": list(manifest_health.get("extra_files") or []),
+        "extra_files": extra_files,
+        "blocking_extra_files": blocking_extra_files,
+        "nonblocking_extra_files": nonblocking_extra_files,
         "raw_mirror_status": status,
         "raw_mirror_blocks_app_visible_map": raw_blocks_map,
     }
@@ -2216,6 +2225,17 @@ def compare_manifest_to_backend(
         if isinstance(record, dict) and isinstance(record.get("relative_path"), str)
     }
     observed = set(observed_records)
+    extra_files = sorted(observed - expected)
+    nonblocking_extra_files = [
+        relative_path
+        for relative_path in extra_files
+        if relative_path == STABLE_MAP_OPTIONAL_RECEIPT_FILE
+    ]
+    blocking_extra_files = [
+        relative_path
+        for relative_path in extra_files
+        if relative_path not in nonblocking_extra_files
+    ]
     matched: list[str] = []
     mismatched: list[str] = []
     for relative_path in sorted(expected & observed):
@@ -2235,12 +2255,16 @@ def compare_manifest_to_backend(
             "canonical_expected": len(expected),
             "observed": len(observed),
             "missing_expected": len(expected - observed),
-            "extra": len(observed - expected),
+            "extra": len(extra_files),
+            "blocking_extra": len(blocking_extra_files),
+            "nonblocking_extra": len(nonblocking_extra_files),
             "hash_mismatch": len(mismatched),
             "matched_hash": len(matched),
         },
         "missing_expected_files": sorted(expected - observed),
-        "extra_files": sorted(observed - expected),
+        "extra_files": extra_files,
+        "blocking_extra_files": blocking_extra_files,
+        "nonblocking_extra_files": nonblocking_extra_files,
         "hash_mismatch_files": mismatched,
     }
 
@@ -2366,6 +2390,7 @@ def classify_sync_health(
     counts = manifest_health["counts"]
     missing = int(counts.get("missing_expected") or 0)
     extra = int(counts.get("extra") or 0)
+    blocking_extra = int(counts.get("blocking_extra") if "blocking_extra" in counts else extra)
     mismatched = int(counts.get("hash_mismatch") or 0)
     if not manifest_health.get("manifest_present"):
         return _classification(
@@ -2403,7 +2428,7 @@ def classify_sync_health(
             can_request_fix_from_app=True,
             sync_lifecycle_state="actionable_sync_failure",
         )
-    if extra > 0:
+    if blocking_extra > 0:
         return _classification(
             trust_status="mismatch",
             mirror_status="error",
@@ -2453,10 +2478,10 @@ def classify_sync_health(
                 mirror_status="ok",
                 display_status="current",
                 recommended_fix_kind="none",
-                next_safe_move="Sync health is current on PC and waiting for the normal Mac mirror cycle to pick up the latest health read-model.",
-                next_expected_actor="mac_sync_agent",
+                next_safe_move="No sync repair is needed; volatile PC proof surfaces are newer than the Mac manifest but the imported mirror content is current.",
+                next_expected_actor="none",
                 can_request_fix_from_app=False,
-                sync_lifecycle_state="health_exported_waiting_for_mac_mirror",
+                sync_lifecycle_state="trusted_current",
                 operator_action_required=False,
             )
         return _classification(

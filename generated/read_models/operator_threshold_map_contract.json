@@ -36,20 +36,20 @@
   "broad_private_chat_ingested": false,
   "browser_oauth_or_account_access_enabled": false,
   "check_transmission_source_truth_note": {
-    "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
-    "app_visible_interpretation": "If the app shows red now, it reflects the current canonical mirror gap until the normal Mac sync returns the missing files.",
+    "action_now": "no threshold-map source-truth repair is needed",
+    "app_visible_interpretation": "No Check Transmission source-truth conflict is detected from current Repo A proof.",
     "canonical_sync_health_status": {
-      "canonical_expected": 291,
-      "hash_mismatch": 4,
-      "missing_expected": 73,
-      "observed": 218,
-      "sync_lifecycle_state": "actionable_sync_failure",
+      "canonical_expected": 297,
+      "hash_mismatch": 0,
+      "missing_expected": 0,
+      "observed": 298,
+      "sync_lifecycle_state": "trusted_current",
       "trusted_current": false
     },
-    "fix_owner_later": "Mac read-model sync agent / PC import proof lifecycle",
+    "fix_owner_later": "none",
     "note_id": "check_transmission_source_truth_note",
     "source_truth_conflict_detected_in_read_models": false,
-    "system_health_taxonomy_check_transmission_status": "WARNING",
+    "system_health_taxonomy_check_transmission_status": "QUIET",
     "visible_mac_app_state_observed_in_this_lane": false
   },
   "contract_hash": "sha256:9937761688a60c1acdf2c4d2d9e19b750e606091e3a9c2cb99452fd31cc2242e",
@@ -214,7 +214,7 @@
       "Mission Control does not show live invoice actions"
     ]
   },
-  "generated_at": "2026-05-23T19:46:05+00:00",
+  "generated_at": "2026-05-23T20:28:12+00:00",
   "generated_by": "codex",
   "gmail_calendar_coupa_telegram_accessed": false,
   "helm_to_world_transition_rule": {
@@ -4202,26 +4202,26 @@
       "system_health_lights_taxonomy": true
     },
     "sync_health": {
-      "canonical_expected": 291,
-      "hash_mismatch": 4,
-      "missing_expected": 73,
-      "observed": 218,
+      "canonical_expected": 297,
+      "hash_mismatch": 0,
+      "missing_expected": 0,
+      "observed": 298,
       "present": true,
-      "sync_lifecycle_state": "actionable_sync_failure",
-      "trust_status": "stale_needs_mac_sync"
+      "sync_lifecycle_state": "trusted_current",
+      "trust_status": "trusted"
     },
     "system_health_lights": {
       "check_transmission_summary": {
-        "current_status": "WARNING",
+        "current_status": "QUIET",
         "final_mac_mirror_pending": false,
         "final_mac_self_report_mirror_pending": false,
         "pc_import_proof_complete": false,
-        "why": "Stable map bundle pending"
+        "why": "Stable map bundle current"
       },
       "current_light_states": {
         "brake_parking_brake": "ON_NORMAL",
         "check_engine": "WARNING",
-        "check_transmission": "WARNING",
+        "check_transmission": "QUIET",
         "low_fuel_low_battery": "WARNING",
         "oil_pressure_coolant": "WARNING",
         "traction_control": "QUIET"

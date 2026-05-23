@@ -515,11 +515,22 @@ def test_sync_health_self_export_hash_mismatch_does_not_make_health_stale(tmp_pa
     _root, read_models = _fixture_root(tmp_path)
     _write(read_models / "sync_health.json", '{"generated": "newer"}\n')
     _write(read_models / "sync_health_OPERATOR.md", "# Newer Sync Health\n")
+    _write(read_models / "system_health_lights_taxonomy.json", '{"generated": "newer"}\n')
+    _write(read_models / "system_health_lights_taxonomy_OPERATOR.md", "# Newer System Health\n")
+    _write(read_models / "operator_threshold_map_contract.json", '{"generated": "newer"}\n')
+    _write(read_models / "operator_threshold_map_contract_OPERATOR.md", "# Newer Threshold Map\n")
     result, db_path, _paths = _build_with_manifest(
         tmp_path,
         manifest_payload=_manifest_for(
             read_models,
-            mismatch={"sync_health.json", "sync_health_OPERATOR.md"},
+            mismatch={
+                "sync_health.json",
+                "sync_health_OPERATOR.md",
+                "system_health_lights_taxonomy.json",
+                "system_health_lights_taxonomy_OPERATOR.md",
+                "operator_threshold_map_contract.json",
+                "operator_threshold_map_contract_OPERATOR.md",
+            },
         ),
     )
     snapshot = _latest(db_path)
@@ -590,6 +601,57 @@ def test_extra_files_require_manual_review(tmp_path):
     assert snapshot["operator_action_required"] is True
     assert snapshot["next_expected_actor"] == "operator_review"
     assert snapshot["extra_files"] == ["orphan.json"]
+
+
+def test_optional_map_receipt_extra_does_not_make_standalone_mirror_stale(tmp_path):
+    _root, read_models = _fixture_root(tmp_path)
+    manifest_payload = _manifest_for(read_models)
+    manifest_payload["path_records"].append(
+        {
+            "relative_path": "openclaw_map_receipt.json",
+            "content_hash": "1" * 64,
+            "size_bytes": 1,
+        }
+    )
+
+    result, db_path, _paths = _build_with_manifest(tmp_path, manifest_payload=manifest_payload)
+    snapshot = _latest(db_path)
+
+    assert result.trust_status == "trusted"
+    assert snapshot["mirror_status"] == "ok"
+    assert snapshot["display_status"] == "current"
+    assert snapshot["sync_lifecycle_state"] == "trusted_current"
+    assert snapshot["operator_action_required"] is False
+    assert snapshot["extra"] == 1
+    assert snapshot["extra_files"] == ["openclaw_map_receipt.json"]
+
+
+def test_raw_mirror_status_treats_optional_map_receipt_as_nonblocking_extra(tmp_path):
+    root, read_models = _fixture_root(tmp_path)
+    _write_map_bundle(read_models, generation_id="map_with_optional_receipt", bundle_hash="sha256:receipt")
+    manifest = tmp_path / "share" / "mac_generated_read_models_manifest.json"
+    manifest_payload = _manifest_for(read_models)
+    manifest_payload["path_records"].append(
+        {
+            "relative_path": "openclaw_map_receipt.json",
+            "content_hash": "1" * 64,
+            "size_bytes": 1,
+        }
+    )
+    _write(manifest, json.dumps(manifest_payload) + "\n")
+
+    split = build_sync_health_map_raw_split(
+        manifest_path=manifest,
+        read_model_root=read_models,
+        repo_root=root,
+        map_receipt_path=tmp_path / "share" / "shuttle" / "from_mac" / "missing_receipt.json",
+        map_sync_request_path=tmp_path / "share" / "shuttle" / "to_mac" / "openclaw_map_sync_required.json",
+    )
+
+    assert split["raw_read_model_mirror_status"]["raw_mirror_status"] == "raw_mirror_current"
+    assert split["raw_read_model_mirror_status"]["blocking_extra_files"] == []
+    assert split["raw_read_model_mirror_status"]["nonblocking_extra_files"] == ["openclaw_map_receipt.json"]
+    assert split["app_visible_map_status"]["map_status"] == "map_receipt_missing"
 
 
 def test_read_model_export_exists_and_no_authority_flags_are_false(tmp_path):
@@ -705,7 +767,7 @@ def test_build_script_accepts_fixture_paths_without_destructive_behavior(tmp_pat
 
 
 
-def test_self_report_newer_than_manifest_is_routine_health_mirror_wait(tmp_path):
+def test_self_report_newer_than_manifest_is_trusted_current_when_manifest_matches(tmp_path):
     root, read_models = _fixture_root(tmp_path)
     _write(read_models / "sync_health.json", '{"generated": "old"}\n')
     _write(read_models / "sync_health_OPERATOR.md", "# Old Sync Health\n")
@@ -738,9 +800,9 @@ def test_self_report_newer_than_manifest_is_routine_health_mirror_wait(tmp_path)
     assert snapshot["trust_status"] == "trusted"
     assert snapshot["mirror_status"] == "ok"
     assert snapshot["display_status"] == "current"
-    assert snapshot["sync_lifecycle_state"] == "health_exported_waiting_for_mac_mirror"
+    assert snapshot["sync_lifecycle_state"] == "trusted_current"
     assert snapshot["operator_action_required"] is False
-    assert snapshot["next_expected_actor"] == "mac_sync_agent"
+    assert snapshot["next_expected_actor"] == "none"
     assert snapshot["recommended_fix_kind"] == "none"
 
 

@@ -130,9 +130,9 @@ Required before security audit:
 
 ## Check Transmission Source-Truth Note
 - sync_health trusted/current: `false`
-- system health taxonomy Check Transmission status: `WARNING`
+- system health taxonomy Check Transmission status: `QUIET`
 - source-truth conflict detected in read-models: `false`
-- App-visible interpretation: If the app shows red now, it reflects the current canonical mirror gap until the normal Mac sync returns the missing files.
+- App-visible interpretation: No Check Transmission source-truth conflict is detected from current Repo A proof.
 
 ## What Makes The Helm Quiet
 - health lights reflect current source truth and are quiet unless material

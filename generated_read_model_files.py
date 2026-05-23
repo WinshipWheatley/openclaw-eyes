@@ -53,8 +53,12 @@ MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
 )
 
 VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
+    "operator_threshold_map_contract.json",
+    "operator_threshold_map_contract_OPERATOR.md",
     "sync_health.json",
     "sync_health_OPERATOR.md",
+    "system_health_lights_taxonomy.json",
+    "system_health_lights_taxonomy_OPERATOR.md",
 )
 
 SAFE_GENERATED_READ_MODEL_MANIFEST_FILES = frozenset(
