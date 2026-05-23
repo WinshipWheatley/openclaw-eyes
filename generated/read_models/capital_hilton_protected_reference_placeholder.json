@@ -1,0 +1,751 @@
+{
+  "account_access_allowed": false,
+  "agent_activation_allowed": false,
+  "authority_boundary": {
+    "account_access_allowed": false,
+    "agent_activation_allowed": false,
+    "all_authority_flags_false": true,
+    "blocked_actions": [
+      "Coupa access",
+      "browser/OAuth/account access",
+      "credential/token/cookie/API key handling",
+      "Gmail/calendar/email account access",
+      "raw Excel body ingestion",
+      "raw PDF body ingestion",
+      "raw email body ingestion",
+      "raw finance/private body ingestion",
+      "invoice generation",
+      "ledger write",
+      "email dispatch",
+      "send/submit/approval",
+      "live model call",
+      "agent activation",
+      "tool execution",
+      "queue/autonomy",
+      "file read",
+      "file copy",
+      "file upload",
+      "protected evidence body access",
+      "proof satisfaction by placeholder alone",
+      "automatic quieting",
+      "Guardian action approval"
+    ],
+    "browser_oauth_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_body_ingestion_allowed": false,
+    "excel_body_ingestion_allowed": false,
+    "file_copy_allowed": false,
+    "file_read_allowed": false,
+    "file_upload_allowed": false,
+    "gmail_calendar_email_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "model_call_allowed": false,
+    "pdf_body_ingestion_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "send_submit_approval_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "batch_relationship": {
+    "batch_id": "capital_hilton_proof_resolution_batch_v0",
+    "commit_deferred_until_final_prompt": true,
+    "next_lane": "capital_hilton_guardian_review_packet",
+    "prompt_index": 2,
+    "stable_map_refresh_deferred": true
+  },
+  "browser_oauth_allowed": false,
+  "contract_id": "capital_hilton_protected_reference_placeholder_v0",
+  "contract_status": "deterministic_protected_reference_placeholder_metadata_only",
+  "coupa_access_allowed": false,
+  "credential_handling_allowed": false,
+  "email_body_ingestion_allowed": false,
+  "excel_body_ingestion_allowed": false,
+  "file_copy_allowed": false,
+  "file_read_allowed": false,
+  "file_upload_allowed": false,
+  "generated_at": "2026-05-23T16:04:18+00:00",
+  "gmail_calendar_email_access_allowed": false,
+  "invoice_generation_allowed": false,
+  "ledger_write_allowed": false,
+  "machine_proof": {
+    "all_reference_statuses_exist": true,
+    "all_reference_types_exist": true,
+    "answer_candidate_linkage_represented": true,
+    "can_quiet_item_false_by_default": true,
+    "can_satisfy_proof_false_by_default": true,
+    "content_hash": "sha256:79737cc157a38724f07a326a98b381d0e9e6079c404aebb303fe970893fb14a9",
+    "coupa_browser_email_account_credential_authority_false": true,
+    "credential_or_secret_included": false,
+    "default_placeholder_count": 7,
+    "default_placeholder_ids": [
+      "excel_workbook_invoice_source_placeholder",
+      "coupa_po_payment_reference_placeholder",
+      "ap_route_metadata_placeholder",
+      "rate_source_placeholder",
+      "performance_proof_reference_placeholder",
+      "tax_vendor_payment_handling_placeholder",
+      "future_invoice_generation_receipt_placeholder"
+    ],
+    "file_read_copy_upload_false": true,
+    "guardian_packet_linkage_represented": true,
+    "guardian_review_required_for_protected_placeholders": true,
+    "invoice_ledger_send_authority_false": true,
+    "metadata_only_true_for_all": true,
+    "model_tool_agent_runtime_queue_authority_false": true,
+    "proof_item_ids_represented": [
+      "ap_recipient_route_metadata",
+      "coupa_po_payment_reference_metadata",
+      "excel_workbook_or_invoice_source_reference",
+      "future_invoice_generation_receipt_requirement",
+      "performance_date_2026_05_08_proof",
+      "performance_date_2026_05_15_proof",
+      "rate_400_per_gig_proof",
+      "subtotal_800_proof",
+      "tax_vendor_handling_metadata"
+    ],
+    "raw_body_allowed_false_for_all": true,
+    "raw_excel_pdf_email_body_ingestion_false": true,
+    "raw_private_body_included": false,
+    "unknown_references_fail_closed": true
+  },
+  "model_call_allowed": false,
+  "operator_summary": "Protected reference placeholders let Winship point to where Capital Hilton proof may live without exposing raw protected files or treating the pointer as proof.",
+  "pdf_body_ingestion_allowed": false,
+  "placeholder_rules": {
+    "can_quiet_item_by_default": false,
+    "can_satisfy_proof_by_default": false,
+    "guardian_review_required_for_protected_sensitive_references": true,
+    "metadata_only": true,
+    "operator_final_authority_required_before_future_action": true,
+    "raw_body_allowed": false,
+    "unknown_references_fail_closed": true
+  },
+  "protected_reference_placeholders": [
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "raw workbook contents",
+        "customer/private financial details",
+        "formulas/body extraction",
+        "embedded images",
+        "bank/remit/check details unless protected-reference only"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Excel Workbook / Invoice Source Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_label_hash_or_source_card_ref_without_reading_workbook_body",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "excel_workbook_invoice_source_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "excel_workbook_or_invoice_source_reference",
+        "subtotal_800_proof",
+        "future_invoice_generation_receipt_requirement"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "EXCEL_WORKBOOK_REFERENCE",
+      "safe_metadata_fields": [
+        "file label",
+        "approximate source location hint",
+        "workbook role",
+        "expected invoice/source relationship",
+        "hash/receipt placeholder"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_workbook_or_invoice_source_hint_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "Coupa login",
+        "Coupa session",
+        "browser automation",
+        "credential material",
+        "portal body scraping"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Coupa / PO / Payment Reference Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_redacted_reference_placeholder_and_route_metadata_to_guardian",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "coupa_po_payment_reference_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "coupa_po_payment_reference_metadata"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "COUPA_REFERENCE_METADATA",
+      "safe_metadata_fields": [
+        "PO/reference identifier placeholder",
+        "vendor/customer route label",
+        "portal reference exists yes/no"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_coupa_or_po_reference_hint_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "raw email bodies",
+        "sending email",
+        "Gmail/calendar/account access"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "AP Route Metadata Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_route_label_without_email_access_or_send_authority",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "ap_route_metadata_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "ap_recipient_route_metadata"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "AP_EMAIL_ROUTE_METADATA",
+      "safe_metadata_fields": [
+        "route label",
+        "recipient role",
+        "approved channel type",
+        "source-card/receipt pointer"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_ap_route_label_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "raw contract body unless separately allowlisted"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Rate Source Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_rate_source_label_or_source_card_ref_without_raw_contract_body",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "rate_source_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "rate_400_per_gig_proof"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "CONTRACT_OR_RATE_SOURCE_REFERENCE",
+      "safe_metadata_fields": [
+        "source label",
+        "rate source role",
+        "source-card/receipt pointer"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_rate_source_label_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "raw calendar body",
+        "raw email body",
+        "raw venue/private content"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Performance Proof Reference Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_service_date_reference_label_without_calendar_email_or_private_body_access",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "performance_proof_reference_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "performance_date_2026_05_08_proof",
+        "performance_date_2026_05_15_proof"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "PERFORMANCE_PROOF_REFERENCE",
+      "safe_metadata_fields": [
+        "performance proof label",
+        "service-date role",
+        "source-card/receipt pointer",
+        "redacted metadata label"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_performance_proof_label_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "tax form body",
+        "bank/check/remit details unless protected-reference only",
+        "credential or account material"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Tax / Vendor / Payment Handling Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "capture_sensitive_metadata_label_and_route_to_guardian_before_promotion",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "tax_vendor_payment_handling_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "tax_vendor_handling_metadata"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "TAX_VENDOR_PAYMENT_REFERENCE",
+      "safe_metadata_fields": [
+        "tax/vendor handling label",
+        "payment handling role",
+        "protected metadata pointer"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "operator_supplied_tax_vendor_payment_label_metadata_only"
+    },
+    {
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "file read",
+        "file copy",
+        "file upload",
+        "protected evidence body access",
+        "proof satisfaction by placeholder alone",
+        "automatic quieting",
+        "Guardian action approval"
+      ],
+      "blocked_raw_material": [
+        "invoice generation",
+        "send/submit approval",
+        "ledger write"
+      ],
+      "can_quiet_item": false,
+      "can_satisfy_proof": false,
+      "display_name": "Future Invoice Generation Receipt Placeholder",
+      "guardian_gate_required": true,
+      "hash_ref": null,
+      "metadata_only": true,
+      "next_safe_move": "define_receipt_requirements_without_generating_invoice_or_approving_action",
+      "operator_final_authority_required": true,
+      "operator_supplied_label": null,
+      "placeholder_id": "future_invoice_generation_receipt_placeholder",
+      "promotion_requirements": [
+        "operator answer candidate may point to this placeholder",
+        "source-card, receipt, or hash placeholder must be linked before promotion",
+        "Guardian metadata review required before protected metadata promotion",
+        "placeholder alone is not proof and cannot quiet the item"
+      ],
+      "proof_item_ids": [
+        "future_invoice_generation_receipt_requirement"
+      ],
+      "raw_body_allowed": false,
+      "receipt_ref": null,
+      "redaction_required": true,
+      "reference_status": "PLACEHOLDER_ONLY",
+      "reference_type": "FUTURE_INVOICE_RECEIPT_REFERENCE",
+      "safe_metadata_fields": [
+        "future receipt requirement label",
+        "expected receipt role",
+        "source fact refs required",
+        "hash/receipt placeholder"
+      ],
+      "source_card_ref": null,
+      "source_location_hint": "future_receipt_shape_placeholder_no_invoice_generation"
+    }
+  ],
+  "queue_execution_allowed": false,
+  "raw_body_ingestion_allowed": false,
+  "read_model_id": "capital_hilton_protected_reference_placeholder",
+  "reference_statuses": [
+    "PLACEHOLDER_ONLY",
+    "OPERATOR_REPORTED",
+    "SOURCE_CARD_LINKED",
+    "RECEIPT_LINKED",
+    "HASH_LINKED",
+    "PROTECTED_METADATA_READY_FOR_GUARDIAN",
+    "GUARDIAN_REVIEW_REQUIRED",
+    "GUARDIAN_APPROVED_METADATA",
+    "REJECTED_OR_OBSOLETE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "reference_types": [
+    "EXCEL_WORKBOOK_REFERENCE",
+    "PDF_INVOICE_REFERENCE",
+    "COUPA_REFERENCE_METADATA",
+    "AP_EMAIL_ROUTE_METADATA",
+    "CONTRACT_OR_RATE_SOURCE_REFERENCE",
+    "PAYMENT_OR_PO_REFERENCE_METADATA",
+    "PERFORMANCE_PROOF_REFERENCE",
+    "TAX_VENDOR_PAYMENT_REFERENCE",
+    "FUTURE_INVOICE_RECEIPT_REFERENCE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "relationship_to_answer_candidates": {
+    "answer_candidate_may_point_to_placeholder": true,
+    "file_access_occurs_here": false,
+    "guardian_gate_decides_metadata_promotion": true,
+    "operator_ref": "generated/read_models/capital_hilton_answer_candidate_receipt_OPERATOR.md",
+    "placeholder_remains_non_proof_until_validated": true,
+    "raw_body_remains_blocked": true,
+    "read_model_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json",
+    "shared_execution_path_id": "protected_finance_proof_metadata_intake"
+  },
+  "relationship_to_guardian_review_packet": {
+    "guardian_cannot_approve_invoice_action_or_account_access": true,
+    "guardian_reviews_metadata_posture_only": true,
+    "operator_ref": "generated/read_models/capital_hilton_guardian_review_packet_OPERATOR.md",
+    "placeholders_may_be_ready_for_guardian_review": true,
+    "read_model_ref": "generated/read_models/capital_hilton_guardian_review_packet.json",
+    "status": "OBSERVED"
+  },
+  "runtime_dispatch_allowed": false,
+  "safe_metadata_fields_by_reference_type": {
+    "AP_EMAIL_ROUTE_METADATA": {
+      "allowed": [
+        "route label",
+        "recipient role",
+        "approved channel type",
+        "source-card/receipt pointer"
+      ],
+      "blocked": [
+        "raw email bodies",
+        "sending email",
+        "Gmail/calendar/account access"
+      ]
+    },
+    "CONTRACT_OR_RATE_SOURCE_REFERENCE": {
+      "allowed": [
+        "source label",
+        "rate source role",
+        "source-card/receipt pointer"
+      ],
+      "blocked": [
+        "raw contract body unless separately allowlisted"
+      ]
+    },
+    "COUPA_REFERENCE_METADATA": {
+      "allowed": [
+        "PO/reference identifier placeholder",
+        "vendor/customer route label",
+        "portal reference exists yes/no"
+      ],
+      "blocked": [
+        "Coupa login",
+        "Coupa session",
+        "browser automation",
+        "credential material",
+        "portal body scraping"
+      ]
+    },
+    "EXCEL_WORKBOOK_REFERENCE": {
+      "allowed": [
+        "file label",
+        "approximate source location hint",
+        "workbook role",
+        "expected invoice/source relationship",
+        "hash/receipt placeholder"
+      ],
+      "blocked": [
+        "raw workbook contents",
+        "customer/private financial details",
+        "formulas/body extraction",
+        "embedded images",
+        "bank/remit/check details unless protected-reference only"
+      ]
+    },
+    "FUTURE_INVOICE_RECEIPT_REFERENCE": {
+      "allowed": [
+        "future receipt requirement label",
+        "expected receipt role",
+        "source fact refs required",
+        "hash/receipt placeholder"
+      ],
+      "blocked": [
+        "invoice generation",
+        "send/submit approval",
+        "ledger write"
+      ]
+    },
+    "PAYMENT_OR_PO_REFERENCE_METADATA": {
+      "allowed": [
+        "PO/payment reference placeholder",
+        "reference role",
+        "protected metadata pointer"
+      ],
+      "blocked": [
+        "bank/check/remit details unless explicitly protected-reference only"
+      ]
+    },
+    "PDF_INVOICE_REFERENCE": {
+      "allowed": [
+        "document label",
+        "document role",
+        "expected invoice relationship",
+        "hash/receipt placeholder"
+      ],
+      "blocked": [
+        "raw PDF contents",
+        "embedded private details",
+        "automatic extraction"
+      ]
+    },
+    "PERFORMANCE_PROOF_REFERENCE": {
+      "allowed": [
+        "performance proof label",
+        "service-date role",
+        "source-card/receipt pointer",
+        "redacted metadata label"
+      ],
+      "blocked": [
+        "raw calendar body",
+        "raw email body",
+        "raw venue/private content"
+      ]
+    },
+    "TAX_VENDOR_PAYMENT_REFERENCE": {
+      "allowed": [
+        "tax/vendor handling label",
+        "payment handling role",
+        "protected metadata pointer"
+      ],
+      "blocked": [
+        "tax form body",
+        "bank/check/remit details unless protected-reference only",
+        "credential or account material"
+      ]
+    },
+    "UNKNOWN_FAIL_CLOSED": {
+      "allowed": [],
+      "blocked": [
+        "all raw material",
+        "all authority claims"
+      ]
+    }
+  },
+  "schema_version": "capital_hilton_protected_reference_placeholder_v0",
+  "send_submit_approval_allowed": false,
+  "tool_execution_allowed": false
+}

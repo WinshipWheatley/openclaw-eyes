@@ -831,6 +831,11 @@
 !operator_attention_promotion_contract.py
 !chief_test_harness_cross_off_receipt_contract.py
 !capital_hilton_protected_proof_intake.py
+!capital_hilton_answer_candidate_receipt.py
+!capital_hilton_protected_reference_placeholder.py
+!capital_hilton_proof_resolution_batch_manifest.py
+!capital_hilton_guardian_review_packet.py
+!capital_hilton_proof_quieting_progress_state.py
 !scripts/build_external_ai_context_pack.py
 !scripts/query_external_ai_context_packs.py
 !scripts/export_external_ai_context_pack_read_model.py
@@ -848,6 +853,11 @@
 !scripts/export_operator_attention_promotion_contract.py
 !scripts/export_chief_test_harness_cross_off_receipt_contract.py
 !scripts/export_capital_hilton_protected_proof_intake.py
+!scripts/export_capital_hilton_answer_candidate_receipt.py
+!scripts/export_capital_hilton_protected_reference_placeholder.py
+!scripts/export_capital_hilton_proof_resolution_batch_manifest.py
+!scripts/export_capital_hilton_guardian_review_packet.py
+!scripts/export_capital_hilton_proof_quieting_progress_state.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_steel_thread_radar.py
@@ -857,6 +867,11 @@
 !tests/test_operator_attention_promotion_contract.py
 !tests/test_chief_test_harness_cross_off_receipt_contract.py
 !tests/test_capital_hilton_protected_proof_intake.py
+!tests/test_capital_hilton_answer_candidate_receipt.py
+!tests/test_capital_hilton_protected_reference_placeholder.py
+!tests/test_capital_hilton_proof_resolution_batch_manifest.py
+!tests/test_capital_hilton_guardian_review_packet.py
+!tests/test_capital_hilton_proof_quieting_progress_state.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md

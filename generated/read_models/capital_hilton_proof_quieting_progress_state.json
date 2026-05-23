@@ -1,0 +1,1248 @@
+{
+  "agent_activation_allowed": false,
+  "attention_classes": [
+    "NEEDS_OPERATOR_INPUT",
+    "NEEDS_PROOF_REFERENCE",
+    "NEEDS_PROTECTED_REFERENCE",
+    "NEEDS_GUARDIAN_REVIEW",
+    "NEEDS_RECEIPT",
+    "NEEDS_SECURITY_DELTA",
+    "READY_TO_QUIET_WITH_PROOF",
+    "PARKED",
+    "QUARANTINED",
+    "QUIET",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_authority_flags_false": true,
+    "automatic_progression_allowed": false,
+    "automatic_quieting_allowed": false,
+    "blocked_actions": [
+      "Coupa access",
+      "browser/OAuth/account access",
+      "credential/token/cookie/API key handling",
+      "Gmail/calendar/email account access",
+      "raw Excel body ingestion",
+      "raw PDF body ingestion",
+      "raw email body ingestion",
+      "raw finance/private body ingestion",
+      "invoice generation",
+      "ledger write",
+      "email dispatch",
+      "send/submit/approval",
+      "live model call",
+      "agent activation",
+      "tool execution",
+      "queue/autonomy",
+      "automatic quieting",
+      "automatic progression",
+      "proof promotion without receipts",
+      "proof promotion without Guardian where protected"
+    ],
+    "browser_oauth_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "gmail_calendar_email_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "model_call_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_email_body_ingestion_allowed": false,
+    "raw_excel_body_ingestion_allowed": false,
+    "raw_finance_body_ingestion_allowed": false,
+    "raw_pdf_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "send_submit_approval_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "automatic_progression_allowed": false,
+  "automatic_quieting_allowed": false,
+  "batch_relationship": {
+    "batch_id": "capital_hilton_proof_resolution_batch_v0",
+    "commit_deferred_until_final_prompt": true,
+    "next_lane": "integrated_checkpoint_and_stable_map_refresh",
+    "prompt_index": 4,
+    "stable_map_refresh_deferred": true
+  },
+  "browser_oauth_allowed": false,
+  "contract_id": "capital_hilton_proof_quieting_progress_state_v0",
+  "contract_status": "deterministic_proof_quieting_progress_state_metadata_only",
+  "coupa_access_allowed": false,
+  "credential_handling_allowed": false,
+  "events": [
+    "OPERATOR_TEXT_ANSWER",
+    "OPERATOR_YES_NO",
+    "STRUCTURED_FORM_ANSWER",
+    "SOURCE_CARD_LINKED",
+    "PROTECTED_PLACEHOLDER_LINKED",
+    "RECEIPT_LINKED",
+    "GUARDIAN_REVIEW_REQUESTED",
+    "GUARDIAN_METADATA_ALLOWED",
+    "GUARDIAN_METADATA_REJECTED",
+    "PROOF_METADATA_LINKED",
+    "REJECTION_WITH_REASON",
+    "PARK_WITH_REASON",
+    "QUARANTINE_TRIGGERED",
+    "UNKNOWN_EVENT"
+  ],
+  "generated_at": "2026-05-23T16:04:18+00:00",
+  "gmail_calendar_email_access_allowed": false,
+  "invoice_generation_allowed": false,
+  "ledger_write_allowed": false,
+  "machine_proof": {
+    "all_attention_classes_exist": true,
+    "all_progress_states_exist": true,
+    "authority_flags_false": true,
+    "automatic_quieting_progression_false": true,
+    "content_hash": "sha256:8c0639c04aca259461d1ff9c477186f64f987aa8e02dfc404ac21cb7a0663132",
+    "credential_or_secret_included": false,
+    "default_missing_proof_count": 10,
+    "default_progress_record_count": 10,
+    "guardian_metadata_allowed_does_not_execute": true,
+    "prior_lane_refs_represented": true,
+    "proof_metadata_plus_receipt_can_create_quiet_with_proof_candidate": true,
+    "raw_private_body_included": false,
+    "source_protected_refs_do_not_auto_quiet": true,
+    "text_answer_transition_does_not_prove": true,
+    "transition_rules_exist": true,
+    "unknown_event_fails_closed": true
+  },
+  "model_call_allowed": false,
+  "operator_summary": "This contract models Capital Hilton proof progress states. It starts all ten items as missing proof and defines safe transitions toward quiet-with-proof candidates without writing answers, quieting automatically, or enabling action.",
+  "progress_states": [
+    "MISSING_PROOF",
+    "ANSWERED_MEMORY_CANDIDATE_ONLY",
+    "ANSWER_POINTS_TO_SOURCE_CARD",
+    "ANSWER_POINTS_TO_PROTECTED_REFERENCE",
+    "ANSWER_POINTS_TO_RECEIPT",
+    "PROTECTED_PLACEHOLDER_LINKED",
+    "GUARDIAN_REVIEW_REQUIRED",
+    "GUARDIAN_METADATA_ALLOWED",
+    "GUARDIAN_METADATA_REJECTED",
+    "PROOF_METADATA_LINKED",
+    "QUIET_WITH_PROOF_CANDIDATE",
+    "QUIET_WITH_VALID_REJECTION",
+    "PARKED_WITH_REASON",
+    "QUARANTINED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "progress_summary": {
+    "action_authority_granted": false,
+    "answered_memory_candidate_count": 0,
+    "candidate_facts_proven": false,
+    "current_phase": "HELM_THRESHOLD_LANE",
+    "guardian_review_required_count": 0,
+    "lane_destiny": "MOVE_TO_WORLD_ACTION",
+    "lane_id": "capital_hilton",
+    "missing_proof_count": 10,
+    "next_safe_move": "wait_for_explicit_answer_or_reference_input_then_apply_transition_rules_as_metadata",
+    "parked_count": 0,
+    "proof_items_total": 10,
+    "proof_metadata_linked_count": 0,
+    "protected_placeholder_linked_count": 0,
+    "quarantined_count": 0,
+    "quiet_with_proof_count": 0,
+    "target_world": "Finance"
+  },
+  "proof_progress_records": [
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#performance_date_2026_05_08_proof_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": "2026-05-08",
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "May 8 performance proof",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#protected_finance_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "performance_date_2026_05_08_proof",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#performance_date_2026_05_08_proof",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#performance_date_2026_05_15_proof_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": "2026-05-15",
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "May 15 performance proof",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#protected_finance_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "performance_date_2026_05_15_proof",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#performance_date_2026_05_15_proof",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#rate_400_per_gig_proof_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": "$400 per gig",
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Rate proof",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#protected_finance_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "rate_400_per_gig_proof",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#rate_400_per_gig_proof",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#subtotal_800_proof_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": "$800",
+      "current_attention_class": "NEEDS_PROOF_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Subtotal math proof",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#protected_finance_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "subtotal_800_proof",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#subtotal_800_proof",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": false,
+      "requires_operator_input": true,
+      "requires_protected_reference": false,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#one_invoice_posture_proof_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": "candidate one-invoice posture",
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "One-invoice posture proof",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#protected_finance_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "one_invoice_posture_proof",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#one_invoice_posture_proof",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#coupa_po_payment_reference_metadata_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": null,
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Coupa/PO/payment reference metadata",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#coupa_reference_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "coupa_po_payment_reference_metadata",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#coupa_po_payment_reference_metadata",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#excel_workbook_or_invoice_source_reference_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": null,
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Workbook/source artifact reference",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#UNKNOWN_FAIL_CLOSED",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "excel_workbook_or_invoice_source_reference",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#excel_workbook_or_invoice_source_reference",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#ap_recipient_route_metadata_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": null,
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "AP route metadata",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#ap_route_metadata_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "ap_recipient_route_metadata",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#ap_recipient_route_metadata",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#tax_vendor_handling_metadata_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": null,
+      "current_attention_class": "NEEDS_PROTECTED_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Tax/vendor/payment handling metadata",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#tax_vendor_payment_handling_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "tax_vendor_handling_metadata",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#tax_vendor_handling_metadata",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": true,
+      "requires_operator_input": true,
+      "requires_protected_reference": true,
+      "requires_receipt": true,
+      "requires_security_delta": false,
+      "source_card_ref": null
+    },
+    {
+      "answer_candidate_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json#future_invoice_generation_receipt_requirement_answer_candidate_receipt",
+      "blocked_actions": [
+        "Coupa access",
+        "browser/OAuth/account access",
+        "credential/token/cookie/API key handling",
+        "Gmail/calendar/email account access",
+        "raw Excel body ingestion",
+        "raw PDF body ingestion",
+        "raw email body ingestion",
+        "raw finance/private body ingestion",
+        "invoice generation",
+        "ledger write",
+        "email dispatch",
+        "send/submit/approval",
+        "live model call",
+        "agent activation",
+        "tool execution",
+        "queue/autonomy",
+        "automatic quieting",
+        "automatic progression",
+        "proof promotion without receipts",
+        "proof promotion without Guardian where protected"
+      ],
+      "can_progress_now": true,
+      "can_quiet_now": false,
+      "candidate_value": null,
+      "current_attention_class": "NEEDS_PROOF_REFERENCE",
+      "current_state": "MISSING_PROOF",
+      "display_name": "Future invoice receipt requirement",
+      "guardian_packet_ref": "generated/read_models/capital_hilton_guardian_review_packet.json#future_invoice_generation_review_packet",
+      "memory_candidate_ref": null,
+      "next_safe_move": "wait_for_safe_answer_or_reference_event_without_auto_progression",
+      "park_reason": null,
+      "proof_item_id": "future_invoice_generation_receipt_requirement",
+      "proof_metadata_ref": null,
+      "protected_placeholder_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json#future_invoice_generation_receipt_requirement",
+      "quarantine_reason": null,
+      "quiet_receipt_ref": null,
+      "receipt_ref": null,
+      "rejection_reason": null,
+      "requires_guardian_review": false,
+      "requires_operator_input": true,
+      "requires_protected_reference": false,
+      "requires_receipt": true,
+      "requires_security_delta": true,
+      "source_card_ref": null
+    }
+  ],
+  "queue_execution_allowed": false,
+  "quieting_policy": {
+    "answered_text_quiets_item": false,
+    "automatic_progression_allowed": false,
+    "automatic_quieting_allowed": false,
+    "guardian_metadata_allowed_executes_action": false,
+    "parked_item_is_complete": false,
+    "proof_metadata_plus_receipt_can_create_candidate": true,
+    "quarantine_requires_guardian_or_operator_review": true,
+    "quiet_with_proof_requires_receipt": true,
+    "source_or_protected_ref_auto_quiets_item": false,
+    "valid_rejection_requires_reason_and_receipt_policy": true
+  },
+  "raw_email_body_ingestion_allowed": false,
+  "raw_excel_body_ingestion_allowed": false,
+  "raw_finance_body_ingestion_allowed": false,
+  "raw_pdf_body_ingestion_allowed": false,
+  "read_model_id": "capital_hilton_proof_quieting_progress_state",
+  "relationship_to_prior_lanes": {
+    "capital_hilton_answer_candidate_receipt": {
+      "read_model_ref": "generated/read_models/capital_hilton_answer_candidate_receipt.json",
+      "relationship": "Answer candidate refs are progress inputs but not proof.",
+      "status": "OBSERVED"
+    },
+    "capital_hilton_guardian_review_packet": {
+      "read_model_ref": "generated/read_models/capital_hilton_guardian_review_packet.json",
+      "relationship": "Guardian metadata outcomes can progress proof metadata but cannot execute.",
+      "status": "OBSERVED"
+    },
+    "capital_hilton_protected_proof_intake": {
+      "read_model_ref": "generated/read_models/capital_hilton_protected_proof_intake.json",
+      "relationship": "Proof intake supplies the ten source proof questions and candidate values.",
+      "status": "OBSERVED"
+    },
+    "capital_hilton_protected_reference_placeholder": {
+      "read_model_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json",
+      "relationship": "Protected placeholders can progress to Guardian review but are not proof by themselves.",
+      "status": "OBSERVED"
+    }
+  },
+  "runtime_dispatch_allowed": false,
+  "schema_version": "capital_hilton_proof_quieting_progress_state_v0",
+  "send_submit_approval_allowed": false,
+  "tool_execution_allowed": false,
+  "transition_rules": [
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "OPERATOR_TEXT_ANSWER",
+      "from_state": "MISSING_PROOF",
+      "notes": "Text can clarify operator memory but cannot prove or quiet.",
+      "required_gates": [],
+      "required_refs": [
+        "memory_candidate_ref"
+      ],
+      "to_state": "ANSWERED_MEMORY_CANDIDATE_ONLY",
+      "transition_id": "missing_plus_operator_text_answer"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "OPERATOR_YES_NO",
+      "from_state": "MISSING_PROOF",
+      "notes": "Yes/no can clarify but cannot prove.",
+      "required_gates": [],
+      "required_refs": [
+        "memory_candidate_ref"
+      ],
+      "to_state": "ANSWERED_MEMORY_CANDIDATE_ONLY",
+      "transition_id": "missing_plus_operator_yes_no"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "STRUCTURED_FORM_ANSWER",
+      "from_state": "MISSING_PROOF",
+      "notes": "Structured form answer becomes candidate context, not proof.",
+      "required_gates": [],
+      "required_refs": [
+        "memory_candidate_ref"
+      ],
+      "to_state": "ANSWERED_MEMORY_CANDIDATE_ONLY",
+      "transition_id": "missing_plus_structured_form"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "SOURCE_CARD_LINKED",
+      "from_state": "MISSING_PROOF",
+      "notes": "Source-card refs point toward proof but do not auto-quiet.",
+      "required_gates": [],
+      "required_refs": [
+        "source_card_ref"
+      ],
+      "to_state": "ANSWER_POINTS_TO_SOURCE_CARD",
+      "transition_id": "missing_plus_source_card"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "PROTECTED_PLACEHOLDER_LINKED",
+      "from_state": "MISSING_PROOF",
+      "notes": "Protected placeholders are metadata pointers, not proof by themselves.",
+      "required_gates": [],
+      "required_refs": [
+        "protected_placeholder_ref"
+      ],
+      "to_state": "PROTECTED_PLACEHOLDER_LINKED",
+      "transition_id": "missing_plus_protected_placeholder"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "RECEIPT_LINKED",
+      "from_state": "MISSING_PROOF",
+      "notes": "Receipt ref points toward proof but still requires validation.",
+      "required_gates": [],
+      "required_refs": [
+        "receipt_ref"
+      ],
+      "to_state": "ANSWER_POINTS_TO_RECEIPT",
+      "transition_id": "missing_plus_receipt"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "GUARDIAN_REVIEW_REQUESTED",
+      "from_state": "PROTECTED_PLACEHOLDER_LINKED",
+      "notes": "Guardian review is required before protected metadata promotion.",
+      "required_gates": [
+        "Guardian metadata review"
+      ],
+      "required_refs": [
+        "protected_placeholder_ref",
+        "guardian_packet_ref"
+      ],
+      "to_state": "GUARDIAN_REVIEW_REQUIRED",
+      "transition_id": "placeholder_plus_guardian_requested"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "GUARDIAN_METADATA_ALLOWED",
+      "from_state": "GUARDIAN_REVIEW_REQUIRED",
+      "notes": "Guardian metadata allowed can progress metadata state but cannot execute.",
+      "required_gates": [
+        "Guardian metadata decision"
+      ],
+      "required_refs": [
+        "guardian_decision_receipt"
+      ],
+      "to_state": "GUARDIAN_METADATA_ALLOWED",
+      "transition_id": "guardian_required_plus_metadata_allowed"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "GUARDIAN_METADATA_REJECTED",
+      "from_state": "GUARDIAN_REVIEW_REQUIRED",
+      "notes": "Rejected metadata cannot promote proof.",
+      "required_gates": [
+        "Guardian metadata decision"
+      ],
+      "required_refs": [
+        "guardian_decision_receipt"
+      ],
+      "to_state": "GUARDIAN_METADATA_REJECTED",
+      "transition_id": "guardian_required_plus_metadata_rejected"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "PROOF_METADATA_LINKED",
+      "from_state": "GUARDIAN_METADATA_ALLOWED",
+      "notes": "Proof metadata may link only after required refs/gates.",
+      "required_gates": [
+        "Guardian metadata allowed"
+      ],
+      "required_refs": [
+        "proof_metadata_ref",
+        "guardian_decision_receipt"
+      ],
+      "to_state": "PROOF_METADATA_LINKED",
+      "transition_id": "guardian_allowed_plus_proof_metadata"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "RECEIPT_LINKED",
+      "from_state": "PROOF_METADATA_LINKED",
+      "notes": "Proof metadata plus receipt can create quiet-with-proof candidate, not automatic quieting.",
+      "required_gates": [],
+      "required_refs": [
+        "proof_metadata_ref",
+        "receipt_ref",
+        "quiet_receipt_ref"
+      ],
+      "to_state": "QUIET_WITH_PROOF_CANDIDATE",
+      "transition_id": "proof_metadata_plus_receipt"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "REJECTION_WITH_REASON",
+      "from_state": "MISSING_PROOF",
+      "notes": "Rejection can quiet only with reason and receipt policy.",
+      "required_gates": [],
+      "required_refs": [
+        "rejection_reason",
+        "receipt_policy_ref"
+      ],
+      "to_state": "QUIET_WITH_VALID_REJECTION",
+      "transition_id": "missing_plus_rejection_with_reason"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "PARK_WITH_REASON",
+      "from_state": "MISSING_PROOF",
+      "notes": "Parked item remains parked and visible, not completed.",
+      "required_gates": [],
+      "required_refs": [
+        "park_reason"
+      ],
+      "to_state": "PARKED_WITH_REASON",
+      "transition_id": "missing_plus_park_with_reason"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "MISSING_PROOF",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "missing_proof_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "MISSING_PROOF",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "missing_proof_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "ANSWERED_MEMORY_CANDIDATE_ONLY",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "answered_memory_candidate_only_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "ANSWERED_MEMORY_CANDIDATE_ONLY",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "answered_memory_candidate_only_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "ANSWER_POINTS_TO_SOURCE_CARD",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "answer_points_to_source_card_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "ANSWER_POINTS_TO_SOURCE_CARD",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "answer_points_to_source_card_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "ANSWER_POINTS_TO_PROTECTED_REFERENCE",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "answer_points_to_protected_reference_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "ANSWER_POINTS_TO_PROTECTED_REFERENCE",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "answer_points_to_protected_reference_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "ANSWER_POINTS_TO_RECEIPT",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "answer_points_to_receipt_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "ANSWER_POINTS_TO_RECEIPT",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "answer_points_to_receipt_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "PROTECTED_PLACEHOLDER_LINKED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "protected_placeholder_linked_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "PROTECTED_PLACEHOLDER_LINKED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "protected_placeholder_linked_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "GUARDIAN_REVIEW_REQUIRED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "guardian_review_required_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "GUARDIAN_REVIEW_REQUIRED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "guardian_review_required_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "GUARDIAN_METADATA_ALLOWED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "guardian_metadata_allowed_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "GUARDIAN_METADATA_ALLOWED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "guardian_metadata_allowed_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "GUARDIAN_METADATA_REJECTED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "guardian_metadata_rejected_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "GUARDIAN_METADATA_REJECTED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "guardian_metadata_rejected_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "PROOF_METADATA_LINKED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "proof_metadata_linked_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "PROOF_METADATA_LINKED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "proof_metadata_linked_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "QUIET_WITH_PROOF_CANDIDATE",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "quiet_with_proof_candidate_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "QUIET_WITH_PROOF_CANDIDATE",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "quiet_with_proof_candidate_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "QUIET_WITH_VALID_REJECTION",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "quiet_with_valid_rejection_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "QUIET_WITH_VALID_REJECTION",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "quiet_with_valid_rejection_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "PARKED_WITH_REASON",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "parked_with_reason_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "PARKED_WITH_REASON",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "parked_with_reason_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "QUARANTINED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "quarantined_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "QUARANTINED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "quarantined_plus_unknown_event"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "QUARANTINE_TRIGGERED",
+      "from_state": "UNKNOWN_FAIL_CLOSED",
+      "notes": "Any state can quarantine when sensitive/proof/authority conflict appears.",
+      "required_gates": [
+        "Guardian or Operator review"
+      ],
+      "required_refs": [
+        "quarantine_reason"
+      ],
+      "to_state": "QUARANTINED",
+      "transition_id": "unknown_fail_closed_plus_quarantine"
+    },
+    {
+      "allowed": true,
+      "authority_granted": false,
+      "event": "UNKNOWN_EVENT",
+      "from_state": "UNKNOWN_FAIL_CLOSED",
+      "notes": "Unknown state changes fail closed.",
+      "required_gates": [],
+      "required_refs": [],
+      "to_state": "UNKNOWN_FAIL_CLOSED",
+      "transition_id": "unknown_fail_closed_plus_unknown_event"
+    }
+  ]
+}
