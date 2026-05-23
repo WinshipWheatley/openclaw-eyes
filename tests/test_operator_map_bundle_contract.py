@@ -5,8 +5,10 @@ from pathlib import Path
 import automation_readiness_feasibility_evaluator_contract
 import operator_map_bundle_contract as bundle
 import chief_test_harness_cross_off_receipt_contract
+import capital_hilton_coupa_po_retrieval_automation_candidate
 import guided_capture_protected_evidence_path_contract
 import make_winship_life_easier_batch_manifest
+import markdown_atlas_scope_expansion
 import capital_hilton_answer_candidate_receipt
 import capital_hilton_protected_proof_intake
 import capital_hilton_protected_reference_placeholder
@@ -397,6 +399,12 @@ def _fixture_repo(root: Path) -> Path:
         ),
     )
     _write_json(
+        read_models / "capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        capital_hilton_coupa_po_retrieval_automation_candidate.build_capital_hilton_coupa_po_retrieval_automation_candidate(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
         read_models / "capital_hilton_proof_resolution_batch_manifest.json",
         capital_hilton_proof_resolution_batch_manifest.build_capital_hilton_proof_resolution_batch_manifest(
             generated_at=FIXED_NOW,
@@ -432,6 +440,14 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "openclaw_work_terrain_reconciliation_batch_manifest.json",
         openclaw_work_terrain_reconciliation_batch_manifest.build_openclaw_work_terrain_reconciliation_batch_manifest(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "markdown_atlas_scope_expansion.json",
+        markdown_atlas_scope_expansion.build_markdown_atlas_scope_expansion(
+            repo_root=root,
+            db_path=root / "missing-ledger.sqlite",
             generated_at=FIXED_NOW,
         ),
     )
@@ -1169,6 +1185,32 @@ def test_map_snapshot_contains_capital_hilton_proof_resolution_summaries(tmp_pat
     assert progress["action_authority_granted"] is False
 
 
+def test_map_snapshot_contains_coupa_po_automation_candidate_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    summary = snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]
+
+    assert summary["present"] is True
+    assert summary["section_id"] == "capital_hilton_coupa_po_retrieval_automation_candidate"
+    assert summary["contract_status"] == "deterministic_future_automation_candidate_no_current_authority"
+    assert summary["candidate_count"] == 1
+    assert summary["readiness_gate_count"] == 10
+    assert summary["stop_condition_count"] == 12
+    assert summary["trial_stage_count"] == 7
+    assert summary["default_candidate_id"] == "capital_hilton_coupa_po_reference_retrieval"
+    assert summary["proof_item_id_supported"] == "coupa_po_payment_reference_metadata"
+    assert summary["proof_satisfied_now"] is False
+    assert summary["lookup_receipt_created_now"] is False
+    assert summary["manual_fallback_modeled"] is True
+    assert summary["future_candidate_flags_do_not_grant_authority"] is True
+    assert summary["no_coupa_browser_network_authority"] is True
+    assert summary["no_credential_storage"] is True
+    assert summary["no_invoice_send_submit_ledger_authority"] is True
+    assert summary["all_current_authority_flags_false"] is True
+    assert summary["action_authority_granted"] is False
+
+
 def test_map_snapshot_contains_work_terrain_reconciliation_summaries(tmp_path):
     _fixture_repo(tmp_path)
     snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
@@ -1246,6 +1288,30 @@ def test_map_snapshot_contains_work_terrain_reconciliation_summaries(tmp_path):
     assert gap["reference_only_filter_blocks_activation"] is True
     assert gap["auto_archive_consolidation_stable_map_implementation_allowed"] is False
     assert gap["action_authority_granted"] is False
+
+
+def test_map_snapshot_contains_markdown_atlas_scope_expansion_summary(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    summary = snapshot["markdown_atlas_scope_expansion"]
+
+    assert summary["present"] is True
+    assert summary["section_id"] == "markdown_atlas_scope_expansion"
+    assert summary["contract_status"] == "metadata_only_scope_expansion_plan"
+    assert summary["gap_records_count"] == len(markdown_atlas_scope_expansion.GAP_IDS)
+    assert summary["recommended_next_run"] == "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS"
+    assert summary["body_ingestion_allowed"] is False
+    assert summary["private_or_broad_root_scan_allowed"] is False
+    assert summary["semantic_review_allowed_now"] is False
+    assert summary["vector_index_creation_allowed"] is False
+    assert summary["metadata_only_posture"] is True
+    assert summary["no_broad_body_ingestion"] is True
+    assert summary["no_private_root_approval_by_default"] is True
+    assert summary["no_c_drive_scanning"] is True
+    assert summary["no_file_moves_deletes_renames"] is True
+    assert summary["operator_questions_exist"] is True
+    assert summary["action_authority_granted"] is False
 
 
 def test_map_snapshot_contains_make_winship_life_easier_summaries(tmp_path):
@@ -1382,6 +1448,14 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_quieting_allowed"] is False
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_progression_allowed"] is False
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["candidate_count"] == 1
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["readiness_gate_count"] == 10
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["stop_condition_count"] == 12
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["trial_stage_count"] == 7
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["future_candidate_flags_do_not_grant_authority"] is True
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["no_coupa_browser_network_authority"] is True
+    assert payload["capital_hilton_coupa_po_retrieval_automation_candidate_integration"]["action_authority_granted"] is False
     assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["summary_included_in_snapshot"] is True
     assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["completed_lanes_count"] == 4
     assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["metadata_first_posture"] is True
@@ -1406,6 +1480,14 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["openclaw_work_terrain_gap_detector_integration"]["built_status_validation_present"] is True
     assert payload["openclaw_work_terrain_gap_detector_integration"]["auto_archive_consolidation_stable_map_implementation_allowed"] is False
     assert payload["openclaw_work_terrain_gap_detector_integration"]["action_authority_granted"] is False
+    assert payload["markdown_atlas_scope_expansion_integration"]["summary_included_in_snapshot"] is True
+    assert payload["markdown_atlas_scope_expansion_integration"]["gap_records_count"] == len(markdown_atlas_scope_expansion.GAP_IDS)
+    assert payload["markdown_atlas_scope_expansion_integration"]["body_ingestion_allowed"] is False
+    assert payload["markdown_atlas_scope_expansion_integration"]["private_or_broad_root_scan_allowed"] is False
+    assert payload["markdown_atlas_scope_expansion_integration"]["semantic_review_allowed_now"] is False
+    assert payload["markdown_atlas_scope_expansion_integration"]["metadata_only_posture"] is True
+    assert payload["markdown_atlas_scope_expansion_integration"]["no_c_drive_scanning"] is True
+    assert payload["markdown_atlas_scope_expansion_integration"]["action_authority_granted"] is False
     assert payload["make_winship_life_easier_batch_integration"]["summary_included_in_snapshot"] is True
     assert payload["make_winship_life_easier_batch_integration"]["completed_lanes_count"] == 5
     assert payload["make_winship_life_easier_batch_integration"]["low_bandwidth_human_interface_posture"] is True
@@ -1597,6 +1679,14 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Progress records: `10`" in operator_text
     assert "Automatic quieting allowed: `false`" in operator_text
     assert "Automatic progression allowed: `false`" in operator_text
+    assert "Coupa / PO Retrieval Automation Candidate" in operator_text
+    assert "Readiness gates: `10`" in operator_text
+    assert "Stop conditions: `12`" in operator_text
+    assert "Coupa/browser/network authority: `false`" in operator_text
+    assert "Markdown Atlas Scope Expansion" in operator_text
+    assert "Recommended next run: `RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS`" in operator_text
+    assert "Body ingestion allowed: `false`" in operator_text
+    assert "Broad/private root scan allowed: `false`" in operator_text
     assert "Make Winship Life Easier Workflow Layer" in operator_text
     assert "Completed lanes: `5`" in operator_text
     assert "Work Modes / Bandwidth" in operator_text

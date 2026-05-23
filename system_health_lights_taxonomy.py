@@ -275,6 +275,18 @@ def _pc_import_proof(
             "missing_expected": _int_or_none(pc_counts.get("missing_expected")),
             "hash_mismatch": _int_or_none(pc_counts.get("hash_mismatch")),
         },
+        "app_visible_map_status": sync_health.get("app_visible_map_status")
+        if isinstance(sync_health.get("app_visible_map_status"), dict)
+        else {},
+        "raw_read_model_mirror_status": sync_health.get("raw_read_model_mirror_status")
+        if isinstance(sync_health.get("raw_read_model_mirror_status"), dict)
+        else {},
+        "receipt_status": sync_health.get("receipt_status")
+        if isinstance(sync_health.get("receipt_status"), dict)
+        else {},
+        "check_transmission_display": sync_health.get("check_transmission_display")
+        if isinstance(sync_health.get("check_transmission_display"), dict)
+        else {},
         "current_expected_set_proof_current": current_expected_set_agrees,
         "last_import_checkpoint_agrees_with_mac_completion": last_checkpoint_agrees,
         "current_expected_set_missing_only_self_taxonomy": current_missing_only_self_taxonomy,
@@ -285,6 +297,41 @@ def _pc_import_proof(
 
 
 def _transmission_status(pc_proof: dict[str, Any], import_state: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+    map_display = pc_proof.get("check_transmission_display")
+    app_map = pc_proof.get("app_visible_map_status")
+    if isinstance(map_display, dict) and isinstance(app_map, dict) and map_display.get("lamp_state"):
+        map_evidence = {
+            key: value
+            for key, value in app_map.items()
+            if key not in {"map_generation_id", "bundle_hash"}
+        }
+        receipt_evidence = {
+            key: value
+            for key, value in dict(pc_proof.get("receipt_status", {})).items()
+            if key
+            not in {
+                "expected_generation_id",
+                "expected_bundle_hash",
+                "receipt_generation_id",
+                "receipt_bundle_hash",
+            }
+        }
+        status = str(map_display.get("lamp_state"))
+        reason = str(map_display.get("headline") or map_display.get("operator_summary") or "Stable map bundle status controls Check Transmission.")
+        return status, reason, {
+            "stable_map_bundle_status_controls_transmission": True,
+            "app_visible_map_status": map_evidence,
+            "raw_read_model_mirror_status": pc_proof.get("raw_read_model_mirror_status", {}),
+            "receipt_status": receipt_evidence,
+            "current_missing_files": list(pc_proof.get("missing_files", []) or []),
+            "core_pc_import_proof_complete": bool(pc_proof.get("pc_proof_agrees_with_mac_sync_completion")),
+            "current_expected_set_proof_current": bool(pc_proof.get("current_expected_set_proof_current")),
+            "final_mac_mirror_pending": False,
+            "final_mac_self_report_mirror_pending": False,
+            "self_report_stale_files": [],
+            "final_mac_mirror_marker_written": False,
+            "self_report_status": None,
+        }
     final_request = _state_final_mirror_request(import_state)
     self_report = _self_report_state(final_request)
     final_mirror_pending = bool(final_request.get("final_mac_mirror_marker_needed"))
@@ -328,26 +375,70 @@ def _transmission_status(pc_proof: dict[str, Any], import_state: dict[str, Any])
     }
 
 
-def _engine_status(*, chief_posture: dict[str, Any], transmission_status: str) -> tuple[str, str, dict[str, Any]]:
+def _current_engine_causes(
+    *,
+    chief_posture: dict[str, Any],
+    transmission_status: str,
+    transmission_evidence: dict[str, Any],
+) -> list[str]:
+    causes: list[str] = []
+    missing_files = list(transmission_evidence.get("current_missing_files", []) or [])
+    if any(name.startswith("operator_threshold_map_contract") for name in missing_files):
+        causes.append("threshold-map mirror is missing from Mac proof and is delegated to Check Transmission")
+    elif transmission_status in {"ON", "WARNING"}:
+        causes.append("current sync/mirror proof gap is delegated to Check Transmission")
+
+    signals = chief_posture.get("signals") if isinstance(chief_posture.get("signals"), list) else []
+    signal_ids = {
+        str(signal.get("signal_id"))
+        for signal in signals
+        if isinstance(signal, dict) and str(signal.get("status") or "ok") != "ok"
+    }
+    if "c_drive_free_space_low" in signal_ids:
+        causes.append("resource pressure was previously observed and has not been remeasured here")
+    if "rd_client_trace_growth" in signal_ids:
+        causes.append("RD Client trace-growth remains a maintenance risk")
+    if "codex_mac_latency_or_validation_friction" in signal_ids:
+        causes.append("Mac validation/tooling friction remains a workbench reliability risk")
+    if "launch_window_screenshot_fragility" in signal_ids:
+        causes.append("window/screenshot validation fragility remains a proof-gathering risk")
+    if not causes and chief_posture.get("check_engine"):
+        causes.append("legacy Chief posture needs source-truth review")
+    return causes
+
+
+def _engine_status(
+    *,
+    chief_posture: dict[str, Any],
+    transmission_status: str,
+    transmission_evidence: dict[str, Any],
+) -> tuple[str, str, dict[str, Any]]:
     posture_check = chief_posture.get("check_engine") if isinstance(chief_posture.get("check_engine"), dict) else {}
     legacy_on = bool(posture_check.get("check_engine_on"))
+    current_causes = _current_engine_causes(
+        chief_posture=chief_posture,
+        transmission_status=transmission_status,
+        transmission_evidence=transmission_evidence,
+    )
     if transmission_status == "ON":
         return (
             "WARNING",
-            "A bridge/import issue exists, but Check Transmission owns that fault so Check Engine should not duplicate it as a catchall.",
+            "Check Transmission owns the current mirror/proof gap; Check Engine is warning only for Chief source-truth and maintenance review, not as a duplicate bridge fault.",
             {
                 "legacy_chief_posture_still_on": legacy_on,
                 "bridge_fault_owned_by_check_transmission": True,
+                "current_remaining_causes": current_causes,
                 "chief_posture_source_path": CHIEF_POSTURE_JSON,
             },
         )
     if legacy_on:
         return (
             "WARNING",
-            "Chief posture still has older workbench warnings; bridge-specific signals should now be read through Check Transmission.",
+            "Chief posture still has older non-bridge maintenance warnings or source-truth items; bridge-specific status is read from sync_health through Check Transmission.",
             {
                 "legacy_chief_posture_still_on": True,
                 "bridge_fault_owned_by_check_transmission": True,
+                "current_remaining_causes": current_causes,
                 "chief_posture_source_path": CHIEF_POSTURE_JSON,
             },
         )
@@ -357,6 +448,7 @@ def _engine_status(*, chief_posture: dict[str, Any], transmission_status: str) -
         {
             "legacy_chief_posture_still_on": False,
             "bridge_fault_owned_by_check_transmission": True,
+            "current_remaining_causes": current_causes,
             "chief_posture_source_path": CHIEF_POSTURE_JSON,
         },
     )
@@ -428,6 +520,7 @@ def _build_lights(
     engine_status, engine_reason, engine_evidence = _engine_status(
         chief_posture=chief_posture,
         transmission_status=transmission_status,
+        transmission_evidence=transmission_evidence,
     )
     return [
         _light(
@@ -462,15 +555,17 @@ def _build_lights(
             display_name="Check Transmission",
             analogy="PC-Mac drivetrain / state-transfer fault",
             owner="Chief / Mirror Trust",
-            meaning="The PC-Mac bridge, shuttle markers, mirror proof, or app-visible sync-health echo needs inspection.",
+            meaning="The app-visible stable map bundle, PC-Mac bridge, shuttle markers, mirror proof, or app-visible sync-health echo needs inspection.",
             when_on=[
-                "PC proof disagrees with Mac completion.",
-                "missing_expected > 0 or hash_mismatch > 0 for the current expected set.",
+                "Stable map bundle receipt is missing or mismatched.",
+                "PC proof disagrees with Mac completion for app-visible map transport.",
+                "Raw missing_expected/hash_mismatch affects stable map files.",
                 "/Volumes/openclaw_e is missing or unverified.",
                 "Shuttle completion proof is stale or blocked.",
             ],
             when_quiet=[
                 "PC proof agrees with Mac completion, sync_health has missing_expected=0 and hash_mismatch=0, and no final app-visible sync-health echo is pending.",
+                "Stable map generation and Mac receipt agree; raw proof-detail churn does not block app-visible map readiness.",
             ],
             opens_lane="Bridge / mirror / sync trust lane",
             evidence_inputs=[

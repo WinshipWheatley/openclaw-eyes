@@ -1,0 +1,443 @@
+{
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "ai_semantic_review_allowed_now": false,
+    "all_action_authority_flags_false": true,
+    "broad_private_filesystem_scan_allowed": false,
+    "broad_raw_markdown_body_ingestion_allowed": false,
+    "c_drive_scan_allowed": false,
+    "credential_account_access_allowed": false,
+    "file_delete_allowed": false,
+    "file_move_allowed": false,
+    "file_rename_allowed": false,
+    "file_reorganization_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "mac_sync_import_allowed": false,
+    "metadata_only_posture": true,
+    "mission_control_app_mutation_allowed": false,
+    "model_api_execution_allowed": false,
+    "network_operation_allowed": false,
+    "private_root_approval_by_default": false,
+    "queue_autonomy_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "tool_execution_allowed": false,
+    "truth_promotion_allowed": false,
+    "vector_index_creation_allowed": false
+  },
+  "contract_status": "metadata_only_scope_expansion_plan",
+  "core_doctrine": {
+    "broad_markdown_body_reading_allowed": false,
+    "old_markdown_is_not_promoted_as_truth": true,
+    "operator_answers_are_memory_candidates_not_proof": true,
+    "path_metadata_only": true,
+    "planning_lane_only": true,
+    "private_directory_scan_allowed": false
+  },
+  "current_markdown_atlas_coverage": {
+    "corpus_path_labels_count": 434362,
+    "corpus_paths_count": 43762,
+    "corpus_roots_count": 7,
+    "coverage_status": "METADATA_ONLY_REGISTERED_ROOT_COVERAGE_PRESENT",
+    "evidence_items_count": 206,
+    "evidence_sources_count": 12,
+    "known_generated_read_models_related_to_markdown_terrain": [
+      "agent_terrain_awareness_readback_contract.json",
+      "agent_terrain_awareness_readback_contract_OPERATOR.md",
+      "evidence_freshness.json",
+      "evidence_freshness.operator.txt",
+      "finance_invoice_evidence_packets.json",
+      "finance_invoice_evidence_packets_OPERATOR.md",
+      "guided_capture_protected_evidence_path_contract.json",
+      "guided_capture_protected_evidence_path_contract_OPERATOR.md",
+      "markdown_atlas_scope_expansion.json",
+      "markdown_atlas_scope_expansion_OPERATOR.md",
+      "markdown_evidence.json",
+      "markdown_evidence_OPERATOR.md",
+      "niles_album_evidence_intake_boundary.json",
+      "niles_album_evidence_intake_boundary_OPERATOR.md",
+      "openclaw_work_terrain_classification_candidate.json",
+      "openclaw_work_terrain_classification_candidate_OPERATOR.md",
+      "openclaw_work_terrain_gap_detector.json",
+      "openclaw_work_terrain_gap_detector_OPERATOR.md",
+      "openclaw_work_terrain_query_contract.json",
+      "openclaw_work_terrain_query_contract_OPERATOR.md",
+      "openclaw_work_terrain_reconciliation_batch_manifest.json",
+      "openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
+      "openclaw_work_terrain_relationship_index.json",
+      "openclaw_work_terrain_relationship_index_OPERATOR.md",
+      "operator_workflow_atlas.json",
+      "operator_workflow_atlas_OPERATOR.md",
+      "protected_evidence_reference_receipt.json",
+      "protected_evidence_reference_receipt_OPERATOR.md"
+    ],
+    "ledger_path": "/home/openclaw/.openclaw/business_ops/ledger.sqlite",
+    "markdown_atlas_run_count": 3,
+    "markdown_classifications_count": 2990,
+    "markdown_documents_count": 598,
+    "markdown_links_count": 1794,
+    "reorg_candidates_count": 598,
+    "sqlite_present": true,
+    "supersession_count": 9
+  },
+  "future_ai_judgment_policy": {
+    "allowed_later_only_after_metadata_classification": [
+      "summarize selected allowlisted docs",
+      "classify canonical vs stale vs residue",
+      "detect duplicate doctrine",
+      "recommend source-card promotion",
+      "recommend stable-map summary",
+      "recommend archive/reorg candidates without moving files"
+    ],
+    "blocked_now": [
+      "broad body summarization",
+      "turning old notes into truth",
+      "moving/deleting files",
+      "creating vector memory from all docs",
+      "using private notes without approval"
+    ],
+    "operator_answers_become": "memory_candidates_not_proof",
+    "promotion_rule": "AI judgment can recommend after metadata classification, but cannot promote, move, delete, or claim truth."
+  },
+  "generated_at": "2026-05-23T19:42:50+00:00",
+  "machine_proof": {
+    "content_hash": "sha256:4cb4ea32515ce848fcfe4dccb303d8d2d67e0362ea08a719839a9605f440f9dc",
+    "credential_or_secret_included": false,
+    "current_coverage_counts_represented": true,
+    "latest_markdown_run_id": "mdatlas_f806a2325872aaf2",
+    "latest_markdown_source_root_ids": [
+      "mac_generated_read_models",
+      "mac_mission_control_app",
+      "pc_wsl_home_openclaw"
+    ],
+    "metadata_only_posture": true,
+    "network_git_sync_mac_app_mutation_authority_added": false,
+    "no_ai_semantic_review_now": true,
+    "no_broad_body_ingestion": true,
+    "no_c_drive_scanning": true,
+    "no_file_moves_deletes_renames": true,
+    "no_private_root_approval_by_default": true,
+    "no_vector_indexing": true,
+    "operator_questions_exist": true,
+    "raw_private_body_included": false,
+    "recommendation_is_bounded": true,
+    "root_statuses_fail_closed": true
+  },
+  "markdown_root_scope_plan": [
+    {
+      "allowed_indexing": "none_until_explicit_root_allowlist",
+      "body_ingestion_allowed": false,
+      "current_status": "REQUIRES_OPERATOR_APPROVAL",
+      "next_safe_move": "Ask operator whether this root belongs in the Markdown universe before any metadata run.",
+      "operator_approval_required": true,
+      "reason": "Registered as a placeholder, not as an indexed Markdown source.",
+      "root_id": "client_project_root",
+      "root_kind": "client_project_root",
+      "root_path": "not_scanned://client/project_root",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "none_until_explicit_root_allowlist",
+      "body_ingestion_allowed": false,
+      "current_status": "REQUIRES_OPERATOR_APPROVAL",
+      "next_safe_move": "Ask operator whether this root belongs in the Markdown universe before any metadata run.",
+      "operator_approval_required": true,
+      "reason": "Registered as a placeholder, not as an indexed Markdown source.",
+      "root_id": "client_runtime_root",
+      "root_kind": "client_runtime_root",
+      "root_path": "not_scanned://client/runtime_root",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "none_until_explicit_root_allowlist",
+      "body_ingestion_allowed": false,
+      "current_status": "REQUIRES_OPERATOR_APPROVAL",
+      "next_safe_move": "Ask operator whether this root belongs in the Markdown universe before any metadata run.",
+      "operator_approval_required": true,
+      "reason": "Registered as a placeholder, not as an indexed Markdown source.",
+      "root_id": "github_legacy_openclaw",
+      "root_kind": "legacy_git_repo",
+      "root_path": "not_imported://github/legacy_openclaw",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "existing_metadata_only_path_classification",
+      "body_ingestion_allowed": false,
+      "current_status": "CURRENTLY_COVERED",
+      "next_safe_move": "Re-run metadata-only Atlas on existing registered roots if a refresh is needed.",
+      "operator_approval_required": false,
+      "reason": "Registered corpus root included in the latest Markdown Atlas source run.",
+      "root_id": "mac_generated_read_models",
+      "root_kind": "generated_read_model_mirror",
+      "root_path": "/Users/hwinshipwheatley/openclaw_generated_read_models",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "existing_metadata_only_path_classification",
+      "body_ingestion_allowed": false,
+      "current_status": "CURRENTLY_COVERED",
+      "next_safe_move": "Re-run metadata-only Atlas on existing registered roots if a refresh is needed.",
+      "operator_approval_required": false,
+      "reason": "Registered corpus root included in the latest Markdown Atlas source run.",
+      "root_id": "mac_mission_control_app",
+      "root_kind": "app_repo",
+      "root_path": "/Users/hwinshipwheatley/Developer/OpenClawMissionControl/OpenClaw Mission Controle",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "none_until_explicit_root_allowlist",
+      "body_ingestion_allowed": false,
+      "current_status": "REQUIRES_OPERATOR_APPROVAL",
+      "next_safe_move": "Ask operator whether this root belongs in the Markdown universe before any metadata run.",
+      "operator_approval_required": true,
+      "reason": "Registered as a placeholder, not as an indexed Markdown source.",
+      "root_id": "mac_openclaw_mirror",
+      "root_kind": "operating_mirror",
+      "root_path": "unknown_until_operator_manifest://mac/openclaw_mirror",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "existing_metadata_only_path_classification",
+      "body_ingestion_allowed": false,
+      "current_status": "CURRENTLY_COVERED",
+      "next_safe_move": "Re-run metadata-only Atlas on existing registered roots if a refresh is needed.",
+      "operator_approval_required": false,
+      "reason": "Registered corpus root included in the latest Markdown Atlas source run.",
+      "root_id": "pc_wsl_home_openclaw",
+      "root_kind": "operating_home_repo",
+      "root_path": "/home/openclaw",
+      "source": "corpus_roots"
+    },
+    {
+      "allowed_indexing": "metadata_only_after_explicit_root_allowlist",
+      "body_ingestion_allowed": false,
+      "current_status": "CANDIDATE_METADATA_ONLY",
+      "next_safe_move": "Ask operator whether this exact root should be added to the corpus root allowlist.",
+      "operator_approval_required": true,
+      "reason": "Specific known OpenClaw E-drive path exists, but it is not registered in current corpus roots.",
+      "root_id": "pc_e_drive_openclaw_candidate",
+      "root_kind": "known_openclaw_shuttle_or_mirror_root",
+      "root_path": "/mnt/e/openclaw",
+      "source": "scope_plan"
+    },
+    {
+      "allowed_indexing": "none",
+      "body_ingestion_allowed": false,
+      "current_status": "BLOCKED_PRIVATE",
+      "next_safe_move": "Require explicit narrow subfolder approval before metadata indexing.",
+      "operator_approval_required": true,
+      "reason": "Whole home folders are too broad and may contain private unrelated material.",
+      "root_id": "broad_operator_home_blocked",
+      "root_kind": "broad_private_root",
+      "root_path": "operator_home_wide",
+      "source": "scope_plan"
+    },
+    {
+      "allowed_indexing": "none_until_operator_approved_manifest",
+      "body_ingestion_allowed": false,
+      "current_status": "REQUIRES_OPERATOR_APPROVAL",
+      "next_safe_move": "Ask operator whether these surfaces are included or excluded.",
+      "operator_approval_required": true,
+      "reason": "Mac personal folders require explicit operator root approval and Mac-side manifest handling.",
+      "root_id": "mac_desktop_documents_downloads_blocked",
+      "root_kind": "mac_personal_surface",
+      "root_path": "mac_desktop_documents_downloads",
+      "source": "scope_plan"
+    },
+    {
+      "allowed_indexing": "none",
+      "body_ingestion_allowed": false,
+      "current_status": "BLOCKED_C_DRIVE",
+      "next_safe_move": "Do not scan; require a separate explicit approval path if ever reconsidered.",
+      "operator_approval_required": true,
+      "reason": "C-drive indexing is blocked in this lane.",
+      "root_id": "windows_c_drive_blocked",
+      "root_kind": "windows_system_drive",
+      "root_path": "windows_c_drive_mount",
+      "source": "scope_plan"
+    },
+    {
+      "allowed_indexing": "none",
+      "body_ingestion_allowed": false,
+      "current_status": "BLOCKED_SYSTEM",
+      "next_safe_move": "Keep blocked.",
+      "operator_approval_required": true,
+      "reason": "System-wide roots are unrelated to the Markdown Atlas scope and too broad.",
+      "root_id": "system_roots_blocked",
+      "root_kind": "system_root",
+      "root_path": "system_roots_wide",
+      "source": "scope_plan"
+    }
+  ],
+  "markdown_universe_gap_model": [
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "PARTIALLY_COVERED_BY_REGISTERED_ROOTS",
+      "description": "Repo A Markdown already visible through registered corpus/Markdown Atlas metadata.",
+      "gap_id": "repo_a_known_markdown",
+      "known_or_inferred": "known",
+      "promotion_policy": "Do not promote as truth without source-card/proof review.",
+      "requires_operator_root_approval": false,
+      "safe_next_step": "Refresh metadata-only Atlas on existing registered roots.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "NOT_COVERED_FAIL_CLOSED",
+      "description": "Repo B Markdown may exist as reference terrain but is outside this lane.",
+      "gap_id": "repo_b_reference_markdown",
+      "known_or_inferred": "inferred",
+      "promotion_policy": "Reference-only until security delta and operator approval.",
+      "requires_operator_root_approval": true,
+      "safe_next_step": "Require explicit Repo B root approval and reference-only policy.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "COVERED_AS_IMPORTED_METADATA_ONLY_WHEN_REGISTERED",
+      "description": "Mac app Markdown is represented only through imported manifest metadata.",
+      "gap_id": "mac_app_markdown",
+      "known_or_inferred": "known",
+      "promotion_policy": "App docs remain metadata until explicit Mac-side approval.",
+      "requires_operator_root_approval": true,
+      "safe_next_step": "Keep Mac-side body access blocked; use manifest/root receipts only.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "PARTIALLY_COVERED_METADATA_ONLY",
+      "description": "Handoff Markdown may contain operational memory and stale instructions.",
+      "gap_id": "handoff_markdown",
+      "known_or_inferred": "known_or_inferred",
+      "promotion_policy": "Candidate memory/proof only after reconciliation.",
+      "requires_operator_root_approval": false,
+      "safe_next_step": "Classify by path metadata first; do not treat as current doctrine.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "PARTIALLY_COVERED_METADATA_ONLY",
+      "description": "Old prompts are useful history but can conflict with current law.",
+      "gap_id": "old_prompt_markdown",
+      "known_or_inferred": "known_or_inferred",
+      "promotion_policy": "Never promote stale prompts without proof and operator review.",
+      "requires_operator_root_approval": false,
+      "safe_next_step": "Label as history/candidate doctrine/residue before semantic review.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "PARTIALLY_COVERED_METADATA_ONLY",
+      "description": "Doctrine Markdown may be canonical, stale, superseded, or duplicate.",
+      "gap_id": "doctrine_markdown",
+      "known_or_inferred": "known",
+      "promotion_policy": "Canonical only after deterministic source-card/security review.",
+      "requires_operator_root_approval": false,
+      "safe_next_step": "Use current runtime law and receipts as promotion gates.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "COVERED_AS_GENERATED_OUTPUT_METADATA",
+      "description": "Generated read-model/operator Markdown is machine output, not human-authored doctrine.",
+      "gap_id": "generated_operator_markdown",
+      "known_or_inferred": "known",
+      "promotion_policy": "Generated-surface-only; do not mine as personal memory.",
+      "requires_operator_root_approval": false,
+      "safe_next_step": "Exclude from human-authored Markdown analysis unless specifically requested.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "UNKNOWN_FAIL_CLOSED",
+      "description": "Personal notes may exist outside approved roots.",
+      "gap_id": "personal_notes_unknown",
+      "known_or_inferred": "inferred",
+      "promotion_policy": "Blocked until root approval; answers become memory candidates, not proof.",
+      "requires_operator_root_approval": true,
+      "safe_next_step": "Ask operator for explicit narrow roots and sensitivity boundaries.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "UNKNOWN_FAIL_CLOSED",
+      "description": "External-drive Markdown may exist but is not approved by this lane.",
+      "gap_id": "external_drive_unknown",
+      "known_or_inferred": "inferred",
+      "promotion_policy": "Blocked until exact root approval and metadata-only policy.",
+      "requires_operator_root_approval": true,
+      "safe_next_step": "Ask operator for exact root allowlist before metadata indexing.",
+      "semantic_review_allowed_now": false
+    },
+    {
+      "body_ingestion_allowed": false,
+      "current_coverage_status": "UNKNOWN_FAIL_CLOSED",
+      "description": "Desktop/Downloads Markdown may include private or transient files.",
+      "gap_id": "desktop_downloads_unknown",
+      "known_or_inferred": "inferred",
+      "promotion_policy": "Blocked unless explicitly scoped.",
+      "requires_operator_root_approval": true,
+      "safe_next_step": "Ask whether these areas are included or excluded.",
+      "semantic_review_allowed_now": false
+    }
+  ],
+  "operator_questions": [
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_01",
+      "question_text": "Which roots should be considered part of Winship's Markdown universe?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_02",
+      "question_text": "Are Mac Desktop, Documents, and Downloads included or excluded?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_03",
+      "question_text": "Are external drives included or excluded?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_04",
+      "question_text": "Is Repo B Markdown reference-only?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_05",
+      "question_text": "Should old prompts be preserved as history, candidate doctrine, or residue?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_06",
+      "question_text": "Which Markdown folders are sensitive/private?"
+    },
+    {
+      "answer_becomes": "memory_candidate_not_proof",
+      "question_id": "markdown_scope_question_07",
+      "question_text": "Should generated read-model/operator Markdown be excluded from human-authored Markdown analysis?"
+    }
+  ],
+  "read_model_id": "markdown_atlas_scope_expansion",
+  "recommended_next_atlas_expansion": {
+    "allowed_indexing": "path_metadata_filenames_extensions_timestamps_sizes_existing_corpus_metadata_only",
+    "body_ingestion_allowed": false,
+    "do_not_include_without_operator_approval": [
+      "/mnt/e/openclaw",
+      "operator_home_wide",
+      "mac_desktop_documents_downloads",
+      "windows_c_drive_mount"
+    ],
+    "include_root_ids": [
+      "mac_generated_read_models",
+      "mac_mission_control_app",
+      "pc_wsl_home_openclaw"
+    ],
+    "next_safe_move": "Run metadata-only on existing registered roots; ask one root-allowlist question before adding any new root.",
+    "private_or_broad_root_scan_allowed": false,
+    "recommendation": "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS",
+    "semantic_review_allowed_now": false,
+    "vector_index_creation_allowed": false,
+    "why": "It refreshes the already-approved metadata surface before adding broader roots."
+  },
+  "schema_version": "markdown_atlas_scope_expansion_v0"
+}

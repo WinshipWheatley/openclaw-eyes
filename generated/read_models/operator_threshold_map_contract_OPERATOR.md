@@ -35,7 +35,7 @@ Required before security audit:
 - `model_router`: `NEEDS_DISCOVERY_CLASSIFICATION` / `SECURITY_AUDIT_REQUIRED` -> helm/proof - Audit router metadata and unknown-actor fail-closed behavior.
 - `future_domain_workflow_lanes`: `PARKED_WITH_PROOF` / `HOLDING_CELL` -> Future worlds - Keep parked with dependency markers and review them in briefing surfaces.
 - `check_engine`: `READY_FOR_SECURITY_AUDIT` / `QUIET_BACKEND_RESOLVED` -> helm/proof - Show the light only when system/workbench degradation materially affects work.
-- `check_transmission`: `NEEDS_SOURCE_TRUTH_RECONCILIATION` / `QUIET_BACKEND_RESOLVED` -> helm/proof - If app still shows red while sync_health is trusted/current, classify it as a Mac source-truth readback bug for Mac Codex later.
+- `check_transmission`: `NEEDS_PROOF` / `QUIET_BACKEND_RESOLVED` -> helm/proof - If app still shows red while sync_health is trusted/current, classify it as a Mac source-truth readback bug for Mac Codex later.
 - `resources`: `NEEDS_CONTEXT` / `QUIET_BACKEND_RESOLVED` -> helm/proof - Define resource posture read-model thresholds without live monitoring or cleanup authority.
 - `parking_brake`: `READY_FOR_SECURITY_AUDIT` / `SECURITY_AUDIT_REQUIRED` -> helm/proof - Render as ON_NORMAL or equivalent, with proof behind drill-in.
 - `traction_control`: `READY_FOR_SECURITY_AUDIT` / `PARK_WITH_PROOF` -> helm/proof - Audit confidence/detour fields in package and lane templates.
@@ -129,10 +129,10 @@ Required before security audit:
 - Backend-only resolved issues: Backend-only issues should disappear from the helm or remain only as quiet proof.
 
 ## Check Transmission Source-Truth Note
-- sync_health trusted/current: `true`
-- system health taxonomy Check Transmission status: `ON`
-- source-truth conflict detected in read-models: `true`
-- If the app still shows red, classify it as a Mac readback conflict for Mac Codex later.
+- sync_health trusted/current: `false`
+- system health taxonomy Check Transmission status: `WARNING`
+- source-truth conflict detected in read-models: `false`
+- App-visible interpretation: If the app shows red now, it reflects the current canonical mirror gap until the normal Mac sync returns the missing files.
 
 ## What Makes The Helm Quiet
 - health lights reflect current source truth and are quiet unless material

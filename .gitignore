@@ -831,6 +831,7 @@
 !operator_attention_promotion_contract.py
 !chief_test_harness_cross_off_receipt_contract.py
 !capital_hilton_protected_proof_intake.py
+!markdown_atlas_scope_expansion.py
 !capital_hilton_answer_candidate_receipt.py
 !capital_hilton_protected_reference_placeholder.py
 !capital_hilton_proof_resolution_batch_manifest.py
@@ -865,6 +866,7 @@
 !scripts/export_operator_attention_promotion_contract.py
 !scripts/export_chief_test_harness_cross_off_receipt_contract.py
 !scripts/export_capital_hilton_protected_proof_intake.py
+!scripts/export_markdown_atlas_scope_expansion.py
 !scripts/export_capital_hilton_answer_candidate_receipt.py
 !scripts/export_capital_hilton_protected_reference_placeholder.py
 !scripts/export_capital_hilton_proof_resolution_batch_manifest.py
@@ -891,6 +893,7 @@
 !tests/test_operator_attention_promotion_contract.py
 !tests/test_chief_test_harness_cross_off_receipt_contract.py
 !tests/test_capital_hilton_protected_proof_intake.py
+!tests/test_markdown_atlas_scope_expansion.py
 !tests/test_capital_hilton_answer_candidate_receipt.py
 !tests/test_capital_hilton_protected_reference_placeholder.py
 !tests/test_capital_hilton_proof_resolution_batch_manifest.py

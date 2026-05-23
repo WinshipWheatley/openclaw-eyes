@@ -1352,6 +1352,19 @@ def _source_truth_note(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     taxonomy_status = _taxonomy_transmission_status(lights)
     trusted = _sync_is_trusted_current(sync)
     conflict = trusted and taxonomy_status in {"ON", "WARNING"}
+    missing_expected = sync.get("missing_expected") or 0
+    if conflict:
+        app_visible_interpretation = "If the app still shows red, classify it as a Mac Mission Control source-truth/readback conflict, not bridge failure."
+        fix_owner = "Mac Codex"
+        action_now = "classify only; do not mutate app code, repair sync, or run sync scripts from this threshold contract"
+    elif sync and missing_expected:
+        app_visible_interpretation = "If the app shows red now, it reflects the current canonical mirror gap until the normal Mac sync returns the missing files."
+        fix_owner = "Mac read-model sync agent / PC import proof lifecycle"
+        action_now = "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion"
+    else:
+        app_visible_interpretation = "No Check Transmission source-truth conflict is detected from current Repo A proof."
+        fix_owner = "none"
+        action_now = "no threshold-map source-truth repair is needed"
     return {
         "note_id": "check_transmission_source_truth_note",
         "canonical_sync_health_status": {
@@ -1365,9 +1378,9 @@ def _source_truth_note(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "system_health_taxonomy_check_transmission_status": taxonomy_status,
         "visible_mac_app_state_observed_in_this_lane": False,
         "source_truth_conflict_detected_in_read_models": conflict,
-        "if_app_still_shows_red": "classify as Mac Mission Control source-truth/readback conflict, not bridge failure",
-        "fix_owner_later": "Mac Codex",
-        "action_now": "classify only; do not mutate app code, repair sync, or run sync scripts",
+        "app_visible_interpretation": app_visible_interpretation,
+        "fix_owner_later": fix_owner,
+        "action_now": action_now,
     }
 
 
@@ -1641,7 +1654,7 @@ def format_operator_threshold_map_contract(payload: dict[str, Any]) -> str:
     lines.append(
         f"- source-truth conflict detected in read-models: `{str(note['source_truth_conflict_detected_in_read_models']).lower()}`"
     )
-    lines.append("- If the app still shows red, classify it as a Mac readback conflict for Mac Codex later.")
+    lines.append(f"- App-visible interpretation: {note['app_visible_interpretation']}")
     lines.extend(["", "## What Makes The Helm Quiet"])
     for item in payload["what_makes_the_helm_quiet"]:
         lines.append(f"- {item}")

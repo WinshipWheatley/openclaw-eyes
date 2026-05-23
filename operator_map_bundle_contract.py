@@ -77,11 +77,13 @@ CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH = "generated/read_models
 CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH = "generated/read_models/capital_hilton_protected_reference_placeholder.json"
 CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH = "generated/read_models/capital_hilton_guardian_review_packet.json"
 CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+CAPITAL_HILTON_COUPA_PO_RETRIEVAL_AUTOMATION_CANDIDATE_READ_MODEL_PATH = "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json"
 OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
 OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_query_contract.json"
 OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_relationship_index.json"
 OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_classification_candidate.json"
 OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_gap_detector.json"
+MARKDOWN_ATLAS_SCOPE_EXPANSION_READ_MODEL_PATH = "generated/read_models/markdown_atlas_scope_expansion.json"
 MAKE_WINSHIP_LIFE_EASIER_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/make_winship_life_easier_batch_manifest.json"
 OPERATOR_WORK_MODE_SCHEMA_BANDWIDTH_POLICY_READ_MODEL_PATH = "generated/read_models/operator_work_mode_schema_bandwidth_policy.json"
 OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_solve_path_decision_node_contract.json"
@@ -201,6 +203,11 @@ ESSENTIAL_SURFACES = (
         "role": "Capital Hilton proof quieting and progress-state contract for the 10 proof gaps",
     },
     {
+        "surface_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+        "path": CAPITAL_HILTON_COUPA_PO_RETRIEVAL_AUTOMATION_CANDIDATE_READ_MODEL_PATH,
+        "role": "Capital Hilton Coupa/PO retrieval automation candidate with no current external authority",
+    },
+    {
         "surface_id": "openclaw_work_terrain_reconciliation_batch_manifest",
         "path": OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH,
         "role": "Work Terrain reconciliation backend batch closure state and Mac import handoff",
@@ -224,6 +231,11 @@ ESSENTIAL_SURFACES = (
         "surface_id": "openclaw_work_terrain_gap_detector",
         "path": OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
         "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
+    },
+    {
+        "surface_id": "markdown_atlas_scope_expansion",
+        "path": MARKDOWN_ATLAS_SCOPE_EXPANSION_READ_MODEL_PATH,
+        "role": "metadata-only Markdown Atlas scope expansion plan and root-approval guardrails",
     },
     {
         "surface_id": "make_winship_life_easier_batch",
@@ -2133,6 +2145,56 @@ def _summarize_capital_hilton_proof_quieting_progress_state(payload: dict[str, A
     }
 
 
+def _summarize_capital_hilton_coupa_po_retrieval_automation_candidate(payload: dict[str, Any]) -> dict[str, Any]:
+    candidates = payload.get("automation_candidates") if isinstance(payload.get("automation_candidates"), list) else []
+    gates = payload.get("readiness_gates") if isinstance(payload.get("readiness_gates"), list) else []
+    stop_conditions = payload.get("stop_conditions") if isinstance(payload.get("stop_conditions"), list) else []
+    trial_ladder = payload.get("trial_ladder") if isinstance(payload.get("trial_ladder"), list) else []
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    candidate = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+    relationship = (
+        payload.get("relationship_to_capital_hilton_proof_resolution")
+        if isinstance(payload.get("relationship_to_capital_hilton_proof_resolution"), dict)
+        else {}
+    )
+    return {
+        "section_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+        "source_read_model_ref": CAPITAL_HILTON_COUPA_PO_RETRIEVAL_AUTOMATION_CANDIDATE_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_status": payload.get("contract_status"),
+        "candidate_count": len(candidates),
+        "readiness_gate_count": len(gates),
+        "stop_condition_count": len(stop_conditions),
+        "trial_stage_count": len(trial_ladder),
+        "default_candidate_id": candidate.get("candidate_id"),
+        "automation_status": candidate.get("automation_status"),
+        "automation_stage": candidate.get("automation_stage"),
+        "current_manual_fallback": candidate.get("current_manual_fallback"),
+        "proof_item_id_supported": relationship.get("proof_item_id_supported"),
+        "proof_satisfied_now": relationship.get("proof_satisfied_now") is True,
+        "lookup_receipt_created_now": relationship.get("lookup_receipt_created_now") is True,
+        "manual_fallback_modeled": machine.get("manual_fallback_modeled") is True,
+        "supervised_and_autonomous_candidates_modeled_future_gated": (
+            machine.get("supervised_and_autonomous_candidates_modeled_future_gated") is True
+        ),
+        "future_candidate_flags_do_not_grant_authority": (
+            machine.get("future_candidate_flags_do_not_grant_authority") is True
+        ),
+        "no_coupa_browser_network_authority": machine.get("no_coupa_browser_network_authority") is True,
+        "no_credential_storage": machine.get("no_credential_storage") is True,
+        "no_invoice_send_submit_ledger_authority": (
+            machine.get("no_invoice_send_submit_ledger_authority") is True
+        ),
+        "all_current_authority_flags_false": machine.get("all_current_authority_flags_false") is True,
+        "action_authority_granted": machine.get("all_current_authority_flags_false") is not True,
+        "next_safe_move": "Keep manual fallback available; no Coupa/browser/network/credential access or invoice/send/submit action.",
+    }
+
+
 def _summarize_openclaw_work_terrain_reconciliation_batch(payload: dict[str, Any]) -> dict[str, Any]:
     lanes_completed = (
         payload.get("lanes_completed") if isinstance(payload.get("lanes_completed"), list) else []
@@ -2330,6 +2392,66 @@ def _summarize_openclaw_work_terrain_gap_detector(payload: dict[str, Any]) -> di
             and policy.get("auto_implementation_allowed") is False
         ),
         "action_authority_granted": boundary.get("action_authority_granted") is True,
+    }
+
+
+def _summarize_markdown_atlas_scope_expansion(payload: dict[str, Any]) -> dict[str, Any]:
+    coverage = (
+        payload.get("current_markdown_atlas_coverage")
+        if isinstance(payload.get("current_markdown_atlas_coverage"), dict)
+        else {}
+    )
+    root_scope = (
+        payload.get("markdown_root_scope_plan")
+        if isinstance(payload.get("markdown_root_scope_plan"), list)
+        else []
+    )
+    gaps = (
+        payload.get("markdown_universe_gap_model")
+        if isinstance(payload.get("markdown_universe_gap_model"), list)
+        else []
+    )
+    recommendation = (
+        payload.get("recommended_next_atlas_expansion")
+        if isinstance(payload.get("recommended_next_atlas_expansion"), dict)
+        else {}
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "markdown_atlas_scope_expansion",
+        "source_read_model_ref": MARKDOWN_ATLAS_SCOPE_EXPANSION_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/markdown_atlas_scope_expansion_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "contract_status": payload.get("contract_status"),
+        "sqlite_present": coverage.get("sqlite_present") is True,
+        "corpus_roots_count": coverage.get("corpus_roots_count"),
+        "markdown_documents_count": coverage.get("markdown_documents_count"),
+        "markdown_classifications_count": coverage.get("markdown_classifications_count"),
+        "root_scope_records_count": len(root_scope),
+        "gap_records_count": len(gaps),
+        "recommended_next_run": recommendation.get("recommendation"),
+        "body_ingestion_allowed": recommendation.get("body_ingestion_allowed") is True,
+        "private_or_broad_root_scan_allowed": recommendation.get("private_or_broad_root_scan_allowed") is True,
+        "semantic_review_allowed_now": recommendation.get("semantic_review_allowed_now") is True,
+        "vector_index_creation_allowed": recommendation.get("vector_index_creation_allowed") is True,
+        "metadata_only_posture": machine.get("metadata_only_posture") is True,
+        "no_broad_body_ingestion": machine.get("no_broad_body_ingestion") is True,
+        "no_private_root_approval_by_default": machine.get("no_private_root_approval_by_default") is True,
+        "no_c_drive_scanning": machine.get("no_c_drive_scanning") is True,
+        "no_file_moves_deletes_renames": machine.get("no_file_moves_deletes_renames") is True,
+        "operator_questions_exist": machine.get("operator_questions_exist") is True,
+        "action_authority_granted": not (
+            boundary.get("all_action_authority_flags_false") is True
+            and boundary.get("broad_raw_markdown_body_ingestion_allowed") is False
+            and boundary.get("broad_private_filesystem_scan_allowed") is False
+            and boundary.get("file_move_allowed") is False
+            and boundary.get("file_delete_allowed") is False
+            and boundary.get("model_api_execution_allowed") is False
+        ),
+        "next_safe_move": recommendation.get("next_safe_move"),
     }
 
 
@@ -2839,6 +2961,10 @@ def build_openclaw_map_snapshot(
         CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    capital_hilton_coupa_po_retrieval_automation_candidate = _read_json_if_present(
+        CAPITAL_HILTON_COUPA_PO_RETRIEVAL_AUTOMATION_CANDIDATE_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     openclaw_work_terrain_reconciliation_batch = _read_json_if_present(
         OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH,
         repo_root=repo_root,
@@ -2857,6 +2983,10 @@ def build_openclaw_map_snapshot(
     )
     openclaw_work_terrain_gap_detector = _read_json_if_present(
         OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    markdown_atlas_scope_expansion = _read_json_if_present(
+        MARKDOWN_ATLAS_SCOPE_EXPANSION_READ_MODEL_PATH,
         repo_root=repo_root,
     )
     make_winship_life_easier_batch = _read_json_if_present(
@@ -2942,6 +3072,9 @@ def build_openclaw_map_snapshot(
         "capital_hilton_proof_quieting_progress_state": _summarize_capital_hilton_proof_quieting_progress_state(
             capital_hilton_proof_quieting_progress_state
         ),
+        "capital_hilton_coupa_po_retrieval_automation_candidate": _summarize_capital_hilton_coupa_po_retrieval_automation_candidate(
+            capital_hilton_coupa_po_retrieval_automation_candidate
+        ),
         "openclaw_work_terrain_reconciliation_batch": _summarize_openclaw_work_terrain_reconciliation_batch(
             openclaw_work_terrain_reconciliation_batch
         ),
@@ -2956,6 +3089,9 @@ def build_openclaw_map_snapshot(
         ),
         "openclaw_work_terrain_gap_detector": _summarize_openclaw_work_terrain_gap_detector(
             openclaw_work_terrain_gap_detector
+        ),
+        "markdown_atlas_scope_expansion": _summarize_markdown_atlas_scope_expansion(
+            markdown_atlas_scope_expansion
         ),
         "make_winship_life_easier_batch": _summarize_make_winship_life_easier_batch(
             make_winship_life_easier_batch
@@ -3242,6 +3378,10 @@ def build_operator_map_bundle_contract(
             "capital_hilton_progress_missing_proof_count": snapshot["capital_hilton_proof_quieting_progress_state"]["missing_proof_count"],
             "capital_hilton_automatic_quieting_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_quieting_allowed"],
             "capital_hilton_automatic_progression_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_progression_allowed"],
+            "capital_hilton_coupa_po_automation_candidate_present": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["present"],
+            "capital_hilton_coupa_po_readiness_gate_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["readiness_gate_count"],
+            "capital_hilton_coupa_po_stop_condition_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["stop_condition_count"],
+            "capital_hilton_coupa_po_trial_stage_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["trial_stage_count"],
             "openclaw_work_terrain_reconciliation_batch_present": snapshot["openclaw_work_terrain_reconciliation_batch"]["present"],
             "openclaw_work_terrain_reconciliation_batch_status": snapshot["openclaw_work_terrain_reconciliation_batch"]["batch_status"],
             "openclaw_work_terrain_completed_lanes_count": snapshot["openclaw_work_terrain_reconciliation_batch"]["completed_lanes_count"],
@@ -3251,6 +3391,9 @@ def build_operator_map_bundle_contract(
             "openclaw_work_terrain_gap_examples_count": snapshot["openclaw_work_terrain_gap_detector"]["gap_examples_count"],
             "openclaw_work_terrain_negative_filters_count": snapshot["openclaw_work_terrain_gap_detector"]["negative_filters_count"],
             "openclaw_work_terrain_built_status_validation_rule_count": snapshot["openclaw_work_terrain_gap_detector"]["built_status_validation_rule_count"],
+            "markdown_atlas_scope_expansion_present": snapshot["markdown_atlas_scope_expansion"]["present"],
+            "markdown_atlas_recommended_next_run": snapshot["markdown_atlas_scope_expansion"]["recommended_next_run"],
+            "markdown_atlas_body_ingestion_allowed": snapshot["markdown_atlas_scope_expansion"]["body_ingestion_allowed"],
             "make_winship_life_easier_batch_present": snapshot["make_winship_life_easier_batch"]["present"],
             "make_winship_life_easier_batch_status": snapshot["make_winship_life_easier_batch"]["batch_status"],
             "make_winship_life_easier_completed_lanes_count": snapshot["make_winship_life_easier_batch"]["completed_lanes_count"],
@@ -3549,6 +3692,23 @@ def build_operator_map_bundle_contract(
             "action_authority_granted": snapshot["capital_hilton_proof_quieting_progress_state"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "capital_hilton_coupa_po_retrieval_automation_candidate_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["present"],
+            "contract_status": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["contract_status"],
+            "candidate_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["candidate_count"],
+            "readiness_gate_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["readiness_gate_count"],
+            "stop_condition_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["stop_condition_count"],
+            "trial_stage_count": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["trial_stage_count"],
+            "default_candidate_id": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["default_candidate_id"],
+            "automation_status": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["automation_status"],
+            "proof_item_id_supported": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["proof_item_id_supported"],
+            "proof_satisfied_now": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["proof_satisfied_now"],
+            "manual_fallback_modeled": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["manual_fallback_modeled"],
+            "future_candidate_flags_do_not_grant_authority": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["future_candidate_flags_do_not_grant_authority"],
+            "no_coupa_browser_network_authority": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["no_coupa_browser_network_authority"],
+            "action_authority_granted": snapshot["capital_hilton_coupa_po_retrieval_automation_candidate"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "openclaw_work_terrain_reconciliation_batch_integration": {
             "summary_included_in_snapshot": snapshot["openclaw_work_terrain_reconciliation_batch"]["present"],
             "batch_id": snapshot["openclaw_work_terrain_reconciliation_batch"]["batch_id"],
@@ -3601,6 +3761,23 @@ def build_operator_map_bundle_contract(
             "built_status_validation_present": snapshot["openclaw_work_terrain_gap_detector"]["built_status_validation_present"],
             "auto_archive_consolidation_stable_map_implementation_allowed": snapshot["openclaw_work_terrain_gap_detector"]["auto_archive_consolidation_stable_map_implementation_allowed"],
             "action_authority_granted": snapshot["openclaw_work_terrain_gap_detector"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "markdown_atlas_scope_expansion_integration": {
+            "summary_included_in_snapshot": snapshot["markdown_atlas_scope_expansion"]["present"],
+            "contract_status": snapshot["markdown_atlas_scope_expansion"]["contract_status"],
+            "sqlite_present": snapshot["markdown_atlas_scope_expansion"]["sqlite_present"],
+            "corpus_roots_count": snapshot["markdown_atlas_scope_expansion"]["corpus_roots_count"],
+            "markdown_documents_count": snapshot["markdown_atlas_scope_expansion"]["markdown_documents_count"],
+            "root_scope_records_count": snapshot["markdown_atlas_scope_expansion"]["root_scope_records_count"],
+            "gap_records_count": snapshot["markdown_atlas_scope_expansion"]["gap_records_count"],
+            "recommended_next_run": snapshot["markdown_atlas_scope_expansion"]["recommended_next_run"],
+            "body_ingestion_allowed": snapshot["markdown_atlas_scope_expansion"]["body_ingestion_allowed"],
+            "private_or_broad_root_scan_allowed": snapshot["markdown_atlas_scope_expansion"]["private_or_broad_root_scan_allowed"],
+            "semantic_review_allowed_now": snapshot["markdown_atlas_scope_expansion"]["semantic_review_allowed_now"],
+            "metadata_only_posture": snapshot["markdown_atlas_scope_expansion"]["metadata_only_posture"],
+            "no_c_drive_scanning": snapshot["markdown_atlas_scope_expansion"]["no_c_drive_scanning"],
+            "action_authority_granted": snapshot["markdown_atlas_scope_expansion"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
         "make_winship_life_easier_batch_integration": {
@@ -3846,6 +4023,11 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         if isinstance(snapshot.get("capital_hilton_proof_quieting_progress_state"), dict)
         else {}
     )
+    coupa_po_candidate = (
+        snapshot.get("capital_hilton_coupa_po_retrieval_automation_candidate", {})
+        if isinstance(snapshot.get("capital_hilton_coupa_po_retrieval_automation_candidate"), dict)
+        else {}
+    )
     work_terrain_batch = (
         snapshot.get("openclaw_work_terrain_reconciliation_batch", {})
         if isinstance(snapshot.get("openclaw_work_terrain_reconciliation_batch"), dict)
@@ -3869,6 +4051,11 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     work_terrain_gap = (
         snapshot.get("openclaw_work_terrain_gap_detector", {})
         if isinstance(snapshot.get("openclaw_work_terrain_gap_detector"), dict)
+        else {}
+    )
+    markdown_atlas_scope = (
+        snapshot.get("markdown_atlas_scope_expansion", {})
+        if isinstance(snapshot.get("markdown_atlas_scope_expansion"), dict)
         else {}
     )
     make_winship_batch = (
@@ -4048,6 +4235,22 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         f"- Action authority granted: `{str(progress_state.get('action_authority_granted')).lower()}`",
         "- The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.",
         "",
+        "### Coupa / PO Retrieval Automation Candidate",
+        "",
+        f"- Summary present: `{str(coupa_po_candidate.get('present')).lower()}`",
+        f"- Contract status: `{coupa_po_candidate.get('contract_status')}`",
+        f"- Candidates: `{coupa_po_candidate.get('candidate_count')}`",
+        f"- Readiness gates: `{coupa_po_candidate.get('readiness_gate_count')}`",
+        f"- Stop conditions: `{coupa_po_candidate.get('stop_condition_count')}`",
+        f"- Trial stages: `{coupa_po_candidate.get('trial_stage_count')}`",
+        f"- Automation status: `{coupa_po_candidate.get('automation_status')}`",
+        f"- Proof item supported: `{coupa_po_candidate.get('proof_item_id_supported')}`",
+        f"- Proof satisfied now: `{str(coupa_po_candidate.get('proof_satisfied_now')).lower()}`",
+        f"- Future flags grant authority: `{str(not coupa_po_candidate.get('future_candidate_flags_do_not_grant_authority', False)).lower()}`",
+        f"- Coupa/browser/network authority: `{str(not coupa_po_candidate.get('no_coupa_browser_network_authority', False)).lower()}`",
+        f"- Action authority granted: `{str(coupa_po_candidate.get('action_authority_granted')).lower()}`",
+        "- This is a future automation candidate only. Manual/guided capture remains the fallback; no portal access, credential handling, lookup, invoice generation, or submit/send action is enabled.",
+        "",
         "## OpenClaw Work Terrain Reconciliation Summary",
         "",
         "- ELIWINSHIP: Work Terrain lets OpenClaw ask focused questions about its own notes, contracts, tests, generated read-models, receipts, stable-map sections, and surfaces without blindly reading raw bodies or treating old notes as current truth.",
@@ -4103,6 +4306,23 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         f"- Auto archive/consolidation/stable-map promotion/implementation allowed: `{str(work_terrain_gap.get('auto_archive_consolidation_stable_map_implementation_allowed')).lower()}`",
         f"- Action authority granted: `{str(work_terrain_gap.get('action_authority_granted')).lower()}`",
         "- Gaps are review candidates, not automatic tasks. Old prompts, generated artifacts, reference-only material, premature concepts, and unsafe execution posture are filtered away from build-now interpretation.",
+        "",
+        "### Markdown Atlas Scope Expansion",
+        "",
+        f"- Summary present: `{str(markdown_atlas_scope.get('present')).lower()}`",
+        f"- Contract status: `{markdown_atlas_scope.get('contract_status')}`",
+        f"- SQLite present: `{str(markdown_atlas_scope.get('sqlite_present')).lower()}`",
+        f"- Corpus roots: `{markdown_atlas_scope.get('corpus_roots_count')}`",
+        f"- Markdown documents: `{markdown_atlas_scope.get('markdown_documents_count')}`",
+        f"- Root scope records: `{markdown_atlas_scope.get('root_scope_records_count')}`",
+        f"- Gap records: `{markdown_atlas_scope.get('gap_records_count')}`",
+        f"- Recommended next run: `{markdown_atlas_scope.get('recommended_next_run')}`",
+        f"- Body ingestion allowed: `{str(markdown_atlas_scope.get('body_ingestion_allowed')).lower()}`",
+        f"- Broad/private root scan allowed: `{str(markdown_atlas_scope.get('private_or_broad_root_scan_allowed')).lower()}`",
+        f"- Semantic review allowed now: `{str(markdown_atlas_scope.get('semantic_review_allowed_now')).lower()}`",
+        f"- C-drive scanning allowed: `{str(not markdown_atlas_scope.get('no_c_drive_scanning', False)).lower()}`",
+        f"- Action authority granted: `{str(markdown_atlas_scope.get('action_authority_granted')).lower()}`",
+        "- This is an Atlas planning/readback surface. It does not scan private folders, ingest Markdown bodies, move files, create vectors, or promote old notes as truth.",
         "",
         "### Capital Hilton Candidate Facts",
         "",

@@ -225,6 +225,13 @@ def test_engine_is_not_used_as_bridge_catchall_when_transmission_owns_fault(tmp_
     assert engine["current_state_kind"] == "fault"
     assert engine["current_evidence"]["bridge_fault_owned_by_check_transmission"] is True
     assert engine["current_evidence"]["legacy_chief_posture_still_on"] is True
+    assert "bridge/import issue exists" not in engine["current_reason"]
+    assert "source-truth" in engine["current_reason"]
+    assert any(
+        "resource pressure was previously observed" in cause
+        for cause in engine["current_evidence"]["current_remaining_causes"]
+    )
+    assert "RD Client trace-growth remains a maintenance risk" in engine["current_evidence"]["current_remaining_causes"]
     assert "Chief diagnostic/system health lane" == engine["opens_lane"]
     assert "fresh machine proof should beat stale operator-reported bridge facts" in payload["field_observation_upgrade"]["source_precedence_rule"]
 
