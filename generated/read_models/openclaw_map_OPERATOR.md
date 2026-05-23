@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_718c9568c3aa9f280f09`
-- Bundle hash: `sha256:53657e1815e854d6d821ba4649f61f48b0d3fd8bcac6ce095cb0af5dbe9ecdc7`
+- Map generation: `map_f47cef0e17a00622c5a2`
+- Bundle hash: `sha256:f6c9dbcdc5a014714f2fd24a0cdc8a3a855112995297a024eee3bdb1c46a661e`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `279`
+- Raw canonical expected: `291`
 - Raw observed: `218`
-- Raw missing expected: `61`
+- Raw missing expected: `73`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -214,6 +214,72 @@
 - `world_transition_needed`: Should the invoice go through Coupa only, email/AP contact, or another payment route?
 - `security_gate_needed`: Is there any protected client material that must be represented only as metadata?
 - `world_transition_needed`: What would convince you the invoice is ready to move from helm threshold lane into Finance World action?
+
+## Make Winship Life Easier Workflow Layer
+
+- ELIWINSHIP: this layer turns machine contracts into human solve paths. The app should show the few things that need Winship, the cleanest next move, and proof/details one level down.
+- Batch present: `true`
+- Batch status: `COMPLETE_PENDING_STABLE_MAP_IMPORT`
+- Completed lanes: `5`
+- Next expected actor: `mac_map_import_agent`
+- Machine contracts remain substrate: `true`
+- Action authority granted: `false`
+
+### Work Modes / Bandwidth
+
+- Summary present: `true`
+- Helm default bandwidth: `LOW_BANDWIDTH`
+- Bandwidth modes: `LOW_BANDWIDTH, NORMAL_BANDWIDTH, HIGH_BANDWIDTH, DEBUG_MODE`
+- Work mode types: `10`
+- Issue classifications: `11`
+- Work mode instances: `6`
+- Machine contracts not default app surface: `true`
+- Helm declutter policy present: `true`
+
+### Solve Paths / Decision Nodes
+
+- Summary present: `true`
+- Solve paths: `5`
+- Decision nodes: `8`
+- Choices: `21`
+- Receipt targets: `9`
+- Capital Hilton low-bandwidth move: `Pick what is true about the invoice.`
+- Receipt targets modeled, not written: `true`
+- LM cannot create choices: `true`
+
+### Guided Capture / Protected Evidence
+
+- Summary present: `true`
+- Capture paths: `7`
+- Capture moments: `7`
+- Privacy guards: `8`
+- Capital Hilton Coupa/PO capture path present: `true`
+- Targeted capture preferred: `true`
+- Credentials capture blocked: `true`
+- Raw body capture blocked: `true`
+
+### Workflow Sessions / Approval Bus
+
+- Summary present: `true`
+- Workflow sessions: `5`
+- Channel projections: `19`
+- Approval buses: `5`
+- Finance World and Telegram same session: `true`
+- Single approval object invariant: `true`
+- Stale approval invalidation required: `true`
+
+### Automation Readiness / Feasibility
+
+- Summary present: `true`
+- Bottleneck assessments: `6`
+- Readiness evaluations: `4`
+- Infrastructure candidates: `10`
+- Dead-on-arrival criteria: `10`
+- Capital Hilton Coupa/PO bottleneck present: `true`
+- Near-term Coupa/PO path: `build assisted capture first`
+- Coupa/PO source read-model ref: `generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json`
+- Manual fallback treated as target: `false`
+- Action authority granted: `false`
 
 ## Security Audit Readiness Summary
 

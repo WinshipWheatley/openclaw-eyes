@@ -82,6 +82,12 @@ OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH = "generated/read_models/op
 OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_relationship_index.json"
 OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_classification_candidate.json"
 OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_gap_detector.json"
+MAKE_WINSHIP_LIFE_EASIER_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/make_winship_life_easier_batch_manifest.json"
+OPERATOR_WORK_MODE_SCHEMA_BANDWIDTH_POLICY_READ_MODEL_PATH = "generated/read_models/operator_work_mode_schema_bandwidth_policy.json"
+OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_solve_path_decision_node_contract.json"
+GUIDED_CAPTURE_PROTECTED_EVIDENCE_PATH_CONTRACT_READ_MODEL_PATH = "generated/read_models/guided_capture_protected_evidence_path_contract.json"
+WORKFLOW_SESSION_CHANNEL_PROJECTION_APPROVAL_BUS_CONTRACT_READ_MODEL_PATH = "generated/read_models/workflow_session_channel_projection_approval_bus_contract.json"
+AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH = "generated/read_models/automation_readiness_feasibility_evaluator_contract.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -218,6 +224,36 @@ ESSENTIAL_SURFACES = (
         "surface_id": "openclaw_work_terrain_gap_detector",
         "path": OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
         "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
+    },
+    {
+        "surface_id": "make_winship_life_easier_batch",
+        "path": MAKE_WINSHIP_LIFE_EASIER_BATCH_MANIFEST_READ_MODEL_PATH,
+        "role": "Make Winship Life Easier app-wide workflow layer batch closure and Mac import handoff",
+    },
+    {
+        "surface_id": "operator_work_mode_schema_bandwidth_policy",
+        "path": OPERATOR_WORK_MODE_SCHEMA_BANDWIDTH_POLICY_READ_MODEL_PATH,
+        "role": "operator work modes, bandwidth policy, helm declutter, and machine-substrate boundary",
+    },
+    {
+        "surface_id": "operator_solve_path_decision_node_contract",
+        "path": OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH,
+        "role": "solve paths, decision nodes, deterministic choices, and receipt targets",
+    },
+    {
+        "surface_id": "guided_capture_protected_evidence_path_contract",
+        "path": GUIDED_CAPTURE_PROTECTED_EVIDENCE_PATH_CONTRACT_READ_MODEL_PATH,
+        "role": "guided capture paths, protected evidence artifact policy, outcomes, and privacy guards",
+    },
+    {
+        "surface_id": "workflow_session_channel_projection_approval_bus_contract",
+        "path": WORKFLOW_SESSION_CHANNEL_PROJECTION_APPROVAL_BUS_CONTRACT_READ_MODEL_PATH,
+        "role": "canonical workflow session, channel projections, approval bus, and stale approval prevention",
+    },
+    {
+        "surface_id": "automation_readiness_feasibility_evaluator_contract",
+        "path": AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH,
+        "role": "automation bottleneck, readiness, infrastructure, and dead-on-arrival feasibility summary",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -2297,6 +2333,219 @@ def _summarize_openclaw_work_terrain_gap_detector(payload: dict[str, Any]) -> di
     }
 
 
+def _summarize_make_winship_life_easier_batch(payload: dict[str, Any]) -> dict[str, Any]:
+    lanes_completed = (
+        payload.get("lanes_completed") if isinstance(payload.get("lanes_completed"), list) else []
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "make_winship_life_easier_batch",
+        "source_read_model_ref": MAKE_WINSHIP_LIFE_EASIER_BATCH_MANIFEST_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/make_winship_life_easier_batch_manifest_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_manifest_read_model_remains_proof_detail": True,
+        "batch_id": payload.get("batch_id"),
+        "batch_status": payload.get("batch_status"),
+        "completed_lanes_count": len(lanes_completed),
+        "completed_lanes": lanes_completed,
+        "next_expected_actor": payload.get("next_expected_actor"),
+        "low_bandwidth_human_interface_posture": True,
+        "machine_contracts_remain_substrate": True,
+        "stable_map_refresh_deferred": payload.get("stable_map_refresh_deferred"),
+        "commit_deferred_until_final_prompt": payload.get("commit_deferred_until_final_prompt"),
+        "all_authority_flags_false": machine.get("authority_boundary_false") is True
+        and all(value is False for value in boundary.values()),
+        "action_authority_granted": not (
+            machine.get("authority_boundary_false") is True
+            and all(value is False for value in boundary.values())
+        ),
+        "next_safe_move": "Mac map import agent should import the staged stable map bundle; no Mac import is performed by PC.",
+    }
+
+
+def _summarize_operator_work_mode_schema_bandwidth_policy(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    bandwidth_modes = (
+        payload.get("bandwidth_mode_ids") if isinstance(payload.get("bandwidth_mode_ids"), list) else []
+    )
+    work_mode_types = (
+        payload.get("work_mode_type_ids") if isinstance(payload.get("work_mode_type_ids"), list) else []
+    )
+    examples = payload.get("work_mode_instances_by_id") if isinstance(payload.get("work_mode_instances_by_id"), dict) else {}
+    return {
+        "section_id": "operator_work_mode_schema_bandwidth_policy",
+        "source_read_model_ref": OPERATOR_WORK_MODE_SCHEMA_BANDWIDTH_POLICY_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/operator_work_mode_schema_bandwidth_policy_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "helm_default_bandwidth_mode": payload.get("helm_default_bandwidth_mode"),
+        "bandwidth_modes": bandwidth_modes,
+        "bandwidth_mode_count": machine.get("bandwidth_mode_count", len(bandwidth_modes)),
+        "work_mode_type_count": machine.get("work_mode_type_count", len(work_mode_types)),
+        "issue_classification_count": machine.get("issue_classification_count"),
+        "work_mode_instance_count": machine.get("work_mode_instance_count"),
+        "low_normal_high_debug_policy_present": set(bandwidth_modes) >= {
+            "LOW_BANDWIDTH",
+            "NORMAL_BANDWIDTH",
+            "HIGH_BANDWIDTH",
+            "DEBUG_MODE",
+        },
+        "machine_contracts_not_default_app_surface": machine.get("machine_contracts_not_default_app_surface") is True,
+        "helm_declutter_policy_present": machine.get("helm_declutter_policy_present") is True,
+        "stable_map_exposure_policy_present": machine.get("stable_map_exposure_policy_present") is True,
+        "examples_present": {
+            key: key in examples
+            for key in (
+                "capital_hilton_invoice_work_mode",
+                "chief_terrain_reconciliation_work_mode",
+                "check_engine_diagnostic_work_mode",
+                "security_delta_review_work_mode",
+                "niles_struna_project_work_mode",
+                "cassandra_clara_draft_work_mode",
+            )
+        },
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "all_authority_flags_false": machine.get("all_authority_flags_false") is True,
+        "next_safe_move": "Expose one next human move and keep proof/contracts one level down.",
+    }
+
+
+def _summarize_operator_solve_path_decision_node_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    solve_paths = payload.get("solve_paths_by_id") if isinstance(payload.get("solve_paths_by_id"), dict) else {}
+    choices = payload.get("decision_choices_by_id") if isinstance(payload.get("decision_choices_by_id"), dict) else {}
+    receipt_targets = payload.get("receipt_targets_by_id") if isinstance(payload.get("receipt_targets_by_id"), dict) else {}
+    capital = solve_paths.get("capital_hilton_invoice_solve_path", {})
+    return {
+        "section_id": "operator_solve_path_decision_node_contract",
+        "source_read_model_ref": OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/operator_solve_path_decision_node_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "solve_path_count": machine.get("solve_path_count", len(solve_paths)),
+        "decision_node_count": machine.get("decision_node_count"),
+        "decision_choice_count": machine.get("decision_choice_count", len(choices)),
+        "receipt_target_count": machine.get("receipt_target_count", len(receipt_targets)),
+        "capital_hilton_solve_path_present": "capital_hilton_invoice_solve_path" in solve_paths,
+        "capital_hilton_low_bandwidth_move": capital.get("low_bandwidth_move"),
+        "confirm_performance_dates_node_present": machine.get("confirm_performance_dates_node_present") is True,
+        "receipt_targets_modeled_not_written": machine.get("receipt_targets_modeled_not_written") is True,
+        "lm_cannot_create_choices": machine.get("lm_cannot_create_choices") is True,
+        "lm_cannot_decide_authority": machine.get("lm_cannot_decide_authority") is True,
+        "lm_cannot_mark_proof_complete": machine.get("lm_cannot_mark_proof_complete") is True,
+        "lm_cannot_approve_action": machine.get("lm_cannot_approve_action") is True,
+        "machine_contracts_not_default_surface": machine.get("machine_contracts_not_default_surface") is True,
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "all_authority_flags_false": machine.get("all_authority_flags_false") is True,
+        "next_safe_move": "Let Winship pick what is true; receipt targets remain modeled, not written.",
+    }
+
+
+def _summarize_guided_capture_protected_evidence_path_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    capture_paths = payload.get("capture_paths_by_id") if isinstance(payload.get("capture_paths_by_id"), dict) else {}
+    privacy_guards = payload.get("privacy_guards_by_id") if isinstance(payload.get("privacy_guards_by_id"), dict) else {}
+    coupa = capture_paths.get("capital_hilton_coupa_po_screen_capture_path", {})
+    return {
+        "section_id": "guided_capture_protected_evidence_path_contract",
+        "source_read_model_ref": GUIDED_CAPTURE_PROTECTED_EVIDENCE_PATH_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/guided_capture_protected_evidence_path_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "capture_path_count": machine.get("capture_path_count", len(capture_paths)),
+        "capture_moment_count": machine.get("capture_moment_count"),
+        "artifact_target_count": machine.get("artifact_target_count"),
+        "outcome_count": machine.get("outcome_count"),
+        "privacy_guard_count": machine.get("privacy_guard_count", len(privacy_guards)),
+        "capital_hilton_coupa_po_capture_path_present": (
+            "capital_hilton_coupa_po_screen_capture_path" in capture_paths
+        ),
+        "capital_hilton_coupa_po_capture_prompt": coupa.get("capture_moment_prompt"),
+        "targeted_capture_preferred_over_full_desktop": (
+            machine.get("targeted_capture_preferred_over_full_desktop") is True
+        ),
+        "credentials_capture_blocked": machine.get("credentials_capture_blocked") is True,
+        "raw_body_capture_blocked": machine.get("raw_body_capture_blocked") is True,
+        "future_automation_candidate_does_not_grant_authority": (
+            machine.get("future_automation_candidate_does_not_grant_authority") is True
+        ),
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "all_authority_flags_false": machine.get("all_authority_flags_false") is True,
+        "next_safe_move": "Model capture moments and protected references; do not capture files or screenshots now.",
+    }
+
+
+def _summarize_workflow_session_channel_projection_approval_bus_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    sessions = payload.get("workflow_sessions_by_id") if isinstance(payload.get("workflow_sessions_by_id"), dict) else {}
+    return {
+        "section_id": "workflow_session_channel_projection_approval_bus_contract",
+        "source_read_model_ref": WORKFLOW_SESSION_CHANNEL_PROJECTION_APPROVAL_BUS_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/workflow_session_channel_projection_approval_bus_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "workflow_session_count": machine.get("workflow_session_count", len(sessions)),
+        "channel_projection_count": machine.get("channel_projection_count"),
+        "approval_bus_count": machine.get("approval_bus_count"),
+        "capital_hilton_session_present": machine.get("capital_hilton_session_present") is True,
+        "finance_world_and_telegram_attach_same_session": (
+            machine.get("finance_world_and_telegram_attach_same_session") is True
+        ),
+        "duplicate_sessions_blocked": machine.get("duplicate_sessions_blocked") is True,
+        "channel_local_state_blocked": machine.get("channel_local_state_blocked") is True,
+        "single_approval_object_invariant": machine.get("single_approval_object_invariant") is True,
+        "approval_more_than_once_blocked": machine.get("approval_more_than_once_blocked") is True,
+        "stale_approval_invalidation_required": (
+            machine.get("stale_approval_invalidation_required") is True
+        ),
+        "action_authority_granted": machine.get("action_authority_granted") is True,
+        "all_authority_flags_false": machine.get("all_authority_flags_false") is True,
+        "next_safe_move": "Use one canonical workflow session; keep approvals modeled and non-live.",
+    }
+
+
+def _summarize_automation_readiness_feasibility_evaluator_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    assessments = payload.get("bottleneck_assessments_by_id") if isinstance(payload.get("bottleneck_assessments_by_id"), dict) else {}
+    coupa = assessments.get("capital_hilton_coupa_po_lookup_bottleneck", {})
+    return {
+        "section_id": "automation_readiness_feasibility_evaluator_contract",
+        "source_read_model_ref": AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/automation_readiness_feasibility_evaluator_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "bottleneck_assessment_count": machine.get("bottleneck_assessment_count", len(assessments)),
+        "readiness_evaluation_count": machine.get("readiness_evaluation_count"),
+        "infrastructure_candidate_count": machine.get("infrastructure_candidate_count"),
+        "dead_on_arrival_criteria_count": machine.get("dead_on_arrival_criteria_count"),
+        "capital_hilton_coupa_po_bottleneck_present": (
+            machine.get("capital_hilton_coupa_po_bottleneck_present") is True
+        ),
+        "capital_hilton_coupa_po_current_fallback": coupa.get("current_fallback"),
+        "capital_hilton_coupa_po_near_term_path": coupa.get("best_near_term_path"),
+        "capital_hilton_coupa_po_future_path": coupa.get("best_future_path"),
+        "telegram_approval_split_brain_bottleneck_present": (
+            machine.get("telegram_approval_split_brain_bottleneck_present") is True
+        ),
+        "manual_fallback_is_not_target": machine.get("manual_fallback_is_not_target") is True,
+        "assisted_supervised_autonomous_paths_future_gated": (
+            machine.get("assisted_supervised_autonomous_paths_future_gated") is True
+        ),
+        "coupa_po_retrieval_automation_candidate_source_read_model_ref": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+        "coupa_po_retrieval_automation_candidate_stable_map_surfaced": False,
+        "action_authority_granted": False,
+        "all_authority_flags_false": machine.get("all_current_authority_flags_false") is True,
+        "next_safe_move": "Build assisted capture first; keep browser, Coupa, credentials, network, invoice, email, and approval authority false.",
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -2610,6 +2859,30 @@ def build_openclaw_map_snapshot(
         OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    make_winship_life_easier_batch = _read_json_if_present(
+        MAKE_WINSHIP_LIFE_EASIER_BATCH_MANIFEST_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    operator_work_mode_schema_bandwidth_policy = _read_json_if_present(
+        OPERATOR_WORK_MODE_SCHEMA_BANDWIDTH_POLICY_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    operator_solve_path_decision_node_contract = _read_json_if_present(
+        OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    guided_capture_protected_evidence_path_contract = _read_json_if_present(
+        GUIDED_CAPTURE_PROTECTED_EVIDENCE_PATH_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    workflow_session_channel_projection_approval_bus_contract = _read_json_if_present(
+        WORKFLOW_SESSION_CHANNEL_PROJECTION_APPROVAL_BUS_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    automation_readiness_feasibility_evaluator_contract = _read_json_if_present(
+        AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -2683,6 +2956,24 @@ def build_openclaw_map_snapshot(
         ),
         "openclaw_work_terrain_gap_detector": _summarize_openclaw_work_terrain_gap_detector(
             openclaw_work_terrain_gap_detector
+        ),
+        "make_winship_life_easier_batch": _summarize_make_winship_life_easier_batch(
+            make_winship_life_easier_batch
+        ),
+        "operator_work_mode_schema_bandwidth_policy": _summarize_operator_work_mode_schema_bandwidth_policy(
+            operator_work_mode_schema_bandwidth_policy
+        ),
+        "operator_solve_path_decision_node_contract": _summarize_operator_solve_path_decision_node_contract(
+            operator_solve_path_decision_node_contract
+        ),
+        "guided_capture_protected_evidence_path_contract": _summarize_guided_capture_protected_evidence_path_contract(
+            guided_capture_protected_evidence_path_contract
+        ),
+        "workflow_session_channel_projection_approval_bus_contract": _summarize_workflow_session_channel_projection_approval_bus_contract(
+            workflow_session_channel_projection_approval_bus_contract
+        ),
+        "automation_readiness_feasibility_evaluator_contract": _summarize_automation_readiness_feasibility_evaluator_contract(
+            automation_readiness_feasibility_evaluator_contract
         ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
@@ -2960,6 +3251,20 @@ def build_operator_map_bundle_contract(
             "openclaw_work_terrain_gap_examples_count": snapshot["openclaw_work_terrain_gap_detector"]["gap_examples_count"],
             "openclaw_work_terrain_negative_filters_count": snapshot["openclaw_work_terrain_gap_detector"]["negative_filters_count"],
             "openclaw_work_terrain_built_status_validation_rule_count": snapshot["openclaw_work_terrain_gap_detector"]["built_status_validation_rule_count"],
+            "make_winship_life_easier_batch_present": snapshot["make_winship_life_easier_batch"]["present"],
+            "make_winship_life_easier_batch_status": snapshot["make_winship_life_easier_batch"]["batch_status"],
+            "make_winship_life_easier_completed_lanes_count": snapshot["make_winship_life_easier_batch"]["completed_lanes_count"],
+            "operator_work_mode_bandwidth_modes_count": snapshot["operator_work_mode_schema_bandwidth_policy"]["bandwidth_mode_count"],
+            "operator_work_mode_helm_default_bandwidth_mode": snapshot["operator_work_mode_schema_bandwidth_policy"]["helm_default_bandwidth_mode"],
+            "operator_solve_path_count": snapshot["operator_solve_path_decision_node_contract"]["solve_path_count"],
+            "operator_decision_node_count": snapshot["operator_solve_path_decision_node_contract"]["decision_node_count"],
+            "guided_capture_path_count": snapshot["guided_capture_protected_evidence_path_contract"]["capture_path_count"],
+            "guided_capture_privacy_guard_count": snapshot["guided_capture_protected_evidence_path_contract"]["privacy_guard_count"],
+            "workflow_session_count": snapshot["workflow_session_channel_projection_approval_bus_contract"]["workflow_session_count"],
+            "workflow_approval_bus_count": snapshot["workflow_session_channel_projection_approval_bus_contract"]["approval_bus_count"],
+            "automation_bottleneck_assessment_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["bottleneck_assessment_count"],
+            "automation_readiness_evaluation_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["readiness_evaluation_count"],
+            "automation_all_authority_flags_false": snapshot["automation_readiness_feasibility_evaluator_contract"]["all_authority_flags_false"],
             "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
             "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
             "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
@@ -3298,6 +3603,85 @@ def build_operator_map_bundle_contract(
             "action_authority_granted": snapshot["openclaw_work_terrain_gap_detector"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "make_winship_life_easier_batch_integration": {
+            "summary_included_in_snapshot": snapshot["make_winship_life_easier_batch"]["present"],
+            "batch_id": snapshot["make_winship_life_easier_batch"]["batch_id"],
+            "batch_status": snapshot["make_winship_life_easier_batch"]["batch_status"],
+            "completed_lanes_count": snapshot["make_winship_life_easier_batch"]["completed_lanes_count"],
+            "next_expected_actor": snapshot["make_winship_life_easier_batch"]["next_expected_actor"],
+            "low_bandwidth_human_interface_posture": snapshot["make_winship_life_easier_batch"]["low_bandwidth_human_interface_posture"],
+            "machine_contracts_remain_substrate": snapshot["make_winship_life_easier_batch"]["machine_contracts_remain_substrate"],
+            "action_authority_granted": snapshot["make_winship_life_easier_batch"]["action_authority_granted"],
+            "individual_manifest_read_model_remains_proof_detail": True,
+        },
+        "operator_work_mode_schema_bandwidth_policy_integration": {
+            "summary_included_in_snapshot": snapshot["operator_work_mode_schema_bandwidth_policy"]["present"],
+            "helm_default_bandwidth_mode": snapshot["operator_work_mode_schema_bandwidth_policy"]["helm_default_bandwidth_mode"],
+            "bandwidth_mode_count": snapshot["operator_work_mode_schema_bandwidth_policy"]["bandwidth_mode_count"],
+            "work_mode_type_count": snapshot["operator_work_mode_schema_bandwidth_policy"]["work_mode_type_count"],
+            "issue_classification_count": snapshot["operator_work_mode_schema_bandwidth_policy"]["issue_classification_count"],
+            "work_mode_instance_count": snapshot["operator_work_mode_schema_bandwidth_policy"]["work_mode_instance_count"],
+            "machine_contracts_not_default_app_surface": snapshot["operator_work_mode_schema_bandwidth_policy"]["machine_contracts_not_default_app_surface"],
+            "helm_declutter_policy_present": snapshot["operator_work_mode_schema_bandwidth_policy"]["helm_declutter_policy_present"],
+            "stable_map_exposure_policy_present": snapshot["operator_work_mode_schema_bandwidth_policy"]["stable_map_exposure_policy_present"],
+            "action_authority_granted": snapshot["operator_work_mode_schema_bandwidth_policy"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "operator_solve_path_decision_node_contract_integration": {
+            "summary_included_in_snapshot": snapshot["operator_solve_path_decision_node_contract"]["present"],
+            "solve_path_count": snapshot["operator_solve_path_decision_node_contract"]["solve_path_count"],
+            "decision_node_count": snapshot["operator_solve_path_decision_node_contract"]["decision_node_count"],
+            "decision_choice_count": snapshot["operator_solve_path_decision_node_contract"]["decision_choice_count"],
+            "receipt_target_count": snapshot["operator_solve_path_decision_node_contract"]["receipt_target_count"],
+            "capital_hilton_solve_path_present": snapshot["operator_solve_path_decision_node_contract"]["capital_hilton_solve_path_present"],
+            "confirm_performance_dates_node_present": snapshot["operator_solve_path_decision_node_contract"]["confirm_performance_dates_node_present"],
+            "receipt_targets_modeled_not_written": snapshot["operator_solve_path_decision_node_contract"]["receipt_targets_modeled_not_written"],
+            "lm_cannot_create_choices": snapshot["operator_solve_path_decision_node_contract"]["lm_cannot_create_choices"],
+            "action_authority_granted": snapshot["operator_solve_path_decision_node_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "guided_capture_protected_evidence_path_contract_integration": {
+            "summary_included_in_snapshot": snapshot["guided_capture_protected_evidence_path_contract"]["present"],
+            "capture_path_count": snapshot["guided_capture_protected_evidence_path_contract"]["capture_path_count"],
+            "capture_moment_count": snapshot["guided_capture_protected_evidence_path_contract"]["capture_moment_count"],
+            "artifact_target_count": snapshot["guided_capture_protected_evidence_path_contract"]["artifact_target_count"],
+            "privacy_guard_count": snapshot["guided_capture_protected_evidence_path_contract"]["privacy_guard_count"],
+            "capital_hilton_coupa_po_capture_path_present": snapshot["guided_capture_protected_evidence_path_contract"]["capital_hilton_coupa_po_capture_path_present"],
+            "targeted_capture_preferred_over_full_desktop": snapshot["guided_capture_protected_evidence_path_contract"]["targeted_capture_preferred_over_full_desktop"],
+            "credentials_capture_blocked": snapshot["guided_capture_protected_evidence_path_contract"]["credentials_capture_blocked"],
+            "raw_body_capture_blocked": snapshot["guided_capture_protected_evidence_path_contract"]["raw_body_capture_blocked"],
+            "action_authority_granted": snapshot["guided_capture_protected_evidence_path_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "workflow_session_channel_projection_approval_bus_contract_integration": {
+            "summary_included_in_snapshot": snapshot["workflow_session_channel_projection_approval_bus_contract"]["present"],
+            "workflow_session_count": snapshot["workflow_session_channel_projection_approval_bus_contract"]["workflow_session_count"],
+            "channel_projection_count": snapshot["workflow_session_channel_projection_approval_bus_contract"]["channel_projection_count"],
+            "approval_bus_count": snapshot["workflow_session_channel_projection_approval_bus_contract"]["approval_bus_count"],
+            "capital_hilton_session_present": snapshot["workflow_session_channel_projection_approval_bus_contract"]["capital_hilton_session_present"],
+            "finance_world_and_telegram_attach_same_session": snapshot["workflow_session_channel_projection_approval_bus_contract"]["finance_world_and_telegram_attach_same_session"],
+            "duplicate_sessions_blocked": snapshot["workflow_session_channel_projection_approval_bus_contract"]["duplicate_sessions_blocked"],
+            "single_approval_object_invariant": snapshot["workflow_session_channel_projection_approval_bus_contract"]["single_approval_object_invariant"],
+            "approval_more_than_once_blocked": snapshot["workflow_session_channel_projection_approval_bus_contract"]["approval_more_than_once_blocked"],
+            "stale_approval_invalidation_required": snapshot["workflow_session_channel_projection_approval_bus_contract"]["stale_approval_invalidation_required"],
+            "action_authority_granted": snapshot["workflow_session_channel_projection_approval_bus_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "automation_readiness_feasibility_evaluator_contract_integration": {
+            "summary_included_in_snapshot": snapshot["automation_readiness_feasibility_evaluator_contract"]["present"],
+            "bottleneck_assessment_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["bottleneck_assessment_count"],
+            "readiness_evaluation_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["readiness_evaluation_count"],
+            "infrastructure_candidate_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["infrastructure_candidate_count"],
+            "dead_on_arrival_criteria_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["dead_on_arrival_criteria_count"],
+            "capital_hilton_coupa_po_bottleneck_present": snapshot["automation_readiness_feasibility_evaluator_contract"]["capital_hilton_coupa_po_bottleneck_present"],
+            "telegram_approval_split_brain_bottleneck_present": snapshot["automation_readiness_feasibility_evaluator_contract"]["telegram_approval_split_brain_bottleneck_present"],
+            "manual_fallback_is_not_target": snapshot["automation_readiness_feasibility_evaluator_contract"]["manual_fallback_is_not_target"],
+            "assisted_supervised_autonomous_paths_future_gated": snapshot["automation_readiness_feasibility_evaluator_contract"]["assisted_supervised_autonomous_paths_future_gated"],
+            "coupa_po_retrieval_automation_candidate_source_read_model_ref": snapshot["automation_readiness_feasibility_evaluator_contract"]["coupa_po_retrieval_automation_candidate_source_read_model_ref"],
+            "coupa_po_retrieval_automation_candidate_stable_map_surfaced": snapshot["automation_readiness_feasibility_evaluator_contract"]["coupa_po_retrieval_automation_candidate_stable_map_surfaced"],
+            "action_authority_granted": snapshot["automation_readiness_feasibility_evaluator_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -3485,6 +3869,36 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     work_terrain_gap = (
         snapshot.get("openclaw_work_terrain_gap_detector", {})
         if isinstance(snapshot.get("openclaw_work_terrain_gap_detector"), dict)
+        else {}
+    )
+    make_winship_batch = (
+        snapshot.get("make_winship_life_easier_batch", {})
+        if isinstance(snapshot.get("make_winship_life_easier_batch"), dict)
+        else {}
+    )
+    work_mode_policy = (
+        snapshot.get("operator_work_mode_schema_bandwidth_policy", {})
+        if isinstance(snapshot.get("operator_work_mode_schema_bandwidth_policy"), dict)
+        else {}
+    )
+    solve_path_contract = (
+        snapshot.get("operator_solve_path_decision_node_contract", {})
+        if isinstance(snapshot.get("operator_solve_path_decision_node_contract"), dict)
+        else {}
+    )
+    guided_capture_contract = (
+        snapshot.get("guided_capture_protected_evidence_path_contract", {})
+        if isinstance(snapshot.get("guided_capture_protected_evidence_path_contract"), dict)
+        else {}
+    )
+    workflow_session_contract = (
+        snapshot.get("workflow_session_channel_projection_approval_bus_contract", {})
+        if isinstance(snapshot.get("workflow_session_channel_projection_approval_bus_contract"), dict)
+        else {}
+    )
+    automation_readiness_contract = (
+        snapshot.get("automation_readiness_feasibility_evaluator_contract", {})
+        if isinstance(snapshot.get("automation_readiness_feasibility_evaluator_contract"), dict)
         else {}
     )
     capital_facts = (
@@ -3708,6 +4122,72 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         lines.append(f"- `{question.get('classification')}`: {question.get('question')}")
     lines.extend(
         [
+            "",
+            "## Make Winship Life Easier Workflow Layer",
+            "",
+            "- ELIWINSHIP: this layer turns machine contracts into human solve paths. The app should show the few things that need Winship, the cleanest next move, and proof/details one level down.",
+            f"- Batch present: `{str(make_winship_batch.get('present')).lower()}`",
+            f"- Batch status: `{make_winship_batch.get('batch_status')}`",
+            f"- Completed lanes: `{make_winship_batch.get('completed_lanes_count')}`",
+            f"- Next expected actor: `{make_winship_batch.get('next_expected_actor')}`",
+            f"- Machine contracts remain substrate: `{str(make_winship_batch.get('machine_contracts_remain_substrate')).lower()}`",
+            f"- Action authority granted: `{str(make_winship_batch.get('action_authority_granted')).lower()}`",
+            "",
+            "### Work Modes / Bandwidth",
+            "",
+            f"- Summary present: `{str(work_mode_policy.get('present')).lower()}`",
+            f"- Helm default bandwidth: `{work_mode_policy.get('helm_default_bandwidth_mode')}`",
+            f"- Bandwidth modes: `{', '.join(work_mode_policy.get('bandwidth_modes', []))}`",
+            f"- Work mode types: `{work_mode_policy.get('work_mode_type_count')}`",
+            f"- Issue classifications: `{work_mode_policy.get('issue_classification_count')}`",
+            f"- Work mode instances: `{work_mode_policy.get('work_mode_instance_count')}`",
+            f"- Machine contracts not default app surface: `{str(work_mode_policy.get('machine_contracts_not_default_app_surface')).lower()}`",
+            f"- Helm declutter policy present: `{str(work_mode_policy.get('helm_declutter_policy_present')).lower()}`",
+            "",
+            "### Solve Paths / Decision Nodes",
+            "",
+            f"- Summary present: `{str(solve_path_contract.get('present')).lower()}`",
+            f"- Solve paths: `{solve_path_contract.get('solve_path_count')}`",
+            f"- Decision nodes: `{solve_path_contract.get('decision_node_count')}`",
+            f"- Choices: `{solve_path_contract.get('decision_choice_count')}`",
+            f"- Receipt targets: `{solve_path_contract.get('receipt_target_count')}`",
+            f"- Capital Hilton low-bandwidth move: `{solve_path_contract.get('capital_hilton_low_bandwidth_move')}`",
+            f"- Receipt targets modeled, not written: `{str(solve_path_contract.get('receipt_targets_modeled_not_written')).lower()}`",
+            f"- LM cannot create choices: `{str(solve_path_contract.get('lm_cannot_create_choices')).lower()}`",
+            "",
+            "### Guided Capture / Protected Evidence",
+            "",
+            f"- Summary present: `{str(guided_capture_contract.get('present')).lower()}`",
+            f"- Capture paths: `{guided_capture_contract.get('capture_path_count')}`",
+            f"- Capture moments: `{guided_capture_contract.get('capture_moment_count')}`",
+            f"- Privacy guards: `{guided_capture_contract.get('privacy_guard_count')}`",
+            f"- Capital Hilton Coupa/PO capture path present: `{str(guided_capture_contract.get('capital_hilton_coupa_po_capture_path_present')).lower()}`",
+            f"- Targeted capture preferred: `{str(guided_capture_contract.get('targeted_capture_preferred_over_full_desktop')).lower()}`",
+            f"- Credentials capture blocked: `{str(guided_capture_contract.get('credentials_capture_blocked')).lower()}`",
+            f"- Raw body capture blocked: `{str(guided_capture_contract.get('raw_body_capture_blocked')).lower()}`",
+            "",
+            "### Workflow Sessions / Approval Bus",
+            "",
+            f"- Summary present: `{str(workflow_session_contract.get('present')).lower()}`",
+            f"- Workflow sessions: `{workflow_session_contract.get('workflow_session_count')}`",
+            f"- Channel projections: `{workflow_session_contract.get('channel_projection_count')}`",
+            f"- Approval buses: `{workflow_session_contract.get('approval_bus_count')}`",
+            f"- Finance World and Telegram same session: `{str(workflow_session_contract.get('finance_world_and_telegram_attach_same_session')).lower()}`",
+            f"- Single approval object invariant: `{str(workflow_session_contract.get('single_approval_object_invariant')).lower()}`",
+            f"- Stale approval invalidation required: `{str(workflow_session_contract.get('stale_approval_invalidation_required')).lower()}`",
+            "",
+            "### Automation Readiness / Feasibility",
+            "",
+            f"- Summary present: `{str(automation_readiness_contract.get('present')).lower()}`",
+            f"- Bottleneck assessments: `{automation_readiness_contract.get('bottleneck_assessment_count')}`",
+            f"- Readiness evaluations: `{automation_readiness_contract.get('readiness_evaluation_count')}`",
+            f"- Infrastructure candidates: `{automation_readiness_contract.get('infrastructure_candidate_count')}`",
+            f"- Dead-on-arrival criteria: `{automation_readiness_contract.get('dead_on_arrival_criteria_count')}`",
+            f"- Capital Hilton Coupa/PO bottleneck present: `{str(automation_readiness_contract.get('capital_hilton_coupa_po_bottleneck_present')).lower()}`",
+            f"- Near-term Coupa/PO path: `{automation_readiness_contract.get('capital_hilton_coupa_po_near_term_path')}`",
+            f"- Coupa/PO source read-model ref: `{automation_readiness_contract.get('coupa_po_retrieval_automation_candidate_source_read_model_ref')}`",
+            f"- Manual fallback treated as target: `{str(not automation_readiness_contract.get('manual_fallback_is_not_target', False)).lower()}`",
+            f"- Action authority granted: `{str(automation_readiness_contract.get('action_authority_granted')).lower()}`",
             "",
             "## Security Audit Readiness Summary",
             "",

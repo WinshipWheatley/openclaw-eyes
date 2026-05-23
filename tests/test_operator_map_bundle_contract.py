@@ -2,8 +2,11 @@ import ast
 import json
 from pathlib import Path
 
+import automation_readiness_feasibility_evaluator_contract
 import operator_map_bundle_contract as bundle
 import chief_test_harness_cross_off_receipt_contract
+import guided_capture_protected_evidence_path_contract
+import make_winship_life_easier_batch_manifest
 import capital_hilton_answer_candidate_receipt
 import capital_hilton_protected_proof_intake
 import capital_hilton_protected_reference_placeholder
@@ -17,6 +20,8 @@ import openclaw_work_terrain_gap_detector
 import openclaw_work_terrain_query_contract
 import openclaw_work_terrain_reconciliation_batch_manifest
 import openclaw_work_terrain_relationship_index
+import operator_solve_path_decision_node_contract
+import operator_work_mode_schema_bandwidth_policy
 import package_preview_receipt_contract
 import parked_autonomous_capital_pipeline_experiment
 import post_security_governance_batch_manifest
@@ -24,6 +29,7 @@ import security_audit_readiness_packet
 import security_delta_review_contract
 import security_pass_contract
 import tool_adapter_receipt_contract
+import workflow_session_channel_projection_approval_bus_contract
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from scripts.export_operator_map_bundle import main as export_main
 
@@ -426,6 +432,47 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "openclaw_work_terrain_reconciliation_batch_manifest.json",
         openclaw_work_terrain_reconciliation_batch_manifest.build_openclaw_work_terrain_reconciliation_batch_manifest(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "operator_work_mode_schema_bandwidth_policy.json",
+        operator_work_mode_schema_bandwidth_policy.build_operator_work_mode_schema_bandwidth_policy(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "operator_solve_path_decision_node_contract.json",
+        operator_solve_path_decision_node_contract.build_operator_solve_path_decision_node_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "guided_capture_protected_evidence_path_contract.json",
+        guided_capture_protected_evidence_path_contract.build_guided_capture_protected_evidence_path_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "workflow_session_channel_projection_approval_bus_contract.json",
+        workflow_session_channel_projection_approval_bus_contract.build_workflow_session_channel_projection_approval_bus_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "automation_readiness_feasibility_evaluator_contract.json",
+        automation_readiness_feasibility_evaluator_contract.build_automation_readiness_feasibility_evaluator_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "make_winship_life_easier_batch_manifest.json",
+        make_winship_life_easier_batch_manifest.build_make_winship_life_easier_batch_manifest(
             generated_at=FIXED_NOW,
         ),
     )
@@ -1201,6 +1248,90 @@ def test_map_snapshot_contains_work_terrain_reconciliation_summaries(tmp_path):
     assert gap["action_authority_granted"] is False
 
 
+def test_map_snapshot_contains_make_winship_life_easier_summaries(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    batch = snapshot["make_winship_life_easier_batch"]
+    work_mode = snapshot["operator_work_mode_schema_bandwidth_policy"]
+    solve_path = snapshot["operator_solve_path_decision_node_contract"]
+    guided_capture = snapshot["guided_capture_protected_evidence_path_contract"]
+    workflow_session = snapshot["workflow_session_channel_projection_approval_bus_contract"]
+    automation = snapshot["automation_readiness_feasibility_evaluator_contract"]
+
+    assert batch["present"] is True
+    assert batch["section_id"] == "make_winship_life_easier_batch"
+    assert batch["batch_id"] == "make_winship_life_easier_batch_v0"
+    assert batch["batch_status"] == "COMPLETE_PENDING_STABLE_MAP_IMPORT"
+    assert batch["completed_lanes_count"] == 5
+    assert batch["next_expected_actor"] == "mac_map_import_agent"
+    assert batch["low_bandwidth_human_interface_posture"] is True
+    assert batch["machine_contracts_remain_substrate"] is True
+    assert batch["action_authority_granted"] is False
+
+    assert work_mode["present"] is True
+    assert work_mode["section_id"] == "operator_work_mode_schema_bandwidth_policy"
+    assert work_mode["helm_default_bandwidth_mode"] in {"LOW_BANDWIDTH", "NORMAL_BANDWIDTH"}
+    assert work_mode["low_normal_high_debug_policy_present"] is True
+    assert work_mode["bandwidth_mode_count"] == 4
+    assert work_mode["work_mode_type_count"] == 10
+    assert work_mode["issue_classification_count"] == 11
+    assert work_mode["work_mode_instance_count"] == 6
+    assert work_mode["machine_contracts_not_default_app_surface"] is True
+    assert work_mode["action_authority_granted"] is False
+
+    assert solve_path["present"] is True
+    assert solve_path["section_id"] == "operator_solve_path_decision_node_contract"
+    assert solve_path["solve_path_count"] == 5
+    assert solve_path["decision_node_count"] == 8
+    assert solve_path["decision_choice_count"] == 21
+    assert solve_path["receipt_target_count"] == 9
+    assert solve_path["capital_hilton_solve_path_present"] is True
+    assert solve_path["capital_hilton_low_bandwidth_move"] == "Pick what is true about the invoice."
+    assert solve_path["receipt_targets_modeled_not_written"] is True
+    assert solve_path["lm_cannot_create_choices"] is True
+    assert solve_path["action_authority_granted"] is False
+
+    assert guided_capture["present"] is True
+    assert guided_capture["section_id"] == "guided_capture_protected_evidence_path_contract"
+    assert guided_capture["capture_path_count"] == 7
+    assert guided_capture["capture_moment_count"] == 7
+    assert guided_capture["artifact_target_count"] == 9
+    assert guided_capture["privacy_guard_count"] == 8
+    assert guided_capture["capital_hilton_coupa_po_capture_path_present"] is True
+    assert guided_capture["targeted_capture_preferred_over_full_desktop"] is True
+    assert guided_capture["credentials_capture_blocked"] is True
+    assert guided_capture["raw_body_capture_blocked"] is True
+    assert guided_capture["action_authority_granted"] is False
+
+    assert workflow_session["present"] is True
+    assert workflow_session["section_id"] == "workflow_session_channel_projection_approval_bus_contract"
+    assert workflow_session["workflow_session_count"] == 5
+    assert workflow_session["channel_projection_count"] == 19
+    assert workflow_session["approval_bus_count"] == 5
+    assert workflow_session["finance_world_and_telegram_attach_same_session"] is True
+    assert workflow_session["single_approval_object_invariant"] is True
+    assert workflow_session["approval_more_than_once_blocked"] is True
+    assert workflow_session["stale_approval_invalidation_required"] is True
+    assert workflow_session["action_authority_granted"] is False
+
+    assert automation["present"] is True
+    assert automation["section_id"] == "automation_readiness_feasibility_evaluator_contract"
+    assert automation["bottleneck_assessment_count"] == 6
+    assert automation["readiness_evaluation_count"] == 4
+    assert automation["infrastructure_candidate_count"] == 10
+    assert automation["dead_on_arrival_criteria_count"] == 10
+    assert automation["capital_hilton_coupa_po_bottleneck_present"] is True
+    assert automation["telegram_approval_split_brain_bottleneck_present"] is True
+    assert automation["manual_fallback_is_not_target"] is True
+    assert automation["assisted_supervised_autonomous_paths_future_gated"] is True
+    assert automation["coupa_po_retrieval_automation_candidate_source_read_model_ref"] == (
+        "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json"
+    )
+    assert automation["coupa_po_retrieval_automation_candidate_stable_map_surfaced"] is False
+    assert automation["action_authority_granted"] is False
+
+
 def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
     payload = _build(tmp_path)
 
@@ -1275,6 +1406,37 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["openclaw_work_terrain_gap_detector_integration"]["built_status_validation_present"] is True
     assert payload["openclaw_work_terrain_gap_detector_integration"]["auto_archive_consolidation_stable_map_implementation_allowed"] is False
     assert payload["openclaw_work_terrain_gap_detector_integration"]["action_authority_granted"] is False
+    assert payload["make_winship_life_easier_batch_integration"]["summary_included_in_snapshot"] is True
+    assert payload["make_winship_life_easier_batch_integration"]["completed_lanes_count"] == 5
+    assert payload["make_winship_life_easier_batch_integration"]["low_bandwidth_human_interface_posture"] is True
+    assert payload["make_winship_life_easier_batch_integration"]["machine_contracts_remain_substrate"] is True
+    assert payload["make_winship_life_easier_batch_integration"]["action_authority_granted"] is False
+    assert payload["operator_work_mode_schema_bandwidth_policy_integration"]["summary_included_in_snapshot"] is True
+    assert payload["operator_work_mode_schema_bandwidth_policy_integration"]["bandwidth_mode_count"] == 4
+    assert payload["operator_work_mode_schema_bandwidth_policy_integration"]["machine_contracts_not_default_app_surface"] is True
+    assert payload["operator_work_mode_schema_bandwidth_policy_integration"]["action_authority_granted"] is False
+    assert payload["operator_solve_path_decision_node_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["operator_solve_path_decision_node_contract_integration"]["solve_path_count"] == 5
+    assert payload["operator_solve_path_decision_node_contract_integration"]["receipt_targets_modeled_not_written"] is True
+    assert payload["operator_solve_path_decision_node_contract_integration"]["lm_cannot_create_choices"] is True
+    assert payload["operator_solve_path_decision_node_contract_integration"]["action_authority_granted"] is False
+    assert payload["guided_capture_protected_evidence_path_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["guided_capture_protected_evidence_path_contract_integration"]["capture_path_count"] == 7
+    assert payload["guided_capture_protected_evidence_path_contract_integration"]["targeted_capture_preferred_over_full_desktop"] is True
+    assert payload["guided_capture_protected_evidence_path_contract_integration"]["credentials_capture_blocked"] is True
+    assert payload["guided_capture_protected_evidence_path_contract_integration"]["action_authority_granted"] is False
+    assert payload["workflow_session_channel_projection_approval_bus_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["workflow_session_channel_projection_approval_bus_contract_integration"]["workflow_session_count"] == 5
+    assert payload["workflow_session_channel_projection_approval_bus_contract_integration"]["finance_world_and_telegram_attach_same_session"] is True
+    assert payload["workflow_session_channel_projection_approval_bus_contract_integration"]["single_approval_object_invariant"] is True
+    assert payload["workflow_session_channel_projection_approval_bus_contract_integration"]["action_authority_granted"] is False
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["bottleneck_assessment_count"] == 6
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["capital_hilton_coupa_po_bottleneck_present"] is True
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["telegram_approval_split_brain_bottleneck_present"] is True
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["manual_fallback_is_not_target"] is True
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["coupa_po_retrieval_automation_candidate_stable_map_surfaced"] is False
+    assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["action_authority_granted"] is False
 
 
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
@@ -1435,6 +1597,20 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Progress records: `10`" in operator_text
     assert "Automatic quieting allowed: `false`" in operator_text
     assert "Automatic progression allowed: `false`" in operator_text
+    assert "Make Winship Life Easier Workflow Layer" in operator_text
+    assert "Completed lanes: `5`" in operator_text
+    assert "Work Modes / Bandwidth" in operator_text
+    assert "Helm default bandwidth: `LOW_BANDWIDTH`" in operator_text
+    assert "Solve Paths / Decision Nodes" in operator_text
+    assert "Capital Hilton low-bandwidth move: `Pick what is true about the invoice.`" in operator_text
+    assert "Guided Capture / Protected Evidence" in operator_text
+    assert "Capital Hilton Coupa/PO capture path present: `true`" in operator_text
+    assert "Workflow Sessions / Approval Bus" in operator_text
+    assert "Finance World and Telegram same session: `true`" in operator_text
+    assert "Automation Readiness / Feasibility" in operator_text
+    assert "Bottleneck assessments: `6`" in operator_text
+    assert "Capital Hilton Coupa/PO bottleneck present: `true`" in operator_text
+    assert "Action authority granted: `false`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

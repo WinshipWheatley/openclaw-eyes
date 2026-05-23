@@ -54,6 +54,21 @@
       "write openclaw_map_sync_required.json with generation_id and bundle_hash"
     ]
   },
+  "automation_readiness_feasibility_evaluator_contract_integration": {
+    "action_authority_granted": false,
+    "assisted_supervised_autonomous_paths_future_gated": true,
+    "bottleneck_assessment_count": 6,
+    "capital_hilton_coupa_po_bottleneck_present": true,
+    "coupa_po_retrieval_automation_candidate_source_read_model_ref": "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+    "coupa_po_retrieval_automation_candidate_stable_map_surfaced": false,
+    "dead_on_arrival_criteria_count": 10,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "infrastructure_candidate_count": 10,
+    "manual_fallback_is_not_target": true,
+    "readiness_evaluation_count": 4,
+    "summary_included_in_snapshot": true,
+    "telegram_approval_split_brain_bottleneck_present": true
+  },
   "browser_oauth_account_access_allowed": false,
   "capital_hilton_answer_candidate_receipt_integration": {
     "action_authority_granted": false,
@@ -149,7 +164,7 @@
     "test_harness_receipt_model_present": true
   },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:34d456d0749239b25c7357cf00bc0ea3801d9dc1c225ff0eeaee637fcd313c81",
+  "contract_hash": "sha256:99ae4afd22cdcd1c2c39b49c8f352e4c93715e7fb365432f886fa5692f407575",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -166,8 +181,21 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-23T17:19:19+00:00",
+  "generated_at": "2026-05-23T19:34:26+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
+  "guided_capture_protected_evidence_path_contract_integration": {
+    "action_authority_granted": false,
+    "artifact_target_count": 9,
+    "capital_hilton_coupa_po_capture_path_present": true,
+    "capture_moment_count": 7,
+    "capture_path_count": 7,
+    "credentials_capture_blocked": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "privacy_guard_count": 8,
+    "raw_body_capture_blocked": true,
+    "summary_included_in_snapshot": true,
+    "targeted_capture_preferred_over_full_desktop": true
+  },
   "mac_side_change_required": {
     "entitlement_exception_needed_once": [
       "openclaw_map_snapshot.json",
@@ -195,6 +223,17 @@
       "snapshot": "/Users/hwinshipwheatley/openclaw_generated_read_models/openclaw_map_snapshot.json"
     }
   },
+  "make_winship_life_easier_batch_integration": {
+    "action_authority_granted": false,
+    "batch_id": "make_winship_life_easier_batch_v0",
+    "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "completed_lanes_count": 5,
+    "individual_manifest_read_model_remains_proof_detail": true,
+    "low_bandwidth_human_interface_posture": true,
+    "machine_contracts_remain_substrate": true,
+    "next_expected_actor": "mac_map_import_agent",
+    "summary_included_in_snapshot": true
+  },
   "map_manifest": {
     "authority_boundary": {
       "agent_activation_allowed": false,
@@ -219,10 +258,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:53657e1815e854d6d821ba4649f61f48b0d3fd8bcac6ce095cb0af5dbe9ecdc7",
-    "canonical_read_model_count": 272,
-    "created_at": "2026-05-23T17:19:19+00:00",
-    "essential_surface_count": 29,
+    "bundle_hash": "sha256:f6c9dbcdc5a014714f2fd24a0cdc8a3a855112995297a024eee3bdb1c46a661e",
+    "canonical_read_model_count": 284,
+    "created_at": "2026-05-23T19:34:26+00:00",
+    "essential_surface_count": 35,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -591,6 +630,84 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:7b0e0ccd1f59e622371e99ad53f118b694f975b31378fcbf153dd75854c64eeb",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/make_winship_life_easier_batch_manifest.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "make_winship_life_easier_batch_manifest",
+        "role": "Make Winship Life Easier app-wide workflow layer batch closure and Mac import handoff",
+        "schema_version": "make_winship_life_easier_batch_manifest_v0",
+        "surface_id": "make_winship_life_easier_batch"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:83eeb06f47c9c50a11c66fb8440149dfc4f0ed740b77cbae1d2f2eca4b4b1304",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_work_mode_schema_bandwidth_policy.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_work_mode_schema_bandwidth_policy",
+        "role": "operator work modes, bandwidth policy, helm declutter, and machine-substrate boundary",
+        "schema_version": "operator_work_mode_schema_bandwidth_policy_v0",
+        "surface_id": "operator_work_mode_schema_bandwidth_policy"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:a296925eff6aef916f9a9416ca9fc2258cd400b670164d189491b5468c91f11d",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_solve_path_decision_node_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_solve_path_decision_node_contract",
+        "role": "solve paths, decision nodes, deterministic choices, and receipt targets",
+        "schema_version": "operator_solve_path_decision_node_contract_v0",
+        "surface_id": "operator_solve_path_decision_node_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:dcba5e706973e238989facc053cec0852b57936d54463e115e3ce1b9ca8fd3bc",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/guided_capture_protected_evidence_path_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "guided_capture_protected_evidence_path_contract",
+        "role": "guided capture paths, protected evidence artifact policy, outcomes, and privacy guards",
+        "schema_version": "guided_capture_protected_evidence_path_contract_v0",
+        "surface_id": "guided_capture_protected_evidence_path_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:ce4726c89a73e9a56184bbd4ea6f0d0f0263a93885dff98a5e7c7586b56d9fa2",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/workflow_session_channel_projection_approval_bus_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "workflow_session_channel_projection_approval_bus_contract",
+        "role": "canonical workflow session, channel projections, approval bus, and stale approval prevention",
+        "schema_version": "workflow_session_channel_projection_approval_bus_contract_v0",
+        "surface_id": "workflow_session_channel_projection_approval_bus_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:45b73a4f93bbb521632934a81c40bcf53335de1e07251f32b305dc7f637a4a28",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/automation_readiness_feasibility_evaluator_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "automation_readiness_feasibility_evaluator_contract",
+        "role": "automation bottleneck, readiness, infrastructure, and dead-on-arrival feasibility summary",
+        "schema_version": "automation_readiness_feasibility_evaluator_contract_v0",
+        "surface_id": "automation_readiness_feasibility_evaluator_contract"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -625,17 +742,17 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_718c9568c3aa9f280f09",
+    "map_generation_id": "map_f47cef0e17a00622c5a2",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 279,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 291,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:2acd02df2ddfe1d1c10855bed8b4e98eb85dc90a0d990b982a21d7968b19bf5d",
+    "read_model_manifest_hash": "sha256:44b5e95227da43820aa0e7a9b31a65321b99800eb68a336f11259f757d2add00",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:718c9568c3aa9f280f09698c7b6f70d56e337c1be470afb8f260d54bd46bfbe9",
-    "source_commit_if_available_local_only": "63ff43ce826a256204eed9e90abfbc4f536c0d89",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 272,
+    "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
+    "source_commit_if_available_local_only": "5663e14b2fd7200c893ad62c3055fb2250550e52",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 284,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -650,6 +767,9 @@
   "map_snapshot_summary": {
     "agent_council_preview_only": true,
     "agent_dossier_cards_count": 12,
+    "automation_all_authority_flags_false": true,
+    "automation_bottleneck_assessment_count": 6,
+    "automation_readiness_evaluation_count": 4,
     "capital_hilton_answer_candidates_count": 10,
     "capital_hilton_automatic_progression_allowed": false,
     "capital_hilton_automatic_quieting_allowed": false,
@@ -681,6 +801,8 @@
       "struna"
     ],
     "future_gated_cue_autonomy": true,
+    "guided_capture_path_count": 7,
+    "guided_capture_privacy_guard_count": 8,
     "health_state": {
       "check_transmission_summary": {
         "current_status": "QUIET",
@@ -702,7 +824,10 @@
       "source_path": "generated/read_models/system_health_lights_taxonomy.json",
       "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
     },
-    "map_generation_id": "map_718c9568c3aa9f280f09",
+    "make_winship_life_easier_batch_present": true,
+    "make_winship_life_easier_batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "make_winship_life_easier_completed_lanes_count": 5,
+    "map_generation_id": "map_f47cef0e17a00622c5a2",
     "openclaw_work_terrain_built_status_validation_rule_count": 6,
     "openclaw_work_terrain_classification_examples_count": 21,
     "openclaw_work_terrain_completed_lanes_count": 4,
@@ -714,6 +839,10 @@
     "openclaw_work_terrain_relationship_examples_count": 8,
     "operator_attention_promotion_present": true,
     "operator_attention_promotion_quiet_helm_policy_present": true,
+    "operator_decision_node_count": 8,
+    "operator_solve_path_count": 5,
+    "operator_work_mode_bandwidth_modes_count": 4,
+    "operator_work_mode_helm_default_bandwidth_mode": "LOW_BANDWIDTH",
     "package_preview_receipt_examples_count": 8,
     "parked_capital_experiment_present": true,
     "parked_capital_experiment_status": "PARKED_HIGH_RISK_R_AND_D_EXPERIMENT",
@@ -735,7 +864,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:718c9568c3aa9f280f09698c7b6f70d56e337c1be470afb8f260d54bd46bfbe9",
+    "snapshot_hash": "sha256:f47cef0e17a00622c5a2926b1cd14ebede276eb6aaee9e62188894a28485f782",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -756,7 +885,9 @@
       "safe_next_move": "Use the threshold map to review whether each child lane has orientation, proof posture, package preview, and a quiet condition.",
       "target_world": null
     },
-    "tool_adapter_receipt_examples_count": 12
+    "tool_adapter_receipt_examples_count": 12,
+    "workflow_approval_bus_count": 5,
+    "workflow_session_count": 5
   },
   "metadata_only": true,
   "mission_control_app_changed": false,
@@ -855,6 +986,32 @@
     "shared_fix_path_handling_present": true,
     "summary_included_in_snapshot": true
   },
+  "operator_solve_path_decision_node_contract_integration": {
+    "action_authority_granted": false,
+    "capital_hilton_solve_path_present": true,
+    "confirm_performance_dates_node_present": true,
+    "decision_choice_count": 21,
+    "decision_node_count": 8,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "lm_cannot_create_choices": true,
+    "receipt_target_count": 9,
+    "receipt_targets_modeled_not_written": true,
+    "solve_path_count": 5,
+    "summary_included_in_snapshot": true
+  },
+  "operator_work_mode_schema_bandwidth_policy_integration": {
+    "action_authority_granted": false,
+    "bandwidth_mode_count": 4,
+    "helm_declutter_policy_present": true,
+    "helm_default_bandwidth_mode": "LOW_BANDWIDTH",
+    "individual_contract_read_model_remains_proof_detail": true,
+    "issue_classification_count": 11,
+    "machine_contracts_not_default_app_surface": true,
+    "stable_map_exposure_policy_present": true,
+    "summary_included_in_snapshot": true,
+    "work_mode_instance_count": 6,
+    "work_mode_type_count": 10
+  },
   "package_preview_receipt_integration": {
     "account_access_allowed": false,
     "agent_activation_allowed": false,
@@ -925,11 +1082,11 @@
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 279,
+      "canonical_expected": 291,
       "display_status": "needs_mac_sync",
       "hash_mismatch": 4,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 61,
+      "missing_expected": 73,
       "observed": 218,
       "operator_action_required": true,
       "present": true,
@@ -1108,5 +1265,19 @@
     "send_submit_approval_allowed": false,
     "summary_included_in_snapshot": true
   },
-  "tool_plugin_execution_allowed": false
+  "tool_plugin_execution_allowed": false,
+  "workflow_session_channel_projection_approval_bus_contract_integration": {
+    "action_authority_granted": false,
+    "approval_bus_count": 5,
+    "approval_more_than_once_blocked": true,
+    "capital_hilton_session_present": true,
+    "channel_projection_count": 19,
+    "duplicate_sessions_blocked": true,
+    "finance_world_and_telegram_attach_same_session": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "single_approval_object_invariant": true,
+    "stale_approval_invalidation_required": true,
+    "summary_included_in_snapshot": true,
+    "workflow_session_count": 5
+  }
 }
