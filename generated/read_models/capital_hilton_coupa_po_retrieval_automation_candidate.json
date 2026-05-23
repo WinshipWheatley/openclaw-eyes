@@ -1,0 +1,798 @@
+{
+  "agent_activation_allowed": false,
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_current_authority_flags_false": true,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "future_candidate_flags_are_non_authority": {
+      "autonomous_retrieval_future_candidate": true,
+      "browser_automation_required_future": true,
+      "credential_broker_required_future": true,
+      "future_flags_grant_current_authority": false,
+      "network_required_future": true,
+      "protected_access_broker_required_future": true,
+      "read_only_portal_lookup_future_candidate": true
+    },
+    "invoice_generation_allowed": false,
+    "invoice_submission_allowed": false,
+    "ledger_write_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "payment_mutation_allowed": false,
+    "portal_login_allowed": false,
+    "portal_read_allowed": false,
+    "portal_write_allowed": false,
+    "protected_credential_broker_active": false,
+    "queue_execution_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "stage_6_submission_or_invoice_action_blocked": true,
+    "tool_execution_allowed": false
+  },
+  "automation_candidates": [
+    {
+      "automation_goal": "OpenClaw eventually performs a governed read-only lookup and records a protected metadata receipt without exposing credentials or raw portal contents.",
+      "automation_stage": "STAGE_0_MANUAL_INSTRUCTIONS",
+      "automation_status": "BLOCKED_PENDING_PROTECTED_ACCESS_BROKER",
+      "blocked_outputs": [
+        "credentials",
+        "session cookies",
+        "raw portal screenshots unless protected-reference only",
+        "raw portal body scrape",
+        "bank/check/remit data unless protected metadata only",
+        "invoice submission",
+        "payment request mutation",
+        "email/send/submit action"
+      ],
+      "browser_automation_required": true,
+      "business_purpose": "Retrieve or confirm Coupa / PO / payment reference metadata needed for the Capital Hilton invoice packet.",
+      "candidate_id": "capital_hilton_coupa_po_reference_retrieval",
+      "credential_broker_required": true,
+      "current_authority_granted": false,
+      "current_manual_fallback": "Winship manually logs in and copies only safe metadata, such as a PO/reference number, or confirms that no reference exists.",
+      "display_name": "Capital Hilton Coupa / PO Reference Retrieval",
+      "external_surface": "Coupa supplier portal / Hilton AP payment reference surface",
+      "failure_modes": [
+        "login challenge / MFA required",
+        "credentials unavailable",
+        "portal layout changed",
+        "unexpected payment/account page",
+        "mutation/submit button encountered",
+        "raw sensitive data exposed",
+        "unknown account/session state",
+        "PO/reference ambiguous",
+        "duplicate invoice/reference risk",
+        "compliance/terms uncertainty",
+        "Guardian quarantine trigger",
+        "operator cancels"
+      ],
+      "guardian_review_required": true,
+      "network_required_future": true,
+      "next_safe_move": "keep manual fallback available while modeling security delta, protected access broker, read-only lookup, receipt, and rollback requirements",
+      "operator_approval_required": true,
+      "protected_access_broker_required": true,
+      "required_gates": [
+        "security_delta_for_external_portal",
+        "protected_access_broker_gate",
+        "credential_handling_gate",
+        "browser_automation_sandbox_gate",
+        "read_only_lookup_contract_gate",
+        "portal_terms_compliance_gate",
+        "guardian_metadata_review_gate",
+        "operator_authorization_gate",
+        "receipt_and_rollback_gate",
+        "no_submission_mutation_gate"
+      ],
+      "required_inputs": [
+        "client/vendor identity",
+        "invoice lane/session id",
+        "expected date range",
+        "expected amount",
+        "Capital Hilton label",
+        "PO/payment reference target",
+        "credential broker token later, not now",
+        "operator authorization later",
+        "Guardian approval later"
+      ],
+      "required_outputs": [
+        "protected metadata receipt",
+        "lookup status receipt",
+        "stop receipt if blocked"
+      ],
+      "required_receipts": [
+        "operator_authorization_receipt_future",
+        "security_delta_receipt_future",
+        "protected_access_broker_receipt_future",
+        "credential_broker_receipt_future",
+        "read_only_lookup_attempt_receipt_future",
+        "no_mutation_boundary_receipt_future",
+        "guardian_metadata_review_receipt_future",
+        "rollback_or_stop_receipt_if_triggered"
+      ],
+      "rollback_or_stop_conditions": [
+        "stop before credential entry when broker is unavailable",
+        "stop before any submit, save, payment, invoice, or mutation control",
+        "stop and quarantine if raw sensitive portal content becomes exposed",
+        "stop and request operator decision if PO/reference is ambiguous",
+        "stop and record failure receipt if compliance or terms are uncertain"
+      ],
+      "safe_outputs": [
+        "PO/reference number if found",
+        "no-reference-found receipt",
+        "lookup attempted receipt",
+        "portal route label",
+        "timestamp",
+        "source surface label",
+        "redacted proof metadata",
+        "hash/receipt reference"
+      ],
+      "target_lane": "Capital Hilton",
+      "target_world": "Finance",
+      "workflow_name": "Capital Hilton Coupa / PO / payment-reference retrieval"
+    }
+  ],
+  "automation_stages": [
+    "STAGE_0_MANUAL_INSTRUCTIONS",
+    "STAGE_1_GUIDED_MANUAL_SESSION",
+    "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+    "STAGE_3_READ_ONLY_PORTAL_LOOKUP_DRY_RUN",
+    "STAGE_4_PROTECTED_CREDENTIAL_BROKER_TRIAL",
+    "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL",
+    "STAGE_6_ACTION_OR_SUBMISSION_BLOCKED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "automation_statuses": [
+    "MANUAL_FALLBACK_ONLY_CURRENTLY",
+    "ASSISTED_MANUAL_CANDIDATE",
+    "SUPERVISED_AUTOMATION_CANDIDATE",
+    "READ_ONLY_AUTOMATION_CANDIDATE",
+    "PROTECTED_LOGIN_AUTOMATION_CANDIDATE",
+    "AUTONOMOUS_RETRIEVAL_CANDIDATE",
+    "BLOCKED_PENDING_SECURITY_DELTA",
+    "BLOCKED_PENDING_PROTECTED_ACCESS_BROKER",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "browser_automation_allowed": false,
+  "contract_id": "capital_hilton_coupa_po_retrieval_automation_candidate_v0",
+  "contract_status": "deterministic_future_automation_candidate_no_current_authority",
+  "core_doctrine": {
+    "autonomy_requires_receipts_gates_rollback_and_trust_clearance": true,
+    "governed_automation_target": true,
+    "guided_assistance_bridge": true,
+    "manual_fallback_allowed": true,
+    "not_currently_authorized_is_not_cannot_ever_automate": true
+  },
+  "coupa_access_allowed": false,
+  "credential_handling_allowed": false,
+  "email_send_allowed": false,
+  "future_candidate_flags_non_authority": {
+    "autonomous_retrieval_future_candidate": true,
+    "browser_automation_required_future": true,
+    "credential_broker_required_future": true,
+    "future_flags_grant_current_authority": false,
+    "network_required_future": true,
+    "protected_access_broker_required_future": true,
+    "read_only_portal_lookup_future_candidate": true
+  },
+  "gate_types": [
+    "SECURITY_DELTA",
+    "PROTECTED_ACCESS",
+    "CREDENTIAL_BROKER",
+    "BROWSER_AUTOMATION",
+    "COMPLIANCE_TERMS",
+    "GUARDIAN_REVIEW",
+    "OPERATOR_APPROVAL",
+    "RECEIPT_PROOF",
+    "NO_MUTATION_BOUNDARY"
+  ],
+  "generated_at": "2026-05-23T18:02:49+00:00",
+  "invoice_generation_allowed": false,
+  "invoice_submission_allowed": false,
+  "ledger_write_allowed": false,
+  "machine_proof": {
+    "all_current_authority_flags_false": true,
+    "automation_stages_exist": true,
+    "automation_statuses_exist": true,
+    "candidate_count": 1,
+    "content_hash": "sha256:1e9d0875877db687171ee3e3f709e26421107c8989c974eba132f99d4f67c580",
+    "credential_or_secret_included": false,
+    "default_candidate_exists": true,
+    "future_candidate_flags_do_not_grant_authority": true,
+    "manual_fallback_modeled": true,
+    "mutation_submission_stage_blocked": true,
+    "no_coupa_browser_network_authority": true,
+    "no_credential_storage": true,
+    "no_invoice_send_submit_ledger_authority": true,
+    "raw_private_body_included": false,
+    "readiness_gate_count": 10,
+    "relationship_to_capital_hilton_proof_item_exists": true,
+    "stop_condition_count": 12,
+    "supervised_and_autonomous_candidates_modeled_future_gated": true,
+    "trial_stage_count": 7
+  },
+  "model_call_allowed": false,
+  "network_operation_allowed": false,
+  "payment_mutation_allowed": false,
+  "portal_login_allowed": false,
+  "portal_read_allowed": false,
+  "portal_write_allowed": false,
+  "protected_credential_broker_active": false,
+  "queue_execution_allowed": false,
+  "read_model_id": "capital_hilton_coupa_po_retrieval_automation_candidate",
+  "readiness_gates": [
+    {
+      "allowed_result": [
+        "read-only preview may be considered later"
+      ],
+      "blocked_result": [
+        "live portal access now",
+        "action authority"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Security Delta for External Portal",
+      "gate_id": "security_delta_for_external_portal",
+      "gate_type": "SECURITY_DELTA",
+      "next_safe_move": "prepare a security delta before any Coupa/browser/network lane",
+      "required_evidence": [
+        "security pass delta receipt",
+        "external portal risk review"
+      ],
+      "required_for_stage": [
+        "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+        "STAGE_3_READ_ONLY_PORTAL_LOOKUP_DRY_RUN"
+      ]
+    },
+    {
+      "allowed_result": [
+        "brokered access may be trialed later without exposing raw secrets"
+      ],
+      "blocked_result": [
+        "direct credential access by agents"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Protected Access Broker Gate",
+      "gate_id": "protected_access_broker_gate",
+      "gate_type": "PROTECTED_ACCESS",
+      "next_safe_move": "define broker requirements without activating the broker",
+      "required_evidence": [
+        "protected access broker contract",
+        "Guardian review receipt"
+      ],
+      "required_for_stage": [
+        "STAGE_4_PROTECTED_CREDENTIAL_BROKER_TRIAL",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "credential never printed, stored, or delivered to agent"
+      ],
+      "blocked_result": [
+        "credential storage",
+        "credential display",
+        "credential inference"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Credential Handling Gate",
+      "gate_id": "credential_handling_gate",
+      "gate_type": "CREDENTIAL_BROKER",
+      "next_safe_move": "keep credentials outside normal read-models and outside agent context",
+      "required_evidence": [
+        "credential broker receipt",
+        "operator authorization receipt"
+      ],
+      "required_for_stage": [
+        "STAGE_4_PROTECTED_CREDENTIAL_BROKER_TRIAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "supervised read-only preview candidate"
+      ],
+      "blocked_result": [
+        "unsupervised browser run now",
+        "submit/save/mutation controls"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Browser Automation Sandbox Gate",
+      "gate_id": "browser_automation_sandbox_gate",
+      "gate_type": "BROWSER_AUTOMATION",
+      "next_safe_move": "model sandbox and hard-stop controls before any browser trial",
+      "required_evidence": [
+        "sandbox receipt",
+        "read-only navigation plan",
+        "hard-stop controls"
+      ],
+      "required_for_stage": [
+        "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+        "STAGE_3_READ_ONLY_PORTAL_LOOKUP_DRY_RUN"
+      ]
+    },
+    {
+      "allowed_result": [
+        "lookup metadata receipt may be produced later"
+      ],
+      "blocked_result": [
+        "portal body scrape",
+        "invoice submit",
+        "payment mutation"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Read-Only Lookup Contract Gate",
+      "gate_id": "read_only_lookup_contract_gate",
+      "gate_type": "RECEIPT_PROOF",
+      "next_safe_move": "define lookup receipt and no-mutation proof before lookup",
+      "required_evidence": [
+        "read-only scope contract",
+        "lookup receipt schema",
+        "no-mutation receipt"
+      ],
+      "required_for_stage": [
+        "STAGE_3_READ_ONLY_PORTAL_LOOKUP_DRY_RUN",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "automation remains eligible for later review"
+      ],
+      "blocked_result": [
+        "terms uncertainty",
+        "forbidden automation"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Portal Terms Compliance Gate",
+      "gate_id": "portal_terms_compliance_gate",
+      "gate_type": "COMPLIANCE_TERMS",
+      "next_safe_move": "confirm terms posture before any portal automation candidate advances",
+      "required_evidence": [
+        "operator compliance decision",
+        "terms posture receipt"
+      ],
+      "required_for_stage": [
+        "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "protected metadata may be promoted later"
+      ],
+      "blocked_result": [
+        "raw sensitive output",
+        "action approval"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Guardian Metadata Review Gate",
+      "gate_id": "guardian_metadata_review_gate",
+      "gate_type": "GUARDIAN_REVIEW",
+      "next_safe_move": "route only redacted metadata and receipts to Guardian",
+      "required_evidence": [
+        "Guardian metadata review packet",
+        "redaction receipt"
+      ],
+      "required_for_stage": [
+        "STAGE_1_GUIDED_MANUAL_SESSION",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "bounded trial may proceed later"
+      ],
+      "blocked_result": [
+        "silent account access",
+        "automatic activation"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Operator Authorization Gate",
+      "gate_id": "operator_authorization_gate",
+      "gate_type": "OPERATOR_APPROVAL",
+      "next_safe_move": "require explicit operator authority for each future external-access trial",
+      "required_evidence": [
+        "operator approval receipt",
+        "scope confirmation"
+      ],
+      "required_for_stage": [
+        "STAGE_1_GUIDED_MANUAL_SESSION",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "trial can be audited later"
+      ],
+      "blocked_result": [
+        "unreceipted portal activity",
+        "unstoppable run"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "Receipt and Rollback Gate",
+      "gate_id": "receipt_and_rollback_gate",
+      "gate_type": "RECEIPT_PROOF",
+      "next_safe_move": "define success, failure, and stop receipts before any automation trial",
+      "required_evidence": [
+        "success receipt schema",
+        "failure receipt schema",
+        "rollback stop plan"
+      ],
+      "required_for_stage": [
+        "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+        "STAGE_5_AUTONOMOUS_READ_ONLY_RETRIEVAL"
+      ]
+    },
+    {
+      "allowed_result": [
+        "read-only retrieval boundary preserved"
+      ],
+      "blocked_result": [
+        "invoice submission",
+        "payment request mutation",
+        "email send",
+        "ledger write"
+      ],
+      "current_status": "NOT_SATISFIED_CURRENTLY",
+      "display_name": "No Submission / Mutation Gate",
+      "gate_id": "no_submission_mutation_gate",
+      "gate_type": "NO_MUTATION_BOUNDARY",
+      "next_safe_move": "keep submit, save, payment, invoice, send, and ledger actions blocked",
+      "required_evidence": [
+        "no-submit boundary receipt",
+        "hard-stop trigger list"
+      ],
+      "required_for_stage": [
+        "STAGE_2_SUPERVISED_BROWSER_PREVIEW",
+        "STAGE_6_ACTION_OR_SUBMISSION_BLOCKED"
+      ]
+    }
+  ],
+  "relationship_to_capital_hilton_proof_resolution": {
+    "capital_hilton_guardian_review_packet": {
+      "created_now": false,
+      "guardian_review_required": true,
+      "potential_future_output": "Guardian metadata review packet for Coupa/PO metadata",
+      "read_model_ref": "generated/read_models/capital_hilton_guardian_review_packet.json"
+    },
+    "capital_hilton_proof_quieting_progress_state": {
+      "potential_future_transition": "coupa_po_payment_reference_metadata may move only after protected metadata and receipts exist",
+      "read_model_ref": "generated/read_models/capital_hilton_proof_quieting_progress_state.json",
+      "transitioned_now": false
+    },
+    "capital_hilton_proof_resolution_batch": {
+      "read_model_ref": "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+      "relationship": "automation candidate supports the Coupa/PO payment-reference lane"
+    },
+    "capital_hilton_protected_proof_intake": {
+      "read_model_ref": "generated/read_models/capital_hilton_protected_proof_intake.json",
+      "relationship": "this candidate addresses the Coupa / PO / payment reference metadata proof item"
+    },
+    "capital_hilton_protected_reference_placeholder": {
+      "created_now": false,
+      "potential_future_output": "protected reference placeholder or metadata receipt",
+      "read_model_ref": "generated/read_models/capital_hilton_protected_reference_placeholder.json"
+    },
+    "lookup_receipt_created_now": false,
+    "lookup_receipt_may_be_created_later": true,
+    "proof_item_id_supported": "coupa_po_payment_reference_metadata",
+    "proof_satisfied_now": false,
+    "shared_execution_path_id": "protected_finance_proof_metadata_intake"
+  },
+  "runtime_dispatch_allowed": false,
+  "schema_version": "capital_hilton_coupa_po_retrieval_automation_candidate_v0",
+  "stop_conditions": [
+    {
+      "condition_id": "login_challenge_mfa_required",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop before credential or challenge handling",
+      "severity": "HARD_STOP",
+      "trigger": "login challenge / MFA required"
+    },
+    {
+      "condition_id": "credentials_unavailable",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "fall back to manual path",
+      "severity": "HARD_STOP",
+      "trigger": "credentials unavailable"
+    },
+    {
+      "condition_id": "portal_layout_changed",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and require supervised review",
+      "severity": "HARD_STOP",
+      "trigger": "portal layout changed"
+    },
+    {
+      "condition_id": "unexpected_payment_account_page",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and quarantine metadata posture",
+      "severity": "QUARANTINE",
+      "trigger": "unexpected payment/account page"
+    },
+    {
+      "condition_id": "mutation_submit_button_encountered",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop before interacting with mutation control",
+      "severity": "HARD_STOP",
+      "trigger": "mutation/submit button encountered"
+    },
+    {
+      "condition_id": "raw_sensitive_data_exposed",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and route to Guardian quarantine",
+      "severity": "QUARANTINE",
+      "trigger": "raw sensitive data exposed"
+    },
+    {
+      "condition_id": "unknown_account_session_state",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and require operator review",
+      "severity": "HARD_STOP",
+      "trigger": "unknown account/session state"
+    },
+    {
+      "condition_id": "po_reference_ambiguous",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and ask operator to clarify",
+      "severity": "OPERATOR_DECISION",
+      "trigger": "PO/reference ambiguous"
+    },
+    {
+      "condition_id": "duplicate_invoice_reference_risk",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and require receipt review",
+      "severity": "HARD_STOP",
+      "trigger": "duplicate invoice/reference risk"
+    },
+    {
+      "condition_id": "compliance_terms_uncertainty",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop until terms posture is receipted",
+      "severity": "HARD_STOP",
+      "trigger": "compliance/terms uncertainty"
+    },
+    {
+      "condition_id": "guardian_quarantine_trigger",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop and require Guardian review",
+      "severity": "QUARANTINE",
+      "trigger": "Guardian quarantine trigger"
+    },
+    {
+      "condition_id": "operator_cancels",
+      "next_safe_move": "record stop receipt and keep manual fallback available",
+      "operator_visibility": "operator_visible_required",
+      "receipt_required": true,
+      "required_stop_action": "stop immediately and record cancellation receipt",
+      "severity": "HARD_STOP",
+      "trigger": "operator cancels"
+    }
+  ],
+  "tool_execution_allowed": false,
+  "trial_ladder": [
+    {
+      "allowed_actions": [
+        "operator manually records safe PO/reference metadata",
+        "operator records no-reference-found"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "browser automation by OpenClaw",
+        "Coupa access by OpenClaw"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Manual Reference Capture",
+      "failure_receipt": "manual_lookup_unavailable_receipt",
+      "next_stage": "guided_manual_readback",
+      "required_gates": [
+        "guardian_metadata_review_gate"
+      ],
+      "stage_id": "manual_reference_capture",
+      "success_receipt": "manual_safe_metadata_capture_receipt",
+      "what_it_tests": "Manual fallback while automation is not authorized."
+    },
+    {
+      "allowed_actions": [
+        "show bounded instructions",
+        "capture safe metadata entered by operator"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "browser automation",
+        "credential handling"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Guided Manual Readback",
+      "failure_receipt": "guided_manual_blocked_receipt",
+      "next_stage": "supervised_browser_navigation_preview",
+      "required_gates": [
+        "operator_authorization_gate",
+        "guardian_metadata_review_gate"
+      ],
+      "stage_id": "guided_manual_readback",
+      "success_receipt": "guided_manual_readback_receipt",
+      "what_it_tests": "System gives instructions and captures safe operator-entered metadata."
+    },
+    {
+      "allowed_actions": [
+        "future supervised preview only after gates"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "credential storage",
+        "submit/save/mutation"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Supervised Browser Navigation Preview",
+      "failure_receipt": "supervised_navigation_stop_receipt_future",
+      "next_stage": "read_only_lookup_dry_run",
+      "required_gates": [
+        "security_delta_for_external_portal",
+        "browser_automation_sandbox_gate",
+        "portal_terms_compliance_gate",
+        "receipt_and_rollback_gate",
+        "no_submission_mutation_gate"
+      ],
+      "stage_id": "supervised_browser_navigation_preview",
+      "success_receipt": "supervised_navigation_preview_receipt_future",
+      "what_it_tests": "Future supervised navigation shape with operator watching."
+    },
+    {
+      "allowed_actions": [
+        "future read-only lookup after all gates"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "portal write",
+        "body scrape"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Read-Only Lookup Dry Run",
+      "failure_receipt": "read_only_lookup_stop_receipt_future",
+      "next_stage": "protected_credential_broker_trial",
+      "required_gates": [
+        "read_only_lookup_contract_gate",
+        "receipt_and_rollback_gate",
+        "no_submission_mutation_gate"
+      ],
+      "stage_id": "read_only_lookup_dry_run",
+      "success_receipt": "read_only_lookup_dry_run_receipt_future",
+      "what_it_tests": "Future proof that portal navigation can find a reference without mutation."
+    },
+    {
+      "allowed_actions": [
+        "future brokered credential handoff to protected access layer only"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "credential print/store/inspect",
+        "direct agent credential access"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Protected Credential Broker Trial",
+      "failure_receipt": "protected_credential_broker_stop_receipt_future",
+      "next_stage": "autonomous_read_only_retrieval",
+      "required_gates": [
+        "protected_access_broker_gate",
+        "credential_handling_gate",
+        "operator_authorization_gate"
+      ],
+      "stage_id": "protected_credential_broker_trial",
+      "success_receipt": "protected_credential_broker_trial_receipt_future",
+      "what_it_tests": "Future high-security broker use without raw credential exposure."
+    },
+    {
+      "allowed_actions": [
+        "future autonomous read-only retrieval after all gates"
+      ],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "invoice action",
+        "account mutation"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Autonomous Read-Only Retrieval",
+      "failure_receipt": "autonomous_read_only_retrieval_stop_receipt_future",
+      "next_stage": "submission_or_invoice_action",
+      "required_gates": [
+        "security_delta_for_external_portal",
+        "protected_access_broker_gate",
+        "credential_handling_gate",
+        "browser_automation_sandbox_gate",
+        "read_only_lookup_contract_gate",
+        "portal_terms_compliance_gate",
+        "guardian_metadata_review_gate",
+        "operator_authorization_gate",
+        "receipt_and_rollback_gate",
+        "no_submission_mutation_gate"
+      ],
+      "stage_id": "autonomous_read_only_retrieval",
+      "success_receipt": "autonomous_read_only_retrieval_receipt_future",
+      "what_it_tests": "Future target: governed read-only retrieval with receipts and stop controls."
+    },
+    {
+      "allowed_actions": [],
+      "blocked_actions": [
+        "credential storage",
+        "raw portal body scrape",
+        "invoice generation",
+        "invoice submission",
+        "payment mutation",
+        "email send",
+        "ledger write",
+        "Coupa submit",
+        "invoice submit",
+        "approval action"
+      ],
+      "can_advance_to_next_stage": false,
+      "display_name": "Submission or Invoice Action",
+      "failure_receipt": "submission_or_action_blocked_receipt",
+      "next_stage": "UNKNOWN_FAIL_CLOSED",
+      "required_gates": [
+        "no_submission_mutation_gate"
+      ],
+      "stage_id": "submission_or_invoice_action",
+      "success_receipt": "not_available_in_this_contract",
+      "what_it_tests": "Explicitly blocked action class in this contract."
+    }
+  ]
+}

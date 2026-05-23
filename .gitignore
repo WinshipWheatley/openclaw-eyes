@@ -836,6 +836,7 @@
 !capital_hilton_proof_resolution_batch_manifest.py
 !capital_hilton_guardian_review_packet.py
 !capital_hilton_proof_quieting_progress_state.py
+!capital_hilton_coupa_po_retrieval_automation_candidate.py
 !openclaw_work_terrain_query_contract.py
 !openclaw_work_terrain_relationship_index.py
 !openclaw_work_terrain_classification_candidate.py
@@ -863,6 +864,7 @@
 !scripts/export_capital_hilton_proof_resolution_batch_manifest.py
 !scripts/export_capital_hilton_guardian_review_packet.py
 !scripts/export_capital_hilton_proof_quieting_progress_state.py
+!scripts/export_capital_hilton_coupa_po_retrieval_automation_candidate.py
 !scripts/export_openclaw_work_terrain_query_contract.py
 !scripts/export_openclaw_work_terrain_relationship_index.py
 !scripts/export_openclaw_work_terrain_classification_candidate.py
@@ -882,6 +884,7 @@
 !tests/test_capital_hilton_proof_resolution_batch_manifest.py
 !tests/test_capital_hilton_guardian_review_packet.py
 !tests/test_capital_hilton_proof_quieting_progress_state.py
+!tests/test_capital_hilton_coupa_po_retrieval_automation_candidate.py
 !tests/test_openclaw_work_terrain_query_contract.py
 !tests/test_openclaw_work_terrain_relationship_index.py
 !tests/test_openclaw_work_terrain_classification_candidate.py
