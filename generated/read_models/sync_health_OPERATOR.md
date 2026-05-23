@@ -16,16 +16,17 @@ Mirror counts:
 - matched_hash=214
 
 App-visible stable map:
-- map_status: `map_generation_pending_mac_import`
+- map_status: `map_current`
 - map_generation_id: `map_b324cf6bbb0237e81aa6`
 - bundle_hash: `sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66`
-- app_visible: `false`
-- receipt_matches_pc_bundle: `false`
+- app_visible: `true`
+- receipt_matches_pc_bundle: `true`
 - agent_dossier_cards: `12` at `agent_council.agent_dossier_cards`
 - agent_dossier_cards_path_status: `accepted_canonical_nested_path`
 - package_preview_summary: `true` count=`8`
 - tool_adapter_receipt_summary: `true` count=`12`
 - capital_hilton_summary: `true` missing_proof=`10` protected_proof=`true`
+- capital_hilton_protected_proof_intake: `true` proof_items=`10` missing_proof=`10` protected_proof=`true` candidate_facts_proven=`false`
 - capital_hilton_authority_flags_false: `true`
 - security_audit_readiness: `true` ready_for_pass=`true` approval=`false` action_authority=`false`
 - security_coverage_gaps: `5` parked_breadcrumbs=`15`
@@ -33,19 +34,19 @@ App-visible stable map:
 - security_pass_worker_orphan_chief_hermes: worker=`true` orphaned=`true` chief_hermes=`true`
 - post_security_governance_batch: `true` parked_capital=`true` security_delta=`true` attention_promotion=`true` chief_cross_off=`true`
 - front-door operator action required: `false`
-- next expected actor: `mac_map_import_agent`
-- next: Map generated on PC; waiting for Mac import receipt
+- next expected actor: `none`
+- next: none
 
 Raw read-model mirror detail:
 - raw_mirror_status: `raw_mirror_stale_or_mismatched`
-- raw_mirror_blocks_app_visible_map: `true`
+- raw_mirror_blocks_app_visible_map: `false`
 
 Check Transmission display:
-- lamp_state: `WARNING`
-- headline: Stable map bundle pending
-- summary: Map generated on PC; waiting for Mac import receipt.
+- lamp_state: `QUIET`
+- headline: Stable map bundle current
+- summary: Mission Control can trust the app-facing map bundle; raw read-model differences stay in proof/detail.
 
-Recommended fix:
+Raw read-model mirror proof/detail recommendation:
 - kind: `request_mac_sync`
 - display status: `needs_mac_sync`
 - next expected actor: `mac_sync_agent`
@@ -55,7 +56,7 @@ Recommended fix:
 - app can request bounded Mac sync marker: `true`
 
 Proof:
-- Mac heartbeat: `idle` at `2026-05-23T05:19:06+00:00`
+- Mac heartbeat: `idle` at `2026-05-23T05:39:08+00:00`
 - Mac completion: `synced` at `2026-05-21T18:25:34+00:00`
 - PC import: `skipped_unchanged` at `2026-05-21T18:29:48+00:00`
 - Windows task log present: `true`

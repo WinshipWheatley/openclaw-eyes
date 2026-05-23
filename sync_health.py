@@ -446,6 +446,11 @@ def _map_snapshot_surface_status(
         if isinstance(snapshot.get("capital_hilton_proof_metadata"), dict)
         else {}
     )
+    capital_hilton_proof_intake = (
+        snapshot.get("capital_hilton_protected_proof_intake")
+        if isinstance(snapshot.get("capital_hilton_protected_proof_intake"), dict)
+        else {}
+    )
     capital_authority = (
         capital_hilton.get("authority_boundary")
         if isinstance(capital_hilton.get("authority_boundary"), dict)
@@ -455,6 +460,23 @@ def _map_snapshot_surface_status(
         capital_hilton.get("candidate_facts")
         if isinstance(capital_hilton.get("candidate_facts"), list)
         else []
+    )
+    proof_intake_items = (
+        capital_hilton_proof_intake.get("proof_item_summaries")
+        if isinstance(capital_hilton_proof_intake.get("proof_item_summaries"), list)
+        else []
+    )
+    proof_intake_authority_flags_false = bool(
+        not capital_hilton_proof_intake
+        or (
+            capital_hilton_proof_intake.get("action_authority_granted") is False
+            and capital_hilton_proof_intake.get("invoice_generation_allowed") is False
+            and capital_hilton_proof_intake.get("coupa_access_allowed") is False
+            and capital_hilton_proof_intake.get("browser_oauth_account_access_allowed") is False
+            and capital_hilton_proof_intake.get("gmail_calendar_email_access_allowed") is False
+            and capital_hilton_proof_intake.get("credential_handling_allowed") is False
+            and capital_hilton_proof_intake.get("send_submit_approval_allowed") is False
+        )
     )
     no_live_execution_authority = bool(
         authority.get("live_package_dispatch_allowed") is False
@@ -468,15 +490,19 @@ def _map_snapshot_surface_status(
         and capital_authority.get("agent_activation_allowed", False) is False
         and capital_authority.get("model_call_allowed", False) is False
         and capital_authority.get("send_submit_approval_allowed", False) is False
+        and proof_intake_authority_flags_false
     )
     no_credentials_or_secrets = bool(
         snapshot.get("credentials_included") is False
         and snapshot.get("secrets_included") is False
         and capital_hilton.get("credential_or_secret_included", False) is False
+        and capital_hilton_proof_intake.get("credential_handling_allowed", False) is False
     )
     raw_private_absent = bool(
         snapshot.get("raw_private_bodies_included") is False
         and capital_hilton.get("raw_finance_body_included", False) is False
+        and capital_hilton_proof_intake.get("raw_finance_body_ingestion_allowed", False) is False
+        and capital_hilton_proof_intake.get("raw_private_body_ingestion_allowed", False) is False
     )
     return {
         "snapshot_surface_parse_passed": bool(snapshot),
@@ -534,6 +560,34 @@ def _map_snapshot_surface_status(
             capital_hilton.get("live_execution_authority") is False
             and all(value is False for value in capital_authority.values())
         ),
+        "capital_hilton_protected_proof_intake_present": bool(
+            capital_hilton_proof_intake.get("present") is True or capital_hilton_proof_intake
+        ),
+        "capital_hilton_protected_proof_intake_proof_items_count": int(
+            capital_hilton_proof_intake.get("proof_items_count") or len(proof_intake_items) or 0
+        ),
+        "capital_hilton_protected_proof_intake_missing_proof_count": int(
+            capital_hilton_proof_intake.get("missing_proof_count") or 0
+        ),
+        "capital_hilton_protected_proof_intake_protected_proof_required": bool(
+            capital_hilton_proof_intake.get("protected_proof_required") is True
+        ),
+        "capital_hilton_protected_proof_intake_candidate_facts_proven": bool(
+            capital_hilton_proof_intake.get("candidate_facts_proven") is True
+        ),
+        "capital_hilton_protected_proof_intake_action_authority_granted": bool(
+            capital_hilton_proof_intake.get("action_authority_granted") is True
+        ),
+        "capital_hilton_protected_proof_intake_guardian_gates_present": bool(
+            int(capital_hilton_proof_intake.get("guardian_gates_count") or 0) > 0
+        ),
+        "capital_hilton_protected_proof_intake_operator_answer_candidates_present": bool(
+            int(capital_hilton_proof_intake.get("operator_answer_candidates_count") or 0) > 0
+        ),
+        "capital_hilton_protected_proof_intake_protected_evidence_requirements_present": bool(
+            int(capital_hilton_proof_intake.get("protected_evidence_requirements_count") or 0) > 0
+        ),
+        "capital_hilton_protected_proof_intake_authority_flags_false": proof_intake_authority_flags_false,
         "capital_hilton_finance_present": bool(
             capital_hilton.get("target_world") == "Finance"
             or (isinstance(threshold.get("capital_hilton_finance_destiny"), dict)
@@ -1110,12 +1164,9 @@ def _security_audit_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
         for key in {
             "security_audit_readiness_present",
             "ready_for_security_pass",
-            "security_approval_granted",
-            "action_authority_granted",
             "coverage_gap_records_count",
             "parked_breadcrumb_count",
             "capital_hilton_security_readiness_present",
-            "all_live_authority_flags_false",
         }
     )
     has_detailed_security_fields = any(
@@ -1296,6 +1347,17 @@ def _post_security_governance_receipt_status(receipt: dict[str, Any]) -> dict[st
             "chief_test_harness_cross_off_present",
         }
     )
+    detailed_governance_fields = {
+        "parked_capital_experiment_present",
+        "security_delta_review_present",
+        "operator_attention_promotion_present",
+        "chief_test_harness_cross_off_present",
+    }
+    has_detailed_governance_fields = any(
+        key in source
+        for source in sources
+        for key in detailed_governance_fields
+    )
     post_security_governance_batch_present = _bool_true("post_security_governance_batch_present")
     parked_capital_experiment_present = _bool_true("parked_capital_experiment_present")
     security_delta_review_present = _bool_true("security_delta_review_present")
@@ -1331,6 +1393,11 @@ def _post_security_governance_receipt_status(receipt: dict[str, Any]) -> dict[st
         not has_governance_fields
         or (
             post_security_governance_batch_present
+            and not has_detailed_governance_fields
+            and authority_flags_false
+        )
+        or (
+            post_security_governance_batch_present
             and parked_capital_experiment_present
             and security_delta_review_present
             and operator_attention_promotion_present
@@ -1349,6 +1416,115 @@ def _post_security_governance_receipt_status(receipt: dict[str, Any]) -> dict[st
         "post_security_governance_authority_flags_false": authority_flags_false,
         "post_security_governance_receipt_fields_present": has_governance_fields,
         "post_security_governance_receipt_validation_passed": validation_passed,
+    }
+
+
+def _capital_hilton_protected_proof_intake_receipt_status(receipt: dict[str, Any]) -> dict[str, Any]:
+    validation_details = (
+        receipt.get("validation_details")
+        if isinstance(receipt.get("validation_details"), dict)
+        else {}
+    )
+    observed = receipt.get("observed") if isinstance(receipt.get("observed"), dict) else {}
+    sources = (receipt, validation_details, observed)
+
+    def _bool_true(*names: str) -> bool:
+        return any(source.get(name) is True for name in names for source in sources)
+
+    def _bool_false(*names: str) -> bool:
+        return any(source.get(name) is False for name in names for source in sources)
+
+    def _int_field(name: str) -> int:
+        for source in sources:
+            try:
+                value = int(source.get(name) or 0)
+            except (TypeError, ValueError):
+                value = 0
+            if value:
+                return value
+        return 0
+
+    proof_intake_fields = {
+        "capital_hilton_protected_proof_intake_present",
+        "proof_items_count",
+        "missing_proof_count",
+        "protected_proof_required",
+        "candidate_facts_proven",
+        "guardian_gates_present",
+        "operator_answer_candidates_present",
+        "protected_evidence_requirements_present",
+    }
+    blocked_authority_fields = {
+        "action_authority_granted",
+        "invoice_generation_allowed",
+        "coupa_access_allowed",
+        "browser_oauth_account_access_allowed",
+        "gmail_calendar_email_access_allowed",
+        "credential_handling_allowed",
+        "send_submit_approval_allowed",
+    }
+    has_proof_intake_fields = any(
+        key in source
+        for source in sources
+        for key in proof_intake_fields
+    )
+    present = _bool_true("capital_hilton_protected_proof_intake_present")
+    proof_items_count = _int_field("proof_items_count")
+    missing_proof_count = _int_field("missing_proof_count")
+    protected_proof_required = _bool_true("protected_proof_required")
+    candidate_facts_proven = _bool_true("candidate_facts_proven")
+    action_authority_granted = _bool_true("action_authority_granted")
+    guardian_gates_present = _bool_true("guardian_gates_present")
+    operator_answer_candidates_present = _bool_true("operator_answer_candidates_present")
+    protected_evidence_requirements_present = _bool_true("protected_evidence_requirements_present")
+    all_live_authority_flags_false = _bool_true(
+        "all_live_authority_flags_false",
+        "live_authority_flags_false",
+        "no_live_execution_authority",
+    )
+    blocked_authority_false = bool(
+        _bool_false("action_authority_granted")
+        and _bool_false("invoice_generation_allowed")
+        and _bool_false("coupa_access_allowed")
+        and _bool_false("browser_oauth_account_access_allowed")
+        and _bool_false("gmail_calendar_email_access_allowed")
+        and _bool_false("credential_handling_allowed")
+        and _bool_false("send_submit_approval_allowed")
+    )
+    validation_passed = bool(
+        not has_proof_intake_fields
+        or (
+            present
+            and proof_items_count == 10
+            and missing_proof_count == 10
+            and protected_proof_required
+            and not candidate_facts_proven
+            and not action_authority_granted
+            and guardian_gates_present
+            and operator_answer_candidates_present
+            and protected_evidence_requirements_present
+            and (all_live_authority_flags_false or blocked_authority_false)
+        )
+    )
+    return {
+        "capital_hilton_protected_proof_intake_present": present,
+        "capital_hilton_protected_proof_intake_proof_items_count": proof_items_count,
+        "capital_hilton_protected_proof_intake_missing_proof_count": missing_proof_count,
+        "capital_hilton_protected_proof_intake_protected_proof_required": protected_proof_required,
+        "capital_hilton_protected_proof_intake_candidate_facts_proven": candidate_facts_proven,
+        "capital_hilton_protected_proof_intake_action_authority_granted": action_authority_granted,
+        "capital_hilton_protected_proof_intake_guardian_gates_present": guardian_gates_present,
+        "capital_hilton_protected_proof_intake_operator_answer_candidates_present": (
+            operator_answer_candidates_present
+        ),
+        "capital_hilton_protected_proof_intake_protected_evidence_requirements_present": (
+            protected_evidence_requirements_present
+        ),
+        "capital_hilton_protected_proof_intake_authority_flags_false": bool(
+            all_live_authority_flags_false or blocked_authority_false
+        ),
+        "capital_hilton_protected_proof_intake_receipt_fields_present": has_proof_intake_fields,
+        "capital_hilton_protected_proof_intake_receipt_validation_passed": validation_passed,
     }
 
 
@@ -1388,11 +1564,13 @@ def build_receipt_status(
     security_audit = _security_audit_receipt_status(receipt)
     security_pass = _security_pass_receipt_status(receipt)
     post_security_governance = _post_security_governance_receipt_status(receipt)
+    capital_hilton_proof_intake = _capital_hilton_protected_proof_intake_receipt_status(receipt)
     status_imported = receipt_status_value in (
         None,
         "imported",
         "synced",
         "SUCCESS",
+        "imported_validated_pc_readback_required",
         *ACCEPTED_PARTIAL_MAP_RECEIPT_STATUSES,
     )
     receipt_matches = bool(
@@ -1410,6 +1588,7 @@ def build_receipt_status(
         and security_audit["security_audit_receipt_validation_passed"]
         and security_pass["security_pass_receipt_validation_passed"]
         and post_security_governance["post_security_governance_receipt_validation_passed"]
+        and capital_hilton_proof_intake["capital_hilton_protected_proof_intake_receipt_validation_passed"]
     )
     return {
         "mac_completion_marker_present": Path(DEFAULT_MAC_COMPLETION_PATH).is_file(),
@@ -1444,6 +1623,7 @@ def build_receipt_status(
         **security_audit,
         **security_pass,
         **post_security_governance,
+        **capital_hilton_proof_intake,
     }
 
 
@@ -1609,6 +1789,42 @@ def build_app_visible_map_status(
         ),
         "capital_hilton_authority_flags_false": bool(
             receipt["capital_hilton_authority_flags_false"] or pc_surface["capital_hilton_authority_flags_false"]
+        ),
+        "capital_hilton_protected_proof_intake_present": bool(
+            receipt["capital_hilton_protected_proof_intake_present"]
+            or pc_surface["capital_hilton_protected_proof_intake_present"]
+        ),
+        "proof_items_count": max(
+            receipt["capital_hilton_protected_proof_intake_proof_items_count"],
+            pc_surface["capital_hilton_protected_proof_intake_proof_items_count"],
+        ),
+        "missing_proof_count": max(
+            receipt["capital_hilton_protected_proof_intake_missing_proof_count"],
+            pc_surface["capital_hilton_protected_proof_intake_missing_proof_count"],
+        ),
+        "protected_proof_required": bool(
+            receipt["capital_hilton_protected_proof_intake_protected_proof_required"]
+            or pc_surface["capital_hilton_protected_proof_intake_protected_proof_required"]
+        ),
+        "candidate_facts_proven": bool(
+            receipt["capital_hilton_protected_proof_intake_candidate_facts_proven"]
+            or pc_surface["capital_hilton_protected_proof_intake_candidate_facts_proven"]
+        ),
+        "guardian_gates_present": bool(
+            receipt["capital_hilton_protected_proof_intake_guardian_gates_present"]
+            or pc_surface["capital_hilton_protected_proof_intake_guardian_gates_present"]
+        ),
+        "operator_answer_candidates_present": bool(
+            receipt["capital_hilton_protected_proof_intake_operator_answer_candidates_present"]
+            or pc_surface["capital_hilton_protected_proof_intake_operator_answer_candidates_present"]
+        ),
+        "protected_evidence_requirements_present": bool(
+            receipt["capital_hilton_protected_proof_intake_protected_evidence_requirements_present"]
+            or pc_surface["capital_hilton_protected_proof_intake_protected_evidence_requirements_present"]
+        ),
+        "capital_hilton_protected_proof_intake_authority_flags_false": bool(
+            receipt["capital_hilton_protected_proof_intake_authority_flags_false"]
+            or pc_surface["capital_hilton_protected_proof_intake_authority_flags_false"]
         ),
         "capital_hilton_finance_present": bool(pc_surface["capital_hilton_finance_present"]),
         "system_awareness_discovery_present": bool(pc_surface["system_awareness_discovery_present"]),
@@ -2767,6 +2983,7 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- package_preview_summary: `{str(map_status.get('package_preview_summary_present')).lower()}` count=`{map_status.get('package_preview_example_count')}`",
         f"- tool_adapter_receipt_summary: `{str(map_status.get('tool_adapter_receipt_summary_present')).lower()}` count=`{map_status.get('tool_adapter_receipt_example_count')}`",
         f"- capital_hilton_summary: `{str(map_status.get('capital_hilton_summary_present')).lower()}` missing_proof=`{map_status.get('capital_hilton_missing_proof_count')}` protected_proof=`{str(map_status.get('capital_hilton_protected_proof_required')).lower()}`",
+        f"- capital_hilton_protected_proof_intake: `{str(map_status.get('capital_hilton_protected_proof_intake_present')).lower()}` proof_items=`{map_status.get('proof_items_count')}` missing_proof=`{map_status.get('missing_proof_count')}` protected_proof=`{str(map_status.get('protected_proof_required')).lower()}` candidate_facts_proven=`{str(map_status.get('candidate_facts_proven')).lower()}`",
         f"- capital_hilton_authority_flags_false: `{str(map_status.get('capital_hilton_authority_flags_false')).lower()}`",
         f"- security_audit_readiness: `{str(map_status.get('security_audit_readiness_present')).lower()}` ready_for_pass=`{str(map_status.get('ready_for_security_pass')).lower()}` approval=`{str(map_status.get('security_approval_granted')).lower()}` action_authority=`{str(map_status.get('action_authority_granted')).lower()}`",
         f"- security_coverage_gaps: `{map_status.get('coverage_gap_records_count')}` parked_breadcrumbs=`{map_status.get('parked_breadcrumb_count')}`",
