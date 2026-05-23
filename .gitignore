@@ -830,6 +830,7 @@
 !security_delta_review_contract.py
 !operator_attention_promotion_contract.py
 !chief_test_harness_cross_off_receipt_contract.py
+!capital_hilton_protected_proof_intake.py
 !scripts/build_external_ai_context_pack.py
 !scripts/query_external_ai_context_packs.py
 !scripts/export_external_ai_context_pack_read_model.py
@@ -846,6 +847,7 @@
 !scripts/export_security_delta_review_contract.py
 !scripts/export_operator_attention_promotion_contract.py
 !scripts/export_chief_test_harness_cross_off_receipt_contract.py
+!scripts/export_capital_hilton_protected_proof_intake.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_steel_thread_radar.py
@@ -854,6 +856,7 @@
 !tests/test_security_delta_review_contract.py
 !tests/test_operator_attention_promotion_contract.py
 !tests/test_chief_test_harness_cross_off_receipt_contract.py
+!tests/test_capital_hilton_protected_proof_intake.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
