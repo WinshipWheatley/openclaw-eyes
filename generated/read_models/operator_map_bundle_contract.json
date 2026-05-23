@@ -55,6 +55,25 @@
     ]
   },
   "browser_oauth_account_access_allowed": false,
+  "capital_hilton_answer_candidate_receipt_integration": {
+    "action_authority_granted": false,
+    "answer_candidates_count": 10,
+    "can_quiet_item_false_by_default": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "operator_answers_are_memory_candidates_not_proof": true,
+    "summary_included_in_snapshot": true,
+    "text_clarifies_but_does_not_prove": true
+  },
+  "capital_hilton_guardian_review_packet_integration": {
+    "action_authority_granted": false,
+    "allowed_outputs_metadata_review_only": true,
+    "guardian_cannot_access_accounts": true,
+    "guardian_cannot_approve_invoice_action": true,
+    "guardian_cannot_read_raw_bodies": true,
+    "guardian_packets_count": 5,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "summary_included_in_snapshot": true
+  },
   "capital_hilton_proof_metadata_integration": {
     "all_candidate_facts_marked_not_proven": true,
     "candidate_facts_count": 12,
@@ -66,6 +85,27 @@
     "protected_proof_required": true,
     "summary_included_in_snapshot": true,
     "target_world": "Finance"
+  },
+  "capital_hilton_proof_quieting_progress_state_integration": {
+    "action_authority_granted": false,
+    "automatic_progression_allowed": false,
+    "automatic_quieting_allowed": false,
+    "candidate_facts_proven": false,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "missing_proof_count": 10,
+    "progress_records_count": 10,
+    "proof_items_total": 10,
+    "source_protected_refs_do_not_auto_quiet": true,
+    "summary_included_in_snapshot": true
+  },
+  "capital_hilton_proof_resolution_batch_integration": {
+    "action_authority_granted": false,
+    "batch_id": "capital_hilton_proof_resolution_batch_v0",
+    "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "completed_lanes_count": 4,
+    "individual_manifest_read_model_remains_proof_detail": true,
+    "next_expected_actor": "mac_map_import_agent",
+    "summary_included_in_snapshot": true
   },
   "capital_hilton_protected_proof_intake_integration": {
     "action_authority_granted": false,
@@ -86,6 +126,17 @@
     "shared_execution_path_id": "protected_finance_proof_metadata_intake",
     "summary_included_in_snapshot": true
   },
+  "capital_hilton_protected_reference_placeholder_integration": {
+    "action_authority_granted": false,
+    "can_quiet_item_by_default": false,
+    "can_satisfy_proof_by_default": false,
+    "guardian_required": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "metadata_only": true,
+    "placeholder_count": 7,
+    "raw_body_allowed": false,
+    "summary_included_in_snapshot": true
+  },
   "chief_test_harness_cross_off_integration": {
     "action_authority_granted": false,
     "cross_off_rules_present": true,
@@ -98,7 +149,7 @@
     "test_harness_receipt_model_present": true
   },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:9bad1c92f9bf24b462ee177a7751aae5f6f7d34acc5899868e71a87535d25a59",
+  "contract_hash": "sha256:a61985a0a57ce1c33cd1a03911b6b8b48d7b2ecde58f0e0cffd3ff1c16e67546",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -115,7 +166,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-23T05:18:01+00:00",
+  "generated_at": "2026-05-23T16:16:04+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "mac_side_change_required": {
     "entitlement_exception_needed_once": [
@@ -168,10 +219,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66",
-    "canonical_read_model_count": 254,
-    "created_at": "2026-05-23T05:18:01+00:00",
-    "essential_surface_count": 19,
+    "bundle_hash": "sha256:2ae548ef98606c4e5a2cd927921ada19e2690abda3d8eab441659555811bf476",
+    "canonical_read_model_count": 266,
+    "created_at": "2026-05-23T16:16:04+00:00",
+    "essential_surface_count": 24,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -410,6 +461,71 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:564e3aca78b19748343ce9176d4e45fe17701552c63bbf578f6bb1c6cd1d2a6b",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_proof_resolution_batch_manifest",
+        "role": "Capital Hilton proof-resolution backend batch closure state and Mac import handoff",
+        "schema_version": "capital_hilton_proof_resolution_batch_manifest_v0",
+        "surface_id": "capital_hilton_proof_resolution_batch_manifest"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:6d847a221e5b8ec38eec52545052731ab236f4080adebb4a6f5d85992d36947b",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_answer_candidate_receipt.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_answer_candidate_receipt",
+        "role": "Capital Hilton answer-candidate receipt contract; operator answers clarify but do not prove",
+        "schema_version": "capital_hilton_answer_candidate_receipt_v0",
+        "surface_id": "capital_hilton_answer_candidate_receipt"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:70e1001fffbe2da32afd9dc3b962d8e754324bdc68a02ecb301d267ebd1adedf",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_protected_reference_placeholder.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_protected_reference_placeholder",
+        "role": "Capital Hilton protected reference placeholders for proof metadata without raw body access",
+        "schema_version": "capital_hilton_protected_reference_placeholder_v0",
+        "surface_id": "capital_hilton_protected_reference_placeholder"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:deb78f755206ba5ffebe8949134e07f883dac1360d41bbb9e898d028cf05607c",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_guardian_review_packet.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_guardian_review_packet",
+        "role": "Capital Hilton Guardian metadata review packets and quarantine triggers",
+        "schema_version": "capital_hilton_guardian_review_packet_v0",
+        "surface_id": "capital_hilton_guardian_review_packet"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:4b7b458c2e210fb61941841e59e07a476fdf6e86fae7de3cdf28e0bf1b65c707",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/capital_hilton_proof_quieting_progress_state.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "capital_hilton_proof_quieting_progress_state",
+        "role": "Capital Hilton proof quieting and progress-state contract for the 10 proof gaps",
+        "schema_version": "capital_hilton_proof_quieting_progress_state_v0",
+        "surface_id": "capital_hilton_proof_quieting_progress_state"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -444,17 +560,17 @@
       "sync_health.json",
       "sync_health_OPERATOR.md"
     ],
-    "map_generation_id": "map_b324cf6bbb0237e81aa6",
+    "map_generation_id": "map_1d16299fe237710ae7e7",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 261,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 273,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:04a5799a9146acaab92069fde86c0ad0293342d08ac5fa6b5d7397e95391854d",
+    "read_model_manifest_hash": "sha256:83168cd52542ab21eb7397d1fa7ce711b7b2963a2b411a269bfa695939208aee",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:b324cf6bbb0237e81aa65ce50ff58218c184f2dc060897e71c4421caa9825585",
-    "source_commit_if_available_local_only": "bf7ff8c5c1dbb655e907aaa9ba1d17e749c2e8a9",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 254,
+    "snapshot_hash": "sha256:1d16299fe237710ae7e704a69d0d17a15768e591c0aedbfb6493f6455734370c",
+    "source_commit_if_available_local_only": "6a508c8e61f39235df87970561db522b91a84632",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 266,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -469,13 +585,26 @@
   "map_snapshot_summary": {
     "agent_council_preview_only": true,
     "agent_dossier_cards_count": 12,
+    "capital_hilton_answer_candidates_count": 10,
+    "capital_hilton_automatic_progression_allowed": false,
+    "capital_hilton_automatic_quieting_allowed": false,
+    "capital_hilton_guardian_cannot_approve_invoice_action": true,
+    "capital_hilton_guardian_review_packets_count": 5,
     "capital_hilton_missing_proof_count": 10,
+    "capital_hilton_operator_answers_are_memory_candidates_not_proof": true,
+    "capital_hilton_progress_missing_proof_count": 10,
+    "capital_hilton_progress_records_count": 10,
     "capital_hilton_proof_metadata_present": true,
+    "capital_hilton_proof_resolution_batch_present": true,
+    "capital_hilton_proof_resolution_batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "capital_hilton_proof_resolution_completed_lanes_count": 4,
     "capital_hilton_protected_proof_intake_action_authority_granted": false,
     "capital_hilton_protected_proof_intake_guardian_gates_count": 5,
     "capital_hilton_protected_proof_intake_items_count": 10,
     "capital_hilton_protected_proof_intake_present": true,
     "capital_hilton_protected_proof_required": true,
+    "capital_hilton_protected_reference_metadata_only": true,
+    "capital_hilton_protected_reference_placeholder_count": 7,
     "chief_test_harness_cross_off_present": true,
     "chief_test_harness_cross_off_source_mutation_allowed": false,
     "featured_agents": [
@@ -508,7 +637,7 @@
       "source_path": "generated/read_models/system_health_lights_taxonomy.json",
       "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
     },
-    "map_generation_id": "map_b324cf6bbb0237e81aa6",
+    "map_generation_id": "map_1d16299fe237710ae7e7",
     "operator_attention_promotion_present": true,
     "operator_attention_promotion_quiet_helm_policy_present": true,
     "package_preview_receipt_examples_count": 8,
@@ -532,7 +661,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:b324cf6bbb0237e81aa65ce50ff58218c184f2dc060897e71c4421caa9825585",
+    "snapshot_hash": "sha256:1d16299fe237710ae7e704a69d0d17a15768e591c0aedbfb6493f6455734370c",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -663,11 +792,11 @@
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 261,
+      "canonical_expected": 273,
       "display_status": "needs_mac_sync",
       "hash_mismatch": 4,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 43,
+      "missing_expected": 55,
       "observed": 218,
       "operator_action_required": true,
       "present": true,
@@ -715,8 +844,8 @@
   "read_model_only": true,
   "receipt_validation": {
     "fail_closed": true,
-    "reason": "Mac map receipt schema is not recognized.",
-    "status": "unknown_fail_closed",
+    "reason": "Mac map receipt generation_id does not match the requested generation.",
+    "status": "map_generation_pending_mac_import",
     "valid": false
   },
   "runtime_activation_allowed": false,
@@ -812,7 +941,7 @@
   "sync_health_reframe": {
     "app_visible_map_status": "map_current only when generation_id and bundle_hash receipt validates",
     "check_transmission_future_source_truth": "controlled by map-generation agreement for app readiness, with raw count mismatch kept as proof/detail unless it blocks map generation",
-    "mac_import_receipt_status": "unknown_fail_closed",
+    "mac_import_receipt_status": "map_generation_pending_mac_import",
     "map_bundle_generation_status": "new front-door app contract status",
     "raw_read_model_manifest_status": "continues to compare full generated/read_models proof/detail set",
     "required_states": [

@@ -4,8 +4,13 @@ from pathlib import Path
 
 import operator_map_bundle_contract as bundle
 import chief_test_harness_cross_off_receipt_contract
+import capital_hilton_answer_candidate_receipt
 import capital_hilton_protected_proof_intake
+import capital_hilton_protected_reference_placeholder
+import capital_hilton_guardian_review_packet
 import capital_hilton_proof_metadata_packet
+import capital_hilton_proof_quieting_progress_state
+import capital_hilton_proof_resolution_batch_manifest
 import operator_attention_promotion_contract
 import package_preview_receipt_contract
 import parked_autonomous_capital_pipeline_experiment
@@ -350,6 +355,39 @@ def _fixture_repo(root: Path) -> Path:
         read_models / "capital_hilton_protected_proof_intake.json",
         capital_hilton_protected_proof_intake.build_capital_hilton_protected_proof_intake(
             repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_answer_candidate_receipt.json",
+        capital_hilton_answer_candidate_receipt.build_capital_hilton_answer_candidate_receipt(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_protected_reference_placeholder.json",
+        capital_hilton_protected_reference_placeholder.build_capital_hilton_protected_reference_placeholder(
+            generated_at=FIXED_NOW,
+            guardian_packet_present=True,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_guardian_review_packet.json",
+        capital_hilton_guardian_review_packet.build_capital_hilton_guardian_review_packet(
+            generated_at=FIXED_NOW,
+            protected_placeholder_present=True,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_proof_quieting_progress_state.json",
+        capital_hilton_proof_quieting_progress_state.build_capital_hilton_proof_quieting_progress_state(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "capital_hilton_proof_resolution_batch_manifest.json",
+        capital_hilton_proof_resolution_batch_manifest.build_capital_hilton_proof_resolution_batch_manifest(
             generated_at=FIXED_NOW,
         ),
     )
@@ -981,6 +1019,71 @@ def test_map_snapshot_contains_capital_hilton_protected_proof_intake_summary(tmp
     }
 
 
+def test_map_snapshot_contains_capital_hilton_proof_resolution_summaries(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    batch = snapshot["capital_hilton_proof_resolution_batch"]
+    answers = snapshot["capital_hilton_answer_candidate_receipt"]
+    placeholders = snapshot["capital_hilton_protected_reference_placeholder"]
+    guardian = snapshot["capital_hilton_guardian_review_packet"]
+    progress = snapshot["capital_hilton_proof_quieting_progress_state"]
+
+    assert batch["present"] is True
+    assert batch["section_id"] == "capital_hilton_proof_resolution_batch"
+    assert batch["batch_id"] == "capital_hilton_proof_resolution_batch_v0"
+    assert batch["batch_status"] == "COMPLETE_PENDING_STABLE_MAP_IMPORT"
+    assert batch["completed_lanes_count"] == 4
+    assert batch["next_expected_actor"] == "mac_map_import_agent"
+    assert batch["action_authority_granted"] is False
+
+    assert answers["present"] is True
+    assert answers["section_id"] == "capital_hilton_answer_candidate_receipt"
+    assert answers["answer_candidates_count"] == 10
+    assert answers["operator_answers_are_memory_candidates_not_proof"] is True
+    assert answers["text_clarifies_but_does_not_prove"] is True
+    assert answers["source_protected_receipt_refs_do_not_automatically_satisfy_proof"] is True
+    assert answers["can_quiet_item_false_by_default"] is True
+    assert answers["action_authority_granted"] is False
+    assert answers["invoice_generation_allowed"] is False
+    assert answers["coupa_access_allowed"] is False
+    assert answers["send_submit_approval_allowed"] is False
+
+    assert placeholders["present"] is True
+    assert placeholders["section_id"] == "capital_hilton_protected_reference_placeholder"
+    assert placeholders["placeholder_count"] == 7
+    assert placeholders["metadata_only"] is True
+    assert placeholders["raw_body_allowed"] is False
+    assert placeholders["guardian_required"] is True
+    assert placeholders["can_satisfy_proof_by_default"] is False
+    assert placeholders["can_quiet_item_by_default"] is False
+    assert placeholders["file_read_allowed"] is False
+    assert placeholders["file_copy_allowed"] is False
+    assert placeholders["file_upload_allowed"] is False
+    assert placeholders["action_authority_granted"] is False
+
+    assert guardian["present"] is True
+    assert guardian["section_id"] == "capital_hilton_guardian_review_packet"
+    assert guardian["guardian_packets_count"] == 5
+    assert guardian["allowed_outputs_metadata_review_only"] is True
+    assert guardian["guardian_cannot_approve_invoice_action"] is True
+    assert guardian["guardian_cannot_access_accounts"] is True
+    assert guardian["guardian_cannot_read_raw_bodies"] is True
+    assert guardian["quarantine_triggers_exist"] is True
+    assert guardian["action_authority_granted"] is False
+
+    assert progress["present"] is True
+    assert progress["section_id"] == "capital_hilton_proof_quieting_progress_state"
+    assert progress["progress_records_count"] == 10
+    assert progress["proof_items_total"] == 10
+    assert progress["missing_proof_count"] == 10
+    assert progress["candidate_facts_proven"] is False
+    assert progress["automatic_quieting_allowed"] is False
+    assert progress["automatic_progression_allowed"] is False
+    assert progress["source_protected_refs_do_not_auto_quiet"] is True
+    assert progress["action_authority_granted"] is False
+
+
 def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
     payload = _build(tmp_path)
 
@@ -1006,6 +1109,31 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["capital_hilton_protected_proof_intake_integration"]["invoice_generation_allowed"] is False
     assert payload["capital_hilton_protected_proof_intake_integration"]["coupa_access_allowed"] is False
     assert payload["capital_hilton_protected_proof_intake_integration"]["send_submit_approval_allowed"] is False
+    assert payload["capital_hilton_proof_resolution_batch_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_proof_resolution_batch_integration"]["completed_lanes_count"] == 4
+    assert payload["capital_hilton_proof_resolution_batch_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_answer_candidate_receipt_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_answer_candidate_receipt_integration"]["answer_candidates_count"] == 10
+    assert payload["capital_hilton_answer_candidate_receipt_integration"]["operator_answers_are_memory_candidates_not_proof"] is True
+    assert payload["capital_hilton_answer_candidate_receipt_integration"]["text_clarifies_but_does_not_prove"] is True
+    assert payload["capital_hilton_answer_candidate_receipt_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["placeholder_count"] == 7
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["metadata_only"] is True
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["raw_body_allowed"] is False
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["guardian_required"] is True
+    assert payload["capital_hilton_protected_reference_placeholder_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_guardian_review_packet_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_guardian_review_packet_integration"]["guardian_packets_count"] == 5
+    assert payload["capital_hilton_guardian_review_packet_integration"]["allowed_outputs_metadata_review_only"] is True
+    assert payload["capital_hilton_guardian_review_packet_integration"]["guardian_cannot_approve_invoice_action"] is True
+    assert payload["capital_hilton_guardian_review_packet_integration"]["action_authority_granted"] is False
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["summary_included_in_snapshot"] is True
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["progress_records_count"] == 10
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["missing_proof_count"] == 10
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_quieting_allowed"] is False
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_progression_allowed"] is False
+    assert payload["capital_hilton_proof_quieting_progress_state_integration"]["action_authority_granted"] is False
 
 
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
@@ -1152,6 +1280,20 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Chief Test Harness / Cross-Off" in operator_text
     assert "Cue candidates executable: `false`" in operator_text
     assert "Source deletion allowed: `false`" in operator_text
+    assert "Capital Hilton Proof Resolution Backend Batch" in operator_text
+    assert "Answer Candidate Receipts" in operator_text
+    assert "Answer candidates: `10`" in operator_text
+    assert "Operator answers are memory candidates/not proof: `true`" in operator_text
+    assert "Protected Reference Placeholders" in operator_text
+    assert "Placeholders: `7`" in operator_text
+    assert "Raw body allowed: `false`" in operator_text
+    assert "Guardian Review Packets" in operator_text
+    assert "Guardian packets: `5`" in operator_text
+    assert "Guardian cannot approve invoice/action: `true`" in operator_text
+    assert "Proof Quieting / Progress State" in operator_text
+    assert "Progress records: `10`" in operator_text
+    assert "Automatic quieting allowed: `false`" in operator_text
+    assert "Automatic progression allowed: `false`" in operator_text
 
 
 def test_only_stable_openclaw_map_manifest_is_allowed_through_manifest_filter(tmp_path):

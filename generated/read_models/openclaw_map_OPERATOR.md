@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_b324cf6bbb0237e81aa6`
-- Bundle hash: `sha256:d890341105f29001293f65836472d6a11bec38ce110cd55a3dc31612fb17ba66`
+- Map generation: `map_1d16299fe237710ae7e7`
+- Bundle hash: `sha256:2ae548ef98606c4e5a2cd927921ada19e2690abda3d8eab441659555811bf476`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `261`
+- Raw canonical expected: `273`
 - Raw observed: `218`
-- Raw missing expected: `43`
+- Raw missing expected: `55`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -89,6 +89,50 @@
 - Gmail/calendar/email access allowed: `false`
 - Send/submit/approval allowed: `false`
 - Operator answers clarify and point to proof refs; they do not prove invoice facts by themselves.
+
+### Capital Hilton Proof Resolution Backend Batch
+
+- Summary present: `true`
+- Batch id: `capital_hilton_proof_resolution_batch_v0`
+- Batch status: `COMPLETE_PENDING_STABLE_MAP_IMPORT`
+- Completed lanes: `4`
+- Next expected actor: `mac_map_import_agent`
+- Action authority granted: `false`
+
+#### Answer Candidate Receipts
+
+- Summary present: `true`
+- Answer candidates: `10`
+- Operator answers are memory candidates/not proof: `true`
+- Text clarifies but does not prove: `true`
+- Action authority granted: `false`
+
+#### Protected Reference Placeholders
+
+- Summary present: `true`
+- Placeholders: `7`
+- Metadata-only: `true`
+- Raw body allowed: `false`
+- Guardian required: `true`
+- Action authority granted: `false`
+
+#### Guardian Review Packets
+
+- Summary present: `true`
+- Guardian packets: `5`
+- Allowed outputs are metadata/review only: `true`
+- Guardian cannot approve invoice/action: `true`
+- Action authority granted: `false`
+
+#### Proof Quieting / Progress State
+
+- Summary present: `true`
+- Progress records: `10`
+- Missing proof count: `10`
+- Automatic quieting allowed: `false`
+- Automatic progression allowed: `false`
+- Action authority granted: `false`
+- The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.
 
 ### Capital Hilton Candidate Facts
 

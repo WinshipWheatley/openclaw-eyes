@@ -72,6 +72,11 @@ SECURITY_DELTA_REVIEW_CONTRACT_READ_MODEL_PATH = "generated/read_models/security
 OPERATOR_ATTENTION_PROMOTION_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_attention_promotion_contract.json"
 CHIEF_TEST_HARNESS_CROSS_OFF_RECEIPT_CONTRACT_READ_MODEL_PATH = "generated/read_models/chief_test_harness_cross_off_receipt_contract.json"
 CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH = "generated/read_models/capital_hilton_protected_proof_intake.json"
+CAPITAL_HILTON_PROOF_RESOLUTION_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json"
+CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH = "generated/read_models/capital_hilton_answer_candidate_receipt.json"
+CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH = "generated/read_models/capital_hilton_protected_reference_placeholder.json"
+CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH = "generated/read_models/capital_hilton_guardian_review_packet.json"
+CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -158,6 +163,31 @@ ESSENTIAL_SURFACES = (
         "surface_id": "capital_hilton_protected_proof_intake",
         "path": CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH,
         "role": "Capital Hilton protected proof intake questions, answer candidates, Guardian gates, and quieting rules",
+    },
+    {
+        "surface_id": "capital_hilton_proof_resolution_batch_manifest",
+        "path": CAPITAL_HILTON_PROOF_RESOLUTION_BATCH_MANIFEST_READ_MODEL_PATH,
+        "role": "Capital Hilton proof-resolution backend batch closure state and Mac import handoff",
+    },
+    {
+        "surface_id": "capital_hilton_answer_candidate_receipt",
+        "path": CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH,
+        "role": "Capital Hilton answer-candidate receipt contract; operator answers clarify but do not prove",
+    },
+    {
+        "surface_id": "capital_hilton_protected_reference_placeholder",
+        "path": CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH,
+        "role": "Capital Hilton protected reference placeholders for proof metadata without raw body access",
+    },
+    {
+        "surface_id": "capital_hilton_guardian_review_packet",
+        "path": CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH,
+        "role": "Capital Hilton Guardian metadata review packets and quarantine triggers",
+    },
+    {
+        "surface_id": "capital_hilton_proof_quieting_progress_state",
+        "path": CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
+        "role": "Capital Hilton proof quieting and progress-state contract for the 10 proof gaps",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -1871,6 +1901,172 @@ def _summarize_capital_hilton_protected_proof_intake(payload: dict[str, Any]) ->
     }
 
 
+def _summarize_capital_hilton_proof_resolution_batch(payload: dict[str, Any]) -> dict[str, Any]:
+    lanes_completed = (
+        payload.get("lanes_completed") if isinstance(payload.get("lanes_completed"), list) else []
+    )
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "capital_hilton_proof_resolution_batch",
+        "source_read_model_ref": CAPITAL_HILTON_PROOF_RESOLUTION_BATCH_MANIFEST_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_proof_resolution_batch_manifest_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_manifest_read_model_remains_proof_detail": True,
+        "batch_id": payload.get("batch_id"),
+        "batch_status": payload.get("batch_status"),
+        "completed_lanes_count": len(lanes_completed),
+        "completed_lanes": lanes_completed,
+        "next_expected_actor": payload.get("next_expected_actor"),
+        "action_authority_granted": boundary.get("live_execution_allowed") is True
+        or boundary.get("invoice_generation_allowed") is True
+        or boundary.get("send_submit_approval_allowed") is True,
+        "all_live_authority_false": boundary.get("all_authority_flags_false") is True,
+        "invoice_generation_allowed": boundary.get("invoice_generation_allowed") is True,
+        "coupa_browser_email_account_send_authority": any(
+            boundary.get(key) is True
+            for key in (
+                "browser_oauth_account_access_allowed",
+                "gmail_calendar_coupa_telegram_access_allowed",
+                "send_submit_approval_allowed",
+            )
+        ),
+    }
+
+
+def _summarize_capital_hilton_answer_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any]:
+    receipts = (
+        payload.get("answer_candidate_receipts")
+        if isinstance(payload.get("answer_candidate_receipts"), list)
+        else []
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    core_rule = payload.get("core_rule") if isinstance(payload.get("core_rule"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "capital_hilton_answer_candidate_receipt",
+        "source_read_model_ref": CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_answer_candidate_receipt_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "answer_candidates_count": len(receipts),
+        "operator_answers_are_memory_candidates_not_proof": (
+            machine.get("operator_answers_are_memory_candidates_unless_linked_to_proof_refs") is True
+            and core_rule.get("operator_answers_do_not_prove") is True
+        ),
+        "text_clarifies_but_does_not_prove": machine.get("text_answers_can_clarify_but_not_prove") is True,
+        "source_protected_receipt_refs_do_not_automatically_satisfy_proof": (
+            machine.get("source_protected_receipt_refs_do_not_automatically_satisfy_proof") is True
+        ),
+        "can_quiet_item_false_by_default": machine.get("can_quiet_item_false_by_default") is True,
+        "action_authority_granted": boundary.get("all_authority_flags_false") is not True,
+        "invoice_generation_allowed": boundary.get("invoice_generation_allowed") is True,
+        "coupa_access_allowed": boundary.get("coupa_access_allowed") is True,
+        "browser_oauth_allowed": boundary.get("browser_oauth_allowed") is True,
+        "gmail_calendar_email_access_allowed": boundary.get("gmail_calendar_email_access_allowed") is True,
+        "send_submit_approval_allowed": boundary.get("send_submit_approval_allowed") is True,
+    }
+
+
+def _summarize_capital_hilton_protected_reference_placeholder(payload: dict[str, Any]) -> dict[str, Any]:
+    placeholders = (
+        payload.get("protected_reference_placeholders")
+        if isinstance(payload.get("protected_reference_placeholders"), list)
+        else []
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    rules = payload.get("placeholder_rules") if isinstance(payload.get("placeholder_rules"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "capital_hilton_protected_reference_placeholder",
+        "source_read_model_ref": CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_protected_reference_placeholder_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "placeholder_count": len(placeholders),
+        "metadata_only": machine.get("metadata_only_true_for_all") is True or rules.get("metadata_only") is True,
+        "raw_body_allowed": bool(payload) and not (
+            machine.get("raw_body_allowed_false_for_all") is True or rules.get("raw_body_allowed") is False
+        ),
+        "guardian_required": machine.get("guardian_review_required_for_protected_placeholders") is True,
+        "can_satisfy_proof_by_default": rules.get("can_satisfy_proof_by_default") is True,
+        "can_quiet_item_by_default": rules.get("can_quiet_item_by_default") is True,
+        "file_read_allowed": boundary.get("file_read_allowed") is True,
+        "file_copy_allowed": boundary.get("file_copy_allowed") is True,
+        "file_upload_allowed": boundary.get("file_upload_allowed") is True,
+        "action_authority_granted": boundary.get("all_authority_flags_false") is not True,
+    }
+
+
+def _summarize_capital_hilton_guardian_review_packet(payload: dict[str, Any]) -> dict[str, Any]:
+    packets = (
+        payload.get("guardian_review_packets")
+        if isinstance(payload.get("guardian_review_packets"), list)
+        else []
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    rule_summary = (
+        payload.get("guardian_rule_summary")
+        if isinstance(payload.get("guardian_rule_summary"), dict)
+        else {}
+    )
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "capital_hilton_guardian_review_packet",
+        "source_read_model_ref": CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_guardian_review_packet_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "guardian_packets_count": len(packets),
+        "allowed_outputs_metadata_review_only": machine.get("allowed_outputs_metadata_review_only") is True,
+        "guardian_cannot_approve_invoice_action": (
+            machine.get("guardian_cannot_approve_invoice_generation") is True
+            and machine.get("guardian_cannot_approve_send_submit") is True
+            and rule_summary.get("guardian_may_approve_invoice_generation") is False
+            and rule_summary.get("guardian_may_approve_send_submit") is False
+        ),
+        "guardian_cannot_access_accounts": machine.get("guardian_cannot_access_accounts") is True,
+        "guardian_cannot_read_raw_bodies": machine.get("guardian_cannot_read_raw_bodies") is True,
+        "quarantine_triggers_exist": machine.get("quarantine_triggers_exist") is True,
+        "action_authority_granted": boundary.get("all_authority_flags_false") is not True,
+    }
+
+
+def _summarize_capital_hilton_proof_quieting_progress_state(payload: dict[str, Any]) -> dict[str, Any]:
+    records = (
+        payload.get("proof_progress_records")
+        if isinstance(payload.get("proof_progress_records"), list)
+        else []
+    )
+    summary = payload.get("progress_summary") if isinstance(payload.get("progress_summary"), dict) else {}
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "capital_hilton_proof_quieting_progress_state",
+        "source_read_model_ref": CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/capital_hilton_proof_quieting_progress_state_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "progress_records_count": len(records),
+        "missing_proof_count": int(summary.get("missing_proof_count") or 0),
+        "proof_items_total": int(summary.get("proof_items_total") or len(records) or 0),
+        "candidate_facts_proven": summary.get("candidate_facts_proven") is True,
+        "automatic_quieting_allowed": boundary.get("automatic_quieting_allowed") is True,
+        "automatic_progression_allowed": boundary.get("automatic_progression_allowed") is True,
+        "proof_metadata_plus_receipt_can_create_quiet_with_proof_candidate": (
+            machine.get("proof_metadata_plus_receipt_can_create_quiet_with_proof_candidate") is True
+        ),
+        "source_protected_refs_do_not_auto_quiet": machine.get("source_protected_refs_do_not_auto_quiet") is True,
+        "action_authority_granted": summary.get("action_authority_granted") is True
+        or boundary.get("all_authority_flags_false") is not True,
+        "next_safe_move": summary.get("next_safe_move"),
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -2144,6 +2340,26 @@ def build_openclaw_map_snapshot(
         CAPITAL_HILTON_PROTECTED_PROOF_INTAKE_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    capital_hilton_proof_resolution_batch = _read_json_if_present(
+        CAPITAL_HILTON_PROOF_RESOLUTION_BATCH_MANIFEST_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    capital_hilton_answer_candidate_receipt = _read_json_if_present(
+        CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    capital_hilton_protected_reference_placeholder = _read_json_if_present(
+        CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    capital_hilton_guardian_review_packet = _read_json_if_present(
+        CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    capital_hilton_proof_quieting_progress_state = _read_json_if_present(
+        CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -2187,6 +2403,21 @@ def build_openclaw_map_snapshot(
         ),
         "capital_hilton_protected_proof_intake": _summarize_capital_hilton_protected_proof_intake(
             capital_hilton_protected_proof_intake
+        ),
+        "capital_hilton_proof_resolution_batch": _summarize_capital_hilton_proof_resolution_batch(
+            capital_hilton_proof_resolution_batch
+        ),
+        "capital_hilton_answer_candidate_receipt": _summarize_capital_hilton_answer_candidate_receipt(
+            capital_hilton_answer_candidate_receipt
+        ),
+        "capital_hilton_protected_reference_placeholder": _summarize_capital_hilton_protected_reference_placeholder(
+            capital_hilton_protected_reference_placeholder
+        ),
+        "capital_hilton_guardian_review_packet": _summarize_capital_hilton_guardian_review_packet(
+            capital_hilton_guardian_review_packet
+        ),
+        "capital_hilton_proof_quieting_progress_state": _summarize_capital_hilton_proof_quieting_progress_state(
+            capital_hilton_proof_quieting_progress_state
         ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
@@ -2442,6 +2673,19 @@ def build_operator_map_bundle_contract(
             "capital_hilton_protected_proof_intake_items_count": snapshot["capital_hilton_protected_proof_intake"]["proof_items_count"],
             "capital_hilton_protected_proof_intake_guardian_gates_count": snapshot["capital_hilton_protected_proof_intake"]["guardian_gates_count"],
             "capital_hilton_protected_proof_intake_action_authority_granted": snapshot["capital_hilton_protected_proof_intake"]["action_authority_granted"],
+            "capital_hilton_proof_resolution_batch_present": snapshot["capital_hilton_proof_resolution_batch"]["present"],
+            "capital_hilton_proof_resolution_batch_status": snapshot["capital_hilton_proof_resolution_batch"]["batch_status"],
+            "capital_hilton_proof_resolution_completed_lanes_count": snapshot["capital_hilton_proof_resolution_batch"]["completed_lanes_count"],
+            "capital_hilton_answer_candidates_count": snapshot["capital_hilton_answer_candidate_receipt"]["answer_candidates_count"],
+            "capital_hilton_operator_answers_are_memory_candidates_not_proof": snapshot["capital_hilton_answer_candidate_receipt"]["operator_answers_are_memory_candidates_not_proof"],
+            "capital_hilton_protected_reference_placeholder_count": snapshot["capital_hilton_protected_reference_placeholder"]["placeholder_count"],
+            "capital_hilton_protected_reference_metadata_only": snapshot["capital_hilton_protected_reference_placeholder"]["metadata_only"],
+            "capital_hilton_guardian_review_packets_count": snapshot["capital_hilton_guardian_review_packet"]["guardian_packets_count"],
+            "capital_hilton_guardian_cannot_approve_invoice_action": snapshot["capital_hilton_guardian_review_packet"]["guardian_cannot_approve_invoice_action"],
+            "capital_hilton_progress_records_count": snapshot["capital_hilton_proof_quieting_progress_state"]["progress_records_count"],
+            "capital_hilton_progress_missing_proof_count": snapshot["capital_hilton_proof_quieting_progress_state"]["missing_proof_count"],
+            "capital_hilton_automatic_quieting_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_quieting_allowed"],
+            "capital_hilton_automatic_progression_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_progression_allowed"],
             "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
             "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
             "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
@@ -2675,6 +2919,57 @@ def build_operator_map_bundle_contract(
             "send_submit_approval_allowed": snapshot["capital_hilton_protected_proof_intake"]["send_submit_approval_allowed"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "capital_hilton_proof_resolution_batch_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_proof_resolution_batch"]["present"],
+            "batch_id": snapshot["capital_hilton_proof_resolution_batch"]["batch_id"],
+            "batch_status": snapshot["capital_hilton_proof_resolution_batch"]["batch_status"],
+            "completed_lanes_count": snapshot["capital_hilton_proof_resolution_batch"]["completed_lanes_count"],
+            "next_expected_actor": snapshot["capital_hilton_proof_resolution_batch"]["next_expected_actor"],
+            "action_authority_granted": snapshot["capital_hilton_proof_resolution_batch"]["action_authority_granted"],
+            "individual_manifest_read_model_remains_proof_detail": True,
+        },
+        "capital_hilton_answer_candidate_receipt_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_answer_candidate_receipt"]["present"],
+            "answer_candidates_count": snapshot["capital_hilton_answer_candidate_receipt"]["answer_candidates_count"],
+            "operator_answers_are_memory_candidates_not_proof": snapshot["capital_hilton_answer_candidate_receipt"]["operator_answers_are_memory_candidates_not_proof"],
+            "text_clarifies_but_does_not_prove": snapshot["capital_hilton_answer_candidate_receipt"]["text_clarifies_but_does_not_prove"],
+            "can_quiet_item_false_by_default": snapshot["capital_hilton_answer_candidate_receipt"]["can_quiet_item_false_by_default"],
+            "action_authority_granted": snapshot["capital_hilton_answer_candidate_receipt"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "capital_hilton_protected_reference_placeholder_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_protected_reference_placeholder"]["present"],
+            "placeholder_count": snapshot["capital_hilton_protected_reference_placeholder"]["placeholder_count"],
+            "metadata_only": snapshot["capital_hilton_protected_reference_placeholder"]["metadata_only"],
+            "raw_body_allowed": snapshot["capital_hilton_protected_reference_placeholder"]["raw_body_allowed"],
+            "guardian_required": snapshot["capital_hilton_protected_reference_placeholder"]["guardian_required"],
+            "can_satisfy_proof_by_default": snapshot["capital_hilton_protected_reference_placeholder"]["can_satisfy_proof_by_default"],
+            "can_quiet_item_by_default": snapshot["capital_hilton_protected_reference_placeholder"]["can_quiet_item_by_default"],
+            "action_authority_granted": snapshot["capital_hilton_protected_reference_placeholder"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "capital_hilton_guardian_review_packet_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_guardian_review_packet"]["present"],
+            "guardian_packets_count": snapshot["capital_hilton_guardian_review_packet"]["guardian_packets_count"],
+            "allowed_outputs_metadata_review_only": snapshot["capital_hilton_guardian_review_packet"]["allowed_outputs_metadata_review_only"],
+            "guardian_cannot_approve_invoice_action": snapshot["capital_hilton_guardian_review_packet"]["guardian_cannot_approve_invoice_action"],
+            "guardian_cannot_access_accounts": snapshot["capital_hilton_guardian_review_packet"]["guardian_cannot_access_accounts"],
+            "guardian_cannot_read_raw_bodies": snapshot["capital_hilton_guardian_review_packet"]["guardian_cannot_read_raw_bodies"],
+            "action_authority_granted": snapshot["capital_hilton_guardian_review_packet"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "capital_hilton_proof_quieting_progress_state_integration": {
+            "summary_included_in_snapshot": snapshot["capital_hilton_proof_quieting_progress_state"]["present"],
+            "progress_records_count": snapshot["capital_hilton_proof_quieting_progress_state"]["progress_records_count"],
+            "missing_proof_count": snapshot["capital_hilton_proof_quieting_progress_state"]["missing_proof_count"],
+            "proof_items_total": snapshot["capital_hilton_proof_quieting_progress_state"]["proof_items_total"],
+            "candidate_facts_proven": snapshot["capital_hilton_proof_quieting_progress_state"]["candidate_facts_proven"],
+            "automatic_quieting_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_quieting_allowed"],
+            "automatic_progression_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_progression_allowed"],
+            "source_protected_refs_do_not_auto_quiet": snapshot["capital_hilton_proof_quieting_progress_state"]["source_protected_refs_do_not_auto_quiet"],
+            "action_authority_granted": snapshot["capital_hilton_proof_quieting_progress_state"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -2814,6 +3109,31 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         if isinstance(snapshot.get("capital_hilton_protected_proof_intake"), dict)
         else {}
     )
+    proof_resolution_batch = (
+        snapshot.get("capital_hilton_proof_resolution_batch", {})
+        if isinstance(snapshot.get("capital_hilton_proof_resolution_batch"), dict)
+        else {}
+    )
+    answer_candidates = (
+        snapshot.get("capital_hilton_answer_candidate_receipt", {})
+        if isinstance(snapshot.get("capital_hilton_answer_candidate_receipt"), dict)
+        else {}
+    )
+    protected_placeholders = (
+        snapshot.get("capital_hilton_protected_reference_placeholder", {})
+        if isinstance(snapshot.get("capital_hilton_protected_reference_placeholder"), dict)
+        else {}
+    )
+    guardian_packets = (
+        snapshot.get("capital_hilton_guardian_review_packet", {})
+        if isinstance(snapshot.get("capital_hilton_guardian_review_packet"), dict)
+        else {}
+    )
+    progress_state = (
+        snapshot.get("capital_hilton_proof_quieting_progress_state", {})
+        if isinstance(snapshot.get("capital_hilton_proof_quieting_progress_state"), dict)
+        else {}
+    )
     capital_facts = (
         capital_hilton.get("candidate_facts")
         if isinstance(capital_hilton.get("candidate_facts"), list)
@@ -2916,6 +3236,50 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         f"- Gmail/calendar/email access allowed: `{str(protected_proof_intake.get('gmail_calendar_email_access_allowed')).lower()}`",
         f"- Send/submit/approval allowed: `{str(protected_proof_intake.get('send_submit_approval_allowed')).lower()}`",
         "- Operator answers clarify and point to proof refs; they do not prove invoice facts by themselves.",
+        "",
+        "### Capital Hilton Proof Resolution Backend Batch",
+        "",
+        f"- Summary present: `{str(proof_resolution_batch.get('present')).lower()}`",
+        f"- Batch id: `{proof_resolution_batch.get('batch_id')}`",
+        f"- Batch status: `{proof_resolution_batch.get('batch_status')}`",
+        f"- Completed lanes: `{proof_resolution_batch.get('completed_lanes_count')}`",
+        f"- Next expected actor: `{proof_resolution_batch.get('next_expected_actor')}`",
+        f"- Action authority granted: `{str(proof_resolution_batch.get('action_authority_granted')).lower()}`",
+        "",
+        "#### Answer Candidate Receipts",
+        "",
+        f"- Summary present: `{str(answer_candidates.get('present')).lower()}`",
+        f"- Answer candidates: `{answer_candidates.get('answer_candidates_count')}`",
+        f"- Operator answers are memory candidates/not proof: `{str(answer_candidates.get('operator_answers_are_memory_candidates_not_proof')).lower()}`",
+        f"- Text clarifies but does not prove: `{str(answer_candidates.get('text_clarifies_but_does_not_prove')).lower()}`",
+        f"- Action authority granted: `{str(answer_candidates.get('action_authority_granted')).lower()}`",
+        "",
+        "#### Protected Reference Placeholders",
+        "",
+        f"- Summary present: `{str(protected_placeholders.get('present')).lower()}`",
+        f"- Placeholders: `{protected_placeholders.get('placeholder_count')}`",
+        f"- Metadata-only: `{str(protected_placeholders.get('metadata_only')).lower()}`",
+        f"- Raw body allowed: `{str(protected_placeholders.get('raw_body_allowed')).lower()}`",
+        f"- Guardian required: `{str(protected_placeholders.get('guardian_required')).lower()}`",
+        f"- Action authority granted: `{str(protected_placeholders.get('action_authority_granted')).lower()}`",
+        "",
+        "#### Guardian Review Packets",
+        "",
+        f"- Summary present: `{str(guardian_packets.get('present')).lower()}`",
+        f"- Guardian packets: `{guardian_packets.get('guardian_packets_count')}`",
+        f"- Allowed outputs are metadata/review only: `{str(guardian_packets.get('allowed_outputs_metadata_review_only')).lower()}`",
+        f"- Guardian cannot approve invoice/action: `{str(guardian_packets.get('guardian_cannot_approve_invoice_action')).lower()}`",
+        f"- Action authority granted: `{str(guardian_packets.get('action_authority_granted')).lower()}`",
+        "",
+        "#### Proof Quieting / Progress State",
+        "",
+        f"- Summary present: `{str(progress_state.get('present')).lower()}`",
+        f"- Progress records: `{progress_state.get('progress_records_count')}`",
+        f"- Missing proof count: `{progress_state.get('missing_proof_count')}`",
+        f"- Automatic quieting allowed: `{str(progress_state.get('automatic_quieting_allowed')).lower()}`",
+        f"- Automatic progression allowed: `{str(progress_state.get('automatic_progression_allowed')).lower()}`",
+        f"- Action authority granted: `{str(progress_state.get('action_authority_granted')).lower()}`",
+        "- The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.",
         "",
         "### Capital Hilton Candidate Facts",
         "",
@@ -3469,6 +3833,11 @@ __all__ = [
     "STABLE_APP_FACING_FILES",
     "SECURITY_AUDIT_READINESS_READ_MODEL_PATH",
     "SECURITY_PASS_CONTRACT_READ_MODEL_PATH",
+    "CAPITAL_HILTON_PROOF_RESOLUTION_BATCH_MANIFEST_READ_MODEL_PATH",
+    "CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH",
+    "CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH",
+    "CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH",
+    "CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH",
     "build_openclaw_map_manifest",
     "build_openclaw_map_snapshot",
     "build_operator_map_bundle_contract",
