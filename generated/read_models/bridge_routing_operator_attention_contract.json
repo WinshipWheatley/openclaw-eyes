@@ -1,0 +1,3453 @@
+{
+  "alert_levels": [
+    "NORMAL_FLIGHT",
+    "YELLOW_ALERT",
+    "RED_ALERT",
+    "ENGINEERING_CONTAINED",
+    "SHIPYARD_MODE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "alert_policies": [
+    {
+      "alert_level": "NORMAL_FLIGHT",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "proof available",
+        "approval locked prerequisites",
+        "completed/quieted status"
+      ],
+      "expiry_rule": "Refresh quietly when source refs change.",
+      "next_safe_move": "Keep the Bridge calm.",
+      "policy_id": "normal_flight_policy",
+      "promotion_criteria": [
+        "no captain decision required",
+        "workflow can continue or remain quiet"
+      ],
+      "quieting_rule": "Quiet by default; keep detail inspectable.",
+      "suppression_criteria": [
+        "proof available only",
+        "status update only",
+        "approval locked but not ready"
+      ],
+      "visible_surface": "World or Below Deck when summoned"
+    },
+    {
+      "alert_level": "YELLOW_ALERT",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "Capital Hilton unlocked block",
+        "Telegram draft ready for review"
+      ],
+      "expiry_rule": "Stale after workflow session changes; revalidate before display.",
+      "next_safe_move": "Show one calm route to the relevant World.",
+      "policy_id": "yellow_alert_policy",
+      "promotion_criteria": [
+        "captain-level choice exists",
+        "workflow needs attention but safe continuation is not blocked"
+      ],
+      "quieting_rule": "Can be parked, quieted, or resolved by future receipt.",
+      "suppression_criteria": [
+        "raw proof/debug details",
+        "duplicate status cards"
+      ],
+      "visible_surface": "Helm marker routing into World"
+    },
+    {
+      "alert_level": "RED_ALERT",
+      "captain_interrupt_allowed": true,
+      "examples": [
+        "security decision required before safe continuation"
+      ],
+      "expiry_rule": "Remain active until resolution state is receipt-backed in a future lane.",
+      "next_safe_move": "Interrupt with only the decision and available safe choices.",
+      "policy_id": "red_alert_policy",
+      "promotion_criteria": [
+        "safe continuation blocked",
+        "captain decision required before proceeding"
+      ],
+      "quieting_rule": "Cannot be quieted until decided, parked, rejected, quarantined, expired, or superseded.",
+      "suppression_criteria": [
+        "nonblocking status",
+        "developer noise",
+        "proof availability alone"
+      ],
+      "visible_surface": "Helm / Red Alert with proof one level down"
+    },
+    {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "sync mismatch repaired",
+        "nonblocking test detail",
+        "proof receipt available"
+      ],
+      "expiry_rule": "Promote only if containment fails or active mission state becomes stale/unavailable.",
+      "next_safe_move": "Keep engine-room telemetry out of normal Helm.",
+      "policy_id": "engineering_contained_policy",
+      "promotion_criteria": [
+        "engineering handled or logged issue",
+        "no captain decision required"
+      ],
+      "quieting_rule": "Log below deck and summarize only when summoned.",
+      "suppression_criteria": [
+        "telemetry-only",
+        "test/debug/sync detail not blocking missions"
+      ],
+      "visible_surface": "Below Deck / Engineering"
+    },
+    {
+      "alert_level": "SHIPYARD_MODE",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "Chief Check Engine",
+        "dirty-state review",
+        "focused test failure"
+      ],
+      "expiry_rule": "Clear from normal view when validation passes or issue is parked.",
+      "next_safe_move": "Route build work to Shipyard, not Helm.",
+      "policy_id": "shipyard_mode_policy",
+      "promotion_criteria": [
+        "operator explicitly enters build/troubleshooting posture",
+        "build issue blocks active mission"
+      ],
+      "quieting_rule": "Suppress in normal Bridge mode unless mission-blocking.",
+      "suppression_criteria": [
+        "normal flight mode",
+        "developer noise not blocking operator mission"
+      ],
+      "visible_surface": "Shipyard"
+    },
+    {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "duplicate proof row",
+        "debug detail",
+        "completed quieted step"
+      ],
+      "expiry_rule": "Retain traceability; do not display as active work.",
+      "next_safe_move": "Keep traceable without interrupting.",
+      "policy_id": "quiet_log_only_policy",
+      "promotion_criteria": [
+        "never captain-level by itself",
+        "audit/proof only"
+      ],
+      "quieting_rule": "Always quiet unless explicitly summoned.",
+      "suppression_criteria": "all quiet-log records suppress from Helm",
+      "visible_surface": "Below Deck log only"
+    }
+  ],
+  "alert_policies_by_id": {
+    "engineering_contained_policy": {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "sync mismatch repaired",
+        "nonblocking test detail",
+        "proof receipt available"
+      ],
+      "expiry_rule": "Promote only if containment fails or active mission state becomes stale/unavailable.",
+      "next_safe_move": "Keep engine-room telemetry out of normal Helm.",
+      "policy_id": "engineering_contained_policy",
+      "promotion_criteria": [
+        "engineering handled or logged issue",
+        "no captain decision required"
+      ],
+      "quieting_rule": "Log below deck and summarize only when summoned.",
+      "suppression_criteria": [
+        "telemetry-only",
+        "test/debug/sync detail not blocking missions"
+      ],
+      "visible_surface": "Below Deck / Engineering"
+    },
+    "normal_flight_policy": {
+      "alert_level": "NORMAL_FLIGHT",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "proof available",
+        "approval locked prerequisites",
+        "completed/quieted status"
+      ],
+      "expiry_rule": "Refresh quietly when source refs change.",
+      "next_safe_move": "Keep the Bridge calm.",
+      "policy_id": "normal_flight_policy",
+      "promotion_criteria": [
+        "no captain decision required",
+        "workflow can continue or remain quiet"
+      ],
+      "quieting_rule": "Quiet by default; keep detail inspectable.",
+      "suppression_criteria": [
+        "proof available only",
+        "status update only",
+        "approval locked but not ready"
+      ],
+      "visible_surface": "World or Below Deck when summoned"
+    },
+    "quiet_log_only_policy": {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "duplicate proof row",
+        "debug detail",
+        "completed quieted step"
+      ],
+      "expiry_rule": "Retain traceability; do not display as active work.",
+      "next_safe_move": "Keep traceable without interrupting.",
+      "policy_id": "quiet_log_only_policy",
+      "promotion_criteria": [
+        "never captain-level by itself",
+        "audit/proof only"
+      ],
+      "quieting_rule": "Always quiet unless explicitly summoned.",
+      "suppression_criteria": "all quiet-log records suppress from Helm",
+      "visible_surface": "Below Deck log only"
+    },
+    "red_alert_policy": {
+      "alert_level": "RED_ALERT",
+      "captain_interrupt_allowed": true,
+      "examples": [
+        "security decision required before safe continuation"
+      ],
+      "expiry_rule": "Remain active until resolution state is receipt-backed in a future lane.",
+      "next_safe_move": "Interrupt with only the decision and available safe choices.",
+      "policy_id": "red_alert_policy",
+      "promotion_criteria": [
+        "safe continuation blocked",
+        "captain decision required before proceeding"
+      ],
+      "quieting_rule": "Cannot be quieted until decided, parked, rejected, quarantined, expired, or superseded.",
+      "suppression_criteria": [
+        "nonblocking status",
+        "developer noise",
+        "proof availability alone"
+      ],
+      "visible_surface": "Helm / Red Alert with proof one level down"
+    },
+    "shipyard_mode_policy": {
+      "alert_level": "SHIPYARD_MODE",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "Chief Check Engine",
+        "dirty-state review",
+        "focused test failure"
+      ],
+      "expiry_rule": "Clear from normal view when validation passes or issue is parked.",
+      "next_safe_move": "Route build work to Shipyard, not Helm.",
+      "policy_id": "shipyard_mode_policy",
+      "promotion_criteria": [
+        "operator explicitly enters build/troubleshooting posture",
+        "build issue blocks active mission"
+      ],
+      "quieting_rule": "Suppress in normal Bridge mode unless mission-blocking.",
+      "suppression_criteria": [
+        "normal flight mode",
+        "developer noise not blocking operator mission"
+      ],
+      "visible_surface": "Shipyard"
+    },
+    "yellow_alert_policy": {
+      "alert_level": "YELLOW_ALERT",
+      "captain_interrupt_allowed": false,
+      "examples": [
+        "Capital Hilton unlocked block",
+        "Telegram draft ready for review"
+      ],
+      "expiry_rule": "Stale after workflow session changes; revalidate before display.",
+      "next_safe_move": "Show one calm route to the relevant World.",
+      "policy_id": "yellow_alert_policy",
+      "promotion_criteria": [
+        "captain-level choice exists",
+        "workflow needs attention but safe continuation is not blocked"
+      ],
+      "quieting_rule": "Can be parked, quieted, or resolved by future receipt.",
+      "suppression_criteria": [
+        "raw proof/debug details",
+        "duplicate status cards"
+      ],
+      "visible_surface": "Helm marker routing into World"
+    }
+  },
+  "attention_records": [
+    {
+      "alert_level": "YELLOW_ALERT",
+      "attention_id": "capital_hilton_finance_mission_attention",
+      "attention_type": "WORLD_NEEDS_ATTENTION",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Open Finance World",
+        "Park this for later",
+        "Summon proof detail"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Capital Hilton has an unlocked invoice block in Finance World.",
+      "decision_prompt": "Open the Finance World and pick what is true about the next invoice block?",
+      "expiry_or_staleness_policy": "Revalidate against the workflow session before display if upstream invoice state changes.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Route Winship to the Capital Hilton workflow inside Finance World.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch",
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "quieting_policy": "Quiet once the unlocked block is parked, captured by future receipt, or no longer needs a captain choice.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Mission Control",
+      "source_surface": "Helm summary",
+      "supporting_crew_refs": [
+        "cassandra_clara_finance_briefing",
+        "guardian_invoice_gate_briefing"
+      ],
+      "title": "Finance needs attention",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    {
+      "alert_level": "NORMAL_FLIGHT",
+      "attention_id": "capital_hilton_approval_locked_attention",
+      "attention_type": "MISSION_STATUS_UPDATE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect prerequisites",
+        "Keep locked"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_approval_gate_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Approval/send is locked until prerequisites are ready.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Refresh prerequisite status when the workflow session changes.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Keep approval detail in Finance World and below deck until an approval is actually ready.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "quieting_policy": "Do not promote raw proof walls; show only locked prerequisite summary.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": true,
+      "source_actor": "Guardian",
+      "source_surface": "Finance World",
+      "supporting_crew_refs": [
+        "guardian_invoice_gate_briefing"
+      ],
+      "title": "Capital Hilton approval is locked",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    {
+      "alert_level": "SHIPYARD_MODE",
+      "attention_id": "chief_check_engine_attention",
+      "attention_type": "CHECK_ENGINE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Open Shipyard",
+        "Keep below deck"
+      ],
+      "below_deck_refs": [
+        "check_engine_test_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Build troubleshooting belongs in Shipyard unless it blocks an active mission.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Stale diagnostic results must be marked stale before they drive a captain decision.",
+      "lane": "Chief / Check Engine",
+      "next_safe_move": "Route diagnostic detail to Shipyard and interrupt Helm only if active mission progress is blocked.",
+      "proof_refs": [
+        "focused_test_refs",
+        "check_engine_diagnostic_solve_path"
+      ],
+      "quieting_policy": "Suppress in normal bridge mode when engineering has contained the issue.",
+      "route_target": "SHIPYARD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Chief",
+      "source_surface": "Shipyard",
+      "supporting_crew_refs": [
+        "chief_check_engine_briefing"
+      ],
+      "title": "Check Engine",
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "world": "Build",
+      "world_destination": "Shipyard / Build"
+    },
+    {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "attention_id": "sync_health_mismatch_attention",
+      "attention_type": "ENGINEERING_CONTAINED",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect sync detail",
+        "Keep quiet"
+      ],
+      "below_deck_refs": [
+        "sync_health_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Sync mismatch is contained unless it blocks Mac app read-model availability.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Promote to Yellow/Red only when current mission state cannot be trusted.",
+      "lane": "Sync Health",
+      "next_safe_move": "Keep contained sync proof below deck; promote only if the app cannot show current mission state.",
+      "proof_refs": [
+        "sync_health",
+        "openclaw_map_receipt"
+      ],
+      "quieting_policy": "Quiet after proof says mirror current or after mismatch is logged as nonblocking.",
+      "route_target": "BELOW_DECK",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": true,
+      "should_stay_in_world": false,
+      "source_actor": "Engineering",
+      "source_surface": "Below Deck",
+      "supporting_crew_refs": [
+        "chief_sync_health_briefing"
+      ],
+      "title": "Read-model sync health mismatch",
+      "workflow_session_ref": "sync_health_read_model",
+      "world": "Engineering",
+      "world_destination": "Engineering"
+    },
+    {
+      "alert_level": "YELLOW_ALERT",
+      "attention_id": "telegram_cassandra_request_attention",
+      "attention_type": "CREW_BRIEFING",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Review draft",
+        "Ask a missing question",
+        "Park request"
+      ],
+      "below_deck_refs": [
+        "telegram_request_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Cassandra compiled a draft request; Finance World owns the workflow.",
+      "decision_prompt": "Review the draft request in Finance World?",
+      "expiry_or_staleness_policy": "Conversation proposals must revalidate if workflow session changes.",
+      "lane": "Capital Hilton / Conversation",
+      "next_safe_move": "Route the proposal to the shared workflow block draft inside Finance World.",
+      "proof_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "quieting_policy": "Quiet once draft is reviewed, parked, or superseded by the workflow session.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Cassandra",
+      "source_surface": "Telegram",
+      "supporting_crew_refs": [
+        "cassandra_telegram_request_briefing"
+      ],
+      "title": "Draft request ready for review",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    {
+      "alert_level": "RED_ALERT",
+      "attention_id": "security_red_alert_attention",
+      "attention_type": "CAPTAIN_DECISION_REQUIRED",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Require review",
+        "Park",
+        "Reject authority change"
+      ],
+      "below_deck_refs": [
+        "security_gate_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Safe continuation requires a security decision.",
+      "decision_prompt": "Decide whether this authority change needs security review before continuing?",
+      "expiry_or_staleness_policy": "Red alerts remain visible until resolved, parked, quarantined, or superseded.",
+      "lane": "Guardian",
+      "next_safe_move": "Stop continuation until the captain chooses a safe security route.",
+      "proof_refs": [
+        "security_pass_contract"
+      ],
+      "quieting_policy": "Do not quiet until decision is captured by a future receipt lane or the item is parked/rejected.",
+      "route_target": "RED_ALERT",
+      "should_interrupt_captain": true,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Guardian",
+      "source_surface": "Security World",
+      "supporting_crew_refs": [
+        "guardian_security_gate_briefing"
+      ],
+      "title": "Security decision required",
+      "workflow_session_ref": "security_pass_contract",
+      "world": "Security",
+      "world_destination": "Security World"
+    },
+    {
+      "alert_level": "NORMAL_FLIGHT",
+      "attention_id": "proof_available_below_deck_attention",
+      "attention_type": "PROOF_AVAILABLE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect proof drawer"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Proof exists one level down.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Mark stale if source proof refs change.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Keep proof inspectable below deck without promoting it to Helm.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "quieting_policy": "Stay collapsed unless summoned or blocking a required decision.",
+      "route_target": "BELOW_DECK",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": true,
+      "should_stay_in_world": false,
+      "source_actor": "Engineering",
+      "source_surface": "Below Deck",
+      "supporting_crew_refs": [],
+      "title": "Proof available",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    }
+  ],
+  "attention_records_by_id": {
+    "capital_hilton_approval_locked_attention": {
+      "alert_level": "NORMAL_FLIGHT",
+      "attention_id": "capital_hilton_approval_locked_attention",
+      "attention_type": "MISSION_STATUS_UPDATE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect prerequisites",
+        "Keep locked"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_approval_gate_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Approval/send is locked until prerequisites are ready.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Refresh prerequisite status when the workflow session changes.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Keep approval detail in Finance World and below deck until an approval is actually ready.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "quieting_policy": "Do not promote raw proof walls; show only locked prerequisite summary.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": true,
+      "source_actor": "Guardian",
+      "source_surface": "Finance World",
+      "supporting_crew_refs": [
+        "guardian_invoice_gate_briefing"
+      ],
+      "title": "Capital Hilton approval is locked",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    "capital_hilton_finance_mission_attention": {
+      "alert_level": "YELLOW_ALERT",
+      "attention_id": "capital_hilton_finance_mission_attention",
+      "attention_type": "WORLD_NEEDS_ATTENTION",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Open Finance World",
+        "Park this for later",
+        "Summon proof detail"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Capital Hilton has an unlocked invoice block in Finance World.",
+      "decision_prompt": "Open the Finance World and pick what is true about the next invoice block?",
+      "expiry_or_staleness_policy": "Revalidate against the workflow session before display if upstream invoice state changes.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Route Winship to the Capital Hilton workflow inside Finance World.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch",
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "quieting_policy": "Quiet once the unlocked block is parked, captured by future receipt, or no longer needs a captain choice.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Mission Control",
+      "source_surface": "Helm summary",
+      "supporting_crew_refs": [
+        "cassandra_clara_finance_briefing",
+        "guardian_invoice_gate_briefing"
+      ],
+      "title": "Finance needs attention",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    "chief_check_engine_attention": {
+      "alert_level": "SHIPYARD_MODE",
+      "attention_id": "chief_check_engine_attention",
+      "attention_type": "CHECK_ENGINE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Open Shipyard",
+        "Keep below deck"
+      ],
+      "below_deck_refs": [
+        "check_engine_test_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Build troubleshooting belongs in Shipyard unless it blocks an active mission.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Stale diagnostic results must be marked stale before they drive a captain decision.",
+      "lane": "Chief / Check Engine",
+      "next_safe_move": "Route diagnostic detail to Shipyard and interrupt Helm only if active mission progress is blocked.",
+      "proof_refs": [
+        "focused_test_refs",
+        "check_engine_diagnostic_solve_path"
+      ],
+      "quieting_policy": "Suppress in normal bridge mode when engineering has contained the issue.",
+      "route_target": "SHIPYARD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Chief",
+      "source_surface": "Shipyard",
+      "supporting_crew_refs": [
+        "chief_check_engine_briefing"
+      ],
+      "title": "Check Engine",
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "world": "Build",
+      "world_destination": "Shipyard / Build"
+    },
+    "proof_available_below_deck_attention": {
+      "alert_level": "NORMAL_FLIGHT",
+      "attention_id": "proof_available_below_deck_attention",
+      "attention_type": "PROOF_AVAILABLE",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect proof drawer"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Proof exists one level down.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Mark stale if source proof refs change.",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Keep proof inspectable below deck without promoting it to Helm.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "quieting_policy": "Stay collapsed unless summoned or blocking a required decision.",
+      "route_target": "BELOW_DECK",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": true,
+      "should_stay_in_world": false,
+      "source_actor": "Engineering",
+      "source_surface": "Below Deck",
+      "supporting_crew_refs": [],
+      "title": "Proof available",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    },
+    "security_red_alert_attention": {
+      "alert_level": "RED_ALERT",
+      "attention_id": "security_red_alert_attention",
+      "attention_type": "CAPTAIN_DECISION_REQUIRED",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Require review",
+        "Park",
+        "Reject authority change"
+      ],
+      "below_deck_refs": [
+        "security_gate_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Safe continuation requires a security decision.",
+      "decision_prompt": "Decide whether this authority change needs security review before continuing?",
+      "expiry_or_staleness_policy": "Red alerts remain visible until resolved, parked, quarantined, or superseded.",
+      "lane": "Guardian",
+      "next_safe_move": "Stop continuation until the captain chooses a safe security route.",
+      "proof_refs": [
+        "security_pass_contract"
+      ],
+      "quieting_policy": "Do not quiet until decision is captured by a future receipt lane or the item is parked/rejected.",
+      "route_target": "RED_ALERT",
+      "should_interrupt_captain": true,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Guardian",
+      "source_surface": "Security World",
+      "supporting_crew_refs": [
+        "guardian_security_gate_briefing"
+      ],
+      "title": "Security decision required",
+      "workflow_session_ref": "security_pass_contract",
+      "world": "Security",
+      "world_destination": "Security World"
+    },
+    "sync_health_mismatch_attention": {
+      "alert_level": "ENGINEERING_CONTAINED",
+      "attention_id": "sync_health_mismatch_attention",
+      "attention_type": "ENGINEERING_CONTAINED",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Inspect sync detail",
+        "Keep quiet"
+      ],
+      "below_deck_refs": [
+        "sync_health_below_deck_detail"
+      ],
+      "captain_decision_needed": false,
+      "captain_level_summary": "Sync mismatch is contained unless it blocks Mac app read-model availability.",
+      "decision_prompt": "",
+      "expiry_or_staleness_policy": "Promote to Yellow/Red only when current mission state cannot be trusted.",
+      "lane": "Sync Health",
+      "next_safe_move": "Keep contained sync proof below deck; promote only if the app cannot show current mission state.",
+      "proof_refs": [
+        "sync_health",
+        "openclaw_map_receipt"
+      ],
+      "quieting_policy": "Quiet after proof says mirror current or after mismatch is logged as nonblocking.",
+      "route_target": "BELOW_DECK",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": false,
+      "should_stay_below_deck": true,
+      "should_stay_in_world": false,
+      "source_actor": "Engineering",
+      "source_surface": "Below Deck",
+      "supporting_crew_refs": [
+        "chief_sync_health_briefing"
+      ],
+      "title": "Read-model sync health mismatch",
+      "workflow_session_ref": "sync_health_read_model",
+      "world": "Engineering",
+      "world_destination": "Engineering"
+    },
+    "telegram_cassandra_request_attention": {
+      "alert_level": "YELLOW_ALERT",
+      "attention_id": "telegram_cassandra_request_attention",
+      "attention_type": "CREW_BRIEFING",
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "available_choices": [
+        "Review draft",
+        "Ask a missing question",
+        "Park request"
+      ],
+      "below_deck_refs": [
+        "telegram_request_below_deck_detail"
+      ],
+      "captain_decision_needed": true,
+      "captain_level_summary": "Cassandra compiled a draft request; Finance World owns the workflow.",
+      "decision_prompt": "Review the draft request in Finance World?",
+      "expiry_or_staleness_policy": "Conversation proposals must revalidate if workflow session changes.",
+      "lane": "Capital Hilton / Conversation",
+      "next_safe_move": "Route the proposal to the shared workflow block draft inside Finance World.",
+      "proof_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "quieting_policy": "Quiet once draft is reviewed, parked, or superseded by the workflow session.",
+      "route_target": "WORLD",
+      "should_interrupt_captain": false,
+      "should_show_on_helm": true,
+      "should_stay_below_deck": false,
+      "should_stay_in_world": false,
+      "source_actor": "Cassandra",
+      "source_surface": "Telegram",
+      "supporting_crew_refs": [
+        "cassandra_telegram_request_briefing"
+      ],
+      "title": "Draft request ready for review",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance",
+      "world_destination": "Finance World"
+    }
+  },
+  "attention_routing_decision_schema": {
+    "below_deck_contains_proof_sync_receipt_debug": true,
+    "crew_briefing_is_concise_decision_or_update": true,
+    "helm_is_not_entire_workspace": true,
+    "helm_routes_to_worlds": true,
+    "required_fields": [
+      "routing_id",
+      "source_record_ref",
+      "routing_destination",
+      "reason",
+      "captain_visible_summary",
+      "world_surface_target",
+      "below_deck_target",
+      "crew_briefing_target",
+      "suppress_from_helm_reason",
+      "promote_to_helm_reason",
+      "route_to_shipyard_reason",
+      "requires_operator_decision",
+      "requires_immediate_attention",
+      "can_be_summarized",
+      "can_be_quieted",
+      "proof_detail_available",
+      "next_safe_move"
+    ],
+    "shipyard_contains_developer_build_repair_noise": true,
+    "structure": "AttentionRoutingDecision"
+  },
+  "attention_types": [
+    "CAPTAIN_DECISION_REQUIRED",
+    "WORLD_NEEDS_ATTENTION",
+    "CREW_BRIEFING",
+    "MISSION_STATUS_UPDATE",
+    "ENGINEERING_CONTAINED",
+    "CHECK_ENGINE",
+    "SHIPYARD_TASK",
+    "PROOF_AVAILABLE",
+    "DEBUG_DETAIL",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "archive_action_allowed": false,
+    "browser_automation_allowed": false,
+    "calendar_access_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "crew_action_execution_allowed": false,
+    "email_send_allowed": false,
+    "file_move_delete_cleanup_allowed": false,
+    "file_write_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "helm_action_execution_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "operator_input_persistence_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "receipt_write_allowed": false,
+    "rewrite_action_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "state_write_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false,
+    "workflow_execution_allowed": false,
+    "world_action_execution_allowed": false
+  },
+  "below_deck_details": [
+    {
+      "authority_gate_refs": [
+        "invoice_generation_gate_false",
+        "email_send_gate_false"
+      ],
+      "captain_visibility": "inspectable when summoned or when a decision node needs proof context",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "capital_hilton_proof_below_deck_detail",
+      "detail_type": "PROOF_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep proof available without making it the default app surface.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch",
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "receipt_refs": [
+        "capital_hilton_receipt_refs_future"
+      ],
+      "source_actor": "Engineering",
+      "source_lane": "Capital Hilton",
+      "source_world": "Finance",
+      "stable_map_refs": [
+        "openclaw_map_snapshot"
+      ],
+      "summary": "Capital Hilton proof, Coupa refs, receipts, and source detail live one level down.",
+      "summon_label": "Show proof",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    {
+      "authority_gate_refs": [
+        "approval_submission_allowed_false",
+        "email_send_allowed_false"
+      ],
+      "captain_visibility": "world summary only until an actual approval decision is ready",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "capital_hilton_approval_gate_below_deck_detail",
+      "detail_type": "AUTHORITY_GATE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Do not promote locked approval to Helm as if it were actionable.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "receipt_refs": [
+        "future_approval_receipt_refs"
+      ],
+      "source_actor": "Guardian",
+      "source_lane": "Capital Hilton",
+      "source_world": "Finance",
+      "stable_map_refs": [],
+      "summary": "Approval/send authority is locked until prerequisites and future approval bus exist.",
+      "summon_label": "Show locked gates",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    {
+      "authority_gate_refs": [
+        "repair_execution_gate_false"
+      ],
+      "captain_visibility": "visible in Shipyard or when blocking active mission progress",
+      "debug_refs": [
+        "developer_diagnostics"
+      ],
+      "default_visibility": "shipyard_only",
+      "detail_id": "check_engine_test_below_deck_detail",
+      "detail_type": "TEST_RESULT_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep diagnostic detail below deck unless a captain repair/risk decision is required.",
+      "proof_refs": [
+        "check_engine_diagnostic_solve_path"
+      ],
+      "receipt_refs": [],
+      "source_actor": "Chief",
+      "source_lane": "Check Engine",
+      "source_world": "Build",
+      "stable_map_refs": [],
+      "summary": "Build, repair, validation, test, dirty-state, and diagnostic detail belong in Shipyard/Engineering.",
+      "summon_label": "Open Shipyard detail",
+      "sync_refs": [],
+      "test_refs": [
+        "focused_test_refs"
+      ]
+    },
+    {
+      "authority_gate_refs": [
+        "mac_sync_import_allowed_false"
+      ],
+      "captain_visibility": "promote only when stale read-models block app mission state",
+      "debug_refs": [
+        "map_bundle_readback_metadata"
+      ],
+      "default_visibility": "collapsed",
+      "detail_id": "sync_health_below_deck_detail",
+      "detail_type": "SYNC_HEALTH",
+      "interrupt_allowed": false,
+      "next_safe_move": "Log contained sync mismatches below deck and route repair to Shipyard when needed.",
+      "proof_refs": [
+        "openclaw_map_receipt"
+      ],
+      "receipt_refs": [
+        "openclaw_map_receipt"
+      ],
+      "source_actor": "Engineering",
+      "source_lane": "Read-model sync",
+      "source_world": "Engineering",
+      "stable_map_refs": [
+        "openclaw_map_snapshot",
+        "openclaw_map_manifest"
+      ],
+      "summary": "Sync health and stable-map receipts are operational proof, not normal Helm content.",
+      "summon_label": "Show sync proof",
+      "sync_refs": [
+        "sync_health"
+      ],
+      "test_refs": []
+    },
+    {
+      "authority_gate_refs": [
+        "security_delta_approval_future",
+        "authority_change_blocked"
+      ],
+      "captain_visibility": "shown one level down during Red Alert or Security World review",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "security_gate_below_deck_detail",
+      "detail_type": "AUTHORITY_GATE_DETAIL",
+      "interrupt_allowed": true,
+      "next_safe_move": "Use Red Alert only for the decision; keep proof detail below deck.",
+      "proof_refs": [
+        "security_pass_contract"
+      ],
+      "receipt_refs": [
+        "future_security_delta_receipt"
+      ],
+      "source_actor": "Guardian",
+      "source_lane": "Guardian",
+      "source_world": "Security",
+      "stable_map_refs": [],
+      "summary": "Security proof and gate refs support the captain decision without flooding Helm.",
+      "summon_label": "Show security proof",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    {
+      "authority_gate_refs": [
+        "telegram_send_allowed_false",
+        "email_send_allowed_false"
+      ],
+      "captain_visibility": "short briefing only unless the operator opens source detail",
+      "debug_refs": [
+        "draft_compiler_trace_refs_future"
+      ],
+      "default_visibility": "collapsed",
+      "detail_id": "telegram_request_below_deck_detail",
+      "detail_type": "SOURCE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Render a concise draft-ready briefing and route work to the owning World.",
+      "proof_refs": [
+        "workflow_block_intent_live_draft_contract"
+      ],
+      "receipt_refs": [
+        "future_operator_answer_receipt"
+      ],
+      "source_actor": "Cassandra",
+      "source_lane": "Telegram / Cassandra",
+      "source_world": "Communications",
+      "stable_map_refs": [],
+      "summary": "Conversation-originated requests become draft intents; raw telemetry stays below deck.",
+      "summon_label": "Show request source",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    {
+      "authority_gate_refs": [
+        "file_move_delete_cleanup_allowed_false"
+      ],
+      "captain_visibility": "summon when reconciling current/stale/source gaps",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "terrain_gap_below_deck_detail",
+      "detail_type": "SOURCE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep terrain details inspectable without turning Helm into an index browser.",
+      "proof_refs": [
+        "openclaw_work_terrain_gap_detector"
+      ],
+      "receipt_refs": [],
+      "source_actor": "Chief",
+      "source_lane": "Work Terrain",
+      "source_world": "Operations / Build",
+      "stable_map_refs": [
+        "openclaw_map_snapshot"
+      ],
+      "summary": "Terrain query, relationship, classification, and gap details support reconciliation below deck.",
+      "summon_label": "Show terrain refs",
+      "sync_refs": [],
+      "test_refs": [
+        "tests/test_openclaw_work_terrain_gap_detector.py"
+      ]
+    }
+  ],
+  "below_deck_details_by_id": {
+    "capital_hilton_approval_gate_below_deck_detail": {
+      "authority_gate_refs": [
+        "approval_submission_allowed_false",
+        "email_send_allowed_false"
+      ],
+      "captain_visibility": "world summary only until an actual approval decision is ready",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "capital_hilton_approval_gate_below_deck_detail",
+      "detail_type": "AUTHORITY_GATE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Do not promote locked approval to Helm as if it were actionable.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "receipt_refs": [
+        "future_approval_receipt_refs"
+      ],
+      "source_actor": "Guardian",
+      "source_lane": "Capital Hilton",
+      "source_world": "Finance",
+      "stable_map_refs": [],
+      "summary": "Approval/send authority is locked until prerequisites and future approval bus exist.",
+      "summon_label": "Show locked gates",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    "capital_hilton_proof_below_deck_detail": {
+      "authority_gate_refs": [
+        "invoice_generation_gate_false",
+        "email_send_gate_false"
+      ],
+      "captain_visibility": "inspectable when summoned or when a decision node needs proof context",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "capital_hilton_proof_below_deck_detail",
+      "detail_type": "PROOF_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep proof available without making it the default app surface.",
+      "proof_refs": [
+        "capital_hilton_proof_resolution_batch",
+        "capital_hilton_coupa_po_retrieval_automation_candidate"
+      ],
+      "receipt_refs": [
+        "capital_hilton_receipt_refs_future"
+      ],
+      "source_actor": "Engineering",
+      "source_lane": "Capital Hilton",
+      "source_world": "Finance",
+      "stable_map_refs": [
+        "openclaw_map_snapshot"
+      ],
+      "summary": "Capital Hilton proof, Coupa refs, receipts, and source detail live one level down.",
+      "summon_label": "Show proof",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    "check_engine_test_below_deck_detail": {
+      "authority_gate_refs": [
+        "repair_execution_gate_false"
+      ],
+      "captain_visibility": "visible in Shipyard or when blocking active mission progress",
+      "debug_refs": [
+        "developer_diagnostics"
+      ],
+      "default_visibility": "shipyard_only",
+      "detail_id": "check_engine_test_below_deck_detail",
+      "detail_type": "TEST_RESULT_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep diagnostic detail below deck unless a captain repair/risk decision is required.",
+      "proof_refs": [
+        "check_engine_diagnostic_solve_path"
+      ],
+      "receipt_refs": [],
+      "source_actor": "Chief",
+      "source_lane": "Check Engine",
+      "source_world": "Build",
+      "stable_map_refs": [],
+      "summary": "Build, repair, validation, test, dirty-state, and diagnostic detail belong in Shipyard/Engineering.",
+      "summon_label": "Open Shipyard detail",
+      "sync_refs": [],
+      "test_refs": [
+        "focused_test_refs"
+      ]
+    },
+    "security_gate_below_deck_detail": {
+      "authority_gate_refs": [
+        "security_delta_approval_future",
+        "authority_change_blocked"
+      ],
+      "captain_visibility": "shown one level down during Red Alert or Security World review",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "security_gate_below_deck_detail",
+      "detail_type": "AUTHORITY_GATE_DETAIL",
+      "interrupt_allowed": true,
+      "next_safe_move": "Use Red Alert only for the decision; keep proof detail below deck.",
+      "proof_refs": [
+        "security_pass_contract"
+      ],
+      "receipt_refs": [
+        "future_security_delta_receipt"
+      ],
+      "source_actor": "Guardian",
+      "source_lane": "Guardian",
+      "source_world": "Security",
+      "stable_map_refs": [],
+      "summary": "Security proof and gate refs support the captain decision without flooding Helm.",
+      "summon_label": "Show security proof",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    "sync_health_below_deck_detail": {
+      "authority_gate_refs": [
+        "mac_sync_import_allowed_false"
+      ],
+      "captain_visibility": "promote only when stale read-models block app mission state",
+      "debug_refs": [
+        "map_bundle_readback_metadata"
+      ],
+      "default_visibility": "collapsed",
+      "detail_id": "sync_health_below_deck_detail",
+      "detail_type": "SYNC_HEALTH",
+      "interrupt_allowed": false,
+      "next_safe_move": "Log contained sync mismatches below deck and route repair to Shipyard when needed.",
+      "proof_refs": [
+        "openclaw_map_receipt"
+      ],
+      "receipt_refs": [
+        "openclaw_map_receipt"
+      ],
+      "source_actor": "Engineering",
+      "source_lane": "Read-model sync",
+      "source_world": "Engineering",
+      "stable_map_refs": [
+        "openclaw_map_snapshot",
+        "openclaw_map_manifest"
+      ],
+      "summary": "Sync health and stable-map receipts are operational proof, not normal Helm content.",
+      "summon_label": "Show sync proof",
+      "sync_refs": [
+        "sync_health"
+      ],
+      "test_refs": []
+    },
+    "telegram_request_below_deck_detail": {
+      "authority_gate_refs": [
+        "telegram_send_allowed_false",
+        "email_send_allowed_false"
+      ],
+      "captain_visibility": "short briefing only unless the operator opens source detail",
+      "debug_refs": [
+        "draft_compiler_trace_refs_future"
+      ],
+      "default_visibility": "collapsed",
+      "detail_id": "telegram_request_below_deck_detail",
+      "detail_type": "SOURCE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Render a concise draft-ready briefing and route work to the owning World.",
+      "proof_refs": [
+        "workflow_block_intent_live_draft_contract"
+      ],
+      "receipt_refs": [
+        "future_operator_answer_receipt"
+      ],
+      "source_actor": "Cassandra",
+      "source_lane": "Telegram / Cassandra",
+      "source_world": "Communications",
+      "stable_map_refs": [],
+      "summary": "Conversation-originated requests become draft intents; raw telemetry stays below deck.",
+      "summon_label": "Show request source",
+      "sync_refs": [],
+      "test_refs": []
+    },
+    "terrain_gap_below_deck_detail": {
+      "authority_gate_refs": [
+        "file_move_delete_cleanup_allowed_false"
+      ],
+      "captain_visibility": "summon when reconciling current/stale/source gaps",
+      "debug_refs": [],
+      "default_visibility": "collapsed",
+      "detail_id": "terrain_gap_below_deck_detail",
+      "detail_type": "SOURCE_DETAIL",
+      "interrupt_allowed": false,
+      "next_safe_move": "Keep terrain details inspectable without turning Helm into an index browser.",
+      "proof_refs": [
+        "openclaw_work_terrain_gap_detector"
+      ],
+      "receipt_refs": [],
+      "source_actor": "Chief",
+      "source_lane": "Work Terrain",
+      "source_world": "Operations / Build",
+      "stable_map_refs": [
+        "openclaw_map_snapshot"
+      ],
+      "summary": "Terrain query, relationship, classification, and gap details support reconciliation below deck.",
+      "summon_label": "Show terrain refs",
+      "sync_refs": [],
+      "test_refs": [
+        "tests/test_openclaw_work_terrain_gap_detector.py"
+      ]
+    }
+  },
+  "below_deck_engineering_detail_schema": {
+    "captain_can_inspect_without_being_forced": true,
+    "debug_detail_belongs_below_deck_or_shipyard": true,
+    "default_visibility": "collapsed_or_hidden_unless_blocking_or_summoned",
+    "proof_exists_but_does_not_dominate": true,
+    "required_fields": [
+      "detail_id",
+      "detail_type",
+      "source_world",
+      "source_lane",
+      "source_actor",
+      "summary",
+      "proof_refs",
+      "receipt_refs",
+      "sync_refs",
+      "stable_map_refs",
+      "test_refs",
+      "debug_refs",
+      "authority_gate_refs",
+      "captain_visibility",
+      "summon_label",
+      "default_visibility",
+      "interrupt_allowed",
+      "next_safe_move"
+    ],
+    "structure": "BelowDeckEngineeringDetail"
+  },
+  "bridge_alert_policy_schema": {
+    "engineering_contained_logs_below_deck": true,
+    "normal_flight_quiet": true,
+    "quiet_log_only_never_interrupts": true,
+    "red_alert_requires_captain_decision_before_safe_continuation": true,
+    "required_fields": [
+      "policy_id",
+      "alert_level",
+      "promotion_criteria",
+      "suppression_criteria",
+      "captain_interrupt_allowed",
+      "visible_surface",
+      "quieting_rule",
+      "expiry_rule",
+      "examples",
+      "next_safe_move"
+    ],
+    "structure": "BridgeAlertPolicy",
+    "yellow_alert_nonblocking_attention": true
+  },
+  "bridge_attention_record_schema": {
+    "engineering_contained_interrupts_captain": false,
+    "helm_shows_captain_level_attention_only": true,
+    "normal_flight_quiet": true,
+    "proof_debug_status_promote_by_default": false,
+    "red_alert_requires_captain_decision": true,
+    "required_fields": [
+      "attention_id",
+      "title",
+      "world",
+      "lane",
+      "workflow_session_ref",
+      "source_actor",
+      "source_surface",
+      "attention_type",
+      "alert_level",
+      "captain_level_summary",
+      "captain_decision_needed",
+      "decision_prompt",
+      "available_choices",
+      "next_safe_move",
+      "route_target",
+      "world_destination",
+      "supporting_crew_refs",
+      "proof_refs",
+      "below_deck_refs",
+      "authority_boundary",
+      "quieting_policy",
+      "expiry_or_staleness_policy",
+      "should_interrupt_captain",
+      "should_show_on_helm",
+      "should_stay_in_world",
+      "should_stay_below_deck"
+    ],
+    "shipyard_mode_explicit": true,
+    "structure": "BridgeAttentionRecord",
+    "yellow_alert_visible_not_urgent": true
+  },
+  "briefing_types": [
+    "DECISION_REQUEST",
+    "STATUS_UPDATE",
+    "DRAFT_READY",
+    "PROOF_NEEDED",
+    "APPROVAL_NEEDED",
+    "BLOCKER_FOUND",
+    "ENGINEERING_CONTAINED",
+    "SECURITY_GATE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_BRIDGE_ROUTING_CONTRACT",
+  "crew_briefing_schema": {
+    "agents_brief_not_spam": true,
+    "crew_may_prepare_block_drafts": true,
+    "crew_owns_truth": false,
+    "guardian_may_red_alert_when_safe_continuation_requires_decision": true,
+    "raw_agent_telemetry_on_helm": false,
+    "required_fields": [
+      "briefing_id",
+      "crew_actor",
+      "world",
+      "lane",
+      "briefing_type",
+      "captain_summary",
+      "decision_needed",
+      "recommended_action",
+      "choices",
+      "evidence_refs",
+      "workflow_block_refs",
+      "draft_intent_refs",
+      "authority_boundary",
+      "urgency",
+      "should_promote_to_helm",
+      "should_remain_in_world",
+      "next_safe_move"
+    ],
+    "structure": "CrewBriefing"
+  },
+  "crew_briefings": [
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "cassandra_clara_finance_briefing",
+      "briefing_type": "DRAFT_READY",
+      "captain_summary": "I can prepare a draft path after you answer the unlocked invoice block.",
+      "choices": [
+        "Open Finance World",
+        "Park",
+        "Show proof"
+      ],
+      "crew_actor": "Cassandra/Clara",
+      "decision_needed": true,
+      "draft_intent_refs": [
+        "capital_hilton_mission_control_performance_dates_draft"
+      ],
+      "evidence_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Brief the decision, not the whole proof shelf.",
+      "recommended_action": "Open the Finance World block and pick what is true.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "YELLOW_ALERT",
+      "workflow_block_refs": [
+        "performance_dates",
+        "po_reference",
+        "rate_source"
+      ],
+      "world": "Finance"
+    },
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "guardian_invoice_gate_briefing",
+      "briefing_type": "APPROVAL_NEEDED",
+      "captain_summary": "Invoice/send approval is locked until prerequisites are ready.",
+      "choices": [
+        "Inspect prerequisites",
+        "Keep locked"
+      ],
+      "crew_actor": "Guardian",
+      "decision_needed": false,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Do not ask for approval until approval is actually ready.",
+      "recommended_action": "Keep approval locked.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": true,
+      "urgency": "NORMAL_FLIGHT",
+      "workflow_block_refs": [
+        "approval_gate",
+        "send_gate"
+      ],
+      "world": "Finance"
+    },
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "chief_check_engine_briefing",
+      "briefing_type": "BLOCKER_FOUND",
+      "captain_summary": "Build status can be summarized; detail stays in Shipyard unless you ask.",
+      "choices": [
+        "Open Shipyard",
+        "Keep quiet"
+      ],
+      "crew_actor": "Chief",
+      "decision_needed": false,
+      "draft_intent_refs": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "evidence_refs": [
+        "focused_test_refs"
+      ],
+      "lane": "Check Engine",
+      "next_safe_move": "Contain build noise unless it blocks a mission.",
+      "recommended_action": "Open Shipyard only if you are in troubleshooting mode.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": false,
+      "urgency": "SHIPYARD_MODE",
+      "workflow_block_refs": [
+        "diagnostic_summary"
+      ],
+      "world": "Build"
+    },
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "chief_sync_health_briefing",
+      "briefing_type": "ENGINEERING_CONTAINED",
+      "captain_summary": "Sync proof is contained unless the app cannot see current read-models.",
+      "choices": [
+        "Inspect sync proof",
+        "Keep quiet"
+      ],
+      "crew_actor": "Chief",
+      "decision_needed": false,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "sync_health",
+        "openclaw_map_receipt"
+      ],
+      "lane": "Sync Health",
+      "next_safe_move": "Promote only if stale state blocks the operator's current mission.",
+      "recommended_action": "Keep below deck.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": false,
+      "urgency": "ENGINEERING_CONTAINED",
+      "workflow_block_refs": [],
+      "world": "Engineering"
+    },
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "cassandra_telegram_request_briefing",
+      "briefing_type": "DRAFT_READY",
+      "captain_summary": "Telegram request compiled into a Finance draft proposal.",
+      "choices": [
+        "Review draft",
+        "Ask missing question",
+        "Park"
+      ],
+      "crew_actor": "Cassandra",
+      "decision_needed": true,
+      "draft_intent_refs": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "evidence_refs": [
+        "workflow_block_intent_live_draft_contract"
+      ],
+      "lane": "Capital Hilton / Conversation",
+      "next_safe_move": "Show the captain one review choice and keep conversation details collapsible.",
+      "recommended_action": "Review the draft in Finance World.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "YELLOW_ALERT",
+      "workflow_block_refs": [
+        "invoice_request",
+        "date_scope",
+        "review_packet"
+      ],
+      "world": "Finance"
+    },
+    {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "guardian_security_gate_briefing",
+      "briefing_type": "SECURITY_GATE",
+      "captain_summary": "Security decision required before safe continuation.",
+      "choices": [
+        "Require review",
+        "Park",
+        "Reject"
+      ],
+      "crew_actor": "Guardian",
+      "decision_needed": true,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "security_pass_contract"
+      ],
+      "lane": "Authority Delta",
+      "next_safe_move": "Interrupt only because safe continuation needs a captain decision.",
+      "recommended_action": "Choose whether this requires security review.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "RED_ALERT",
+      "workflow_block_refs": [
+        "authority_delta_review"
+      ],
+      "world": "Security"
+    }
+  ],
+  "crew_briefings_by_id": {
+    "cassandra_clara_finance_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "cassandra_clara_finance_briefing",
+      "briefing_type": "DRAFT_READY",
+      "captain_summary": "I can prepare a draft path after you answer the unlocked invoice block.",
+      "choices": [
+        "Open Finance World",
+        "Park",
+        "Show proof"
+      ],
+      "crew_actor": "Cassandra/Clara",
+      "decision_needed": true,
+      "draft_intent_refs": [
+        "capital_hilton_mission_control_performance_dates_draft"
+      ],
+      "evidence_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Brief the decision, not the whole proof shelf.",
+      "recommended_action": "Open the Finance World block and pick what is true.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "YELLOW_ALERT",
+      "workflow_block_refs": [
+        "performance_dates",
+        "po_reference",
+        "rate_source"
+      ],
+      "world": "Finance"
+    },
+    "cassandra_telegram_request_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "cassandra_telegram_request_briefing",
+      "briefing_type": "DRAFT_READY",
+      "captain_summary": "Telegram request compiled into a Finance draft proposal.",
+      "choices": [
+        "Review draft",
+        "Ask missing question",
+        "Park"
+      ],
+      "crew_actor": "Cassandra",
+      "decision_needed": true,
+      "draft_intent_refs": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "evidence_refs": [
+        "workflow_block_intent_live_draft_contract"
+      ],
+      "lane": "Capital Hilton / Conversation",
+      "next_safe_move": "Show the captain one review choice and keep conversation details collapsible.",
+      "recommended_action": "Review the draft in Finance World.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "YELLOW_ALERT",
+      "workflow_block_refs": [
+        "invoice_request",
+        "date_scope",
+        "review_packet"
+      ],
+      "world": "Finance"
+    },
+    "chief_check_engine_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "chief_check_engine_briefing",
+      "briefing_type": "BLOCKER_FOUND",
+      "captain_summary": "Build status can be summarized; detail stays in Shipyard unless you ask.",
+      "choices": [
+        "Open Shipyard",
+        "Keep quiet"
+      ],
+      "crew_actor": "Chief",
+      "decision_needed": false,
+      "draft_intent_refs": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "evidence_refs": [
+        "focused_test_refs"
+      ],
+      "lane": "Check Engine",
+      "next_safe_move": "Contain build noise unless it blocks a mission.",
+      "recommended_action": "Open Shipyard only if you are in troubleshooting mode.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": false,
+      "urgency": "SHIPYARD_MODE",
+      "workflow_block_refs": [
+        "diagnostic_summary"
+      ],
+      "world": "Build"
+    },
+    "chief_sync_health_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "chief_sync_health_briefing",
+      "briefing_type": "ENGINEERING_CONTAINED",
+      "captain_summary": "Sync proof is contained unless the app cannot see current read-models.",
+      "choices": [
+        "Inspect sync proof",
+        "Keep quiet"
+      ],
+      "crew_actor": "Chief",
+      "decision_needed": false,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "sync_health",
+        "openclaw_map_receipt"
+      ],
+      "lane": "Sync Health",
+      "next_safe_move": "Promote only if stale state blocks the operator's current mission.",
+      "recommended_action": "Keep below deck.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": false,
+      "urgency": "ENGINEERING_CONTAINED",
+      "workflow_block_refs": [],
+      "world": "Engineering"
+    },
+    "guardian_invoice_gate_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "guardian_invoice_gate_briefing",
+      "briefing_type": "APPROVAL_NEEDED",
+      "captain_summary": "Invoice/send approval is locked until prerequisites are ready.",
+      "choices": [
+        "Inspect prerequisites",
+        "Keep locked"
+      ],
+      "crew_actor": "Guardian",
+      "decision_needed": false,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Do not ask for approval until approval is actually ready.",
+      "recommended_action": "Keep approval locked.",
+      "should_promote_to_helm": false,
+      "should_remain_in_world": true,
+      "urgency": "NORMAL_FLIGHT",
+      "workflow_block_refs": [
+        "approval_gate",
+        "send_gate"
+      ],
+      "world": "Finance"
+    },
+    "guardian_security_gate_briefing": {
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "archive_action_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "crew_action_execution_allowed": false,
+        "email_send_allowed": false,
+        "file_move_delete_cleanup_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "helm_action_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "operator_input_persistence_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "rewrite_action_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false,
+        "world_action_execution_allowed": false
+      },
+      "briefing_id": "guardian_security_gate_briefing",
+      "briefing_type": "SECURITY_GATE",
+      "captain_summary": "Security decision required before safe continuation.",
+      "choices": [
+        "Require review",
+        "Park",
+        "Reject"
+      ],
+      "crew_actor": "Guardian",
+      "decision_needed": true,
+      "draft_intent_refs": [],
+      "evidence_refs": [
+        "security_pass_contract"
+      ],
+      "lane": "Authority Delta",
+      "next_safe_move": "Interrupt only because safe continuation needs a captain decision.",
+      "recommended_action": "Choose whether this requires security review.",
+      "should_promote_to_helm": true,
+      "should_remain_in_world": false,
+      "urgency": "RED_ALERT",
+      "workflow_block_refs": [
+        "authority_delta_review"
+      ],
+      "world": "Security"
+    }
+  },
+  "detail_types": [
+    "PROOF_DETAIL",
+    "SOURCE_DETAIL",
+    "RECEIPT_DETAIL",
+    "SYNC_HEALTH",
+    "STABLE_MAP_DETAIL",
+    "TEST_RESULT_DETAIL",
+    "AUTHORITY_GATE_DETAIL",
+    "DEBUG_DETAIL",
+    "TOOLING_DETAIL",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "doctrine": {
+    "bridge_rule": "Bridge routes; Worlds do work; Engineering stays below deck.",
+    "captain_rule": "Captain sees decisions, not raw telemetry.",
+    "crew_rule": "Agents brief, not spam; agent proposals do not own truth.",
+    "engineering_rule": "Proof, sync, status, receipts, tests, and debug stay below deck unless blocking or summoned.",
+    "normal_flight_rule": "The ship should be calm, relaxed, and powerful when nothing needs the captain.",
+    "north_star": "Winship is the captain; Mission Control is the bridge; OpenClaw is the ship.",
+    "shipyard_rule": "Shipyard Mode is explicit developer/build/troubleshooting posture.",
+    "systems_engineering_not_theme": true,
+    "world_rule": "Worlds are where real domain work happens."
+  },
+  "generated_at": "2026-05-23T23:45:11+00:00",
+  "hard_rule": {
+    "does_not_access_external_accounts": true,
+    "does_not_call_agents_or_models": true,
+    "does_not_execute_workflow": true,
+    "does_not_modify_mission_control_swift": true,
+    "does_not_run_mac_sync_import": true,
+    "does_not_use_network": true,
+    "does_not_write_receipts": true,
+    "does_not_write_state": true,
+    "may_grant_authority": false,
+    "read_model_only": true
+  },
+  "machine_proof": {
+    "agents_do_not_own_truth": true,
+    "alert_policy_count": 6,
+    "all_authority_flags_false": true,
+    "attention_record_count": 7,
+    "attention_routing_decision_model_present": true,
+    "below_deck_detail_count": 7,
+    "below_deck_engineering_detail_model_present": true,
+    "bridge_alert_policy_model_present": true,
+    "bridge_attention_record_model_present": true,
+    "capital_hilton_not_raw_helm_workspace": true,
+    "capital_hilton_routes_to_finance_world": true,
+    "content_hash": "sha256:c9f97759efee20e9bdb77382515263067697f7c74b8340abb2b97121666b8673",
+    "credentials_or_secrets_included": false,
+    "crew_briefing_count": 6,
+    "crew_briefing_model_present": true,
+    "crew_briefings_action_oriented": true,
+    "engineering_contained_does_not_interrupt": true,
+    "proof_debug_detail_below_deck_by_default": true,
+    "raw_private_bodies_included": false,
+    "red_alert_interrupts_only_when_captain_decision_required": true,
+    "relationship_refs_represented": true,
+    "routing_decision_count": 7,
+    "shipyard_mode_record_model_present": true,
+    "shipyard_record_count": 2,
+    "shipyard_separates_developer_noise": true,
+    "world_mission_surface_model_present": true,
+    "world_surface_count": 4
+  },
+  "read_model_id": "bridge_routing_operator_attention_contract",
+  "relationship_refs": {
+    "automation_readiness_feasibility_evaluator_contract": {
+      "path": "generated/read_models/automation_readiness_feasibility_evaluator_contract.json",
+      "present": true
+    },
+    "capital_hilton_proof_resolution_batch": {
+      "path": "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json",
+      "present": true
+    },
+    "guided_capture_protected_evidence_path_contract": {
+      "path": "generated/read_models/guided_capture_protected_evidence_path_contract.json",
+      "present": true
+    },
+    "openclaw_work_terrain_gap_detector": {
+      "path": "generated/read_models/openclaw_work_terrain_gap_detector.json",
+      "present": true
+    },
+    "operator_solve_path_decision_node_contract": {
+      "path": "generated/read_models/operator_solve_path_decision_node_contract.json",
+      "present": true
+    },
+    "security_pass_contract": {
+      "path": "generated/read_models/security_pass_contract.json",
+      "present": true
+    },
+    "workflow_block_intent_live_draft_contract": {
+      "path": "generated/read_models/workflow_block_intent_live_draft_contract.json",
+      "present": true
+    },
+    "workflow_session_channel_projection_approval_bus_contract": {
+      "path": "generated/read_models/workflow_session_channel_projection_approval_bus_contract.json",
+      "present": true
+    }
+  },
+  "routing_decisions": [
+    {
+      "below_deck_target": "capital_hilton_proof_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Finance needs attention: Capital Hilton has an unlocked block.",
+      "crew_briefing_target": "cassandra_clara_finance_briefing",
+      "next_safe_move": "Show a calm Helm marker and route into Finance World.",
+      "promote_to_helm_reason": "Captain has a concise next decision to route into Finance World.",
+      "proof_detail_available": true,
+      "reason": "Finance workflow work belongs in Finance World; Helm should only route the captain to the item.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_capital_hilton_to_finance_world",
+      "source_record_ref": "capital_hilton_finance_mission_attention",
+      "suppress_from_helm_reason": "Raw proof and workflow cards would turn Helm into the whole workspace.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    {
+      "below_deck_target": "capital_hilton_approval_gate_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Approval/send remains locked.",
+      "crew_briefing_target": "guardian_invoice_gate_briefing",
+      "next_safe_move": "Keep approval locked in Finance World until prerequisites make a real choice available.",
+      "promote_to_helm_reason": "",
+      "proof_detail_available": true,
+      "reason": "Locked approval is prerequisite status, not a captain interrupt.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_capital_hilton_approval_locked_to_world",
+      "source_record_ref": "capital_hilton_approval_locked_attention",
+      "suppress_from_helm_reason": "Approval is not ready, so a Helm interrupt would be noise.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    {
+      "below_deck_target": "check_engine_test_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Check Engine is in Shipyard.",
+      "crew_briefing_target": "chief_check_engine_briefing",
+      "next_safe_move": "Open Shipyard when Winship is in build/troubleshooting posture.",
+      "promote_to_helm_reason": "Only promote if the blocker stops active mission progress.",
+      "proof_detail_available": true,
+      "reason": "Build troubleshooting is developer mode unless it blocks active mission safety or progress.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "This is build/repair validation work.",
+      "routing_destination": "SHIPYARD",
+      "routing_id": "route_chief_check_engine_to_shipyard",
+      "source_record_ref": "chief_check_engine_attention",
+      "suppress_from_helm_reason": "Developer/build noise should not dominate normal bridge mode.",
+      "world_surface_target": ""
+    },
+    {
+      "below_deck_target": "sync_health_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Sync is contained.",
+      "crew_briefing_target": "chief_sync_health_briefing",
+      "next_safe_move": "Keep as Engineering Contained unless mirror staleness affects visible mission work.",
+      "promote_to_helm_reason": "Promote only if Mac app read-model availability blocks a mission.",
+      "proof_detail_available": true,
+      "reason": "Contained sync proof should log below deck and not interrupt unless app state is stale or unavailable.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "If repair is needed, handle in Shipyard.",
+      "routing_destination": "BELOW_DECK",
+      "routing_id": "route_sync_health_mismatch_contained_below_deck",
+      "source_record_ref": "sync_health_mismatch_attention",
+      "suppress_from_helm_reason": "Contained engineering status is not a captain-level decision.",
+      "world_surface_target": ""
+    },
+    {
+      "below_deck_target": "telegram_request_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Draft request ready in Finance World.",
+      "crew_briefing_target": "cassandra_telegram_request_briefing",
+      "next_safe_move": "Show the short draft-ready marker and route to the relevant World.",
+      "promote_to_helm_reason": "A concise review decision is available.",
+      "proof_detail_available": true,
+      "reason": "Telegram and Cassandra originate a proposal, but the Finance workflow session owns state.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_telegram_cassandra_request_to_finance_world",
+      "source_record_ref": "telegram_cassandra_request_attention",
+      "suppress_from_helm_reason": "Conversation transcript and draft internals stay out of Helm.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    {
+      "below_deck_target": "security_gate_below_deck_detail",
+      "can_be_quieted": false,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Security decision required before safe continuation.",
+      "crew_briefing_target": "guardian_security_gate_briefing",
+      "next_safe_move": "Interrupt only with the captain decision and keep proof one level down.",
+      "promote_to_helm_reason": "Red Alert requires immediate operator decision.",
+      "proof_detail_available": true,
+      "reason": "Safe continuation is blocked until the captain chooses a security route.",
+      "requires_immediate_attention": true,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "RED_ALERT",
+      "routing_id": "route_security_decision_to_red_alert",
+      "source_record_ref": "security_red_alert_attention",
+      "suppress_from_helm_reason": "",
+      "world_surface_target": "security_world_mission_surface"
+    },
+    {
+      "below_deck_target": "capital_hilton_proof_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Proof is available.",
+      "crew_briefing_target": "",
+      "next_safe_move": "Leave proof collapsed until summoned or required by a decision node.",
+      "promote_to_helm_reason": "",
+      "proof_detail_available": true,
+      "reason": "Proof availability is inspectable support, not a captain interrupt by itself.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "BELOW_DECK",
+      "routing_id": "route_proof_available_to_below_deck",
+      "source_record_ref": "proof_available_below_deck_attention",
+      "suppress_from_helm_reason": "Proof/debug/status detail should not promote to Helm by default.",
+      "world_surface_target": "finance_world_mission_surface"
+    }
+  ],
+  "routing_decisions_by_id": {
+    "route_capital_hilton_approval_locked_to_world": {
+      "below_deck_target": "capital_hilton_approval_gate_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Approval/send remains locked.",
+      "crew_briefing_target": "guardian_invoice_gate_briefing",
+      "next_safe_move": "Keep approval locked in Finance World until prerequisites make a real choice available.",
+      "promote_to_helm_reason": "",
+      "proof_detail_available": true,
+      "reason": "Locked approval is prerequisite status, not a captain interrupt.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_capital_hilton_approval_locked_to_world",
+      "source_record_ref": "capital_hilton_approval_locked_attention",
+      "suppress_from_helm_reason": "Approval is not ready, so a Helm interrupt would be noise.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    "route_capital_hilton_to_finance_world": {
+      "below_deck_target": "capital_hilton_proof_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Finance needs attention: Capital Hilton has an unlocked block.",
+      "crew_briefing_target": "cassandra_clara_finance_briefing",
+      "next_safe_move": "Show a calm Helm marker and route into Finance World.",
+      "promote_to_helm_reason": "Captain has a concise next decision to route into Finance World.",
+      "proof_detail_available": true,
+      "reason": "Finance workflow work belongs in Finance World; Helm should only route the captain to the item.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_capital_hilton_to_finance_world",
+      "source_record_ref": "capital_hilton_finance_mission_attention",
+      "suppress_from_helm_reason": "Raw proof and workflow cards would turn Helm into the whole workspace.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    "route_chief_check_engine_to_shipyard": {
+      "below_deck_target": "check_engine_test_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Check Engine is in Shipyard.",
+      "crew_briefing_target": "chief_check_engine_briefing",
+      "next_safe_move": "Open Shipyard when Winship is in build/troubleshooting posture.",
+      "promote_to_helm_reason": "Only promote if the blocker stops active mission progress.",
+      "proof_detail_available": true,
+      "reason": "Build troubleshooting is developer mode unless it blocks active mission safety or progress.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "This is build/repair validation work.",
+      "routing_destination": "SHIPYARD",
+      "routing_id": "route_chief_check_engine_to_shipyard",
+      "source_record_ref": "chief_check_engine_attention",
+      "suppress_from_helm_reason": "Developer/build noise should not dominate normal bridge mode.",
+      "world_surface_target": ""
+    },
+    "route_proof_available_to_below_deck": {
+      "below_deck_target": "capital_hilton_proof_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Proof is available.",
+      "crew_briefing_target": "",
+      "next_safe_move": "Leave proof collapsed until summoned or required by a decision node.",
+      "promote_to_helm_reason": "",
+      "proof_detail_available": true,
+      "reason": "Proof availability is inspectable support, not a captain interrupt by itself.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "BELOW_DECK",
+      "routing_id": "route_proof_available_to_below_deck",
+      "source_record_ref": "proof_available_below_deck_attention",
+      "suppress_from_helm_reason": "Proof/debug/status detail should not promote to Helm by default.",
+      "world_surface_target": "finance_world_mission_surface"
+    },
+    "route_security_decision_to_red_alert": {
+      "below_deck_target": "security_gate_below_deck_detail",
+      "can_be_quieted": false,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Security decision required before safe continuation.",
+      "crew_briefing_target": "guardian_security_gate_briefing",
+      "next_safe_move": "Interrupt only with the captain decision and keep proof one level down.",
+      "promote_to_helm_reason": "Red Alert requires immediate operator decision.",
+      "proof_detail_available": true,
+      "reason": "Safe continuation is blocked until the captain chooses a security route.",
+      "requires_immediate_attention": true,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "RED_ALERT",
+      "routing_id": "route_security_decision_to_red_alert",
+      "source_record_ref": "security_red_alert_attention",
+      "suppress_from_helm_reason": "",
+      "world_surface_target": "security_world_mission_surface"
+    },
+    "route_sync_health_mismatch_contained_below_deck": {
+      "below_deck_target": "sync_health_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Sync is contained.",
+      "crew_briefing_target": "chief_sync_health_briefing",
+      "next_safe_move": "Keep as Engineering Contained unless mirror staleness affects visible mission work.",
+      "promote_to_helm_reason": "Promote only if Mac app read-model availability blocks a mission.",
+      "proof_detail_available": true,
+      "reason": "Contained sync proof should log below deck and not interrupt unless app state is stale or unavailable.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": false,
+      "route_to_shipyard_reason": "If repair is needed, handle in Shipyard.",
+      "routing_destination": "BELOW_DECK",
+      "routing_id": "route_sync_health_mismatch_contained_below_deck",
+      "source_record_ref": "sync_health_mismatch_attention",
+      "suppress_from_helm_reason": "Contained engineering status is not a captain-level decision.",
+      "world_surface_target": ""
+    },
+    "route_telegram_cassandra_request_to_finance_world": {
+      "below_deck_target": "telegram_request_below_deck_detail",
+      "can_be_quieted": true,
+      "can_be_summarized": true,
+      "captain_visible_summary": "Draft request ready in Finance World.",
+      "crew_briefing_target": "cassandra_telegram_request_briefing",
+      "next_safe_move": "Show the short draft-ready marker and route to the relevant World.",
+      "promote_to_helm_reason": "A concise review decision is available.",
+      "proof_detail_available": true,
+      "reason": "Telegram and Cassandra originate a proposal, but the Finance workflow session owns state.",
+      "requires_immediate_attention": false,
+      "requires_operator_decision": true,
+      "route_to_shipyard_reason": "",
+      "routing_destination": "WORLD",
+      "routing_id": "route_telegram_cassandra_request_to_finance_world",
+      "source_record_ref": "telegram_cassandra_request_attention",
+      "suppress_from_helm_reason": "Conversation transcript and draft internals stay out of Helm.",
+      "world_surface_target": "finance_world_mission_surface"
+    }
+  },
+  "routing_destinations": [
+    "HELM",
+    "WORLD",
+    "BELOW_DECK",
+    "CREW_BRIEFING",
+    "SHIPYARD",
+    "RED_ALERT",
+    "QUIET_LOG_ONLY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "bridge_routing_operator_attention_contract_v0",
+  "shipyard_mode_schema": {
+    "check_engine_is_ship_troubleshooting": true,
+    "contains_build_repair_validation_sync_dirty_state_noise": true,
+    "normal_bridge_suppresses_shipyard_noise": true,
+    "required_fields": [
+      "shipyard_record_id",
+      "build_lane",
+      "issue_summary",
+      "source_actor",
+      "affected_systems",
+      "developer_action_needed",
+      "check_engine_status",
+      "validation_refs",
+      "test_refs",
+      "git_refs",
+      "dirty_state_refs",
+      "safe_to_ignore_in_normal_mode",
+      "should_show_on_helm",
+      "should_show_in_shipyard",
+      "next_safe_move"
+    ],
+    "structure": "ShipyardModeRecord"
+  },
+  "shipyard_records": [
+    {
+      "affected_systems": [
+        "read-model exporters",
+        "focused tests",
+        "stable map summaries if stale"
+      ],
+      "build_lane": "Check Engine / diagnostics",
+      "check_engine_status": "SHIPYARD_MODE",
+      "developer_action_needed": true,
+      "dirty_state_refs": [
+        "generated/read_models/sync_health.json if dirty"
+      ],
+      "git_refs": [
+        "local dirty state refs only; no push/pull/fetch authority"
+      ],
+      "issue_summary": "Developer/build troubleshooting is active but not normal Bridge content.",
+      "next_safe_move": "Keep build repair work in Shipyard unless it blocks active mission operation.",
+      "safe_to_ignore_in_normal_mode": true,
+      "shipyard_record_id": "chief_check_engine_shipyard_record",
+      "should_show_in_shipyard": true,
+      "should_show_on_helm": false,
+      "source_actor": "Chief",
+      "test_refs": [
+        "tests/test_workflow_block_intent_live_draft_contract.py"
+      ],
+      "validation_refs": [
+        "focused test refs",
+        "py_compile refs",
+        "git diff --check refs"
+      ]
+    },
+    {
+      "affected_systems": [
+        "sync_health",
+        "openclaw_map_receipt",
+        "Mac mirror readback"
+      ],
+      "build_lane": "Read-model sync proof",
+      "check_engine_status": "ENGINEERING_CONTAINED",
+      "developer_action_needed": false,
+      "dirty_state_refs": [
+        "sync health generated file refs when dirty"
+      ],
+      "git_refs": [
+        "local generated read-model state"
+      ],
+      "issue_summary": "Sync proof repair is engineering work unless current app state is blocked.",
+      "next_safe_move": "Expose as below deck proof, not a captain interrupt, when contained.",
+      "safe_to_ignore_in_normal_mode": true,
+      "shipyard_record_id": "sync_health_shipyard_record",
+      "should_show_in_shipyard": true,
+      "should_show_on_helm": false,
+      "source_actor": "Engineering",
+      "test_refs": [
+        "tests/test_operator_map_bundle_contract.py if touched"
+      ],
+      "validation_refs": [
+        "JSON parse checks",
+        "stable-map checks"
+      ]
+    }
+  ],
+  "shipyard_records_by_id": {
+    "chief_check_engine_shipyard_record": {
+      "affected_systems": [
+        "read-model exporters",
+        "focused tests",
+        "stable map summaries if stale"
+      ],
+      "build_lane": "Check Engine / diagnostics",
+      "check_engine_status": "SHIPYARD_MODE",
+      "developer_action_needed": true,
+      "dirty_state_refs": [
+        "generated/read_models/sync_health.json if dirty"
+      ],
+      "git_refs": [
+        "local dirty state refs only; no push/pull/fetch authority"
+      ],
+      "issue_summary": "Developer/build troubleshooting is active but not normal Bridge content.",
+      "next_safe_move": "Keep build repair work in Shipyard unless it blocks active mission operation.",
+      "safe_to_ignore_in_normal_mode": true,
+      "shipyard_record_id": "chief_check_engine_shipyard_record",
+      "should_show_in_shipyard": true,
+      "should_show_on_helm": false,
+      "source_actor": "Chief",
+      "test_refs": [
+        "tests/test_workflow_block_intent_live_draft_contract.py"
+      ],
+      "validation_refs": [
+        "focused test refs",
+        "py_compile refs",
+        "git diff --check refs"
+      ]
+    },
+    "sync_health_shipyard_record": {
+      "affected_systems": [
+        "sync_health",
+        "openclaw_map_receipt",
+        "Mac mirror readback"
+      ],
+      "build_lane": "Read-model sync proof",
+      "check_engine_status": "ENGINEERING_CONTAINED",
+      "developer_action_needed": false,
+      "dirty_state_refs": [
+        "sync health generated file refs when dirty"
+      ],
+      "git_refs": [
+        "local generated read-model state"
+      ],
+      "issue_summary": "Sync proof repair is engineering work unless current app state is blocked.",
+      "next_safe_move": "Expose as below deck proof, not a captain interrupt, when contained.",
+      "safe_to_ignore_in_normal_mode": true,
+      "shipyard_record_id": "sync_health_shipyard_record",
+      "should_show_in_shipyard": true,
+      "should_show_on_helm": false,
+      "source_actor": "Engineering",
+      "test_refs": [
+        "tests/test_operator_map_bundle_contract.py if touched"
+      ],
+      "validation_refs": [
+        "JSON parse checks",
+        "stable-map checks"
+      ]
+    }
+  },
+  "world_mission_surface_schema": {
+    "capital_hilton_belongs_in_finance_world": true,
+    "helm_shows_world_attention_marker_only": true,
+    "required_fields": [
+      "world_surface_id",
+      "world",
+      "active_missions",
+      "current_workflow_sessions",
+      "unlocked_blocks",
+      "captain_needed_blocks",
+      "crew_deployed",
+      "local_draft_refs",
+      "proof_needed_refs",
+      "approval_needed_refs",
+      "downstream_artifact_refs",
+      "below_deck_refs",
+      "helm_summary",
+      "next_safe_move"
+    ],
+    "security_review_belongs_in_security_world_unless_red_alert": true,
+    "structure": "WorldMissionSurface",
+    "worlds_do_domain_work": true
+  },
+  "world_surfaces": [
+    {
+      "active_missions": [
+        "Capital Hilton invoice",
+        "Coupa / PO lookup candidate"
+      ],
+      "approval_needed_refs": [
+        "future_invoice_artifact_approval",
+        "future_send_email_approval"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail",
+        "capital_hilton_approval_gate_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "performance_dates"
+      ],
+      "crew_deployed": [
+        "Cassandra/Clara",
+        "Guardian",
+        "Chief"
+      ],
+      "current_workflow_sessions": [
+        "capital_hilton_invoice_workflow_session"
+      ],
+      "downstream_artifact_refs": [
+        "invoice_packet_preview_future",
+        "email_attachment_preview_future"
+      ],
+      "helm_summary": "Finance needs attention: Capital Hilton has one next invoice block.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_mission_control_performance_dates_draft",
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "next_safe_move": "Solve the invoice block inside Finance World, not on Helm.",
+      "proof_needed_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "unlocked_blocks": [
+        "performance_dates",
+        "po_reference",
+        "rate_source"
+      ],
+      "world": "Finance",
+      "world_surface_id": "finance_world_mission_surface"
+    },
+    {
+      "active_missions": [
+        "Chief terrain reconciliation",
+        "Check Engine diagnostics"
+      ],
+      "approval_needed_refs": [
+        "repair_authority_gate_future"
+      ],
+      "below_deck_refs": [
+        "check_engine_test_below_deck_detail",
+        "terrain_gap_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "repair_risk_decision_if_needed"
+      ],
+      "crew_deployed": [
+        "Chief",
+        "Hermes",
+        "Guardian if needed"
+      ],
+      "current_workflow_sessions": [
+        "chief_terrain_reconciliation_session",
+        "check_engine_diagnostic_session"
+      ],
+      "downstream_artifact_refs": [
+        "repair_plan_preview_future"
+      ],
+      "helm_summary": "Build work is available in Shipyard when Winship is in troubleshooting mode.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.chief_check_engine_build_blocker_draft"
+      ],
+      "next_safe_move": "Keep build noise out of normal Bridge mode unless it blocks a mission.",
+      "proof_needed_refs": [
+        "openclaw_work_terrain_gap_detector",
+        "focused_test_refs"
+      ],
+      "unlocked_blocks": [
+        "terrain_gap_review",
+        "diagnostic_summary"
+      ],
+      "world": "Operations / Build",
+      "world_surface_id": "operations_build_world_mission_surface"
+    },
+    {
+      "active_missions": [
+        "Guardian review",
+        "Security Pass"
+      ],
+      "approval_needed_refs": [
+        "security_delta_approval_future"
+      ],
+      "below_deck_refs": [
+        "security_gate_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "security_review_required_choice"
+      ],
+      "crew_deployed": [
+        "Guardian"
+      ],
+      "current_workflow_sessions": [
+        "security_pass_contract"
+      ],
+      "downstream_artifact_refs": [],
+      "helm_summary": "Security only interrupts when safe continuation needs a captain decision.",
+      "local_draft_refs": [],
+      "next_safe_move": "Route normal security review into Security World; use Red Alert only for blocking decisions.",
+      "proof_needed_refs": [
+        "security_pass_contract"
+      ],
+      "unlocked_blocks": [
+        "authority_delta_review"
+      ],
+      "world": "Security",
+      "world_surface_id": "security_world_mission_surface"
+    },
+    {
+      "active_missions": [
+        "Cassandra/Clara draft review",
+        "Telegram-originated requests"
+      ],
+      "approval_needed_refs": [
+        "send_email_approval_bus_future"
+      ],
+      "below_deck_refs": [
+        "telegram_request_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "send_review_choice"
+      ],
+      "crew_deployed": [
+        "Cassandra/Clara",
+        "Guardian"
+      ],
+      "current_workflow_sessions": [
+        "cassandra_clara_draft_review_session"
+      ],
+      "downstream_artifact_refs": [
+        "draft_preview_packet_future"
+      ],
+      "helm_summary": "A communications draft should appear on Helm only when a review choice exists.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "next_safe_move": "Keep draft work in the relevant World and keep send blocked.",
+      "proof_needed_refs": [
+        "draft_packet_refs_future"
+      ],
+      "unlocked_blocks": [
+        "draft_review"
+      ],
+      "world": "Communications",
+      "world_surface_id": "communications_world_mission_surface"
+    }
+  ],
+  "world_surfaces_by_id": {
+    "communications_world_mission_surface": {
+      "active_missions": [
+        "Cassandra/Clara draft review",
+        "Telegram-originated requests"
+      ],
+      "approval_needed_refs": [
+        "send_email_approval_bus_future"
+      ],
+      "below_deck_refs": [
+        "telegram_request_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "send_review_choice"
+      ],
+      "crew_deployed": [
+        "Cassandra/Clara",
+        "Guardian"
+      ],
+      "current_workflow_sessions": [
+        "cassandra_clara_draft_review_session"
+      ],
+      "downstream_artifact_refs": [
+        "draft_preview_packet_future"
+      ],
+      "helm_summary": "A communications draft should appear on Helm only when a review choice exists.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "next_safe_move": "Keep draft work in the relevant World and keep send blocked.",
+      "proof_needed_refs": [
+        "draft_packet_refs_future"
+      ],
+      "unlocked_blocks": [
+        "draft_review"
+      ],
+      "world": "Communications",
+      "world_surface_id": "communications_world_mission_surface"
+    },
+    "finance_world_mission_surface": {
+      "active_missions": [
+        "Capital Hilton invoice",
+        "Coupa / PO lookup candidate"
+      ],
+      "approval_needed_refs": [
+        "future_invoice_artifact_approval",
+        "future_send_email_approval"
+      ],
+      "below_deck_refs": [
+        "capital_hilton_proof_below_deck_detail",
+        "capital_hilton_approval_gate_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "performance_dates"
+      ],
+      "crew_deployed": [
+        "Cassandra/Clara",
+        "Guardian",
+        "Chief"
+      ],
+      "current_workflow_sessions": [
+        "capital_hilton_invoice_workflow_session"
+      ],
+      "downstream_artifact_refs": [
+        "invoice_packet_preview_future",
+        "email_attachment_preview_future"
+      ],
+      "helm_summary": "Finance needs attention: Capital Hilton has one next invoice block.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.capital_hilton_mission_control_performance_dates_draft",
+        "workflow_block_intent_live_draft_contract.capital_hilton_telegram_invoice_request_draft"
+      ],
+      "next_safe_move": "Solve the invoice block inside Finance World, not on Helm.",
+      "proof_needed_refs": [
+        "capital_hilton_proof_resolution_batch"
+      ],
+      "unlocked_blocks": [
+        "performance_dates",
+        "po_reference",
+        "rate_source"
+      ],
+      "world": "Finance",
+      "world_surface_id": "finance_world_mission_surface"
+    },
+    "operations_build_world_mission_surface": {
+      "active_missions": [
+        "Chief terrain reconciliation",
+        "Check Engine diagnostics"
+      ],
+      "approval_needed_refs": [
+        "repair_authority_gate_future"
+      ],
+      "below_deck_refs": [
+        "check_engine_test_below_deck_detail",
+        "terrain_gap_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "repair_risk_decision_if_needed"
+      ],
+      "crew_deployed": [
+        "Chief",
+        "Hermes",
+        "Guardian if needed"
+      ],
+      "current_workflow_sessions": [
+        "chief_terrain_reconciliation_session",
+        "check_engine_diagnostic_session"
+      ],
+      "downstream_artifact_refs": [
+        "repair_plan_preview_future"
+      ],
+      "helm_summary": "Build work is available in Shipyard when Winship is in troubleshooting mode.",
+      "local_draft_refs": [
+        "workflow_block_intent_live_draft_contract.chief_check_engine_build_blocker_draft"
+      ],
+      "next_safe_move": "Keep build noise out of normal Bridge mode unless it blocks a mission.",
+      "proof_needed_refs": [
+        "openclaw_work_terrain_gap_detector",
+        "focused_test_refs"
+      ],
+      "unlocked_blocks": [
+        "terrain_gap_review",
+        "diagnostic_summary"
+      ],
+      "world": "Operations / Build",
+      "world_surface_id": "operations_build_world_mission_surface"
+    },
+    "security_world_mission_surface": {
+      "active_missions": [
+        "Guardian review",
+        "Security Pass"
+      ],
+      "approval_needed_refs": [
+        "security_delta_approval_future"
+      ],
+      "below_deck_refs": [
+        "security_gate_below_deck_detail"
+      ],
+      "captain_needed_blocks": [
+        "security_review_required_choice"
+      ],
+      "crew_deployed": [
+        "Guardian"
+      ],
+      "current_workflow_sessions": [
+        "security_pass_contract"
+      ],
+      "downstream_artifact_refs": [],
+      "helm_summary": "Security only interrupts when safe continuation needs a captain decision.",
+      "local_draft_refs": [],
+      "next_safe_move": "Route normal security review into Security World; use Red Alert only for blocking decisions.",
+      "proof_needed_refs": [
+        "security_pass_contract"
+      ],
+      "unlocked_blocks": [
+        "authority_delta_review"
+      ],
+      "world": "Security",
+      "world_surface_id": "security_world_mission_surface"
+    }
+  }
+}
