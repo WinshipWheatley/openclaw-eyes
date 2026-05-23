@@ -1,0 +1,2785 @@
+{
+  "agent_compiler_proposals": [
+    {
+      "ambiguity_flags": [
+        "this week and last week require date resolution"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "exact performance dates if not deterministically known"
+      ],
+      "blocks_system_can_fill": [
+        "client",
+        "known_rate_if_available",
+        "known_invoice_route_if_available"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "MEDIUM_UNTIL_DATE_SCOPE_VALIDATED",
+      "next_safe_move": "Compile a preview packet and ask only the missing date/proof questions.",
+      "operator_review_recommended": true,
+      "proposal_id": "cassandra_capital_hilton_invoice_request_compiler_proposal",
+      "proposed_block_intents": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "proposed_block_sequence": [
+        "client",
+        "date_scope",
+        "rate",
+        "invoice_route",
+        "review_packet"
+      ],
+      "skip_review_reason": "Invoice draft and send path are sensitive and gated.",
+      "source_actor": "Cassandra",
+      "source_request": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "source_surface": "TELEGRAM",
+      "target_workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "validation_required": true
+    },
+    {
+      "ambiguity_flags": [
+        "Client X identity may need deterministic match"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "blocks_system_can_fill": [
+        "cadence_from_request",
+        "workflow_goal_from_request"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "LOW_UNTIL_CLIENT_AND_SOURCES_VALIDATED",
+      "next_safe_move": "Ask whether Winship wants to review and fill the proposed blocks together.",
+      "operator_review_recommended": true,
+      "proposal_id": "new_monthly_client_recap_workflow_compiler_proposal",
+      "proposed_block_intents": [
+        "monthly_client_recap_new_workflow_draft"
+      ],
+      "proposed_block_sequence": [
+        "client",
+        "cadence",
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "skip_review_reason": "New workflow chain must be reviewed before capture.",
+      "source_actor": "future workflow agent",
+      "source_request": "Set up a monthly client recap workflow for Client X.",
+      "source_surface": "CASSANDRA_CLARA",
+      "target_workflow_session_ref": "new_monthly_client_recap_workflow_session_candidate",
+      "validation_required": true
+    },
+    {
+      "ambiguity_flags": [],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "repair_risk_decision_if_needed"
+      ],
+      "blocks_system_can_fill": [
+        "diagnostic_sources",
+        "current_blocker_from_read_models"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "HIGH_IF_TEST_AND_READ_MODEL_REFS_ARE_CURRENT",
+      "next_safe_move": "Brief the blocker and keep engineering detail below deck unless summoned.",
+      "operator_review_recommended": true,
+      "proposal_id": "chief_check_engine_blocker_compiler_proposal",
+      "proposed_block_intents": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "proposed_block_sequence": [
+        "diagnostic_sources",
+        "current_blocker",
+        "captain_decision_needed"
+      ],
+      "skip_review_reason": "Repair or runtime action still requires captain review.",
+      "source_actor": "Chief",
+      "source_request": "What is blocking the build?",
+      "source_surface": "MISSION_CONTROL",
+      "target_workflow_session_ref": "check_engine_diagnostic_session",
+      "validation_required": true
+    }
+  ],
+  "agent_compiler_proposals_by_id": {
+    "cassandra_capital_hilton_invoice_request_compiler_proposal": {
+      "ambiguity_flags": [
+        "this week and last week require date resolution"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "exact performance dates if not deterministically known"
+      ],
+      "blocks_system_can_fill": [
+        "client",
+        "known_rate_if_available",
+        "known_invoice_route_if_available"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "MEDIUM_UNTIL_DATE_SCOPE_VALIDATED",
+      "next_safe_move": "Compile a preview packet and ask only the missing date/proof questions.",
+      "operator_review_recommended": true,
+      "proposal_id": "cassandra_capital_hilton_invoice_request_compiler_proposal",
+      "proposed_block_intents": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "proposed_block_sequence": [
+        "client",
+        "date_scope",
+        "rate",
+        "invoice_route",
+        "review_packet"
+      ],
+      "skip_review_reason": "Invoice draft and send path are sensitive and gated.",
+      "source_actor": "Cassandra",
+      "source_request": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "source_surface": "TELEGRAM",
+      "target_workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "validation_required": true
+    },
+    "chief_check_engine_blocker_compiler_proposal": {
+      "ambiguity_flags": [],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "repair_risk_decision_if_needed"
+      ],
+      "blocks_system_can_fill": [
+        "diagnostic_sources",
+        "current_blocker_from_read_models"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "HIGH_IF_TEST_AND_READ_MODEL_REFS_ARE_CURRENT",
+      "next_safe_move": "Brief the blocker and keep engineering detail below deck unless summoned.",
+      "operator_review_recommended": true,
+      "proposal_id": "chief_check_engine_blocker_compiler_proposal",
+      "proposed_block_intents": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "proposed_block_sequence": [
+        "diagnostic_sources",
+        "current_blocker",
+        "captain_decision_needed"
+      ],
+      "skip_review_reason": "Repair or runtime action still requires captain review.",
+      "source_actor": "Chief",
+      "source_request": "What is blocking the build?",
+      "source_surface": "MISSION_CONTROL",
+      "target_workflow_session_ref": "check_engine_diagnostic_session",
+      "validation_required": true
+    },
+    "new_monthly_client_recap_workflow_compiler_proposal": {
+      "ambiguity_flags": [
+        "Client X identity may need deterministic match"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "blocks_operator_must_answer": [
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "blocks_system_can_fill": [
+        "cadence_from_request",
+        "workflow_goal_from_request"
+      ],
+      "can_skip_operator_review": false,
+      "confidence": "LOW_UNTIL_CLIENT_AND_SOURCES_VALIDATED",
+      "next_safe_move": "Ask whether Winship wants to review and fill the proposed blocks together.",
+      "operator_review_recommended": true,
+      "proposal_id": "new_monthly_client_recap_workflow_compiler_proposal",
+      "proposed_block_intents": [
+        "monthly_client_recap_new_workflow_draft"
+      ],
+      "proposed_block_sequence": [
+        "client",
+        "cadence",
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "skip_review_reason": "New workflow chain must be reviewed before capture.",
+      "source_actor": "future workflow agent",
+      "source_request": "Set up a monthly client recap workflow for Client X.",
+      "source_surface": "CASSANDRA_CLARA",
+      "target_workflow_session_ref": "new_monthly_client_recap_workflow_session_candidate",
+      "validation_required": true
+    }
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "archive_action_allowed": false,
+    "browser_automation_allowed": false,
+    "calendar_access_allowed": false,
+    "canonical_state_write_allowed": false,
+    "capture_write_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_draft_allowed": false,
+    "email_send_allowed": false,
+    "execution_allowed": false,
+    "file_move_delete_cleanup_allowed": false,
+    "file_write_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "operator_input_persistence_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "receipt_write_allowed": false,
+    "rewrite_action_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "capture_boundaries": [
+    {
+      "affected_downstream_artifacts": [
+        "invoice packet",
+        "subtotal preview",
+        "email attachment preview"
+      ],
+      "affected_workflow_state": [
+        "performance_dates",
+        "date_confirmation_status"
+      ],
+      "approval_gate_refs": [
+        "invoice_draft_review_gate",
+        "Guardian/email approval gate"
+      ],
+      "capture_boundary_id": "capital_hilton_performance_dates_capture_boundary",
+      "capture_label": "Use these dates",
+      "capture_meaning": "Future writer would capture the validated date edits into workflow state with an operator receipt.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "capital_hilton_mission_control_performance_dates_draft",
+      "next_safe_move": "Keep as preview until the governed capture writer exists.",
+      "required_operator_action": "explicit operator capture action",
+      "required_receipt_type": "OPERATOR_CONFIRMATION_OR_CORRECTION_RECEIPT",
+      "required_state_writer": "future receipt-backed workflow state writer",
+      "required_validation_status": "VALID_PREVIEW"
+    },
+    {
+      "affected_downstream_artifacts": [
+        "invoice draft preview packet"
+      ],
+      "affected_workflow_state": [
+        "invoice_request",
+        "missing_question_answers"
+      ],
+      "approval_gate_refs": [
+        "invoice_artifact_approval_bus",
+        "send_email_approval_bus"
+      ],
+      "capture_boundary_id": "conversation_request_capture_boundary",
+      "capture_label": "Prepare draft packet",
+      "capture_meaning": "Future writer would capture operator-confirmed invoice facts before any draft artifact path.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "capital_hilton_telegram_invoice_request_draft",
+      "next_safe_move": "Ask missing questions; do not draft, send, or submit.",
+      "required_operator_action": "answer missing questions and explicitly request capture",
+      "required_receipt_type": "OPERATOR_ANSWER_RECEIPT",
+      "required_state_writer": "future workflow block receipt writer",
+      "required_validation_status": "NEEDS_OPERATOR_REVIEW"
+    },
+    {
+      "affected_downstream_artifacts": [
+        "workflow preview"
+      ],
+      "affected_workflow_state": [
+        "workflow_candidate_outline"
+      ],
+      "approval_gate_refs": [
+        "operator_workflow_activation_gate"
+      ],
+      "capture_boundary_id": "new_workflow_outline_capture_boundary",
+      "capture_label": "Save workflow outline",
+      "capture_meaning": "Future writer would store a reviewed workflow outline as a governed workflow candidate.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "monthly_client_recap_new_workflow_draft",
+      "next_safe_move": "Review the proposed block chain together before any durable state exists.",
+      "required_operator_action": "review and fill required blocks",
+      "required_receipt_type": "WORKFLOW_PROPOSAL_RECEIPT",
+      "required_state_writer": "future workflow proposal writer",
+      "required_validation_status": "NEEDS_CLARIFICATION"
+    },
+    {
+      "affected_downstream_artifacts": [
+        "repair plan preview"
+      ],
+      "affected_workflow_state": [
+        "diagnostic_summary"
+      ],
+      "approval_gate_refs": [
+        "repair_authority_gate"
+      ],
+      "capture_boundary_id": "diagnostic_summary_capture_boundary",
+      "capture_label": "Keep this diagnostic summary",
+      "capture_meaning": "Future writer would capture a proof-backed diagnostic summary, not execute repair.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "chief_check_engine_build_blocker_draft",
+      "next_safe_move": "Capture summary only in a future writer lane; repair remains blocked.",
+      "required_operator_action": "review proof refs and choose whether to capture summary",
+      "required_receipt_type": "DIAGNOSTIC_SUMMARY_RECEIPT",
+      "required_state_writer": "future diagnostic receipt writer",
+      "required_validation_status": "NEEDS_PROOF"
+    }
+  ],
+  "capture_boundaries_by_id": {
+    "capital_hilton_performance_dates_capture_boundary": {
+      "affected_downstream_artifacts": [
+        "invoice packet",
+        "subtotal preview",
+        "email attachment preview"
+      ],
+      "affected_workflow_state": [
+        "performance_dates",
+        "date_confirmation_status"
+      ],
+      "approval_gate_refs": [
+        "invoice_draft_review_gate",
+        "Guardian/email approval gate"
+      ],
+      "capture_boundary_id": "capital_hilton_performance_dates_capture_boundary",
+      "capture_label": "Use these dates",
+      "capture_meaning": "Future writer would capture the validated date edits into workflow state with an operator receipt.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "capital_hilton_mission_control_performance_dates_draft",
+      "next_safe_move": "Keep as preview until the governed capture writer exists.",
+      "required_operator_action": "explicit operator capture action",
+      "required_receipt_type": "OPERATOR_CONFIRMATION_OR_CORRECTION_RECEIPT",
+      "required_state_writer": "future receipt-backed workflow state writer",
+      "required_validation_status": "VALID_PREVIEW"
+    },
+    "conversation_request_capture_boundary": {
+      "affected_downstream_artifacts": [
+        "invoice draft preview packet"
+      ],
+      "affected_workflow_state": [
+        "invoice_request",
+        "missing_question_answers"
+      ],
+      "approval_gate_refs": [
+        "invoice_artifact_approval_bus",
+        "send_email_approval_bus"
+      ],
+      "capture_boundary_id": "conversation_request_capture_boundary",
+      "capture_label": "Prepare draft packet",
+      "capture_meaning": "Future writer would capture operator-confirmed invoice facts before any draft artifact path.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "capital_hilton_telegram_invoice_request_draft",
+      "next_safe_move": "Ask missing questions; do not draft, send, or submit.",
+      "required_operator_action": "answer missing questions and explicitly request capture",
+      "required_receipt_type": "OPERATOR_ANSWER_RECEIPT",
+      "required_state_writer": "future workflow block receipt writer",
+      "required_validation_status": "NEEDS_OPERATOR_REVIEW"
+    },
+    "diagnostic_summary_capture_boundary": {
+      "affected_downstream_artifacts": [
+        "repair plan preview"
+      ],
+      "affected_workflow_state": [
+        "diagnostic_summary"
+      ],
+      "approval_gate_refs": [
+        "repair_authority_gate"
+      ],
+      "capture_boundary_id": "diagnostic_summary_capture_boundary",
+      "capture_label": "Keep this diagnostic summary",
+      "capture_meaning": "Future writer would capture a proof-backed diagnostic summary, not execute repair.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "chief_check_engine_build_blocker_draft",
+      "next_safe_move": "Capture summary only in a future writer lane; repair remains blocked.",
+      "required_operator_action": "review proof refs and choose whether to capture summary",
+      "required_receipt_type": "DIAGNOSTIC_SUMMARY_RECEIPT",
+      "required_state_writer": "future diagnostic receipt writer",
+      "required_validation_status": "NEEDS_PROOF"
+    },
+    "new_workflow_outline_capture_boundary": {
+      "affected_downstream_artifacts": [
+        "workflow preview"
+      ],
+      "affected_workflow_state": [
+        "workflow_candidate_outline"
+      ],
+      "approval_gate_refs": [
+        "operator_workflow_activation_gate"
+      ],
+      "capture_boundary_id": "new_workflow_outline_capture_boundary",
+      "capture_label": "Save workflow outline",
+      "capture_meaning": "Future writer would store a reviewed workflow outline as a governed workflow candidate.",
+      "current_capture_authority": false,
+      "current_execution_authority": false,
+      "current_write_authority": false,
+      "draft_intent_ref": "monthly_client_recap_new_workflow_draft",
+      "next_safe_move": "Review the proposed block chain together before any durable state exists.",
+      "required_operator_action": "review and fill required blocks",
+      "required_receipt_type": "WORKFLOW_PROPOSAL_RECEIPT",
+      "required_state_writer": "future workflow proposal writer",
+      "required_validation_status": "NEEDS_CLARIFICATION"
+    }
+  },
+  "compatible_agents_required": [
+    "Cassandra/Clara",
+    "Chief",
+    "Hermes",
+    "Niles",
+    "Guardian",
+    "future workflow agents"
+  ],
+  "compatible_surfaces_required": [
+    "Mission Control",
+    "Telegram",
+    "Cassandra/Clara",
+    "Chief",
+    "Guardian",
+    "Hermes",
+    "Niles",
+    "future workflow agents"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_LIVE_DRAFT_CONTRACT",
+  "conversational_flows": [
+    {
+      "approval_boundaries": [
+        "conversation_request_capture_boundary",
+        "invoice_draft_review_gate",
+        "send_email_approval_bus"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Compile request into draft block intents.",
+        "Fill known client, rate, and route blocks from deterministic state if available.",
+        "Ask only missing questions.",
+        "If all answers are known, respond: Cool, I can prepare the draft.",
+        "Keep invoice draft review, Guardian review, and email send approval gated."
+      ],
+      "draft_intents_created": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "example_request": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "final_response_shape": "Plain response plus preview packet reference; no send or durable capture now.",
+      "flow_id": "telegram_cassandra_capital_hilton_invoice_request_flow",
+      "inferred_blocks": [
+        "client",
+        "date_scope",
+        "rate",
+        "invoice_route",
+        "review_packet"
+      ],
+      "next_safe_move": "Use conversation to fill the same draft shape Mission Control would render.",
+      "operator_needed_blocks": [
+        "exact performance dates if date scope is not deterministic",
+        "proof pointer if required"
+      ],
+      "originating_agent": "Cassandra",
+      "originating_surface": "Telegram",
+      "review_mode": "REVIEW_REQUIRED",
+      "system_filled_blocks": [
+        "client",
+        "rate if deterministic ref exists",
+        "invoice route if deterministic ref exists"
+      ],
+      "target_workflow": "Capital Hilton invoice workflow"
+    },
+    {
+      "approval_boundaries": [
+        "new_workflow_outline_capture_boundary"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Propose a block chain.",
+        "Say which blocks the system can fill.",
+        "Ask if Winship wants to review and fill it together.",
+        "Keep the workflow candidate preview-only."
+      ],
+      "draft_intents_created": [
+        "monthly_client_recap_new_workflow_draft"
+      ],
+      "example_request": "Set up a monthly client recap workflow for Client X.",
+      "final_response_shape": "Short proposal with review invitation; no scheduler, send path, or durable workflow.",
+      "flow_id": "new_monthly_client_recap_workflow_request_flow",
+      "inferred_blocks": [
+        "client",
+        "cadence",
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "next_safe_move": "Treat the new flow as a draft proposal until capture and approval exist.",
+      "operator_needed_blocks": [
+        "client canonical ref",
+        "source materials",
+        "recap format",
+        "review route"
+      ],
+      "originating_agent": "future workflow agent",
+      "originating_surface": "Cassandra/Clara",
+      "review_mode": "REVIEW_REQUIRED",
+      "system_filled_blocks": [
+        "cadence",
+        "workflow goal"
+      ],
+      "target_workflow": "New monthly client recap workflow candidate"
+    },
+    {
+      "approval_boundaries": [
+        "diagnostic_summary_capture_boundary",
+        "repair_authority_gate"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Read current diagnostic read-model/test refs.",
+        "Brief the blocker in plain language.",
+        "Keep engineering detail below deck unless blocking or summoned.",
+        "Ask only for a captain decision if repair risk is present."
+      ],
+      "draft_intents_created": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "example_request": "What is blocking the build?",
+      "final_response_shape": "Captain-facing blocker summary with proof/detail one level down.",
+      "flow_id": "chief_check_engine_build_blocker_flow",
+      "inferred_blocks": [
+        "diagnostic_sources",
+        "current_blocker",
+        "captain_decision_needed"
+      ],
+      "next_safe_move": "Show what is blocking the build without running repair.",
+      "operator_needed_blocks": [
+        "captain repair/risk decision only if needed"
+      ],
+      "originating_agent": "Chief",
+      "originating_surface": "Mission Control",
+      "review_mode": "REVIEW_RECOMMENDED",
+      "system_filled_blocks": [
+        "diagnostic sources",
+        "current blocker summary if refs are current"
+      ],
+      "target_workflow": "Check Engine diagnostic session"
+    },
+    {
+      "approval_boundaries": [
+        "future_low_risk_capture_boundary"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Only future trusted workflows may model skip-review.",
+        "Deterministic validator still checks the update.",
+        "Sensitive actions still require receipts, gates, and approval."
+      ],
+      "draft_intents_created": [],
+      "example_request": "Update the label on a low-risk internal note.",
+      "final_response_shape": "Preview-only statement of what would be captured later.",
+      "flow_id": "trusted_low_risk_future_skip_review_shape",
+      "inferred_blocks": [
+        "note_ref",
+        "label"
+      ],
+      "next_safe_move": "Keep skip-review as future-gated and non-executing in this contract.",
+      "operator_needed_blocks": [
+        "label if ambiguous"
+      ],
+      "originating_agent": "future workflow agent",
+      "originating_surface": "Mission Control or Telegram",
+      "review_mode": "SKIP_REVIEW_ALLOWED",
+      "system_filled_blocks": [
+        "note_ref if deterministic"
+      ],
+      "target_workflow": "Trusted low-risk future workflow"
+    }
+  ],
+  "conversational_flows_by_id": {
+    "chief_check_engine_build_blocker_flow": {
+      "approval_boundaries": [
+        "diagnostic_summary_capture_boundary",
+        "repair_authority_gate"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Read current diagnostic read-model/test refs.",
+        "Brief the blocker in plain language.",
+        "Keep engineering detail below deck unless blocking or summoned.",
+        "Ask only for a captain decision if repair risk is present."
+      ],
+      "draft_intents_created": [
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "example_request": "What is blocking the build?",
+      "final_response_shape": "Captain-facing blocker summary with proof/detail one level down.",
+      "flow_id": "chief_check_engine_build_blocker_flow",
+      "inferred_blocks": [
+        "diagnostic_sources",
+        "current_blocker",
+        "captain_decision_needed"
+      ],
+      "next_safe_move": "Show what is blocking the build without running repair.",
+      "operator_needed_blocks": [
+        "captain repair/risk decision only if needed"
+      ],
+      "originating_agent": "Chief",
+      "originating_surface": "Mission Control",
+      "review_mode": "REVIEW_RECOMMENDED",
+      "system_filled_blocks": [
+        "diagnostic sources",
+        "current blocker summary if refs are current"
+      ],
+      "target_workflow": "Check Engine diagnostic session"
+    },
+    "new_monthly_client_recap_workflow_request_flow": {
+      "approval_boundaries": [
+        "new_workflow_outline_capture_boundary"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Propose a block chain.",
+        "Say which blocks the system can fill.",
+        "Ask if Winship wants to review and fill it together.",
+        "Keep the workflow candidate preview-only."
+      ],
+      "draft_intents_created": [
+        "monthly_client_recap_new_workflow_draft"
+      ],
+      "example_request": "Set up a monthly client recap workflow for Client X.",
+      "final_response_shape": "Short proposal with review invitation; no scheduler, send path, or durable workflow.",
+      "flow_id": "new_monthly_client_recap_workflow_request_flow",
+      "inferred_blocks": [
+        "client",
+        "cadence",
+        "source_materials",
+        "recap_format",
+        "review_route"
+      ],
+      "next_safe_move": "Treat the new flow as a draft proposal until capture and approval exist.",
+      "operator_needed_blocks": [
+        "client canonical ref",
+        "source materials",
+        "recap format",
+        "review route"
+      ],
+      "originating_agent": "future workflow agent",
+      "originating_surface": "Cassandra/Clara",
+      "review_mode": "REVIEW_REQUIRED",
+      "system_filled_blocks": [
+        "cadence",
+        "workflow goal"
+      ],
+      "target_workflow": "New monthly client recap workflow candidate"
+    },
+    "telegram_cassandra_capital_hilton_invoice_request_flow": {
+      "approval_boundaries": [
+        "conversation_request_capture_boundary",
+        "invoice_draft_review_gate",
+        "send_email_approval_bus"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Compile request into draft block intents.",
+        "Fill known client, rate, and route blocks from deterministic state if available.",
+        "Ask only missing questions.",
+        "If all answers are known, respond: Cool, I can prepare the draft.",
+        "Keep invoice draft review, Guardian review, and email send approval gated."
+      ],
+      "draft_intents_created": [
+        "capital_hilton_telegram_invoice_request_draft"
+      ],
+      "example_request": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "final_response_shape": "Plain response plus preview packet reference; no send or durable capture now.",
+      "flow_id": "telegram_cassandra_capital_hilton_invoice_request_flow",
+      "inferred_blocks": [
+        "client",
+        "date_scope",
+        "rate",
+        "invoice_route",
+        "review_packet"
+      ],
+      "next_safe_move": "Use conversation to fill the same draft shape Mission Control would render.",
+      "operator_needed_blocks": [
+        "exact performance dates if date scope is not deterministic",
+        "proof pointer if required"
+      ],
+      "originating_agent": "Cassandra",
+      "originating_surface": "Telegram",
+      "review_mode": "REVIEW_REQUIRED",
+      "system_filled_blocks": [
+        "client",
+        "rate if deterministic ref exists",
+        "invoice route if deterministic ref exists"
+      ],
+      "target_workflow": "Capital Hilton invoice workflow"
+    },
+    "trusted_low_risk_future_skip_review_shape": {
+      "approval_boundaries": [
+        "future_low_risk_capture_boundary"
+      ],
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "conversation_steps": [
+        "Only future trusted workflows may model skip-review.",
+        "Deterministic validator still checks the update.",
+        "Sensitive actions still require receipts, gates, and approval."
+      ],
+      "draft_intents_created": [],
+      "example_request": "Update the label on a low-risk internal note.",
+      "final_response_shape": "Preview-only statement of what would be captured later.",
+      "flow_id": "trusted_low_risk_future_skip_review_shape",
+      "inferred_blocks": [
+        "note_ref",
+        "label"
+      ],
+      "next_safe_move": "Keep skip-review as future-gated and non-executing in this contract.",
+      "operator_needed_blocks": [
+        "label if ambiguous"
+      ],
+      "originating_agent": "future workflow agent",
+      "originating_surface": "Mission Control or Telegram",
+      "review_mode": "SKIP_REVIEW_ALLOWED",
+      "system_filled_blocks": [
+        "note_ref if deterministic"
+      ],
+      "target_workflow": "Trusted low-risk future workflow"
+    }
+  },
+  "conversational_workflow_block_flow_schema": {
+    "conversation_maps_to_same_draft_shape": true,
+    "required_fields": [
+      "flow_id",
+      "example_request",
+      "originating_agent",
+      "originating_surface",
+      "target_workflow",
+      "inferred_blocks",
+      "system_filled_blocks",
+      "operator_needed_blocks",
+      "review_mode",
+      "conversation_steps",
+      "draft_intents_created",
+      "approval_boundaries",
+      "final_response_shape",
+      "blocked_actions",
+      "next_safe_move"
+    ],
+    "review_modes": [
+      "REVIEW_REQUIRED",
+      "REVIEW_RECOMMENDED",
+      "REVIEW_OPTIONAL",
+      "SKIP_REVIEW_ALLOWED",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "structure": "ConversationalWorkflowBlockFlow"
+  },
+  "doctrine": {
+    "agents_translate": true,
+    "determinism_validates": true,
+    "gates_execute": true,
+    "receipts_commit": true,
+    "summary": "Live draft workspace -> explicit commit boundary -> receipt-backed state.",
+    "this_contract_executes": false
+  },
+  "draft_intents": [
+    {
+      "approval_guardian_boundary": "invoice draft review and Guardian/email approval remain required before send",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "performance_dates",
+      "block_label": "Performance dates",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "capital_hilton_invoice_workflow_session.current_state.performance_dates",
+        "operator_solve_path_decision_node_contract.confirm_performance_dates"
+      ],
+      "downstream_effects": [
+        "invoice packet dates preview updates",
+        "invoice subtotal preview becomes stale until recalculated",
+        "email attachment preview becomes stale",
+        "approval packet remains blocked until capture and receipt writer exist"
+      ],
+      "draft_intent_id": "capital_hilton_mission_control_performance_dates_draft",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Preview the date change and decide whether to use this draft later.",
+      "operation": "add_dates",
+      "operator_input_raw": "May 22 and May 29",
+      "operator_input_structured": {
+        "date_values": [
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "input_interpretation": "add two performance dates to the active draft"
+      },
+      "origin_actor": "Winship",
+      "origin_channel": "mission_control_finance_world",
+      "origin_surface": "MISSION_CONTROL",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "source": "operator_live_draft_input",
+          "value": "2026-05-22"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "source": "operator_live_draft_input",
+          "value": "2026-05-29"
+        }
+      ],
+      "receipt_target": "capital_hilton_performance_dates_operator_correction_or_confirmation_receipt_target",
+      "resulting_fields": {
+        "date_count": 4,
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "state_status": "draft_preview_only"
+      },
+      "validation_requirements": [
+        "normalize natural-language dates to ISO dates",
+        "check duplicate dates",
+        "check active workflow session still matches Capital Hilton",
+        "require operator review before future capture"
+      ],
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workflow_type": "INVOICE_WORKFLOW",
+      "world": "Finance"
+    },
+    {
+      "approval_guardian_boundary": "send and invoice approval stay blocked behind future approval bus",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "invoice_request",
+      "block_label": "Invoice request",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "workflow_session_channel_projection_approval_bus_contract.capital_hilton_invoice_workflow_session",
+        "operator_work_mode_schema_bandwidth_policy.capital_hilton_invoice_work_mode"
+      ],
+      "downstream_effects": [
+        "invoice draft preview can be prepared after deterministic validation",
+        "review packet remains gated",
+        "Guardian/email approval remains required before send"
+      ],
+      "draft_intent_id": "capital_hilton_telegram_invoice_request_draft",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Ask only for missing invoice facts, then preview the draft path.",
+      "operation": "compile_request",
+      "operator_input_raw": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "operator_input_structured": {
+        "client": "Capital Hilton",
+        "date_scope": "this_week_and_last_week",
+        "requested_action": "prepare_invoice_draft"
+      },
+      "origin_actor": "Winship via Cassandra",
+      "origin_channel": "telegram_cassandra_conversation",
+      "origin_surface": "TELEGRAM",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "client",
+          "operation": "set_if_known",
+          "value": "Capital Hilton"
+        },
+        {
+          "field": "invoice_route",
+          "operation": "set_if_known",
+          "value": "known_route_if_available"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "infer_scope_for_review",
+          "value": "this_week_and_last_week"
+        }
+      ],
+      "receipt_target": "capital_hilton_invoice_request_memory_candidate_or_confirmation_target",
+      "resulting_fields": {
+        "client": "Capital Hilton",
+        "invoice_route": "known_route_if_available",
+        "missing_questions": [
+          "confirm exact performance dates"
+        ],
+        "rate": "known_rate_if_available"
+      },
+      "validation_requirements": [
+        "confirm known client and rate refs",
+        "resolve natural-language date scope",
+        "require proof or operator confirmation before capture"
+      ],
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workflow_type": "INVOICE_WORKFLOW",
+      "world": "Finance"
+    },
+    {
+      "approval_guardian_boundary": "new workflow activation remains blocked until governed capture and approval",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "workflow_outline",
+      "block_label": "Workflow outline",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "current_client_delivery_read_models_if_available"
+      ],
+      "downstream_effects": [
+        "new workflow preview appears as proposal only",
+        "no scheduler, message, or file action is created"
+      ],
+      "draft_intent_id": "monthly_client_recap_new_workflow_draft",
+      "lane": "Client X",
+      "next_safe_move": "Ask Winship whether to review and fill the proposed workflow blocks together.",
+      "operation": "propose_workflow",
+      "operator_input_raw": "Set up a monthly client recap workflow for Client X.",
+      "operator_input_structured": {
+        "cadence": "monthly",
+        "client": "Client X",
+        "workflow_goal": "monthly client recap"
+      },
+      "origin_actor": "future workflow agent",
+      "origin_channel": "conversation",
+      "origin_surface": "CASSANDRA_CLARA",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "workflow_blocks",
+          "operation": "propose",
+          "value": "client, cadence, sources, recap format, approval route"
+        }
+      ],
+      "receipt_target": "new_workflow_proposal_receipt_target_future",
+      "resulting_fields": {
+        "needs_operator_review": true,
+        "proposed_block_chain": [
+          "client",
+          "cadence",
+          "source_materials",
+          "recap_format",
+          "review_route"
+        ]
+      },
+      "validation_requirements": [
+        "operator reviews proposed block chain",
+        "deterministic validator checks required fields before future capture"
+      ],
+      "workflow_session_ref": "new_monthly_client_recap_workflow_session_candidate",
+      "workflow_type": "NEW_WORKFLOW_CANDIDATE",
+      "world": "Client Delivery"
+    },
+    {
+      "approval_guardian_boundary": "repair execution remains separately gated",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "current_blocker",
+      "block_label": "Current blocker",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "check_engine_diagnostic_solve_path",
+        "generated read-model summaries",
+        "focused test status refs"
+      ],
+      "downstream_effects": [
+        "engineering detail stays below deck unless blocking or summoned",
+        "repair execution remains blocked"
+      ],
+      "draft_intent_id": "chief_check_engine_build_blocker_draft",
+      "lane": "Check Engine",
+      "next_safe_move": "Show the blocker summary and ask only for a captain decision if needed.",
+      "operation": "fill_from_evidence",
+      "operator_input_raw": "What is blocking the build?",
+      "operator_input_structured": {
+        "detail_level": "captain_decision_first",
+        "request_type": "diagnostic_summary"
+      },
+      "origin_actor": "Chief",
+      "origin_channel": "mission_control_chief_or_helm",
+      "origin_surface": "CHIEF",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "diagnostic_blocker_summary",
+          "operation": "fill_from_current_read_models",
+          "value": "current evidence summary"
+        }
+      ],
+      "receipt_target": "check_engine_diagnostic_summary_receipt_target_future",
+      "resulting_fields": {
+        "blocker_summary": "filled from current diagnostics when available",
+        "captain_decision_needed": "only if repair or risk choice is required"
+      },
+      "validation_requirements": [
+        "diagnostic refs must be current",
+        "repair recommendation must remain preview-only"
+      ],
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "workflow_type": "DEVELOPER_SYSTEM_REPAIR",
+      "world": "Build"
+    }
+  ],
+  "draft_intents_by_id": {
+    "capital_hilton_mission_control_performance_dates_draft": {
+      "approval_guardian_boundary": "invoice draft review and Guardian/email approval remain required before send",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "performance_dates",
+      "block_label": "Performance dates",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "capital_hilton_invoice_workflow_session.current_state.performance_dates",
+        "operator_solve_path_decision_node_contract.confirm_performance_dates"
+      ],
+      "downstream_effects": [
+        "invoice packet dates preview updates",
+        "invoice subtotal preview becomes stale until recalculated",
+        "email attachment preview becomes stale",
+        "approval packet remains blocked until capture and receipt writer exist"
+      ],
+      "draft_intent_id": "capital_hilton_mission_control_performance_dates_draft",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Preview the date change and decide whether to use this draft later.",
+      "operation": "add_dates",
+      "operator_input_raw": "May 22 and May 29",
+      "operator_input_structured": {
+        "date_values": [
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "input_interpretation": "add two performance dates to the active draft"
+      },
+      "origin_actor": "Winship",
+      "origin_channel": "mission_control_finance_world",
+      "origin_surface": "MISSION_CONTROL",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "source": "operator_live_draft_input",
+          "value": "2026-05-22"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "source": "operator_live_draft_input",
+          "value": "2026-05-29"
+        }
+      ],
+      "receipt_target": "capital_hilton_performance_dates_operator_correction_or_confirmation_receipt_target",
+      "resulting_fields": {
+        "date_count": 4,
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "state_status": "draft_preview_only"
+      },
+      "validation_requirements": [
+        "normalize natural-language dates to ISO dates",
+        "check duplicate dates",
+        "check active workflow session still matches Capital Hilton",
+        "require operator review before future capture"
+      ],
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workflow_type": "INVOICE_WORKFLOW",
+      "world": "Finance"
+    },
+    "capital_hilton_telegram_invoice_request_draft": {
+      "approval_guardian_boundary": "send and invoice approval stay blocked behind future approval bus",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "invoice_request",
+      "block_label": "Invoice request",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "workflow_session_channel_projection_approval_bus_contract.capital_hilton_invoice_workflow_session",
+        "operator_work_mode_schema_bandwidth_policy.capital_hilton_invoice_work_mode"
+      ],
+      "downstream_effects": [
+        "invoice draft preview can be prepared after deterministic validation",
+        "review packet remains gated",
+        "Guardian/email approval remains required before send"
+      ],
+      "draft_intent_id": "capital_hilton_telegram_invoice_request_draft",
+      "lane": "Capital Hilton",
+      "next_safe_move": "Ask only for missing invoice facts, then preview the draft path.",
+      "operation": "compile_request",
+      "operator_input_raw": "Send Capital Hilton an invoice for this week's and last week's job.",
+      "operator_input_structured": {
+        "client": "Capital Hilton",
+        "date_scope": "this_week_and_last_week",
+        "requested_action": "prepare_invoice_draft"
+      },
+      "origin_actor": "Winship via Cassandra",
+      "origin_channel": "telegram_cassandra_conversation",
+      "origin_surface": "TELEGRAM",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "client",
+          "operation": "set_if_known",
+          "value": "Capital Hilton"
+        },
+        {
+          "field": "invoice_route",
+          "operation": "set_if_known",
+          "value": "known_route_if_available"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "infer_scope_for_review",
+          "value": "this_week_and_last_week"
+        }
+      ],
+      "receipt_target": "capital_hilton_invoice_request_memory_candidate_or_confirmation_target",
+      "resulting_fields": {
+        "client": "Capital Hilton",
+        "invoice_route": "known_route_if_available",
+        "missing_questions": [
+          "confirm exact performance dates"
+        ],
+        "rate": "known_rate_if_available"
+      },
+      "validation_requirements": [
+        "confirm known client and rate refs",
+        "resolve natural-language date scope",
+        "require proof or operator confirmation before capture"
+      ],
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workflow_type": "INVOICE_WORKFLOW",
+      "world": "Finance"
+    },
+    "chief_check_engine_build_blocker_draft": {
+      "approval_guardian_boundary": "repair execution remains separately gated",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "current_blocker",
+      "block_label": "Current blocker",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "check_engine_diagnostic_solve_path",
+        "generated read-model summaries",
+        "focused test status refs"
+      ],
+      "downstream_effects": [
+        "engineering detail stays below deck unless blocking or summoned",
+        "repair execution remains blocked"
+      ],
+      "draft_intent_id": "chief_check_engine_build_blocker_draft",
+      "lane": "Check Engine",
+      "next_safe_move": "Show the blocker summary and ask only for a captain decision if needed.",
+      "operation": "fill_from_evidence",
+      "operator_input_raw": "What is blocking the build?",
+      "operator_input_structured": {
+        "detail_level": "captain_decision_first",
+        "request_type": "diagnostic_summary"
+      },
+      "origin_actor": "Chief",
+      "origin_channel": "mission_control_chief_or_helm",
+      "origin_surface": "CHIEF",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "diagnostic_blocker_summary",
+          "operation": "fill_from_current_read_models",
+          "value": "current evidence summary"
+        }
+      ],
+      "receipt_target": "check_engine_diagnostic_summary_receipt_target_future",
+      "resulting_fields": {
+        "blocker_summary": "filled from current diagnostics when available",
+        "captain_decision_needed": "only if repair or risk choice is required"
+      },
+      "validation_requirements": [
+        "diagnostic refs must be current",
+        "repair recommendation must remain preview-only"
+      ],
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "workflow_type": "DEVELOPER_SYSTEM_REPAIR",
+      "world": "Build"
+    },
+    "monthly_client_recap_new_workflow_draft": {
+      "approval_guardian_boundary": "new workflow activation remains blocked until governed capture and approval",
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "workflow_outline",
+      "block_label": "Workflow outline",
+      "blocked_actions": [
+        "canonical workflow state write",
+        "operator answer persistence",
+        "receipt write",
+        "capture write",
+        "workflow execution",
+        "invoice generation",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Calendar/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "ledger write",
+        "file write or cleanup"
+      ],
+      "capture_ready": false,
+      "compatible_agents": [
+        "Cassandra/Clara",
+        "Chief",
+        "Hermes",
+        "Niles",
+        "Guardian",
+        "future workflow agents"
+      ],
+      "compatible_surfaces": [
+        "Mission Control",
+        "Telegram",
+        "Cassandra/Clara",
+        "Chief",
+        "Guardian",
+        "Hermes",
+        "Niles",
+        "future workflow agents"
+      ],
+      "current_state_refs": [
+        "current_client_delivery_read_models_if_available"
+      ],
+      "downstream_effects": [
+        "new workflow preview appears as proposal only",
+        "no scheduler, message, or file action is created"
+      ],
+      "draft_intent_id": "monthly_client_recap_new_workflow_draft",
+      "lane": "Client X",
+      "next_safe_move": "Ask Winship whether to review and fill the proposed workflow blocks together.",
+      "operation": "propose_workflow",
+      "operator_input_raw": "Set up a monthly client recap workflow for Client X.",
+      "operator_input_structured": {
+        "cadence": "monthly",
+        "client": "Client X",
+        "workflow_goal": "monthly client recap"
+      },
+      "origin_actor": "future workflow agent",
+      "origin_channel": "conversation",
+      "origin_surface": "CASSANDRA_CLARA",
+      "preview_only": true,
+      "proposed_updates": [
+        {
+          "field": "workflow_blocks",
+          "operation": "propose",
+          "value": "client, cadence, sources, recap format, approval route"
+        }
+      ],
+      "receipt_target": "new_workflow_proposal_receipt_target_future",
+      "resulting_fields": {
+        "needs_operator_review": true,
+        "proposed_block_chain": [
+          "client",
+          "cadence",
+          "source_materials",
+          "recap_format",
+          "review_route"
+        ]
+      },
+      "validation_requirements": [
+        "operator reviews proposed block chain",
+        "deterministic validator checks required fields before future capture"
+      ],
+      "workflow_session_ref": "new_monthly_client_recap_workflow_session_candidate",
+      "workflow_type": "NEW_WORKFLOW_CANDIDATE",
+      "world": "Client Delivery"
+    }
+  },
+  "generated_at": "2026-05-23T23:34:30+00:00",
+  "hard_rule": {
+    "does_not_call_agents_or_models": true,
+    "does_not_create_telegram_integration": true,
+    "does_not_execute_workflow": true,
+    "does_not_generate_invoices": true,
+    "does_not_implement_live_ui": true,
+    "does_not_persist_operator_answers": true,
+    "does_not_send_email": true,
+    "does_not_write_receipts": true,
+    "may_grant_authority": false,
+    "read_model_only": true
+  },
+  "live_workflow_draft_workspace_schema": {
+    "commit_capture_explicit": true,
+    "current_draft_captured_state_distinct": true,
+    "editing_updates_downstream_preview": true,
+    "exploration_is_reversible": true,
+    "required_fields": [
+      "workspace_id",
+      "workflow_session_ref",
+      "active_blocks",
+      "locked_blocks",
+      "current_block_id",
+      "inspected_block_id",
+      "current_openclaw_state",
+      "active_local_draft_state",
+      "future_captured_state_preview",
+      "block_draft_intents",
+      "downstream_preview",
+      "reversible_exploration_state",
+      "capture_candidates",
+      "commit_boundary",
+      "stale_preview_policy",
+      "reset_policy",
+      "authority_state",
+      "next_safe_move"
+    ],
+    "stale_previews_invalidate_on_upstream_change": true,
+    "stepping_through_blocks_commits_state": false,
+    "structure": "LiveWorkflowDraftWorkspace"
+  },
+  "live_workspaces": [
+    {
+      "active_blocks": [
+        "performance_dates",
+        "rate",
+        "po_reference",
+        "invoice_route",
+        "review_packet"
+      ],
+      "active_local_draft_state": {
+        "changed_by": "capital_hilton_mission_control_performance_dates_draft",
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "state_kind": "active_draft_not_canonical"
+      },
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_draft_intents": [
+        "capital_hilton_mission_control_performance_dates_draft"
+      ],
+      "capture_candidates": [
+        "capital_hilton_performance_dates_capture_boundary"
+      ],
+      "commit_boundary": "Use this draft requires explicit capture through a future receipt/state writer lane.",
+      "current_block_id": "performance_dates",
+      "current_openclaw_state": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "source": "receipt_backed_or_current_read_model_refs",
+        "state_kind": "canonical_current"
+      },
+      "downstream_preview": {
+        "approval_packet": "blocked_until_capture_and_review",
+        "email_attachment": "stale_until_invoice_preview_regenerated",
+        "invoice_packet_dates": "updated in preview",
+        "subtotal": "stale_until_recalculated"
+      },
+      "future_captured_state_preview": {
+        "requires_receipt_writer": true,
+        "state_kind": "future_captured_preview_not_written",
+        "would_capture_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ]
+      },
+      "inspected_block_id": "performance_dates",
+      "locked_blocks": [
+        "client_identity",
+        "send_authority"
+      ],
+      "next_safe_move": "Let the operator inspect the preview, reset it, or wait for a future capture writer.",
+      "reset_policy": "Reset drops local draft changes and returns to current OpenClaw state without receipts.",
+      "reversible_exploration_state": {
+        "branches_can_be_parked": true,
+        "can_reset_to_current_openclaw_state": true,
+        "draft_history_commits_to_canonical_state": false
+      },
+      "stale_preview_policy": "Any upstream block edit invalidates dependent subtotal, artifact, and approval previews.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workspace_id": "capital_hilton_invoice_live_draft_workspace"
+    },
+    {
+      "active_blocks": [
+        "request",
+        "known_fields",
+        "missing_questions",
+        "review_route"
+      ],
+      "active_local_draft_state": {
+        "origin_can_be": [
+          "Mission Control",
+          "Telegram",
+          "agent conversation"
+        ],
+        "state_kind": "active_draft_not_canonical"
+      },
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_draft_intents": [
+        "capital_hilton_telegram_invoice_request_draft",
+        "monthly_client_recap_new_workflow_draft",
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "capture_candidates": [
+        "conversation_request_capture_boundary",
+        "new_workflow_outline_capture_boundary",
+        "diagnostic_summary_capture_boundary"
+      ],
+      "commit_boundary": "All channels converge on the same explicit capture boundary.",
+      "current_block_id": "request",
+      "current_openclaw_state": {
+        "owner": "workflow session",
+        "state_kind": "canonical_current",
+        "surface_owner": "none"
+      },
+      "downstream_preview": {
+        "canonical_state": "unchanged",
+        "execution": "blocked",
+        "visible_surfaces": "may render same draft"
+      },
+      "future_captured_state_preview": {
+        "requires": [
+          "validation",
+          "operator capture action",
+          "receipt writer"
+        ],
+        "state_kind": "future_captured_preview_not_written"
+      },
+      "inspected_block_id": "known_fields",
+      "locked_blocks": [
+        "canonical_state",
+        "execution_authority"
+      ],
+      "next_safe_move": "Keep current, draft, and future captured state separate across every surface.",
+      "reset_policy": "A channel can abandon its local draft view without deleting canonical workflow state.",
+      "reversible_exploration_state": {
+        "branch_commit_implicit": false,
+        "branching_allowed": true,
+        "stale_branches_must_revalidate": true
+      },
+      "stale_preview_policy": "When a prior block changes, dependent draft previews must be marked stale before display.",
+      "workflow_session_ref": "channel_neutral_workflow_session_candidate",
+      "workspace_id": "app_wide_conversational_workflow_live_draft_workspace"
+    }
+  ],
+  "live_workspaces_by_id": {
+    "app_wide_conversational_workflow_live_draft_workspace": {
+      "active_blocks": [
+        "request",
+        "known_fields",
+        "missing_questions",
+        "review_route"
+      ],
+      "active_local_draft_state": {
+        "origin_can_be": [
+          "Mission Control",
+          "Telegram",
+          "agent conversation"
+        ],
+        "state_kind": "active_draft_not_canonical"
+      },
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_draft_intents": [
+        "capital_hilton_telegram_invoice_request_draft",
+        "monthly_client_recap_new_workflow_draft",
+        "chief_check_engine_build_blocker_draft"
+      ],
+      "capture_candidates": [
+        "conversation_request_capture_boundary",
+        "new_workflow_outline_capture_boundary",
+        "diagnostic_summary_capture_boundary"
+      ],
+      "commit_boundary": "All channels converge on the same explicit capture boundary.",
+      "current_block_id": "request",
+      "current_openclaw_state": {
+        "owner": "workflow session",
+        "state_kind": "canonical_current",
+        "surface_owner": "none"
+      },
+      "downstream_preview": {
+        "canonical_state": "unchanged",
+        "execution": "blocked",
+        "visible_surfaces": "may render same draft"
+      },
+      "future_captured_state_preview": {
+        "requires": [
+          "validation",
+          "operator capture action",
+          "receipt writer"
+        ],
+        "state_kind": "future_captured_preview_not_written"
+      },
+      "inspected_block_id": "known_fields",
+      "locked_blocks": [
+        "canonical_state",
+        "execution_authority"
+      ],
+      "next_safe_move": "Keep current, draft, and future captured state separate across every surface.",
+      "reset_policy": "A channel can abandon its local draft view without deleting canonical workflow state.",
+      "reversible_exploration_state": {
+        "branch_commit_implicit": false,
+        "branching_allowed": true,
+        "stale_branches_must_revalidate": true
+      },
+      "stale_preview_policy": "When a prior block changes, dependent draft previews must be marked stale before display.",
+      "workflow_session_ref": "channel_neutral_workflow_session_candidate",
+      "workspace_id": "app_wide_conversational_workflow_live_draft_workspace"
+    },
+    "capital_hilton_invoice_live_draft_workspace": {
+      "active_blocks": [
+        "performance_dates",
+        "rate",
+        "po_reference",
+        "invoice_route",
+        "review_packet"
+      ],
+      "active_local_draft_state": {
+        "changed_by": "capital_hilton_mission_control_performance_dates_draft",
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "state_kind": "active_draft_not_canonical"
+      },
+      "authority_state": {
+        "agent_activation_allowed": false,
+        "browser_automation_allowed": false,
+        "canonical_state_write_allowed": false,
+        "capture_write_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "execution_allowed": false,
+        "file_write_allowed": false,
+        "invoice_generation_allowed": false,
+        "model_call_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_draft_intents": [
+        "capital_hilton_mission_control_performance_dates_draft"
+      ],
+      "capture_candidates": [
+        "capital_hilton_performance_dates_capture_boundary"
+      ],
+      "commit_boundary": "Use this draft requires explicit capture through a future receipt/state writer lane.",
+      "current_block_id": "performance_dates",
+      "current_openclaw_state": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "source": "receipt_backed_or_current_read_model_refs",
+        "state_kind": "canonical_current"
+      },
+      "downstream_preview": {
+        "approval_packet": "blocked_until_capture_and_review",
+        "email_attachment": "stale_until_invoice_preview_regenerated",
+        "invoice_packet_dates": "updated in preview",
+        "subtotal": "stale_until_recalculated"
+      },
+      "future_captured_state_preview": {
+        "requires_receipt_writer": true,
+        "state_kind": "future_captured_preview_not_written",
+        "would_capture_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ]
+      },
+      "inspected_block_id": "performance_dates",
+      "locked_blocks": [
+        "client_identity",
+        "send_authority"
+      ],
+      "next_safe_move": "Let the operator inspect the preview, reset it, or wait for a future capture writer.",
+      "reset_policy": "Reset drops local draft changes and returns to current OpenClaw state without receipts.",
+      "reversible_exploration_state": {
+        "branches_can_be_parked": true,
+        "can_reset_to_current_openclaw_state": true,
+        "draft_history_commits_to_canonical_state": false
+      },
+      "stale_preview_policy": "Any upstream block edit invalidates dependent subtotal, artifact, and approval previews.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "workspace_id": "capital_hilton_invoice_live_draft_workspace"
+    }
+  },
+  "machine_proof": {
+    "agent_compiler_proposal_model_present": true,
+    "agent_proposal_cannot_commit_truth": true,
+    "agent_proposal_count": 3,
+    "all_authority_flags_false": true,
+    "capital_hilton_mission_control_example_present": true,
+    "capture_boundary_count": 4,
+    "capture_boundary_is_explicit": true,
+    "capture_boundary_model_present": true,
+    "channel_agent_neutrality_present": true,
+    "chief_check_engine_example_present": true,
+    "content_hash": "sha256:7ad5279c1bc18bbbf08d60ebed855bb547fec05b640b3d46317f79414abf82c5",
+    "conversational_flow_count": 4,
+    "conversational_workflow_block_flow_model_present": true,
+    "credentials_or_secrets_included": false,
+    "current_vs_draft_vs_captured_state_distinct": true,
+    "deterministic_validation_result_model_present": true,
+    "draft_input_updates_downstream_preview": true,
+    "draft_intent_count": 4,
+    "live_workflow_draft_workspace_model_present": true,
+    "new_workflow_request_example_present": true,
+    "raw_private_bodies_included": false,
+    "telegram_cassandra_invoice_request_example_present": true,
+    "validation_result_count": 4,
+    "validator_cannot_execute": true,
+    "workflow_block_draft_intent_model_present": true,
+    "workspace_count": 2
+  },
+  "operations": [
+    "add_dates",
+    "change_value",
+    "set_value",
+    "clear_value",
+    "explore_branch",
+    "compile_request",
+    "propose_workflow",
+    "fill_from_evidence",
+    "request_operator_answer",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "origin_surfaces": [
+    "MISSION_CONTROL",
+    "TELEGRAM",
+    "CASSANDRA_CLARA",
+    "CHIEF",
+    "HERMES",
+    "NILES",
+    "GUARDIAN",
+    "FUTURE_WORKFLOW_AGENT",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "read_model_id": "workflow_block_intent_live_draft_contract",
+  "review_modes": [
+    "REVIEW_REQUIRED",
+    "REVIEW_RECOMMENDED",
+    "REVIEW_OPTIONAL",
+    "SKIP_REVIEW_ALLOWED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "workflow_block_intent_live_draft_contract_v0",
+  "starship_operating_model_alignment": {
+    "away_missions": "workflow sessions with one canonical state",
+    "bridge_helm": "command and attention surface that routes work",
+    "captain": "operator/final authority",
+    "crew": "agents that brief, translate, and propose without owning truth",
+    "engineering": "proof, sync, tests, receipts, read-models, and diagnostics below deck",
+    "rules": [
+      "Helm routes; worlds do work.",
+      "Engineering details stay below deck unless blocking or summoned.",
+      "Agents brief, not spam.",
+      "Captain sees decisions, not raw telemetry."
+    ],
+    "ship_logs": "receipts and proof that make durable state auditable",
+    "shipyard_mode": "developer/build noise that should not dominate operator surfaces",
+    "worlds": "domain work surfaces where workflows are inspected and solved"
+  },
+  "validation_results": [
+    {
+      "ambiguity_flags": [],
+      "approval_requirements": [
+        "Guardian/email approval remains required before send"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "invoice_subtotal_preview",
+        "invoice_artifact_preview",
+        "email_attachment_preview",
+        "approval_request_preview"
+      ],
+      "draft_intent_ref": "capital_hilton_mission_control_performance_dates_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [],
+      "next_safe_move": "Show valid preview and keep capture blocked until a future writer lane exists.",
+      "normalized_updates": [
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "value": "2026-05-22"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "value": "2026-05-29"
+        }
+      ],
+      "proof_requirements": [
+        "operator confirmation or proof pointer required before final send path"
+      ],
+      "receipt_requirements": [
+        "operator correction or confirmation receipt target required before canonical state write"
+      ],
+      "rejected_updates": [],
+      "validation_id": "capital_hilton_performance_dates_preview_validation",
+      "validation_status": "VALID_PREVIEW"
+    },
+    {
+      "ambiguity_flags": [
+        "relative date phrase requires deterministic date packet"
+      ],
+      "approval_requirements": [
+        "invoice draft review",
+        "Guardian/email approval before send"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "invoice_draft_preview",
+        "send_approval_preview"
+      ],
+      "draft_intent_ref": "capital_hilton_telegram_invoice_request_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "exact performance dates or source refs"
+      ],
+      "next_safe_move": "Ask the missing date/proof question before preparing a draft preview.",
+      "normalized_updates": [
+        {
+          "field": "client",
+          "operation": "set_if_known",
+          "value": "Capital Hilton"
+        },
+        {
+          "field": "date_scope",
+          "operation": "needs_resolution",
+          "value": "this_week_and_last_week"
+        }
+      ],
+      "proof_requirements": [
+        "performance date confirmation or source proof"
+      ],
+      "receipt_requirements": [
+        "future operator answer receipt"
+      ],
+      "rejected_updates": [],
+      "validation_id": "telegram_invoice_request_needs_review_validation",
+      "validation_status": "NEEDS_OPERATOR_REVIEW"
+    },
+    {
+      "ambiguity_flags": [
+        "Client X must be resolved to a deterministic client ref"
+      ],
+      "approval_requirements": [
+        "operator approval before activation"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "new_workflow_preview"
+      ],
+      "draft_intent_ref": "monthly_client_recap_new_workflow_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "source_materials",
+        "review_route"
+      ],
+      "next_safe_move": "Ask whether to review the proposed block chain.",
+      "normalized_updates": [
+        {
+          "field": "workflow_goal",
+          "operation": "set",
+          "value": "monthly client recap"
+        },
+        {
+          "field": "cadence",
+          "operation": "set",
+          "value": "monthly"
+        }
+      ],
+      "proof_requirements": [
+        "client/source refs if workflow becomes durable"
+      ],
+      "receipt_requirements": [
+        "future workflow proposal receipt"
+      ],
+      "rejected_updates": [],
+      "validation_id": "new_workflow_outline_needs_clarification_validation",
+      "validation_status": "NEEDS_CLARIFICATION"
+    },
+    {
+      "ambiguity_flags": [],
+      "approval_requirements": [
+        "operator review before any repair path"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "repair_plan_preview"
+      ],
+      "draft_intent_ref": "chief_check_engine_build_blocker_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "current diagnostic proof refs"
+      ],
+      "next_safe_move": "Show diagnostic summary only when proof refs are attached.",
+      "normalized_updates": [
+        {
+          "field": "diagnostic_blocker_summary",
+          "operation": "fill_from_read_models",
+          "value": "current evidence summary"
+        }
+      ],
+      "proof_requirements": [
+        "focused test/read-model refs required before repair recommendation capture"
+      ],
+      "receipt_requirements": [
+        "diagnostic summary receipt target future"
+      ],
+      "rejected_updates": [],
+      "validation_id": "chief_check_engine_blocker_preview_validation",
+      "validation_status": "NEEDS_PROOF"
+    }
+  ],
+  "validation_results_by_id": {
+    "capital_hilton_performance_dates_preview_validation": {
+      "ambiguity_flags": [],
+      "approval_requirements": [
+        "Guardian/email approval remains required before send"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "invoice_subtotal_preview",
+        "invoice_artifact_preview",
+        "email_attachment_preview",
+        "approval_request_preview"
+      ],
+      "draft_intent_ref": "capital_hilton_mission_control_performance_dates_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [],
+      "next_safe_move": "Show valid preview and keep capture blocked until a future writer lane exists.",
+      "normalized_updates": [
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "value": "2026-05-22"
+        },
+        {
+          "field": "performance_dates",
+          "operation": "append",
+          "value": "2026-05-29"
+        }
+      ],
+      "proof_requirements": [
+        "operator confirmation or proof pointer required before final send path"
+      ],
+      "receipt_requirements": [
+        "operator correction or confirmation receipt target required before canonical state write"
+      ],
+      "rejected_updates": [],
+      "validation_id": "capital_hilton_performance_dates_preview_validation",
+      "validation_status": "VALID_PREVIEW"
+    },
+    "chief_check_engine_blocker_preview_validation": {
+      "ambiguity_flags": [],
+      "approval_requirements": [
+        "operator review before any repair path"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "repair_plan_preview"
+      ],
+      "draft_intent_ref": "chief_check_engine_build_blocker_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "current diagnostic proof refs"
+      ],
+      "next_safe_move": "Show diagnostic summary only when proof refs are attached.",
+      "normalized_updates": [
+        {
+          "field": "diagnostic_blocker_summary",
+          "operation": "fill_from_read_models",
+          "value": "current evidence summary"
+        }
+      ],
+      "proof_requirements": [
+        "focused test/read-model refs required before repair recommendation capture"
+      ],
+      "receipt_requirements": [
+        "diagnostic summary receipt target future"
+      ],
+      "rejected_updates": [],
+      "validation_id": "chief_check_engine_blocker_preview_validation",
+      "validation_status": "NEEDS_PROOF"
+    },
+    "new_workflow_outline_needs_clarification_validation": {
+      "ambiguity_flags": [
+        "Client X must be resolved to a deterministic client ref"
+      ],
+      "approval_requirements": [
+        "operator approval before activation"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "new_workflow_preview"
+      ],
+      "draft_intent_ref": "monthly_client_recap_new_workflow_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "source_materials",
+        "review_route"
+      ],
+      "next_safe_move": "Ask whether to review the proposed block chain.",
+      "normalized_updates": [
+        {
+          "field": "workflow_goal",
+          "operation": "set",
+          "value": "monthly client recap"
+        },
+        {
+          "field": "cadence",
+          "operation": "set",
+          "value": "monthly"
+        }
+      ],
+      "proof_requirements": [
+        "client/source refs if workflow becomes durable"
+      ],
+      "receipt_requirements": [
+        "future workflow proposal receipt"
+      ],
+      "rejected_updates": [],
+      "validation_id": "new_workflow_outline_needs_clarification_validation",
+      "validation_status": "NEEDS_CLARIFICATION"
+    },
+    "telegram_invoice_request_needs_review_validation": {
+      "ambiguity_flags": [
+        "relative date phrase requires deterministic date packet"
+      ],
+      "approval_requirements": [
+        "invoice draft review",
+        "Guardian/email approval before send"
+      ],
+      "canonical_write_allowed": false,
+      "capture_allowed": false,
+      "downstream_invalidations": [
+        "invoice_draft_preview",
+        "send_approval_preview"
+      ],
+      "draft_intent_ref": "capital_hilton_telegram_invoice_request_draft",
+      "duplicate_or_conflict_warnings": [],
+      "execution_allowed": false,
+      "missing_required_fields": [
+        "exact performance dates or source refs"
+      ],
+      "next_safe_move": "Ask the missing date/proof question before preparing a draft preview.",
+      "normalized_updates": [
+        {
+          "field": "client",
+          "operation": "set_if_known",
+          "value": "Capital Hilton"
+        },
+        {
+          "field": "date_scope",
+          "operation": "needs_resolution",
+          "value": "this_week_and_last_week"
+        }
+      ],
+      "proof_requirements": [
+        "performance date confirmation or source proof"
+      ],
+      "receipt_requirements": [
+        "future operator answer receipt"
+      ],
+      "rejected_updates": [],
+      "validation_id": "telegram_invoice_request_needs_review_validation",
+      "validation_status": "NEEDS_OPERATOR_REVIEW"
+    }
+  },
+  "validation_statuses": [
+    "VALID_PREVIEW",
+    "NEEDS_CLARIFICATION",
+    "NEEDS_OPERATOR_REVIEW",
+    "NEEDS_PROOF",
+    "NEEDS_GUARDIAN_REVIEW",
+    "REJECTED_INVALID",
+    "BLOCKED_BY_AUTHORITY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "workflow_block_agent_compiler_proposal_schema": {
+    "agent_may_approve_send_execute": false,
+    "agent_may_commit_canonical_state": false,
+    "agent_may_fill_from_deterministic_evidence": true,
+    "agent_may_propose_new_block_chains": true,
+    "agent_may_translate_human_language": true,
+    "deterministic_validator_decides_validity": true,
+    "required_fields": [
+      "proposal_id",
+      "source_request",
+      "source_actor",
+      "source_surface",
+      "target_workflow_session_ref",
+      "proposed_block_sequence",
+      "proposed_block_intents",
+      "blocks_system_can_fill",
+      "blocks_operator_must_answer",
+      "ambiguity_flags",
+      "confidence",
+      "validation_required",
+      "operator_review_recommended",
+      "can_skip_operator_review",
+      "skip_review_reason",
+      "blocked_actions",
+      "next_safe_move"
+    ],
+    "structure": "WorkflowBlockAgentCompilerProposal"
+  },
+  "workflow_block_capture_boundary_schema": {
+    "capture_is_execution": false,
+    "capture_requires_future_writer_lane": true,
+    "execution_remains_separately_gated": true,
+    "required_fields": [
+      "capture_boundary_id",
+      "draft_intent_ref",
+      "capture_label",
+      "capture_meaning",
+      "required_validation_status",
+      "required_operator_action",
+      "required_receipt_type",
+      "required_state_writer",
+      "affected_workflow_state",
+      "affected_downstream_artifacts",
+      "approval_gate_refs",
+      "current_capture_authority",
+      "current_write_authority",
+      "current_execution_authority",
+      "next_safe_move"
+    ],
+    "structure": "WorkflowBlockCaptureBoundary"
+  },
+  "workflow_block_draft_intent_schema": {
+    "capture_ready_default": false,
+    "draft_intent_is_canonical_state": false,
+    "mission_control_and_telegram_are_surfaces_not_state_owners": true,
+    "preview_only_default": true,
+    "required_fields": [
+      "draft_intent_id",
+      "workflow_session_ref",
+      "world",
+      "lane",
+      "workflow_type",
+      "block_id",
+      "block_label",
+      "operation",
+      "origin_surface",
+      "origin_actor",
+      "origin_channel",
+      "compatible_surfaces",
+      "compatible_agents",
+      "current_state_refs",
+      "operator_input_raw",
+      "operator_input_structured",
+      "proposed_updates",
+      "resulting_fields",
+      "downstream_effects",
+      "validation_requirements",
+      "receipt_target",
+      "approval_guardian_boundary",
+      "authority_state",
+      "preview_only",
+      "capture_ready",
+      "blocked_actions",
+      "next_safe_move"
+    ],
+    "structure": "WorkflowBlockDraftIntent"
+  },
+  "workflow_block_intent_validation_result_schema": {
+    "canonical_write_allowed_by_contract": false,
+    "execution_allowed_by_contract": false,
+    "normalizes_without_writing_receipts": true,
+    "required_fields": [
+      "validation_id",
+      "draft_intent_ref",
+      "validation_status",
+      "normalized_updates",
+      "rejected_updates",
+      "ambiguity_flags",
+      "missing_required_fields",
+      "duplicate_or_conflict_warnings",
+      "downstream_invalidations",
+      "proof_requirements",
+      "approval_requirements",
+      "receipt_requirements",
+      "capture_allowed",
+      "canonical_write_allowed",
+      "execution_allowed",
+      "next_safe_move"
+    ],
+    "structure": "WorkflowBlockIntentValidationResult",
+    "validation_statuses": [
+      "VALID_PREVIEW",
+      "NEEDS_CLARIFICATION",
+      "NEEDS_OPERATOR_REVIEW",
+      "NEEDS_PROOF",
+      "NEEDS_GUARDIAN_REVIEW",
+      "REJECTED_INVALID",
+      "BLOCKED_BY_AUTHORITY",
+      "UNKNOWN_FAIL_CLOSED"
+    ]
+  }
+}
