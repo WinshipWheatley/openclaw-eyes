@@ -12,6 +12,11 @@ import capital_hilton_proof_metadata_packet
 import capital_hilton_proof_quieting_progress_state
 import capital_hilton_proof_resolution_batch_manifest
 import operator_attention_promotion_contract
+import openclaw_work_terrain_classification_candidate
+import openclaw_work_terrain_gap_detector
+import openclaw_work_terrain_query_contract
+import openclaw_work_terrain_reconciliation_batch_manifest
+import openclaw_work_terrain_relationship_index
 import package_preview_receipt_contract
 import parked_autonomous_capital_pipeline_experiment
 import post_security_governance_batch_manifest
@@ -388,6 +393,39 @@ def _fixture_repo(root: Path) -> Path:
     _write_json(
         read_models / "capital_hilton_proof_resolution_batch_manifest.json",
         capital_hilton_proof_resolution_batch_manifest.build_capital_hilton_proof_resolution_batch_manifest(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "openclaw_work_terrain_query_contract.json",
+        openclaw_work_terrain_query_contract.build_openclaw_work_terrain_query_contract(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "openclaw_work_terrain_relationship_index.json",
+        openclaw_work_terrain_relationship_index.build_openclaw_work_terrain_relationship_index(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "openclaw_work_terrain_classification_candidate.json",
+        openclaw_work_terrain_classification_candidate.build_openclaw_work_terrain_classification_candidate(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "openclaw_work_terrain_gap_detector.json",
+        openclaw_work_terrain_gap_detector.build_openclaw_work_terrain_gap_detector(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "openclaw_work_terrain_reconciliation_batch_manifest.json",
+        openclaw_work_terrain_reconciliation_batch_manifest.build_openclaw_work_terrain_reconciliation_batch_manifest(
             generated_at=FIXED_NOW,
         ),
     )
@@ -1084,6 +1122,85 @@ def test_map_snapshot_contains_capital_hilton_proof_resolution_summaries(tmp_pat
     assert progress["action_authority_granted"] is False
 
 
+def test_map_snapshot_contains_work_terrain_reconciliation_summaries(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    batch = snapshot["openclaw_work_terrain_reconciliation_batch"]
+    query = snapshot["openclaw_work_terrain_query_contract"]
+    relationship = snapshot["openclaw_work_terrain_relationship_index"]
+    classification = snapshot["openclaw_work_terrain_classification_candidate"]
+    gap = snapshot["openclaw_work_terrain_gap_detector"]
+
+    assert batch["present"] is True
+    assert batch["section_id"] == "openclaw_work_terrain_reconciliation_batch"
+    assert batch["batch_id"] == "openclaw_work_terrain_reconciliation_v0"
+    assert batch["batch_status"] == "COMPLETE_PENDING_STABLE_MAP_IMPORT"
+    assert batch["completed_lanes_count"] == 4
+    assert batch["next_expected_actor"] == "mac_map_import_agent"
+    assert batch["metadata_first_posture"] is True
+    assert batch["action_authority_granted"] is False
+    assert batch["broad_raw_body_ingestion_allowed"] is False
+    assert batch["broad_private_root_scan_allowed"] is False
+    assert batch["file_move_delete_rename_allowed"] is False
+    assert batch["archive_rewrite_allowed"] is False
+    assert batch["ai_semantic_review_allowed"] is False
+    assert batch["automatic_truth_promotion_allowed"] is False
+
+    assert query["present"] is True
+    assert query["section_id"] == "openclaw_work_terrain_query_contract"
+    assert query["query_examples_count"] == 5
+    assert query["chief_example_present"] is True
+    assert query["capital_hilton_example_present"] is True
+    assert query["security_pass_example_present"] is True
+    assert query["niles_struna_example_present"] is True
+    assert query["repo_b_example_present"] is True
+    assert query["body_ingestion_allowed"] is False
+    assert query["semantic_review_allowed"] is False
+    assert query["action_authority_granted"] is False
+
+    assert relationship["present"] is True
+    assert relationship["section_id"] == "openclaw_work_terrain_relationship_index"
+    assert relationship["relationship_types_count"] == len(openclaw_work_terrain_relationship_index.RELATIONSHIP_TYPES)
+    assert relationship["entity_types_count"] == len(openclaw_work_terrain_relationship_index.ENTITY_ARTIFACT_TYPES)
+    assert relationship["default_examples_count"] == 8
+    assert relationship["built_source_relationship_support_present"]["source_note_matches_built_artifact"] is True
+    assert relationship["built_source_relationship_support_present"]["built_artifact_lacks_source_note"] is True
+    assert relationship["built_source_relationship_support_present"]["stable_map_section_lacks_source_note"] is True
+    assert relationship["repo_b_reference_only"] is True
+    assert relationship["action_authority_granted"] is False
+
+    assert classification["present"] is True
+    assert classification["section_id"] == "openclaw_work_terrain_classification_candidate"
+    assert classification["classification_vocabulary_count"] == len(openclaw_work_terrain_classification_candidate.CLASSIFICATIONS)
+    assert classification["consolidation_candidates_present"] is True
+    assert classification["supersession_candidates_present"] is True
+    assert classification["archive_rewrite_delete_allowed"] is False
+    assert classification["future_ai_judgment_blocked_now"] is True
+    assert classification["old_prompts_not_truth_by_default"] is True
+    assert classification["generated_artifacts_not_source_truth"] is True
+    assert classification["repo_b_reference_only"] is True
+    assert classification["action_authority_granted"] is False
+
+    assert gap["present"] is True
+    assert gap["section_id"] == "openclaw_work_terrain_gap_detector"
+    assert gap["gap_examples_count"] == 12
+    assert gap["priority_buckets_present"] is True
+    assert gap["negative_filters_present"] is True
+    assert gap["negative_filters_count"] == 6
+    assert gap["built_status_validation_present"] is True
+    assert gap["built_status_validation_rule_count"] == 6
+    assert gap["taxonomy_adjustments_present"]["partially_built"] is True
+    assert gap["taxonomy_adjustments_present"]["built_but_unsafe"] is True
+    assert gap["taxonomy_adjustments_present"]["unsafe_execution_posture"] is True
+    assert gap["taxonomy_adjustments_present"]["validated_by_test"] is True
+    assert gap["old_prompt_filter_blocks_build_now"] is True
+    assert gap["generated_artifact_filter_blocks_doctrine"] is True
+    assert gap["reference_only_filter_blocks_activation"] is True
+    assert gap["auto_archive_consolidation_stable_map_implementation_allowed"] is False
+    assert gap["action_authority_granted"] is False
+
+
 def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
     payload = _build(tmp_path)
 
@@ -1134,6 +1251,30 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_quieting_allowed"] is False
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["automatic_progression_allowed"] is False
     assert payload["capital_hilton_proof_quieting_progress_state_integration"]["action_authority_granted"] is False
+    assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["summary_included_in_snapshot"] is True
+    assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["completed_lanes_count"] == 4
+    assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["metadata_first_posture"] is True
+    assert payload["openclaw_work_terrain_reconciliation_batch_integration"]["action_authority_granted"] is False
+    assert payload["openclaw_work_terrain_query_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["openclaw_work_terrain_query_contract_integration"]["query_examples_count"] == 5
+    assert payload["openclaw_work_terrain_query_contract_integration"]["chief_example_present"] is True
+    assert payload["openclaw_work_terrain_query_contract_integration"]["capital_hilton_example_present"] is True
+    assert payload["openclaw_work_terrain_query_contract_integration"]["body_ingestion_allowed"] is False
+    assert payload["openclaw_work_terrain_query_contract_integration"]["semantic_review_allowed"] is False
+    assert payload["openclaw_work_terrain_relationship_index_integration"]["summary_included_in_snapshot"] is True
+    assert payload["openclaw_work_terrain_relationship_index_integration"]["default_examples_count"] == 8
+    assert payload["openclaw_work_terrain_relationship_index_integration"]["action_authority_granted"] is False
+    assert payload["openclaw_work_terrain_classification_candidate_integration"]["summary_included_in_snapshot"] is True
+    assert payload["openclaw_work_terrain_classification_candidate_integration"]["consolidation_candidates_present"] is True
+    assert payload["openclaw_work_terrain_classification_candidate_integration"]["supersession_candidates_present"] is True
+    assert payload["openclaw_work_terrain_classification_candidate_integration"]["archive_rewrite_delete_allowed"] is False
+    assert payload["openclaw_work_terrain_classification_candidate_integration"]["future_ai_judgment_blocked_now"] is True
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["summary_included_in_snapshot"] is True
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["gap_examples_count"] == 12
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["negative_filters_present"] is True
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["built_status_validation_present"] is True
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["auto_archive_consolidation_stable_map_implementation_allowed"] is False
+    assert payload["openclaw_work_terrain_gap_detector_integration"]["action_authority_granted"] is False
 
 
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):

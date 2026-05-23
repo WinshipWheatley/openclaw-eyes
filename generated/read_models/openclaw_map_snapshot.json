@@ -2523,7 +2523,7 @@
     "source_path": "generated/read_models/chief_test_harness_cross_off_receipt_contract.json",
     "test_harness_receipt_model_present": true
   },
-  "created_at": "2026-05-23T16:16:04+00:00",
+  "created_at": "2026-05-23T17:19:19+00:00",
   "credentials_included": false,
   "current_mission": {
     "current_mission": {
@@ -2673,7 +2673,7 @@
     "source_path": "generated/read_models/system_health_lights_taxonomy.json",
     "source_truth_rule": "sync_health controls Check Transmission freshness; taxonomy must not override fresher proof"
   },
-  "map_generation_id": "map_1d16299fe237710ae7e7",
+  "map_generation_id": "map_718c9568c3aa9f280f09",
   "missing_proof": {
     "from_threshold_map": [
       {
@@ -2799,6 +2799,114 @@
       "openclaw_map_manifest.json",
       "openclaw_map_OPERATOR.md"
     ]
+  },
+  "openclaw_work_terrain_classification_candidate": {
+    "action_authority_granted": false,
+    "archive_rewrite_delete_allowed": false,
+    "classification_vocabulary_count": 21,
+    "consolidation_candidates_count": 3,
+    "consolidation_candidates_present": true,
+    "future_ai_judgment_blocked_now": true,
+    "generated_artifacts_not_source_truth": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "old_prompts_not_truth_by_default": true,
+    "present": true,
+    "primary_app_contract": true,
+    "repo_b_reference_only": true,
+    "section_id": "openclaw_work_terrain_classification_candidate",
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_classification_candidate_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_classification_candidate.json",
+    "supersession_candidates_count": 2,
+    "supersession_candidates_present": true
+  },
+  "openclaw_work_terrain_gap_detector": {
+    "action_authority_granted": false,
+    "auto_archive_consolidation_stable_map_implementation_allowed": false,
+    "built_status_validation_present": true,
+    "built_status_validation_rule_count": 6,
+    "gap_examples_count": 12,
+    "generated_artifact_filter_blocks_doctrine": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "negative_filters_count": 6,
+    "negative_filters_present": true,
+    "old_prompt_filter_blocks_build_now": true,
+    "present": true,
+    "primary_app_contract": true,
+    "priority_buckets_count": 11,
+    "priority_buckets_present": true,
+    "reference_only_filter_blocks_activation": true,
+    "section_id": "openclaw_work_terrain_gap_detector",
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_gap_detector_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_gap_detector.json",
+    "taxonomy_adjustments_present": {
+      "built_but_unsafe": true,
+      "partially_built": true,
+      "unsafe_execution_posture": true,
+      "validated_by_test": true
+    }
+  },
+  "openclaw_work_terrain_query_contract": {
+    "action_authority_granted": false,
+    "body_ingestion_allowed": false,
+    "capital_hilton_example_present": true,
+    "chief_example_present": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "metadata_first": true,
+    "niles_struna_example_present": true,
+    "present": true,
+    "primary_app_contract": true,
+    "query_examples_count": 5,
+    "repo_b_example_present": true,
+    "section_id": "openclaw_work_terrain_query_contract",
+    "security_pass_example_present": true,
+    "semantic_review_allowed": false,
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_query_contract_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_query_contract.json"
+  },
+  "openclaw_work_terrain_reconciliation_batch": {
+    "action_authority_granted": false,
+    "ai_semantic_review_allowed": false,
+    "archive_rewrite_allowed": false,
+    "automatic_truth_promotion_allowed": false,
+    "batch_id": "openclaw_work_terrain_reconciliation_v0",
+    "batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
+    "broad_private_root_scan_allowed": false,
+    "broad_raw_body_ingestion_allowed": false,
+    "completed_lanes": [
+      "work_terrain_query_contract",
+      "work_terrain_relationship_index",
+      "work_terrain_classification_staleness_candidate",
+      "work_terrain_gap_detector"
+    ],
+    "completed_lanes_count": 4,
+    "file_move_delete_rename_allowed": false,
+    "individual_manifest_read_model_remains_proof_detail": true,
+    "metadata_first_posture": true,
+    "next_expected_actor": "mac_map_import_agent",
+    "present": true,
+    "primary_app_contract": true,
+    "section_id": "openclaw_work_terrain_reconciliation_batch",
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+  },
+  "openclaw_work_terrain_relationship_index": {
+    "action_authority_granted": false,
+    "built_source_relationship_support_present": {
+      "built_artifact_lacks_source_note": true,
+      "built_not_surfaced": true,
+      "source_note_matches_built_artifact": true,
+      "stable_map_section_lacks_source_note": true
+    },
+    "default_examples_count": 8,
+    "entity_types_count": 24,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "present": true,
+    "primary_app_contract": true,
+    "relationship_types_count": 23,
+    "repo_b_reference_only": true,
+    "section_id": "openclaw_work_terrain_relationship_index",
+    "source_operator_ref": "generated/read_models/openclaw_work_terrain_relationship_index_OPERATOR.md",
+    "source_read_model_ref": "generated/read_models/openclaw_work_terrain_relationship_index.json"
   },
   "operator_attention_promotion": {
     "action_authority_granted": false,
@@ -4265,6 +4373,71 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:e743c1bc1fd4b737c1a8f7501c5e429f01e13ced1bd5b62803e81a01f4d8cf89",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "openclaw_work_terrain_reconciliation_batch_manifest",
+        "role": "Work Terrain reconciliation backend batch closure state and Mac import handoff",
+        "schema_version": "openclaw_work_terrain_reconciliation_batch_manifest_v0",
+        "surface_id": "openclaw_work_terrain_reconciliation_batch_manifest"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:154336bdc34c8b3fc00fc95de593d5a1b4b7d58d1f94c694f1228eb71710ac68",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/openclaw_work_terrain_query_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "openclaw_work_terrain_query_contract",
+        "role": "metadata-first Work Terrain query grammar for focused terrain questions",
+        "schema_version": "openclaw_work_terrain_query_contract_v0",
+        "surface_id": "openclaw_work_terrain_query_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:95a090aa5c41f7bcb67eea94086a9f03ea6c3de32e4d41308d21d9bbec7fe914",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/openclaw_work_terrain_relationship_index.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "openclaw_work_terrain_relationship_index",
+        "role": "metadata-only Work Terrain relationship records between notes, artifacts, receipts, tests, and surfaces",
+        "schema_version": "openclaw_work_terrain_relationship_index_v0",
+        "surface_id": "openclaw_work_terrain_relationship_index"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:21830a54ed14da27787f3131bade739c31f5e2a9e2fc91d1317e3154157f7139",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/openclaw_work_terrain_classification_candidate.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "openclaw_work_terrain_classification_candidate",
+        "role": "candidate current/stale/generated/reference/consolidation/supersession classifications",
+        "schema_version": "openclaw_work_terrain_classification_candidate_v0",
+        "surface_id": "openclaw_work_terrain_classification_candidate"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:46b1f08883a44d67bf599fc1a718b30e59b6571adec918f9cd314c662085f953",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "openclaw_work_terrain_gap_detector",
+        "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
+        "schema_version": "openclaw_work_terrain_gap_detector_v0",
+        "surface_id": "openclaw_work_terrain_gap_detector"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -4761,8 +4934,8 @@
       "worker_output_intake_metadata_approved": true
     }
   },
-  "snapshot_hash": "sha256:1d16299fe237710ae7e704a69d0d17a15768e591c0aedbfb6493f6455734370c",
-  "source_commit_if_available_local_only": "6a508c8e61f39235df87970561db522b91a84632",
+  "snapshot_hash": "sha256:718c9568c3aa9f280f09698c7b6f70d56e337c1be470afb8f260d54bd46bfbe9",
+  "source_commit_if_available_local_only": "63ff43ce826a256204eed9e90abfbc4f536c0d89",
   "source_conflicts": {
     "check_transmission_source_truth": {
       "action_now": "use the normal read-model mirror lifecycle; do not mutate app code or fake mirror completion",
@@ -4784,11 +4957,11 @@
   },
   "source_repo": "Repo A /home/openclaw",
   "sync_state": {
-    "canonical_expected": 273,
+    "canonical_expected": 279,
     "display_status": "needs_mac_sync",
     "hash_mismatch": 4,
     "mirror_status": "needs_mac_sync",
-    "missing_expected": 55,
+    "missing_expected": 61,
     "observed": 218,
     "operator_action_required": true,
     "present": true,

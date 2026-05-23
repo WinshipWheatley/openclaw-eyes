@@ -77,6 +77,11 @@ CAPITAL_HILTON_ANSWER_CANDIDATE_RECEIPT_READ_MODEL_PATH = "generated/read_models
 CAPITAL_HILTON_PROTECTED_REFERENCE_PLACEHOLDER_READ_MODEL_PATH = "generated/read_models/capital_hilton_protected_reference_placeholder.json"
 CAPITAL_HILTON_GUARDIAN_REVIEW_PACKET_READ_MODEL_PATH = "generated/read_models/capital_hilton_guardian_review_packet.json"
 CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH = "generated/read_models/capital_hilton_proof_quieting_progress_state.json"
+OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest.json"
+OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_query_contract.json"
+OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_relationship_index.json"
+OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_classification_candidate.json"
+OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH = "generated/read_models/openclaw_work_terrain_gap_detector.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -188,6 +193,31 @@ ESSENTIAL_SURFACES = (
         "surface_id": "capital_hilton_proof_quieting_progress_state",
         "path": CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
         "role": "Capital Hilton proof quieting and progress-state contract for the 10 proof gaps",
+    },
+    {
+        "surface_id": "openclaw_work_terrain_reconciliation_batch_manifest",
+        "path": OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH,
+        "role": "Work Terrain reconciliation backend batch closure state and Mac import handoff",
+    },
+    {
+        "surface_id": "openclaw_work_terrain_query_contract",
+        "path": OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH,
+        "role": "metadata-first Work Terrain query grammar for focused terrain questions",
+    },
+    {
+        "surface_id": "openclaw_work_terrain_relationship_index",
+        "path": OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH,
+        "role": "metadata-only Work Terrain relationship records between notes, artifacts, receipts, tests, and surfaces",
+    },
+    {
+        "surface_id": "openclaw_work_terrain_classification_candidate",
+        "path": OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH,
+        "role": "candidate current/stale/generated/reference/consolidation/supersession classifications",
+    },
+    {
+        "surface_id": "openclaw_work_terrain_gap_detector",
+        "path": OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
+        "role": "metadata-only Work Terrain gap detector with taxonomy filters and built-status validation",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -2067,6 +2097,206 @@ def _summarize_capital_hilton_proof_quieting_progress_state(payload: dict[str, A
     }
 
 
+def _summarize_openclaw_work_terrain_reconciliation_batch(payload: dict[str, Any]) -> dict[str, Any]:
+    lanes_completed = (
+        payload.get("lanes_completed") if isinstance(payload.get("lanes_completed"), list) else []
+    )
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "openclaw_work_terrain_reconciliation_batch",
+        "source_read_model_ref": OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/openclaw_work_terrain_reconciliation_batch_manifest_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_manifest_read_model_remains_proof_detail": True,
+        "batch_id": payload.get("batch_id"),
+        "batch_status": payload.get("batch_status"),
+        "completed_lanes_count": len(lanes_completed),
+        "completed_lanes": lanes_completed,
+        "next_expected_actor": payload.get("next_expected_actor"),
+        "metadata_first_posture": True,
+        "broad_raw_body_ingestion_allowed": boundary.get("broad_raw_body_ingestion_allowed") is True,
+        "broad_private_root_scan_allowed": boundary.get("broad_private_root_scan_allowed") is True,
+        "file_move_delete_rename_allowed": any(
+            boundary.get(key) is True
+            for key in ("file_move_allowed", "file_delete_allowed", "file_rename_allowed")
+        ),
+        "archive_rewrite_allowed": (
+            boundary.get("file_archive_allowed") is True or boundary.get("file_rewrite_allowed") is True
+        ),
+        "ai_semantic_review_allowed": boundary.get("model_api_execution_allowed") is True,
+        "automatic_truth_promotion_allowed": boundary.get("authority_escalation_allowed") is True,
+        "action_authority_granted": boundary.get("all_authority_flags_false") is not True,
+    }
+
+
+def _summarize_openclaw_work_terrain_query_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    queries = (
+        payload.get("default_query_examples")
+        if isinstance(payload.get("default_query_examples"), list)
+        else []
+    )
+    query_ids = {item.get("query_id") for item in queries if isinstance(item, dict)}
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "openclaw_work_terrain_query_contract",
+        "source_read_model_ref": OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/openclaw_work_terrain_query_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "query_examples_count": len(queries),
+        "chief_example_present": "chief_related_work_terrain" in query_ids,
+        "capital_hilton_example_present": "capital_hilton_related_work_terrain" in query_ids,
+        "security_pass_example_present": "security_pass_related_work_terrain" in query_ids,
+        "niles_struna_example_present": "niles_struna_related_work_terrain" in query_ids,
+        "repo_b_example_present": "repo_b_planner_builder_related_work_terrain" in query_ids,
+        "body_ingestion_allowed": boundary.get("body_ingestion_allowed") is True,
+        "semantic_review_allowed": boundary.get("semantic_review_allowed_now") is True
+        or boundary.get("model_api_execution_allowed") is True,
+        "metadata_first": machine.get("metadata_only_posture") is True
+        or payload.get("work_terrain_query_policy", {}).get("metadata_first") is True
+        if isinstance(payload.get("work_terrain_query_policy"), dict)
+        else True,
+        "action_authority_granted": boundary.get("action_authority_granted") is True,
+    }
+
+
+def _summarize_openclaw_work_terrain_relationship_index(payload: dict[str, Any]) -> dict[str, Any]:
+    examples = (
+        payload.get("default_relationship_examples")
+        if isinstance(payload.get("default_relationship_examples"), list)
+        else []
+    )
+    relationship_types = (
+        payload.get("relationship_types") if isinstance(payload.get("relationship_types"), list) else []
+    )
+    entity_types = (
+        payload.get("entity_artifact_types") if isinstance(payload.get("entity_artifact_types"), list) else []
+    )
+    relationship_type_set = set(relationship_types)
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "openclaw_work_terrain_relationship_index",
+        "source_read_model_ref": OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/openclaw_work_terrain_relationship_index_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "relationship_types_count": len(relationship_types),
+        "entity_types_count": len(entity_types),
+        "default_examples_count": len(examples),
+        "built_source_relationship_support_present": {
+            "source_note_matches_built_artifact": "SOURCE_NOTE_MATCHES_BUILT_ARTIFACT" in relationship_type_set,
+            "built_artifact_lacks_source_note": "BUILT_ARTIFACT_LACKS_SOURCE_NOTE" in relationship_type_set,
+            "built_not_surfaced": "BUILT_NOT_SURFACED" in relationship_type_set,
+            "stable_map_section_lacks_source_note": "STABLE_MAP_SECTION_LACKS_SOURCE_NOTE" in relationship_type_set,
+        },
+        "repo_b_reference_only": any(
+            item.get("relationship_id") == "repo_b_planner_builder_reference_only"
+            and item.get("confidence_posture") == "REFERENCE_ONLY_METADATA"
+            for item in examples
+            if isinstance(item, dict)
+        ),
+        "action_authority_granted": boundary.get("action_authority_granted") is True,
+    }
+
+
+def _summarize_openclaw_work_terrain_classification_candidate(payload: dict[str, Any]) -> dict[str, Any]:
+    classifications = (
+        payload.get("candidate_classifications")
+        if isinstance(payload.get("candidate_classifications"), list)
+        else []
+    )
+    consolidations = (
+        payload.get("consolidation_candidate_model", {}).get("examples", [])
+        if isinstance(payload.get("consolidation_candidate_model"), dict)
+        else []
+    )
+    supersessions = (
+        payload.get("supersession_candidate_model", {}).get("examples", [])
+        if isinstance(payload.get("supersession_candidate_model"), dict)
+        else []
+    )
+    ai_policy = (
+        payload.get("future_ai_judgment_policy")
+        if isinstance(payload.get("future_ai_judgment_policy"), dict)
+        else {}
+    )
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "openclaw_work_terrain_classification_candidate",
+        "source_read_model_ref": OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/openclaw_work_terrain_classification_candidate_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "classification_vocabulary_count": len(classifications),
+        "consolidation_candidates_present": bool(consolidations),
+        "supersession_candidates_present": bool(supersessions),
+        "consolidation_candidates_count": len(consolidations),
+        "supersession_candidates_count": len(supersessions),
+        "archive_rewrite_delete_allowed": not machine.get("archive_delete_rewrite_false", False),
+        "future_ai_judgment_blocked_now": ai_policy.get("broad_ai_semantic_review_allowed_now") is False
+        and ai_policy.get("final_doctrine_decision_by_ai_allowed") is False,
+        "old_prompts_not_truth_by_default": machine.get("old_prompts_not_truth_by_default") is True,
+        "generated_artifacts_not_source_truth": machine.get("generated_artifacts_not_source_truth") is True,
+        "repo_b_reference_only": machine.get("repo_b_reference_only") is True,
+        "action_authority_granted": boundary.get("action_authority_granted") is True,
+    }
+
+
+def _summarize_openclaw_work_terrain_gap_detector(payload: dict[str, Any]) -> dict[str, Any]:
+    gaps = (
+        payload.get("default_gap_examples")
+        if isinstance(payload.get("default_gap_examples"), list)
+        else []
+    )
+    priorities = payload.get("gap_priorities") if isinstance(payload.get("gap_priorities"), list) else []
+    filters = payload.get("negative_filters") if isinstance(payload.get("negative_filters"), list) else []
+    built_rules = (
+        payload.get("built_status_validation_rules")
+        if isinstance(payload.get("built_status_validation_rules"), list)
+        else []
+    )
+    policy = payload.get("gap_detector_policy") if isinstance(payload.get("gap_detector_policy"), dict) else {}
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return {
+        "section_id": "openclaw_work_terrain_gap_detector",
+        "source_read_model_ref": OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/openclaw_work_terrain_gap_detector_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "gap_examples_count": len(gaps),
+        "priority_buckets_present": bool(priorities),
+        "priority_buckets_count": len(priorities),
+        "negative_filters_present": bool(filters),
+        "negative_filters_count": len(filters),
+        "built_status_validation_present": bool(built_rules),
+        "built_status_validation_rule_count": len(built_rules),
+        "taxonomy_adjustments_present": {
+            "partially_built": "PARTIALLY_BUILT" in payload.get("gap_types", []),
+            "built_but_unsafe": "BUILT_BUT_UNSAFE" in payload.get("gap_types", []),
+            "unsafe_execution_posture": "UNSAFE_EXECUTION_POSTURE" in payload.get("gap_types", []),
+            "validated_by_test": machine.get("validated_by_test_signal_represented") is True,
+        },
+        "old_prompt_filter_blocks_build_now": machine.get("old_prompt_filter_prevents_implementation_gap") is True,
+        "generated_artifact_filter_blocks_doctrine": machine.get("generated_artifact_filter_prevents_doctrine_treatment") is True,
+        "reference_only_filter_blocks_activation": machine.get("reference_only_filter_prevents_activation") is True,
+        "auto_archive_consolidation_stable_map_implementation_allowed": not (
+            policy.get("auto_archive_allowed") is False
+            and policy.get("auto_consolidation_allowed") is False
+            and policy.get("auto_stable_map_promotion_allowed") is False
+            and policy.get("auto_implementation_allowed") is False
+        ),
+        "action_authority_granted": boundary.get("action_authority_granted") is True,
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -2360,6 +2590,26 @@ def build_openclaw_map_snapshot(
         CAPITAL_HILTON_PROOF_QUIETING_PROGRESS_STATE_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    openclaw_work_terrain_reconciliation_batch = _read_json_if_present(
+        OPENCLAW_WORK_TERRAIN_RECONCILIATION_BATCH_MANIFEST_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    openclaw_work_terrain_query_contract = _read_json_if_present(
+        OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    openclaw_work_terrain_relationship_index = _read_json_if_present(
+        OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    openclaw_work_terrain_classification_candidate = _read_json_if_present(
+        OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    openclaw_work_terrain_gap_detector = _read_json_if_present(
+        OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -2418,6 +2668,21 @@ def build_openclaw_map_snapshot(
         ),
         "capital_hilton_proof_quieting_progress_state": _summarize_capital_hilton_proof_quieting_progress_state(
             capital_hilton_proof_quieting_progress_state
+        ),
+        "openclaw_work_terrain_reconciliation_batch": _summarize_openclaw_work_terrain_reconciliation_batch(
+            openclaw_work_terrain_reconciliation_batch
+        ),
+        "openclaw_work_terrain_query_contract": _summarize_openclaw_work_terrain_query_contract(
+            openclaw_work_terrain_query_contract
+        ),
+        "openclaw_work_terrain_relationship_index": _summarize_openclaw_work_terrain_relationship_index(
+            openclaw_work_terrain_relationship_index
+        ),
+        "openclaw_work_terrain_classification_candidate": _summarize_openclaw_work_terrain_classification_candidate(
+            openclaw_work_terrain_classification_candidate
+        ),
+        "openclaw_work_terrain_gap_detector": _summarize_openclaw_work_terrain_gap_detector(
+            openclaw_work_terrain_gap_detector
         ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
@@ -2686,6 +2951,15 @@ def build_operator_map_bundle_contract(
             "capital_hilton_progress_missing_proof_count": snapshot["capital_hilton_proof_quieting_progress_state"]["missing_proof_count"],
             "capital_hilton_automatic_quieting_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_quieting_allowed"],
             "capital_hilton_automatic_progression_allowed": snapshot["capital_hilton_proof_quieting_progress_state"]["automatic_progression_allowed"],
+            "openclaw_work_terrain_reconciliation_batch_present": snapshot["openclaw_work_terrain_reconciliation_batch"]["present"],
+            "openclaw_work_terrain_reconciliation_batch_status": snapshot["openclaw_work_terrain_reconciliation_batch"]["batch_status"],
+            "openclaw_work_terrain_completed_lanes_count": snapshot["openclaw_work_terrain_reconciliation_batch"]["completed_lanes_count"],
+            "openclaw_work_terrain_query_examples_count": snapshot["openclaw_work_terrain_query_contract"]["query_examples_count"],
+            "openclaw_work_terrain_relationship_examples_count": snapshot["openclaw_work_terrain_relationship_index"]["default_examples_count"],
+            "openclaw_work_terrain_classification_examples_count": snapshot["openclaw_work_terrain_classification_candidate"]["classification_vocabulary_count"],
+            "openclaw_work_terrain_gap_examples_count": snapshot["openclaw_work_terrain_gap_detector"]["gap_examples_count"],
+            "openclaw_work_terrain_negative_filters_count": snapshot["openclaw_work_terrain_gap_detector"]["negative_filters_count"],
+            "openclaw_work_terrain_built_status_validation_rule_count": snapshot["openclaw_work_terrain_gap_detector"]["built_status_validation_rule_count"],
             "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
             "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
             "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
@@ -2970,6 +3244,60 @@ def build_operator_map_bundle_contract(
             "action_authority_granted": snapshot["capital_hilton_proof_quieting_progress_state"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "openclaw_work_terrain_reconciliation_batch_integration": {
+            "summary_included_in_snapshot": snapshot["openclaw_work_terrain_reconciliation_batch"]["present"],
+            "batch_id": snapshot["openclaw_work_terrain_reconciliation_batch"]["batch_id"],
+            "batch_status": snapshot["openclaw_work_terrain_reconciliation_batch"]["batch_status"],
+            "completed_lanes_count": snapshot["openclaw_work_terrain_reconciliation_batch"]["completed_lanes_count"],
+            "next_expected_actor": snapshot["openclaw_work_terrain_reconciliation_batch"]["next_expected_actor"],
+            "metadata_first_posture": snapshot["openclaw_work_terrain_reconciliation_batch"]["metadata_first_posture"],
+            "action_authority_granted": snapshot["openclaw_work_terrain_reconciliation_batch"]["action_authority_granted"],
+            "individual_manifest_read_model_remains_proof_detail": True,
+        },
+        "openclaw_work_terrain_query_contract_integration": {
+            "summary_included_in_snapshot": snapshot["openclaw_work_terrain_query_contract"]["present"],
+            "query_examples_count": snapshot["openclaw_work_terrain_query_contract"]["query_examples_count"],
+            "chief_example_present": snapshot["openclaw_work_terrain_query_contract"]["chief_example_present"],
+            "capital_hilton_example_present": snapshot["openclaw_work_terrain_query_contract"]["capital_hilton_example_present"],
+            "security_pass_example_present": snapshot["openclaw_work_terrain_query_contract"]["security_pass_example_present"],
+            "niles_struna_example_present": snapshot["openclaw_work_terrain_query_contract"]["niles_struna_example_present"],
+            "repo_b_example_present": snapshot["openclaw_work_terrain_query_contract"]["repo_b_example_present"],
+            "body_ingestion_allowed": snapshot["openclaw_work_terrain_query_contract"]["body_ingestion_allowed"],
+            "semantic_review_allowed": snapshot["openclaw_work_terrain_query_contract"]["semantic_review_allowed"],
+            "action_authority_granted": snapshot["openclaw_work_terrain_query_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "openclaw_work_terrain_relationship_index_integration": {
+            "summary_included_in_snapshot": snapshot["openclaw_work_terrain_relationship_index"]["present"],
+            "relationship_types_count": snapshot["openclaw_work_terrain_relationship_index"]["relationship_types_count"],
+            "entity_types_count": snapshot["openclaw_work_terrain_relationship_index"]["entity_types_count"],
+            "default_examples_count": snapshot["openclaw_work_terrain_relationship_index"]["default_examples_count"],
+            "built_source_relationship_support_present": snapshot["openclaw_work_terrain_relationship_index"]["built_source_relationship_support_present"],
+            "action_authority_granted": snapshot["openclaw_work_terrain_relationship_index"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "openclaw_work_terrain_classification_candidate_integration": {
+            "summary_included_in_snapshot": snapshot["openclaw_work_terrain_classification_candidate"]["present"],
+            "classification_vocabulary_count": snapshot["openclaw_work_terrain_classification_candidate"]["classification_vocabulary_count"],
+            "consolidation_candidates_present": snapshot["openclaw_work_terrain_classification_candidate"]["consolidation_candidates_present"],
+            "supersession_candidates_present": snapshot["openclaw_work_terrain_classification_candidate"]["supersession_candidates_present"],
+            "archive_rewrite_delete_allowed": snapshot["openclaw_work_terrain_classification_candidate"]["archive_rewrite_delete_allowed"],
+            "future_ai_judgment_blocked_now": snapshot["openclaw_work_terrain_classification_candidate"]["future_ai_judgment_blocked_now"],
+            "old_prompts_not_truth_by_default": snapshot["openclaw_work_terrain_classification_candidate"]["old_prompts_not_truth_by_default"],
+            "generated_artifacts_not_source_truth": snapshot["openclaw_work_terrain_classification_candidate"]["generated_artifacts_not_source_truth"],
+            "action_authority_granted": snapshot["openclaw_work_terrain_classification_candidate"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "openclaw_work_terrain_gap_detector_integration": {
+            "summary_included_in_snapshot": snapshot["openclaw_work_terrain_gap_detector"]["present"],
+            "gap_examples_count": snapshot["openclaw_work_terrain_gap_detector"]["gap_examples_count"],
+            "priority_buckets_present": snapshot["openclaw_work_terrain_gap_detector"]["priority_buckets_present"],
+            "negative_filters_present": snapshot["openclaw_work_terrain_gap_detector"]["negative_filters_present"],
+            "built_status_validation_present": snapshot["openclaw_work_terrain_gap_detector"]["built_status_validation_present"],
+            "auto_archive_consolidation_stable_map_implementation_allowed": snapshot["openclaw_work_terrain_gap_detector"]["auto_archive_consolidation_stable_map_implementation_allowed"],
+            "action_authority_granted": snapshot["openclaw_work_terrain_gap_detector"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -3134,6 +3462,31 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         if isinstance(snapshot.get("capital_hilton_proof_quieting_progress_state"), dict)
         else {}
     )
+    work_terrain_batch = (
+        snapshot.get("openclaw_work_terrain_reconciliation_batch", {})
+        if isinstance(snapshot.get("openclaw_work_terrain_reconciliation_batch"), dict)
+        else {}
+    )
+    work_terrain_query = (
+        snapshot.get("openclaw_work_terrain_query_contract", {})
+        if isinstance(snapshot.get("openclaw_work_terrain_query_contract"), dict)
+        else {}
+    )
+    work_terrain_relationship = (
+        snapshot.get("openclaw_work_terrain_relationship_index", {})
+        if isinstance(snapshot.get("openclaw_work_terrain_relationship_index"), dict)
+        else {}
+    )
+    work_terrain_classification = (
+        snapshot.get("openclaw_work_terrain_classification_candidate", {})
+        if isinstance(snapshot.get("openclaw_work_terrain_classification_candidate"), dict)
+        else {}
+    )
+    work_terrain_gap = (
+        snapshot.get("openclaw_work_terrain_gap_detector", {})
+        if isinstance(snapshot.get("openclaw_work_terrain_gap_detector"), dict)
+        else {}
+    )
     capital_facts = (
         capital_hilton.get("candidate_facts")
         if isinstance(capital_hilton.get("candidate_facts"), list)
@@ -3280,6 +3633,62 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
         f"- Automatic progression allowed: `{str(progress_state.get('automatic_progression_allowed')).lower()}`",
         f"- Action authority granted: `{str(progress_state.get('action_authority_granted')).lower()}`",
         "- The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.",
+        "",
+        "## OpenClaw Work Terrain Reconciliation Summary",
+        "",
+        "- ELIWINSHIP: Work Terrain lets OpenClaw ask focused questions about its own notes, contracts, tests, generated read-models, receipts, stable-map sections, and surfaces without blindly reading raw bodies or treating old notes as current truth.",
+        f"- Summary present: `{str(work_terrain_batch.get('present')).lower()}`",
+        f"- Batch id: `{work_terrain_batch.get('batch_id')}`",
+        f"- Batch status: `{work_terrain_batch.get('batch_status')}`",
+        f"- Completed lanes: `{work_terrain_batch.get('completed_lanes_count')}`",
+        f"- Next expected actor: `{work_terrain_batch.get('next_expected_actor')}`",
+        f"- Metadata-first posture: `{str(work_terrain_batch.get('metadata_first_posture')).lower()}`",
+        f"- Action authority granted: `{str(work_terrain_batch.get('action_authority_granted')).lower()}`",
+        "",
+        "### Work Terrain Query Contract",
+        "",
+        f"- Summary present: `{str(work_terrain_query.get('present')).lower()}`",
+        f"- Query examples: `{work_terrain_query.get('query_examples_count')}`",
+        f"- Chief example present: `{str(work_terrain_query.get('chief_example_present')).lower()}`",
+        f"- Capital Hilton example present: `{str(work_terrain_query.get('capital_hilton_example_present')).lower()}`",
+        f"- Security Pass example present: `{str(work_terrain_query.get('security_pass_example_present')).lower()}`",
+        f"- Niles / Struna example present: `{str(work_terrain_query.get('niles_struna_example_present')).lower()}`",
+        f"- Repo B example present: `{str(work_terrain_query.get('repo_b_example_present')).lower()}`",
+        f"- Body ingestion allowed: `{str(work_terrain_query.get('body_ingestion_allowed')).lower()}`",
+        f"- Semantic review allowed: `{str(work_terrain_query.get('semantic_review_allowed')).lower()}`",
+        f"- Action authority granted: `{str(work_terrain_query.get('action_authority_granted')).lower()}`",
+        "",
+        "### Work Terrain Relationship Index",
+        "",
+        f"- Summary present: `{str(work_terrain_relationship.get('present')).lower()}`",
+        f"- Relationship types: `{work_terrain_relationship.get('relationship_types_count')}`",
+        f"- Entity types: `{work_terrain_relationship.get('entity_types_count')}`",
+        f"- Default examples: `{work_terrain_relationship.get('default_examples_count')}`",
+        f"- Repo B remains reference-only: `{str(work_terrain_relationship.get('repo_b_reference_only')).lower()}`",
+        f"- Action authority granted: `{str(work_terrain_relationship.get('action_authority_granted')).lower()}`",
+        "",
+        "### Work Terrain Classification / Staleness",
+        "",
+        f"- Summary present: `{str(work_terrain_classification.get('present')).lower()}`",
+        f"- Classification vocabulary: `{work_terrain_classification.get('classification_vocabulary_count')}`",
+        f"- Consolidation candidates present: `{str(work_terrain_classification.get('consolidation_candidates_present')).lower()}`",
+        f"- Supersession candidates present: `{str(work_terrain_classification.get('supersession_candidates_present')).lower()}`",
+        f"- Archive/rewrite/delete allowed: `{str(work_terrain_classification.get('archive_rewrite_delete_allowed')).lower()}`",
+        f"- Future AI judgment blocked now: `{str(work_terrain_classification.get('future_ai_judgment_blocked_now')).lower()}`",
+        f"- Old prompts not truth by default: `{str(work_terrain_classification.get('old_prompts_not_truth_by_default')).lower()}`",
+        f"- Generated artifacts not source truth: `{str(work_terrain_classification.get('generated_artifacts_not_source_truth')).lower()}`",
+        f"- Action authority granted: `{str(work_terrain_classification.get('action_authority_granted')).lower()}`",
+        "",
+        "### Work Terrain Gap Detector",
+        "",
+        f"- Summary present: `{str(work_terrain_gap.get('present')).lower()}`",
+        f"- Gap examples: `{work_terrain_gap.get('gap_examples_count')}`",
+        f"- Priority buckets present: `{str(work_terrain_gap.get('priority_buckets_present')).lower()}`",
+        f"- Negative filters present: `{str(work_terrain_gap.get('negative_filters_present')).lower()}`",
+        f"- Built-status validation present: `{str(work_terrain_gap.get('built_status_validation_present')).lower()}`",
+        f"- Auto archive/consolidation/stable-map promotion/implementation allowed: `{str(work_terrain_gap.get('auto_archive_consolidation_stable_map_implementation_allowed')).lower()}`",
+        f"- Action authority granted: `{str(work_terrain_gap.get('action_authority_granted')).lower()}`",
+        "- Gaps are review candidates, not automatic tasks. Old prompts, generated artifacts, reference-only material, premature concepts, and unsafe execution posture are filtered away from build-now interpretation.",
         "",
         "### Capital Hilton Candidate Facts",
         "",

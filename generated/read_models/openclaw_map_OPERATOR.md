@@ -2,16 +2,16 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_1d16299fe237710ae7e7`
-- Bundle hash: `sha256:2ae548ef98606c4e5a2cd927921ada19e2690abda3d8eab441659555811bf476`
+- Map generation: `map_718c9568c3aa9f280f09`
+- Bundle hash: `sha256:53657e1815e854d6d821ba4649f61f48b0d3fd8bcac6ce095cb0af5dbe9ecdc7`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `273`
+- Raw canonical expected: `279`
 - Raw observed: `218`
-- Raw missing expected: `55`
+- Raw missing expected: `61`
 - Raw hash mismatch: `4`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
@@ -133,6 +133,62 @@
 - Automatic progression allowed: `false`
 - Action authority granted: `false`
 - The batch adds backend rails for answers, protected references, Guardian metadata review, and proof progress. All proof gaps remain action-locked.
+
+## OpenClaw Work Terrain Reconciliation Summary
+
+- ELIWINSHIP: Work Terrain lets OpenClaw ask focused questions about its own notes, contracts, tests, generated read-models, receipts, stable-map sections, and surfaces without blindly reading raw bodies or treating old notes as current truth.
+- Summary present: `true`
+- Batch id: `openclaw_work_terrain_reconciliation_v0`
+- Batch status: `COMPLETE_PENDING_STABLE_MAP_IMPORT`
+- Completed lanes: `4`
+- Next expected actor: `mac_map_import_agent`
+- Metadata-first posture: `true`
+- Action authority granted: `false`
+
+### Work Terrain Query Contract
+
+- Summary present: `true`
+- Query examples: `5`
+- Chief example present: `true`
+- Capital Hilton example present: `true`
+- Security Pass example present: `true`
+- Niles / Struna example present: `true`
+- Repo B example present: `true`
+- Body ingestion allowed: `false`
+- Semantic review allowed: `false`
+- Action authority granted: `false`
+
+### Work Terrain Relationship Index
+
+- Summary present: `true`
+- Relationship types: `23`
+- Entity types: `24`
+- Default examples: `8`
+- Repo B remains reference-only: `true`
+- Action authority granted: `false`
+
+### Work Terrain Classification / Staleness
+
+- Summary present: `true`
+- Classification vocabulary: `21`
+- Consolidation candidates present: `true`
+- Supersession candidates present: `true`
+- Archive/rewrite/delete allowed: `false`
+- Future AI judgment blocked now: `true`
+- Old prompts not truth by default: `true`
+- Generated artifacts not source truth: `true`
+- Action authority granted: `false`
+
+### Work Terrain Gap Detector
+
+- Summary present: `true`
+- Gap examples: `12`
+- Priority buckets present: `true`
+- Negative filters present: `true`
+- Built-status validation present: `true`
+- Auto archive/consolidation/stable-map promotion/implementation allowed: `false`
+- Action authority granted: `false`
+- Gaps are review candidates, not automatic tasks. Old prompts, generated artifacts, reference-only material, premature concepts, and unsafe execution posture are filtered away from build-now interpretation.
 
 ### Capital Hilton Candidate Facts
 
