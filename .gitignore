@@ -852,6 +852,7 @@
 !openclaw_work_terrain_classification_candidate.py
 !openclaw_work_terrain_gap_detector.py
 !openclaw_work_terrain_reconciliation_batch_manifest.py
+!work_terrain_surface_map_build_cue_scout.py
 !scripts/build_external_ai_context_pack.py
 !scripts/query_external_ai_context_packs.py
 !scripts/export_external_ai_context_pack_read_model.py
@@ -890,6 +891,7 @@
 !scripts/export_openclaw_work_terrain_classification_candidate.py
 !scripts/export_openclaw_work_terrain_gap_detector.py
 !scripts/export_openclaw_work_terrain_reconciliation_batch_manifest.py
+!scripts/export_work_terrain_surface_map_build_cue_scout.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_steel_thread_radar.py
@@ -920,6 +922,7 @@
 !tests/test_openclaw_work_terrain_classification_candidate.py
 !tests/test_openclaw_work_terrain_gap_detector.py
 !tests/test_openclaw_work_terrain_reconciliation_batch_manifest.py
+!tests/test_work_terrain_surface_map_build_cue_scout.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
