@@ -1,0 +1,974 @@
+{
+  "approval_readiness_packet": {
+    "approval_packet_id": "capital_hilton_approval_readiness_four_show_invoice",
+    "approval_question": "After artifact, AP/email route, and Coupa/PO posture are resolved, approve the exact invoice packet and delivery channel?",
+    "approval_scope": "future_send_or_submit_after_artifact_delivery_route_and_po_are_resolved",
+    "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+    "coupa_readiness_ref": "capital_hilton_coupa_submission_readiness_four_show_invoice",
+    "email_draft_packet_ref": "capital_hilton_email_draft_packet_four_show_invoice",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "known_unknowns": [
+      "confirmed AP recipient or email route",
+      "whether Coupa is required, email is sufficient, or both are required",
+      "confirmed PO/reference or explicit no-PO posture",
+      "approved artifact path/hash",
+      "invoice number/reference"
+    ],
+    "next_safe_move": "Do not request approval until the packet has a real artifact and resolved delivery facts.",
+    "proof_refs": [
+      "generated/read_models/capital_hilton_actionable_review_packet.json",
+      "generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json",
+      "generated/read_models/capital_hilton_proof_resolution_batch_manifest.json"
+    ],
+    "stale_check_hash": "sha256:e862de4e1043b22bbdcd4fa50a15c69be479731bd66c998c94d786bbbd7d55be"
+  },
+  "artifact_readiness": {
+    "artifact_hash_if_exists": null,
+    "artifact_path_if_exists": null,
+    "artifact_readiness_id": "capital_hilton_invoice_artifact_readiness_four_show_packet",
+    "artifact_type": "invoice_pdf_or_excel",
+    "generation_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "missing_generator_reason": "Bounded inspection found read-model/approval rails and a legacy C-drive invoice brain, but no approved deterministic repo-local Capital Hilton PDF/Excel generator safe for this pass.",
+    "next_safe_move": "Build a deterministic artifact preview/generator rail before claiming an attachment path or hash."
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_external_authority_false": true,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "coupa_submit_allowed": false,
+    "credential_handling_allowed": false,
+    "email_draft_allowed": false,
+    "email_send_allowed": false,
+    "external_blocked_actions": [
+      "invoice artifact generation without approved deterministic generator",
+      "email draft creation or send",
+      "Coupa portal login, upload, save, or submit",
+      "browser/OAuth/account access",
+      "credential or session-material handling",
+      "approval submission",
+      "model/agent/tool/runtime/queue execution",
+      "raw private body ingestion",
+      "file cleanup/archive/promotion",
+      "network operation"
+    ],
+    "file_cleanup_archive_allowed": false,
+    "generated_read_model_export_allowed_by_repo_pattern": true,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "local_receipt_write_allowed_for_this_lane": true,
+    "local_state_update_allowed_for_this_lane": true,
+    "local_write_mode": "deterministic_generated_read_model_capture_harness_only",
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "production_ledger_receipt_write_allowed": false,
+    "production_workflow_state_write_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false,
+    "unsupported_generic_workflow_write_allowed": false
+  },
+  "bounded_inspection_result": {
+    "approved_coupa_submit_adapter_found": false,
+    "approved_deterministic_invoice_artifact_generator_found": false,
+    "approved_email_send_adapter_found": false,
+    "business_ops_generic_receipt_writer_found": true,
+    "business_ops_generic_receipt_writer_used": false,
+    "generic_receipt_writer_not_used_reason": "It is metadata-only and not a Capital Hilton workflow-state writer; this lane uses a deterministic generated read-model capture/readback harness instead of mutating the production ledger.",
+    "legacy_c_drive_invoice_brain_excluded_reason": "It writes outside the repo on a Windows-mounted billing path and sends replies; this pass cannot use that invoice generation or message dispatch path.",
+    "legacy_c_drive_invoice_brain_found": true,
+    "legacy_c_drive_invoice_brain_used": false,
+    "performance_dates_dry_run_writer_found": true
+  },
+  "capture_readback": {
+    "approval_send_prerequisites": {
+      "block_id": "approval_send_prerequisites",
+      "captured_value": {
+        "approval_bus_status": "NOT_REQUESTED_STALE_UNTIL_ARTIFACT_AND_DELIVERY_FACTS_EXIST",
+        "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+        "coupa_submit_status": "LOCKED",
+        "email_send_status": "LOCKED"
+      },
+      "readback_matches_capture": true,
+      "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "invoice_packet_readiness": {
+      "block_id": "invoice_packet_readiness",
+      "captured_value": {
+        "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+        "invoice_packet_status": "BUILT_FROM_CAPTURED_LOCAL_STATE",
+        "subtotal": {
+          "amount": 1600,
+          "currency": "USD"
+        }
+      },
+      "readback_matches_capture": true,
+      "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "performance_dates": {
+      "block_id": "performance_dates",
+      "captured_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "show_count": 4
+      },
+      "readback_matches_capture": true,
+      "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "po_coupa_proof_posture": {
+      "block_id": "po_coupa_proof_posture",
+      "captured_value": {
+        "ap_route_status": "CANDIDATE_CONTACTS_EXIST_BUT_UNCONFIRMED",
+        "coupa_required_status": "UNKNOWN_OR_NEEDS_DISCOVERY",
+        "discovery_target": "Find PO number, Coupa invoice/payment reference, AP route, or explicit no-PO posture without logging in, handling credentials, or reading raw private bodies.",
+        "known_po_reference": null,
+        "po_reference_status": "NEEDS_DISCOVERY"
+      },
+      "readback_matches_capture": true,
+      "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "rate_confirmation": {
+      "block_id": "rate_confirmation",
+      "captured_value": {
+        "confirmation_status": "captured_from_current_operator_instruction_and_existing_governed_fact",
+        "rate": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show",
+          "unit": "show"
+        }
+      },
+      "readback_matches_capture": true,
+      "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "readback_proves_openclaw_has_captured_values": true,
+    "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+  },
+  "captured_blocks": [
+    {
+      "block_id": "performance_dates",
+      "captured_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "show_count": 4
+      },
+      "downstream_invalidations": [
+        "invoice_packet_preview",
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview",
+        "prior_subtotal_preview",
+        "proof_po_coverage_status"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:c0337a5bb6820431e978",
+      "next_block_unlocked": "rate_confirmation",
+      "next_safe_move": "Use captured dates to derive rate/subtotal and keep proof coverage open.",
+      "previous_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "show_count": 2
+      },
+      "proof_status": "operator_confirmed_dates_not_external_proof",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.performance_dates.OPERATOR_PERFORMANCE_DATES_ADDITION.c0337a5bb6820431e978",
+      "receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "state_readback": {
+        "block_id": "performance_dates",
+        "captured_value": {
+          "performance_dates": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ],
+          "show_count": 4
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    {
+      "block_id": "rate_confirmation",
+      "captured_value": {
+        "confirmation_status": "captured_from_current_operator_instruction_and_existing_governed_fact",
+        "rate": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show",
+          "unit": "show"
+        }
+      },
+      "downstream_invalidations": [
+        "subtotal_preview",
+        "invoice_packet_preview",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:rate_confirmation:OPERATOR_RATE_CONFIRMATION:24e3d2cbc167521e4d6e",
+      "next_block_unlocked": "po_coupa_proof_posture",
+      "next_safe_move": "Recalculate subtotal from captured dates and rate.",
+      "previous_value": {
+        "candidate_rate_display": "$400 per gig",
+        "candidate_rate_source": "generated/read_models/cassandra_clara_fact_packet.json",
+        "rate": null
+      },
+      "proof_status": "operator_confirmed_rate_not_external_contract_proof",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.rate_confirmation.OPERATOR_RATE_CONFIRMATION.24e3d2cbc167521e4d6e",
+      "receipt_type": "OPERATOR_RATE_CONFIRMATION",
+      "state_readback": {
+        "block_id": "rate_confirmation",
+        "captured_value": {
+          "confirmation_status": "captured_from_current_operator_instruction_and_existing_governed_fact",
+          "rate": {
+            "amount": 400,
+            "currency": "USD",
+            "display": "$400/show",
+            "unit": "show"
+          }
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    {
+      "block_id": "po_coupa_proof_posture",
+      "captured_value": {
+        "ap_route_status": "CANDIDATE_CONTACTS_EXIST_BUT_UNCONFIRMED",
+        "coupa_required_status": "UNKNOWN_OR_NEEDS_DISCOVERY",
+        "discovery_target": "Find PO number, Coupa invoice/payment reference, AP route, or explicit no-PO posture without logging in, handling credentials, or reading raw private bodies.",
+        "known_po_reference": null,
+        "po_reference_status": "NEEDS_DISCOVERY"
+      },
+      "downstream_invalidations": [
+        "proof_po_coverage_status",
+        "coupa_submission_readiness",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:po_coupa_proof_posture:OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY:f41da55eed63da4d9435",
+      "next_block_unlocked": "invoice_packet_readiness",
+      "next_safe_move": "Run a future protected discovery/capture lane or collect operator-confirmed AP/Coupa facts.",
+      "previous_value": {
+        "po_reference_status": "unknown",
+        "source_ref": "generated/read_models/capital_hilton_actionable_review_packet.json"
+      },
+      "proof_status": "proof_or_po_reference_still_required_before_final_send_or_submit",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.po_coupa_proof_posture.OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY.f41da55eed63da4d9435",
+      "receipt_type": "OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY",
+      "state_readback": {
+        "block_id": "po_coupa_proof_posture",
+        "captured_value": {
+          "ap_route_status": "CANDIDATE_CONTACTS_EXIST_BUT_UNCONFIRMED",
+          "coupa_required_status": "UNKNOWN_OR_NEEDS_DISCOVERY",
+          "discovery_target": "Find PO number, Coupa invoice/payment reference, AP route, or explicit no-PO posture without logging in, handling credentials, or reading raw private bodies.",
+          "known_po_reference": null,
+          "po_reference_status": "NEEDS_DISCOVERY"
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    {
+      "block_id": "invoice_packet_readiness",
+      "captured_value": {
+        "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+        "invoice_packet_status": "BUILT_FROM_CAPTURED_LOCAL_STATE",
+        "subtotal": {
+          "amount": 1600,
+          "currency": "USD"
+        }
+      },
+      "downstream_invalidations": [
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:invoice_packet_readiness:SYSTEM_INVOICE_PACKET_READINESS_DERIVED:1573a243bfbf5237335a",
+      "next_block_unlocked": "approval_send_prerequisites",
+      "next_safe_move": "Build or authorize deterministic artifact generator before claiming a PDF/Excel attachment exists.",
+      "previous_value": {
+        "invoice_packet_status": "not_built_from_four_show_capture"
+      },
+      "proof_status": "packet_uses_operator_confirmed_inputs_but_delivery_proof_still_open",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.invoice_packet_readiness.SYSTEM_INVOICE_PACKET_READINESS_DERIVED.1573a243bfbf5237335a",
+      "receipt_type": "SYSTEM_INVOICE_PACKET_READINESS_DERIVED",
+      "state_readback": {
+        "block_id": "invoice_packet_readiness",
+        "captured_value": {
+          "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+          "invoice_packet_status": "BUILT_FROM_CAPTURED_LOCAL_STATE",
+          "subtotal": {
+            "amount": 1600,
+            "currency": "USD"
+          }
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    {
+      "block_id": "approval_send_prerequisites",
+      "captured_value": {
+        "approval_bus_status": "NOT_REQUESTED_STALE_UNTIL_ARTIFACT_AND_DELIVERY_FACTS_EXIST",
+        "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+        "coupa_submit_status": "LOCKED",
+        "email_send_status": "LOCKED"
+      },
+      "downstream_invalidations": [
+        "approval_packet_preview",
+        "send_readiness",
+        "coupa_submit_readiness"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:approval_send_prerequisites:SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED:d80d9e8642232021ec25",
+      "next_block_unlocked": "delivery_fact_capture_or_artifact_generator",
+      "next_safe_move": "Resolve artifact, delivery route, PO/Coupa posture, then create a non-stale approval packet.",
+      "previous_value": {
+        "approval_status": "not_ready"
+      },
+      "proof_status": "approval_and_send_remain_gated",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.approval_send_prerequisites.SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED.d80d9e8642232021ec25",
+      "receipt_type": "SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED",
+      "state_readback": {
+        "block_id": "approval_send_prerequisites",
+        "captured_value": {
+          "approval_bus_status": "NOT_REQUESTED_STALE_UNTIL_ARTIFACT_AND_DELIVERY_FACTS_EXIST",
+          "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+          "coupa_submit_status": "LOCKED",
+          "email_send_status": "LOCKED"
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    }
+  ],
+  "captured_blocks_by_id": {
+    "approval_send_prerequisites": {
+      "block_id": "approval_send_prerequisites",
+      "captured_value": {
+        "approval_bus_status": "NOT_REQUESTED_STALE_UNTIL_ARTIFACT_AND_DELIVERY_FACTS_EXIST",
+        "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+        "coupa_submit_status": "LOCKED",
+        "email_send_status": "LOCKED"
+      },
+      "downstream_invalidations": [
+        "approval_packet_preview",
+        "send_readiness",
+        "coupa_submit_readiness"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:approval_send_prerequisites:SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED:d80d9e8642232021ec25",
+      "next_block_unlocked": "delivery_fact_capture_or_artifact_generator",
+      "next_safe_move": "Resolve artifact, delivery route, PO/Coupa posture, then create a non-stale approval packet.",
+      "previous_value": {
+        "approval_status": "not_ready"
+      },
+      "proof_status": "approval_and_send_remain_gated",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.approval_send_prerequisites.SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED.d80d9e8642232021ec25",
+      "receipt_type": "SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED",
+      "state_readback": {
+        "block_id": "approval_send_prerequisites",
+        "captured_value": {
+          "approval_bus_status": "NOT_REQUESTED_STALE_UNTIL_ARTIFACT_AND_DELIVERY_FACTS_EXIST",
+          "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+          "coupa_submit_status": "LOCKED",
+          "email_send_status": "LOCKED"
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    "invoice_packet_readiness": {
+      "block_id": "invoice_packet_readiness",
+      "captured_value": {
+        "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+        "invoice_packet_status": "BUILT_FROM_CAPTURED_LOCAL_STATE",
+        "subtotal": {
+          "amount": 1600,
+          "currency": "USD"
+        }
+      },
+      "downstream_invalidations": [
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:invoice_packet_readiness:SYSTEM_INVOICE_PACKET_READINESS_DERIVED:1573a243bfbf5237335a",
+      "next_block_unlocked": "approval_send_prerequisites",
+      "next_safe_move": "Build or authorize deterministic artifact generator before claiming a PDF/Excel attachment exists.",
+      "previous_value": {
+        "invoice_packet_status": "not_built_from_four_show_capture"
+      },
+      "proof_status": "packet_uses_operator_confirmed_inputs_but_delivery_proof_still_open",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.invoice_packet_readiness.SYSTEM_INVOICE_PACKET_READINESS_DERIVED.1573a243bfbf5237335a",
+      "receipt_type": "SYSTEM_INVOICE_PACKET_READINESS_DERIVED",
+      "state_readback": {
+        "block_id": "invoice_packet_readiness",
+        "captured_value": {
+          "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+          "invoice_packet_status": "BUILT_FROM_CAPTURED_LOCAL_STATE",
+          "subtotal": {
+            "amount": 1600,
+            "currency": "USD"
+          }
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    "performance_dates": {
+      "block_id": "performance_dates",
+      "captured_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "show_count": 4
+      },
+      "downstream_invalidations": [
+        "invoice_packet_preview",
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview",
+        "prior_subtotal_preview",
+        "proof_po_coverage_status"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:c0337a5bb6820431e978",
+      "next_block_unlocked": "rate_confirmation",
+      "next_safe_move": "Use captured dates to derive rate/subtotal and keep proof coverage open.",
+      "previous_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "show_count": 2
+      },
+      "proof_status": "operator_confirmed_dates_not_external_proof",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.performance_dates.OPERATOR_PERFORMANCE_DATES_ADDITION.c0337a5bb6820431e978",
+      "receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "state_readback": {
+        "block_id": "performance_dates",
+        "captured_value": {
+          "performance_dates": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ],
+          "show_count": 4
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    "po_coupa_proof_posture": {
+      "block_id": "po_coupa_proof_posture",
+      "captured_value": {
+        "ap_route_status": "CANDIDATE_CONTACTS_EXIST_BUT_UNCONFIRMED",
+        "coupa_required_status": "UNKNOWN_OR_NEEDS_DISCOVERY",
+        "discovery_target": "Find PO number, Coupa invoice/payment reference, AP route, or explicit no-PO posture without logging in, handling credentials, or reading raw private bodies.",
+        "known_po_reference": null,
+        "po_reference_status": "NEEDS_DISCOVERY"
+      },
+      "downstream_invalidations": [
+        "proof_po_coverage_status",
+        "coupa_submission_readiness",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:po_coupa_proof_posture:OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY:f41da55eed63da4d9435",
+      "next_block_unlocked": "invoice_packet_readiness",
+      "next_safe_move": "Run a future protected discovery/capture lane or collect operator-confirmed AP/Coupa facts.",
+      "previous_value": {
+        "po_reference_status": "unknown",
+        "source_ref": "generated/read_models/capital_hilton_actionable_review_packet.json"
+      },
+      "proof_status": "proof_or_po_reference_still_required_before_final_send_or_submit",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.po_coupa_proof_posture.OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY.f41da55eed63da4d9435",
+      "receipt_type": "OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY",
+      "state_readback": {
+        "block_id": "po_coupa_proof_posture",
+        "captured_value": {
+          "ap_route_status": "CANDIDATE_CONTACTS_EXIST_BUT_UNCONFIRMED",
+          "coupa_required_status": "UNKNOWN_OR_NEEDS_DISCOVERY",
+          "discovery_target": "Find PO number, Coupa invoice/payment reference, AP route, or explicit no-PO posture without logging in, handling credentials, or reading raw private bodies.",
+          "known_po_reference": null,
+          "po_reference_status": "NEEDS_DISCOVERY"
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    },
+    "rate_confirmation": {
+      "block_id": "rate_confirmation",
+      "captured_value": {
+        "confirmation_status": "captured_from_current_operator_instruction_and_existing_governed_fact",
+        "rate": {
+          "amount": 400,
+          "currency": "USD",
+          "display": "$400/show",
+          "unit": "show"
+        }
+      },
+      "downstream_invalidations": [
+        "subtotal_preview",
+        "invoice_packet_preview",
+        "approval_packet_preview"
+      ],
+      "idempotency_key": "steel_thread:capital_hilton_invoice_workflow_session:rate_confirmation:OPERATOR_RATE_CONFIRMATION:24e3d2cbc167521e4d6e",
+      "next_block_unlocked": "po_coupa_proof_posture",
+      "next_safe_move": "Recalculate subtotal from captured dates and rate.",
+      "previous_value": {
+        "candidate_rate_display": "$400 per gig",
+        "candidate_rate_source": "generated/read_models/cassandra_clara_fact_packet.json",
+        "rate": null
+      },
+      "proof_status": "operator_confirmed_rate_not_external_contract_proof",
+      "receipt_ref": "local_read_model_receipt.capital_hilton_invoice_workflow_session.rate_confirmation.OPERATOR_RATE_CONFIRMATION.24e3d2cbc167521e4d6e",
+      "receipt_type": "OPERATOR_RATE_CONFIRMATION",
+      "state_readback": {
+        "block_id": "rate_confirmation",
+        "captured_value": {
+          "confirmation_status": "captured_from_current_operator_instruction_and_existing_governed_fact",
+          "rate": {
+            "amount": 400,
+            "currency": "USD",
+            "display": "$400/show",
+            "unit": "show"
+          }
+        },
+        "readback_matches_capture": true,
+        "readback_source": "capital_hilton_invoice_delivery_steel_thread",
+        "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+      }
+    }
+  },
+  "contract_id": "capital_hilton_invoice_delivery_steel_thread_v0",
+  "contract_status": "DETERMINISTIC_LOCAL_CAPTURE_READBACK_AND_DELIVERY_RAIL",
+  "coupa_submission_readiness": {
+    "coupa_readiness_id": "capital_hilton_coupa_submission_readiness_four_show_invoice",
+    "coupa_required_status": "UNKNOWN_OR_LIKELY_PENDING_OPERATOR_COUPA_CONFIRMATION",
+    "credential_handling_allowed": false,
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "known_fields": {
+      "client": "Capital Hilton",
+      "dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "rate": "$400/show",
+      "subtotal": "$1,600",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    },
+    "missing_fields": [
+      "confirmed Coupa/AP route",
+      "confirmed PO/reference or explicit no-PO posture",
+      "approved artifact path/hash",
+      "invoice number/reference",
+      "protected credential/access broker",
+      "operator approval receipt for submission scope"
+    ],
+    "next_safe_move": "Operator confirms PO/Coupa route manually or authorizes a future protected no-submit discovery lane.",
+    "portal_route_status": "COUPA_CONTEXT_EXISTS_BUT_NO_PORTAL_ACCESS_AUTHORITY",
+    "protected_access_required": true,
+    "required_fields": [
+      "confirmed Coupa/AP route",
+      "confirmed PO or explicit no-PO posture",
+      "approved invoice artifact path/hash",
+      "invoice number or accepted portal-generated invoice reference",
+      "approved delivery/submission scope",
+      "protected credential/access broker before any portal work",
+      "no-mutation receipt boundary before any supervised portal lane"
+    ],
+    "submit_adapter_status": "NO_APPROVED_PROTECTED_SUBMIT_ADAPTER",
+    "submit_blocker": "Coupa submission would require real portal/account access, credential handling, artifact upload fields, PO/reference confirmation, and explicit approval.",
+    "submit_readiness": "BLOCKED_MISSING_PO_ARTIFACT_APPROVAL_CREDENTIAL_GATE_AND_SUBMIT_ADAPTER"
+  },
+  "delivery_blocker_report": {
+    "blocker_report_id": "capital_hilton_delivery_blockers_four_show_invoice",
+    "blocker_type": "MIXED_INTERNAL_ARTIFACT_RAIL_AND_EXTERNAL_OPERATOR_FACTS",
+    "closest_completed_state": "Local generated read-model now captures four performance dates, $400/show rate, $1,600 subtotal, PO/Coupa needs-discovery posture, invoice packet inputs, and delivery rails.",
+    "exact_blockers": [
+      {
+        "blocker_id": "missing_safe_invoice_artifact_generator",
+        "blocker_type": "INTERNAL_BUILD_RAIL_REQUIRED",
+        "description": "No approved deterministic Capital Hilton invoice PDF/Excel generator produced an artifact path/hash in this pass.",
+        "next_safe_move": "Build a deterministic artifact generator/preview rail from the captured invoice packet."
+      },
+      {
+        "blocker_id": "missing_confirmed_delivery_route",
+        "blocker_type": "BLOCKED_MISSING_OPERATOR_FACT",
+        "description": "Email/AP recipient and whether email, Coupa, or both are required remain unconfirmed.",
+        "next_safe_move": "Operator confirms AP/email route and delivery channel requirement."
+      },
+      {
+        "blocker_id": "missing_po_coupa_reference",
+        "blocker_type": "BLOCKED_EXTERNAL_GATE",
+        "description": "PO/reference and Coupa route may require portal/account access or operator-confirmed proof.",
+        "next_safe_move": "Operator checks Coupa manually or authorizes a future protected no-submit discovery lane."
+      },
+      {
+        "blocker_id": "approval_not_ready",
+        "blocker_type": "BLOCKED_BY_STALE_OR_INCOMPLETE_APPROVAL_PACKET",
+        "description": "Approval cannot be atomic until artifact, delivery route, and PO/Coupa posture are resolved.",
+        "next_safe_move": "Regenerate approval packet after dependencies are real and current."
+      }
+    ],
+    "final_delivery_status": "BLOCKED_MISSING_OPERATOR_FACT",
+    "manual_fallback_available": true,
+    "next_required_build_step": "Build deterministic invoice artifact generator/preview, then collect AP/Coupa route facts.",
+    "next_safe_move": "Use the local packet for manual preparation while OpenClaw builds the safe artifact/delivery rails."
+  },
+  "delivery_requirements": {
+    "ap_route_or_recipient_known": "CANDIDATE_EXISTS_NOT_CONFIRMED",
+    "both_required": "UNKNOWN",
+    "coupa_required": "UNKNOWN_OR_LIKELY_PENDING_OPERATOR_COUPA_CONFIRMATION",
+    "email_required": "UNKNOWN",
+    "missing_fields": [
+      "confirmed Coupa/AP route",
+      "confirmed PO/reference or explicit no-PO posture",
+      "approved artifact path/hash",
+      "invoice number/reference",
+      "protected credential/access broker",
+      "operator approval receipt for submission scope",
+      "confirmed email/AP recipient",
+      "approved artifact path/hash"
+    ]
+  },
+  "doctrine": {
+    "capture_is_not_external_execution": true,
+    "drafts_are_not_truth": true,
+    "gates_execute_later": true,
+    "local_read_model_capture_is_used_for_this_steel_thread": true,
+    "receipts_prove_state_changes": true
+  },
+  "email_draft_packet": {
+    "approval_required": true,
+    "attachment_refs": [],
+    "body": "No sendable email draft was created. After recipient/AP route and invoice artifact are confirmed, a future draft may reference the four-show $1,600 invoice packet.",
+    "email_draft_packet_id": "capital_hilton_email_draft_packet_four_show_invoice",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "next_safe_move": "Confirm AP recipient and artifact first; then create a governed approval packet before any send lane.",
+    "recipient_status": "CANDIDATE_AP_CONTACTS_EXIST_BUT_OPERATOR_CONFIRMATION_REQUIRED",
+    "recipients": [],
+    "send_adapter_status": "NO_APPROVED_SEND_ADAPTER_FOR_THIS_STEEL_THREAD",
+    "send_blocker": "Recipient/AP route is not confirmed, no artifact exists, approval is not ready, and no approved email/Gmail send adapter authority exists.",
+    "send_readiness": "BLOCKED_MISSING_CONFIRMED_RECIPIENT_ARTIFACT_APPROVAL_AND_SEND_ADAPTER",
+    "subject": "Capital Hilton invoice for May 2026 performances - draft subject preview only"
+  },
+  "final_delivery_statuses": [
+    "SENT",
+    "SUBMITTED_TO_COUPA",
+    "READY_FOR_OPERATOR_APPROVAL",
+    "READY_FOR_MANUAL_SEND",
+    "READY_FOR_MANUAL_COUPA_SUBMISSION",
+    "BLOCKED_MISSING_OPERATOR_FACT",
+    "BLOCKED_EXTERNAL_GATE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "generated_at": "2026-05-24T02:32:58+00:00",
+  "idempotency_proof": {
+    "captured_block_count": 5,
+    "invoice_packet_stale_check_hash": "sha256:e862de4e1043b22bbdcd4fa50a15c69be479731bd66c998c94d786bbbd7d55be",
+    "no_duplicate_capture_keys": true,
+    "same_performance_dates_block_same_key": true,
+    "same_rate_block_same_key": true,
+    "unique_idempotency_keys": 5
+  },
+  "invoice_packet": {
+    "artifact_candidate_refs": [],
+    "client": "Capital Hilton",
+    "dates": [
+      "2026-05-08",
+      "2026-05-15",
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "delivery_requirements": {
+      "ap_route_or_recipient_known": "CANDIDATE_EXISTS_NOT_CONFIRMED",
+      "both_required": "UNKNOWN",
+      "coupa_required": "UNKNOWN_BUT_EXISTING_REVIEW_PACKET_SAYS_COUPA_CONFIRMATION_REQUIRED",
+      "email_required": "UNKNOWN",
+      "operator_fact_required_before_send": true
+    },
+    "invoice_packet_id": "capital_hilton_invoice_packet_four_show_local_capture",
+    "next_safe_move": "Use this packet as the local invoice input; build artifact and delivery facts before send/submit.",
+    "proof_po_posture": {
+      "coupa_or_ap_route_required": "UNKNOWN_PENDING_DISCOVERY",
+      "known_po_reference": null,
+      "proof_still_required": true,
+      "status": "NEEDS_DISCOVERY"
+    },
+    "rate": {
+      "amount": 400,
+      "currency": "USD",
+      "display": "$400/show",
+      "unit": "show"
+    },
+    "stale_check_hash": "sha256:e862de4e1043b22bbdcd4fa50a15c69be479731bd66c998c94d786bbbd7d55be",
+    "subtotal": {
+      "amount": 1600,
+      "calculation": "4 shows x $400/show",
+      "currency": "USD"
+    }
+  },
+  "invoice_packets_by_id": {
+    "capital_hilton_invoice_packet_four_show_local_capture": {
+      "artifact_candidate_refs": [],
+      "client": "Capital Hilton",
+      "dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "delivery_requirements": {
+        "ap_route_or_recipient_known": "CANDIDATE_EXISTS_NOT_CONFIRMED",
+        "both_required": "UNKNOWN",
+        "coupa_required": "UNKNOWN_BUT_EXISTING_REVIEW_PACKET_SAYS_COUPA_CONFIRMATION_REQUIRED",
+        "email_required": "UNKNOWN",
+        "operator_fact_required_before_send": true
+      },
+      "invoice_packet_id": "capital_hilton_invoice_packet_four_show_local_capture",
+      "next_safe_move": "Use this packet as the local invoice input; build artifact and delivery facts before send/submit.",
+      "proof_po_posture": {
+        "coupa_or_ap_route_required": "UNKNOWN_PENDING_DISCOVERY",
+        "known_po_reference": null,
+        "proof_still_required": true,
+        "status": "NEEDS_DISCOVERY"
+      },
+      "rate": {
+        "amount": 400,
+        "currency": "USD",
+        "display": "$400/show",
+        "unit": "show"
+      },
+      "stale_check_hash": "sha256:e862de4e1043b22bbdcd4fa50a15c69be479731bd66c998c94d786bbbd7d55be",
+      "subtotal": {
+        "amount": 1600,
+        "calculation": "4 shows x $400/show",
+        "currency": "USD"
+      }
+    }
+  },
+  "machine_proof": {
+    "all_external_authority_false": true,
+    "approval_readiness_packet_exists": true,
+    "artifact_readiness_exists": true,
+    "captured_block_state_model_present": true,
+    "content_hash": "sha256:a740fbcc9aad49a9e55c84ac1c93245e07d6b0a9781e3f2f5cc8985f066a5c7d",
+    "coupa_submission_readiness_exists": true,
+    "credential_material_included": false,
+    "email_draft_packet_exists": true,
+    "exact_external_or_operator_blocker_named": true,
+    "final_delivery_status_exists": true,
+    "idempotency_no_duplicate_write_behavior": true,
+    "invoice_packet_exists_from_captured_state": true,
+    "missing_internal_rails_are_readiness_packets": true,
+    "no_fake_artifact_path_or_hash": true,
+    "no_fake_coupa_packet_ready": true,
+    "no_fake_email_draft_or_send": true,
+    "no_fake_sent_status": true,
+    "performance_dates_captured_readback_four_dates": true,
+    "po_proof_posture_captured_needs_discovery": true,
+    "rate_captured_readback_400": true,
+    "raw_private_content_included": false,
+    "steel_thread_model_present": true,
+    "subtotal_is_1600": true
+  },
+  "model_schemas": {
+    "approval_readiness_packet": {
+      "model_name": "CapitalHiltonApprovalReadinessPacket",
+      "required_fields": [
+        "approval_packet_id",
+        "invoice_packet_ref",
+        "email_draft_packet_ref",
+        "coupa_readiness_ref",
+        "approval_scope",
+        "approval_question",
+        "known_unknowns",
+        "proof_refs",
+        "stale_check_hash",
+        "approval_status",
+        "next_safe_move"
+      ]
+    },
+    "artifact_readiness": {
+      "model_name": "CapitalHiltonInvoiceArtifactReadiness",
+      "required_fields": [
+        "artifact_readiness_id",
+        "invoice_packet_ref",
+        "artifact_type",
+        "generation_status",
+        "artifact_path_if_exists",
+        "artifact_hash_if_exists",
+        "missing_generator_reason",
+        "next_safe_move"
+      ]
+    },
+    "captured_block_state": {
+      "model_name": "CapitalHiltonCapturedBlockState",
+      "required_fields": [
+        "block_id",
+        "previous_value",
+        "captured_value",
+        "receipt_type",
+        "receipt_ref",
+        "state_readback",
+        "proof_status",
+        "downstream_invalidations",
+        "next_block_unlocked",
+        "idempotency_key",
+        "next_safe_move"
+      ]
+    },
+    "coupa_submission_readiness": {
+      "model_name": "CapitalHiltonCoupaSubmissionReadiness",
+      "required_fields": [
+        "coupa_readiness_id",
+        "invoice_packet_ref",
+        "coupa_required_status",
+        "portal_route_status",
+        "required_fields",
+        "known_fields",
+        "missing_fields",
+        "protected_access_required",
+        "credential_handling_allowed",
+        "submit_adapter_status",
+        "submit_readiness",
+        "submit_blocker",
+        "next_safe_move"
+      ]
+    },
+    "delivery_blocker_report": {
+      "model_name": "CapitalHiltonDeliveryBlockerReport",
+      "required_fields": [
+        "blocker_report_id",
+        "final_delivery_status",
+        "exact_blockers",
+        "blocker_type",
+        "closest_completed_state",
+        "next_required_build_step",
+        "manual_fallback_available",
+        "next_safe_move"
+      ]
+    },
+    "email_draft_packet": {
+      "model_name": "CapitalHiltonEmailDraftPacket",
+      "required_fields": [
+        "email_draft_packet_id",
+        "invoice_packet_ref",
+        "recipient_status",
+        "recipients",
+        "subject",
+        "body",
+        "attachment_refs",
+        "approval_required",
+        "send_adapter_status",
+        "send_readiness",
+        "send_blocker",
+        "next_safe_move"
+      ]
+    },
+    "invoice_packet": {
+      "model_name": "CapitalHiltonInvoicePacket",
+      "required_fields": [
+        "invoice_packet_id",
+        "client",
+        "dates",
+        "rate",
+        "subtotal",
+        "proof_po_posture",
+        "delivery_requirements",
+        "artifact_candidate_refs",
+        "stale_check_hash",
+        "next_safe_move"
+      ]
+    },
+    "steel_thread": {
+      "model_name": "CapitalHiltonInvoiceDeliverySteelThread",
+      "required_fields": [
+        "workflow_session_ref",
+        "captured_blocks",
+        "capture_receipt_refs",
+        "invoice_packet_ref",
+        "artifact_status",
+        "email_delivery_status",
+        "coupa_submission_status",
+        "approval_status",
+        "final_delivery_status",
+        "exact_blockers",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_summary": "Capital Hilton now has a deterministic local four-show invoice packet: dates 2026-05-08, 2026-05-15, 2026-05-22, 2026-05-29 at $400/show, subtotal $1,600. The packet stops at real artifact, AP/Coupa, and approval gates.",
+  "read_model_id": "capital_hilton_invoice_delivery_steel_thread",
+  "relationship_to_existing_rails": {
+    "capital_hilton_actionable_review_packet": "source for current PO/Coupa/recipient blocker posture",
+    "capital_hilton_coupa_po_retrieval_automation_candidate": "source for protected Coupa/PO future discovery posture",
+    "capital_hilton_performance_dates_capture_boundary": "source capture candidate for May 22/29 date addition",
+    "capital_hilton_performance_dates_dry_run_writer": "reused for performance-date payload and idempotency semantics",
+    "capital_hilton_performance_dates_receipt_writer_contract": "source deterministic receipt/state target",
+    "workflow_session_channel_projection_approval_bus_contract": "future approval must be one canonical object and stale-safe"
+  },
+  "schema_version": "capital_hilton_invoice_delivery_steel_thread_v0",
+  "steel_thread": {
+    "approval_status": "NOT_READY_MISSING_ARTIFACT_DELIVERY_ROUTE_AND_PO_POSTURE",
+    "artifact_status": "BLOCKED_MISSING_SAFE_LOCAL_GENERATOR",
+    "capture_receipt_refs": [
+      "local_read_model_receipt.capital_hilton_invoice_workflow_session.performance_dates.OPERATOR_PERFORMANCE_DATES_ADDITION.c0337a5bb6820431e978",
+      "local_read_model_receipt.capital_hilton_invoice_workflow_session.rate_confirmation.OPERATOR_RATE_CONFIRMATION.24e3d2cbc167521e4d6e",
+      "local_read_model_receipt.capital_hilton_invoice_workflow_session.po_coupa_proof_posture.OPERATOR_PO_COUPA_POSTURE_NEEDS_DISCOVERY.f41da55eed63da4d9435",
+      "local_read_model_receipt.capital_hilton_invoice_workflow_session.invoice_packet_readiness.SYSTEM_INVOICE_PACKET_READINESS_DERIVED.1573a243bfbf5237335a",
+      "local_read_model_receipt.capital_hilton_invoice_workflow_session.approval_send_prerequisites.SYSTEM_APPROVAL_SEND_PREREQUISITES_DERIVED.d80d9e8642232021ec25"
+    ],
+    "captured_blocks": [
+      "performance_dates",
+      "rate_confirmation",
+      "po_coupa_proof_posture",
+      "invoice_packet_readiness",
+      "approval_send_prerequisites"
+    ],
+    "coupa_submission_status": "BLOCKED_MISSING_PO_ARTIFACT_APPROVAL_CREDENTIAL_GATE_AND_SUBMIT_ADAPTER",
+    "email_delivery_status": "BLOCKED_MISSING_CONFIRMED_RECIPIENT_ARTIFACT_APPROVAL_AND_SEND_ADAPTER",
+    "exact_blockers": [
+      "missing_safe_invoice_artifact_generator",
+      "missing_confirmed_delivery_route",
+      "missing_po_coupa_reference",
+      "approval_not_ready"
+    ],
+    "final_delivery_status": "BLOCKED_MISSING_OPERATOR_FACT",
+    "invoice_packet_ref": "capital_hilton_invoice_packet_four_show_local_capture",
+    "next_safe_move": "Use the local packet for manual preparation while OpenClaw builds the safe artifact/delivery rails.",
+    "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+  }
+}
