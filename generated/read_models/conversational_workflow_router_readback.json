@@ -1,0 +1,536 @@
+{
+  "active_blockers_by_id": {
+    "router_intake_blocker_unsupported_request_shape": {
+      "blocker_id": "router_intake_blocker_unsupported_request_shape",
+      "blocker_type": "UNSUPPORTED_REQUEST_SHAPE",
+      "condition": "No Mission Control chat request is available at /mnt/e/openclaw/mission_control_capture_requests/inbox.",
+      "elioperator_warning": "ELIOPERATOR: No Mission Control chat request is available at /mnt/e/openclaw/mission_control_capture_requests/inbox.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "NEEDS_INPUT"
+    }
+  },
+  "approved_inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_attachment_allowed": false,
+    "live_cassandra_draft_allowed": false,
+    "live_chat_parser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_draft_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_guardian_approval_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_package_creation_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_procedure_memory_write_allowed": false,
+    "live_router_dispatch_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_CHAT_ROUTER_INTAKE_READBACK_RAIL",
+  "generated_at": "2026-05-24T22:37:17+00:00",
+  "intake_request": {
+    "authority_boundary": {
+      "agent_activation_allowed": false,
+      "approval_submission_allowed": false,
+      "browser_automation_allowed": false,
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "gmail_access_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_attachment_allowed": false,
+      "live_cassandra_draft_allowed": false,
+      "live_chat_parser_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_draft_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_guardian_approval_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_model_call_allowed": false,
+      "live_package_creation_allowed": false,
+      "live_payment_tracking_write_allowed": false,
+      "live_procedure_memory_write_allowed": false,
+      "live_router_dispatch_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "model_call_allowed": false,
+      "network_operation_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_body_ingestion_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "telegram_send_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "client_ref": "unknown",
+    "created_at": "2026-05-24T22:37:17+00:00",
+    "idempotency_key": "",
+    "lane_ref": "unknown",
+    "operator_message": "",
+    "origin_surface": "none",
+    "payload_hash": "",
+    "privacy_class": "no_request",
+    "request_id": "no_mission_control_chat_request_available",
+    "sanitized_message_summary": "No mission_control_chat_request_*.json file was found in the approved inbox.",
+    "source_channel": "none",
+    "tenant_ref": "unknown",
+    "workflow_ref": "unknown",
+    "workflow_type": "unknown_needs_framing",
+    "world_ref": "unknown"
+  },
+  "intake_result": {
+    "backend_package_request_ref": "router_backend_package_target_40d61df519dd9ced5d7d",
+    "duplicate_status": "NOT_PERSISTED_NO_DUPLICATE_CHECK",
+    "external_authority": false,
+    "human_card_readback_ref": "router_readback_blocked_2efb6548b88c672cd25e",
+    "intake_result_id": "router_intake_result_blocked_2efb6548b88c672cd25e",
+    "model_parser_available": false,
+    "next_safe_move": "Fix the request shape and retry.",
+    "operator_review_required": true,
+    "parse_status": "NEEDS_MORE_DETAIL",
+    "parser_mode": "deterministic_draft_router",
+    "routed_intent_ref": null,
+    "source_request_ref": "no_mission_control_chat_request_available"
+  },
+  "machine_proof": {
+    "all_live_authority_flags_false": true,
+    "backend_package_type_workflow_memory_proposal_if_routed": true,
+    "can_create_backend_package_now": false,
+    "capital_hilton_cards_available_if_routed": true,
+    "content_hash": "sha256:4f0b1967f44e8548f60c2412460941b97a2037409c0bb3e49b0f002bfbdfbcdd",
+    "credential_handling": false,
+    "credentials_or_secrets_included": false,
+    "external_action_performed": false,
+    "external_actions_locked": true,
+    "external_authority": false,
+    "git_push_pull_fetch_run": false,
+    "intake_request_model_present": true,
+    "intake_result_model_present": true,
+    "mac_sync_import_run": false,
+    "machine_contract_visible_to_operator": false,
+    "message_treated_as_truth": false,
+    "mission_control_swift_changed": false,
+    "model_parser_available": false,
+    "network_used": false,
+    "operator_review_required": true,
+    "raw_body_ingestion": false,
+    "raw_private_bodies_included": false,
+    "raw_sensitive_fixture_values_included": false,
+    "router_backend_package_target_model_present": true,
+    "router_human_card_model_present": true,
+    "router_intake_blocker_model_present": true,
+    "router_intake_receipt_model_present": true,
+    "router_readback_package_model_present": true,
+    "workflow_type_invoice_delivery_if_routed": true
+  },
+  "model_schemas": {
+    "conversational_workflow_router_intake_request": {
+      "required_fields": [
+        "request_id",
+        "workflow_ref",
+        "workflow_type",
+        "world_ref",
+        "lane_ref",
+        "client_ref",
+        "tenant_ref",
+        "origin_surface",
+        "source_channel",
+        "operator_message",
+        "sanitized_message_summary",
+        "privacy_class",
+        "idempotency_key",
+        "payload_hash",
+        "authority_boundary",
+        "created_at"
+      ]
+    },
+    "conversational_workflow_router_intake_result": {
+      "parse_statuses": [
+        "ROUTED_DRAFT_READY",
+        "NEEDS_MORE_DETAIL",
+        "DUPLICATE_NOOP",
+        "BLOCKED_UNSUPPORTED_SHAPE",
+        "REJECTED_INVALID_REQUEST",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "intake_result_id",
+        "source_request_ref",
+        "parse_status",
+        "parser_mode",
+        "model_parser_available",
+        "routed_intent_ref",
+        "human_card_readback_ref",
+        "backend_package_request_ref",
+        "duplicate_status",
+        "operator_review_required",
+        "external_authority",
+        "next_safe_move"
+      ]
+    },
+    "router_backend_package_target": {
+      "required_fields": [
+        "package_target_id",
+        "routed_intent_ref",
+        "package_type",
+        "workflow_type",
+        "role_targets",
+        "required_inputs",
+        "required_artifacts",
+        "required_proofs",
+        "required_gates",
+        "blocked_actions",
+        "ready_actions",
+        "output_readback_target",
+        "can_create_now",
+        "create_block_reason",
+        "next_safe_move"
+      ]
+    },
+    "router_human_card": {
+      "required_fields": [
+        "card_id",
+        "card_type",
+        "title",
+        "bullets",
+        "operator_actions",
+        "truth_status",
+        "proof_status",
+        "next_safe_move"
+      ],
+      "truth_statuses": [
+        "DRAFT_UNDERSTANDING_NOT_TRUTH",
+        "NEEDS_OPERATOR_REVIEW",
+        "BACKEND_READBACK_REQUIRED",
+        "PROOF_REQUIRED",
+        "LOCKED_EXTERNAL_ACTION"
+      ]
+    },
+    "router_intake_blocker": {
+      "blocker_types": [
+        "MESSAGE_TREATED_AS_TRUTH",
+        "MODEL_PARSER_CLAIMED_BUT_NOT_AVAILABLE",
+        "AGENT_DISPATCH_ATTEMPTED",
+        "PROCEDURE_MEMORY_WRITE_ATTEMPTED",
+        "WORKFLOW_RUN_ATTEMPTED",
+        "EXTERNAL_ACTION_ATTEMPTED",
+        "RAW_PII_IN_NORMAL_READMODEL",
+        "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+        "MISSING_IDEMPOTENCY_KEY",
+        "MISSING_PAYLOAD_HASH",
+        "UNSUPPORTED_REQUEST_SHAPE",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "router_intake_receipt": {
+      "required_fields": [
+        "receipt_id",
+        "source_request_ref",
+        "idempotency_key",
+        "payload_hash",
+        "intake_status",
+        "readback_ref",
+        "duplicate_result",
+        "external_authority",
+        "raw_body_ingestion",
+        "credential_handling",
+        "created_at_policy"
+      ]
+    },
+    "router_readback_package": {
+      "required_fields": [
+        "readback_id",
+        "source_request_ref",
+        "intake_result_ref",
+        "cards",
+        "backend_package_target",
+        "operator_choices",
+        "missing_backend_rails",
+        "locked_actions",
+        "safe_display_summary",
+        "elioperator_summary",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "conversational_workflow_router_readback",
+  "relationship_refs": {
+    "handoff_registry": "cross_surface_artifact_handoff_registry_contract_v0",
+    "metadata_alignment": "cross_surface_handoff_registry_metadata_alignment_v0",
+    "router_contract": "conversational_workflow_router_contract_v0",
+    "workflow_memory_contract": "conversational_workflow_memory_contract_v0"
+  },
+  "route_mode": "NO_REQUEST_AVAILABLE",
+  "router_intake_receipt": {
+    "created_at_policy": "metadata-only deterministic readback timestamp; no SQLite write",
+    "credential_handling": false,
+    "duplicate_result": "NOT_PERSISTED_NO_DUPLICATE_CHECK",
+    "external_authority": false,
+    "idempotency_key": null,
+    "intake_status": "NEEDS_MORE_DETAIL",
+    "payload_hash": null,
+    "raw_body_ingestion": false,
+    "readback_ref": "router_readback_blocked_2efb6548b88c672cd25e",
+    "receipt_id": "router_intake_receipt_blocked_2efb6548b88c672cd25e",
+    "source_request_ref": "no_mission_control_chat_request_available"
+  },
+  "router_readback_package": {
+    "backend_package_target": {
+      "blocked_actions": [
+        "email send",
+        "Coupa access",
+        "browser automation",
+        "invoice submission",
+        "approval request",
+        "invoice generation",
+        "attachment",
+        "payment state change"
+      ],
+      "can_create_now": false,
+      "create_block_reason": "No safe deterministic package creation path is enabled in this rail.",
+      "next_safe_move": "Show cards to operator and ask whether the understanding looks right.",
+      "output_readback_target": "Mac human card readback",
+      "package_target_id": "router_backend_package_target_40d61df519dd9ced5d7d",
+      "package_type": "UNKNOWN_NEEDS_FRAMING",
+      "ready_actions": [
+        "show cards to operator",
+        "ask whether the understanding looks right",
+        "ask for missing Coupa/contact facts"
+      ],
+      "required_artifacts": [
+        "final invoice artifact path/hash",
+        "reviewed draft packet",
+        "approval packet"
+      ],
+      "required_gates": [
+        "operator review gate",
+        "artifact hash gate",
+        "protected evidence gate",
+        "Guardian/operator approval gate",
+        "external adapter gate"
+      ],
+      "required_inputs": [
+        "operator-reviewed understanding",
+        "confirmed Coupa PO/reference",
+        "confirmed recipient/contact"
+      ],
+      "required_proofs": [
+        "Coupa proof or not-required proof",
+        "Guardian/operator approval receipt",
+        "send/submit receipts before completion"
+      ],
+      "role_targets": [
+        "drafting_agent",
+        "finance_delivery_agent",
+        "protected_evidence_agent",
+        "approval_agent",
+        "artifact_generation_agent",
+        "post_office_handoff",
+        "final_readback_agent"
+      ],
+      "routed_intent_ref": "routed_intent_blocked_request",
+      "workflow_type": "unknown_needs_framing"
+    },
+    "cards": [
+      {
+        "bullets": [
+          "ELIOPERATOR: No Mission Control chat request is available at /mnt/e/openclaw/mission_control_capture_requests/inbox."
+        ],
+        "card_id": "router_card_request_blocked",
+        "card_type": "BLOCKED",
+        "next_safe_move": "Fix the request shape and retry.",
+        "operator_actions": [
+          "Edit understanding",
+          "Cancel"
+        ],
+        "proof_status": "BACKEND_READBACK_REQUIRED",
+        "title": "Request blocked",
+        "truth_status": "LOCKED_EXTERNAL_ACTION"
+      }
+    ],
+    "elioperator_summary": "ELIOPERATOR: The chat request did not pass safe intake validation.",
+    "intake_result_ref": "router_intake_result_blocked_2efb6548b88c672cd25e",
+    "locked_actions": [
+      "email send",
+      "Coupa access",
+      "browser automation",
+      "invoice submission",
+      "approval request",
+      "invoice generation",
+      "attachment",
+      "payment state change"
+    ],
+    "missing_backend_rails": [
+      "valid request shape"
+    ],
+    "next_safe_move": "Fix the request shape and retry.",
+    "operator_choices": [
+      {
+        "available_now": false,
+        "label": "Looks right"
+      },
+      {
+        "available_now": true,
+        "label": "Edit understanding"
+      },
+      {
+        "available_now": false,
+        "label": "Store as procedure later"
+      },
+      {
+        "available_now": false,
+        "label": "Prepare package later"
+      },
+      {
+        "available_now": true,
+        "label": "Cancel"
+      }
+    ],
+    "readback_id": "router_readback_blocked_2efb6548b88c672cd25e",
+    "safe_display_summary": "Request blocked before routing.",
+    "source_request_ref": "no_mission_control_chat_request_available"
+  },
+  "schema_version": "conversational_workflow_router_intake_v0",
+  "source_request_path": null,
+  "standard_blockers_by_id": {
+    "router_intake_blocker_agent_dispatch_attempted": {
+      "blocker_id": "router_intake_blocker_agent_dispatch_attempted",
+      "blocker_type": "AGENT_DISPATCH_ATTEMPTED",
+      "condition": "Router intake cannot dispatch agents.",
+      "elioperator_warning": "ELIOPERATOR: Router intake cannot dispatch agents.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_external_action_attempted": {
+      "blocker_id": "router_intake_blocker_external_action_attempted",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Router intake cannot perform email, Coupa, browser, send, submit, or approval actions.",
+      "elioperator_warning": "ELIOPERATOR: Router intake cannot perform email, Coupa, browser, send, submit, or approval actions.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_machine_contract_visible_to_operator": {
+      "blocker_id": "router_intake_blocker_machine_contract_visible_to_operator",
+      "blocker_type": "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+      "condition": "Mac cards must use human language, not schema or handler language.",
+      "elioperator_warning": "ELIOPERATOR: Mac cards must use human language, not schema or handler language.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_message_treated_as_truth": {
+      "blocker_id": "router_intake_blocker_message_treated_as_truth",
+      "blocker_type": "MESSAGE_TREATED_AS_TRUTH",
+      "condition": "Chat text is candidate meaning, not stored truth.",
+      "elioperator_warning": "ELIOPERATOR: Chat text is candidate meaning, not stored truth.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_missing_idempotency_key": {
+      "blocker_id": "router_intake_blocker_missing_idempotency_key",
+      "blocker_type": "MISSING_IDEMPOTENCY_KEY",
+      "condition": "Request must include idempotency_key.",
+      "elioperator_warning": "ELIOPERATOR: Request must include idempotency_key.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_missing_payload_hash": {
+      "blocker_id": "router_intake_blocker_missing_payload_hash",
+      "blocker_type": "MISSING_PAYLOAD_HASH",
+      "condition": "Request must include payload_hash.",
+      "elioperator_warning": "ELIOPERATOR: Request must include payload_hash.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_model_parser_claimed_but_not_available": {
+      "blocker_id": "router_intake_blocker_model_parser_claimed_but_not_available",
+      "blocker_type": "MODEL_PARSER_CLAIMED_BUT_NOT_AVAILABLE",
+      "condition": "No live model parser is available in this rail.",
+      "elioperator_warning": "ELIOPERATOR: No live model parser is available in this rail.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_procedure_memory_write_attempted": {
+      "blocker_id": "router_intake_blocker_procedure_memory_write_attempted",
+      "blocker_type": "PROCEDURE_MEMORY_WRITE_ATTEMPTED",
+      "condition": "Router intake cannot write procedure memory.",
+      "elioperator_warning": "ELIOPERATOR: Router intake cannot write procedure memory.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_raw_pii_in_normal_readmodel": {
+      "blocker_id": "router_intake_blocker_raw_pii_in_normal_readmodel",
+      "blocker_type": "RAW_PII_IN_NORMAL_READMODEL",
+      "condition": "Raw sensitive values must not enter normal read-models.",
+      "elioperator_warning": "ELIOPERATOR: Raw sensitive values must not enter normal read-models.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_unknown_fail_closed": {
+      "blocker_id": "router_intake_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Ambiguous router intake state fails closed.",
+      "elioperator_warning": "ELIOPERATOR: Ambiguous router intake state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_unsupported_request_shape": {
+      "blocker_id": "router_intake_blocker_unsupported_request_shape",
+      "blocker_type": "UNSUPPORTED_REQUEST_SHAPE",
+      "condition": "Request shape or filename pattern is unsupported.",
+      "elioperator_warning": "ELIOPERATOR: Request shape or filename pattern is unsupported.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    },
+    "router_intake_blocker_workflow_run_attempted": {
+      "blocker_id": "router_intake_blocker_workflow_run_attempted",
+      "blocker_type": "WORKFLOW_RUN_ATTEMPTED",
+      "condition": "Router intake cannot start a workflow run.",
+      "elioperator_warning": "ELIOPERATOR: Router intake cannot start a workflow run.",
+      "fail_closed": true,
+      "next_safe_move": "Reject or park the request until the shape is safe.",
+      "severity": "BLOCKS_SAFE_INTAKE"
+    }
+  },
+  "supported_filename_pattern": "mission_control_chat_request_*.json"
+}
