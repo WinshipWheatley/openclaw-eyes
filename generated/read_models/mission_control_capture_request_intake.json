@@ -450,7 +450,7 @@
       "world": "Finance"
     }
   ],
-  "generated_at": "2026-05-24T03:04:14+00:00",
+  "generated_at": "2026-05-24T04:03:47+00:00",
   "machine_proof": {
     "approval_send_prerequisite_not_directly_committed": true,
     "batch_capture_not_implemented": true,
@@ -459,7 +459,7 @@
     "closeout_says_what_openclaw_knows": true,
     "closeout_says_what_remains_blocked": true,
     "completion_closeout_exists": true,
-    "content_hash": "sha256:9d5d781293f3f06da3749991a810d36a455471660c659cdb96c13d7f763342c1",
+    "content_hash": "sha256:c401c758bda5101ca97802229bf5a5e137c32525f40bb955a0fd4287750132fc",
     "credential_material_included": false,
     "derived_subtotal_is_1600": true,
     "duplicate_retry_does_not_duplicate": true,
