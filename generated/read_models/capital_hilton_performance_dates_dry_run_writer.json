@@ -1,0 +1,777 @@
+{
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "all_live_authority_flags_false_except_dry_run_preview": true,
+    "approval_submission_allowed": false,
+    "blocked_actions": [
+      "live receipt write",
+      "live workflow state write",
+      "capture execution",
+      "invoice generation or preview render",
+      "email draft or send",
+      "approval submission",
+      "browser/Coupa/Gmail/Telegram/account access",
+      "credential handling",
+      "model/tool/agent/runtime/queue execution",
+      "workflow/evidence/runtime file write",
+      "raw private body ingestion"
+    ],
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "dry_run_preview_allowed": true,
+    "email_draft_allowed": false,
+    "email_send_allowed": false,
+    "file_write_allowed": false,
+    "generated_read_model_export_allowed_by_repo_pattern": true,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "invoice_generation_allowed": false,
+    "invoice_preview_render_allowed": false,
+    "ledger_write_allowed": false,
+    "live_capture_execution_allowed": false,
+    "live_receipt_write_allowed": false,
+    "live_state_write_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "capital_hilton_example": {
+    "added_dates": [
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "authority_missing": true,
+    "dry_run_status": "DRY_RUN_READY",
+    "example_id": "capital_hilton_may_22_29_dry_run_writer_example",
+    "idempotency_key": "dry_run:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:b6f394de96d726e12db5020422c48f2dfacc817ffc9cbb67abc88219b3409652",
+    "live_execution_performed": false,
+    "live_receipt_write_performed": false,
+    "live_state_write_performed": false,
+    "new_dates": [
+      "2026-05-08",
+      "2026-05-15",
+      "2026-05-22",
+      "2026-05-29"
+    ],
+    "payload_hash": "sha256:2f2360f7f9160685e7d2c69e59f47f94e9566bb4c4580ab50f088665336bec39",
+    "previous_dates": [
+      "2026-05-08",
+      "2026-05-15"
+    ],
+    "receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+    "show_count_after": 4,
+    "show_count_before": 2
+  },
+  "contract_id": "capital_hilton_performance_dates_dry_run_writer_v0",
+  "contract_status": "TEST_ONLY_DETERMINISTIC_DRY_RUN_WRITER_HARNESS",
+  "doctrine": {
+    "capture_is_not_execution": true,
+    "drafts_are_not_truth": true,
+    "dry_run_is_not_capture": true,
+    "gates_execute_later": true,
+    "receipts_prove_state_changes_later": true
+  },
+  "downstream_invalidation_preview_schema": {
+    "approval_reset_executed": false,
+    "artifact_regeneration_occurs": false,
+    "guardian_action_executed": false,
+    "model_name": "PerformanceDatesDryRunDownstreamInvalidationPreview",
+    "required_fields": [
+      "invalidation_preview_id",
+      "receipt_payload_preview_ref",
+      "invalidated_items",
+      "invalidation_reason",
+      "affected_blocks",
+      "affected_artifacts",
+      "affected_previews",
+      "regeneration_required",
+      "approval_reset_required",
+      "guardian_review_required",
+      "proof_coverage_required",
+      "next_safe_move"
+    ]
+  },
+  "downstream_invalidation_previews": [
+    {
+      "affected_artifacts": [
+        "invoice_packet_artifact",
+        "email_draft_attachment"
+      ],
+      "affected_blocks": [
+        "performance_dates",
+        "rate_confirmation",
+        "po_reference",
+        "invoice_packet",
+        "email_review",
+        "approval_send"
+      ],
+      "affected_previews": [
+        "invoice_packet_preview",
+        "prior_subtotal_preview",
+        "approval_packet_preview",
+        "proof_po_coverage_status"
+      ],
+      "approval_reset_required": true,
+      "guardian_review_required": false,
+      "invalidated_items": [
+        "invoice_packet_preview",
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview",
+        "prior_subtotal_preview",
+        "proof_po_coverage_status"
+      ],
+      "invalidation_preview_id": "capital_hilton_performance_dates_may_22_29_invalidation_preview",
+      "invalidation_reason": "Performance date set would change from two dates to four dates.",
+      "next_safe_move": "Keep these as dry-run invalidation effects only.",
+      "proof_coverage_required": true,
+      "receipt_payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "regeneration_required": true
+    }
+  ],
+  "downstream_invalidation_previews_by_id": {
+    "capital_hilton_performance_dates_may_22_29_invalidation_preview": {
+      "affected_artifacts": [
+        "invoice_packet_artifact",
+        "email_draft_attachment"
+      ],
+      "affected_blocks": [
+        "performance_dates",
+        "rate_confirmation",
+        "po_reference",
+        "invoice_packet",
+        "email_review",
+        "approval_send"
+      ],
+      "affected_previews": [
+        "invoice_packet_preview",
+        "prior_subtotal_preview",
+        "approval_packet_preview",
+        "proof_po_coverage_status"
+      ],
+      "approval_reset_required": true,
+      "guardian_review_required": false,
+      "invalidated_items": [
+        "invoice_packet_preview",
+        "invoice_packet_artifact",
+        "email_draft_attachment",
+        "approval_packet_preview",
+        "prior_subtotal_preview",
+        "proof_po_coverage_status"
+      ],
+      "invalidation_preview_id": "capital_hilton_performance_dates_may_22_29_invalidation_preview",
+      "invalidation_reason": "Performance date set would change from two dates to four dates.",
+      "next_safe_move": "Keep these as dry-run invalidation effects only.",
+      "proof_coverage_required": true,
+      "receipt_payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "regeneration_required": true
+    }
+  },
+  "dry_run_inputs": [
+    {
+      "added_dates": [
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "block_id": "performance_dates",
+      "current_dates": [
+        "2026-05-08",
+        "2026-05-15"
+      ],
+      "current_live_write_authority": false,
+      "dry_run_input_id": "capital_hilton_performance_dates_may_22_29_dry_run_input",
+      "next_safe_move": "Derive a dry-run receipt write preview without writing receipt or state.",
+      "operator_action_label": "Use this draft",
+      "proof_still_required": true,
+      "proposed_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "requested_receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "source_actor": "Winship",
+      "source_capture_candidate_ref": "capital_hilton_performance_dates_capture_boundary.capital_hilton_performance_dates_may_22_29_capture_candidate",
+      "source_surface": "Mission Control Finance World",
+      "source_writer_contract_ref": "capital_hilton_performance_dates_receipt_writer_contract.capital_hilton_performance_dates_may_22_29_write_request",
+      "validation_status": "VALID_CAPTURE_CANDIDATE",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    }
+  ],
+  "dry_run_inputs_by_id": {
+    "capital_hilton_performance_dates_may_22_29_dry_run_input": {
+      "added_dates": [
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "block_id": "performance_dates",
+      "current_dates": [
+        "2026-05-08",
+        "2026-05-15"
+      ],
+      "current_live_write_authority": false,
+      "dry_run_input_id": "capital_hilton_performance_dates_may_22_29_dry_run_input",
+      "next_safe_move": "Derive a dry-run receipt write preview without writing receipt or state.",
+      "operator_action_label": "Use this draft",
+      "proof_still_required": true,
+      "proposed_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "requested_receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "source_actor": "Winship",
+      "source_capture_candidate_ref": "capital_hilton_performance_dates_capture_boundary.capital_hilton_performance_dates_may_22_29_capture_candidate",
+      "source_surface": "Mission Control Finance World",
+      "source_writer_contract_ref": "capital_hilton_performance_dates_receipt_writer_contract.capital_hilton_performance_dates_may_22_29_write_request",
+      "validation_status": "VALID_CAPTURE_CANDIDATE",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    }
+  },
+  "dry_run_results": [
+    {
+      "authority_missing": true,
+      "blocked_actions": [
+        "live receipt write",
+        "live workflow state write",
+        "capture execution",
+        "invoice generation or preview render",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "workflow/evidence/runtime file write",
+        "raw private body ingestion"
+      ],
+      "dry_run_result_id": "capital_hilton_performance_dates_may_22_29_dry_run_result",
+      "dry_run_status": "DRY_RUN_READY",
+      "input_ref": "capital_hilton_performance_dates_may_22_29_dry_run_input",
+      "invalidation_preview_ref": "capital_hilton_performance_dates_may_22_29_invalidation_preview",
+      "live_execution_performed": false,
+      "live_receipt_write_performed": false,
+      "live_state_write_performed": false,
+      "next_safe_move": "Render dry-run readiness; require explicit future authority before any live write.",
+      "payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "state_update_preview_ref": "capital_hilton_performance_dates_may_22_29_state_update_preview",
+      "would_invalidate_downstream": true,
+      "would_update_state": true,
+      "would_write_receipt": true
+    }
+  ],
+  "dry_run_results_by_id": {
+    "capital_hilton_performance_dates_may_22_29_dry_run_result": {
+      "authority_missing": true,
+      "blocked_actions": [
+        "live receipt write",
+        "live workflow state write",
+        "capture execution",
+        "invoice generation or preview render",
+        "email draft or send",
+        "approval submission",
+        "browser/Coupa/Gmail/Telegram/account access",
+        "credential handling",
+        "model/tool/agent/runtime/queue execution",
+        "workflow/evidence/runtime file write",
+        "raw private body ingestion"
+      ],
+      "dry_run_result_id": "capital_hilton_performance_dates_may_22_29_dry_run_result",
+      "dry_run_status": "DRY_RUN_READY",
+      "input_ref": "capital_hilton_performance_dates_may_22_29_dry_run_input",
+      "invalidation_preview_ref": "capital_hilton_performance_dates_may_22_29_invalidation_preview",
+      "live_execution_performed": false,
+      "live_receipt_write_performed": false,
+      "live_state_write_performed": false,
+      "next_safe_move": "Render dry-run readiness; require explicit future authority before any live write.",
+      "payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "state_update_preview_ref": "capital_hilton_performance_dates_may_22_29_state_update_preview",
+      "would_invalidate_downstream": true,
+      "would_update_state": true,
+      "would_write_receipt": true
+    }
+  },
+  "dry_run_statuses": [
+    "DRY_RUN_READY",
+    "INVALID_INPUT",
+    "BLOCKED_BY_AUTHORITY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "dry_run_writer_input_schema": {
+    "block_id_must_be": "performance_dates",
+    "current_live_write_authority_must_remain_false": true,
+    "deterministic_test_only": true,
+    "model_name": "PerformanceDatesDryRunWriterInput",
+    "required_fields": [
+      "dry_run_input_id",
+      "source_capture_candidate_ref",
+      "source_writer_contract_ref",
+      "workflow_session_ref",
+      "block_id",
+      "current_dates",
+      "proposed_dates",
+      "added_dates",
+      "validation_status",
+      "operator_action_label",
+      "proof_still_required",
+      "requested_receipt_type",
+      "source_surface",
+      "source_actor",
+      "current_live_write_authority",
+      "next_safe_move"
+    ],
+    "validation_status_must_be": "VALID_CAPTURE_CANDIDATE"
+  },
+  "dry_run_writer_result_schema": {
+    "live_execution_performed": false,
+    "live_receipt_write_performed": false,
+    "live_state_write_performed": false,
+    "model_name": "PerformanceDatesDryRunWriterResult",
+    "required_fields": [
+      "dry_run_result_id",
+      "input_ref",
+      "payload_preview_ref",
+      "state_update_preview_ref",
+      "invalidation_preview_ref",
+      "would_write_receipt",
+      "would_update_state",
+      "would_invalidate_downstream",
+      "live_receipt_write_performed",
+      "live_state_write_performed",
+      "live_execution_performed",
+      "authority_missing",
+      "dry_run_status",
+      "blocked_actions",
+      "next_safe_move"
+    ]
+  },
+  "generated_at": "2026-05-24T01:48:02+00:00",
+  "hard_rule": {
+    "does_not_access_external_systems": true,
+    "does_not_call_models_agents_or_tools": true,
+    "does_not_create_email_drafts": true,
+    "does_not_generate_invoice_artifacts": true,
+    "does_not_mutate_workflow_state": true,
+    "does_not_send_anything": true,
+    "does_not_write_receipts": true,
+    "may_grant_live_authority": false,
+    "read_model_export_only": true,
+    "test_only_harness": true
+  },
+  "idempotency_hash_proof": {
+    "changed_dates_payload_hash": "sha256:4f291d9fd488f5085240ffdfcecc3db808a087828f1e06a31cfee90762bf71ad",
+    "duplicate_same_candidate_no_second_unique_write": true,
+    "generated_at_excluded_from_payload_hash": true,
+    "idempotency_key_fields": [
+      "workflow_session_ref",
+      "block_id",
+      "source_capture_candidate_ref",
+      "requested_receipt_type",
+      "proposed_dates"
+    ],
+    "payload_hash_changes_when_dates_change": true,
+    "same_input_idempotency_key": "dry_run:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:b6f394de96d726e12db5020422c48f2dfacc817ffc9cbb67abc88219b3409652",
+    "same_input_idempotency_key_again": "dry_run:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:b6f394de96d726e12db5020422c48f2dfacc817ffc9cbb67abc88219b3409652",
+    "same_input_payload_hash": "sha256:2f2360f7f9160685e7d2c69e59f47f94e9566bb4c4580ab50f088665336bec39",
+    "same_input_payload_hash_again": "sha256:2f2360f7f9160685e7d2c69e59f47f94e9566bb4c4580ab50f088665336bec39"
+  },
+  "machine_proof": {
+    "added_dates_explicit": true,
+    "all_live_authority_false_except_dry_run_preview": true,
+    "authority_missing": true,
+    "capital_hilton_may_22_29_example_present": true,
+    "content_hash": "sha256:c587b1ee29104064c1ba7639b3a7cc3108ba6166958ae500b3ddf6a4d245da21",
+    "credential_or_secret_included": false,
+    "downstream_invalidation_preview_model_present": true,
+    "downstream_invalidations_include_required_items": true,
+    "dry_run_result_model_present": true,
+    "dry_run_status_ready": true,
+    "dry_run_writer_input_model_present": true,
+    "idempotency_key_stable_for_same_input": true,
+    "payload_hash_changes_when_dates_change": true,
+    "payload_hash_stable_for_same_input": true,
+    "previous_new_dates_explicit": true,
+    "raw_private_body_included": false,
+    "receipt_payload_preview_model_present": true,
+    "show_count_changes_2_to_4": true,
+    "state_update_preview_model_present": true,
+    "would_invalidate_downstream_true_live_execution_false": true,
+    "would_update_state_true_live_state_write_false": true,
+    "would_write_receipt_true_live_receipt_write_false": true
+  },
+  "operator_summary": "This test-only dry-run writer proves the Capital Hilton May 22/29 capture candidate can deterministically produce receipt, state update, and invalidation previews without performing live writes.",
+  "read_model_id": "capital_hilton_performance_dates_dry_run_writer",
+  "receipt_payload_preview_schema": {
+    "idempotency_key_stable_for_same_input": true,
+    "model_name": "PerformanceDatesDryRunReceiptPayloadPreview",
+    "payload_hash_stable_for_same_input": true,
+    "proof_status_must_not_claim_external_proof": true,
+    "required_fields": [
+      "payload_preview_id",
+      "receipt_type",
+      "workflow_session_ref",
+      "block_id",
+      "previous_value",
+      "new_value",
+      "delta_summary",
+      "added_dates",
+      "normalized_dates",
+      "show_count_before",
+      "show_count_after",
+      "proof_status_after_capture",
+      "source_capture_candidate_ref",
+      "payload_hash",
+      "idempotency_key",
+      "authority_boundary",
+      "next_safe_move"
+    ]
+  },
+  "receipt_payload_previews": [
+    {
+      "added_dates": [
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "dry_run_preview_allowed": true,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "invoice_generation_allowed": false,
+        "invoice_preview_render_allowed": false,
+        "ledger_write_allowed": false,
+        "live_capture_execution_allowed": false,
+        "live_receipt_write_allowed": false,
+        "live_state_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "performance_dates",
+      "delta_summary": {
+        "added_dates": [
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "human_summary": "Add May 22 and May 29 to the Capital Hilton performance dates.",
+        "removed_dates": [],
+        "replaced_dates": [],
+        "show_count_after": 4,
+        "show_count_before": 2
+      },
+      "idempotency_key": "dry_run:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:b6f394de96d726e12db5020422c48f2dfacc817ffc9cbb67abc88219b3409652",
+      "new_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "show_count": 4
+      },
+      "next_safe_move": "Preview this receipt payload without writing it.",
+      "normalized_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "payload_hash": "sha256:2f2360f7f9160685e7d2c69e59f47f94e9566bb4c4580ab50f088665336bec39",
+      "payload_preview_id": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "previous_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "show_count": 2
+      },
+      "proof_status_after_capture": "operator_confirmed_dates_not_external_proof",
+      "receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "show_count_after": 4,
+      "show_count_before": 2,
+      "source_capture_candidate_ref": "capital_hilton_performance_dates_capture_boundary.capital_hilton_performance_dates_may_22_29_capture_candidate",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    }
+  ],
+  "receipt_payload_previews_by_id": {
+    "capital_hilton_performance_dates_may_22_29_payload_preview": {
+      "added_dates": [
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "authority_boundary": {
+        "agent_activation_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "dry_run_preview_allowed": true,
+        "email_draft_allowed": false,
+        "email_send_allowed": false,
+        "file_write_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "invoice_generation_allowed": false,
+        "invoice_preview_render_allowed": false,
+        "ledger_write_allowed": false,
+        "live_capture_execution_allowed": false,
+        "live_receipt_write_allowed": false,
+        "live_state_write_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_id": "performance_dates",
+      "delta_summary": {
+        "added_dates": [
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "human_summary": "Add May 22 and May 29 to the Capital Hilton performance dates.",
+        "removed_dates": [],
+        "replaced_dates": [],
+        "show_count_after": 4,
+        "show_count_before": 2
+      },
+      "idempotency_key": "dry_run:capital_hilton_invoice_workflow_session:performance_dates:OPERATOR_PERFORMANCE_DATES_ADDITION:b6f394de96d726e12db5020422c48f2dfacc817ffc9cbb67abc88219b3409652",
+      "new_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15",
+          "2026-05-22",
+          "2026-05-29"
+        ],
+        "show_count": 4
+      },
+      "next_safe_move": "Preview this receipt payload without writing it.",
+      "normalized_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "payload_hash": "sha256:2f2360f7f9160685e7d2c69e59f47f94e9566bb4c4580ab50f088665336bec39",
+      "payload_preview_id": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "previous_value": {
+        "performance_dates": [
+          "2026-05-08",
+          "2026-05-15"
+        ],
+        "show_count": 2
+      },
+      "proof_status_after_capture": "operator_confirmed_dates_not_external_proof",
+      "receipt_type": "OPERATOR_PERFORMANCE_DATES_ADDITION",
+      "show_count_after": 4,
+      "show_count_before": 2,
+      "source_capture_candidate_ref": "capital_hilton_performance_dates_capture_boundary.capital_hilton_performance_dates_may_22_29_capture_candidate",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session"
+    }
+  },
+  "relationship_to_existing_contracts": {
+    "agent_execution_packet_compiler_contract": {
+      "relationship": "agents may receive focused packets later but this harness runs no agents/tools/models",
+      "source_ref": "generated/read_models/agent_execution_packet_compiler_contract.json"
+    },
+    "bridge_routing_operator_attention_contract": {
+      "relationship": "future UI may route dry-run readiness to Finance World, not raw Helm telemetry",
+      "source_ref": "generated/read_models/bridge_routing_operator_attention_contract.json"
+    },
+    "capital_hilton_performance_dates_capture_boundary": {
+      "relationship": "accepts the valid May 22/29 capture candidate shape as dry-run input",
+      "source_ref": "generated/read_models/capital_hilton_performance_dates_capture_boundary.json"
+    },
+    "capital_hilton_performance_dates_receipt_writer_contract": {
+      "relationship": "proves the contract's future write request, receipt payload, state target, invalidation, idempotency, and dry-run result can be derived",
+      "source_ref": "generated/read_models/capital_hilton_performance_dates_receipt_writer_contract.json"
+    },
+    "workflow_block_intent_live_draft_contract": {
+      "relationship": "source block draft remains preview-only until a guarded writer is authorized later",
+      "source_ref": "generated/read_models/workflow_block_intent_live_draft_contract.json"
+    },
+    "workflow_session_channel_projection_approval_bus_contract": {
+      "relationship": "dry-run targets one canonical workflow session without channel-owned state",
+      "source_ref": "generated/read_models/workflow_session_channel_projection_approval_bus_contract.json"
+    }
+  },
+  "schema_version": "capital_hilton_performance_dates_dry_run_writer_v0",
+  "state_update_preview_schema": {
+    "model_name": "PerformanceDatesDryRunStateUpdatePreview",
+    "next_block_candidate": "rate_confirmation",
+    "required_fields": [
+      "state_update_preview_id",
+      "receipt_payload_preview_ref",
+      "canonical_workflow_state_ref",
+      "field_updates",
+      "expected_new_performance_dates",
+      "expected_show_count",
+      "next_block_candidate",
+      "dependent_fields_to_recalculate",
+      "stale_artifact_refs",
+      "stale_preview_refs",
+      "proof_requirements_after_update",
+      "current_state_write_authority",
+      "next_safe_move"
+    ],
+    "state_mutation_occurs": false
+  },
+  "state_update_previews": [
+    {
+      "canonical_workflow_state_ref": "workflow_session.capital_hilton_invoice_workflow_session.blocks.performance_dates",
+      "current_state_write_authority": false,
+      "dependent_fields_to_recalculate": [
+        "invoice_packet_dates",
+        "invoice_subtotal_after_rate_confirmation",
+        "email_attachment_preview_after_invoice_regeneration",
+        "proof_po_coverage_status"
+      ],
+      "expected_new_performance_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "expected_show_count": 4,
+      "field_updates": [
+        {
+          "after": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ],
+          "before": [
+            "2026-05-08",
+            "2026-05-15"
+          ],
+          "field": "performance_dates",
+          "operation": "replace_with_receipt_backed_value_later"
+        },
+        {
+          "after": 4,
+          "before": 2,
+          "field": "show_count",
+          "operation": "recalculate_from_performance_dates_later"
+        },
+        {
+          "after": "operator_confirmed_but_external_proof_needed",
+          "before": "proof_needed",
+          "field": "proof_status",
+          "operation": "set_later"
+        }
+      ],
+      "next_block_candidate": "rate_confirmation",
+      "next_safe_move": "Show the state update preview; do not mutate canonical state.",
+      "proof_requirements_after_update": [
+        "external proof for 2026-05-08",
+        "external proof for 2026-05-15",
+        "external proof or source pointer for 2026-05-22",
+        "external proof or source pointer for 2026-05-29",
+        "PO/reference coverage may need all four dates"
+      ],
+      "receipt_payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "stale_artifact_refs": [
+        "invoice_packet_artifact",
+        "email_draft_attachment"
+      ],
+      "stale_preview_refs": [
+        "invoice_packet_preview",
+        "prior_subtotal_preview",
+        "approval_packet_preview"
+      ],
+      "state_update_preview_id": "capital_hilton_performance_dates_may_22_29_state_update_preview"
+    }
+  ],
+  "state_update_previews_by_id": {
+    "capital_hilton_performance_dates_may_22_29_state_update_preview": {
+      "canonical_workflow_state_ref": "workflow_session.capital_hilton_invoice_workflow_session.blocks.performance_dates",
+      "current_state_write_authority": false,
+      "dependent_fields_to_recalculate": [
+        "invoice_packet_dates",
+        "invoice_subtotal_after_rate_confirmation",
+        "email_attachment_preview_after_invoice_regeneration",
+        "proof_po_coverage_status"
+      ],
+      "expected_new_performance_dates": [
+        "2026-05-08",
+        "2026-05-15",
+        "2026-05-22",
+        "2026-05-29"
+      ],
+      "expected_show_count": 4,
+      "field_updates": [
+        {
+          "after": [
+            "2026-05-08",
+            "2026-05-15",
+            "2026-05-22",
+            "2026-05-29"
+          ],
+          "before": [
+            "2026-05-08",
+            "2026-05-15"
+          ],
+          "field": "performance_dates",
+          "operation": "replace_with_receipt_backed_value_later"
+        },
+        {
+          "after": 4,
+          "before": 2,
+          "field": "show_count",
+          "operation": "recalculate_from_performance_dates_later"
+        },
+        {
+          "after": "operator_confirmed_but_external_proof_needed",
+          "before": "proof_needed",
+          "field": "proof_status",
+          "operation": "set_later"
+        }
+      ],
+      "next_block_candidate": "rate_confirmation",
+      "next_safe_move": "Show the state update preview; do not mutate canonical state.",
+      "proof_requirements_after_update": [
+        "external proof for 2026-05-08",
+        "external proof for 2026-05-15",
+        "external proof or source pointer for 2026-05-22",
+        "external proof or source pointer for 2026-05-29",
+        "PO/reference coverage may need all four dates"
+      ],
+      "receipt_payload_preview_ref": "capital_hilton_performance_dates_may_22_29_payload_preview",
+      "stale_artifact_refs": [
+        "invoice_packet_artifact",
+        "email_draft_attachment"
+      ],
+      "stale_preview_refs": [
+        "invoice_packet_preview",
+        "prior_subtotal_preview",
+        "approval_packet_preview"
+      ],
+      "state_update_preview_id": "capital_hilton_performance_dates_may_22_29_state_update_preview"
+    }
+  }
+}
