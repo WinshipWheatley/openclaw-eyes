@@ -21,7 +21,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from corpus_atlas import stable_json
-from generated_read_model_files import MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+from generated_read_model_files import (
+    MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+    MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+)
 from read_model_shuttle import (
     DEFAULT_MAC_DESTINATION_ROOT,
     build_mac_generated_read_model_manifest,
@@ -40,6 +43,7 @@ KEY_READ_MODEL_FILES = (
     "report_bridge.json",
     "context_selection.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+    *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
 )
 
 

@@ -54,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "package_path": result.package_path,
         "manifest_path": result.manifest_path,
+        "outbox_marker_path": result.outbox_marker_path,
         "file_count": result.file_count,
         "total_bytes": result.total_bytes,
         "copied_files": list(result.copied_files),

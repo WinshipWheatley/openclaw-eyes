@@ -52,6 +52,11 @@ MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
     "cassandra_governed_review_packet_request_proof_OPERATOR.md",
 )
 
+MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES = (
+    "mission_control_capture_request_intake.json",
+    "mission_control_capture_request_intake_OPERATOR.md",
+)
+
 VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
     "operator_threshold_map_contract.json",
     "operator_threshold_map_contract_OPERATOR.md",
@@ -84,6 +89,7 @@ CRITICAL_GENERATED_READ_MODEL_FILES = (
     "world_domain_registry.json",
     "world_status.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+    *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
 )
 
 
@@ -200,6 +206,7 @@ __all__ = [
     "CRITICAL_GENERATED_READ_MODEL_FILES",
     "DEFAULT_GENERATED_READ_MODEL_ROOT",
     "MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES",
+    "MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES",
     "NO_GO_FILE_HINTS",
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",

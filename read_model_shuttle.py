@@ -20,6 +20,7 @@ from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
 from generated_read_model_files import (
     DEFAULT_GENERATED_READ_MODEL_ROOT,
+    MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     NO_GO_FILE_HINTS,
     NO_GO_PARTS,
@@ -43,6 +44,9 @@ DEFAULT_TO_MAC_ROOT = DEFAULT_TRANSFER_ROOT / "shuttle" / "to_mac"
 DEFAULT_RETURNED_MANIFEST_PATH = DEFAULT_TRANSFER_ROOT / "mac_generated_read_models_manifest.json"
 DEFAULT_IMPORT_MANIFEST_PATH = Path("/home/openclaw/import_manifests/mac_generated_read_models_manifest.json")
 DEFAULT_MAC_DESTINATION_ROOT = "/Users/hwinshipwheatley/openclaw_generated_read_models"
+DEFAULT_CAPTURE_REQUEST_OUTBOX_PC_PATH = DEFAULT_TRANSFER_ROOT / "mission_control_capture_requests" / "inbox"
+DEFAULT_CAPTURE_REQUEST_OUTBOX_MAC_PATH = "/Volumes/openclaw_e/mission_control_capture_requests/inbox"
+CAPTURE_OUTBOX_MARKER_NAME = "MISSION_CONTROL_CAPTURE_OUTBOX_CONTRACT.json"
 MAC_GENERATED_ROOT_ID = "mac_generated_read_models"
 MAC_GENERATED_ROOT_KIND = "generated_read_model_mirror"
 DEFAULT_FROM_MAC_SEARCH_ROOTS = (
@@ -94,6 +98,10 @@ EVIDENCE_CATEGORY_BY_NAME = {
         name: "operator_review_packet"
         for name in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
     },
+    **{
+        name: "mission_control_capture_intake"
+        for name in MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES
+    },
 }
 
 
@@ -101,6 +109,7 @@ EVIDENCE_CATEGORY_BY_NAME = {
 class ShuttlePrepareResult:
     package_path: str
     manifest_path: str
+    outbox_marker_path: str
     file_count: int
     total_bytes: int
     copied_files: tuple[dict[str, Any], ...]
@@ -183,6 +192,41 @@ def _file_record(*, source_root: Path, source_path: Path, payload_path: Path) ->
     }
 
 
+def approved_capture_request_outbox_contract() -> dict[str, Any]:
+    return {
+        "contract_id": "mission_control_capture_request_outbox_v0",
+        "purpose": "bounded Mac-to-PC handoff path for visual-agnostic capture request JSON files",
+        "pc_outbox_path": DEFAULT_CAPTURE_REQUEST_OUTBOX_PC_PATH.as_posix(),
+        "mac_visible_outbox_path": DEFAULT_CAPTURE_REQUEST_OUTBOX_MAC_PATH,
+        "request_file_pattern": "mission_control_capture_request_*.json",
+        "allowed_schema_files": list(MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES),
+        "target_backend_intake": "scripts/import_mission_control_capture_request.py --file <capture_request.json>",
+        "supported_blocks": ["performance_dates", "rate_confirmation"],
+        "unsupported_in_this_lane": [
+            "batch capture",
+            "PO/Coupa capture",
+            "invoice generation",
+            "email draft/send",
+            "approval submission",
+            "browser/Coupa/Gmail/Telegram access",
+            "model/agent/tool/runtime execution",
+        ],
+        "mac_may_write_arbitrary_files": False,
+        "backend_validates_before_write": True,
+        "one_json_object_per_file": True,
+        "raw_private_bodies_allowed": False,
+        "credentials_allowed": False,
+        "network_required": False,
+        "runtime_authority": False,
+        "backend_execution_allowed": False,
+        "agent_activation_allowed": False,
+        "tool_execution_allowed": False,
+        "model_execution_allowed": False,
+        "truth_promotion_allowed": False,
+        "next_safe_move": "Mac writes one validated capture request JSON into this folder; PC intake validates and imports explicitly.",
+    }
+
+
 def prepare_mac_read_model_shuttle(
     *,
     source_root: str | Path = DEFAULT_SOURCE_ROOT,
@@ -213,6 +257,8 @@ def prepare_mac_read_model_shuttle(
             raise ValueError(f"size mismatch after copying {source_path}")
         file_records.append(record)
 
+    approved_outbox = approved_capture_request_outbox_contract()
+
     manifest = {
         "shuttle_manifest_version": SHUTTLE_VERSION,
         "generated_at": generated_at,
@@ -230,10 +276,15 @@ def prepare_mac_read_model_shuttle(
         "raw_private_bodies_included": False,
         "sqlite_databases_included": False,
         "import_manifests_included": False,
+        "approved_outbox_contracts": [approved_outbox],
+        "approved_capture_request_outbox_marker": CAPTURE_OUTBOX_MARKER_NAME,
         "claims_not_made": list(CLAIMS_NOT_MADE),
     }
     manifest_path = package / "shuttle_manifest.json"
     manifest_path.write_text(stable_json(manifest), encoding="utf-8")
+
+    outbox_marker_path = package / CAPTURE_OUTBOX_MARKER_NAME
+    outbox_marker_path.write_text(stable_json(approved_outbox), encoding="utf-8")
 
     apply_path = package / "APPLY_ON_MAC.sh"
     apply_path.write_text(mac_apply_script(), encoding="utf-8")
@@ -257,6 +308,12 @@ def prepare_mac_read_model_shuttle(
                 "It then verifies sizes and hashes, writes `mac_generated_read_models_manifest.json`,",
                 "and writes `RETURN_TO_PC_README.txt`.",
                 "",
+                "Approved capture-request outbox:",
+                f"- Mac-visible path: `{DEFAULT_CAPTURE_REQUEST_OUTBOX_MAC_PATH}`",
+                f"- PC path: `{DEFAULT_CAPTURE_REQUEST_OUTBOX_PC_PATH.as_posix()}`",
+                f"- Marker: `{CAPTURE_OUTBOX_MARKER_NAME}`",
+                "- Mac may place only visual-agnostic capture request JSON files there.",
+                "",
                 "This package does not grant runtime, agent, tool, model, container, network, or truth-promotion authority.",
             ]
         )
@@ -267,6 +324,7 @@ def prepare_mac_read_model_shuttle(
     return ShuttlePrepareResult(
         package_path=package.as_posix(),
         manifest_path=manifest_path.as_posix(),
+        outbox_marker_path=outbox_marker_path.as_posix(),
         file_count=len(file_records),
         total_bytes=sum(record["size_bytes"] for record in file_records),
         copied_files=tuple(file_records),
@@ -449,6 +507,8 @@ category_by_name = {
     "capital_hilton_actionable_review_packet_OPERATOR.md": "operator_review_packet",
     "cassandra_governed_review_packet_request_proof.json": "operator_review_packet",
     "cassandra_governed_review_packet_request_proof_OPERATOR.md": "operator_review_packet",
+    "mission_control_capture_request_intake.json": "mission_control_capture_intake",
+    "mission_control_capture_request_intake_OPERATOR.md": "mission_control_capture_intake",
 }
 
 def stable_json(payload):
@@ -640,6 +700,7 @@ def format_prepare_result(result: ShuttlePrepareResult) -> str:
         "",
         f"Package: `{result.package_path}`",
         f"Manifest: `{result.manifest_path}`",
+        f"Outbox marker: `{result.outbox_marker_path}`",
         f"Files: {result.file_count}",
         f"Total bytes: {result.total_bytes}",
         "",
@@ -654,6 +715,7 @@ def format_prepare_result(result: ShuttlePrepareResult) -> str:
             "",
             "Boundary:",
             "- Package contains generated read-model/operator files only.",
+            "- Capture outbox marker defines the bounded Mac-visible request folder; it does not authorize arbitrary file writes.",
             "- No runtime, backend, agent, tool, model, container, network, or truth-promotion authority is granted.",
             "",
             "Next Mac step:",
@@ -696,6 +758,9 @@ def format_import_result(result: ShuttleImportResult) -> str:
 
 
 __all__ = [
+    "CAPTURE_OUTBOX_MARKER_NAME",
+    "DEFAULT_CAPTURE_REQUEST_OUTBOX_MAC_PATH",
+    "DEFAULT_CAPTURE_REQUEST_OUTBOX_PC_PATH",
     "DEFAULT_FROM_MAC_SEARCH_ROOTS",
     "DEFAULT_MAC_DESTINATION_ROOT",
     "DEFAULT_RETURNED_MANIFEST_PATH",
@@ -705,6 +770,7 @@ __all__ = [
     "NO_AUTHORITY_FLAGS",
     "ShuttleImportResult",
     "ShuttlePrepareResult",
+    "approved_capture_request_outbox_contract",
     "build_mac_generated_read_model_manifest",
     "format_import_result",
     "format_prepare_result",

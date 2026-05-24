@@ -15,7 +15,10 @@ if str(ROOT) not in sys.path:
 
 from business_ops_ledger import DEFAULT_DB_PATH
 from corpus_atlas import stable_json
-from generated_read_model_files import MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+from generated_read_model_files import (
+    MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+    MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+)
 from mac_mirror_atlas import format_mac_mirror_report
 from read_model_shuttle import (
     DEFAULT_IMPORT_MANIFEST_PATH,
@@ -31,6 +34,7 @@ CRITICAL_READ_MODEL_FILES = (
     "report_bridge.json",
     "context_selection.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+    *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
 )
 
 
